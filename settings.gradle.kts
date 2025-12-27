@@ -17,3 +17,5 @@ dependencyResolutionManagement {
         google()
     }
 }
+
+include(":jetwhale-debugger-protocol")

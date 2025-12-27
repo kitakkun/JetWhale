@@ -1,10 +1,31 @@
 [versions]
 jetwhale = "0.0.1-alpha01"
+
+# kotlin
+kotlin = "2.2.20"
 kotlinDsl = "6.4.1"
+kotlinxSerializationJson = "1.9.0"
+
+[libraries]
+# Gradle Plugins
+kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlinxSerializationGradlePlugin = { module = "org.jetbrains.kotlin.plugin.serialization:org.jetbrains.kotlin.plugin.serialization.gradle.plugin", version.ref = "kotlin" }
+
+# kotlinx
+kotlinxSerializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 
 [bundles]
 gradlePlugins = [
+    "kotlinGradlePlugin",
+    "kotlinxSerializationGradlePlugin",
 ]
 
 [plugins]
+# kotlin
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinDsl = { id = "org.gradle.kotlin.kotlin-dsl", version.ref = "kotlinDsl" }
+kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+# conventions
+multiplatform = { id = "multiplatform" }
+serialization = { id = "serialization" }
