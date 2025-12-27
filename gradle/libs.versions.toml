@@ -1,2 +1,10 @@
 [versions]
 jetwhale = "0.0.1-alpha01"
+kotlinDsl = "6.4.1"
+
+[bundles]
+gradlePlugins = [
+]
+
+[plugins]
+kotlinDsl = { id = "org.gradle.kotlin.kotlin-dsl", version.ref = "kotlinDsl" }
