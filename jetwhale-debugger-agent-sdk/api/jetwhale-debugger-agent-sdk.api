@@ -1,0 +1,23 @@
+public abstract interface class com/kitakkun/jetwhale/debugger/agent/sdk/JetWhaleAgentPlugin {
+	public abstract fun configure (Lcom/kitakkun/jetwhale/debugger/agent/sdk/JetWhaleSessionConfigurator;)V
+	public abstract fun getPluginId ()Ljava/lang/String;
+}
+
+public abstract interface class com/kitakkun/jetwhale/debugger/agent/sdk/JetWhaleFlowCollectorScope : kotlinx/coroutines/CoroutineScope {
+	public abstract fun send (Ljava/lang/Object;Lkotlinx/serialization/KSerializer;)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/debugger/agent/sdk/JetWhaleMessagingService {
+	public abstract fun enqueueMessage (Ljava/lang/String;Ljava/lang/String;)V
+	public abstract fun startService (Ljava/lang/String;I)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/debugger/agent/sdk/JetWhaleSessionConfigurator {
+	public abstract fun getScope ()Lcom/kitakkun/jetwhale/debugger/agent/sdk/JetWhaleFlowCollectorScope;
+	public abstract fun registerMethodHandler (Lcom/kitakkun/jetwhale/debugger/agent/sdk/RawJsonMethodHandler;)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/debugger/agent/sdk/RawJsonMethodHandler {
+	public abstract fun handleRawJsonMethod (Lkotlinx/serialization/json/Json;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
