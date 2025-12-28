@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 include(":jetwhale-debugger-protocol")
 
 include(":jetwhale-debugger-agent-sdk")
+include(":jetwhale-debugger-agent-runtime")
