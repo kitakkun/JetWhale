@@ -6,10 +6,14 @@ kotlin = "2.2.20"
 kotlinDsl = "6.4.1"
 kotlinxSerializationJson = "1.9.0"
 
+# android
+androidGradlePlugin = "8.13.2"
+
 [libraries]
 # Gradle Plugins
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinxSerializationGradlePlugin = { module = "org.jetbrains.kotlin.plugin.serialization:org.jetbrains.kotlin.plugin.serialization.gradle.plugin", version.ref = "kotlin" }
+androidKotlinMultiplatformLibraryGradlePlugin = { module = "com.android.kotlin.multiplatform.library:com.android.kotlin.multiplatform.library.gradle.plugin", version.ref = "androidGradlePlugin" }
 
 # kotlinx
 kotlinxSerializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
@@ -18,6 +22,7 @@ kotlinxSerializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serializati
 gradlePlugins = [
     "kotlinGradlePlugin",
     "kotlinxSerializationGradlePlugin",
+    "androidKotlinMultiplatformLibraryGradlePlugin"
 ]
 
 [plugins]
@@ -25,6 +30,9 @@ gradlePlugins = [
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinDsl = { id = "org.gradle.kotlin.kotlin-dsl", version.ref = "kotlinDsl" }
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+# android
+androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "androidGradlePlugin" }
 
 # conventions
 multiplatform = { id = "multiplatform" }
