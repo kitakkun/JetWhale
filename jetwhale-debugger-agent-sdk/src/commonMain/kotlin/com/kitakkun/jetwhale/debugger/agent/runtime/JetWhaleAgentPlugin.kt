@@ -56,3 +56,18 @@ public inline fun <reified Event> buildJetWhaleAgentPlugin(
         override val methodHandler: MethodHandler = onReceiveMethod
     }
 }
+
+@OptIn(InternalJetWhaleApi::class)
+public inline fun <reified Event> buildJetWhaleAgentPlugin(
+    pluginId: String,
+    pluginVersion: String,
+    onReceiveMethod: MethodHandler,
+    eventDispatcher: EventDispatcher<Event> = DropIfDisconnectedDispatcher(),
+): JetWhaleAgentPlugin<Event> {
+    return object : JetWhaleAgentPlugin<Event> {
+        override val pluginId: String get() = pluginId
+        override val pluginVersion: String get() = pluginVersion
+        override val eventDispatcher: EventDispatcher<Event> = eventDispatcher
+        override val methodHandler: MethodHandler = onReceiveMethod
+    }
+}

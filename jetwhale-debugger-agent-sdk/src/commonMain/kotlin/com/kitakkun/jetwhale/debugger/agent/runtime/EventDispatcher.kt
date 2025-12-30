@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.debugger.protocol.serialization.JetWhaleJson
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 
 /**
  * Dispatches events to the debugger.
@@ -96,6 +97,15 @@ internal class BufferedEventDispatcher<Event> internal constructor(
 }
 
 /**
+ * Creates a [DropIfDisconnectedDispatcher] for the specified [Event] type.
+ */
+@Suppress("FunctionName")
+@OptIn(InternalJetWhaleApi::class)
+public inline fun <reified Event> DropIfDisconnectedDispatcher(): EventDispatcher<Event> {
+    return DropIfDisconnectedDispatcher(serializer())
+}
+
+/**
  * Creates a [DropIfDisconnectedDispatcher] with the specified [eventSerializer].
  *
  * @param eventSerializer The serializer for the event type.
@@ -108,6 +118,22 @@ public fun <Event> DropIfDisconnectedDispatcher(
     return DropIfDisconnectedDispatcher(
         eventSerializer = eventSerializer,
         json = JetWhaleJson
+    )
+}
+
+/**
+ * Creates a [BufferedEventDispatcher] for the specified [Event] type and [bufferSize].
+ *
+ * @param bufferSize The maximum number of events to buffer.
+ */
+@Suppress("FunctionName")
+@OptIn(InternalJetWhaleApi::class)
+public inline fun <reified Event> BufferedEventDispatcher(
+    bufferSize: Int,
+): EventDispatcher<Event> {
+    return BufferedEventDispatcher(
+        eventSerializer = serializer(),
+        bufferSize = bufferSize,
     )
 }
 
