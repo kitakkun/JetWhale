@@ -9,9 +9,15 @@ import kotlinx.serialization.serializer
 
 /**
  * Handles method calls from the debugger.
+ *
+ * Do not implement this interface directly; use [MethodHandler] builder function instead.
  */
 @InternalJetWhaleApi
 public interface MethodHandler {
+    /**
+     * @param methodPayload The serialized method payload received from the debugger.
+     * Note that it must be deserialized before use.
+     */
     @InternalJetWhaleApi
     public suspend fun handle(methodPayload: String): String
 }
