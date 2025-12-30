@@ -12,6 +12,7 @@ dependencies {
 
     implementation(libs.soilQueryCompose)
     implementation(libs.soilReacty)
+    implementation(libs.lifecycleRuntimeCompose)
 }
 
 compose.resources {

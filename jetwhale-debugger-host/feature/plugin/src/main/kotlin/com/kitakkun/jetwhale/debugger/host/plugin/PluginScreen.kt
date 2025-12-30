@@ -22,6 +22,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeScenePointer
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import soil.plant.compose.reacty.LocalCatchThrowHost
 import soil.query.core.uuid
 
@@ -40,8 +41,11 @@ fun PluginScreen(pluginComposeScene: ComposeScene) {
         }
     }
 
-    LaunchedEffect(Unit) {
+    LifecycleResumeEffect(Unit) {
         focusRequester.requestFocus()
+        onPauseOrDispose {
+            focusRequester.freeFocus()
+        }
     }
 
     Canvas(
