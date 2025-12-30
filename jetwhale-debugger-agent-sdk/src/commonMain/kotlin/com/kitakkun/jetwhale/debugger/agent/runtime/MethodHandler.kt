@@ -10,7 +10,9 @@ import kotlinx.serialization.serializer
 /**
  * Handles method calls from the debugger.
  */
+@InternalJetWhaleApi
 public interface MethodHandler {
+    @InternalJetWhaleApi
     public suspend fun handle(methodPayload: String): String
 }
 
@@ -20,6 +22,7 @@ public interface MethodHandler {
  * @param Method The type of the method to be handled.
  * @param MethodResult The type of the result returned by the method handler.
  */
+@OptIn(InternalJetWhaleApi::class)
 public class MethodHandlerImpl<Method, MethodResult>(
     private val json: Json,
     private val methodDeserializer: DeserializationStrategy<Method>,

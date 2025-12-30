@@ -21,6 +21,7 @@ public interface JetWhaleAgentPlugin<Event> {
     /**
      * Handler to process method calls from the debugger.
      */
+    @OptIn(InternalJetWhaleApi::class)
     public val methodHandler: MethodHandler
 
     /**
@@ -53,6 +54,7 @@ public inline fun <reified Event> buildJetWhaleAgentPlugin(
     }
 }
 
+@OptIn(InternalJetWhaleApi::class)
 public fun buildJetWhalePrimitiveAgentPlugin(
     pluginId: String,
     pluginVersion: String,
