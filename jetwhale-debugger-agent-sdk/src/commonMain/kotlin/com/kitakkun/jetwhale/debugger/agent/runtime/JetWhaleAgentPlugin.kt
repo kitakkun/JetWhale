@@ -22,7 +22,7 @@ public interface JetWhaleAgentPlugin<Event> {
      * Handler to process method calls from the debugger.
      */
     @OptIn(InternalJetWhaleApi::class)
-    public val methodHandler: MethodHandler
+    public val debuggerMethodHandler: DebuggerMethodHandler
 
     /**
      * Dispatcher to send events to the debugger.
@@ -43,14 +43,14 @@ public interface JetWhaleAgentPlugin<Event> {
 public inline fun <reified Event> buildJetWhaleAgentPlugin(
     pluginId: String,
     pluginVersion: String,
-    onReceiveMethod: MethodHandler,
+    debuggerMethodHandler: DebuggerMethodHandler,
     eventDispatcher: EventDispatcher<Event> = DropIfDisconnectedDispatcher(),
 ): JetWhaleAgentPlugin<Event> {
     return object : JetWhaleAgentPlugin<Event> {
         override val pluginId: String get() = pluginId
         override val pluginVersion: String get() = pluginVersion
         override val eventDispatcher: EventDispatcher<Event> = eventDispatcher
-        override val methodHandler: MethodHandler = onReceiveMethod
+        override val debuggerMethodHandler: DebuggerMethodHandler = debuggerMethodHandler
     }
 }
 
@@ -58,13 +58,13 @@ public inline fun <reified Event> buildJetWhaleAgentPlugin(
 public fun buildJetWhalePrimitiveAgentPlugin(
     pluginId: String,
     pluginVersion: String,
-    onReceiveMethod: MethodHandler,
+    debuggerMethodHandler: DebuggerMethodHandler,
     eventDispatcher: EventDispatcher<String> = DropIfDisconnectedDispatcher(),
 ): JetWhaleAgentPlugin<String> {
     return buildJetWhaleAgentPlugin<String>(
         pluginId = pluginId,
         pluginVersion = pluginVersion,
-        onReceiveMethod = onReceiveMethod,
+        debuggerMethodHandler = debuggerMethodHandler,
         eventDispatcher = eventDispatcher,
     )
 }
