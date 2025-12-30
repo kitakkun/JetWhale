@@ -18,6 +18,7 @@ val JetWhaleJson = Json {
     classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS
     ignoreUnknownKeys = true
     isLenient = true
+    encodeDefaults = true
 }
 
 /**
