@@ -1,8 +1,0 @@
-package com.kitakkun.jetwhale.debugger.agent.sdk
-
-import kotlinx.coroutines.flow.Flow
-
-internal interface JetWhaleSocketClient {
-    suspend fun sendMessage(pluginId: String, message: String)
-    suspend fun openConnection(host: String, port: Int): Flow<String>
-}
