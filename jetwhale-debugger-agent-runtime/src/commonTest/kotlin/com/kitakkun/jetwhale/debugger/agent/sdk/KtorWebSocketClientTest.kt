@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.debugger.agent.runtime
+package com.kitakkun.jetwhale.debugger.agent.sdk
 
 import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.debugger.protocol.negotiation.JetWhaleAgentNegotiationRequest

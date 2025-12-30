@@ -1,5 +1,9 @@
-package com.kitakkun.jetwhale.debugger.agent.runtime
+package com.kitakkun.jetwhale.debugger.agent.sdk
 
+import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
+import com.kitakkun.jetwhale.agent.sdk.JetWhaleEventSender
+import com.kitakkun.jetwhale.agent.sdk.JetWhaleMessagingService
+import com.kitakkun.jetwhale.agent.sdk.SenderAttachable
 import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.debugger.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.debugger.protocol.core.JetWhaleDebuggerEvent

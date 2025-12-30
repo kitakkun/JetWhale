@@ -1,5 +1,7 @@
-package com.kitakkun.jetwhale.debugger.agent.runtime
+package com.kitakkun.jetwhale.debugger.agent.sdk
 
+import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
+import com.kitakkun.jetwhale.agent.sdk.JetWhaleMessagingService
 import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.debugger.protocol.serialization.JetWhaleJson
 import io.ktor.client.HttpClient

@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.debugger.agent.runtime
+package com.kitakkun.jetwhale.agent.sdk
 
 /**
  * An interface representing the messaging service for communicating with the JetWhale debugger server.

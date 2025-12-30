@@ -14,7 +14,7 @@ kotlin {
         enabled.set(true)
     }
 
-    androidLibrary.namespace = "com.kitakkun.jetwhale.debugger.agent.sdk"
+    androidLibrary.namespace = "com.kitakkun.jetwhale.agent.sdk"
 }
 
 dependencies {

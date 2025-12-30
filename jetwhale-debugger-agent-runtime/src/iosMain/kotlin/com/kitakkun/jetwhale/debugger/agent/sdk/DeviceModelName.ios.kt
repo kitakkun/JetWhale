@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.debugger.agent.runtime
+package com.kitakkun.jetwhale.debugger.agent.sdk
 
 import platform.UIKit.UIDevice
 
