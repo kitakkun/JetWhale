@@ -11,7 +11,7 @@ inline fun withScreenContext(block: ScreenContext.() -> Unit) {
 @RequiresOptIn(
     message = "Using ScreenContext explicitly is discouraged. " +
         "Use context receivers instead to propagate ScreenContext implicitly." +
-        "If you really need to use it explicitly, please annotate your usage with @ExplictScreenContextUsage.",
+        "If you really need to use it explicitly, please annotate your usage with @ExplicitScreenContextUsage.",
     level = RequiresOptIn.Level.WARNING,
 )
 annotation class ExplicitScreenContextUsage
