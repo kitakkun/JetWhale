@@ -29,14 +29,16 @@ class DefaultPluginRepository : PluginRepository {
     override suspend fun loadPluginFactory(pluginJarPath: String) {
         try {
             val classLoader = URLClassLoader(arrayOf(Path(pluginJarPath).toUri().toURL()))
-            val factoryClass: JetWhaleHostPluginFactory = ServiceLoader.load(JetWhaleHostPluginFactory::class.java, classLoader).singleOrNull() ?: return
+            val factoryClasses: List<JetWhaleHostPluginFactory> = ServiceLoader.load(JetWhaleHostPluginFactory::class.java, classLoader).toList()
 
-            mutablePluginFactoriesFlow.update {
-                it.toMutableMap().apply {
-                    put(factoryClass.meta.pluginId, factoryClass)
+            mutablePluginFactoriesFlow.update { pluginFactories ->
+                pluginFactories.toMutableMap().apply {
+                    factoryClasses.forEach {
+                        put(it.meta.pluginId, it)
+                        println("Loaded plugin: ${it.meta}")
+                    }
                 }.toPersistentMap()
             }
-            println("Loaded plugin: ${factoryClass.meta}")
         } catch (e: Throwable) {
             println("Failed to load plugin from $pluginJarPath: ${e.message}")
         }
