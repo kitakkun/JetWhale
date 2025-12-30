@@ -21,7 +21,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 /**
- * Fails on macOS with NotImplementedError: Websockets for native are not supported
+ * Fails on macOS and iOS with NotImplementedError: Websockets for native are not supported
  */
 class KtorWebSocketClientTest {
     @Suppress("UnusedFlow")
