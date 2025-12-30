@@ -22,3 +22,5 @@ include(":jetwhale-debugger-protocol")
 
 include(":jetwhale-debugger-agent-sdk")
 include(":jetwhale-debugger-agent-runtime")
+
+include(":jetwhale-debugger-host-sdk")

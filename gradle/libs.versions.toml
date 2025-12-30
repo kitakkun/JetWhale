@@ -10,6 +10,8 @@ kotlinxCoroutines = "1.10.2"
 # android
 androidGradlePlugin = "8.13.2"
 
+
+jetbrainsCompose = "1.9.3"
 ktor = "3.3.3"
 kermit = "2.0.8"
 
@@ -17,6 +19,8 @@ kermit = "2.0.8"
 # Gradle Plugins
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinxSerializationGradlePlugin = { module = "org.jetbrains.kotlin.plugin.serialization:org.jetbrains.kotlin.plugin.serialization.gradle.plugin", version.ref = "kotlin" }
+jetbrainsComposeGradlePlugin = { module = "org.jetbrains.compose:org.jetbrains.compose.gradle.plugin", version.ref = "jetbrainsCompose" }
+composeCompilerGradlePlugin = { module = "org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin", version.ref = "kotlin" }
 androidKotlinMultiplatformLibraryGradlePlugin = { module = "com.android.kotlin.multiplatform.library:com.android.kotlin.multiplatform.library.gradle.plugin", version.ref = "androidGradlePlugin" }
 
 # kotlin
@@ -41,6 +45,8 @@ kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 [bundles]
 gradlePlugins = [
     "kotlinGradlePlugin",
+    "jetbrainsComposeGradlePlugin",
+    "composeCompilerGradlePlugin",
     "kotlinxSerializationGradlePlugin",
     "androidKotlinMultiplatformLibraryGradlePlugin"
 ]
@@ -54,12 +60,17 @@ ktorClient = [
 
 [plugins]
 # kotlin
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinDsl = { id = "org.gradle.kotlin.kotlin-dsl", version.ref = "kotlinDsl" }
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
 # android
 androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "androidGradlePlugin" }
+
+# compose
+jetbrainsCompose = { id = "org.jetbrains.compose", version.ref = "jetbrainsCompose" }
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
 # conventions
 multiplatform = { id = "multiplatform" }
