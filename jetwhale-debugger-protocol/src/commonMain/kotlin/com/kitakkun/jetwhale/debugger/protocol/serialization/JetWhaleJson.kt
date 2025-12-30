@@ -19,6 +19,7 @@ val JetWhaleJson = Json {
     ignoreUnknownKeys = true
     isLenient = true
     encodeDefaults = true
+    explicitNulls = true
 }
 
 /**
