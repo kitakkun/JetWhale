@@ -29,6 +29,7 @@ class DefaultPluginComposeSceneRepository(
         sessionId: String,
         density: Density,
     ): ComposeScene {
+        println("Creating plugin scene for pluginId=$pluginId, sessionId=$sessionId")
         val pluginInstance = pluginRepository.getOrPutPluginInstanceForSession(
             pluginId = pluginId,
             sessionId = sessionId,
@@ -48,6 +49,8 @@ class DefaultPluginComposeSceneRepository(
                         )
                     }
                 }
+            }.also {
+                println("Plugin scene created for pluginId=$pluginId, sessionId=$sessionId $it")
             }
         }
     }

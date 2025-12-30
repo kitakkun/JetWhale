@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.debugger.host.data.plugin
 
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.unit.Density
 import com.kitakkun.jetwhale.debugger.host.model.PluginComposeSceneQueryKey
 import com.kitakkun.jetwhale.debugger.host.model.PluginComposeSceneRepository
@@ -10,6 +11,7 @@ import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
+import soil.query.QueryContentCacheable
 import soil.query.QueryId
 import soil.query.buildQueryKey
 
@@ -30,4 +32,8 @@ class DefaultPluginComposeSceneQueryKey(
             density = density,
         )
     }
-)
+) {
+    override val contentCacheable: QueryContentCacheable<ComposeScene>
+        // Disable caching to avoid issues with ComposeScene re-use when session is resumed
+        get() = { false }
+}

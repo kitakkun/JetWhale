@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.debugger.host.data.server
 
-import com.kitakkun.jetwhale.debugger.host.model.ADBTransportConfigurator
+import com.kitakkun.jetwhale.debugger.host.model.ADBAutoWiringService
 import com.kitakkun.jetwhale.debugger.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.debugger.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.debugger.host.model.DebugWebSocketServerStatus
@@ -48,7 +48,7 @@ import java.util.UUID
 class DefaultDebugWebSocketServer(
     private val json: Json,
     private val sessionNegotiator: WebSocketSessionNegotiator,
-    private val adbTransportConfigurator: ADBTransportConfigurator,
+    private val adbAutoWiringService: ADBAutoWiringService,
     private val pluginsRepository: PluginRepository,
     private val sessionRepository: DebugSessionRepository,
     private val settingsRepository: DebuggerSettingsRepository,
@@ -141,7 +141,7 @@ class DefaultDebugWebSocketServer(
                 DebugWebSocketServerStatus.Started(host, port)
             }
             if (settingsRepository.adbAutoPortMappingEnabledFlow.value) {
-                adbTransportConfigurator.mapLocalPortToDevicePort(port)
+                adbAutoWiringService.startAutoWiring(port)
                 adbPortWiringPerformed = true
             }
         }
@@ -149,7 +149,7 @@ class DefaultDebugWebSocketServer(
         monitor.subscribe(ApplicationStopped) {
             mutableStatusFlow.update { DebugWebSocketServerStatus.Stopped }
             if (adbPortWiringPerformed) {
-                adbTransportConfigurator.resetPortMappingForHostPort(port)
+                adbAutoWiringService.stopAutoWiring(port)
             }
         }
 
