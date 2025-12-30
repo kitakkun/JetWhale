@@ -11,6 +11,7 @@ configure<KotlinMultiplatformExtension> {
     jvmToolchain(17)
     iosX64()
     iosArm64()
+    iosSimulatorArm64()
     macosX64()
     macosArm64()
     mingwX64()
