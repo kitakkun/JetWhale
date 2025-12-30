@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.debugger.host.architecture.EventEffect
 import com.kitakkun.jetwhale.debugger.host.architecture.EventFlow
 import com.kitakkun.jetwhale.debugger.host.model.AppearanceSettings
 import com.kitakkun.jetwhale.debugger.host.model.DebuggerBehaviorSettings
+import com.kitakkun.jetwhale.debugger.host.model.DebuggingToolsDiagnostics
 import com.kitakkun.jetwhale.debugger.host.settings.SettingsScreenContext
 import soil.query.compose.rememberMutation
 
@@ -14,6 +15,7 @@ fun generalSettingsScreenPresenter(
     eventFlow: EventFlow<GeneralSettingsScreenEvent>,
     debuggerBehaviorSettings: DebuggerBehaviorSettings,
     appearanceSettings: AppearanceSettings,
+    diagnostics: DebuggingToolsDiagnostics,
 ): GeneralSettingsScreenUiState {
     val appLanguageMutation = rememberMutation(screenContext.appLanguageMutationKey)
     val appColorSchemeMutation = rememberMutation(screenContext.appColorSchemeMutationKey)
@@ -44,5 +46,6 @@ fun generalSettingsScreenPresenter(
         availableColorSchemes = appearanceSettings.availableColorSchemes,
         language = appearanceSettings.appLanguage,
         appDataPath = "~/.jetwhale", // TODO: fix hardcoded path
+        adbPath = diagnostics.adbPath,
     )
 }

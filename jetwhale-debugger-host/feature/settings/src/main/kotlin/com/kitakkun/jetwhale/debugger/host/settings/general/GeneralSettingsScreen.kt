@@ -2,14 +2,18 @@ package com.kitakkun.jetwhale.debugger.host.settings.general
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,7 +22,9 @@ import com.kitakkun.jetwhale.debugger.host.model.AppLanguage
 import com.kitakkun.jetwhale.debugger.host.model.JetWhaleColorSchemeId
 import com.kitakkun.jetwhale.debugger.host.settings.Res
 import com.kitakkun.jetwhale.debugger.host.settings.SettingsScreenScaffoldPageContentPadding
+import com.kitakkun.jetwhale.debugger.host.settings.adb_executable_path
 import com.kitakkun.jetwhale.debugger.host.settings.adb_support
+import com.kitakkun.jetwhale.debugger.host.settings.adb_unavailable
 import com.kitakkun.jetwhale.debugger.host.settings.appearance
 import com.kitakkun.jetwhale.debugger.host.settings.application_data_directory
 import com.kitakkun.jetwhale.debugger.host.settings.automatically_wire_adb_transport
@@ -28,6 +34,7 @@ import com.kitakkun.jetwhale.debugger.host.settings.component.DropdownSettingsIt
 import com.kitakkun.jetwhale.debugger.host.settings.component.SettingOptionView
 import com.kitakkun.jetwhale.debugger.host.settings.component.SettingsItemRow
 import com.kitakkun.jetwhale.debugger.host.settings.component.SwitchSettingsItemView
+import com.kitakkun.jetwhale.debugger.host.settings.health_check
 import com.kitakkun.jetwhale.debugger.host.settings.language_option
 import com.kitakkun.jetwhale.debugger.host.settings.maintenance
 import com.kitakkun.jetwhale.debugger.host.settings.theme_option
@@ -97,6 +104,23 @@ fun GeneralSettingsScreen(
                 }
             }
         }
+        item {
+            SettingOptionView(stringResource(Res.string.health_check)) {
+                SettingsItemRow(stringResource(Res.string.adb_executable_path)) {
+                    Text(
+                        text = uiState.adbPath.ifEmpty { stringResource(Res.string.adb_unavailable) }
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    if (uiState.adbPath.isNotEmpty()) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            tint = MaterialTheme.colorScheme.primary,
+                            contentDescription = null,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -109,7 +133,8 @@ private fun GeneralSettingsScreenPreview() {
             selectedColorSchemeId = JetWhaleColorSchemeId.BuiltInDynamic,
             availableColorSchemes = persistentListOf(),
             language = AppLanguage.English,
-            appDataPath = "~/.jetwhale"
+            appDataPath = "~/.jetwhale",
+            adbPath = "/path/to/adb",
         ),
         onCheckedChangePersistData = {},
         onAutomaticallyWireADBTransportChange = {},

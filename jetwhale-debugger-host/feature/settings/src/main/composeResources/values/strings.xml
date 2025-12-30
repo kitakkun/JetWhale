@@ -20,4 +20,7 @@
     <string name="server_status_error">Error: %1$s</string>
     <string name="server_status">Status</string>
     <string name="server_configuration">Configuration</string>
+    <string name="health_check">Health Check</string>
+    <string name="adb_executable_path">ADB Executable Path</string>
+    <string name="adb_unavailable">ADB command not found</string>
 </resources>

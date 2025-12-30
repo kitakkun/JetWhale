@@ -5,6 +5,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import com.kitakkun.jetwhale.debugger.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.debugger.host.architecture.rememberEventFlow
 import com.kitakkun.jetwhale.debugger.host.settings.SettingsScreenContext
+import soil.query.compose.rememberQuery
 import soil.query.compose.rememberSubscription
 
 context(screenContext: SettingsScreenContext)
@@ -13,12 +14,14 @@ fun GeneralSettingsScreenRoot() {
     SoilDataBoundary(
         state1 = rememberSubscription(screenContext.settingsSubscriptionKey),
         state2 = rememberSubscription(screenContext.appearanceSettingsSubscriptionKey),
-    ) { debuggerSettings, appearanceSettings ->
+        state3 = rememberQuery(screenContext.diagnosticsQueryKey),
+    ) { debuggerSettings, appearanceSettings, diagnostics ->
         val eventFlow = rememberEventFlow<GeneralSettingsScreenEvent>()
         val uiState = generalSettingsScreenPresenter(
             eventFlow = eventFlow,
             debuggerBehaviorSettings = debuggerSettings,
             appearanceSettings = appearanceSettings,
+            diagnostics = diagnostics,
         )
         val uriHandler = LocalUriHandler.current
 

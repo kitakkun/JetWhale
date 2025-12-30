@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.debugger.host.model.AdbAutoPortMappingMutationKey
 import com.kitakkun.jetwhale.debugger.host.model.AppColorSchemeMutationKey
 import com.kitakkun.jetwhale.debugger.host.model.AppLanguageMutationKey
 import com.kitakkun.jetwhale.debugger.host.model.AppearanceSettingsSubscriptionKey
+import com.kitakkun.jetwhale.debugger.host.model.DiagnosticsQueryKey
 import com.kitakkun.jetwhale.debugger.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.debugger.host.model.PluginInstallMutationKey
 import com.kitakkun.jetwhale.debugger.host.model.ServerStatusSubscriptionKey
@@ -18,6 +19,7 @@ import dev.zacsweers.metro.GraphExtension
 interface SettingsScreenContext : ScreenContext {
     val settingsSubscriptionKey: SettingsSubscriptionKey
     val appearanceSettingsSubscriptionKey: AppearanceSettingsSubscriptionKey
+    val diagnosticsQueryKey: DiagnosticsQueryKey
     val appLanguageMutationKey: AppLanguageMutationKey
     val appColorSchemeMutationKey: AppColorSchemeMutationKey
     val loadedPluginsMetaDataSubscriptionKey: LoadedPluginsMetaDataSubscriptionKey

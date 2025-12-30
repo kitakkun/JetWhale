@@ -10,4 +10,5 @@ data class GeneralSettingsScreenUiState(
     val selectedColorSchemeId: JetWhaleColorSchemeId,
     val availableColorSchemes: ImmutableList<JetWhaleColorSchemeId>,
     val appDataPath: String,
+    val adbPath: String,
 )

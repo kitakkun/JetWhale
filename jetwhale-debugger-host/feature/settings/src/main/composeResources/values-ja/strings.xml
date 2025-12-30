@@ -20,4 +20,7 @@
     <string name="server_status_error">エラー: %1$s</string>
     <string name="server_status">ステータス</string>
     <string name="server_configuration">構成</string>
+    <string name="health_check">ヘルスチェック</string>
+    <string name="adb_executable_path">ADB実行可能ファイルのパス</string>
+    <string name="adb_unavailable">ADBコマンドが見つかりません</string>
 </resources>
