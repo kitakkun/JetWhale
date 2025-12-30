@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.debugger.agent.runtime
 
 import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
-import kotlinx.serialization.serializer
 
 /**
  * Plugin client which runs on the debug-target app.
@@ -44,24 +43,6 @@ public inline fun <reified Event> buildJetWhaleAgentPlugin(
     pluginId: String,
     pluginVersion: String,
     onReceiveMethod: MethodHandler,
-    eventDispatchPolicy: EventDispatchPolicy,
-): JetWhaleAgentPlugin<Event> {
-    return object : JetWhaleAgentPlugin<Event> {
-        override val pluginId: String get() = pluginId
-        override val pluginVersion: String get() = pluginVersion
-        override val eventDispatcher: EventDispatcher<Event> = when (eventDispatchPolicy) {
-            is EventDispatchPolicy.DropIfDisconnected -> DropIfDisconnectedDispatcher(serializer())
-            is EventDispatchPolicy.QueueBuffered -> BufferedEventDispatcher(serializer(), eventDispatchPolicy.bufferSize)
-        }
-        override val methodHandler: MethodHandler = onReceiveMethod
-    }
-}
-
-@OptIn(InternalJetWhaleApi::class)
-public inline fun <reified Event> buildJetWhaleAgentPlugin(
-    pluginId: String,
-    pluginVersion: String,
-    onReceiveMethod: MethodHandler,
     eventDispatcher: EventDispatcher<Event> = DropIfDisconnectedDispatcher(),
 ): JetWhaleAgentPlugin<Event> {
     return object : JetWhaleAgentPlugin<Event> {
@@ -76,12 +57,12 @@ public fun buildJetWhalePrimitiveAgentPlugin(
     pluginId: String,
     pluginVersion: String,
     onReceiveMethod: MethodHandler,
-    eventDispatchPolicy: EventDispatchPolicy,
+    eventDispatcher: EventDispatcher<String> = DropIfDisconnectedDispatcher(),
 ): JetWhaleAgentPlugin<String> {
     return buildJetWhaleAgentPlugin<String>(
         pluginId = pluginId,
         pluginVersion = pluginVersion,
         onReceiveMethod = onReceiveMethod,
-        eventDispatchPolicy = eventDispatchPolicy,
+        eventDispatcher = eventDispatcher,
     )
 }
