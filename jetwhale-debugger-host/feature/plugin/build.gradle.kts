@@ -16,5 +16,5 @@ dependencies {
 }
 
 compose.resources {
-    packageOfResClass = "com.kitakkun.jetwhale.debugger.host.plugin"
+    packageOfResClass = "com.kitakkun.jetwhale.host.plugin"
 }

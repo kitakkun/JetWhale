@@ -8,7 +8,7 @@ plugins {
 
 compose.desktop {
     application {
-        mainClass = "com.kitakkun.jetwhale.debugger.host.MainKt"
+        mainClass = "com.kitakkun.jetwhale.host.MainKt"
         nativeDistributions {
             jvmArgs(
                 "-Dapple.awt.application.appearance=system"
@@ -18,7 +18,7 @@ compose.desktop {
 }
 
 compose.resources {
-    packageOfResClass = "com.kitakkun.jetwhale.debugger.host"
+    packageOfResClass = "com.kitakkun.jetwhale.host"
 }
 
 kotlin {
