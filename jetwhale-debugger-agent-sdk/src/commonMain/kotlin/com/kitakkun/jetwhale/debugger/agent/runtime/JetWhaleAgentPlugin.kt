@@ -71,3 +71,17 @@ public inline fun <reified Event> buildJetWhaleAgentPlugin(
         override val methodHandler: MethodHandler = onReceiveMethod
     }
 }
+
+public fun buildJetWhalePrimitiveAgentPlugin(
+    pluginId: String,
+    pluginVersion: String,
+    onReceiveMethod: MethodHandler,
+    eventDispatchPolicy: EventDispatchPolicy,
+): JetWhaleAgentPlugin<String> {
+    return buildJetWhaleAgentPlugin<String>(
+        pluginId = pluginId,
+        pluginVersion = pluginVersion,
+        onReceiveMethod = onReceiveMethod,
+        eventDispatchPolicy = eventDispatchPolicy,
+    )
+}

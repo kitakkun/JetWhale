@@ -54,6 +54,14 @@ public fun buildJetWhaleHostPlugin(
     content = { content() }
 )
 
+public fun buildJetWhalePrimitiveHostPlugin(
+    onReceiveEvent: EventReceiver<String>,
+    content: PluginUIBuilder<String, String>,
+): JetWhaleHostPlugin = buildJetWhaleHostPlugin(
+    onReceiveEvent = onReceiveEvent,
+    content = content,
+)
+
 public fun interface EventReceiver<Event> {
     public suspend fun receive(event: Event)
 }
