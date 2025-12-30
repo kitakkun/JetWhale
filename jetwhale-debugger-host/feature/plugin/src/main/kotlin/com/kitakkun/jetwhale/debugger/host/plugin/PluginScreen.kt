@@ -53,13 +53,13 @@ fun PluginScreen(pluginComposeScene: ComposeScene) {
                                 eventType = event.type,
                                 pointers = event.toComposeScenePointers(),
                                 buttons = event.buttons,
-                                scrollDelta = scrollDelta,
                                 keyboardModifiers = event.keyboardModifiers,
-                                nativeEvent = event.nativeEvent
+                                scrollDelta = scrollDelta,
+                                nativeEvent = event.nativeEvent,
+                                button = event.button,
                             )
                         } catch (e: Throwable) {
                             catchThrowHost[uuid()] = e
-                            break
                         }
                     } while (true)
                 }
