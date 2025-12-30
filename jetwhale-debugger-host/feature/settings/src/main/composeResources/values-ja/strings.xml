@@ -1,0 +1,23 @@
+<resources>
+    <string name="settings_title">設定</string>
+    <string name="general">一般</string>
+    <string name="server">サーバー</string>
+    <string name="plugins">プラグイン</string>
+    <string name="language_option">言語</string>
+    <string name="theme_option">テーマ</string>
+    <string name="appearance">外観</string>
+    <string name="adb_support">ADBサポート</string>
+    <string name="automatically_wire_adb_transport">ADBポートをホストPCポートに自動的に配線する</string>
+    <string name="maintenance">メンテナンス</string>
+    <string name="check_for_updates_on_startup">起動時に更新を確認する</string>
+    <string name="check_for_updates">更新を確認</string>
+    <string name="installed_plugins">インストール済みプラグイン</string>
+    <string name="application_data_directory">アプリケーションデータディレクトリ</string>
+    <string name="server_status_stopped">停止</string>
+    <string name="server_status_running">ポート %1$d で実行中</string>
+    <string name="server_status_starting">起動中...</string>
+    <string name="server_status_stopping">停止中...</string>
+    <string name="server_status_error">エラー: %1$s</string>
+    <string name="server_status">ステータス</string>
+    <string name="server_configuration">構成</string>
+</resources>

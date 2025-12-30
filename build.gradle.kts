@@ -7,6 +7,11 @@ plugins {
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.multiplatform) apply false
     alias(libs.plugins.serialization) apply false
+    alias(libs.plugins.compose) apply false
+    alias(libs.plugins.debuggerComposeFeature) apply false
+    alias(libs.plugins.metro) apply false
+    alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.mokkery) apply false
 }
 
 allprojects {

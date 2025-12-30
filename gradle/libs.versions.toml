@@ -3,8 +3,10 @@ jetwhale = "0.0.1-alpha01"
 
 # kotlin
 kotlin = "2.2.20"
+ksp = "2.3.3"
 kotlinDsl = "6.4.1"
 kotlinxSerializationJson = "1.9.0"
+kotlinxCollectionsImmutable = "0.4.0"
 kotlinxCoroutines = "1.10.2"
 
 # android
@@ -12,7 +14,20 @@ androidGradlePlugin = "8.13.2"
 
 
 jetbrainsCompose = "1.9.3"
+composeHotReload = "1.0.0"
+material3 = "1.9.0-alpha04"
+material3Adaptive = "1.3.0-alpha03"
+navigation3 = "1.0.0-alpha06"
+lifecycleViewModelNavigation3 = "2.10.0-alpha07"
+soil = "1.0.0-alpha15"
+rin = "0.4.0"
+
+androidxDatastore = "1.2.0"
+metro = "0.8.2"
+mokkery = "3.0.0"
 ktor = "3.3.3"
+
+logback = "1.5.23"
 kermit = "2.0.8"
 
 [libraries]
@@ -21,6 +36,7 @@ kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", ver
 kotlinxSerializationGradlePlugin = { module = "org.jetbrains.kotlin.plugin.serialization:org.jetbrains.kotlin.plugin.serialization.gradle.plugin", version.ref = "kotlin" }
 jetbrainsComposeGradlePlugin = { module = "org.jetbrains.compose:org.jetbrains.compose.gradle.plugin", version.ref = "jetbrainsCompose" }
 composeCompilerGradlePlugin = { module = "org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin", version.ref = "kotlin" }
+metroGradlePlugin = { module = "dev.zacsweers.metro:dev.zacsweers.metro.gradle.plugin", version.ref = "metro" }
 androidKotlinMultiplatformLibraryGradlePlugin = { module = "com.android.kotlin.multiplatform.library:com.android.kotlin.multiplatform.library.gradle.plugin", version.ref = "androidGradlePlugin" }
 
 # kotlin
@@ -28,10 +44,29 @@ kotlinTest = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotli
 
 # kotlinx
 kotlinxSerializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+kotlinxCollectionsImmutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 kotlinxCoroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+
+# androidx
+androidxDatastorePreferences = { module = "androidx.datastore:datastore-preferences", version.ref = "androidxDatastore" }
+
+# compose
+material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
+rin = { module = "io.github.takahirom.rin:rin", version.ref = "rin" }
+
+# navigation3
+navigation3Ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
+navigation3Adaptive = { module = "org.jetbrains.compose.material3.adaptive:adaptive-navigation3", version.ref = "material3Adaptive" }
+lifecycleViewModelNavigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewModelNavigation3" }
+
+# soil
+soilQueryCore = { module = "com.soil-kt.soil:query-core", version.ref = "soil" }
+soilQueryCompose = { module = "com.soil-kt.soil:query-compose", version.ref = "soil" }
+soilReacty = { module = "com.soil-kt.soil:reacty", version.ref = "soil" }
 
 # ktor
 ktorServerWebSockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
+ktorServerNetty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
 ktorServerTestHost = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 ktorClientCore = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktorClientCio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
@@ -40,6 +75,7 @@ ktorClientLogging = { module = "io.ktor:ktor-client-logging", version.ref = "kto
 ktorSerializationKotlinxJson = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
 # logging
+logbackClassic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 
 [bundles]
@@ -47,8 +83,19 @@ gradlePlugins = [
     "kotlinGradlePlugin",
     "jetbrainsComposeGradlePlugin",
     "composeCompilerGradlePlugin",
+    "metroGradlePlugin",
     "kotlinxSerializationGradlePlugin",
     "androidKotlinMultiplatformLibraryGradlePlugin"
+]
+navigation3 = [
+    "navigation3Ui",
+    "navigation3Adaptive",
+    "lifecycleViewModelNavigation3"
+]
+ktorServer = [
+    "ktorServerWebSockets",
+    "ktorServerNetty",
+    "ktorSerializationKotlinxJson",
 ]
 ktorClient = [
     "ktorClientCore",
@@ -62,6 +109,7 @@ ktorClient = [
 # kotlin
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinDsl = { id = "org.gradle.kotlin.kotlin-dsl", version.ref = "kotlinDsl" }
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
@@ -71,7 +119,14 @@ androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.lib
 # compose
 jetbrainsCompose = { id = "org.jetbrains.compose", version.ref = "jetbrainsCompose" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }
+
+metro = { id = "dev.zacsweers.metro", version.ref = "metro" }
+mokkery = { id = "dev.mokkery", version.ref = "mokkery" }
 
 # conventions
+compose = { id = "compose" }
+jvm = { id = "jvm" }
 multiplatform = { id = "multiplatform" }
 serialization = { id = "serialization" }
+debuggerComposeFeature = { id = "debugger-compose-feature" }
