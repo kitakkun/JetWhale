@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.debugger.host.plugin
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +30,7 @@ import soil.query.core.uuid
 fun PluginScreen(pluginComposeScene: ComposeScene) {
     val catchThrowHost = LocalCatchThrowHost.current
     var frameNanoTime by remember(pluginComposeScene) { mutableLongStateOf(0L) }
+    val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(pluginComposeScene) {
         while (true) {
@@ -38,10 +40,15 @@ fun PluginScreen(pluginComposeScene: ComposeScene) {
         }
     }
 
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
     Canvas(
         modifier = Modifier.fillMaxSize()
             .onSizeChanged { pluginComposeScene.size = it }
-            .focusRequester(remember { FocusRequester() })
+            .focusRequester(focusRequester)
+            .focusable()
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     do {
