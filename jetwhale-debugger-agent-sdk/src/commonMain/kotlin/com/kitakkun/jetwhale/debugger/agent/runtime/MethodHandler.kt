@@ -10,7 +10,7 @@ import kotlinx.serialization.serializer
 /**
  * Handles method calls from the debugger.
  */
-public fun interface MethodHandler {
+public interface MethodHandler {
     public suspend fun handle(methodPayload: String): String
 }
 
