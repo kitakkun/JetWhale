@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.awtClipboard
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import soil.plant.compose.reacty.ErrorBoundaryContext
 import java.awt.datatransfer.StringSelection
 
@@ -33,19 +34,19 @@ fun PluginScreenErrorFallback(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "The Plugin UI Crashed",
+            text = stringResource(Res.string.plugin_ui_crash_title),
             style = MaterialTheme.typography.headlineMedium,
         )
         Text(
-            text = "PluginId: $pluginId",
+            text = stringResource(Res.string.plugin_ui_crash_plugin_id, pluginId),
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
-            text = "Error Message: ${errorBoundaryContext.err.localizedMessage}",
+            text = stringResource(Res.string.plugin_ui_crash_error_message, errorBoundaryContext.err.localizedMessage),
             style = MaterialTheme.typography.bodySmall,
         )
         Text(
-            text = "Full Stack Trace:\n${errorBoundaryContext.err.stackTraceToString()}",
+            text = stringResource(Res.string.plugin_ui_crash_stacktrace, errorBoundaryContext.err.stackTraceToString()),
             style = MaterialTheme.typography.bodySmall,
             maxLines = 10,
             overflow = TextOverflow.Ellipsis,
@@ -58,12 +59,12 @@ fun PluginScreenErrorFallback(
                 )
             }
         ) {
-            Text("Copy stack trace")
+            Text(stringResource(Res.string.plugin_ui_crash_copy_full_stacktrace))
         }
         Button(
             onClick = onClickReset,
         ) {
-            Text("Reload Plugin UI (Not working yet)")
+            Text(stringResource(Res.string.plugin_ui_crash_reload))
         }
     }
 }

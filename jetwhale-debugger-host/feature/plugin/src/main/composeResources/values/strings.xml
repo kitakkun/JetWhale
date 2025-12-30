@@ -1,0 +1,8 @@
+<resources>
+    <string name="plugin_ui_crash_title">Plugin UI Crashed</string>
+    <string name="plugin_ui_crash_error_message">Error: %1$s</string>
+    <string name="plugin_ui_crash_plugin_id">Plugin ID: %1$s</string>
+    <string name="plugin_ui_crash_reload">Reload</string>
+    <string name="plugin_ui_crash_copy_full_stacktrace">Copy Stacktrace</string>
+    <string name="plugin_ui_crash_stacktrace">StackTrace: %1$s</string>
+</resources>
