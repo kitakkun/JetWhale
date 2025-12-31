@@ -3,12 +3,7 @@ package com.kitakkun.jetwhale.host.settings.server
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Start
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,7 +11,6 @@ import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
-import com.kitakkun.jetwhale.host.settings.component.SettingsItemRow
 import com.kitakkun.jetwhale.host.settings.component.TextFieldSettingsItemView
 import com.kitakkun.jetwhale.host.settings.server_configuration
 import com.kitakkun.jetwhale.host.settings.server_status
@@ -40,8 +34,8 @@ fun ServerSettingsScreen(
             SettingOptionView(
                 stringResource(Res.string.server_status)
             ) {
-                SettingsItemRow(
-                    label = when (uiState.serverState) {
+                Text(
+                    text = when (uiState.serverState) {
                         is ServerState.Starting -> stringResource(Res.string.server_status_starting)
                         is ServerState.Running -> stringResource(
                             Res.string.server_status_running,
@@ -56,14 +50,7 @@ fun ServerSettingsScreen(
                         is ServerState.Stopping -> stringResource(Res.string.server_status_stopping)
                         is ServerState.Stopped -> stringResource(Res.string.server_status_stopped)
                     },
-                ) {
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.Stop, null)
-                    }
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.Start, null)
-                    }
-                }
+                )
             }
         }
         item {
