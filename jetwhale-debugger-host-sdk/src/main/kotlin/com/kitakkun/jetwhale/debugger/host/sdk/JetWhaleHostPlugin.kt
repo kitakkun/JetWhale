@@ -8,15 +8,23 @@ import kotlinx.serialization.serializer
  * Plugin interface for JetWhale
  */
 public interface JetWhaleHostPlugin {
-    public suspend fun onReceive(context: JetWhaleEventReceiverContext)
-
-    public fun onDispose() {}
-
     /**
      * Composable function that represents the UI of the plugin
+     * @param context The context for building the UI
      */
     @Composable
     public fun Content(context: JetWhaleContentUIBuilderContext)
+
+    /**
+     * Called when an event is received from the JetWhale debugger
+     * @param context The context containing the event data
+     */
+    public suspend fun onReceive(context: JetWhaleEventReceiverContext)
+
+    /**
+     * Called when the plugin is disposed
+     */
+    public fun onDispose() {}
 }
 
 @OptIn(InternalJetWhaleApi::class)
