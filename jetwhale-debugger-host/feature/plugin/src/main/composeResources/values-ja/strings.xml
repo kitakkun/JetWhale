@@ -1,0 +1,8 @@
+<resources>
+    <string name="plugin_ui_crash_title">プラグインUIがクラッシュしました</string>
+    <string name="plugin_ui_crash_error_message">エラー: %1$s</string>
+    <string name="plugin_ui_crash_plugin_id">プラグインID: %1$s</string>
+    <string name="plugin_ui_crash_reload">再読み込み</string>
+    <string name="plugin_ui_crash_copy_full_stacktrace">スタックトレースをコピー</string>
+    <string name="plugin_ui_crash_stacktrace">スタックトレース: %1$s</string>
+</resources>

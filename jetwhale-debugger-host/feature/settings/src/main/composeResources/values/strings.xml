@@ -1,0 +1,26 @@
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="general">General</string>
+    <string name="server">Server</string>
+    <string name="plugins">Plugins</string>
+    <string name="language_option">Language</string>
+    <string name="theme_option">Theme</string>
+    <string name="appearance">Appearance</string>
+    <string name="adb_support">ADB Support</string>
+    <string name="automatically_wire_adb_transport">Automatically wire ADB port to host PC port</string>
+    <string name="maintenance">Maintenance</string>
+    <string name="check_for_updates_on_startup">Check for updates on startup</string>
+    <string name="check_for_updates">Check for Updates</string>
+    <string name="installed_plugins">Installed Plugins</string>
+    <string name="application_data_directory">Application Data Directory</string>
+    <string name="server_status_stopped">Stopped</string>
+    <string name="server_status_running">Running on port %1$d</string>
+    <string name="server_status_starting">Starting...</string>
+    <string name="server_status_stopping">Stopping...</string>
+    <string name="server_status_error">Error: %1$s</string>
+    <string name="server_status">Status</string>
+    <string name="server_configuration">Configuration</string>
+    <string name="health_check">Health Check</string>
+    <string name="adb_executable_path">ADB Executable Path</string>
+    <string name="adb_unavailable">ADB command not found</string>
+</resources>

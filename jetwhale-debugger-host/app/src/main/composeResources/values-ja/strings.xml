@@ -1,0 +1,7 @@
+<resources>
+    <string name="no_plugin_selected">プラグインが選択されていません</string>
+    <string name="no_session_available">利用可能なセッションがありません</string>
+    <string name="select_session">セッションを選択</string>
+    <string name="initializing">初期化中...</string>
+    <string name="shutting_down">シャットダウン中...</string>
+</resources>

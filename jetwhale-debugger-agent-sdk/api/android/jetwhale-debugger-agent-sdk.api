@@ -1,0 +1,48 @@
+public abstract interface class com/kitakkun/jetwhale/agent/sdk/DebuggerMethodHandler {
+	public abstract fun handle (Lkotlinx/serialization/json/Json;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/kitakkun/jetwhale/agent/sdk/DebuggerMethodHandlerImpl : com/kitakkun/jetwhale/agent/sdk/DebuggerMethodHandler {
+	public fun <init> (Lkotlinx/serialization/DeserializationStrategy;Lkotlinx/serialization/SerializationStrategy;Lkotlin/jvm/functions/Function2;)V
+	public fun handle (Lkotlinx/serialization/json/Json;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class com/kitakkun/jetwhale/agent/sdk/EventDispatcher {
+	public abstract fun dispatch (Ljava/lang/Object;)V
+}
+
+public final class com/kitakkun/jetwhale/agent/sdk/EventDispatcherKt {
+	public static final fun BufferedEventDispatcher (Lkotlinx/serialization/KSerializer;I)Lcom/kitakkun/jetwhale/agent/sdk/EventDispatcher;
+	public static final fun DropIfDisconnectedDispatcher (Lkotlinx/serialization/KSerializer;)Lcom/kitakkun/jetwhale/agent/sdk/EventDispatcher;
+}
+
+public abstract interface class com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
+	public fun enqueueEvent (Ljava/lang/Object;)V
+	public abstract fun getDebuggerMethodHandler ()Lcom/kitakkun/jetwhale/agent/sdk/DebuggerMethodHandler;
+	public abstract fun getEventDispatcher ()Lcom/kitakkun/jetwhale/agent/sdk/EventDispatcher;
+	public abstract fun getPluginId ()Ljava/lang/String;
+	public abstract fun getPluginVersion ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin$DefaultImpls {
+	public static fun enqueueEvent (Lcom/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin;Ljava/lang/Object;)V
+}
+
+public final class com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPluginKt {
+	public static final fun buildJetWhalePrimitiveAgentPlugin (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/agent/sdk/DebuggerMethodHandler;Lcom/kitakkun/jetwhale/agent/sdk/EventDispatcher;)Lcom/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin;
+	public static synthetic fun buildJetWhalePrimitiveAgentPlugin$default (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/agent/sdk/DebuggerMethodHandler;Lcom/kitakkun/jetwhale/agent/sdk/EventDispatcher;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin;
+}
+
+public abstract interface class com/kitakkun/jetwhale/agent/sdk/JetWhaleEventSender {
+	public abstract fun send (Lkotlinx/serialization/KSerializer;Ljava/lang/Object;)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/agent/sdk/JetWhaleMessagingService {
+	public abstract fun startService (Ljava/lang/String;I)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/agent/sdk/SenderAttachable {
+	public abstract fun attachSender (Lcom/kitakkun/jetwhale/agent/sdk/JetWhaleEventSender;)V
+	public abstract fun detachSender ()V
+}
+
