@@ -39,27 +39,27 @@ class DefaultPluginComposeSceneRepository(
             sessionId = sessionId,
         )
         return pluginScenes.getOrPut("$pluginId:$sessionId") {
+            val contentUIBuilderContext = object : JetWhaleContentUIBuilderContext {
+                override suspend fun <Method, MethodResult> dispatch(
+                    methodSerializer: KSerializer<Method>,
+                    methodResultSerializer: KSerializer<MethodResult>,
+                    value: Method,
+                ): MethodResult? {
+                    val serializedMethod = json.encodeToString(methodSerializer, value)
+                    return debugWebSocketServer.sendMessage(
+                        pluginId = pluginId,
+                        sessionId = sessionId,
+                        message = serializedMethod,
+                    )?.let { serializedMethodResult ->
+                        json.decodeFromString(methodResultSerializer, serializedMethodResult)
+                    }
+                }
+            }
+
             PlatformLayersComposeScene(density = density).apply {
                 setContent {
                     pluginBridgeProvider.PluginEntryPoint {
-                        pluginInstance.Content(
-                            context = object : JetWhaleContentUIBuilderContext {
-                                override suspend fun <Method, MethodResult> dispatch(
-                                    methodSerializer: KSerializer<Method>,
-                                    methodResultSerializer: KSerializer<MethodResult>,
-                                    value: Method
-                                ): MethodResult? {
-                                    val serializedMethod = json.encodeToString(methodSerializer, value)
-                                    return debugWebSocketServer.sendMessage(
-                                        pluginId = pluginId,
-                                        sessionId = sessionId,
-                                        message = serializedMethod,
-                                    )?.let { serializedMethodResult ->
-                                        json.decodeFromString(methodResultSerializer, serializedMethodResult)
-                                    }
-                                }
-                            }
-                        )
+                        pluginInstance.Content(context = contentUIBuilderContext)
                     }
                 }
             }.also {

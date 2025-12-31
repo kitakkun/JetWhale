@@ -192,16 +192,15 @@ class DefaultDebugWebSocketServer(
                                 is JetWhaleDebuggeeEvent.MethodResultResponse -> methodRequestResultFlow.emit(event)
                                 is JetWhaleDebuggeeEvent.PluginMessage -> {
                                     log.debug("received message: {}", event)
+                                    val receiverContext = object : JetWhaleEventReceiverContext {
+                                        override fun <T> getDeserializedPayload(serializer: KSerializer<T>): T {
+                                            return json.decodeFromString(serializer, event.payload)
+                                        }
+                                    }
                                     pluginsRepository.getOrPutPluginInstanceForSession(
                                         pluginId = event.pluginId,
                                         sessionId = sessionId
-                                    ).onReceive(
-                                        object : JetWhaleEventReceiverContext {
-                                            override fun <T> getDeserializedPayload(serializer: KSerializer<T>): T {
-                                                return json.decodeFromString(serializer, event.payload)
-                                            }
-                                        }
-                                    )
+                                    ).onReceive(receiverContext)
                                 }
                             }
                         } catch (e: Throwable) {
