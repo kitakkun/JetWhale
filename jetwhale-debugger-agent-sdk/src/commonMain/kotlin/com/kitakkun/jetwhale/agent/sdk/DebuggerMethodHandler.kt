@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.agent.sdk
 
 import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
-import com.kitakkun.jetwhale.debugger.protocol.serialization.JetWhaleJson
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.json.Json
@@ -19,7 +18,7 @@ public interface DebuggerMethodHandler {
      * Note that it must be deserialized before use.
      */
     @InternalJetWhaleApi
-    public suspend fun handle(methodPayload: String): String
+    public suspend fun handle(json: Json, methodPayload: String): String
 }
 
 /**
@@ -30,12 +29,11 @@ public interface DebuggerMethodHandler {
  */
 @OptIn(InternalJetWhaleApi::class)
 public class DebuggerMethodHandlerImpl<Method, MethodResult>(
-    private val json: Json,
     private val methodDeserializer: DeserializationStrategy<Method>,
     private val methodResultSerializer: SerializationStrategy<MethodResult>,
     private val handler: suspend (Method) -> MethodResult,
 ) : DebuggerMethodHandler {
-    override suspend fun handle(methodPayload: String): String {
+    override suspend fun handle(json: Json, methodPayload: String): String {
         val deserializedMethod = json.decodeFromString(methodDeserializer, methodPayload)
         val methodResult = handler(deserializedMethod)
         return json.encodeToString(methodResultSerializer, methodResult)
@@ -55,7 +53,6 @@ public inline fun <reified Method, reified MethodResponse> DebuggerMethodHandler
     crossinline onReceiveEvent: suspend (Method) -> MethodResponse,
 ): DebuggerMethodHandler {
     return DebuggerMethodHandlerImpl<Method, MethodResponse>(
-        json = JetWhaleJson,
         methodDeserializer = serializer(),
         methodResultSerializer = serializer(),
         handler = { onReceiveEvent(it) },

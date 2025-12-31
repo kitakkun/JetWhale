@@ -98,7 +98,7 @@ internal class DefaultJetWhaleMessagingService(
         when (event) {
             is JetWhaleDebuggerEvent.MethodRequest -> {
                 val plugin = plugins.firstOrNull { it.pluginId == event.pluginId } ?: return
-                val result = plugin.debuggerMethodHandler.handle(event.payload)
+                val result = plugin.debuggerMethodHandler.handle(json, event.payload)
                 socketClient.sendMessage(
                     pluginId = event.pluginId,
                     message = json.encodeToString(
