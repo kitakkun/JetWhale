@@ -1,9 +1,7 @@
 package com.kitakkun.jetwhale.agent.sdk
 
 import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
-import com.kitakkun.jetwhale.debugger.protocol.serialization.JetWhaleJson
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 
 /**
@@ -44,41 +42,36 @@ public interface SenderAttachable {
 /**
  * Sends serialized events to the debugger.
  */
-public fun interface JetWhaleEventSender {
-    public fun send(serializedEvent: String)
+public interface JetWhaleEventSender {
+    public fun <T> send(serializer: KSerializer<T>, event: T)
 }
 
 /**
  * An [EventDispatcher] that drops events if there is no connected sender.
  */
-internal class DropIfDisconnectedDispatcher<Event> internal constructor(
+internal class DropIfDisconnectedDispatcherInternal<Event> internal constructor(
     private val eventSerializer: KSerializer<Event>,
-    private val json: Json,
 ) : EventDispatcher<Event>, DefaultSenderAttachable() {
     override fun dispatch(event: Event) {
-        sender?.let {
-            val serializedEvent = json.encodeToString(eventSerializer, event)
-            it.send(serializedEvent)
-        }
+        sender?.send(eventSerializer, event)
     }
 }
 
 /**
  * An [EventDispatcher] that buffers events until a sender is attached.
  */
-internal class BufferedEventDispatcher<Event> internal constructor(
+internal class BufferedEventDispatcherInternal<Event> internal constructor(
     val bufferSize: Int,
     private val eventSerializer: KSerializer<Event>,
-    private val json: Json,
 ) : EventDispatcher<Event>, DefaultSenderAttachable() {
     private val queue = ArrayDeque<Event>()
 
     override fun dispatch(event: Event) {
-        sender?.let {
-            val serializedEvent = json.encodeToString(eventSerializer, event)
-            it.send(serializedEvent)
-        } ?: run {
-            queue.add(event)
+        sender?.send(eventSerializer, event) ?: run {
+            if (queue.size >= bufferSize) {
+                queue.removeFirst()
+            }
+            queue.addLast(event)
         }
     }
 
@@ -89,8 +82,7 @@ internal class BufferedEventDispatcher<Event> internal constructor(
         val iterator = queue.iterator()
         while (iterator.hasNext()) {
             val event = iterator.next()
-            val serializedEvent = json.encodeToString(eventSerializer, event)
-            sender.send(serializedEvent)
+            sender.send(eventSerializer, event)
             queue.remove(event)
         }
     }
@@ -115,10 +107,7 @@ public inline fun <reified Event> DropIfDisconnectedDispatcher(): EventDispatche
 public fun <Event> DropIfDisconnectedDispatcher(
     eventSerializer: KSerializer<Event>,
 ): EventDispatcher<Event> {
-    return DropIfDisconnectedDispatcher(
-        eventSerializer = eventSerializer,
-        json = JetWhaleJson
-    )
+    return DropIfDisconnectedDispatcherInternal(eventSerializer = eventSerializer)
 }
 
 /**
@@ -149,9 +138,8 @@ public fun <Event> BufferedEventDispatcher(
     eventSerializer: KSerializer<Event>,
     bufferSize: Int,
 ): EventDispatcher<Event> {
-    return BufferedEventDispatcher(
+    return BufferedEventDispatcherInternal(
         eventSerializer = eventSerializer,
         bufferSize = bufferSize,
-        json = JetWhaleJson,
     )
 }

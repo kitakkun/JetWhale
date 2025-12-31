@@ -16,6 +16,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 
 @OptIn(InternalJetWhaleApi::class)
@@ -60,17 +61,22 @@ internal class DefaultJetWhaleMessagingService(
     private fun CoroutineScope.attachSenderToPlugins() {
         JetWhaleLogger.d("Attaching sender to each plugin")
         plugins.forEach { plugin ->
-            plugin.attachSender { payload ->
-                launch {
-                    val message = json.encodeToString(
-                        JetWhaleDebuggeeEvent.PluginMessage(
-                            pluginId = plugin.pluginId,
-                            payload = payload,
-                        )
-                    )
-                    socketClient.sendMessage(pluginId = plugin.pluginId, message = message)
+            plugin.attachSender(
+                object : JetWhaleEventSender {
+                    override fun <T> send(serializer: KSerializer<T>, event: T) {
+                        val serializedEvent = json.encodeToString(serializer, event)
+                        launch {
+                            val message = json.encodeToString(
+                                JetWhaleDebuggeeEvent.PluginMessage(
+                                    pluginId = plugin.pluginId,
+                                    payload = serializedEvent,
+                                )
+                            )
+                            socketClient.sendMessage(pluginId = plugin.pluginId, message = message)
+                        }
+                    }
                 }
-            }
+            )
         }
     }
 
