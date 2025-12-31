@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.debugger.host.sdk
 
 import androidx.compose.runtime.Composable
-import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
 import kotlinx.serialization.serializer
 
 /**
@@ -27,7 +26,6 @@ public interface JetWhaleHostPlugin {
     public fun onDispose() {}
 }
 
-@OptIn(InternalJetWhaleApi::class)
 public inline fun <reified Event, reified Method, reified MethodResult> buildJetWhaleHostPlugin(
     onReceiveEvent: EventReceiver<Event>,
     content: PluginUIBuilder<Method, MethodResult>,
@@ -50,7 +48,6 @@ public inline fun <reified Event, reified Method, reified MethodResult> buildJet
     }
 }
 
-@OptIn(InternalJetWhaleApi::class)
 public fun buildJetWhaleHostPlugin(
     content: @Composable () -> Unit,
 ): JetWhaleHostPlugin = buildJetWhaleHostPlugin<Unit, Unit, Unit>(
