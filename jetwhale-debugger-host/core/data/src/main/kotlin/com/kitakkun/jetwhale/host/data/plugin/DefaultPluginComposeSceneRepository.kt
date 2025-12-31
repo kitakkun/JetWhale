@@ -4,6 +4,7 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.PlatformLayersComposeScene
 import androidx.compose.ui.unit.Density
+import com.kitakkun.jetwhale.debugger.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.debugger.host.sdk.JetWhaleContentUIBuilderContext
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
@@ -28,6 +29,7 @@ class DefaultPluginComposeSceneRepository(
 ) : PluginComposeSceneRepository {
     private val pluginScenes = mutableMapOf<String, ComposeScene>()
 
+    @OptIn(InternalJetWhaleHostApi::class)
     override suspend fun getOrCreatePluginScene(
         pluginId: String,
         sessionId: String,

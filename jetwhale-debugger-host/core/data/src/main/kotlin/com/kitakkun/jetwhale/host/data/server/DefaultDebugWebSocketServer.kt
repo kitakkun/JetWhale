@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.host.data.server
 
+import com.kitakkun.jetwhale.debugger.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.debugger.host.sdk.JetWhaleEventReceiverContext
-import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.debugger.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.debugger.protocol.core.JetWhaleDebuggerEvent
 import com.kitakkun.jetwhale.host.model.ADBAutoWiringService
@@ -129,7 +129,7 @@ class DefaultDebugWebSocketServer(
         }
     }
 
-    @OptIn(InternalJetWhaleApi::class)
+    @OptIn(InternalJetWhaleHostApi::class)
     private fun Application.configureWebSocket(
         host: String,
         port: Int,

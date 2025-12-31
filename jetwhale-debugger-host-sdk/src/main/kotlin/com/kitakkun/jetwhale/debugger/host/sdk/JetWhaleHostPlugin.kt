@@ -1,10 +1,14 @@
+@file:OptIn(InternalJetWhaleHostApi::class)
+
 package com.kitakkun.jetwhale.debugger.host.sdk
 
 import androidx.compose.runtime.Composable
 import kotlinx.serialization.serializer
 
 /**
- * Plugin interface for JetWhale
+ * Plugin interface for JetWhale.
+ *
+ * Do not directly implement this interface. Use [buildJetWhaleHostPlugin] to create an instance.
  */
 public interface JetWhaleHostPlugin {
     /**
@@ -12,18 +16,21 @@ public interface JetWhaleHostPlugin {
      * @param context The context for building the UI
      */
     @Composable
+    @InternalJetWhaleHostApi
     public fun Content(context: JetWhaleContentUIBuilderContext)
 
     /**
      * Called when an event is received from the JetWhale debugger
      * @param context The context containing the event data
      */
+    @InternalJetWhaleHostApi
     public suspend fun onReceive(context: JetWhaleEventReceiverContext)
 
     /**
      * Called when the plugin is disposed
      */
-    public fun onDispose() {}
+    public fun onDispose() {
+    }
 }
 
 public inline fun <reified Event, reified Method, reified MethodResult> buildJetWhaleHostPlugin(
