@@ -12,7 +12,6 @@ kotlinxCoroutines = "1.10.2"
 # android
 androidGradlePlugin = "8.13.2"
 
-
 jetbrainsCompose = "1.9.3"
 composeHotReload = "1.0.0"
 material3 = "1.9.0-alpha04"
