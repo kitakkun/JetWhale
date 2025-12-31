@@ -3,14 +3,14 @@ package com.kitakkun.jetwhale.debugger.host.sdk
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
-import com.kitakkun.jetwhale.debugger.protocol.serialization.JetWhaleJson
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 
 /**
  * Plugin interface for JetWhale
  */
 public interface JetWhaleHostPlugin {
-    public suspend fun onReceive(payload: String)
+    public suspend fun onReceive(json: Json, payload: String)
 
     public fun onDispose() {}
 
@@ -18,7 +18,7 @@ public interface JetWhaleHostPlugin {
      * Composable function that represents the UI of the plugin
      */
     @Composable
-    public fun Content(methodDispatcher: MethodDispatcher<String, String>)
+    public fun Content(json: Json, methodDispatcher: MethodDispatcher<String, String>)
 }
 
 @OptIn(InternalJetWhaleApi::class)
@@ -27,17 +27,17 @@ public inline fun <reified Event, reified Method, reified MethodResult> buildJet
     content: PluginUIBuilder<Method, MethodResult>,
 ): JetWhaleHostPlugin {
     return object : JetWhaleHostPlugin {
-        override suspend fun onReceive(payload: String) {
-            onReceiveEvent.receive(JetWhaleJson.decodeFromString(serializer<Event>(), payload))
+        override suspend fun onReceive(json: Json, payload: String) {
+            onReceiveEvent.receive(json.decodeFromString(serializer(), payload))
         }
 
         @Composable
-        override fun Content(methodDispatcher: MethodDispatcher<String, String>) {
+        override fun Content(json: Json, methodDispatcher: MethodDispatcher<String, String>) {
             val methodDispatcher = remember(methodDispatcher) {
                 MethodDispatcher { method: Method ->
-                    val serializedMethod = JetWhaleJson.encodeToString(serializer<Method>(), method)
+                    val serializedMethod = json.encodeToString(serializer<Method>(), method)
                     methodDispatcher.dispatch(serializedMethod)?.let {
-                        JetWhaleJson.decodeFromString(serializer<MethodResult>(), it)
+                        json.decodeFromString(serializer<MethodResult>(), it)
                     }
                 }
             }

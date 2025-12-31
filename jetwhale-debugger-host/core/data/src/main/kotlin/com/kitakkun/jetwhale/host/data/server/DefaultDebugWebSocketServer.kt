@@ -1,14 +1,14 @@
 package com.kitakkun.jetwhale.host.data.server
 
+import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.debugger.protocol.core.JetWhaleDebuggeeEvent
+import com.kitakkun.jetwhale.debugger.protocol.core.JetWhaleDebuggerEvent
 import com.kitakkun.jetwhale.host.model.ADBAutoWiringService
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.PluginRepository
-import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
-import com.kitakkun.jetwhale.debugger.protocol.core.JetWhaleDebuggeeEvent
-import com.kitakkun.jetwhale.debugger.protocol.core.JetWhaleDebuggerEvent
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -193,7 +193,7 @@ class DefaultDebugWebSocketServer(
                                     pluginsRepository.getOrPutPluginInstanceForSession(
                                         pluginId = event.pluginId,
                                         sessionId = sessionId
-                                    ).onReceive(event.payload)
+                                    ).onReceive(json, event.payload)
                                 }
                             }
                         } catch (e: Throwable) {

@@ -12,6 +12,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.serialization.json.Json
 
 @OptIn(InternalComposeUiApi::class)
 @ContributesBinding(AppScope::class)
@@ -21,6 +22,7 @@ class DefaultPluginComposeSceneRepository(
     private val pluginBridgeProvider: DynamicPluginBridgeProvider,
     private val pluginRepository: PluginRepository,
     private val debugWebSocketServer: DebugWebSocketServer,
+    private val json: Json,
 ) : PluginComposeSceneRepository {
     private val pluginScenes = mutableMapOf<String, ComposeScene>()
 
@@ -46,6 +48,7 @@ class DefaultPluginComposeSceneRepository(
                                     message = it,
                                 )
                             },
+                            json = json,
                         )
                     }
                 }
