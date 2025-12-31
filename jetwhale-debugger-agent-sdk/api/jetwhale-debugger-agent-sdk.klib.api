@@ -1,73 +1,55 @@
 // Klib ABI Dump
-// Targets: [iosArm64, iosX64, linuxArm64, linuxX64, macosArm64, macosX64, mingwX64]
+// Targets: [iosArm64, iosSimulatorArm64, iosX64, linuxArm64, linuxX64, macosArm64, macosX64, mingwX64]
 // Rendering settings:
 // - Signature version: 2
 // - Show manifest properties: true
 // - Show declarations: true
 
 // Library unique name: <com.kitakkun.jetwhale:jetwhale-debugger-agent-sdk>
-abstract fun interface com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleEventSender { // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleEventSender|null[0]
-    abstract fun send(kotlin/String) // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleEventSender.send|send(kotlin.String){}[0]
+abstract interface <#A: kotlin/Any?> com.kitakkun.jetwhale.agent.sdk/EventDispatcher { // com.kitakkun.jetwhale.agent.sdk/EventDispatcher|null[0]
+    abstract fun dispatch(#A) // com.kitakkun.jetwhale.agent.sdk/EventDispatcher.dispatch|dispatch(1:0){}[0]
 }
 
-abstract fun interface com.kitakkun.jetwhale.debugger.agent.runtime/MethodHandler { // com.kitakkun.jetwhale.debugger.agent.runtime/MethodHandler|null[0]
-    abstract suspend fun handle(kotlin/String): kotlin/String // com.kitakkun.jetwhale.debugger.agent.runtime/MethodHandler.handle|handle(kotlin.String){}[0]
+abstract interface <#A: kotlin/Any?> com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin|null[0]
+    abstract val debuggerMethodHandler // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.debuggerMethodHandler|{}debuggerMethodHandler[0]
+        abstract fun <get-debuggerMethodHandler>(): com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandler // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.debuggerMethodHandler.<get-debuggerMethodHandler>|<get-debuggerMethodHandler>(){}[0]
+    abstract val eventDispatcher // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.eventDispatcher|{}eventDispatcher[0]
+        abstract fun <get-eventDispatcher>(): com.kitakkun.jetwhale.agent.sdk/EventDispatcher<#A> // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.eventDispatcher.<get-eventDispatcher>|<get-eventDispatcher>(){}[0]
+    abstract val pluginId // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginId|{}pluginId[0]
+        abstract fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    abstract val pluginVersion // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginVersion|{}pluginVersion[0]
+        abstract fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+
+    open fun enqueueEvent(#A) // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.enqueueEvent|enqueueEvent(1:0){}[0]
 }
 
-abstract interface <#A: kotlin/Any?> com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatcher { // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatcher|null[0]
-    abstract fun dispatch(#A) // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatcher.dispatch|dispatch(1:0){}[0]
+abstract interface com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandler { // com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandler|null[0]
+    abstract suspend fun handle(kotlinx.serialization.json/Json, kotlin/String): kotlin/String // com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandler.handle|handle(kotlinx.serialization.json.Json;kotlin.String){}[0]
 }
 
-abstract interface <#A: kotlin/Any?> com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleAgentPlugin|null[0]
-    abstract val eventDispatcher // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleAgentPlugin.eventDispatcher|{}eventDispatcher[0]
-        abstract fun <get-eventDispatcher>(): com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatcher<#A> // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleAgentPlugin.eventDispatcher.<get-eventDispatcher>|<get-eventDispatcher>(){}[0]
-    abstract val methodHandler // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleAgentPlugin.methodHandler|{}methodHandler[0]
-        abstract fun <get-methodHandler>(): com.kitakkun.jetwhale.debugger.agent.runtime/MethodHandler // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleAgentPlugin.methodHandler.<get-methodHandler>|<get-methodHandler>(){}[0]
-    abstract val pluginId // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleAgentPlugin.pluginId|{}pluginId[0]
-        abstract fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
-    abstract val pluginVersion // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleAgentPlugin.pluginVersion|{}pluginVersion[0]
-        abstract fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
-
-    open fun enqueueEvent(#A) // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleAgentPlugin.enqueueEvent|enqueueEvent(1:0){}[0]
+abstract interface com.kitakkun.jetwhale.agent.sdk/JetWhaleEventSender { // com.kitakkun.jetwhale.agent.sdk/JetWhaleEventSender|null[0]
+    abstract fun <#A1: kotlin/Any?> send(kotlinx.serialization/KSerializer<#A1>, #A1) // com.kitakkun.jetwhale.agent.sdk/JetWhaleEventSender.send|send(kotlinx.serialization.KSerializer<0:0>;0:0){0§<kotlin.Any?>}[0]
 }
 
-abstract interface com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleMessagingService { // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleMessagingService|null[0]
-    abstract fun startService(kotlin/String, kotlin/Int) // com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleMessagingService.startService|startService(kotlin.String;kotlin.Int){}[0]
+abstract interface com.kitakkun.jetwhale.agent.sdk/JetWhaleMessagingService { // com.kitakkun.jetwhale.agent.sdk/JetWhaleMessagingService|null[0]
+    abstract fun startService(kotlin/String, kotlin/Int) // com.kitakkun.jetwhale.agent.sdk/JetWhaleMessagingService.startService|startService(kotlin.String;kotlin.Int){}[0]
 }
 
-abstract interface com.kitakkun.jetwhale.debugger.agent.runtime/SenderAttachable { // com.kitakkun.jetwhale.debugger.agent.runtime/SenderAttachable|null[0]
-    abstract fun attachSender(com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleEventSender) // com.kitakkun.jetwhale.debugger.agent.runtime/SenderAttachable.attachSender|attachSender(com.kitakkun.jetwhale.debugger.agent.runtime.JetWhaleEventSender){}[0]
-    abstract fun detachSender() // com.kitakkun.jetwhale.debugger.agent.runtime/SenderAttachable.detachSender|detachSender(){}[0]
+abstract interface com.kitakkun.jetwhale.agent.sdk/SenderAttachable { // com.kitakkun.jetwhale.agent.sdk/SenderAttachable|null[0]
+    abstract fun attachSender(com.kitakkun.jetwhale.agent.sdk/JetWhaleEventSender) // com.kitakkun.jetwhale.agent.sdk/SenderAttachable.attachSender|attachSender(com.kitakkun.jetwhale.agent.sdk.JetWhaleEventSender){}[0]
+    abstract fun detachSender() // com.kitakkun.jetwhale.agent.sdk/SenderAttachable.detachSender|detachSender(){}[0]
 }
 
-sealed interface com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy { // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy|null[0]
-    final class QueueBuffered : com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy { // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.QueueBuffered|null[0]
-        constructor <init>(kotlin/Int) // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.QueueBuffered.<init>|<init>(kotlin.Int){}[0]
+final class <#A: kotlin/Any?, #B: kotlin/Any?> com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandlerImpl : com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandler { // com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandlerImpl|null[0]
+    constructor <init>(kotlinx.serialization/DeserializationStrategy<#A>, kotlinx.serialization/SerializationStrategy<#B>, kotlin.coroutines/SuspendFunction1<#A, #B>) // com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandlerImpl.<init>|<init>(kotlinx.serialization.DeserializationStrategy<1:0>;kotlinx.serialization.SerializationStrategy<1:1>;kotlin.coroutines.SuspendFunction1<1:0,1:1>){}[0]
 
-        final val bufferSize // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.QueueBuffered.bufferSize|{}bufferSize[0]
-            final fun <get-bufferSize>(): kotlin/Int // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.QueueBuffered.bufferSize.<get-bufferSize>|<get-bufferSize>(){}[0]
-
-        final fun component1(): kotlin/Int // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.QueueBuffered.component1|component1(){}[0]
-        final fun copy(kotlin/Int = ...): com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.QueueBuffered // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.QueueBuffered.copy|copy(kotlin.Int){}[0]
-        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.QueueBuffered.equals|equals(kotlin.Any?){}[0]
-        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.QueueBuffered.hashCode|hashCode(){}[0]
-        final fun toString(): kotlin/String // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.QueueBuffered.toString|toString(){}[0]
-    }
-
-    final object DropIfDisconnected : com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy { // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.DropIfDisconnected|null[0]
-        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.DropIfDisconnected.equals|equals(kotlin.Any?){}[0]
-        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.DropIfDisconnected.hashCode|hashCode(){}[0]
-        final fun toString(): kotlin/String // com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy.DropIfDisconnected.toString|toString(){}[0]
-    }
+    final suspend fun handle(kotlinx.serialization.json/Json, kotlin/String): kotlin/String // com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandlerImpl.handle|handle(kotlinx.serialization.json.Json;kotlin.String){}[0]
 }
 
-final class <#A: kotlin/Any?, #B: kotlin/Any?> com.kitakkun.jetwhale.debugger.agent.runtime/MethodHandlerImpl : com.kitakkun.jetwhale.debugger.agent.runtime/MethodHandler { // com.kitakkun.jetwhale.debugger.agent.runtime/MethodHandlerImpl|null[0]
-    constructor <init>(kotlinx.serialization.json/Json, kotlinx.serialization/DeserializationStrategy<#A>, kotlinx.serialization/SerializationStrategy<#B>, kotlin.coroutines/SuspendFunction1<#A, #B>) // com.kitakkun.jetwhale.debugger.agent.runtime/MethodHandlerImpl.<init>|<init>(kotlinx.serialization.json.Json;kotlinx.serialization.DeserializationStrategy<1:0>;kotlinx.serialization.SerializationStrategy<1:1>;kotlin.coroutines.SuspendFunction1<1:0,1:1>){}[0]
-
-    final suspend fun handle(kotlin/String): kotlin/String // com.kitakkun.jetwhale.debugger.agent.runtime/MethodHandlerImpl.handle|handle(kotlin.String){}[0]
-}
-
-final fun <#A: kotlin/Any?> com.kitakkun.jetwhale.debugger.agent.runtime/BufferedEventDispatcher(kotlinx.serialization/KSerializer<#A>, kotlin/Int): com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatcher<#A> // com.kitakkun.jetwhale.debugger.agent.runtime/BufferedEventDispatcher|BufferedEventDispatcher(kotlinx.serialization.KSerializer<0:0>;kotlin.Int){0§<kotlin.Any?>}[0]
-final fun <#A: kotlin/Any?> com.kitakkun.jetwhale.debugger.agent.runtime/DropIfDisconnectedDispatcher(kotlinx.serialization/KSerializer<#A>): com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatcher<#A> // com.kitakkun.jetwhale.debugger.agent.runtime/DropIfDisconnectedDispatcher|DropIfDisconnectedDispatcher(kotlinx.serialization.KSerializer<0:0>){0§<kotlin.Any?>}[0]
-final inline fun <#A: reified kotlin/Any?, #B: reified kotlin/Any?> com.kitakkun.jetwhale.debugger.agent.runtime/MethodHandler(crossinline kotlin.coroutines/SuspendFunction1<#A, #B>): com.kitakkun.jetwhale.debugger.agent.runtime/MethodHandler // com.kitakkun.jetwhale.debugger.agent.runtime/MethodHandler|MethodHandler(kotlin.coroutines.SuspendFunction1<0:0,0:1>){0§<kotlin.Any?>;1§<kotlin.Any?>}[0]
-final inline fun <#A: reified kotlin/Any?> com.kitakkun.jetwhale.debugger.agent.runtime/buildJetWhaleAgentPlugin(kotlin/String, kotlin/String, com.kitakkun.jetwhale.debugger.agent.runtime/MethodHandler, com.kitakkun.jetwhale.debugger.agent.runtime/EventDispatchPolicy): com.kitakkun.jetwhale.debugger.agent.runtime/JetWhaleAgentPlugin<#A> // com.kitakkun.jetwhale.debugger.agent.runtime/buildJetWhaleAgentPlugin|buildJetWhaleAgentPlugin(kotlin.String;kotlin.String;com.kitakkun.jetwhale.debugger.agent.runtime.MethodHandler;com.kitakkun.jetwhale.debugger.agent.runtime.EventDispatchPolicy){0§<kotlin.Any?>}[0]
+final fun <#A: kotlin/Any?> com.kitakkun.jetwhale.agent.sdk/BufferedEventDispatcher(kotlinx.serialization/KSerializer<#A>, kotlin/Int): com.kitakkun.jetwhale.agent.sdk/EventDispatcher<#A> // com.kitakkun.jetwhale.agent.sdk/BufferedEventDispatcher|BufferedEventDispatcher(kotlinx.serialization.KSerializer<0:0>;kotlin.Int){0§<kotlin.Any?>}[0]
+final fun <#A: kotlin/Any?> com.kitakkun.jetwhale.agent.sdk/DropIfDisconnectedDispatcher(kotlinx.serialization/KSerializer<#A>): com.kitakkun.jetwhale.agent.sdk/EventDispatcher<#A> // com.kitakkun.jetwhale.agent.sdk/DropIfDisconnectedDispatcher|DropIfDisconnectedDispatcher(kotlinx.serialization.KSerializer<0:0>){0§<kotlin.Any?>}[0]
+final fun com.kitakkun.jetwhale.agent.sdk/buildJetWhalePrimitiveAgentPlugin(kotlin/String, kotlin/String, com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandler, com.kitakkun.jetwhale.agent.sdk/EventDispatcher<kotlin/String> = ...): com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin<kotlin/String> // com.kitakkun.jetwhale.agent.sdk/buildJetWhalePrimitiveAgentPlugin|buildJetWhalePrimitiveAgentPlugin(kotlin.String;kotlin.String;com.kitakkun.jetwhale.agent.sdk.DebuggerMethodHandler;com.kitakkun.jetwhale.agent.sdk.EventDispatcher<kotlin.String>){}[0]
+final inline fun <#A: reified kotlin/Any?, #B: reified kotlin/Any?> com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandler(crossinline kotlin.coroutines/SuspendFunction1<#A, #B>): com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandler // com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandler|DebuggerMethodHandler(kotlin.coroutines.SuspendFunction1<0:0,0:1>){0§<kotlin.Any?>;1§<kotlin.Any?>}[0]
+final inline fun <#A: reified kotlin/Any?> com.kitakkun.jetwhale.agent.sdk/BufferedEventDispatcher(kotlin/Int): com.kitakkun.jetwhale.agent.sdk/EventDispatcher<#A> // com.kitakkun.jetwhale.agent.sdk/BufferedEventDispatcher|BufferedEventDispatcher(kotlin.Int){0§<kotlin.Any?>}[0]
+final inline fun <#A: reified kotlin/Any?> com.kitakkun.jetwhale.agent.sdk/DropIfDisconnectedDispatcher(): com.kitakkun.jetwhale.agent.sdk/EventDispatcher<#A> // com.kitakkun.jetwhale.agent.sdk/DropIfDisconnectedDispatcher|DropIfDisconnectedDispatcher(){0§<kotlin.Any?>}[0]
+final inline fun <#A: reified kotlin/Any?> com.kitakkun.jetwhale.agent.sdk/buildJetWhaleAgentPlugin(kotlin/String, kotlin/String, com.kitakkun.jetwhale.agent.sdk/DebuggerMethodHandler, com.kitakkun.jetwhale.agent.sdk/EventDispatcher<#A> = ...): com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin<#A> // com.kitakkun.jetwhale.agent.sdk/buildJetWhaleAgentPlugin|buildJetWhaleAgentPlugin(kotlin.String;kotlin.String;com.kitakkun.jetwhale.agent.sdk.DebuggerMethodHandler;com.kitakkun.jetwhale.agent.sdk.EventDispatcher<0:0>){0§<kotlin.Any?>}[0]
