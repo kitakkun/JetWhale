@@ -6,7 +6,7 @@ plugins {
 
 kotlin {
     androidLibrary {
-        namespace = "com.kitakkun.jetwhale.debugger.agent.sdk"
+        namespace = "com.kitakkun.jetwhale.agent.runtime"
         compileSdk = 36
     }
 
