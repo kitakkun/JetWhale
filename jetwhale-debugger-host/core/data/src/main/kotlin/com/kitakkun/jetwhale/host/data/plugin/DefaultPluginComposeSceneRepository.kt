@@ -4,6 +4,7 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.PlatformLayersComposeScene
 import androidx.compose.ui.unit.Density
+import com.kitakkun.jetwhale.debugger.host.sdk.JetWhaleContentUIBuilderContext
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneRepository
@@ -12,6 +13,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 
 @OptIn(InternalComposeUiApi::class)
@@ -41,14 +43,22 @@ class DefaultPluginComposeSceneRepository(
                 setContent {
                     pluginBridgeProvider.PluginEntryPoint {
                         pluginInstance.Content(
-                            methodDispatcher = {
-                                debugWebSocketServer.sendMessage(
-                                    pluginId = pluginId,
-                                    sessionId = sessionId,
-                                    message = it,
-                                )
-                            },
-                            json = json,
+                            context = object : JetWhaleContentUIBuilderContext {
+                                override suspend fun <Method, MethodResult> dispatch(
+                                    methodSerializer: KSerializer<Method>,
+                                    methodResultSerializer: KSerializer<MethodResult>,
+                                    value: Method
+                                ): MethodResult? {
+                                    val serializedMethod = json.encodeToString(methodSerializer, value)
+                                    return debugWebSocketServer.sendMessage(
+                                        pluginId = pluginId,
+                                        sessionId = sessionId,
+                                        message = serializedMethod,
+                                    )?.let { serializedMethodResult ->
+                                        json.decodeFromString(methodResultSerializer, serializedMethodResult)
+                                    }
+                                }
+                            }
                         )
                     }
                 }

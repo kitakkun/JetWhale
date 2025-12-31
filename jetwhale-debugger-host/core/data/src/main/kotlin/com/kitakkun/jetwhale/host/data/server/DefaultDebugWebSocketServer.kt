@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.server
 
+import com.kitakkun.jetwhale.debugger.host.sdk.JetWhaleEventReceiverContext
 import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.debugger.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.debugger.protocol.core.JetWhaleDebuggerEvent
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import java.util.UUID
 
@@ -193,7 +195,13 @@ class DefaultDebugWebSocketServer(
                                     pluginsRepository.getOrPutPluginInstanceForSession(
                                         pluginId = event.pluginId,
                                         sessionId = sessionId
-                                    ).onReceive(json, event.payload)
+                                    ).onReceive(
+                                        object : JetWhaleEventReceiverContext {
+                                            override fun <T> getDeserializedPayload(serializer: KSerializer<T>): T {
+                                                return json.decodeFromString(serializer, event.payload)
+                                            }
+                                        }
+                                    )
                                 }
                             }
                         } catch (e: Throwable) {

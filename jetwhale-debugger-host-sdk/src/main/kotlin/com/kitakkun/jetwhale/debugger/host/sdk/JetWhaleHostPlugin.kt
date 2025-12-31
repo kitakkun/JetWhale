@@ -1,16 +1,14 @@
 package com.kitakkun.jetwhale.debugger.host.sdk
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 
 /**
  * Plugin interface for JetWhale
  */
 public interface JetWhaleHostPlugin {
-    public suspend fun onReceive(json: Json, payload: String)
+    public suspend fun onReceive(context: JetWhaleEventReceiverContext)
 
     public fun onDispose() {}
 
@@ -18,7 +16,7 @@ public interface JetWhaleHostPlugin {
      * Composable function that represents the UI of the plugin
      */
     @Composable
-    public fun Content(json: Json, methodDispatcher: MethodDispatcher<String, String>)
+    public fun Content(context: JetWhaleContentUIBuilderContext)
 }
 
 @OptIn(InternalJetWhaleApi::class)
@@ -27,21 +25,19 @@ public inline fun <reified Event, reified Method, reified MethodResult> buildJet
     content: PluginUIBuilder<Method, MethodResult>,
 ): JetWhaleHostPlugin {
     return object : JetWhaleHostPlugin {
-        override suspend fun onReceive(json: Json, payload: String) {
-            onReceiveEvent.receive(json.decodeFromString(serializer(), payload))
+        override suspend fun onReceive(context: JetWhaleEventReceiverContext) {
+            onReceiveEvent.receive(context.getDeserializedPayload(serializer()))
         }
 
         @Composable
-        override fun Content(json: Json, methodDispatcher: MethodDispatcher<String, String>) {
-            val methodDispatcher = remember(methodDispatcher) {
-                MethodDispatcher { method: Method ->
-                    val serializedMethod = json.encodeToString(serializer<Method>(), method)
-                    methodDispatcher.dispatch(serializedMethod)?.let {
-                        json.decodeFromString(serializer<MethodResult>(), it)
-                    }
-                }
+        override fun Content(context: JetWhaleContentUIBuilderContext) {
+            content.Content {
+                context.dispatch(
+                    methodSerializer = serializer(),
+                    methodResultSerializer = serializer(),
+                    value = it
+                )
             }
-            content.Content(methodDispatcher)
         }
     }
 }
