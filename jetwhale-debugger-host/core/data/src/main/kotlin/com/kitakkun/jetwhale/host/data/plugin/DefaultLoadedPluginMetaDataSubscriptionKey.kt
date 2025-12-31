@@ -30,7 +30,7 @@ class DefaultLoadedPluginMetaDataSubscriptionKey(
                             plugin.javaClass.classLoader.getResource(it) ?: return@let null
                         PluginIconResource(resource)
                     },
-                    inactiveIconResource = plugin.icon.activeIconPath?.let {
+                    inactiveIconResource = plugin.icon.inactiveIconPath?.let {
                         val resource =
                             plugin.javaClass.classLoader.getResource(it) ?: return@let null
                         PluginIconResource(resource)
