@@ -5,4 +5,15 @@ plugins {
 
 kotlin {
     androidLibrary.namespace = "com.kitakkun.jetwhale.protocol"
+
+    sourceSets {
+        commonMain.dependencies {
+            api(projects.jetwhaleProtocol.core)
+            api(projects.jetwhaleProtocol.agent)
+        }
+
+        jvmMain.dependencies {
+            api(projects.jetwhaleProtocol.host)
+        }
+    }
 }
