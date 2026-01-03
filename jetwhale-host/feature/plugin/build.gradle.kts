@@ -4,9 +4,9 @@ plugins {
 
 dependencies {
     implementation(projects.jetwhaleDebuggerHostSdk)
-    implementation(projects.jetwhaleDebuggerHost.core.model)
-    implementation(projects.jetwhaleDebuggerHost.core.ui)
-    implementation(projects.jetwhaleDebuggerHost.core.architecture)
+    implementation(projects.jetwhaleHost.core.model)
+    implementation(projects.jetwhaleHost.core.ui)
+    implementation(projects.jetwhaleHost.core.architecture)
 
     implementation(libs.kotlinxCollectionsImmutable)
 

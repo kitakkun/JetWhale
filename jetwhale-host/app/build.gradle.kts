@@ -30,12 +30,12 @@ kotlin {
 dependencies {
     implementation(projects.jetwhaleDebuggerHostSdk)
     implementation(projects.jetwhaleProtocol)
-    implementation(projects.jetwhaleDebuggerHost.feature.settings)
-    implementation(projects.jetwhaleDebuggerHost.feature.plugin)
-    implementation(projects.jetwhaleDebuggerHost.core.model)
-    implementation(projects.jetwhaleDebuggerHost.core.data)
-    implementation(projects.jetwhaleDebuggerHost.core.architecture)
-    implementation(projects.jetwhaleDebuggerHost.core.ui)
+    implementation(projects.jetwhaleHost.feature.settings)
+    implementation(projects.jetwhaleHost.feature.plugin)
+    implementation(projects.jetwhaleHost.core.model)
+    implementation(projects.jetwhaleHost.core.data)
+    implementation(projects.jetwhaleHost.core.architecture)
+    implementation(projects.jetwhaleHost.core.ui)
 
     implementation(libs.bundles.navigation3)
     implementation(libs.kotlinxSerializationJson)

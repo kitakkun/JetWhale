@@ -5,5 +5,5 @@ plugins {
 
 dependencies {
     implementation(libs.material3)
-    implementation(projects.jetwhaleDebuggerHost.core.model)
+    implementation(projects.jetwhaleHost.core.model)
 }

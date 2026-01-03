@@ -3,8 +3,8 @@ plugins {
 }
 
 dependencies {
-    implementation(projects.jetwhaleDebuggerHost.core.model)
-    implementation(projects.jetwhaleDebuggerHost.core.architecture)
+    implementation(projects.jetwhaleHost.core.model)
+    implementation(projects.jetwhaleHost.core.architecture)
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(libs.rin)
 }
