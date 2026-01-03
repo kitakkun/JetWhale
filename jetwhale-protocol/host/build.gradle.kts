@@ -14,3 +14,7 @@ kotlin {
         enabled.set(true)
     }
 }
+
+dependencies {
+    api(projects.jetwhaleProtocol.core)
+}
