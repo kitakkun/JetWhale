@@ -1,70 +1,51 @@
 package com.kitakkun.jetwhale.agent.sdk
 
-import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.protocol.agent.JetWhaleAgentPluginProtocol
 
 /**
  * Plugin client which runs on the debug-target app.
  */
-public interface JetWhaleAgentPlugin<Event> {
+public abstract class JetWhaleAgentPlugin<Event, Method, MethodResult> : JetWhaleRawAgentPlugin() {
     /**
      * unique id to distinguish plugins.
      * For example, "com.kitakkun.jetwhale.debugger.agent.plugin.sample"
      */
-    public val pluginId: String
+    public abstract val pluginId: String
 
     /**
      * Version of this plugin.
      * For example, "1.0.0"
      */
-    public val pluginVersion: String
+    public abstract val pluginVersion: String
 
     /**
-     * Handler to process method calls from the debugger.
+     * The protocol used for encoding and decoding messages.
      */
-    @OptIn(InternalJetWhaleApi::class)
-    public val debuggerMethodHandler: DebuggerMethodHandler
+    protected abstract val protocol: JetWhaleAgentPluginProtocol<Event, Method, MethodResult>
 
     /**
-     * Dispatcher to send events to the debugger.
+     * Handles a typed method message received from the debugger.
+     * @param method The decoded method message.
+     * @return The result of the method, or null if no response is needed.
      */
-    public val eventDispatcher: EventDispatcher<Event>
+    public abstract suspend fun onReceiveMethod(method: Method): MethodResult?
 
     /**
-     * Enqueue an event to be sent to the debugger.
-     * How the event is dispatched depends on the [eventDispatcher] implementation.
-     * @see EventDispatcher for more details.
+     * Enqueues a typed event message to be sent to the debugger.
+     * @param event The event message to be sent.
      */
     public fun enqueueEvent(event: Event) {
-        eventDispatcher.dispatch(event)
+        val rawPayload = protocol.encodeEvent(event)
+        enqueueEvent(rawPayload)
     }
-}
 
-@OptIn(InternalJetWhaleApi::class)
-public inline fun <reified Event> buildJetWhaleAgentPlugin(
-    pluginId: String,
-    pluginVersion: String,
-    debuggerMethodHandler: DebuggerMethodHandler,
-    eventDispatcher: EventDispatcher<Event> = DropIfDisconnectedDispatcher(),
-): JetWhaleAgentPlugin<Event> {
-    return object : JetWhaleAgentPlugin<Event> {
-        override val pluginId: String get() = pluginId
-        override val pluginVersion: String get() = pluginVersion
-        override val eventDispatcher: EventDispatcher<Event> = eventDispatcher
-        override val debuggerMethodHandler: DebuggerMethodHandler = debuggerMethodHandler
+    /**
+     * Handles a raw method message received from the debugger.
+     * Decodes the message, processes it, and encodes the result.
+     */
+    final override suspend fun onRawMethod(message: String): String? {
+        val method = protocol.decodeMethod(message)
+        val result = onReceiveMethod(method) ?: return null
+        return protocol.encodeMethodResult(result)
     }
-}
-
-@OptIn(InternalJetWhaleApi::class)
-public fun buildJetWhalePrimitiveAgentPlugin(
-    pluginId: String,
-    pluginVersion: String,
-    debuggerMethodHandler: DebuggerMethodHandler,
-    eventDispatcher: EventDispatcher<String> = DropIfDisconnectedDispatcher(),
-): JetWhaleAgentPlugin<String> {
-    return buildJetWhaleAgentPlugin<String>(
-        pluginId = pluginId,
-        pluginVersion = pluginVersion,
-        debuggerMethodHandler = debuggerMethodHandler,
-        eventDispatcher = eventDispatcher,
-    )
 }

@@ -47,7 +47,7 @@ sealed interface JetWhaleDebuggeeEvent {
         @Serializable
         data class Success(
             override val requestId: String,
-            val payload: String,
+            val payload: String?,
         ) : MethodResultResponse
     }
 }
