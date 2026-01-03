@@ -1,7 +1,5 @@
 package com.kitakkun.jetwhale.host.di
 
-import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
-import com.kitakkun.jetwhale.debugger.protocol.serialization.JetWhaleJson
 import com.kitakkun.jetwhale.host.ApplicationLifecycleOwner
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldScreenContext
@@ -11,6 +9,8 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneRepository
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
 import com.kitakkun.jetwhale.host.plugin.PluginScreenContext
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
 import dev.zacsweers.metro.Provides

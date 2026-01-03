@@ -2,8 +2,8 @@ package com.kitakkun.jetwhale.agent.runtime
 
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleMessagingService
-import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
-import com.kitakkun.jetwhale.debugger.protocol.serialization.JetWhaleJson
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 

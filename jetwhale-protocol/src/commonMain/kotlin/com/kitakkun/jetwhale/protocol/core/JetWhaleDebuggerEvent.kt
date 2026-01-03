@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.debugger.protocol.core
+package com.kitakkun.jetwhale.protocol.core
 
 import kotlinx.serialization.Serializable
 

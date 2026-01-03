@@ -20,5 +20,5 @@ kotlin {
 dependencies {
     implementation(compose.runtime)
     implementation(libs.kotlinxSerializationJson)
-    implementation(projects.jetwhaleDebuggerProtocol)
+    implementation(projects.jetwhaleProtocol)
 }

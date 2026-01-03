@@ -1,4 +1,4 @@
-# JetWhale Debugger Protocol
+# JetWhale Protocol
 
 This module defines a communication protocol used between the JetWhale debugger and the debuggee
 application.

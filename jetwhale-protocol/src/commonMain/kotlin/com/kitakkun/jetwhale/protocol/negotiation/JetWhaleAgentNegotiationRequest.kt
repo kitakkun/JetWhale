@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.debugger.protocol.negotiation
+package com.kitakkun.jetwhale.protocol.negotiation
 
 import kotlinx.serialization.Serializable
 

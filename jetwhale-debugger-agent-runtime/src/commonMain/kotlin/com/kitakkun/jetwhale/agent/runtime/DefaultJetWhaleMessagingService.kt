@@ -4,10 +4,10 @@ import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleEventSender
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleMessagingService
 import com.kitakkun.jetwhale.agent.sdk.SenderAttachable
-import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
-import com.kitakkun.jetwhale.debugger.protocol.core.JetWhaleDebuggeeEvent
-import com.kitakkun.jetwhale.debugger.protocol.core.JetWhaleDebuggerEvent
-import com.kitakkun.jetwhale.debugger.protocol.serialization.decodeFromStringOrNull
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
+import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
+import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO

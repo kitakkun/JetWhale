@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.agent.sdk
 
-import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.json.Json

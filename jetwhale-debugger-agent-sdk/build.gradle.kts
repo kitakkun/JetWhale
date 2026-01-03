@@ -18,6 +18,6 @@ kotlin {
 }
 
 dependencies {
-    commonMainImplementation(projects.jetwhaleDebuggerProtocol)
+    commonMainImplementation(projects.jetwhaleProtocol)
     commonMainImplementation(libs.kotlinxCoroutinesCore)
 }

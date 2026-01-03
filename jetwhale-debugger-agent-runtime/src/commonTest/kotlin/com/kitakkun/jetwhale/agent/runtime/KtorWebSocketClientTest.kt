@@ -1,9 +1,9 @@
 package com.kitakkun.jetwhale.agent.runtime
 
-import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
-import com.kitakkun.jetwhale.debugger.protocol.negotiation.JetWhaleAgentNegotiationRequest
-import com.kitakkun.jetwhale.debugger.protocol.negotiation.JetWhaleHostNegotiationResponse
-import com.kitakkun.jetwhale.debugger.protocol.serialization.JetWhaleJson
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAgentNegotiationRequest
+import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleHostNegotiationResponse
+import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.server.engine.connector
 import io.ktor.server.testing.ApplicationTestBuilder

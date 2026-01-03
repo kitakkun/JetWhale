@@ -4,5 +4,5 @@ plugins {
 }
 
 kotlin {
-    androidLibrary.namespace = "com.kitakkun.jetwhale.debugger.protocol"
+    androidLibrary.namespace = "com.kitakkun.jetwhale.protocol"
 }

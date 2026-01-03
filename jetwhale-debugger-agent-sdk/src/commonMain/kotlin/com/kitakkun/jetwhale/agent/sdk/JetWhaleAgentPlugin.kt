@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.agent.sdk
 
-import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 
 /**
  * Plugin client which runs on the debug-target app.

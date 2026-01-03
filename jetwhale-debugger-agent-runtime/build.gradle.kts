@@ -12,7 +12,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(projects.jetwhaleDebuggerProtocol)
+            implementation(projects.jetwhaleProtocol)
             implementation(projects.jetwhaleDebuggerAgentSdk)
 
             implementation(libs.bundles.ktorClient)

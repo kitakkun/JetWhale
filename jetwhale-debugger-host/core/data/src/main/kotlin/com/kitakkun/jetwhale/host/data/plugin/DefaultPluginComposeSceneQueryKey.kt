@@ -7,7 +7,7 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneQueryKey
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneRepository
 import com.kitakkun.jetwhale.host.model.PluginIdQualifier
 import com.kitakkun.jetwhale.host.model.SessionIdQualifier
-import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject

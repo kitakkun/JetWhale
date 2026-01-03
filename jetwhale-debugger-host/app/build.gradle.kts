@@ -29,7 +29,7 @@ kotlin {
 
 dependencies {
     implementation(projects.jetwhaleDebuggerHostSdk)
-    implementation(projects.jetwhaleDebuggerProtocol)
+    implementation(projects.jetwhaleProtocol)
     implementation(projects.jetwhaleDebuggerHost.feature.settings)
     implementation(projects.jetwhaleDebuggerHost.feature.plugin)
     implementation(projects.jetwhaleDebuggerHost.core.model)

@@ -1,8 +1,8 @@
 package com.kitakkun.jetwhale.host.data.server
 
-import com.kitakkun.jetwhale.debugger.protocol.negotiation.JetWhaleAgentNegotiationRequest
-import com.kitakkun.jetwhale.debugger.protocol.negotiation.JetWhaleHostNegotiationResponse
-import com.kitakkun.jetwhale.debugger.protocol.negotiation.JetWhaleProtocolVersion
+import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAgentNegotiationRequest
+import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleHostNegotiationResponse
+import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleProtocolVersion
 import dev.zacsweers.metro.Inject
 import io.ktor.server.application.Application
 import io.ktor.server.application.log

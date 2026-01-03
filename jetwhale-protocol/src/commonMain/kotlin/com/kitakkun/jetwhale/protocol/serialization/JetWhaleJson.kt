@@ -1,6 +1,6 @@
-package com.kitakkun.jetwhale.debugger.protocol.serialization
+package com.kitakkun.jetwhale.protocol.serialization
 
-import com.kitakkun.jetwhale.debugger.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationStrategy
