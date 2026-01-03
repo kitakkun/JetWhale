@@ -16,13 +16,18 @@ import com.kitakkun.jetwhale.host.plugin.PluginScreenRoot
 import com.kitakkun.jetwhale.host.screen.EmptyPluginScreen
 import com.kitakkun.jetwhale.host.screen.InfoScreen
 import com.kitakkun.jetwhale.host.settings.SettingsScreenRoot
+import com.kitakkun.jetwhale.host.settings.licenses.LicensesScreenRoot
 import io.github.takahirom.rin.rememberRetained
 
-fun EntryProviderScope<NavKey>.infoEntry() {
+fun EntryProviderScope<NavKey>.infoEntry(
+    onClickOSSLicenses: () -> Unit,
+) {
     entry<InfoNavKey>(
         metadata = DialogSceneStrategy.dialog(),
     ) {
-        InfoScreen()
+        InfoScreen(
+            onClickOSSLicenses = onClickOSSLicenses,
+        )
     }
 }
 
@@ -81,6 +86,29 @@ fun EntryProviderScope<NavKey>.settingsEntry(
         ) {
             SettingsScreenRoot(
                 onClickClose = onClickClose,
+            )
+        }
+    }
+}
+
+context(appGraph: JetWhaleAppGraph)
+fun EntryProviderScope<NavKey>.licensesEntry(
+    onClickBack: () -> Unit,
+) {
+    entry<LicensesNavKey>(
+        metadata = DialogSceneStrategy.dialog(
+            dialogProperties = DialogProperties(
+                usePlatformDefaultWidth = false,
+            )
+        )
+    ) {
+        context(
+            rememberRetained {
+                appGraph.createLicencesScreenContext()
+            }
+        ) {
+            LicensesScreenRoot(
+                onClickBack = onClickBack,
             )
         }
     }

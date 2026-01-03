@@ -1,0 +1,14 @@
+{
+  "uniqueId": "remix-icon",
+  "name": "Remix Icon",
+  "description": "Open-source neutral style icon set in Outlined and Filled styles",
+  "developers": [
+    {
+      "name": "Remix Design"
+    }
+  ],
+  "licenses": [
+    "Apache-2.0"
+  ],
+  "website": "https://remixicon.com"
+}

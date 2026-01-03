@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.metro)
     alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.aboutLibraries)
 }
 
 compose.desktop {
@@ -44,7 +45,17 @@ dependencies {
     implementation(libs.androidxDatastorePreferences)
     implementation(libs.rin)
     implementation(libs.material3)
+    implementation(libs.aboutLibrariesCore)
 
     implementation(compose.materialIconsExtended)
     testImplementation(libs.kotlinTest)
+}
+
+aboutLibraries {
+    export {
+        outputFile = file("src/main/composeResources/files/aboutlibraries.json")
+    }
+    collect {
+        this.configPath = file("aboutlibraries")
+    }
 }

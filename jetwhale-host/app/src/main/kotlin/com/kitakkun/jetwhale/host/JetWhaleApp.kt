@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldRoot
 import com.kitakkun.jetwhale.host.navigation.EmptyPluginNavKey
 import com.kitakkun.jetwhale.host.navigation.InfoNavKey
 import com.kitakkun.jetwhale.host.navigation.JetWhaleNavDisplay
+import com.kitakkun.jetwhale.host.navigation.LicensesNavKey
 import com.kitakkun.jetwhale.host.navigation.PluginNavKey
 import com.kitakkun.jetwhale.host.navigation.SettingsNavKey
 import com.kitakkun.jetwhale.host.navigation.addSingleTop
@@ -33,6 +34,7 @@ fun JetWhaleApp() {
                 polymorphic(NavKey::class, SettingsNavKey::class, SettingsNavKey.serializer())
                 polymorphic(NavKey::class, InfoNavKey::class, InfoNavKey.serializer())
                 polymorphic(NavKey::class, PluginNavKey::class, PluginNavKey.serializer())
+                polymorphic(NavKey::class, LicensesNavKey::class, LicensesNavKey.serializer())
             }
         },
         EmptyPluginNavKey
