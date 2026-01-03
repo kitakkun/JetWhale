@@ -40,10 +40,10 @@ class DefaultPluginComposeSceneRepository(
             val debugOperationContext = object : JetWhaleDebugOperationContext<String, String> {
                 override val coroutineScope: CoroutineScope = debugWebSocketServer.getCoroutineScopeForSession(sessionId)
                 override suspend fun dispatch(method: String): String? {
-                    return debugWebSocketServer.sendMessage(
+                    return debugWebSocketServer.sendMethod(
                         pluginId = pluginId,
                         sessionId = sessionId,
-                        message = method
+                        payload = method
                     )
                 }
             }

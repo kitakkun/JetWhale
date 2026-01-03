@@ -92,12 +92,12 @@ class DefaultDebugWebSocketServer(
         mutableStatusFlow.update { DebugWebSocketServerStatus.Stopped }
     }
 
-    override suspend fun sendMessage(
+    override suspend fun sendMethod(
         pluginId: String,
         sessionId: String,
-        message: String
+        payload: String
     ): String? {
-        logDebug("Sending message: $message")
+        logDebug("Sending message: $payload")
         val session = sessions[sessionId] ?: return null
         val requestId = UUID.randomUUID().toString()
         logDebug("send method message with requestId: $requestId")
@@ -105,7 +105,7 @@ class DefaultDebugWebSocketServer(
             JetWhaleDebuggerEvent.MethodRequest(
                 pluginId = pluginId,
                 requestId = requestId,
-                payload = message,
+                payload = payload,
             )
         )
 
