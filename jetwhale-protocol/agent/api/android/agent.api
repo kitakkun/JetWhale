@@ -1,0 +1,13 @@
+public abstract interface class com/kitakkun/jetwhale/protocol/agent/JetWhaleAgentPluginProtocol {
+	public abstract fun decodeMethod (Ljava/lang/String;)Ljava/lang/Object;
+	public abstract fun encodeEvent (Ljava/lang/Object;)Ljava/lang/String;
+	public abstract fun encodeMethodResult (Ljava/lang/Object;)Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/protocol/agent/KotlinxSerializationJetWhaleAgentPluginProtocol : com/kitakkun/jetwhale/protocol/agent/JetWhaleAgentPluginProtocol {
+	public fun <init> (Lkotlinx/serialization/json/Json;Lkotlinx/serialization/KSerializer;Lkotlinx/serialization/KSerializer;Lkotlinx/serialization/KSerializer;)V
+	public fun decodeMethod (Ljava/lang/String;)Ljava/lang/Object;
+	public fun encodeEvent (Ljava/lang/Object;)Ljava/lang/String;
+	public fun encodeMethodResult (Ljava/lang/Object;)Ljava/lang/String;
+}
+
