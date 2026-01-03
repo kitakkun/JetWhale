@@ -5,7 +5,7 @@
 // - Show manifest properties: true
 // - Show declarations: true
 
-// Library unique name: <com.kitakkun.jetwhale:jetwhale-debugger-agent-sdk>
+// Library unique name: <com.kitakkun.jetwhale:jetwhale-agent-sdk>
 abstract interface <#A: kotlin/Any?> com.kitakkun.jetwhale.agent.sdk/EventDispatcher { // com.kitakkun.jetwhale.agent.sdk/EventDispatcher|null[0]
     abstract fun dispatch(#A) // com.kitakkun.jetwhale.agent.sdk/EventDispatcher.dispatch|dispatch(1:0){}[0]
 }

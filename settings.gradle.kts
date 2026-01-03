@@ -23,7 +23,7 @@ include(":jetwhale-protocol:core")
 include(":jetwhale-protocol:host")
 include(":jetwhale-protocol:agent")
 
-include(":jetwhale-debugger-agent-sdk")
+include(":jetwhale-agent-sdk")
 include(":jetwhale-debugger-agent-runtime")
 
 include(":jetwhale-host-sdk")
