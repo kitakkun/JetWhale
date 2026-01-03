@@ -31,12 +31,20 @@ public abstract class JetWhaleAgentPlugin<Event, Method, MethodResult> : JetWhal
     public abstract suspend fun onReceiveMethod(method: Method): MethodResult?
 
     /**
+     * Called when an event is enqueued.
+     * Mainly for logging or debugging purposes.
+     * @param event The event message that was enqueued.
+     */
+    public open fun onEnqueueEvent(event: Event) {}
+
+    /**
      * Enqueues a typed event message to be sent to the debugger.
      * @param event The event message to be sent.
      */
     public fun enqueueEvent(event: Event) {
         val rawPayload = protocol.encodeEvent(event)
         enqueueEvent(rawPayload)
+        onEnqueueEvent(event)
     }
 
     /**
