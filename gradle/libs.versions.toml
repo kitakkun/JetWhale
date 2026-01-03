@@ -11,6 +11,8 @@ kotlinxCoroutines = "1.10.2"
 
 # android
 androidGradlePlugin = "8.13.2"
+androidxCoreKtx = "1.17.0"
+androidxActivity = "1.12.2"
 
 jetbrainsCompose = "1.9.3"
 composeHotReload = "1.0.0"
@@ -50,6 +52,9 @@ kotlinxCollectionsImmutable = { module = "org.jetbrains.kotlinx:kotlinx-collecti
 kotlinxCoroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 
 # androidx
+androidxCoreKtx = { module = "androidx.core:core-ktx", version.ref = "androidxCoreKtx" }
+androidxActivityCompose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivity" }
+androidxActivityKtx = { module = "androidx.activity:activity-ktx", version.ref = "androidxActivity" }
 androidxDatastorePreferences = { module = "androidx.datastore:datastore-preferences", version.ref = "androidxDatastore" }
 
 # compose
@@ -122,6 +127,7 @@ kotlinDsl = { id = "org.gradle.kotlin.kotlin-dsl", version.ref = "kotlinDsl" }
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
 # android
+androidApplication = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "androidGradlePlugin" }
 
 # compose

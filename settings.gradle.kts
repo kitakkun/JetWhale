@@ -36,3 +36,5 @@ include(":jetwhale-host:core:model")
 include(":jetwhale-host:ksp-processor")
 include(":jetwhale-host:feature:settings")
 include(":jetwhale-host:feature:plugin")
+
+include(":demo")
