@@ -18,18 +18,21 @@ dependencyResolutionManagement {
     }
 }
 
-include(":jetwhale-debugger-protocol")
+include(":jetwhale-protocol")
+include(":jetwhale-protocol:core")
+include(":jetwhale-protocol:host")
+include(":jetwhale-protocol:agent")
 
-include(":jetwhale-debugger-agent-sdk")
-include(":jetwhale-debugger-agent-runtime")
+include(":jetwhale-agent-sdk")
+include(":jetwhale-agent-runtime")
 
-include(":jetwhale-debugger-host-sdk")
+include(":jetwhale-host-sdk")
 
-include(":jetwhale-debugger-host:app")
-include(":jetwhale-debugger-host:core:data")
-include(":jetwhale-debugger-host:core:ui")
-include(":jetwhale-debugger-host:core:architecture")
-include(":jetwhale-debugger-host:core:model")
-include(":jetwhale-debugger-host:ksp-processor")
-include(":jetwhale-debugger-host:feature:settings")
-include(":jetwhale-debugger-host:feature:plugin")
+include(":jetwhale-host:app")
+include(":jetwhale-host:core:data")
+include(":jetwhale-host:core:ui")
+include(":jetwhale-host:core:architecture")
+include(":jetwhale-host:core:model")
+include(":jetwhale-host:ksp-processor")
+include(":jetwhale-host:feature:settings")
+include(":jetwhale-host:feature:plugin")
