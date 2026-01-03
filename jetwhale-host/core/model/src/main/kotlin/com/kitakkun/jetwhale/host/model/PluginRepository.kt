@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.host.model
 
-import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
+import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
 import kotlinx.coroutines.flow.Flow
 
 interface PluginRepository {
@@ -13,7 +13,7 @@ interface PluginRepository {
     suspend fun getOrPutPluginInstanceForSession(
         pluginId: String,
         sessionId: String,
-    ): JetWhaleHostPlugin
+    ): JetWhaleRawHostPlugin
 
     fun unloadPluginInstanceForSession(sessionId: String)
 }

@@ -6,8 +6,6 @@ import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.PluginRepository
-import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
-import com.kitakkun.jetwhale.host.sdk.JetWhaleEventReceiverContext
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import dev.zacsweers.metro.AppScope
@@ -30,6 +28,7 @@ import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.close
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +39,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import java.util.UUID
 
@@ -129,7 +127,11 @@ class DefaultDebugWebSocketServer(
         }
     }
 
-    @OptIn(InternalJetWhaleHostApi::class)
+    override fun getCoroutineScopeForSession(sessionId: String): CoroutineScope {
+        val session = sessions[sessionId] ?: throw IllegalArgumentException("No session with ID $sessionId")
+        return CoroutineScope(session.coroutineContext)
+    }
+
     private fun Application.configureWebSocket(
         host: String,
         port: Int,
@@ -192,15 +194,10 @@ class DefaultDebugWebSocketServer(
                                 is JetWhaleDebuggeeEvent.MethodResultResponse -> methodRequestResultFlow.emit(event)
                                 is JetWhaleDebuggeeEvent.PluginMessage -> {
                                     log.debug("received message: {}", event)
-                                    val receiverContext = object : JetWhaleEventReceiverContext {
-                                        override fun <T> getDeserializedPayload(serializer: KSerializer<T>): T {
-                                            return json.decodeFromString(serializer, event.payload)
-                                        }
-                                    }
                                     pluginsRepository.getOrPutPluginInstanceForSession(
                                         pluginId = event.pluginId,
                                         sessionId = sessionId
-                                    ).onReceive(receiverContext)
+                                    ).onRawEvent(event.payload)
                                 }
                             }
                         } catch (e: Throwable) {

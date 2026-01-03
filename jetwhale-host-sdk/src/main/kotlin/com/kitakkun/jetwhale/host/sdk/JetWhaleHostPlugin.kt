@@ -1,31 +1,59 @@
 package com.kitakkun.jetwhale.host.sdk
 
 import androidx.compose.runtime.Composable
+import com.kitakkun.jetwhale.protocol.host.JetWhaleHostPluginProtocol
+import kotlinx.coroutines.CoroutineScope
 
 /**
  * Plugin interface for JetWhale.
- *
- * Do not directly implement this interface. Use [buildJetWhaleHostPlugin] to create an instance.
  */
-public interface JetWhaleHostPlugin {
+public abstract class JetWhaleHostPlugin<Event, Method, MethodResult> : JetWhaleRawHostPlugin() {
+    /**
+     * The protocol used for encoding and decoding events, methods, and method results
+     */
+    protected abstract val protocol: JetWhaleHostPluginProtocol<Event, Method, MethodResult>
+
+    /**
+     * Called when an event is received from debuggee
+     * @param event The received event
+     */
+    public abstract fun onEvent(event: Event)
+
     /**
      * Composable function that represents the UI of the plugin
-     * @param context The context for building the UI
+     *
+     * Composition will be kept as long as the plugin instance is alive.
+     * Even if the tab is switched, the composition will be kept.
+     *
+     * @param context The context to perform debug operations
      */
     @Composable
-    @InternalJetWhaleHostApi
-    public fun Content(context: JetWhaleContentUIBuilderContext)
+    public abstract fun Content(context: JetWhaleDebugOperationContext<Method, MethodResult>)
 
     /**
-     * Called when an event is received from the JetWhale debugger
-     * @param context The context containing the event data
+     * Handles a raw event message received from the debuggee.
+     * Decodes the message and processes it.
      */
-    @InternalJetWhaleHostApi
-    public suspend fun onReceive(context: JetWhaleEventReceiverContext)
+    final override fun onRawEvent(event: String) {
+        val decodedEvent = protocol.decodeEvent(event)
+        onEvent(decodedEvent)
+    }
 
     /**
-     * Called when the plugin is disposed
+     * Composable function that adapts raw string-based context to typed context
+     * and calls the typed Content function.
+     * @param context The raw debug operation context
      */
-    public fun onDispose() {
+    @Composable
+    final override fun ContentRaw(context: JetWhaleDebugOperationContext<String, String>) {
+        val typedContext = object : JetWhaleDebugOperationContext<Method, MethodResult> {
+            override val coroutineScope: CoroutineScope get() = context.coroutineScope
+            override suspend fun dispatch(method: Method): MethodResult? {
+                val encodedMethod = protocol.encodeMethod(method)
+                val rawResult = context.dispatch(encodedMethod)
+                return rawResult?.let { protocol.decodeMethodResult(it) }
+            }
+        }
+        Content(context = typedContext)
     }
 }
