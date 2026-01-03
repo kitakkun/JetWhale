@@ -10,6 +10,7 @@ fun initializeJetWhale() {
         }
 
         plugins {
+            register(DIModule.exampleAgentPlugin)
         }
     }
 }

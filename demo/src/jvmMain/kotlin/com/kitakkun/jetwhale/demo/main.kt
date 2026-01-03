@@ -6,5 +6,6 @@ fun main() {
     initializeJetWhale()
 
     singleWindowApplication {
+        App()
     }
 }

@@ -37,4 +37,8 @@ include(":jetwhale-host:ksp-processor")
 include(":jetwhale-host:feature:settings")
 include(":jetwhale-host:feature:plugin")
 
+include(":jetwhale-plugins:example:host")
+include(":jetwhale-plugins:example:protocol")
+include(":jetwhale-plugins:example:agent")
+
 include(":demo")

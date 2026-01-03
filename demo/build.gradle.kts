@@ -16,6 +16,8 @@ kotlin {
             implementation(compose.runtime)
             implementation(projects.jetwhaleAgentRuntime)
             implementation(projects.jetwhaleAgentSdk)
+            implementation(projects.jetwhalePlugins.example.agent)
+            implementation(projects.jetwhalePlugins.example.protocol)
         }
 
         jvmMain.dependencies {
