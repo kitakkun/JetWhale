@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.debugger.host.sdk
+package com.kitakkun.jetwhale.host.sdk
 
 public class JetWhalePluginMetaData internal constructor(
     public val pluginId: String,

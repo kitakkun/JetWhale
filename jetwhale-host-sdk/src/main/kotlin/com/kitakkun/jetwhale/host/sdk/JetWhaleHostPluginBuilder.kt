@@ -1,6 +1,6 @@
 @file:OptIn(InternalJetWhaleHostApi::class)
 
-package com.kitakkun.jetwhale.debugger.host.sdk
+package com.kitakkun.jetwhale.host.sdk
 
 import androidx.compose.runtime.Composable
 import kotlinx.serialization.serializer

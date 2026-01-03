@@ -7,7 +7,7 @@ plugins {
 }
 
 dependencies {
-    implementation(projects.jetwhaleDebuggerHostSdk)
+    implementation(projects.jetwhaleHostSdk)
     implementation(projects.jetwhaleHost.core.model)
     implementation(projects.jetwhaleProtocol)
 

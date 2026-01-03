@@ -28,7 +28,7 @@ kotlin {
 }
 
 dependencies {
-    implementation(projects.jetwhaleDebuggerHostSdk)
+    implementation(projects.jetwhaleHostSdk)
     implementation(projects.jetwhaleProtocol)
     implementation(projects.jetwhaleHost.feature.settings)
     implementation(projects.jetwhaleHost.feature.plugin)

@@ -6,7 +6,7 @@ plugins {
 }
 
 dependencies {
-    implementation(projects.jetwhaleDebuggerHostSdk)
+    implementation(projects.jetwhaleHostSdk)
     implementation(libs.soilQueryCore)
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(compose.runtime)

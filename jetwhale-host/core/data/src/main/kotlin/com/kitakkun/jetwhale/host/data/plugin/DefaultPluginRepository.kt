@@ -1,8 +1,8 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.model.PluginRepository
-import com.kitakkun.jetwhale.debugger.host.sdk.JetWhaleHostPlugin
-import com.kitakkun.jetwhale.debugger.host.sdk.JetWhaleHostPluginFactory
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
