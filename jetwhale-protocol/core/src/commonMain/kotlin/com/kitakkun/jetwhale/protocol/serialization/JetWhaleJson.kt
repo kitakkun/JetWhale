@@ -13,7 +13,7 @@ import kotlinx.serialization.json.Json
  */
 @OptIn(ExperimentalSerializationApi::class)
 @InternalJetWhaleApi
-val JetWhaleJson = Json {
+public val JetWhaleJson: Json = Json {
     classDiscriminator = "type"
     classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS
     ignoreUnknownKeys = true
@@ -27,7 +27,7 @@ val JetWhaleJson = Json {
  * Returns null if decoding fails.
  */
 @InternalJetWhaleApi
-inline fun <reified T> Json.decodeFromStringOrNull(value: String): T? {
+public inline fun <reified T> Json.decodeFromStringOrNull(value: String): T? {
     return try {
         decodeFromString<T>(value)
     } catch (_: Throwable) {
@@ -40,7 +40,7 @@ inline fun <reified T> Json.decodeFromStringOrNull(value: String): T? {
  * Returns null if decoding fails.
  */
 @InternalJetWhaleApi
-fun <T> Json.decodeFromStringOrNull(deserializer: DeserializationStrategy<T>, value: String): T? {
+public fun <T> Json.decodeFromStringOrNull(deserializer: DeserializationStrategy<T>, value: String): T? {
     return try {
         decodeFromString(deserializer, value)
     } catch (_: Throwable) {
@@ -53,7 +53,7 @@ fun <T> Json.decodeFromStringOrNull(deserializer: DeserializationStrategy<T>, va
  * Returns null if encoding fails.
  */
 @InternalJetWhaleApi
-inline fun <reified T> Json.encodeToStringOrNull(value: T): String? {
+public inline fun <reified T> Json.encodeToStringOrNull(value: T): String? {
     return try {
         encodeToString(value)
     } catch (_: Throwable) {
@@ -66,7 +66,7 @@ inline fun <reified T> Json.encodeToStringOrNull(value: T): String? {
  * Returns null if encoding fails.
  */
 @InternalJetWhaleApi
-inline fun <reified T> Json.encodeToStringOrNull(serializer: SerializationStrategy<T>, value: T): String? {
+public inline fun <reified T> Json.encodeToStringOrNull(serializer: SerializationStrategy<T>, value: T): String? {
     return try {
         encodeToString(value)
     } catch (_: Throwable) {

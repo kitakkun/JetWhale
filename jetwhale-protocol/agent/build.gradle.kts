@@ -5,4 +5,6 @@ plugins {
 
 kotlin {
     androidLibrary.namespace = "com.kitakkun.jetwhale.protocol.agent"
+
+    explicitApi()
 }

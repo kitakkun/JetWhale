@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
  * Events sent from debugger (host) to debuggee (agent).
  */
 @Serializable
-sealed interface JetWhaleDebuggerEvent {
+public sealed interface JetWhaleDebuggerEvent {
     /**
      * Method request sent from debugger to debuggee.
      * This event expects a response from the debuggee.
@@ -16,7 +16,7 @@ sealed interface JetWhaleDebuggerEvent {
      * @param payload The content of the method request.
      */
     @Serializable
-    data class MethodRequest(
+    public data class MethodRequest(
         val pluginId: String,
         val requestId: String,
         val payload: String,

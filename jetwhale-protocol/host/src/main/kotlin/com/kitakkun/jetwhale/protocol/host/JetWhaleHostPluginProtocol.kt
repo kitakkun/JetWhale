@@ -4,13 +4,13 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 
-interface JetWhaleHostPluginProtocol<Event, Method, MethodResult> {
-    fun encodeMethod(value: Method): String
-    fun decodeMethodResult(value: String): MethodResult
-    fun decodeEvent(value: String): Event
+public interface JetWhaleHostPluginProtocol<Event, Method, MethodResult> {
+    public fun encodeMethod(value: Method): String
+    public fun decodeMethodResult(value: String): MethodResult
+    public fun decodeEvent(value: String): Event
 }
 
-class KotlinxSerializationJetWhaleHostPluginProtocol<Event, Method, MethodResult>(
+public class KotlinxSerializationJetWhaleHostPluginProtocol<Event, Method, MethodResult>(
     private val json: Json,
     private val eventSerializer: KSerializer<Event>,
     private val methodSerializer: KSerializer<Method>,
@@ -29,7 +29,7 @@ class KotlinxSerializationJetWhaleHostPluginProtocol<Event, Method, MethodResult
     }
 }
 
-inline fun <reified Event : Any, reified Method : Any, reified MethodResult : Any> kotlinxSerializationJetWhaleHostPluginProtocol(json: Json): JetWhaleHostPluginProtocol<Event, Method, MethodResult> {
+public inline fun <reified Event : Any, reified Method : Any, reified MethodResult : Any> kotlinxSerializationJetWhaleHostPluginProtocol(json: Json): JetWhaleHostPluginProtocol<Event, Method, MethodResult> {
     return KotlinxSerializationJetWhaleHostPluginProtocol(
         json = json,
         eventSerializer = serializer(),

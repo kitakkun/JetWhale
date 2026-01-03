@@ -7,4 +7,6 @@ kotlin {
     androidLibrary {
         namespace = "com.kitakkun.jetwhale.protocol.core"
     }
+
+    explicitApi()
 }

@@ -8,11 +8,11 @@ import kotlin.jvm.JvmInline
  */
 @JvmInline
 @Serializable
-value class JetWhaleProtocolVersion(val version: Int) {
-    companion object {
+public value class JetWhaleProtocolVersion(public val version: Int) {
+    public companion object {
         /**
          * Current version of JetWhale Debugger Protocol
          */
-        val Current = JetWhaleProtocolVersion(1)
+        public val Current: JetWhaleProtocolVersion = JetWhaleProtocolVersion(1)
     }
 }

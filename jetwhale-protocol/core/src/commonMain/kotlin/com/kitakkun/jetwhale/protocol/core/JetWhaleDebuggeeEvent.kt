@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
  * Events sent from debuggee (agent) to debugger (host) during debugging session.
  */
 @Serializable
-sealed interface JetWhaleDebuggeeEvent {
+public sealed interface JetWhaleDebuggeeEvent {
     /**
      * Message sent from a plugin in the debuggee to the debugger.
      * Note that this event is unidirectional and does not expect a response.
@@ -15,7 +15,7 @@ sealed interface JetWhaleDebuggeeEvent {
      * @param payload The content of the message.
      */
     @Serializable
-    data class PluginMessage(
+    public data class PluginMessage(
         val pluginId: String,
         val payload: String,
     ) : JetWhaleDebuggeeEvent
@@ -27,15 +27,15 @@ sealed interface JetWhaleDebuggeeEvent {
      * @param requestId The unique identifier of the original method request.
      */
     @Serializable
-    sealed interface MethodResultResponse : JetWhaleDebuggeeEvent {
-        val requestId: String
+    public sealed interface MethodResultResponse : JetWhaleDebuggeeEvent {
+        public val requestId: String
 
         /**
          * Indicates that the method request has failed.
          * @param errorMessage A message describing the reason for the failure.
          */
         @Serializable
-        data class Failed(
+        public data class Failed(
             override val requestId: String,
             val errorMessage: String,
         ) : MethodResultResponse
@@ -45,7 +45,7 @@ sealed interface JetWhaleDebuggeeEvent {
          * @param payload The result of the method execution.
          */
         @Serializable
-        data class Success(
+        public data class Success(
             override val requestId: String,
             val payload: String?,
         ) : MethodResultResponse
