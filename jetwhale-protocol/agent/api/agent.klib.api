@@ -1,0 +1,23 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, iosX64, linuxArm64, linuxX64, macosArm64, macosX64, mingwX64]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.protocol:agent>
+abstract interface <#A: kotlin/Any?, #B: kotlin/Any?, #C: kotlin/Any?> com.kitakkun.jetwhale.protocol.agent/JetWhaleAgentPluginProtocol { // com.kitakkun.jetwhale.protocol.agent/JetWhaleAgentPluginProtocol|null[0]
+    abstract fun decodeMethod(kotlin/String): #B // com.kitakkun.jetwhale.protocol.agent/JetWhaleAgentPluginProtocol.decodeMethod|decodeMethod(kotlin.String){}[0]
+    abstract fun encodeEvent(#A): kotlin/String // com.kitakkun.jetwhale.protocol.agent/JetWhaleAgentPluginProtocol.encodeEvent|encodeEvent(1:0){}[0]
+    abstract fun encodeMethodResult(#C): kotlin/String // com.kitakkun.jetwhale.protocol.agent/JetWhaleAgentPluginProtocol.encodeMethodResult|encodeMethodResult(1:2){}[0]
+}
+
+final class <#A: kotlin/Any?, #B: kotlin/Any?, #C: kotlin/Any?> com.kitakkun.jetwhale.protocol.agent/KotlinxSerializationJetWhaleAgentPluginProtocol : com.kitakkun.jetwhale.protocol.agent/JetWhaleAgentPluginProtocol<#A, #B, #C> { // com.kitakkun.jetwhale.protocol.agent/KotlinxSerializationJetWhaleAgentPluginProtocol|null[0]
+    constructor <init>(kotlinx.serialization.json/Json, kotlinx.serialization/KSerializer<#A>, kotlinx.serialization/KSerializer<#B>, kotlinx.serialization/KSerializer<#C>) // com.kitakkun.jetwhale.protocol.agent/KotlinxSerializationJetWhaleAgentPluginProtocol.<init>|<init>(kotlinx.serialization.json.Json;kotlinx.serialization.KSerializer<1:0>;kotlinx.serialization.KSerializer<1:1>;kotlinx.serialization.KSerializer<1:2>){}[0]
+
+    final fun decodeMethod(kotlin/String): #B // com.kitakkun.jetwhale.protocol.agent/KotlinxSerializationJetWhaleAgentPluginProtocol.decodeMethod|decodeMethod(kotlin.String){}[0]
+    final fun encodeEvent(#A): kotlin/String // com.kitakkun.jetwhale.protocol.agent/KotlinxSerializationJetWhaleAgentPluginProtocol.encodeEvent|encodeEvent(1:0){}[0]
+    final fun encodeMethodResult(#C): kotlin/String // com.kitakkun.jetwhale.protocol.agent/KotlinxSerializationJetWhaleAgentPluginProtocol.encodeMethodResult|encodeMethodResult(1:2){}[0]
+}
+
+final inline fun <#A: reified kotlin/Any, #B: reified kotlin/Any, #C: reified kotlin/Any> com.kitakkun.jetwhale.protocol.agent/kotlinxSerializationJetWhaleAgentPluginProtocol(kotlinx.serialization.json/Json): com.kitakkun.jetwhale.protocol.agent/JetWhaleAgentPluginProtocol<#A, #B, #C> // com.kitakkun.jetwhale.protocol.agent/kotlinxSerializationJetWhaleAgentPluginProtocol|kotlinxSerializationJetWhaleAgentPluginProtocol(kotlinx.serialization.json.Json){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>}[0]

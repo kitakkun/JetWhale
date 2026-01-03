@@ -1,8 +1,8 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.model.PluginRepository
-import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
+import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -24,7 +24,7 @@ class DefaultPluginRepository : PluginRepository {
     private val mutablePluginFactoriesFlow: MutableStateFlow<ImmutableMap<String, JetWhaleHostPluginFactory>> = MutableStateFlow(persistentMapOf())
     override val loadedPluginFactoriesFlow: Flow<Map<String, JetWhaleHostPluginFactory>> = mutablePluginFactoriesFlow
 
-    private val mutableLoadedPlugins: MutableMap<String, JetWhaleHostPlugin> = mutableMapOf()
+    private val mutableLoadedPlugins: MutableMap<String, JetWhaleRawHostPlugin> = mutableMapOf()
 
     override suspend fun loadPluginFactory(pluginJarPath: String) {
         try {
@@ -48,7 +48,7 @@ class DefaultPluginRepository : PluginRepository {
         println("Unloaded plugin: $pluginId")
     }
 
-    override suspend fun getOrPutPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin {
+    override suspend fun getOrPutPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleRawHostPlugin {
         val key = "$pluginId-$sessionId"
         return mutableLoadedPlugins.getOrPut(key) {
             val factory = mutablePluginFactoriesFlow.value[pluginId] ?: throw IllegalArgumentException("Plugin with ID $pluginId is not loaded.")

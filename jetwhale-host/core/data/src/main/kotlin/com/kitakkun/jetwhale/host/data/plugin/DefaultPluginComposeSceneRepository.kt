@@ -8,14 +8,12 @@ import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneRepository
 import com.kitakkun.jetwhale.host.model.PluginRepository
-import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
-import com.kitakkun.jetwhale.host.sdk.JetWhaleContentUIBuilderContext
+import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.json.Json
+import kotlinx.coroutines.CoroutineScope
 
 @OptIn(InternalComposeUiApi::class)
 @ContributesBinding(AppScope::class)
@@ -25,11 +23,9 @@ class DefaultPluginComposeSceneRepository(
     private val pluginBridgeProvider: DynamicPluginBridgeProvider,
     private val pluginRepository: PluginRepository,
     private val debugWebSocketServer: DebugWebSocketServer,
-    private val json: Json,
 ) : PluginComposeSceneRepository {
     private val pluginScenes = mutableMapOf<String, ComposeScene>()
 
-    @OptIn(InternalJetWhaleHostApi::class)
     override suspend fun getOrCreatePluginScene(
         pluginId: String,
         sessionId: String,
@@ -41,27 +37,21 @@ class DefaultPluginComposeSceneRepository(
             sessionId = sessionId,
         )
         return pluginScenes.getOrPut("$pluginId:$sessionId") {
-            val contentUIBuilderContext = object : JetWhaleContentUIBuilderContext {
-                override suspend fun <Method, MethodResult> dispatch(
-                    methodSerializer: KSerializer<Method>,
-                    methodResultSerializer: KSerializer<MethodResult>,
-                    value: Method,
-                ): MethodResult? {
-                    val serializedMethod = json.encodeToString(methodSerializer, value)
-                    return debugWebSocketServer.sendMessage(
+            val debugOperationContext = object : JetWhaleDebugOperationContext<String, String> {
+                override val coroutineScope: CoroutineScope = debugWebSocketServer.getCoroutineScopeForSession(sessionId)
+                override suspend fun dispatch(method: String): String? {
+                    return debugWebSocketServer.sendMethod(
                         pluginId = pluginId,
                         sessionId = sessionId,
-                        message = serializedMethod,
-                    )?.let { serializedMethodResult ->
-                        json.decodeFromString(methodResultSerializer, serializedMethodResult)
-                    }
+                        payload = method
+                    )
                 }
             }
 
             PlatformLayersComposeScene(density = density).apply {
                 setContent {
                     pluginBridgeProvider.PluginEntryPoint {
-                        pluginInstance.Content(context = contentUIBuilderContext)
+                        pluginInstance.ContentRaw(context = debugOperationContext)
                     }
                 }
             }.also {

@@ -1,9 +1,6 @@
 package com.kitakkun.jetwhale.agent.runtime
 
-import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
-import com.kitakkun.jetwhale.agent.sdk.JetWhaleEventSender
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleMessagingService
-import com.kitakkun.jetwhale.agent.sdk.SenderAttachable
 import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
@@ -16,13 +13,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 
 @OptIn(InternalJetWhaleApi::class)
 internal class DefaultJetWhaleMessagingService(
     private val socketClient: JetWhaleSocketClient,
-    private val plugins: List<JetWhaleAgentPlugin<*>>,
+    private val plugins: List<AgentPlugin>,
     private val json: Json,
 ) : JetWhaleMessagingService {
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
@@ -61,22 +57,11 @@ internal class DefaultJetWhaleMessagingService(
     private fun CoroutineScope.attachSenderToPlugins() {
         JetWhaleLogger.d("Attaching sender to each plugin")
         plugins.forEach { plugin ->
-            plugin.attachSender(
-                object : JetWhaleEventSender {
-                    override fun <T> send(serializer: KSerializer<T>, event: T) {
-                        val serializedEvent = json.encodeToString(serializer, event)
-                        launch {
-                            val message = json.encodeToString(
-                                JetWhaleDebuggeeEvent.PluginMessage(
-                                    pluginId = plugin.pluginId,
-                                    payload = serializedEvent,
-                                )
-                            )
-                            socketClient.sendMessage(pluginId = plugin.pluginId, message = message)
-                        }
-                    }
+            plugin.attachSender { payload ->
+                launch {
+                    socketClient.sendMessage(pluginId = plugin.pluginId, message = payload)
                 }
-            )
+            }
         }
     }
 
@@ -98,27 +83,20 @@ internal class DefaultJetWhaleMessagingService(
         when (event) {
             is JetWhaleDebuggerEvent.MethodRequest -> {
                 val plugin = plugins.firstOrNull { it.pluginId == event.pluginId } ?: return
-                val result = plugin.debuggerMethodHandler.handle(json, event.payload)
+                val methodResult = plugin.onRawMethod(event.payload)
+
                 socketClient.sendMessage(
                     pluginId = event.pluginId,
                     message = json.encodeToString(
                         JetWhaleDebuggeeEvent.MethodResultResponse.Success(
                             requestId = event.requestId,
-                            payload = result,
+                            payload = methodResult,
                         )
                     )
                 )
                 JetWhaleLogger.d("sent method result!")
             }
         }
-    }
-
-    private fun JetWhaleAgentPlugin<*>.detachSender() {
-        (this.eventDispatcher as SenderAttachable).detachSender()
-    }
-
-    private fun JetWhaleAgentPlugin<*>.attachSender(sender: JetWhaleEventSender) {
-        (this.eventDispatcher as SenderAttachable).attachSender(sender)
     }
 
     companion object {

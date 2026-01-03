@@ -12,7 +12,7 @@ import kotlinx.serialization.Serializable
  * This is a response to [JetWhaleAgentNegotiationRequest].
  */
 @Serializable
-sealed interface JetWhaleHostNegotiationResponse {
+public sealed interface JetWhaleHostNegotiationResponse {
     /**
      * Response to protocol version negotiation.
      * This response must be sent first when establishing connection.
@@ -20,12 +20,12 @@ sealed interface JetWhaleHostNegotiationResponse {
      * @see [JetWhaleAgentNegotiationRequest.ProtocolVersion] for request
      */
     @Serializable
-    sealed interface ProtocolVersionResponse : JetWhaleHostNegotiationResponse {
+    public sealed interface ProtocolVersionResponse : JetWhaleHostNegotiationResponse {
         @Serializable
-        data class Accept(val version: JetWhaleProtocolVersion) : ProtocolVersionResponse
+        public data class Accept(val version: JetWhaleProtocolVersion) : ProtocolVersionResponse
 
         @Serializable
-        data class Reject(
+        public data class Reject(
             val reason: String,
             val supportedVersions: List<JetWhaleProtocolVersion>,
         ) : ProtocolVersionResponse
@@ -39,7 +39,7 @@ sealed interface JetWhaleHostNegotiationResponse {
      * @see [JetWhaleAgentNegotiationRequest.Session] for request
      */
     @Serializable
-    data class AcceptSession(val sessionId: String) : JetWhaleHostNegotiationResponse
+    public data class AcceptSession(val sessionId: String) : JetWhaleHostNegotiationResponse
 
     /**
      * Response to available plugins information.
@@ -50,7 +50,7 @@ sealed interface JetWhaleHostNegotiationResponse {
      * @see [JetWhaleAgentNegotiationRequest.AvailablePlugins] for request
      */
     @Serializable
-    data class AvailablePluginsResponse(
+    public data class AvailablePluginsResponse(
         val availablePlugins: List<JetWhalePluginInfo>,
         val incompatiblePlugins: List<JetWhalePluginInfo>,
     ) : JetWhaleHostNegotiationResponse

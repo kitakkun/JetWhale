@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
  * @param pluginVersion The version of the plugin.
  */
 @Serializable
-data class JetWhalePluginInfo(
+public data class JetWhalePluginInfo(
     val pluginId: String,
     val pluginVersion: String,
 )

@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.agent.runtime
 
-import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleMessagingService
 import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
@@ -48,7 +47,7 @@ interface JetWhaleConnectionConfigurationScope {
 
 @JetWhaleDsl
 interface JetWhalePluginConfigurationScope {
-    fun register(plugin: JetWhaleAgentPlugin<*>)
+    fun register(plugin: AgentPlugin)
 }
 
 private class JetWhaleConfiguration : JetWhaleConfigurationScope {
@@ -70,9 +69,9 @@ private class JetWhaleConnectionConfiguration : JetWhaleConnectionConfigurationS
 }
 
 private class JetWhalePluginConfiguration : JetWhalePluginConfigurationScope {
-    val plugins: MutableList<JetWhaleAgentPlugin<*>> = mutableListOf()
+    val plugins: MutableList<AgentPlugin> = mutableListOf()
 
-    override fun register(plugin: JetWhaleAgentPlugin<*>) {
+    override fun register(plugin: AgentPlugin) {
         plugins.add(plugin)
     }
 }

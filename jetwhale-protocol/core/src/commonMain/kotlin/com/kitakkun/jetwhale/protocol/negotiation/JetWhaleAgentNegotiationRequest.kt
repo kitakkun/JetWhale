@@ -12,7 +12,7 @@ import kotlinx.serialization.Serializable
  * @see [JetWhaleHostNegotiationResponse] for corresponding responses.
  */
 @Serializable
-sealed interface JetWhaleAgentNegotiationRequest {
+public sealed interface JetWhaleAgentNegotiationRequest {
     /**
      * Protocol version negotiation request.
      * This request must be sent first when establishing connection.
@@ -21,7 +21,7 @@ sealed interface JetWhaleAgentNegotiationRequest {
      * @see [JetWhaleHostNegotiationResponse.ProtocolVersionResponse] for response
      */
     @Serializable
-    data class ProtocolVersion(val version: JetWhaleProtocolVersion) : JetWhaleAgentNegotiationRequest
+    public data class ProtocolVersion(val version: JetWhaleProtocolVersion) : JetWhaleAgentNegotiationRequest
 
     /**
      * Session negotiation request.
@@ -32,7 +32,7 @@ sealed interface JetWhaleAgentNegotiationRequest {
      * @see [JetWhaleHostNegotiationResponse.AcceptSession] for response
      */
     @Serializable
-    data class Session(
+    public data class Session(
         val sessionId: String?,
         val sessionName: String,
     ) : JetWhaleAgentNegotiationRequest
@@ -45,5 +45,5 @@ sealed interface JetWhaleAgentNegotiationRequest {
      * @see [JetWhaleHostNegotiationResponse.AvailablePluginsResponse] for response
      */
     @Serializable
-    data class AvailablePlugins(val plugins: List<JetWhalePluginInfo>) : JetWhaleAgentNegotiationRequest
+    public data class AvailablePlugins(val plugins: List<JetWhalePluginInfo>) : JetWhaleAgentNegotiationRequest
 }
