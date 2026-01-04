@@ -42,7 +42,7 @@ class JetWhaleDebuggeeEventSerializationTest : JetWhaleSerializationTest() {
 
     @Test
     fun `method result failed event should be serialized stably`() {
-        val event = JetWhaleDebuggeeEvent.MethodResultResponse.Failed(
+        val event = JetWhaleDebuggeeEvent.MethodResultResponse.Failure(
             requestId = "req-2",
             errorMessage = "something went wrong"
         )
