@@ -9,6 +9,7 @@ import io.ktor.server.application.log
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.server.websocket.sendSerialized
+import io.ktor.util.logging.Logger
 import java.util.UUID
 
 @Inject
@@ -24,39 +25,51 @@ class WebSocketSessionNegotiator {
 
     context(application: Application)
     suspend fun DefaultWebSocketServerSession.negotiate(): NegotiationResult {
-        val protocolVersionNegotiationRequest = receiveDeserialized<JetWhaleAgentNegotiationRequest.ProtocolVersion>()
-        application.log.info("Received protocol version negotiation request: $protocolVersionNegotiationRequest")
+        try {
+            negotiateProtocolVersion(application.log)
+            val (sessionId, sessionName) = negotiateSessionId()
 
+            // TODO: Capabilities negotiation
+            // TODO: Available plugins negotiation
+
+            application.log.info("web socket accepted: $sessionId")
+
+            return NegotiationResult.Success(
+                sessionId = sessionId,
+                sessionName = sessionName
+            )
+        } catch (e: Throwable) {
+            application.log.error("web socket negotiation failed", e)
+            return NegotiationResult.Failure
+        }
+    }
+
+    private suspend fun DefaultWebSocketServerSession.negotiateProtocolVersion(logger: Logger) {
+        val protocolVersionNegotiationRequest = receiveDeserialized<JetWhaleAgentNegotiationRequest.ProtocolVersion>()
+        logger.info("Received protocol version negotiation request: $protocolVersionNegotiationRequest")
         // TODO: support multiple protocol versions
         val hostVersion = JetWhaleProtocolVersion.Current
         if (protocolVersionNegotiationRequest.version != hostVersion) {
-            application.log.info("Unsupported protocol version: ${protocolVersionNegotiationRequest.version}")
+            logger.info("Unsupported protocol version: ${protocolVersionNegotiationRequest.version}")
             sendSerialized(
                 JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Reject(
                     reason = "Unsupported protocol version: ${protocolVersionNegotiationRequest.version}",
                     supportedVersions = listOf(hostVersion),
                 )
             )
-            return NegotiationResult.Failure
+            throw IllegalStateException("Protocol version negotiation failed")
         } else {
             sendSerialized(JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept(hostVersion))
         }
+    }
 
-        // Session negotiation
+    // FIXME: Consider modeling return type to include sessionName
+    //  instead of relying on Pair<String, String>
+    private suspend fun DefaultWebSocketServerSession.negotiateSessionId(): Pair<String, String> {
         val sessionNegotiationRequest = receiveDeserialized<JetWhaleAgentNegotiationRequest.Session>()
-
         val requestedSessionId = sessionNegotiationRequest.sessionId
         val sessionId = requestedSessionId ?: UUID.randomUUID().toString()
         sendSerialized(JetWhaleHostNegotiationResponse.AcceptSession(sessionId))
-
-        // TODO: Capabilities negotiation
-        // TODO: Available plugins negotiation
-
-        application.log.info("web socket accepted: $sessionId")
-
-        return NegotiationResult.Success(
-            sessionId = sessionId,
-            sessionName = sessionNegotiationRequest.sessionName
-        )
+        return sessionId to sessionNegotiationRequest.sessionName
     }
 }
