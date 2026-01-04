@@ -19,6 +19,7 @@ fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
         DefaultJetWhaleMessagingService(
             socketClient = KtorWebSocketClient(
                 json = json,
+                sessionNegotiator = DefaultSessionNegotiator(),
                 httpClient = HttpClient(CIO)
             ),
             plugins = configuration.plugins.plugins,
