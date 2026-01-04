@@ -11,7 +11,15 @@ internal class DefaultSessionNegotiator : SessionNegotiator {
     private var sessionId: String? = null
 
     override suspend fun DefaultClientWebSocketSession.negotiate() {
-        // protocol version negotiation
+        negotiateProtocolVersion()
+        sessionId = negotiateSessionId(sessionId)
+
+        // TODO: Capabilities negotiation (currently not implemented)
+
+        // TODO: Available plugins negotiation (currently not implemented)
+    }
+
+    private suspend fun DefaultClientWebSocketSession.negotiateProtocolVersion() {
         JetWhaleLogger.v("Starting protocol version negotiation")
         sendSerialized(JetWhaleAgentNegotiationRequest.ProtocolVersion(JetWhaleProtocolVersion.Current))
         val protocolNegotiationResponse: JetWhaleHostNegotiationResponse.ProtocolVersionResponse = receiveDeserialized()
@@ -27,27 +35,26 @@ internal class DefaultSessionNegotiator : SessionNegotiator {
                 throw IllegalStateException("Protocol version rejected by host: ${protocolNegotiationResponse.reason}")
             }
         }
+    }
 
-        // sessionId negotiation
+    private suspend fun DefaultClientWebSocketSession.negotiateSessionId(resumingSessionId: String?): String {
         JetWhaleLogger.v("Starting session negotiation")
-        if (sessionId == null) {
+        if (resumingSessionId == null) {
             JetWhaleLogger.v("Requesting new session")
         } else {
-            JetWhaleLogger.d("Resuming existing session with sessionId: $sessionId")
+            JetWhaleLogger.d("Resuming existing session with sessionId: $resumingSessionId")
         }
         sendSerialized(
             JetWhaleAgentNegotiationRequest.Session(
-                sessionId = sessionId,
+                sessionId = resumingSessionId,
                 sessionName = getDeviceModelName(),
             )
         )
-        JetWhaleLogger.v("Sent session negotiation request" + " with sessionId: $sessionId".takeIf { sessionId != null })
+        JetWhaleLogger.v("Sent session negotiation request" + " with sessionId: $resumingSessionId".takeIf { resumingSessionId != null })
 
-        sessionId = receiveDeserialized<JetWhaleHostNegotiationResponse.AcceptSession>().sessionId
-        JetWhaleLogger.d("Session negotiation completed with sessionId: $sessionId")
+        val assignedSessionId = receiveDeserialized<JetWhaleHostNegotiationResponse.AcceptSession>().sessionId
+        JetWhaleLogger.d("Session negotiation completed with sessionId: $assignedSessionId")
 
-        // TODO: Capabilities negotiation (currently not implemented)
-
-        // TODO: Available plugins negotiation (currently not implemented)
+        return assignedSessionId
     }
 }
