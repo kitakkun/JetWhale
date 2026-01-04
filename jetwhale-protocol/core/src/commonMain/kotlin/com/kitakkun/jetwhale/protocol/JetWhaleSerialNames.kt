@@ -35,4 +35,8 @@ internal object JetWhaleSerialNames {
     // event/agent/method_result_response/*
     const val EVENT_AGENT_METHOD_RESULT_RESPONSE_SUCCESS = "event/agent/method_result_response/success"
     const val EVENT_AGENT_METHOD_RESULT_RESPONSE_FAILED = "event/agent/method_result_response/failed"
+
+    // model/*
+    const val MODEL_PLUGIN_INFO = "model/plugin_info"
+    const val MODEL_PROTOCOL_VERSION = "model/protocol_version"
 }
