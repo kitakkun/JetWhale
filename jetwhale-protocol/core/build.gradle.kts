@@ -17,4 +17,8 @@ kotlin {
     abiValidation {
         enabled.set(true)
     }
+
+    sourceSets.commonMain.dependencies {
+        implementation(libs.kotlinTest)
+    }
 }
