@@ -104,7 +104,7 @@ fun EntryProviderScope<NavKey>.licensesEntry(
     ) {
         context(
             rememberRetained {
-                appGraph.createLicencesScreenContext()
+                appGraph.createLicensesScreenContext()
             }
         ) {
             LicensesScreenRoot(

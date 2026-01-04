@@ -10,6 +10,6 @@ interface LicensesScreenContext : ScreenContext {
 
     @GraphExtension.Factory
     fun interface Factory {
-        fun createLicencesScreenContext(): LicensesScreenContext
+        fun createLicensesScreenContext(): LicensesScreenContext
     }
 }
