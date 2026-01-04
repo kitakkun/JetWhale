@@ -3,6 +3,8 @@ package com.kitakkun.jetwhale.host.data.server
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAgentNegotiationRequest
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleHostNegotiationResponse
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleProtocolVersion
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import io.ktor.server.application.Application
 import io.ktor.server.application.log
@@ -13,18 +15,10 @@ import io.ktor.util.logging.Logger
 import java.util.UUID
 
 @Inject
-class WebSocketSessionNegotiator {
-    sealed interface NegotiationResult {
-        data class Success(
-            val sessionId: String,
-            val sessionName: String
-        ) : NegotiationResult
-
-        data object Failure : NegotiationResult
-    }
-
+@ContributesBinding(AppScope::class)
+class DefaultServerSessionNegotiator : ServerSessionNegotiator {
     context(application: Application)
-    suspend fun DefaultWebSocketServerSession.negotiate(): NegotiationResult {
+    override suspend fun DefaultWebSocketServerSession.negotiate(): ServerSessionNegotiationResult {
         try {
             negotiateProtocolVersion(application.log)
             val (sessionId, sessionName) = negotiateSessionId()
@@ -34,13 +28,13 @@ class WebSocketSessionNegotiator {
 
             application.log.info("web socket accepted: $sessionId")
 
-            return NegotiationResult.Success(
+            return ServerSessionNegotiationResult.Success(
                 sessionId = sessionId,
                 sessionName = sessionName
             )
         } catch (e: Throwable) {
             application.log.error("web socket negotiation failed", e)
-            return NegotiationResult.Failure
+            return ServerSessionNegotiationResult.Failure
         }
     }
 

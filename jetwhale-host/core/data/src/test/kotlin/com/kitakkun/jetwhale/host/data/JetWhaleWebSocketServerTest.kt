@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.host.data
 
 import com.kitakkun.jetwhale.host.data.server.DefaultDebugWebSocketServer
-import com.kitakkun.jetwhale.host.data.server.WebSocketSessionNegotiator
 import dev.mokkery.mock
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -12,7 +11,7 @@ class JetWhaleWebSocketServerTest {
     fun test() {
         val server = DefaultDebugWebSocketServer(
             json = Json.Default,
-            sessionNegotiator = WebSocketSessionNegotiator(),
+            sessionNegotiator = mock(),
             adbAutoWiringService = mock(),
             pluginsRepository = mock(),
             sessionRepository = mock(),
