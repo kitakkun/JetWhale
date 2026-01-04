@@ -39,9 +39,9 @@ public sealed interface JetWhaleDebuggeeEvent {
          * Indicates that the method request has failed.
          * @param errorMessage A message describing the reason for the failure.
          */
-        @SerialName(JetWhaleSerialNames.EVENT_AGENT_METHOD_RESULT_RESPONSE_FAILED)
+        @SerialName(JetWhaleSerialNames.EVENT_AGENT_METHOD_RESULT_RESPONSE_FAILURE)
         @Serializable
-        public data class Failed(
+        public data class Failure(
             override val requestId: String,
             val errorMessage: String,
         ) : MethodResultResponse

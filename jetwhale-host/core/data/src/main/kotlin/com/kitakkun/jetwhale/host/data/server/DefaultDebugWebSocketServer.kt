@@ -115,7 +115,7 @@ class DefaultDebugWebSocketServer(
             logDebug("received!")
 
             when (response) {
-                is JetWhaleDebuggeeEvent.MethodResultResponse.Failed -> {
+                is JetWhaleDebuggeeEvent.MethodResultResponse.Failure -> {
                     logDebug(response.errorMessage)
                     null
                 }
