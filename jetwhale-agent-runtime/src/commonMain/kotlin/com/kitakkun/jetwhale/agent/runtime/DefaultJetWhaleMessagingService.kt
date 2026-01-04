@@ -58,8 +58,16 @@ internal class DefaultJetWhaleMessagingService(
         JetWhaleLogger.d("Attaching sender to each plugin")
         plugins.forEach { plugin ->
             plugin.attachSender { payload ->
+                val event = JetWhaleDebuggeeEvent.PluginMessage(
+                    pluginId = plugin.pluginId,
+                    payload = payload,
+                )
+                val message = json.encodeToString(event)
                 launch {
-                    socketClient.sendMessage(pluginId = plugin.pluginId, message = payload)
+                    socketClient.sendMessage(
+                        pluginId = plugin.pluginId,
+                        message = message,
+                    )
                 }
             }
         }

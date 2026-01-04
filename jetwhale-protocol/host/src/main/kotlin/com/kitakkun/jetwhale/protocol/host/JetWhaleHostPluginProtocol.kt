@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.protocol.host
 
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
@@ -29,7 +31,10 @@ public class KotlinxSerializationJetWhaleHostPluginProtocol<Event, Method, Metho
     }
 }
 
-public inline fun <reified Event : Any, reified Method : Any, reified MethodResult : Any> kotlinxSerializationJetWhaleHostPluginProtocol(json: Json): JetWhaleHostPluginProtocol<Event, Method, MethodResult> {
+@OptIn(InternalJetWhaleApi::class)
+public inline fun <reified Event : Any, reified Method : Any, reified MethodResult : Any> kotlinxSerializationJetWhaleHostPluginProtocol(
+    json: Json = JetWhaleJson,
+): JetWhaleHostPluginProtocol<Event, Method, MethodResult> {
     return KotlinxSerializationJetWhaleHostPluginProtocol(
         json = json,
         eventSerializer = serializer(),

@@ -15,4 +15,8 @@ kotlin {
     abiValidation {
         enabled.set(true)
     }
+
+    sourceSets.commonMain.dependencies {
+        api(projects.jetwhaleProtocol.core)
+    }
 }
