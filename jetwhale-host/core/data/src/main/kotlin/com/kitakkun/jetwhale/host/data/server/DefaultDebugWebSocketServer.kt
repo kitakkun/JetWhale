@@ -164,7 +164,11 @@ class DefaultDebugWebSocketServer(
                 val sessionId: String
                 val sessionName: String?
 
-                when (val negotiationResult = with(sessionNegotiator) { negotiate() }) {
+                when (
+                    val negotiationResult = context(log) {
+                        with(sessionNegotiator) { negotiate() }
+                    }
+                ) {
                     is ServerSessionNegotiationResult.Failure -> {
                         log.info("negotiation failed")
                         close()

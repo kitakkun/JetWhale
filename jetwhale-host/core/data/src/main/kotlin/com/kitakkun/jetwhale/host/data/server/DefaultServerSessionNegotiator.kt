@@ -6,8 +6,6 @@ import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleProtocolVersion
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
-import io.ktor.server.application.Application
-import io.ktor.server.application.log
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.server.websocket.sendSerialized
@@ -17,28 +15,29 @@ import java.util.UUID
 @Inject
 @ContributesBinding(AppScope::class)
 class DefaultServerSessionNegotiator : ServerSessionNegotiator {
-    context(application: Application)
+    context(logger: Logger)
     override suspend fun DefaultWebSocketServerSession.negotiate(): ServerSessionNegotiationResult {
         try {
-            negotiateProtocolVersion(application.log)
+            negotiateProtocolVersion()
             val (sessionId, sessionName) = negotiateSessionId()
 
             // TODO: Capabilities negotiation
             // TODO: Available plugins negotiation
 
-            application.log.info("web socket accepted: $sessionId")
+            logger.info("web socket accepted: $sessionId")
 
             return ServerSessionNegotiationResult.Success(
                 sessionId = sessionId,
                 sessionName = sessionName
             )
         } catch (e: Throwable) {
-            application.log.error("web socket negotiation failed", e)
+            logger.error("web socket negotiation failed", e)
             return ServerSessionNegotiationResult.Failure
         }
     }
 
-    private suspend fun DefaultWebSocketServerSession.negotiateProtocolVersion(logger: Logger) {
+    context(logger: Logger)
+    private suspend fun DefaultWebSocketServerSession.negotiateProtocolVersion() {
         val protocolVersionNegotiationRequest = receiveDeserialized<JetWhaleAgentNegotiationRequest.ProtocolVersion>()
         logger.info("Received protocol version negotiation request: $protocolVersionNegotiationRequest")
         // TODO: support multiple protocol versions
