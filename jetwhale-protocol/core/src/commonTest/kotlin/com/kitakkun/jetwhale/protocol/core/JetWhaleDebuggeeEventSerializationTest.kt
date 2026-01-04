@@ -50,7 +50,7 @@ class JetWhaleDebuggeeEventSerializationTest : JetWhaleSerializationTest() {
         val encoded = json.encodeToString(event)
 
         assertEquals(
-            expected = """{"type":"event/agent/method_result_response/failed","requestId":"req-2","errorMessage":"something went wrong"}""",
+            expected = """{"type":"event/agent/method_result_response/failure","requestId":"req-2","errorMessage":"something went wrong"}""",
             actual = encoded
         )
     }
