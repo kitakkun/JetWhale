@@ -7,6 +7,7 @@ dependencies {
     implementation(projects.jetwhaleHost.core.architecture)
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(libs.rin)
+    implementation(libs.aboutLibrariesComposeM3)
 }
 
 compose.resources {

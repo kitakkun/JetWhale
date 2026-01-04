@@ -11,4 +11,5 @@ dependencies {
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(compose.runtime)
     implementation(compose.desktop.currentOs)
+    implementation(libs.aboutLibrariesCore)
 }

@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneRepository
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
 import com.kitakkun.jetwhale.host.plugin.PluginScreenContext
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
+import com.kitakkun.jetwhale.host.settings.licenses.LicensesScreenContext
 import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import dev.zacsweers.metro.AppScope
@@ -25,6 +26,7 @@ interface JetWhaleAppGraph :
     PluginScreenContext.Factory,
     SettingsScreenContext.Factory,
     ToolingScaffoldScreenContext.Factory,
+    LicensesScreenContext.Factory,
     ScreenContext {
     val applicationLifecycleOwner: ApplicationLifecycleOwner
     val swrClient: SwrClientPlus

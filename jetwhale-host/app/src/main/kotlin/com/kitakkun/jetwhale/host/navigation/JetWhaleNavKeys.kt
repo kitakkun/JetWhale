@@ -10,6 +10,9 @@ data object EmptyPluginNavKey : NavKey
 data object SettingsNavKey : NavKey
 
 @Serializable
+data object LicensesNavKey : NavKey
+
+@Serializable
 data object InfoNavKey : NavKey
 
 @Serializable
