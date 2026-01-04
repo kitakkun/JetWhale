@@ -47,7 +47,7 @@ import java.util.UUID
 @ContributesBinding(AppScope::class)
 class DefaultDebugWebSocketServer(
     private val json: Json,
-    private val sessionNegotiator: WebSocketSessionNegotiator,
+    private val sessionNegotiator: ServerSessionNegotiator,
     private val adbAutoWiringService: ADBAutoWiringService,
     private val pluginsRepository: PluginRepository,
     private val sessionRepository: DebugSessionRepository,
@@ -165,13 +165,13 @@ class DefaultDebugWebSocketServer(
                 val sessionName: String?
 
                 when (val negotiationResult = with(sessionNegotiator) { negotiate() }) {
-                    is WebSocketSessionNegotiator.NegotiationResult.Failure -> {
+                    is ServerSessionNegotiationResult.Failure -> {
                         log.info("negotiation failed")
                         close()
                         return@webSocket
                     }
 
-                    is WebSocketSessionNegotiator.NegotiationResult.Success -> {
+                    is ServerSessionNegotiationResult.Success -> {
                         log.info("negotiation succeeded: ${negotiationResult.sessionId}")
                         sessionId = negotiationResult.sessionId
                         sessionName = negotiationResult.sessionName
