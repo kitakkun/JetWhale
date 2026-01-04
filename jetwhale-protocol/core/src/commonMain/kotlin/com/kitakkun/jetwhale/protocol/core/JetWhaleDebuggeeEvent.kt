@@ -1,10 +1,13 @@
 package com.kitakkun.jetwhale.protocol.core
 
+import com.kitakkun.jetwhale.protocol.JetWhaleSerialNames
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
  * Events sent from debuggee (agent) to debugger (host) during debugging session.
  */
+@SerialName(JetWhaleSerialNames.EVENT_AGENT)
 @Serializable
 public sealed interface JetWhaleDebuggeeEvent {
     /**
@@ -14,6 +17,7 @@ public sealed interface JetWhaleDebuggeeEvent {
      * @param pluginId The unique identifier of the plugin sending the message.
      * @param payload The content of the message.
      */
+    @SerialName(JetWhaleSerialNames.EVENT_AGENT_PLUGIN_MESSAGE)
     @Serializable
     public data class PluginMessage(
         val pluginId: String,
@@ -26,6 +30,7 @@ public sealed interface JetWhaleDebuggeeEvent {
      *
      * @param requestId The unique identifier of the original method request.
      */
+    @SerialName(JetWhaleSerialNames.EVENT_AGENT_METHOD_RESULT_RESPONSE)
     @Serializable
     public sealed interface MethodResultResponse : JetWhaleDebuggeeEvent {
         public val requestId: String
@@ -34,6 +39,7 @@ public sealed interface JetWhaleDebuggeeEvent {
          * Indicates that the method request has failed.
          * @param errorMessage A message describing the reason for the failure.
          */
+        @SerialName(JetWhaleSerialNames.EVENT_AGENT_METHOD_RESULT_RESPONSE_FAILED)
         @Serializable
         public data class Failed(
             override val requestId: String,
@@ -44,6 +50,7 @@ public sealed interface JetWhaleDebuggeeEvent {
          * Indicates that the method request has succeeded.
          * @param payload The result of the method execution.
          */
+        @SerialName(JetWhaleSerialNames.EVENT_AGENT_METHOD_RESULT_RESPONSE_SUCCESS)
         @Serializable
         public data class Success(
             override val requestId: String,
