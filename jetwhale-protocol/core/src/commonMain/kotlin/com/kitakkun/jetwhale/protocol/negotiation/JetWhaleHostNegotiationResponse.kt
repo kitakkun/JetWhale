@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.protocol.negotiation
 
+import com.kitakkun.jetwhale.protocol.JetWhaleSerialNames
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -11,6 +13,7 @@ import kotlinx.serialization.Serializable
  *
  * This is a response to [JetWhaleAgentNegotiationRequest].
  */
+@SerialName(JetWhaleSerialNames.NEGOTIATION_HOST)
 @Serializable
 public sealed interface JetWhaleHostNegotiationResponse {
     /**
@@ -19,11 +22,14 @@ public sealed interface JetWhaleHostNegotiationResponse {
      *
      * @see [JetWhaleAgentNegotiationRequest.ProtocolVersion] for request
      */
+    @SerialName(JetWhaleSerialNames.NEGOTIATION_HOST_PROTOCOL_VERSION_RESPONSE)
     @Serializable
     public sealed interface ProtocolVersionResponse : JetWhaleHostNegotiationResponse {
+        @SerialName(JetWhaleSerialNames.NEGOTIATION_HOST_PROTOCOL_VERSION_RESPONSE_ACCEPT)
         @Serializable
         public data class Accept(val version: JetWhaleProtocolVersion) : ProtocolVersionResponse
 
+        @SerialName(JetWhaleSerialNames.NEGOTIATION_HOST_PROTOCOL_VERSION_RESPONSE_REJECT)
         @Serializable
         public data class Reject(
             val reason: String,
@@ -38,6 +44,7 @@ public sealed interface JetWhaleHostNegotiationResponse {
      * @param sessionId the accepted session ID. This session ID should be remembered by the agent to resume the session.
      * @see [JetWhaleAgentNegotiationRequest.Session] for request
      */
+    @SerialName(JetWhaleSerialNames.NEGOTIATION_HOST_ACCEPT_SESSION)
     @Serializable
     public data class AcceptSession(val sessionId: String) : JetWhaleHostNegotiationResponse
 
@@ -49,6 +56,7 @@ public sealed interface JetWhaleHostNegotiationResponse {
      * @param incompatiblePlugins the list of plugins that are incompatible with the host.
      * @see [JetWhaleAgentNegotiationRequest.AvailablePlugins] for request
      */
+    @SerialName(JetWhaleSerialNames.NEGOTIATION_HOST_AVAILABLE_PLUGINS_RESPONSE)
     @Serializable
     public data class AvailablePluginsResponse(
         val availablePlugins: List<JetWhalePluginInfo>,
