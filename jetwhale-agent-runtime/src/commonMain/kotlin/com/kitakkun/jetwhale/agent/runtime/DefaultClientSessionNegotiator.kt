@@ -7,7 +7,7 @@ import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.sendSerialized
 
-internal class DefaultSessionNegotiator : SessionNegotiator {
+internal class DefaultClientSessionNegotiator : ClientSessionNegotiator {
     private var sessionId: String? = null
 
     override suspend fun DefaultClientWebSocketSession.negotiate(): ClientSessionNegotiationResult {
