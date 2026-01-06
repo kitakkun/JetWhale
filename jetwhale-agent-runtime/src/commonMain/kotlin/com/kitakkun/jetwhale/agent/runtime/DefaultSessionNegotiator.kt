@@ -10,13 +10,19 @@ import io.ktor.client.plugins.websocket.sendSerialized
 internal class DefaultSessionNegotiator : SessionNegotiator {
     private var sessionId: String? = null
 
-    override suspend fun DefaultClientWebSocketSession.negotiate() {
-        negotiateProtocolVersion()
-        sessionId = negotiateSessionId(sessionId)
+    override suspend fun DefaultClientWebSocketSession.negotiate(): ClientSessionNegotiationResult {
+        return try {
+            negotiateProtocolVersion()
+            sessionId = negotiateSessionId(sessionId)
 
-        // TODO: Capabilities negotiation (currently not implemented)
+            // TODO: Capabilities negotiation (currently not implemented)
 
-        // TODO: Available plugins negotiation (currently not implemented)
+            // TODO: Available plugins negotiation (currently not implemented)
+
+            ClientSessionNegotiationResult.Success
+        } catch (e: Throwable) {
+            ClientSessionNegotiationResult.Failure(reason = e.message ?: "Unknown error during negotiation")
+        }
     }
 
     private suspend fun DefaultClientWebSocketSession.negotiateProtocolVersion() {

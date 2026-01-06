@@ -50,7 +50,18 @@ internal class KtorWebSocketClient(
     private suspend fun DefaultClientWebSocketSession.configureSession(): Flow<String> {
         JetWhaleLogger.v("Configuring WebSocket session")
 
-        with(sessionNegotiator) { negotiate() }
+        val negotiationResult = with(sessionNegotiator) { negotiate() }
+
+        when (negotiationResult) {
+            is ClientSessionNegotiationResult.Success -> {
+                JetWhaleLogger.d("Session negotiation succeeded: $negotiationResult")
+            }
+
+            is ClientSessionNegotiationResult.Failure -> {
+                JetWhaleLogger.e("Session negotiation failed: ${negotiationResult.reason}")
+                throw IllegalStateException("Session negotiation failed: ${negotiationResult.reason}")
+            }
+        }
 
         closeReason.invokeOnCompletion {
             JetWhaleLogger.i("WebSocket session closed")
