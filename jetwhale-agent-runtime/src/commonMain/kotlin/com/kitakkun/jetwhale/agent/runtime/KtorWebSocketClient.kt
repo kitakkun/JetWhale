@@ -22,7 +22,7 @@ import kotlinx.serialization.json.Json
  */
 internal class KtorWebSocketClient(
     private val json: Json,
-    private val sessionNegotiator: SessionNegotiator,
+    private val sessionNegotiator: ClientSessionNegotiator,
     httpClient: HttpClient
 ) : JetWhaleSocketClient {
     private var session: DefaultClientWebSocketSession? = null

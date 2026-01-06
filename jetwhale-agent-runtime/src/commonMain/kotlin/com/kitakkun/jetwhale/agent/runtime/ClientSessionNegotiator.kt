@@ -8,7 +8,7 @@ import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
  *
  * Implementations should handle the negotiation process according to the JetWhale protocol.
  */
-internal interface SessionNegotiator {
+internal interface ClientSessionNegotiator {
     /**
      * Negotiates the WebSocket session.
      * @return The result of the session negotiation.
