@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.demo
+package com.kitakkun.jetwhale.demo.shared
 
 import com.kitakkun.jetwhale.agent.runtime.startJetWhale
 

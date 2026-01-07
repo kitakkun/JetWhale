@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.demo
+package com.kitakkun.jetwhale.demo.shared
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
