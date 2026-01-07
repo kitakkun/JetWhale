@@ -2,8 +2,8 @@
 jetwhale = "0.0.1-alpha01"
 
 # kotlin
-kotlin = "2.2.20"
-ksp = "2.3.3"
+kotlin = "2.3.0"
+ksp = "2.3.4"
 kotlinDsl = "6.4.1"
 kotlinxSerializationJson = "1.9.0"
 kotlinxCollectionsImmutable = "0.4.0"
@@ -28,8 +28,8 @@ soil = "1.0.0-alpha15"
 rin = "0.4.0"
 
 androidxDatastore = "1.2.0"
-metro = "0.8.2"
-mokkery = "3.0.0"
+metro = "0.9.3"
+mokkery = "3.1.1"
 ktor = "3.3.3"
 
 logback = "1.5.23"
