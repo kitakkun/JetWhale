@@ -41,4 +41,6 @@ include(":jetwhale-plugins:example:host")
 include(":jetwhale-plugins:example:protocol")
 include(":jetwhale-plugins:example:agent")
 
-include(":demo")
+include(":demo:shared")
+include(":demo:android")
+include(":demo:desktop")
