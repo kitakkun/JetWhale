@@ -2,12 +2,13 @@ package com.kitakkun.jetwhale.agent.runtime
 
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAgentNegotiationRequest
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleHostNegotiationResponse
+import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleProtocolVersion
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.sendSerialized
 
-internal class DefaultClientSessionNegotiator : ClientSessionNegotiator {
+internal class DefaultClientSessionNegotiator(private val plugins: List<AgentPlugin>) : ClientSessionNegotiator {
     private var sessionId: String? = null
 
     override suspend fun DefaultClientWebSocketSession.negotiate(): ClientSessionNegotiationResult {
@@ -17,9 +18,9 @@ internal class DefaultClientSessionNegotiator : ClientSessionNegotiator {
 
             // TODO: Capabilities negotiation (currently not implemented)
 
-            // TODO: Available plugins negotiation (currently not implemented)
+            val response = negotiatePlugins(plugins)
 
-            ClientSessionNegotiationResult.Success
+            ClientSessionNegotiationResult.Success(availablePluginIds = response.availablePlugins.map { it.pluginId })
         } catch (e: Throwable) {
             ClientSessionNegotiationResult.Failure(reason = e.message ?: "Unknown error during negotiation")
         }
@@ -62,5 +63,18 @@ internal class DefaultClientSessionNegotiator : ClientSessionNegotiator {
         JetWhaleLogger.d("Session negotiation completed with sessionId: $assignedSessionId")
 
         return assignedSessionId
+    }
+
+    private suspend fun DefaultClientWebSocketSession.negotiatePlugins(plugins: List<AgentPlugin>): JetWhaleHostNegotiationResponse.AvailablePluginsResponse {
+        val request = JetWhaleAgentNegotiationRequest.AvailablePlugins(
+            plugins = plugins.map {
+                JetWhalePluginInfo(
+                    pluginId = it.pluginId,
+                    pluginVersion = it.pluginVersion,
+                )
+            }
+        )
+        sendSerialized(request)
+        return receiveDeserialized()
     }
 }
