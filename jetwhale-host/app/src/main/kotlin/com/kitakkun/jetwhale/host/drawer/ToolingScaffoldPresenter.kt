@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import io.github.takahirom.rin.rememberRetained
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 
 sealed interface ToolingScaffoldEvent {
     data class SelectSession(val session: DebugSession) : ToolingScaffoldEvent
@@ -34,6 +35,24 @@ fun toolingScaffoldPresenter(
     var selectedPluginId by rememberRetained { mutableStateOf("") }
     val selectedSession by remember(debugSessions, selectedSessionId) {
         derivedStateOf { debugSessions.firstOrNull { it.id == selectedSessionId } }
+    }
+
+    val plugins by remember(loadedPlugins, selectedSession) {
+        derivedStateOf {
+            loadedPlugins.map { metaData ->
+                DrawerPluginItemUiState(
+                    id = metaData.id,
+                    name = metaData.name,
+                    activeIconResource = metaData.activeIconResource,
+                    inactiveIconResource = metaData.inactiveIconResource,
+                    enabledForCurrentSession = selectedSession?.installedPlugins.orEmpty().any {
+                        // FIXME: Provide version checking logic for plugins
+                        //   For now, we just check the plugin ID
+                        it.pluginId == metaData.id
+                    }
+                )
+            }.toImmutableList()
+        }
     }
 
     val consumableEffect = rememberRetained { MutableConsumableEffect<ToolingScaffoldEffect>() }
@@ -66,6 +85,6 @@ fun toolingScaffoldPresenter(
         selectedSessionId = selectedSessionId,
         selectedPluginId = selectedPluginId,
         sessions = debugSessions,
-        plugins = loadedPlugins,
+        plugins = plugins,
     )
 }

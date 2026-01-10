@@ -14,6 +14,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.model.DebugSession
-import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.puzzle_outlined
 import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.painterResource
@@ -31,14 +31,14 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun ExpandedToolingDrawerView(
     selectedPluginId: String,
-    plugins: ImmutableList<PluginMetaData>,
+    plugins: ImmutableList<DrawerPluginItemUiState>,
     selectedSession: DebugSession?,
     sessions: ImmutableList<DebugSession>,
     onClickShrinkDrawer: () -> Unit,
     onClickSettings: () -> Unit,
-    onClickPlugin: (PluginMetaData) -> Unit,
+    onClickPlugin: (DrawerPluginItemUiState) -> Unit,
     onSelectSession: (DebugSession) -> Unit,
-    onClickPopout: (PluginMetaData) -> Unit,
+    onClickPopout: (DrawerPluginItemUiState) -> Unit,
 ) {
     ModalDrawerSheet {
         Row(
@@ -68,12 +68,12 @@ fun ExpandedToolingDrawerView(
                 onSelectSession = onSelectSession,
             )
             HorizontalDivider()
-            Text(
-                text = "Plugins",
-                modifier = Modifier.padding(16.dp),
-            )
             when {
                 plugins.isEmpty() -> {
+                    Text(
+                        text = "Plugins",
+                        modifier = Modifier.padding(16.dp),
+                    )
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -95,15 +95,44 @@ fun ExpandedToolingDrawerView(
                     LazyColumn(
                         modifier = Modifier.weight(1f)
                     ) {
-                        items(plugins) {
+                        item {
+                            Text(
+                                text = "Enabled Plugins",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                        items(plugins.filter { it.enabledForCurrentSession }) {
                             PluginDrawerItemView(
                                 name = it.name,
-                                enabled = selectedSession != null,
+                                enabled = true,
                                 activeIconResource = it.activeIconResource,
                                 inactiveIconResource = it.inactiveIconResource,
-                                selected = selectedPluginId == it.id && selectedSession != null,
+                                selected = it.id == selectedPluginId,
                                 onClick = { onClickPlugin(it) },
                                 onClickPopout = { onClickPopout(it) }
+                            )
+                        }
+                        item {
+                            Text(
+                                text = "Disabled Plugins",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                        items(plugins.filter { !it.enabledForCurrentSession }) {
+                            PluginDrawerItemView(
+                                name = it.name,
+                                enabled = false,
+                                activeIconResource = it.activeIconResource,
+                                inactiveIconResource = it.inactiveIconResource,
+                                selected = false, // Disabled plugins cannot be selected
+                                onClick = {
+                                    // No-op for disabled plugins
+                                },
+                                onClickPopout = {
+                                    // No-op for disabled plugins
+                                }
                             )
                         }
                     }

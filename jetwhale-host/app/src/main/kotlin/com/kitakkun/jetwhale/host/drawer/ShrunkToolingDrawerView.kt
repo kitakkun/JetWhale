@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.PluginIconResource
-import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.puzzle_filled
 import com.kitakkun.jetwhale.host.puzzle_outlined
 import com.kitakkun.jetwhale.host.sidebar_unfold
@@ -48,7 +47,7 @@ import org.jetbrains.compose.resources.painterResource
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShrunkToolingDrawerView(
-    plugins: ImmutableList<PluginMetaData>,
+    plugins: ImmutableList<DrawerPluginItemUiState>,
     sessions: ImmutableList<DebugSession>,
     selectedSessionId: String?,
     selectedPluginId: String,
@@ -120,7 +119,7 @@ fun ShrunkToolingDrawerView(
         LazyColumn(
             modifier = Modifier.weight(1f),
         ) {
-            items(plugins) {
+            items(plugins.filter { it.enabledForCurrentSession }) {
                 TooltipBox(
                     positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
                     tooltip = {
