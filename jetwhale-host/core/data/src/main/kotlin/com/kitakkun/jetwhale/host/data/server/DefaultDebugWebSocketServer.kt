@@ -164,11 +164,11 @@ class DefaultDebugWebSocketServer(
                 val sessionId: String
                 val sessionName: String?
 
-                when (
-                    val negotiationResult = context(log) {
-                        with(sessionNegotiator) { negotiate() }
-                    }
-                ) {
+                val negotiationResult = context(log) {
+                    with(sessionNegotiator) { negotiate() }
+                }
+
+                when (negotiationResult) {
                     is ServerSessionNegotiationResult.Failure -> {
                         log.info("negotiation failed")
                         close()
@@ -187,6 +187,7 @@ class DefaultDebugWebSocketServer(
                 sessionRepository.registerDebugSession(
                     sessionId = sessionId,
                     sessionName = sessionName,
+                    installedPlugins = negotiationResult.installedPlugins,
                 )
 
                 log.debug("start listening to PluginMessage event...")
