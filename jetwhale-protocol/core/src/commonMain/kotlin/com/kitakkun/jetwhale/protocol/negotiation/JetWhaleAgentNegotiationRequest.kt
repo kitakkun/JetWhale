@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.protocol.negotiation
 
+import com.kitakkun.jetwhale.protocol.JetWhaleSerialNames
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -11,6 +13,7 @@ import kotlinx.serialization.Serializable
  *
  * @see [JetWhaleHostNegotiationResponse] for corresponding responses.
  */
+@SerialName(JetWhaleSerialNames.NEGOTIATION_AGENT)
 @Serializable
 public sealed interface JetWhaleAgentNegotiationRequest {
     /**
@@ -20,6 +23,7 @@ public sealed interface JetWhaleAgentNegotiationRequest {
      * @param version the protocol version of the agent.
      * @see [JetWhaleHostNegotiationResponse.ProtocolVersionResponse] for response
      */
+    @SerialName(JetWhaleSerialNames.NEGOTIATION_AGENT_PROTOCOL_VERSION)
     @Serializable
     public data class ProtocolVersion(val version: JetWhaleProtocolVersion) : JetWhaleAgentNegotiationRequest
 
@@ -31,6 +35,7 @@ public sealed interface JetWhaleAgentNegotiationRequest {
      * @param sessionName the name of the session which is displayed in the host UI.
      * @see [JetWhaleHostNegotiationResponse.AcceptSession] for response
      */
+    @SerialName(JetWhaleSerialNames.NEGOTIATION_AGENT_SESSION)
     @Serializable
     public data class Session(
         val sessionId: String?,
@@ -44,6 +49,7 @@ public sealed interface JetWhaleAgentNegotiationRequest {
      * @param plugins the list of available plugins in the agent.
      * @see [JetWhaleHostNegotiationResponse.AvailablePluginsResponse] for response
      */
+    @SerialName(JetWhaleSerialNames.NEGOTIATION_AGENT_AVAILABLE_PLUGINS)
     @Serializable
     public data class AvailablePlugins(val plugins: List<JetWhalePluginInfo>) : JetWhaleAgentNegotiationRequest
 }

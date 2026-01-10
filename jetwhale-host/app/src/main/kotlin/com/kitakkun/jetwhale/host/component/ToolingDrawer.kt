@@ -5,15 +5,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.kitakkun.jetwhale.host.model.DebugSession
-import com.kitakkun.jetwhale.host.model.PluginMetaData
+import com.kitakkun.jetwhale.host.drawer.DrawerPluginItemUiState
 import com.kitakkun.jetwhale.host.drawer.ExpandedToolingDrawerView
 import com.kitakkun.jetwhale.host.drawer.ShrunkToolingDrawerView
+import com.kitakkun.jetwhale.host.model.DebugSession
 import kotlinx.collections.immutable.ImmutableList
 
 @Composable
 fun ToolingDrawer(
-    plugins: ImmutableList<PluginMetaData>,
+    plugins: ImmutableList<DrawerPluginItemUiState>,
     sessions: ImmutableList<DebugSession>,
     selectedSession: DebugSession?,
     selectedPluginId: String,
