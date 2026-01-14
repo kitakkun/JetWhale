@@ -49,8 +49,21 @@ public sealed interface JetWhaleHostNegotiationResponse {
     public data class AcceptSession(val sessionId: String) : JetWhaleHostNegotiationResponse
 
     /**
-     * Response to available plugins information.
+     * Response to capabilities information.
      * This response is sent after session is accepted.
+     *
+     * @param capabilities the map of capability names and their values.
+     * @see [JetWhaleAgentNegotiationRequest.Capabilities] for request
+     */
+    @SerialName(JetWhaleSerialNames.NEGOTIATION_HOST_CAPABILITIES_RESPONSE)
+    @Serializable
+    public data class CapabilitiesResponse(
+        val capabilities: Map<String, String>,
+    ) : JetWhaleHostNegotiationResponse
+
+    /**
+     * Response to available plugins information.
+     * This response is sent after capabilities are exchanged.
      *
      * @param availablePlugins the list of available plugins in the host.
      * @param incompatiblePlugins the list of plugins that are incompatible with the host.
