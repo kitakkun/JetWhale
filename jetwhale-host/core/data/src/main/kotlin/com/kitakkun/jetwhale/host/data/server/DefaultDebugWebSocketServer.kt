@@ -176,9 +176,9 @@ class DefaultDebugWebSocketServer(
                     }
 
                     is ServerSessionNegotiationResult.Success -> {
-                        log.info("negotiation succeeded: ${negotiationResult.sessionId}")
-                        sessionId = negotiationResult.sessionId
-                        sessionName = negotiationResult.sessionName
+                        log.info("negotiation succeeded: ${negotiationResult.session.sessionId}")
+                        sessionId = negotiationResult.session.sessionId
+                        sessionName = negotiationResult.session.sessionName
                     }
                 }
 
