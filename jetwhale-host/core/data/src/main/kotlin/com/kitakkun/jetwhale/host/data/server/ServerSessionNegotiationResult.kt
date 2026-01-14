@@ -1,11 +1,9 @@
 package com.kitakkun.jetwhale.host.data.server
 
-import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
-
 sealed interface ServerSessionNegotiationResult {
     data class Success(
         val session: SessionNegotiationResult,
-        val installedPlugins: List<JetWhalePluginInfo>,
+        val plugin: PluginNegotiationResult,
     ) : ServerSessionNegotiationResult
 
     data object Failure : ServerSessionNegotiationResult

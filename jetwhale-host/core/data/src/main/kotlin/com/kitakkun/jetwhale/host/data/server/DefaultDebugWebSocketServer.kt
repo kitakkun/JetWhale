@@ -187,7 +187,7 @@ class DefaultDebugWebSocketServer(
                 sessionRepository.registerDebugSession(
                     sessionId = sessionId,
                     sessionName = sessionName,
-                    installedPlugins = negotiationResult.installedPlugins,
+                    installedPlugins = negotiationResult.plugin.requestedPlugins,
                 )
 
                 log.debug("start listening to PluginMessage event...")
