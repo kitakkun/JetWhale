@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.data.session
 
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
+import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -23,14 +24,20 @@ class DefaultDebugSessionRepository : DebugSessionRepository {
     override val debugSessionsFlow: Flow<ImmutableList<DebugSession>> get() = mutableDebugSessions.map { it.values.toImmutableList() }
     private val mutableDebugSessions: MutableStateFlow<ImmutableMap<String, DebugSession>> = MutableStateFlow(persistentMapOf())
 
-    override suspend fun registerDebugSession(sessionId: String, sessionName: String?) {
+    override suspend fun registerDebugSession(
+        sessionId: String,
+        sessionName: String?,
+        installedPlugins: List<JetWhalePluginInfo>,
+    ) {
         mutableDebugSessions.update { sessions ->
             sessions.toMutableMap().apply {
                 set(
-                    sessionId, DebugSession(
+                    sessionId,
+                    DebugSession(
                         id = sessionId,
                         name = sessionName,
                         isActive = true,
+                        installedPlugins = installedPlugins.toImmutableList(),
                     )
                 )
             }.toPersistentMap()

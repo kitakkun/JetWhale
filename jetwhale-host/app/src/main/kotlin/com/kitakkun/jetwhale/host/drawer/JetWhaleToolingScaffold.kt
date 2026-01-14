@@ -7,8 +7,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.component.ToolingDrawer
+import com.kitakkun.jetwhale.host.model.DebugSession
 import kotlinx.collections.immutable.persistentListOf
 
 @OptIn(ExperimentalMaterial3Api::class)

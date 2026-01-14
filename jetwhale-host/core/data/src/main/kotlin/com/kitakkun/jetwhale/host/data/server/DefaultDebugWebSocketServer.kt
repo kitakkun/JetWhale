@@ -47,7 +47,7 @@ import java.util.UUID
 @ContributesBinding(AppScope::class)
 class DefaultDebugWebSocketServer(
     private val json: Json,
-    private val sessionNegotiator: WebSocketSessionNegotiator,
+    private val sessionNegotiator: ServerSessionNegotiator,
     private val adbAutoWiringService: ADBAutoWiringService,
     private val pluginsRepository: PluginRepository,
     private val sessionRepository: DebugSessionRepository,
@@ -115,7 +115,7 @@ class DefaultDebugWebSocketServer(
             logDebug("received!")
 
             when (response) {
-                is JetWhaleDebuggeeEvent.MethodResultResponse.Failed -> {
+                is JetWhaleDebuggeeEvent.MethodResultResponse.Failure -> {
                     logDebug(response.errorMessage)
                     null
                 }
@@ -165,17 +165,21 @@ class DefaultDebugWebSocketServer(
                 val sessionId: String
                 val sessionName: String?
 
-                when (val negotiationResult = with(sessionNegotiator) { negotiate() }) {
-                    is WebSocketSessionNegotiator.NegotiationResult.Failure -> {
+                val negotiationResult = context(log) {
+                    with(sessionNegotiator) { negotiate() }
+                }
+
+                when (negotiationResult) {
+                    is ServerSessionNegotiationResult.Failure -> {
                         log.info("negotiation failed")
                         close()
                         return@webSocket
                     }
 
-                    is WebSocketSessionNegotiator.NegotiationResult.Success -> {
-                        log.info("negotiation succeeded: ${negotiationResult.sessionId}")
-                        sessionId = negotiationResult.sessionId
-                        sessionName = negotiationResult.sessionName
+                    is ServerSessionNegotiationResult.Success -> {
+                        log.info("negotiation succeeded: ${negotiationResult.session.sessionId}")
+                        sessionId = negotiationResult.session.sessionId
+                        sessionName = negotiationResult.session.sessionName
                     }
                 }
 
@@ -184,6 +188,7 @@ class DefaultDebugWebSocketServer(
                 sessionRepository.registerDebugSession(
                     sessionId = sessionId,
                     sessionName = sessionName,
+                    installedPlugins = negotiationResult.plugin.requestedPlugins,
                 )
 
                 log.debug("start listening to PluginMessage event...")
