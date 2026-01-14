@@ -23,11 +23,11 @@ class DefaultServerSessionNegotiator : ServerSessionNegotiator {
 
             negotiateCapabilities()
 
-            val (availablePlugins) = negotiatePlugins()
+            val plugin = negotiatePlugins()
 
             return ServerSessionNegotiationResult.Success(
                 session = session,
-                installedPlugins = availablePlugins,
+                plugin = plugin,
             )
         } catch (e: Throwable) {
             logger.error("web socket negotiation failed", e)
@@ -75,7 +75,7 @@ class DefaultServerSessionNegotiator : ServerSessionNegotiator {
         return response
     }
 
-    private suspend fun DefaultWebSocketServerSession.negotiatePlugins(): JetWhaleAgentNegotiationRequest.AvailablePlugins {
+    private suspend fun DefaultWebSocketServerSession.negotiatePlugins(): PluginNegotiationResult {
         val request = receiveDeserialized<JetWhaleAgentNegotiationRequest.AvailablePlugins>()
         sendSerialized(
             JetWhaleHostNegotiationResponse.AvailablePluginsResponse(
@@ -83,6 +83,6 @@ class DefaultServerSessionNegotiator : ServerSessionNegotiator {
                 incompatiblePlugins = listOf(), // TODO: Provide actual incompatible plugins
             )
         )
-        return request
+        return PluginNegotiationResult(requestedPlugins = request.plugins)
     }
 }
