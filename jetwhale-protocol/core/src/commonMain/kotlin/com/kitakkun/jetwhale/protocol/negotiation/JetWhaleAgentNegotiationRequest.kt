@@ -43,8 +43,21 @@ public sealed interface JetWhaleAgentNegotiationRequest {
     ) : JetWhaleAgentNegotiationRequest
 
     /**
-     * Available plugins information request.
+     * Capabilities information request.
      * This request is sent after session is accepted.
+     *
+     * @param capabilities the map of capability names and their values.
+     * @see [JetWhaleHostNegotiationResponse.CapabilitiesResponse] for response
+     */
+    @SerialName(JetWhaleSerialNames.NEGOTIATION_AGENT_CAPABILITIES)
+    @Serializable
+    public data class Capabilities(
+        val capabilities: Map<String, String>,
+    ) : JetWhaleAgentNegotiationRequest
+
+    /**
+     * Available plugins information request.
+     * This request is sent after capabilities are exchanged.
      *
      * @param plugins the list of available plugins in the agent.
      * @see [JetWhaleHostNegotiationResponse.AvailablePluginsResponse] for response

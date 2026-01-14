@@ -12,11 +12,13 @@ internal object JetWhaleSerialNames {
     // negotiation/agent/*
     const val NEGOTIATION_AGENT_SESSION = "negotiation/agent/session"
     const val NEGOTIATION_AGENT_PROTOCOL_VERSION = "negotiation/agent/protocol_version"
+    const val NEGOTIATION_AGENT_CAPABILITIES = "negotiation/agent/capabilities"
     const val NEGOTIATION_AGENT_AVAILABLE_PLUGINS = "negotiation/agent/available_plugins"
 
     // negotiation/host/*
     const val NEGOTIATION_HOST_ACCEPT_SESSION = "negotiation/host/accept_session"
     const val NEGOTIATION_HOST_PROTOCOL_VERSION_RESPONSE = "negotiation/host/protocol_version_response"
+    const val NEGOTIATION_HOST_CAPABILITIES_RESPONSE = "negotiation/host/capabilities_response"
     const val NEGOTIATION_HOST_AVAILABLE_PLUGINS_RESPONSE = "negotiation/host/available_plugins_response"
     const val NEGOTIATION_HOST_PROTOCOL_VERSION_RESPONSE_ACCEPT = "negotiation/host/protocol_version_response/accept"
     const val NEGOTIATION_HOST_PROTOCOL_VERSION_RESPONSE_REJECT = "negotiation/host/protocol_version_response/reject"
