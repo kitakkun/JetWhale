@@ -4,7 +4,7 @@ import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 
 sealed interface ServerSessionNegotiationResult {
     data class Success(
-        val session: SessionNegotiationResult,
+        val session: SessionInfo,
         val installedPlugins: List<JetWhalePluginInfo>,
     ) : ServerSessionNegotiationResult
 
