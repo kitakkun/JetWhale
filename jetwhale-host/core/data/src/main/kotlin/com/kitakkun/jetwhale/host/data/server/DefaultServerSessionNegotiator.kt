@@ -21,7 +21,7 @@ class DefaultServerSessionNegotiator : ServerSessionNegotiator {
             negotiateProtocolVersion()
             val (sessionId, sessionName) = negotiateSessionId()
 
-            // TODO: Capabilities negotiation
+            negotiateCapabilities()
 
             val (availablePlugins) = negotiatePlugins()
 
@@ -66,6 +66,15 @@ class DefaultServerSessionNegotiator : ServerSessionNegotiator {
         val sessionId = requestedSessionId ?: UUID.randomUUID().toString()
         sendSerialized(JetWhaleHostNegotiationResponse.AcceptSession(sessionId))
         return sessionId to sessionNegotiationRequest.sessionName
+    }
+
+    private suspend fun DefaultWebSocketServerSession.negotiateCapabilities(): JetWhaleHostNegotiationResponse.CapabilitiesResponse {
+        receiveDeserialized<JetWhaleAgentNegotiationRequest.Capabilities>()
+        val response = JetWhaleHostNegotiationResponse.CapabilitiesResponse(
+            capabilities = mapOf(), // TODO: Provide actual capabilities
+        )
+        sendSerialized(response)
+        return response
     }
 
     private suspend fun DefaultWebSocketServerSession.negotiatePlugins(): JetWhaleAgentNegotiationRequest.AvailablePlugins {
