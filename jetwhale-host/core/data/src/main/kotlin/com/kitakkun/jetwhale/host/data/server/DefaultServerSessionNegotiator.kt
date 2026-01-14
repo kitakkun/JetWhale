@@ -55,12 +55,12 @@ class DefaultServerSessionNegotiator : ServerSessionNegotiator {
         }
     }
 
-    private suspend fun DefaultWebSocketServerSession.negotiateSessionId(): SessionInfo {
+    private suspend fun DefaultWebSocketServerSession.negotiateSessionId(): SessionNegotiationResult {
         val sessionNegotiationRequest = receiveDeserialized<JetWhaleAgentNegotiationRequest.Session>()
         val requestedSessionId = sessionNegotiationRequest.sessionId
         val sessionId = requestedSessionId ?: UUID.randomUUID().toString()
         sendSerialized(JetWhaleHostNegotiationResponse.AcceptSession(sessionId))
-        return SessionInfo(
+        return SessionNegotiationResult(
             sessionId = sessionId,
             sessionName = sessionNegotiationRequest.sessionName,
         )
