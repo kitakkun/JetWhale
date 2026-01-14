@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.host.data.server
 
-data class SessionNegotiationResult(
+data class SessionInfo(
     val sessionId: String,
     val sessionName: String,
 )
