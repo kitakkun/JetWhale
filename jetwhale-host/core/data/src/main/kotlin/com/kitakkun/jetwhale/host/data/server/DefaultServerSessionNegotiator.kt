@@ -19,17 +19,14 @@ class DefaultServerSessionNegotiator : ServerSessionNegotiator {
     override suspend fun DefaultWebSocketServerSession.negotiate(): ServerSessionNegotiationResult {
         try {
             negotiateProtocolVersion()
-            val (sessionId, sessionName) = negotiateSessionId()
+            val session = negotiateSessionId()
 
             negotiateCapabilities()
 
             val (availablePlugins) = negotiatePlugins()
 
-            logger.info("web socket accepted: $sessionId")
-
             return ServerSessionNegotiationResult.Success(
-                sessionId = sessionId,
-                sessionName = sessionName,
+                session = session,
                 installedPlugins = availablePlugins,
             )
         } catch (e: Throwable) {
@@ -58,14 +55,15 @@ class DefaultServerSessionNegotiator : ServerSessionNegotiator {
         }
     }
 
-    // FIXME: Consider modeling return type to include sessionName
-    //  instead of relying on Pair<String, String>
-    private suspend fun DefaultWebSocketServerSession.negotiateSessionId(): Pair<String, String> {
+    private suspend fun DefaultWebSocketServerSession.negotiateSessionId(): SessionNegotiationResult {
         val sessionNegotiationRequest = receiveDeserialized<JetWhaleAgentNegotiationRequest.Session>()
         val requestedSessionId = sessionNegotiationRequest.sessionId
         val sessionId = requestedSessionId ?: UUID.randomUUID().toString()
         sendSerialized(JetWhaleHostNegotiationResponse.AcceptSession(sessionId))
-        return sessionId to sessionNegotiationRequest.sessionName
+        return SessionNegotiationResult(
+            sessionId = sessionId,
+            sessionName = sessionNegotiationRequest.sessionName,
+        )
     }
 
     private suspend fun DefaultWebSocketServerSession.negotiateCapabilities(): JetWhaleHostNegotiationResponse.CapabilitiesResponse {
