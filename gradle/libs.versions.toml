@@ -158,3 +158,4 @@ jvm = { id = "jvm" }
 multiplatform = { id = "multiplatform" }
 serialization = { id = "serialization" }
 debuggerComposeFeature = { id = "debugger-compose-feature" }
+publish = { id = "publish" }
