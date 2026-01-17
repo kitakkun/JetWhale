@@ -28,7 +28,7 @@ afterEvaluate {
     configure<MavenPublishBaseExtension> {
         publishToMavenCentral()
         signAllPublications()
-        coordinates(group.toString(), artifactId, version.toString())
+        coordinates("com.kitakkun.jetwhale", artifactId, version.toString())
 
         pom {
             name = artifactName
