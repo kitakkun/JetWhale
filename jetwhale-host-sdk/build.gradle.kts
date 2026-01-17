@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.jetbrainsCompose)
+    alias(libs.plugins.publish)
 }
 
 kotlin {
@@ -22,4 +23,9 @@ dependencies {
     implementation(libs.kotlinxSerializationJson)
     api(projects.jetwhaleProtocol.core)
     api(projects.jetwhaleProtocol.host)
+}
+
+jetwhalePublish {
+    artifactId = "jetwhale-host-sdk"
+    name = "JetWhale Host Sdk"
 }

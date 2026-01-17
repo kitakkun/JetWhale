@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.serialization)
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
+    alias(libs.plugins.publish)
 }
 
 kotlin {
@@ -26,4 +27,9 @@ kotlin {
             implementation(libs.ktorServerWebSockets)
         }
     }
+}
+
+jetwhalePublish {
+    artifactId = "jetwhale-agent-runtime"
+    name = "JetWhale Agent Runtime"
 }

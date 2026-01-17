@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.serialization)
+    alias(libs.plugins.publish)
 }
 
 kotlin {
@@ -17,4 +18,9 @@ kotlin {
     abiValidation {
         enabled.set(true)
     }
+}
+
+jetwhalePublish {
+    artifactId = "jetwhale-protocol-core"
+    name = "Jetwhale Protocol Core"
 }
