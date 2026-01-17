@@ -17,26 +17,26 @@ import java.util.UUID
 class DefaultServerSessionNegotiator : ServerSessionNegotiator {
     context(logger: Logger)
     override suspend fun DefaultWebSocketServerSession.negotiate(): ServerSessionNegotiationResult {
-        try {
-            negotiateProtocolVersion()
-            val session = negotiateSessionId()
+        val protocol = negotiateProtocolVersion()
 
-            negotiateCapabilities()
-
-            val plugin = negotiatePlugins()
-
-            return ServerSessionNegotiationResult.Success(
-                session = session,
-                plugin = plugin,
-            )
-        } catch (e: Throwable) {
-            logger.error("web socket negotiation failed", e)
+        if (protocol is ProtocolVersionNegotiationResult.Failure) {
             return ServerSessionNegotiationResult.Failure
         }
+
+        val session = negotiateSessionId()
+
+        negotiateCapabilities()
+
+        val plugin = negotiatePlugins()
+
+        return ServerSessionNegotiationResult.Success(
+            session = session,
+            plugin = plugin,
+        )
     }
 
     context(logger: Logger)
-    private suspend fun DefaultWebSocketServerSession.negotiateProtocolVersion() {
+    private suspend fun DefaultWebSocketServerSession.negotiateProtocolVersion(): ProtocolVersionNegotiationResult {
         val protocolVersionNegotiationRequest = receiveDeserialized<JetWhaleAgentNegotiationRequest.ProtocolVersion>()
         logger.info("Received protocol version negotiation request: $protocolVersionNegotiationRequest")
         // TODO: support multiple protocol versions
@@ -49,9 +49,10 @@ class DefaultServerSessionNegotiator : ServerSessionNegotiator {
                     supportedVersions = listOf(hostVersion),
                 )
             )
-            throw IllegalStateException("Protocol version negotiation failed")
+            return ProtocolVersionNegotiationResult.Failure
         } else {
             sendSerialized(JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept(hostVersion))
+            return ProtocolVersionNegotiationResult.Success(hostVersion)
         }
     }
 
