@@ -26,5 +26,5 @@ dependencies {
 
 jetwhalePublish {
     artifactId = "jetwhale-agent-sdk"
-    name = "JetWhale Agent Sdk"
+    name = "JetWhale Agent SDK"
 }

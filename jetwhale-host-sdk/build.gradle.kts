@@ -27,5 +27,5 @@ dependencies {
 
 jetwhalePublish {
     artifactId = "jetwhale-host-sdk"
-    name = "JetWhale Host Sdk"
+    name = "JetWhale Host SDK"
 }
