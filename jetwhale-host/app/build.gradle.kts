@@ -1,3 +1,5 @@
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+
 plugins {
     alias(libs.plugins.jvm)
     alias(libs.plugins.compose)
@@ -11,6 +13,16 @@ compose.desktop {
     application {
         mainClass = "com.kitakkun.jetwhale.host.MainKt"
         nativeDistributions {
+            packageName = "JetWhale Debugger"
+            // Remove pre-release suffix for package version
+            packageVersion = libs.versions.jetwhale.get().substringBefore("-")
+            licenseFile = rootProject.rootDir.resolve("LICENSE")
+
+            targetFormats(
+                TargetFormat.Dmg,
+                TargetFormat.Msi,
+                TargetFormat.Deb,
+            )
             jvmArgs(
                 "-Dapple.awt.application.appearance=system"
             )
