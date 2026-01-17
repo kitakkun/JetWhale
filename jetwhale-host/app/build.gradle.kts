@@ -18,6 +18,10 @@ compose.desktop {
             packageVersion = libs.versions.jetwhale.get().substringBefore("-")
             licenseFile = rootProject.rootDir.resolve("LICENSE")
 
+            // Fix runtime NoClassDefFoundError which occurs only on packaged application
+            modules("jdk.unsupported")
+            modules("java.naming")
+
             targetFormats(
                 TargetFormat.Dmg,
                 TargetFormat.Msi,
