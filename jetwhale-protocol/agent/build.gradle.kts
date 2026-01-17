@@ -25,4 +25,5 @@ kotlin {
 jetwhalePublish {
     artifactId = "jetwhale-protocol-agent"
     name = "Jetwhale Protocol Agent"
+    description = "Jetwhale Protocol definitions for Agent"
 }

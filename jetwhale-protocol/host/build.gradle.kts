@@ -23,4 +23,5 @@ dependencies {
 jetwhalePublish {
     artifactId = "jetwhale-protocol-host"
     name = "Jetwhale Protocol Host"
+    description = "Jetwhale Protocol definitions for Host"
 }
