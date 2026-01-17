@@ -1,5 +1,6 @@
 [versions]
 jetwhale = "0.0.1-alpha01"
+mavenPublish = "0.33.0"
 
 # kotlin
 kotlin = "2.3.0"
@@ -45,6 +46,7 @@ jetbrainsComposeGradlePlugin = { module = "org.jetbrains.compose:org.jetbrains.c
 composeCompilerGradlePlugin = { module = "org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin", version.ref = "kotlin" }
 metroGradlePlugin = { module = "dev.zacsweers.metro:dev.zacsweers.metro.gradle.plugin", version.ref = "metro" }
 androidKotlinMultiplatformLibraryGradlePlugin = { module = "com.android.kotlin.multiplatform.library:com.android.kotlin.multiplatform.library.gradle.plugin", version.ref = "androidGradlePlugin" }
+mavenPublishGradlePlugin = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "mavenPublish" }
 
 # kotlin
 kotlinTest = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -105,7 +107,8 @@ gradlePlugins = [
     "composeCompilerGradlePlugin",
     "metroGradlePlugin",
     "kotlinxSerializationGradlePlugin",
-    "androidKotlinMultiplatformLibraryGradlePlugin"
+    "androidKotlinMultiplatformLibraryGradlePlugin",
+    "mavenPublishGradlePlugin"
 ]
 navigation3 = [
     "navigation3Ui",
@@ -147,6 +150,7 @@ metro = { id = "dev.zacsweers.metro", version.ref = "metro" }
 mokkery = { id = "dev.mokkery", version.ref = "mokkery" }
 
 aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutLibraries" }
+mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
 
 # conventions
 compose = { id = "compose" }
