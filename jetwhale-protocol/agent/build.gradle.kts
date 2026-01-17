@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.serialization)
+    alias(libs.plugins.publish)
 }
 
 kotlin {
@@ -19,4 +20,9 @@ kotlin {
     sourceSets.commonMain.dependencies {
         api(projects.jetwhaleProtocol.core)
     }
+}
+
+jetwhalePublish {
+    artifactId = "jetwhale-protocol-agent"
+    name = "Jetwhale Protocol Agent"
 }
