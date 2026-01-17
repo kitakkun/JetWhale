@@ -23,4 +23,5 @@ kotlin {
 jetwhalePublish {
     artifactId = "jetwhale-protocol-core"
     name = "Jetwhale Protocol Core"
+    description = "Core definitions for Jetwhale Protocol"
 }

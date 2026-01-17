@@ -12,6 +12,7 @@ afterEvaluate {
 
     val artifactName = jetwhalePublish.name
     val artifactId = jetwhalePublish.artifactId
+    val artifactDescription = jetwhalePublish.description
 
     if (artifactName.isBlank()) {
         logger.warn("jetwhalePublish.name is not set. Skipping publishing configuration.")
@@ -20,6 +21,11 @@ afterEvaluate {
 
     if (artifactId.isBlank()) {
         logger.warn("jetwhalePublish.artifactId is not set. Skipping publishing configuration.")
+        return@afterEvaluate
+    }
+
+    if (artifactDescription.isBlank()) {
+        logger.warn("jetwhalePublish.description is not set. Skipping publishing configuration.")
         return@afterEvaluate
     }
 
@@ -32,6 +38,7 @@ afterEvaluate {
 
         pom {
             name = artifactName
+            description = artifactDescription
             inceptionYear = "2026"
             url = "https://github.com/kitakkun/jetwhale"
             licenses {

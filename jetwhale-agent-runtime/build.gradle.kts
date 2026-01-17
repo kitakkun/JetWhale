@@ -32,4 +32,5 @@ kotlin {
 jetwhalePublish {
     artifactId = "jetwhale-agent-runtime"
     name = "JetWhale Agent Runtime"
+    description = "Runtime library for JetWhale Agent"
 }
