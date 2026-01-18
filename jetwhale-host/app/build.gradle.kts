@@ -38,9 +38,17 @@ compose.resources {
     packageOfResClass = "com.kitakkun.jetwhale.host"
 }
 
+val aboutLibrariesDir = layout.buildDirectory.dir("generated/aboutlibraries")
+
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-opt-in=soil.query.annotation.ExperimentalSoilQueryApi")
+    }
+
+    sourceSets {
+        main {
+            resources.srcDir(aboutLibrariesDir)
+        }
     }
 }
 
@@ -69,7 +77,7 @@ dependencies {
 
 aboutLibraries {
     export {
-        outputFile = file("src/main/composeResources/files/aboutlibraries.json")
+        outputFile = aboutLibrariesDir.get().file("licenses.json")
     }
     collect {
         this.configPath = file("aboutlibraries")
