@@ -75,3 +75,8 @@ aboutLibraries {
         this.configPath = file("aboutlibraries")
     }
 }
+
+// Ensure that library definitions are up to date before packaging resources
+tasks.named("copyNonXmlValueResourcesForMain") {
+    dependsOn("exportLibraryDefinitions")
+}
