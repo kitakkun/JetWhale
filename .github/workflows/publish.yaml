@@ -1,8 +1,9 @@
 name: Publish
 
 on:
-  release:
-    types: [ released, prereleased ]
+  push:
+    tags:
+      - "v*"
 jobs:
   publish:
     name: Release build and publish
