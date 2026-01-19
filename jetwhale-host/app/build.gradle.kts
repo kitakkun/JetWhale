@@ -14,6 +14,7 @@ compose.desktop {
         mainClass = "com.kitakkun.jetwhale.host.MainKt"
         nativeDistributions {
             packageName = "JetWhale Debugger"
+            copyright = "© 2026 kitakkun"
             // Remove pre-release suffix for package version
             packageVersion = libs.versions.jetwhale.get().substringBefore("-")
             licenseFile = rootProject.rootDir.resolve("LICENSE")
