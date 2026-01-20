@@ -15,7 +15,7 @@ class DefaultLibrariesQueryKey : LibrariesQueryKey by buildQueryKey(
     fetch = {
         Libs.Builder()
             .withJson(
-                Res.readBytes("files/aboutlibraries.json").decodeToString()
+                object {}.javaClass.getResource("/licenses.json")!!.readText()
             ).build()
     }
 )
