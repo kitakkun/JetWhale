@@ -50,18 +50,14 @@ class DefaultDebuggerSettingsRepository(
         )
 
     override suspend fun updateAdbAutoPortMappingEnabled(enabled: Boolean) {
-        dataStore.updateData { prefs ->
-            prefs.toMutablePreferences().apply {
-                this[KEY_ADB_AUTO_PORT_MAPPING_ENABLED] = enabled
-            }
+        dataStore.edit { prefs ->
+            prefs[KEY_ADB_AUTO_PORT_MAPPING_ENABLED] = enabled
         }
     }
 
     override suspend fun updatePersistData(enabled: Boolean) {
-        dataStore.updateData { prefs ->
-            prefs.toMutablePreferences().apply {
-                this[KEY_PERSIST_DATA] = enabled
-            }
+        dataStore.edit { prefs ->
+            prefs[KEY_PERSIST_DATA] = enabled
         }
     }
 
