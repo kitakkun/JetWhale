@@ -2,7 +2,7 @@ name: Distribute Desktop Application
 on:
   push:
     tags:
-      - "v*"
+      - "*"
 permissions:
   contents: write
 jobs:
