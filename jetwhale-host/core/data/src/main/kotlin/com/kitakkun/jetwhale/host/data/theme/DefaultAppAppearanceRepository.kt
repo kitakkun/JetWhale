@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.data.theme
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.kitakkun.jetwhale.host.data.ThemeDataStoreQualifier
 import com.kitakkun.jetwhale.host.model.AppAppearanceRepository
@@ -56,31 +57,27 @@ class DefaultAppAppearanceRepository(
     }
 
     override suspend fun setPreferredColorSchemeId(id: JetWhaleColorSchemeId) {
-        dataStore.updateData {
-            it.toMutablePreferences().apply {
-                this[preferredColorSchemeIdPreferencesKey] = id.id
-            }
+        dataStore.edit { prefs ->
+            prefs[preferredColorSchemeIdPreferencesKey] = id.id
         }
     }
 
     override suspend fun saveCustomTheme(id: JetWhaleColorSchemeId, theme: JetWhaleColorScheme.Static.Custom) {
-        dataStore.updateData { preferences ->
-            preferences.toMutablePreferences().apply {
-                val customThemeDefinition = CustomThemeDefinition(
-                    id = id,
-                    colors = theme.colors.mapKeys { entry -> entry.key.name }
-                )
+        dataStore.edit { prefs ->
+            val customThemeDefinition = CustomThemeDefinition(
+                id = id,
+                colors = theme.colors.mapKeys { entry -> entry.key.name }
+            )
 
-                val currentThemeDefinitions = this[customThemesPreferencesKey]?.let { serialized ->
-                    json.decodeFromString<CustomThemes>(serialized)
-                } ?: CustomThemes(emptyList())
+            val currentThemeDefinitions = prefs[customThemesPreferencesKey]?.let { serialized ->
+                json.decodeFromString<CustomThemes>(serialized)
+            } ?: CustomThemes(emptyList())
 
-                this[customThemesPreferencesKey] = json.encodeToString(
-                    currentThemeDefinitions.copy(
-                        colorSchemes = currentThemeDefinitions.colorSchemes.filter { it.id != id } + customThemeDefinition
-                    )
+            prefs[customThemesPreferencesKey] = json.encodeToString(
+                currentThemeDefinitions.copy(
+                    colorSchemes = currentThemeDefinitions.colorSchemes.filter { it.id != id } + customThemeDefinition
                 )
-            }
+            )
         }
     }
 
@@ -89,32 +86,28 @@ class DefaultAppAppearanceRepository(
         lightThemeId: JetWhaleColorSchemeId,
         darkThemeId: JetWhaleColorSchemeId,
     ) {
-        dataStore.updateData {
-            it.toMutablePreferences().apply {
-                val dynamicThemeDefinition = DynamicThemeDefinition(
-                    id = id,
-                    lightThemeKey = lightThemeId,
-                    darkThemeKey = darkThemeId,
-                )
+        dataStore.edit { prefs ->
+            val dynamicThemeDefinition = DynamicThemeDefinition(
+                id = id,
+                lightThemeKey = lightThemeId,
+                darkThemeKey = darkThemeId,
+            )
 
-                val currentDynamicThemes = this[dynamicThemesPreferencesKey]?.let { serialized ->
-                    json.decodeFromString<DynamicThemes>(serialized)
-                } ?: DynamicThemes(emptyList())
+            val currentDynamicThemes = prefs[dynamicThemesPreferencesKey]?.let { serialized ->
+                json.decodeFromString<DynamicThemes>(serialized)
+            } ?: DynamicThemes(emptyList())
 
-                this[dynamicThemesPreferencesKey] = json.encodeToString(
-                    currentDynamicThemes.copy(
-                        colorSchemes = currentDynamicThemes.colorSchemes.filter { it.id != id } + dynamicThemeDefinition
-                    )
+            prefs[dynamicThemesPreferencesKey] = json.encodeToString(
+                currentDynamicThemes.copy(
+                    colorSchemes = currentDynamicThemes.colorSchemes.filter { it.id != id } + dynamicThemeDefinition
                 )
-            }
+            )
         }
     }
 
     override suspend fun updateAppLanguage(language: AppLanguage) {
-        dataStore.updateData {
-            it.toMutablePreferences().apply {
-                this[appLanguagePreferencesKey] = language.code
-            }
+        dataStore.edit { prefs ->
+            prefs[appLanguagePreferencesKey] = language.code
         }
     }
 
