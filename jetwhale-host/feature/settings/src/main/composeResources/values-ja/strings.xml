@@ -20,6 +20,12 @@
     <string name="server_status_error">エラー: %1$s</string>
     <string name="server_status">ステータス</string>
     <string name="server_configuration">構成</string>
+    <string name="server_port_label">サーバーポート</string>
+    <string name="server_port_apply">適用</string>
+    <string name="server_port_apply_confirm_title">ポート変更の適用</string>
+    <string name="server_port_apply_confirm_message">ポート %1$s でサーバーを再起動しますか？</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_cancel">キャンセル</string>
     <string name="health_check">ヘルスチェック</string>
     <string name="adb_executable_path">ADB実行可能ファイルのパス</string>
     <string name="adb_unavailable">ADBコマンドが見つかりません</string>

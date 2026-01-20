@@ -21,10 +21,12 @@ class DefaultSettingsSubscriptionKey(
         combine(
             defaultDebuggerSettingsRepository.adbAutoPortMappingEnabledFlow,
             defaultDebuggerSettingsRepository.persistDataFlow,
-        ) { adbAutoPortMappingEnabled, persistData ->
+            defaultDebuggerSettingsRepository.serverPortFlow,
+        ) { adbAutoPortMappingEnabled, persistData, serverPort ->
             DebuggerBehaviorSettings(
                 adbAutoPortMappingEnabled = adbAutoPortMappingEnabled,
                 persistData = persistData,
+                serverPort = serverPort,
             )
         }
     }
