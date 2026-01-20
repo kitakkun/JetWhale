@@ -20,6 +20,12 @@
     <string name="server_status_error">Error: %1$s</string>
     <string name="server_status">Status</string>
     <string name="server_configuration">Configuration</string>
+    <string name="server_port_label">Server Port</string>
+    <string name="server_port_apply">Apply</string>
+    <string name="server_port_apply_confirm_title">Apply Port Change</string>
+    <string name="server_port_apply_confirm_message">Restart server on port %1$s?</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_cancel">Cancel</string>
     <string name="health_check">Health Check</string>
     <string name="adb_executable_path">ADB Executable Path</string>
     <string name="adb_unavailable">ADB command not found</string>

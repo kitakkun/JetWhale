@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.PluginInstallMutationKey
+import com.kitakkun.jetwhale.host.model.ServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
 import dev.zacsweers.metro.AppScope
@@ -26,6 +27,7 @@ interface SettingsScreenContext : ScreenContext {
     val serverStatusSubscriptionKey: ServerStatusSubscriptionKey
     val pluginInstallMutationKey: PluginInstallMutationKey
     val adbAutoPortMappingMutationKey: AdbAutoPortMappingMutationKey
+    val serverPortMutationKey: ServerPortMutationKey
 
     @GraphExtension.Factory
     fun interface Factory {

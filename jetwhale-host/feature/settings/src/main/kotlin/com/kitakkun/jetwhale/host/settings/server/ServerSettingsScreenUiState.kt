@@ -2,10 +2,11 @@ package com.kitakkun.jetwhale.host.settings.server
 
 data class ServerSettingsScreenUiState(
     val serverState: ServerState,
-    val editingPort: Int,
-) {
-    val canEditPort: Boolean get() = serverState is ServerState.Stopped || serverState is ServerState.Error
-}
+    val editingPortText: String,
+    val isApplyVisible: Boolean,
+    val isApplyEnabled: Boolean,
+    val showApplyConfirmDialog: Boolean,
+)
 
 sealed interface ServerState {
     data object Stopped : ServerState

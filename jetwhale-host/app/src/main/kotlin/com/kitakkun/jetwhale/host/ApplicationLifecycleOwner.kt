@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
+import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.PluginRepository
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -19,6 +20,7 @@ class ApplicationLifecycleOwner(
     private val server: DebugWebSocketServer,
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
     private val pluginRepository: PluginRepository,
+    private val settingsRepository: DebuggerSettingsRepository,
 ) {
     enum class ApplicationState {
         NONE,
@@ -38,7 +40,7 @@ class ApplicationLifecycleOwner(
         coroutineScope.launch {
             server.start(
                 host = "localhost",
-                port = 5080,
+                port = settingsRepository.readServerPort(),
             )
 
             appDataDirectoryProvider.getAllPluginJarFilePaths().forEach {
