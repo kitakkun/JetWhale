@@ -67,18 +67,17 @@ class DefaultDebugWebSocketServer(
     private var adbPortWiringPerformed: Boolean = false
 
     override suspend fun start(host: String, port: Int) {
-        val server = embeddedServer(
-            factory = Netty,
-            host = host,
-            port = port,
-        ) {
-            configureWebSocket(host, port)
-        }
-
-        ktorEmbeddedServer = server
-
         mutableStatusFlow.update { DebugWebSocketServerStatus.Starting }
         try {
+            val server = embeddedServer(
+                factory = Netty,
+                host = host,
+                port = port,
+            ) {
+                configureWebSocket(host, port)
+            }
+
+            ktorEmbeddedServer = server
             server.startSuspend()
         } catch (e: Throwable) {
             mutableStatusFlow.update { DebugWebSocketServerStatus.Error(e.message ?: "Unknown error") }
