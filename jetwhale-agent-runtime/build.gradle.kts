@@ -22,6 +22,7 @@ kotlin {
         }
 
         commonTest.dependencies {
+            implementation(projects.testAnnotations)
             implementation(libs.kotlinTest)
             implementation(libs.ktorServerTestHost)
             implementation(libs.ktorServerWebSockets)

@@ -6,8 +6,6 @@ import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -21,7 +19,7 @@ internal class DefaultJetWhaleMessagingService(
     private val plugins: List<AgentPlugin>,
     private val json: Json,
 ) : JetWhaleMessagingService {
-    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+    private val coroutineScope: CoroutineScope = CoroutineScope(messagingServiceCoroutineDispatcher())
     private var keepAwakeJob: Job? = null
     private var reconnectDelayMillis: Long = DEFAULT_RECONNECT_DELAY_MILLIS
 
