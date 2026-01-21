@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.serialization)
+    alias(libs.plugins.publish)
 }
 
 kotlin {
@@ -20,4 +21,10 @@ kotlin {
 
 subprojects {
     group = "com.kitakkun.jetwhale.protocol"
+}
+
+jetwhalePublish {
+    artifactId = "jetwhale-protocol"
+    name = "JetWhale Protocol"
+    description = "Protocol libraries for JetWhale"
 }
