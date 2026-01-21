@@ -15,7 +15,6 @@ import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.send
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -120,12 +119,10 @@ class KtorWebSocketClientTest {
             port = TEST_SERVER_PORT,
         )
 
-        runBlocking {
-            assertEquals(
-                expected = "serverMessage",
-                actual = messageFlow.first()
-            )
-        }
+        assertEquals(
+            expected = "serverMessage",
+            actual = messageFlow.first()
+        )
     }
 
     private fun ApplicationTestBuilder.configureTestServer(

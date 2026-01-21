@@ -13,11 +13,27 @@ configure<KotlinMultiplatformExtension> {
     jvm()
     jvmToolchain(17)
     js(IR) {
-        browser()
+        browser {
+            testTask {
+                useKarma {
+                    useFirefox()
+                    useChrome()
+                    useSafari()
+                }
+            }
+        }
         nodejs()
     }
     wasmJs {
-        browser()
+        browser {
+            testTask {
+                useKarma {
+                    useFirefox()
+                    useChrome()
+                    useSafari()
+                }
+            }
+        }
         nodejs()
     }
     iosX64()
