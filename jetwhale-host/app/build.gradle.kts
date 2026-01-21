@@ -55,7 +55,8 @@ kotlin {
 
 dependencies {
     implementation(projects.jetwhaleHostSdk)
-    implementation(projects.jetwhaleProtocol)
+    implementation(projects.jetwhaleProtocol.core)
+    implementation(projects.jetwhaleProtocol.host)
     implementation(projects.jetwhaleHost.feature.settings)
     implementation(projects.jetwhaleHost.feature.plugin)
     implementation(projects.jetwhaleHost.core.model)

@@ -8,6 +8,5 @@ kotlin {
 }
 
 dependencies {
-    commonMainImplementation(projects.jetwhaleProtocol)
     commonMainImplementation(libs.kotlinxSerializationJson)
 }
