@@ -9,7 +9,8 @@ plugins {
 dependencies {
     implementation(projects.jetwhaleHostSdk)
     implementation(projects.jetwhaleHost.core.model)
-    implementation(projects.jetwhaleProtocol)
+    implementation(projects.jetwhaleProtocol.host)
+    implementation(projects.jetwhaleProtocol.core)
 
     implementation(compose.desktop.currentOs)
 
