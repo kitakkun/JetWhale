@@ -4,6 +4,8 @@ import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAgentNegotiationRequest
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleHostNegotiationResponse
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
+import com.kitakkun.test.annotations.IgnoreNative
+import com.kitakkun.test.annotations.IgnoreWeb
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.server.engine.connector
 import io.ktor.server.testing.ApplicationTestBuilder
@@ -20,8 +22,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 /**
- * Fails on macOS and iOS with NotImplementedError: Websockets for native are not supported
+ * Native and Web targets are ignored because the Ktor WebSocket test engine is not supported there.
  */
+@IgnoreWeb
+@IgnoreNative
 class KtorWebSocketClientTest {
     @Suppress("UnusedFlow")
     @Test
