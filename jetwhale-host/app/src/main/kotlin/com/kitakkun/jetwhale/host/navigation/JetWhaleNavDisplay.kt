@@ -28,10 +28,11 @@ fun JetWhaleNavDisplay(
 ) {
     val listDetailSceneStrategy = rememberListDetailSceneStrategy<NavKey>()
     val dialogSceneStrategy = remember { DialogSceneStrategy<NavKey>() }
+    val windowSceneStrategy = remember { WindowSceneStrategy<NavKey>() }
 
     NavDisplay(
         backStack = backStack,
-        sceneStrategy = listDetailSceneStrategy then dialogSceneStrategy,
+        sceneStrategy = windowSceneStrategy then dialogSceneStrategy then listDetailSceneStrategy,
         transitionSpec = {
             ContentTransform(
                 fadeIn(animationSpec = tween(100)),
