@@ -4,6 +4,7 @@ public abstract class com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin : com/
 	public abstract fun getPluginId ()Ljava/lang/String;
 	public abstract fun getPluginVersion ()Ljava/lang/String;
 	protected abstract fun getProtocol ()Lcom/kitakkun/jetwhale/protocol/agent/JetWhaleAgentPluginProtocol;
+	public fun onEnqueueEvent (Ljava/lang/Object;)V
 	public final fun onRawMethod (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun onReceiveMethod (Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }

@@ -1,5 +1,5 @@
 // Klib ABI Dump
-// Targets: [iosArm64, iosSimulatorArm64, iosX64, linuxArm64, linuxX64, macosArm64, macosX64, mingwX64]
+// Targets: [iosArm64, iosSimulatorArm64, iosX64, js, linuxArm64, linuxX64, macosArm64, macosX64, mingwX64, wasmJs]
 // Rendering settings:
 // - Signature version: 2
 // - Show manifest properties: true
@@ -20,4 +20,4 @@ final class <#A: kotlin/Any?, #B: kotlin/Any?, #C: kotlin/Any?> com.kitakkun.jet
     final fun encodeMethodResult(#C): kotlin/String // com.kitakkun.jetwhale.protocol.agent/KotlinxSerializationJetWhaleAgentPluginProtocol.encodeMethodResult|encodeMethodResult(1:2){}[0]
 }
 
-final inline fun <#A: reified kotlin/Any, #B: reified kotlin/Any, #C: reified kotlin/Any> com.kitakkun.jetwhale.protocol.agent/kotlinxSerializationJetWhaleAgentPluginProtocol(kotlinx.serialization.json/Json): com.kitakkun.jetwhale.protocol.agent/JetWhaleAgentPluginProtocol<#A, #B, #C> // com.kitakkun.jetwhale.protocol.agent/kotlinxSerializationJetWhaleAgentPluginProtocol|kotlinxSerializationJetWhaleAgentPluginProtocol(kotlinx.serialization.json.Json){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>}[0]
+final inline fun <#A: reified kotlin/Any, #B: reified kotlin/Any, #C: reified kotlin/Any> com.kitakkun.jetwhale.protocol.agent/kotlinxSerializationJetWhaleAgentPluginProtocol(kotlinx.serialization.json/Json = ...): com.kitakkun.jetwhale.protocol.agent/JetWhaleAgentPluginProtocol<#A, #B, #C> // com.kitakkun.jetwhale.protocol.agent/kotlinxSerializationJetWhaleAgentPluginProtocol|kotlinxSerializationJetWhaleAgentPluginProtocol(kotlinx.serialization.json.Json){0§<kotlin.Any>;1§<kotlin.Any>;2§<kotlin.Any>}[0]
