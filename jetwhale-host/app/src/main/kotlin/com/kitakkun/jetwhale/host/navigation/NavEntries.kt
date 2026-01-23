@@ -22,6 +22,9 @@ import com.kitakkun.jetwhale.host.settings.SettingsScreenRoot
 import com.kitakkun.jetwhale.host.settings.licenses.LicensesScreenRoot
 import com.kitakkun.jetwhale.host.settings.logviewer.LogViewerScreenRoot
 import io.github.takahirom.rin.rememberRetained
+import com.kitakkun.jetwhale.host.Res
+import com.kitakkun.jetwhale.host.log_viewer_window_title
+import org.jetbrains.compose.resources.stringResource
 
 fun EntryProviderScope<NavKey>.infoEntry(
     onClickOSSLicenses: () -> Unit,
@@ -169,6 +172,13 @@ fun EntryProviderScope<NavKey>.logViewerEntry() {
             )
         )
     ) {
+        val window = LocalComposeWindow.current
+        val windowTitle = stringResource(Res.string.log_viewer_window_title)
+
+        LaunchedEffect(window) {
+            window.title = windowTitle
+        }
+
         context(
             rememberRetained {
                 appGraph.createSettingsScreenContext()
