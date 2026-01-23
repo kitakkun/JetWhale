@@ -73,7 +73,7 @@ fun JetWhaleApp() {
                                         backStack.addSingleTop(PluginNavKey(pluginId, sessionId))
                                     },
                                     onClickPopout = { pluginId, pluginName, sessionId ->
-                                        backStack.addSingleTop(
+                                        backStack.add(
                                             PluginPopoutNavKey(
                                                 pluginId = pluginId,
                                                 sessionId = sessionId,
