@@ -28,7 +28,11 @@ fun JetWhaleNavDisplay(
 ) {
     val listDetailSceneStrategy = rememberListDetailSceneStrategy<NavKey>()
     val dialogSceneStrategy = remember { DialogSceneStrategy<NavKey>() }
-    val windowSceneStrategy = remember { WindowSceneStrategy<NavKey>() }
+    val windowSceneStrategy = remember(backStack) {
+        WindowSceneStrategy<NavKey> { contentKey ->
+            backStack.removeAll { it.toString() == contentKey.toString() }
+        }
+    }
 
     NavDisplay(
         backStack = backStack,
