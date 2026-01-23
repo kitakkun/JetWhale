@@ -1,6 +1,7 @@
-@file:OptIn(ExperimentalKotlinGradlePluginApi::class)
+@file:OptIn(ExperimentalKotlinGradlePluginApi::class, ExperimentalWasmDsl::class)
 
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -12,6 +13,10 @@ plugins {
 kotlin {
     jvm()
     jvmToolchain(17)
+
+    wasmJs {
+        browser()
+    }
 
     androidLibrary {
         namespace = "com.kitakkun.jetwhale.demo.shared"

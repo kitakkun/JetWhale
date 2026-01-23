@@ -1,3 +1,7 @@
+@file:OptIn(ExperimentalWasmDsl::class)
+
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
 plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.kotlinxSerialization)
@@ -5,6 +9,10 @@ plugins {
 
 kotlin {
     androidLibrary.namespace = "com.kitakkun.jetwhale.plugins.example.protocol"
+
+    wasmJs {
+        browser()
+    }
 }
 
 dependencies {
