@@ -28,10 +28,15 @@ fun JetWhaleNavDisplay(
 ) {
     val listDetailSceneStrategy = rememberListDetailSceneStrategy<NavKey>()
     val dialogSceneStrategy = remember { DialogSceneStrategy<NavKey>() }
+    val windowSceneStrategy = remember(backStack) {
+        WindowSceneStrategy<NavKey> { contentKey ->
+            backStack.removeAll { it.toString() == contentKey.toString() }
+        }
+    }
 
     NavDisplay(
         backStack = backStack,
-        sceneStrategy = listDetailSceneStrategy then dialogSceneStrategy,
+        sceneStrategy = dialogSceneStrategy then windowSceneStrategy then listDetailSceneStrategy,
         transitionSpec = {
             ContentTransform(
                 fadeIn(animationSpec = tween(100)),
@@ -53,7 +58,28 @@ fun JetWhaleNavDisplay(
             emptyPluginEntry()
             settingsEntry(onClickClose = backStack::removeLastOrNull)
             licensesEntry(onClickBack = backStack::removeLastOrNull)
-            pluginEntry()
+            pluginEntries(
+                isOpenedOnPopout = { pluginId, sessionId ->
+                    backStack.any {
+                        it is PluginPopoutNavKey &&
+                            it.pluginId == pluginId &&
+                            it.sessionId == sessionId
+                    }
+                },
+                onBringbackToMainWindow = { pluginId, sessionId ->
+                    backStack.addSingleTop(
+                        PluginNavKey(
+                            pluginId = pluginId,
+                            sessionId = sessionId,
+                        )
+                    )
+                    backStack.removeAll {
+                        it is PluginPopoutNavKey &&
+                            it.pluginId == pluginId &&
+                            it.sessionId == sessionId
+                    }
+                }
+            )
             disabledPluginEntry()
         },
         modifier = modifier.fillMaxSize()

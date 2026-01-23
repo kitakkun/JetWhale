@@ -22,4 +22,11 @@ data class PluginNavKey(
 ) : NavKey
 
 @Serializable
+data class PluginPopoutNavKey(
+    val pluginId: String,
+    val sessionId: String,
+    val pluginName: String,
+) : NavKey
+
+@Serializable
 data object DisabledPluginNavKey : NavKey

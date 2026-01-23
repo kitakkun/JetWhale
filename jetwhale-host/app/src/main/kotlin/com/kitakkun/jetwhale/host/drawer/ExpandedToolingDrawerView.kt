@@ -38,6 +38,7 @@ fun ExpandedToolingDrawerView(
     onClickSettings: () -> Unit,
     onClickPlugin: (PluginMetaData) -> Unit,
     onSelectSession: (DebugSession) -> Unit,
+    onClickPopout: (PluginMetaData) -> Unit,
 ) {
     ModalDrawerSheet {
         Row(
@@ -102,6 +103,7 @@ fun ExpandedToolingDrawerView(
                                 inactiveIconResource = it.inactiveIconResource,
                                 selected = selectedPluginId == it.id && selectedSession != null,
                                 onClick = { onClickPlugin(it) },
+                                onClickPopout = { onClickPopout(it) }
                             )
                         }
                     }

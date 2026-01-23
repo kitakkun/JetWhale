@@ -4,9 +4,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.RemoveCircle
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -33,6 +33,7 @@ fun PluginDrawerItemView(
     selected: Boolean,
     activeIconResource: PluginIconResource?,
     inactiveIconResource: PluginIconResource?,
+    onClickPopout: () -> Unit,
     onClick: () -> Unit,
 ) {
     NavigationDrawerItem(
@@ -79,9 +80,12 @@ fun PluginDrawerItemView(
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text("Settings") },
-                        leadingIcon = { Icon(Icons.Default.Settings, null) },
-                        onClick = { expanded = false }
+                        text = { Text("Pop-out") },
+                        leadingIcon = { Icon(Icons.Default.ArrowOutward, null) },
+                        onClick = {
+                            expanded = false
+                            onClickPopout()
+                        }
                     )
                 }
             }
