@@ -6,4 +6,5 @@
     <string name="shutting_down">シャットダウン中...</string>
     <string name="plugin_popped_out_message">このプラグインはポップアウトされています。別のウィンドウを確認してください。</string>
     <string name="bring_back_to_main_window">メインウィンドウに戻す</string>
+    <string name="log_viewer_window_title">ログビューワー</string>
 </resources>
