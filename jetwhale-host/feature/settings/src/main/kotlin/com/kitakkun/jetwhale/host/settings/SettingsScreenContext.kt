@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.model.AppLanguageMutationKey
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
+import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.PluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.ServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
@@ -28,6 +29,7 @@ interface SettingsScreenContext : ScreenContext {
     val pluginInstallMutationKey: PluginInstallMutationKey
     val adbAutoPortMappingMutationKey: AdbAutoPortMappingMutationKey
     val serverPortMutationKey: ServerPortMutationKey
+    val logCaptureService: LogCaptureService
 
     @GraphExtension.Factory
     fun interface Factory {

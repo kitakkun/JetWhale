@@ -9,7 +9,9 @@ import java.awt.Desktop
 
 context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
 @Composable
-fun GeneralSettingsScreenRoot() {
+fun GeneralSettingsScreenRoot(
+    onOpenLogViewer: () -> Unit = {},
+) {
     SoilDataBoundary(
         state1 = rememberSubscription(screenContext.settingsSubscriptionKey),
         state2 = rememberSubscription(screenContext.appearanceSettingsSubscriptionKey),
@@ -44,7 +46,8 @@ fun GeneralSettingsScreenRoot() {
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
-            }
+            },
+            onClickOpenLogViewer = onOpenLogViewer,
         )
     }
 }

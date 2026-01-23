@@ -8,4 +8,5 @@ sealed interface GeneralSettingsScreenEvent {
     data class ChangeAutomaticallyWireADBTransport(val shouldAutomaticallyWire: Boolean) : GeneralSettingsScreenEvent
     data class AppLanguageSelected(val language: AppLanguage) : GeneralSettingsScreenEvent
     data class ColorSchemeSelected(val colorSchemeId: JetWhaleColorSchemeId) : GeneralSettingsScreenEvent
+    data object OpenLogViewer : GeneralSettingsScreenEvent
 }

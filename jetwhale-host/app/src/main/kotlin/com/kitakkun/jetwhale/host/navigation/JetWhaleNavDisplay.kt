@@ -56,8 +56,12 @@ fun JetWhaleNavDisplay(
         entryProvider = entryProvider {
             infoEntry(onClickOSSLicenses = { backStack.addSingleTop(LicensesNavKey) })
             emptyPluginEntry()
-            settingsEntry(onClickClose = backStack::removeLastOrNull)
+            settingsEntry(
+                onClickClose = backStack::removeLastOrNull,
+                onOpenLogViewer = { backStack.addSingleTop(LogViewerNavKey) }
+            )
             licensesEntry(onClickBack = backStack::removeLastOrNull)
+            logViewerEntry()
             pluginEntries(
                 isOpenedOnPopout = { pluginId, sessionId ->
                     backStack.any {

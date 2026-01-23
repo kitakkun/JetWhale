@@ -49,6 +49,7 @@ fun GeneralSettingsScreen(
     onSelectLanguage: (AppLanguage) -> Unit,
     onSelectColorScheme: (JetWhaleColorSchemeId) -> Unit,
     onClickOpenAppDataPath: () -> Unit,
+    onClickOpenLogViewer: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -102,6 +103,9 @@ fun GeneralSettingsScreen(
                 Button(onClick = {}) {
                     Text(stringResource(Res.string.check_for_updates))
                 }
+                Button(onClick = onClickOpenLogViewer) {
+                    Text("View Application Logs")
+                }
             }
         }
         item {
@@ -141,5 +145,6 @@ private fun GeneralSettingsScreenPreview() {
         onSelectLanguage = {},
         onSelectColorScheme = {},
         onClickOpenAppDataPath = {},
+        onClickOpenLogViewer = {},
     )
 }

@@ -23,6 +23,9 @@ fun main(args: Array<String>) = runBlocking {
 
     val appGraph: JetWhaleAppGraph = createGraph()
 
+    // Start capturing logs
+    appGraph.logCaptureService.startCapture()
+
     appGraph.applicationLifecycleOwner.initialize()
 
     awaitApplication {
