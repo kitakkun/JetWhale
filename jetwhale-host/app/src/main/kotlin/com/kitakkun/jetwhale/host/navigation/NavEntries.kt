@@ -1,11 +1,10 @@
 package com.kitakkun.jetwhale.host.navigation
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -14,6 +13,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.scene.DialogSceneStrategy
+import com.kitakkun.jetwhale.host.LocalComposeWindow
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.plugin.PluginScreenRoot
 import com.kitakkun.jetwhale.host.screen.EmptyPluginScreen
@@ -57,21 +57,11 @@ fun EntryProviderScope<NavKey>.pluginEntries(
             }
         ) {
             if (isOpenedOnPopout(navKey.pluginId, navKey.sessionId)) {
-                Surface {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text("This plugin is popped out. Please check the separate window.")
-                        Button(
-                            onClick = {
-                                onBringbackToMainWindow(navKey.pluginId, navKey.sessionId)
-                            }
-                        ) {
-                            Text("Bring back to main window")
-                        }
+                PluginPoppedOutPlaceholder(
+                    onBringbackToMainWindow = {
+                        onBringbackToMainWindow(navKey.pluginId, navKey.sessionId)
                     }
-                }
+                )
             } else {
                 PluginScreenRoot()
             }
@@ -83,9 +73,16 @@ fun EntryProviderScope<NavKey>.pluginEntries(
                 width = 800.dp,
                 height = 600.dp,
             )
-        )
+        ),
     ) { navKey ->
+        val window = LocalComposeWindow.current
+
+        LaunchedEffect(window, navKey) {
+            window.title = "${navKey.pluginName} on ${navKey.sessionId}"
+        }
+
         val density = LocalDensity.current
+
         context(
             rememberRetained {
                 appGraph.createPluginScreenContext(

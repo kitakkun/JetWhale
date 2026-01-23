@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.navigation
 
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Window
@@ -12,6 +13,7 @@ import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SceneStrategyScope
+import com.kitakkun.jetwhale.host.LocalComposeWindow
 
 data class WindowProperties(
     val windowPlacement: WindowPlacement = WindowPlacement.Floating,
@@ -39,12 +41,15 @@ internal class WindowOverlayScene<T : Any>(
                     width = windowEntry.properties.width,
                     height = windowEntry.properties.height,
                 )
+
                 Window(
                     state = windowState,
                     onCloseRequest = { onCloseRequest(windowEntry.entry) },
                 ) {
-                    Surface {
-                        windowEntry.entry.Content()
+                    CompositionLocalProvider(LocalComposeWindow provides this.window) {
+                        Surface {
+                            windowEntry.entry.Content()
+                        }
                     }
                 }
             }
