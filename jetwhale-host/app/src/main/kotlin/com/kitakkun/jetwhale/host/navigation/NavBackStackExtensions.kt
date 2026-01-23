@@ -7,3 +7,8 @@ inline fun <reified T : NavKey> NavBackStack<T>.addSingleTopByType(navKey: T) {
     removeIf { it::class == navKey::class }
     add(navKey)
 }
+
+fun <T : NavKey> NavBackStack<T>.addSingleTop(navKey: T) {
+    removeIf { it == navKey }
+    add(navKey)
+}
