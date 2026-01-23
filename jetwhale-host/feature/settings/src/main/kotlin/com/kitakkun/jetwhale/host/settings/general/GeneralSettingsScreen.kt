@@ -38,6 +38,7 @@ import com.kitakkun.jetwhale.host.settings.health_check
 import com.kitakkun.jetwhale.host.settings.language_option
 import com.kitakkun.jetwhale.host.settings.maintenance
 import com.kitakkun.jetwhale.host.settings.theme_option
+import com.kitakkun.jetwhale.host.settings.view_application_logs
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 
@@ -104,7 +105,7 @@ fun GeneralSettingsScreen(
                     Text(stringResource(Res.string.check_for_updates))
                 }
                 Button(onClick = onClickOpenLogViewer) {
-                    Text("View Application Logs")
+                    Text(stringResource(Res.string.view_application_logs))
                 }
             }
         }

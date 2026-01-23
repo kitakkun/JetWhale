@@ -14,7 +14,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.kitakkun.jetwhale.host.model.LogEntry
+import com.kitakkun.jetwhale.host.settings.Res
+import com.kitakkun.jetwhale.host.settings.log_viewer_no_logs
 import kotlinx.collections.immutable.ImmutableList
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun LogListContent(
@@ -53,7 +56,7 @@ private fun EmptyLogsPlaceholder() {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "No logs captured yet",
+            text = stringResource(Res.string.log_viewer_no_logs),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

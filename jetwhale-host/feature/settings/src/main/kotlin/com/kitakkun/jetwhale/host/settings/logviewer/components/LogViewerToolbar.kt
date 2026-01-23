@@ -18,6 +18,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.settings.Res
+import com.kitakkun.jetwhale.host.settings.log_viewer_auto_scroll
+import com.kitakkun.jetwhale.host.settings.log_viewer_clear_filter
+import com.kitakkun.jetwhale.host.settings.log_viewer_clear_logs
+import com.kitakkun.jetwhale.host.settings.log_viewer_filter_icon
+import com.kitakkun.jetwhale.host.settings.log_viewer_filter_placeholder
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun LogViewerToolbar(
@@ -51,7 +58,7 @@ fun LogViewerToolbar(
             )
 
             Button(onClick = onClearLogs) {
-                Text("Clear Logs")
+                Text(stringResource(Res.string.log_viewer_clear_logs))
             }
         }
     }
@@ -67,14 +74,14 @@ private fun FilterTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,
-        placeholder = { Text("Filter logs...") },
+        placeholder = { Text(stringResource(Res.string.log_viewer_filter_placeholder)) },
         leadingIcon = {
-            Icon(Icons.Default.Search, contentDescription = "Filter")
+            Icon(Icons.Default.Search, contentDescription = stringResource(Res.string.log_viewer_filter_icon))
         },
         trailingIcon = {
             if (value.isNotEmpty()) {
                 IconButton(onClick = { onValueChange("") }) {
-                    Icon(Icons.Default.Clear, contentDescription = "Clear filter")
+                    Icon(Icons.Default.Clear, contentDescription = stringResource(Res.string.log_viewer_clear_filter))
                 }
             }
         },
@@ -94,6 +101,6 @@ private fun AutoScrollCheckbox(
             checked = checked,
             onCheckedChange = onCheckedChange,
         )
-        Text("Auto-scroll")
+        Text(stringResource(Res.string.log_viewer_auto_scroll))
     }
 }
