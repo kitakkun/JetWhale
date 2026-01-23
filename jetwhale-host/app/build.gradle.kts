@@ -22,6 +22,7 @@ compose.desktop {
             // Fix runtime NoClassDefFoundError which occurs only on packaged application
             modules("jdk.unsupported")
             modules("java.naming")
+            modules("java.sql")
 
             targetFormats(
                 TargetFormat.Dmg,
