@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberEventFlow
 import soil.query.compose.rememberQuery
 import soil.query.compose.rememberSubscription
+import java.awt.Desktop
 
 context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
 @Composable
@@ -39,7 +40,7 @@ fun GeneralSettingsScreenRoot() {
             onClickOpenAppDataPath = {
                 val path = uiState.appDataPath.replace("~", System.getProperty("user.home"))
                 try {
-                    java.awt.Desktop.getDesktop().open(java.io.File(path))
+                    Desktop.getDesktop().open(java.io.File(path))
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
