@@ -44,7 +44,7 @@ fun generalSettingsScreenPresenter(
         selectedColorSchemeId = appearanceSettings.activeColorScheme,
         availableColorSchemes = appearanceSettings.availableColorSchemes,
         language = appearanceSettings.appLanguage,
-        appDataPath = "~/.jetwhale", // TODO: fix hardcoded path
+        appDataPath = diagnostics.appDataPath,
         adbPath = diagnostics.adbPath,
     )
 }

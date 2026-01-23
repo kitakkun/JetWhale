@@ -19,6 +19,10 @@ class AppDataDirectoryProvider {
         return "$dataStoreFilesDir/$fileName".toPath()
     }
 
+    fun getAppDataPath(): String {
+        return "~/.jetwhale"
+    }
+
     fun createAppDataDirectoriesIfNeeded() {
         val appDataDirectory = File(appDataDir)
         if (!appDataDirectory.exists()) {
