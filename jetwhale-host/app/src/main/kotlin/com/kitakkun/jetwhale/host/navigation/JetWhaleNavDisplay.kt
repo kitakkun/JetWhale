@@ -54,7 +54,7 @@ fun JetWhaleNavDisplay(
             rememberViewModelStoreNavEntryDecorator(),
         ),
         entryProvider = entryProvider {
-            infoEntry(onClickOSSLicenses = { backStack.addSingleTopByType(LicensesNavKey) })
+            infoEntry(onClickOSSLicenses = { backStack.addSingleTop(LicensesNavKey) })
             emptyPluginEntry()
             settingsEntry(onClickClose = backStack::removeLastOrNull)
             licensesEntry(onClickBack = backStack::removeLastOrNull)
@@ -67,7 +67,7 @@ fun JetWhaleNavDisplay(
                     }
                 },
                 onBringbackToMainWindow = { pluginId, sessionId ->
-                    backStack.addSingleTopByType(
+                    backStack.addSingleTop(
                         PluginNavKey(
                             pluginId = pluginId,
                             sessionId = sessionId,
