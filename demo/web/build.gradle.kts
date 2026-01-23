@@ -17,4 +17,13 @@ kotlin {
         }
         binaries.executable()
     }
+
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation(libs.jetbrainsComposeRuntime)
+                implementation(libs.material3)
+            }
+        }
+    }
 }
