@@ -66,6 +66,19 @@ fun JetWhaleNavDisplay(
                             it.sessionId == sessionId
                     }
                 },
+                onBringbackToMainWindow = { pluginId, sessionId ->
+                    backStack.addSingleTop(
+                        PluginNavKey(
+                            pluginId = pluginId,
+                            sessionId = sessionId,
+                        )
+                    )
+                    backStack.removeAll {
+                        it is PluginPopoutNavKey &&
+                            it.pluginId == pluginId &&
+                            it.sessionId == sessionId
+                    }
+                }
             )
             disabledPluginEntry()
         },

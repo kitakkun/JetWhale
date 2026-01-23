@@ -1,7 +1,9 @@
 package com.kitakkun.jetwhale.host.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
@@ -41,6 +43,7 @@ fun EntryProviderScope<NavKey>.emptyPluginEntry() {
 context(appGraph: JetWhaleAppGraph)
 fun EntryProviderScope<NavKey>.pluginEntries(
     isOpenedOnPopout: (pluginId: String, sessionId: String) -> Boolean,
+    onBringbackToMainWindow: (pluginId: String, sessionId: String) -> Unit,
 ) {
     entry<PluginNavKey> { navKey ->
         val density = LocalDensity.current
@@ -55,11 +58,18 @@ fun EntryProviderScope<NavKey>.pluginEntries(
         ) {
             if (isOpenedOnPopout(navKey.pluginId, navKey.sessionId)) {
                 Surface {
-                    Box(
+                    Column(
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text("This plugin is popped out. Please check the separate window.")
+                        Button(
+                            onClick = {
+                                onBringbackToMainWindow(navKey.pluginId, navKey.sessionId)
+                            }
+                        ) {
+                            Text("Bring back to main window")
+                        }
                     }
                 }
             } else {
