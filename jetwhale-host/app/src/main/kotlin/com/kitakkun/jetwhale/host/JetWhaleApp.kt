@@ -17,7 +17,7 @@ import com.kitakkun.jetwhale.host.navigation.LicensesNavKey
 import com.kitakkun.jetwhale.host.navigation.PluginNavKey
 import com.kitakkun.jetwhale.host.navigation.PluginPopoutNavKey
 import com.kitakkun.jetwhale.host.navigation.SettingsNavKey
-import com.kitakkun.jetwhale.host.navigation.addSingleTop
+import com.kitakkun.jetwhale.host.navigation.addSingleTopByType
 import com.kitakkun.jetwhale.host.ui.AppEnvironment
 import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
 import io.github.takahirom.rin.rememberRetained
@@ -54,7 +54,7 @@ fun JetWhaleApp() {
     }
 
     KeyboardShortcutHandlerProvider(
-        onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey) },
+        onPressSettingsShortcut = { backStack.addSingleTopByType(SettingsNavKey) },
     ) {
         SwrClientProvider(appGraph.swrClient) {
             SoilDataBoundary(
@@ -67,10 +67,10 @@ fun JetWhaleApp() {
                         Surface {
                             context(rememberRetained { appGraph.createToolingScaffoldScreenContext() }) {
                                 ToolingScaffoldRoot(
-                                    onClickSettings = { backStack.addSingleTop(SettingsNavKey) },
-                                    onClickInfo = { backStack.addSingleTop(InfoNavKey) },
+                                    onClickSettings = { backStack.addSingleTopByType(SettingsNavKey) },
+                                    onClickInfo = { backStack.addSingleTopByType(InfoNavKey) },
                                     onClickPlugin = { pluginId, sessionId ->
-                                        backStack.addSingleTop(PluginNavKey(pluginId, sessionId))
+                                        backStack.addSingleTopByType(PluginNavKey(pluginId, sessionId))
                                     },
                                     onClickPopout = { pluginId, pluginName, sessionId ->
                                         backStack.add(
