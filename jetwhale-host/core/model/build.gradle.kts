@@ -9,6 +9,7 @@ dependencies {
     implementation(projects.jetwhaleHostSdk)
     implementation(libs.soilQueryCore)
     implementation(libs.kotlinxCollectionsImmutable)
+    implementation(libs.kotlinxDatetime)
     implementation(compose.runtime)
     implementation(compose.desktop.currentOs)
     implementation(libs.aboutLibrariesCore)

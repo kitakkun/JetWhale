@@ -11,7 +11,7 @@ import com.kitakkun.jetwhale.host.model.LogLevel
 import com.kitakkun.jetwhale.host.settings.logviewer.components.LogListContent
 import com.kitakkun.jetwhale.host.settings.logviewer.components.LogViewerToolbar
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 @Composable
 fun LogViewerScreen(

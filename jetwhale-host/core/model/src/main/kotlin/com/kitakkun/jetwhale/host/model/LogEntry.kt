@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.host.model
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 data class LogEntry(
     val timestamp: Instant,

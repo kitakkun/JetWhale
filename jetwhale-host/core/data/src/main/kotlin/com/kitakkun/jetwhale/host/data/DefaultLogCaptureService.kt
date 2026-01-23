@@ -3,13 +3,18 @@ package com.kitakkun.jetwhale.host.data
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.LogEntry
 import com.kitakkun.jetwhale.host.model.LogLevel
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.datetime.Clock
 import java.io.OutputStream
 import java.io.PrintStream
+import kotlin.time.Clock
 
+@Inject
+@ContributesBinding(AppScope::class)
 class DefaultLogCaptureService : LogCaptureService {
     private val _logs = MutableStateFlow<List<LogEntry>>(emptyList())
     override val logs: StateFlow<List<LogEntry>> = _logs.asStateFlow()
