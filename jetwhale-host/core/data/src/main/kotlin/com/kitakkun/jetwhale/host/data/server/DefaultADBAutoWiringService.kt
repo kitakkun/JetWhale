@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.server
 
+import com.kitakkun.jetwhale.host.data.util.findAdbPath
 import com.kitakkun.jetwhale.host.model.ADBAutoWiringService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -21,6 +22,7 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private val wiredDevices = ConcurrentSet<String>()
     private var wiringJob: Job? = null
+    private val adbPath: String by lazy { findAdbPath() }
 
     override fun startAutoWiring(port: Int) {
         if (wiringJob != null) return
@@ -41,7 +43,7 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
     }
 
     private fun deviceEventFlow(): Flow<DeviceEvent> = callbackFlow {
-        val deviceTrackingProcess = ProcessBuilder("adb", "track-devices")
+        val deviceTrackingProcess = ProcessBuilder(adbPath, "track-devices")
             .redirectErrorStream(true)
             .start()
 
@@ -75,7 +77,7 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
 
     private fun wire(serial: String, port: Int) {
         println("Wiring ADB reverse for device $serial on port $port")
-        ProcessBuilder("adb", "-s", serial, "reverse", "tcp:$port", "tcp:$port")
+        ProcessBuilder(adbPath, "-s", serial, "reverse", "tcp:$port", "tcp:$port")
             .start()
             .waitFor()
         wiredDevices.add(serial)
@@ -83,7 +85,7 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
 
     private fun unwire(serial: String, port: Int) {
         println("Unwiring ADB reverse for device $serial on port $port")
-        ProcessBuilder("adb", "-s", serial, "reverse", "--remove", "tcp:$port")
+        ProcessBuilder(adbPath, "-s", serial, "reverse", "--remove", "tcp:$port")
             .start()
             .waitFor()
         wiredDevices.remove(serial)
@@ -93,7 +95,7 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
         wiringJob?.cancel()
         wiringJob = null
         wiredDevices.forEach { serial ->
-            ProcessBuilder("adb", "-s", serial, "reverse", "--remove", "tcp:$port")
+            ProcessBuilder(adbPath, "-s", serial, "reverse", "--remove", "tcp:$port")
                 .start()
                 .waitFor()
         }
