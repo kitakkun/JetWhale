@@ -17,6 +17,7 @@ kotlin {
 
     wasmJs {
         browser()
+        nodejs()
     }
 
     androidLibrary {

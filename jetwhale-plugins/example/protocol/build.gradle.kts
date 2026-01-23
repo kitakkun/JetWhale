@@ -12,6 +12,7 @@ kotlin {
 
     wasmJs {
         browser()
+        nodejs()
     }
 }
 
