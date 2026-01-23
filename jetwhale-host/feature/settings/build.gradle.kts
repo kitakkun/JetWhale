@@ -6,6 +6,7 @@ dependencies {
     implementation(projects.jetwhaleHost.core.model)
     implementation(projects.jetwhaleHost.core.architecture)
     implementation(libs.kotlinxCollectionsImmutable)
+    implementation(libs.kotlinxDatetime)
     implementation(libs.rin)
     implementation(libs.aboutLibrariesComposeM3)
 }

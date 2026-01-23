@@ -9,12 +9,15 @@ import com.kitakkun.jetwhale.host.settings.server.ServerSettingsScreenRoot
 context(screenContext: SettingsScreenContext)
 fun SettingsScreenRoot(
     onClickClose: () -> Unit,
+    onOpenLogViewer: () -> Unit = {},
 ) {
     SettingsScreenScaffoldRoot(
         onClickClose = onClickClose,
     ) {
         when (it) {
-            SettingsScreenSegmentedMenu.General -> GeneralSettingsScreenRoot()
+            SettingsScreenSegmentedMenu.General -> GeneralSettingsScreenRoot(
+                onOpenLogViewer = onOpenLogViewer,
+            )
             SettingsScreenSegmentedMenu.Server -> ServerSettingsScreenRoot()
             SettingsScreenSegmentedMenu.Plugins -> PluginSettingsScreenRoot()
         }

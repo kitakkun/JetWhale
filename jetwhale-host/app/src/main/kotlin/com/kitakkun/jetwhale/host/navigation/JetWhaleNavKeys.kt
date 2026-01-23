@@ -30,3 +30,6 @@ data class PluginPopoutNavKey(
 
 @Serializable
 data object DisabledPluginNavKey : NavKey
+
+@Serializable
+data object LogViewerNavKey : NavKey

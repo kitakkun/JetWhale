@@ -16,6 +16,7 @@ dependencies {
 
     implementation(libs.soilQueryCore)
     implementation(libs.kotlinxCoroutinesCore)
+    implementation(libs.kotlinxDatetime)
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(libs.androidxDatastorePreferences)
 

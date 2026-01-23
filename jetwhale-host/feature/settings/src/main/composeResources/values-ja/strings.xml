@@ -29,4 +29,11 @@
     <string name="health_check">ヘルスチェック</string>
     <string name="adb_executable_path">ADB実行可能ファイルのパス</string>
     <string name="adb_unavailable">ADBコマンドが見つかりません</string>
+    <string name="view_application_logs">アプリケーションログを表示</string>
+    <string name="log_viewer_filter_placeholder">ログをフィルター…</string>
+    <string name="log_viewer_filter_icon">フィルター</string>
+    <string name="log_viewer_clear_filter">フィルターをクリア</string>
+    <string name="log_viewer_auto_scroll">自動スクロール</string>
+    <string name="log_viewer_clear_logs">ログをクリア</string>
+    <string name="log_viewer_no_logs">まだログがキャプチャされていません</string>
 </resources>

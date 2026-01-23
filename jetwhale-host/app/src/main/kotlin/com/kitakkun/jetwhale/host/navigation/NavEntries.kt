@@ -20,6 +20,7 @@ import com.kitakkun.jetwhale.host.screen.EmptyPluginScreen
 import com.kitakkun.jetwhale.host.screen.InfoScreen
 import com.kitakkun.jetwhale.host.settings.SettingsScreenRoot
 import com.kitakkun.jetwhale.host.settings.licenses.LicensesScreenRoot
+import com.kitakkun.jetwhale.host.settings.logviewer.LogViewerScreenRoot
 import io.github.takahirom.rin.rememberRetained
 
 fun EntryProviderScope<NavKey>.infoEntry(
@@ -112,7 +113,8 @@ fun EntryProviderScope<NavKey>.disabledPluginEntry() {
 
 context(appGraph: JetWhaleAppGraph)
 fun EntryProviderScope<NavKey>.settingsEntry(
-    onClickClose: () -> Unit
+    onClickClose: () -> Unit,
+    onOpenLogViewer: () -> Unit,
 ) {
     entry<SettingsNavKey>(
         metadata = DialogSceneStrategy.dialog(
@@ -128,6 +130,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
         ) {
             SettingsScreenRoot(
                 onClickClose = onClickClose,
+                onOpenLogViewer = onOpenLogViewer,
             )
         }
     }
@@ -152,6 +155,26 @@ fun EntryProviderScope<NavKey>.licensesEntry(
             LicensesScreenRoot(
                 onClickBack = onClickBack,
             )
+        }
+    }
+}
+
+context(appGraph: JetWhaleAppGraph)
+fun EntryProviderScope<NavKey>.logViewerEntry() {
+    entry<LogViewerNavKey>(
+        metadata = WindowSceneStrategy.window(
+            WindowProperties(
+                width = 1000.dp,
+                height = 700.dp,
+            )
+        )
+    ) {
+        context(
+            rememberRetained {
+                appGraph.createSettingsScreenContext()
+            }
+        ) {
+            LogViewerScreenRoot()
         }
     }
 }

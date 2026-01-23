@@ -38,6 +38,7 @@ import com.kitakkun.jetwhale.host.settings.health_check
 import com.kitakkun.jetwhale.host.settings.language_option
 import com.kitakkun.jetwhale.host.settings.maintenance
 import com.kitakkun.jetwhale.host.settings.theme_option
+import com.kitakkun.jetwhale.host.settings.view_application_logs
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 
@@ -49,6 +50,7 @@ fun GeneralSettingsScreen(
     onSelectLanguage: (AppLanguage) -> Unit,
     onSelectColorScheme: (JetWhaleColorSchemeId) -> Unit,
     onClickOpenAppDataPath: () -> Unit,
+    onClickOpenLogViewer: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -102,6 +104,9 @@ fun GeneralSettingsScreen(
                 Button(onClick = {}) {
                     Text(stringResource(Res.string.check_for_updates))
                 }
+                Button(onClick = onClickOpenLogViewer) {
+                    Text(stringResource(Res.string.view_application_logs))
+                }
             }
         }
         item {
@@ -141,5 +146,6 @@ private fun GeneralSettingsScreenPreview() {
         onSelectLanguage = {},
         onSelectColorScheme = {},
         onClickOpenAppDataPath = {},
+        onClickOpenLogViewer = {},
     )
 }

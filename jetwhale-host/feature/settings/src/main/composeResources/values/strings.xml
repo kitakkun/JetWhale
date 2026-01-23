@@ -29,4 +29,11 @@
     <string name="health_check">Health Check</string>
     <string name="adb_executable_path">ADB Executable Path</string>
     <string name="adb_unavailable">ADB command not found</string>
+    <string name="view_application_logs">View Application Logs</string>
+    <string name="log_viewer_filter_placeholder">Filter logs…</string>
+    <string name="log_viewer_filter_icon">Filter</string>
+    <string name="log_viewer_clear_filter">Clear filter</string>
+    <string name="log_viewer_auto_scroll">Auto-scroll</string>
+    <string name="log_viewer_clear_logs">Clear Logs</string>
+    <string name="log_viewer_no_logs">No logs captured yet</string>
 </resources>

@@ -9,6 +9,7 @@ kotlinDsl = "6.4.1"
 kotlinxSerializationJson = "1.9.0"
 kotlinxCollectionsImmutable = "0.4.0"
 kotlinxCoroutines = "1.10.2"
+kotlinxDatetime = "0.7.1"
 
 # android
 androidGradlePlugin = "8.13.2"
@@ -55,6 +56,7 @@ kotlinTest = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotli
 kotlinxSerializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 kotlinxCollectionsImmutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 kotlinxCoroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 
 # androidx
 androidxCoreKtx = { module = "androidx.core:core-ktx", version.ref = "androidxCoreKtx" }
