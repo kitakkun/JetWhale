@@ -57,7 +57,7 @@ fun EntryProviderScope<NavKey>.pluginEntries(
             }
         ) {
             if (isOpenedOnPopout(navKey.pluginId, navKey.sessionId)) {
-                PluginPoppedOutPlaceholder(
+                PluginPoppedOutScreen(
                     onBringbackToMainWindow = {
                         onBringbackToMainWindow(navKey.pluginId, navKey.sessionId)
                     }

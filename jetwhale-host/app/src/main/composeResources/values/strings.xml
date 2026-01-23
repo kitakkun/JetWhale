@@ -4,4 +4,6 @@
     <string name="select_session">Select Session</string>
     <string name="initializing">Initializing...</string>
     <string name="shutting_down">Shutting down...</string>
+    <string name="plugin_popped_out_message">This plugin is popped out. Please check the separate window.</string>
+    <string name="bring_back_to_main_window">Bring back to main window</string>
 </resources>
