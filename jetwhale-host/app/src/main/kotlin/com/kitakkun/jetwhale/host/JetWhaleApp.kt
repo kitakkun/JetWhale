@@ -15,6 +15,7 @@ import com.kitakkun.jetwhale.host.navigation.InfoNavKey
 import com.kitakkun.jetwhale.host.navigation.JetWhaleNavDisplay
 import com.kitakkun.jetwhale.host.navigation.LicensesNavKey
 import com.kitakkun.jetwhale.host.navigation.PluginNavKey
+import com.kitakkun.jetwhale.host.navigation.PluginPopoutNavKey
 import com.kitakkun.jetwhale.host.navigation.SettingsNavKey
 import com.kitakkun.jetwhale.host.navigation.addSingleTop
 import com.kitakkun.jetwhale.host.ui.AppEnvironment
@@ -71,6 +72,14 @@ fun JetWhaleApp() {
                                     onClickPlugin = { pluginId, sessionId ->
                                         backStack.addSingleTop(PluginNavKey(pluginId, sessionId))
                                     },
+                                    onClickPopout = { pluginId, sessionId ->
+                                        backStack.add(
+                                            PluginPopoutNavKey(
+                                                pluginId = pluginId,
+                                                sessionId = sessionId,
+                                            )
+                                        )
+                                    }
                                 ) {
                                     JetWhaleNavDisplay(backStack)
                                 }

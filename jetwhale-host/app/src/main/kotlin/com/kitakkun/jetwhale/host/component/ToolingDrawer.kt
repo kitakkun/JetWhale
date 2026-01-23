@@ -5,10 +5,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.kitakkun.jetwhale.host.model.DebugSession
-import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.drawer.ExpandedToolingDrawerView
 import com.kitakkun.jetwhale.host.drawer.ShrunkToolingDrawerView
+import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.PluginMetaData
 import kotlinx.collections.immutable.ImmutableList
 
 @Composable
@@ -21,6 +21,7 @@ fun ToolingDrawer(
     onClickInfo: () -> Unit,
     onClickPlugin: (String) -> Unit,
     onSelectSession: (DebugSession) -> Unit,
+    onClickPopout: (PluginMetaData) -> Unit,
 ) {
     var expandMenu by remember { mutableStateOf(true) }
 
@@ -36,6 +37,7 @@ fun ToolingDrawer(
                 onClickSettings = onClickSettings,
                 onClickPlugin = { onClickPlugin(it.id) },
                 onSelectSession = onSelectSession,
+                onClickPopout = onClickPopout
             )
         },
         content2 = {

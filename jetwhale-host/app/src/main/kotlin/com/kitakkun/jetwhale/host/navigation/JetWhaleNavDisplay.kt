@@ -58,7 +58,15 @@ fun JetWhaleNavDisplay(
             emptyPluginEntry()
             settingsEntry(onClickClose = backStack::removeLastOrNull)
             licensesEntry(onClickBack = backStack::removeLastOrNull)
-            pluginEntry()
+            pluginEntries(
+                isOpenedOnPopout = { pluginId, sessionId ->
+                    backStack.any {
+                        it is PluginPopoutNavKey &&
+                            it.pluginId == pluginId &&
+                            it.sessionId == sessionId
+                    }
+                },
+            )
             disabledPluginEntry()
         },
         modifier = modifier.fillMaxSize()

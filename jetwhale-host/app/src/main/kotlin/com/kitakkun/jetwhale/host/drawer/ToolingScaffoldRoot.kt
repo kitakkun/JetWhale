@@ -11,6 +11,7 @@ fun ToolingScaffoldRoot(
     onClickSettings: () -> Unit,
     onClickInfo: () -> Unit,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
+    onClickPopout: (pluginId: String, sessionId: String) -> Unit,
     content: @Composable () -> Unit,
 ) {
     SoilDataBoundary(
@@ -28,6 +29,10 @@ fun ToolingScaffoldRoot(
                 val selectedSession = uiState.selectedSession ?: return@ToolingScaffold
                 eventFlow.tryEmit(ToolingScaffoldEvent.UpdateSelectedPlugin(it))
                 onClickPlugin(it, selectedSession.id)
+            },
+            onClickPopout = {
+                val selectedSession = uiState.selectedSession ?: return@ToolingScaffold
+                onClickPopout(it.id, selectedSession.id)
             },
             onSelectSession = { eventFlow.tryEmit(ToolingScaffoldEvent.SelectSession(it)) },
             content = content,

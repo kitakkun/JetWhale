@@ -2,11 +2,12 @@ package com.kitakkun.jetwhale.host.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.Text
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
@@ -38,8 +39,42 @@ fun EntryProviderScope<NavKey>.emptyPluginEntry() {
 }
 
 context(appGraph: JetWhaleAppGraph)
-fun EntryProviderScope<NavKey>.pluginEntry() {
+fun EntryProviderScope<NavKey>.pluginEntries(
+    isOpenedOnPopout: (pluginId: String, sessionId: String) -> Boolean,
+) {
     entry<PluginNavKey> { navKey ->
+        val density = LocalDensity.current
+        context(
+            rememberRetained {
+                appGraph.createPluginScreenContext(
+                    pluginId = navKey.pluginId,
+                    sessionId = navKey.sessionId,
+                    density = density,
+                )
+            }
+        ) {
+            if (isOpenedOnPopout(navKey.pluginId, navKey.sessionId)) {
+                Surface {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("This plugin is popped out. Please check the separate window.")
+                    }
+                }
+            } else {
+                PluginScreenRoot()
+            }
+        }
+    }
+    entry<PluginPopoutNavKey>(
+        metadata = WindowSceneStrategy.window(
+            WindowProperties(
+                width = 800.dp,
+                height = 600.dp,
+            )
+        )
+    ) { navKey ->
         val density = LocalDensity.current
         context(
             rememberRetained {

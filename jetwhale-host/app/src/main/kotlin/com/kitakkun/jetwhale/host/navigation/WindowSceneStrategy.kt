@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.navigation
 
+import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.unit.Dp
@@ -42,7 +43,9 @@ internal class WindowOverlayScene<T : Any>(
                     state = windowState,
                     onCloseRequest = { onCloseRequest(windowEntry.entry) },
                 ) {
-                    windowEntry.entry.Content()
+                    Surface {
+                        windowEntry.entry.Content()
+                    }
                 }
             }
         }
