@@ -13,9 +13,9 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(projects.jetwhaleProtocol.core)
-            implementation(projects.jetwhaleProtocol.agent)
-            implementation(projects.jetwhaleAgentSdk)
+            api(projects.jetwhaleProtocol.core)
+            api(projects.jetwhaleProtocol.agent)
+            api(projects.jetwhaleAgentSdk)
 
             implementation(libs.bundles.ktorClient)
             implementation(libs.kotlinxCoroutinesCore)
