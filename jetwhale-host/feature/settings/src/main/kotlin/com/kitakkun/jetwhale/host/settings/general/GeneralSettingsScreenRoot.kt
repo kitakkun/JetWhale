@@ -1,11 +1,11 @@
 package com.kitakkun.jetwhale.host.settings.general
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalUriHandler
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberEventFlow
 import soil.query.compose.rememberQuery
 import soil.query.compose.rememberSubscription
+import java.awt.Desktop
 
 context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
 @Composable
@@ -22,7 +22,6 @@ fun GeneralSettingsScreenRoot() {
             appearanceSettings = appearanceSettings,
             diagnostics = diagnostics,
         )
-        val uriHandler = LocalUriHandler.current
 
         GeneralSettingsScreen(
             uiState = uiState,
@@ -39,8 +38,12 @@ fun GeneralSettingsScreenRoot() {
                 eventFlow.tryEmit(GeneralSettingsScreenEvent.ColorSchemeSelected(it))
             },
             onClickOpenAppDataPath = {
-                // FIXME: Crash
-                uriHandler.openUri(uiState.appDataPath)
+                val path = uiState.appDataPath.replace("~", System.getProperty("user.home"))
+                try {
+                    Desktop.getDesktop().open(java.io.File(path))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         )
     }
