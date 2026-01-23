@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.host.model.LogLevel
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,6 +15,7 @@ import java.io.PrintStream
 import kotlin.time.Clock
 
 @Inject
+@SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class DefaultLogCaptureService : LogCaptureService {
     private val _logs = MutableStateFlow<List<LogEntry>>(emptyList())
