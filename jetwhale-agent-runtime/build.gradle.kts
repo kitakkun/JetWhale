@@ -28,6 +28,22 @@ kotlin {
             implementation(libs.ktorServerTestHost)
             implementation(libs.ktorServerWebSockets)
         }
+
+        webMain.dependencies {
+            implementation(libs.ktorClientJs)
+        }
+
+        appleMain.dependencies {
+            implementation(libs.ktorClientDarwin)
+        }
+
+        mingwMain.dependencies {
+            implementation(libs.ktorClientWinHttp)
+        }
+
+        linuxMain.dependencies {
+            implementation(libs.ktorClientCurl)
+        }
     }
 }
 
