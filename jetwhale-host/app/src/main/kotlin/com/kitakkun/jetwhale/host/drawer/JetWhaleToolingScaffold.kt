@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.host.drawer
 
-import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Surface

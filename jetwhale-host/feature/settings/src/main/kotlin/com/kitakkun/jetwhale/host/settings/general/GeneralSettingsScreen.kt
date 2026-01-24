@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.host.settings.general
 
-import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
