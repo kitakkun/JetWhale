@@ -4,7 +4,6 @@ import com.kitakkun.jetwhale.agent.sdk.JetWhaleMessagingService
 import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
 
 /**
  * Starts the JetWhale Messaging Service with the provided configuration.
@@ -19,7 +18,7 @@ fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
         DefaultJetWhaleMessagingService(
             socketClient = KtorWebSocketClient(
                 json = json,
-                httpClient = HttpClient(CIO)
+                httpClient = HttpClient(defaultKtorEngineFactory())
             ),
             plugins = configuration.plugins.plugins,
             json = json,
