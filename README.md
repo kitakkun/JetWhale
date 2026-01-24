@@ -10,7 +10,7 @@ Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal lea
 > [!NOTE]
 > This project is under active development.
 > We welcome feedback as we work toward a stable release.
-> . Please note that the Plugin SDK APIs are not yet finalized and may change in the future.
+> Please note that the Plugin SDK APIs are not yet finalized and may change in the future.
 
 ## Features
 
