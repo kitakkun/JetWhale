@@ -1,6 +1,13 @@
 name: ABI Check
 
-on: pull_request
+on:
+  pull_request:
+    paths:
+      - 'jetwhale-host-sdk/**'
+      - 'jetwhale-agent-sdk/**'
+      - 'jetwhale-protocol/core/**'
+      - 'jetwhale-protocol/agent/**'
+      - 'jetwhale-protocol/host/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
