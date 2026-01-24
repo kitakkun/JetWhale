@@ -29,8 +29,8 @@ kotlin {
 dependencies {
     commonMainApi(projects.jetwhalePlugins.example.protocol)
 
-    commonMainCompileOnly(libs.jetbrainsComposeRuntime)
-    commonMainCompileOnly(projects.jetwhaleAgentSdk)
-    commonMainCompileOnly(libs.kotlinxSerializationJson)
-    commonMainCompileOnly(libs.kotlinxCoroutinesCore)
+    commonMainApi(libs.jetbrainsComposeRuntime)
+    commonMainApi(projects.jetwhaleAgentSdk)
+    commonMainApi(libs.kotlinxSerializationJson)
+    commonMainApi(libs.kotlinxCoroutinesCore)
 }
