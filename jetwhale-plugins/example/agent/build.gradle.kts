@@ -3,7 +3,7 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.multiplatform)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.jetbrainsCompose)
@@ -11,15 +11,6 @@ plugins {
 }
 
 kotlin {
-    jvm()
-
-    jvmToolchain(17)
-
-    wasmJs {
-        browser()
-        nodejs()
-    }
-
     androidLibrary {
         namespace = "com.kitakkun.jetwhale.plugins.example"
         compileSdk = 36

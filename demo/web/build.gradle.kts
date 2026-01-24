@@ -9,6 +9,14 @@ plugins {
 }
 
 kotlin {
+    js(IR) {
+        browser {
+            commonWebpackConfig {
+                outputFileName = "demo.js"
+            }
+            binaries.executable()
+        }
+    }
     wasmJs {
         browser {
             commonWebpackConfig {

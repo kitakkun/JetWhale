@@ -14,6 +14,11 @@ kotlin {
     jvm()
     jvmToolchain(17)
 
+    js(IR) {
+        browser()
+        nodejs()
+    }
+
     wasmJs {
         browser()
     }

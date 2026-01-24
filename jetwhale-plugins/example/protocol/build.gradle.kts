@@ -9,11 +9,6 @@ plugins {
 
 kotlin {
     androidLibrary.namespace = "com.kitakkun.jetwhale.plugins.example.protocol"
-
-    wasmJs {
-        browser()
-        nodejs()
-    }
 }
 
 dependencies {
