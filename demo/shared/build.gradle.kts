@@ -15,7 +15,11 @@ kotlin {
     jvmToolchain(17)
 
     js(IR) {
-        browser()
+        browser {
+            testTask {
+                enabled = false
+            }
+        }
         nodejs()
     }
 
