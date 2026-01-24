@@ -9,7 +9,7 @@ dependencies {
     implementation(libs.autoServiceAnnotations)
 
     compileOnly(projects.jetwhaleHostSdk)
-    compileOnly(compose.material3)
+    compileOnly(libs.material3)
     compileOnly(libs.kotlinxSerializationJson)
     api(projects.jetwhalePlugins.example.protocol)
 }

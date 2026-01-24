@@ -19,7 +19,7 @@ kotlin {
 }
 
 dependencies {
-    implementation(compose.runtime)
+    implementation(libs.jetbrainsComposeRuntime)
     implementation(libs.kotlinxSerializationJson)
     api(projects.jetwhaleProtocol.core)
     api(projects.jetwhaleProtocol.host)

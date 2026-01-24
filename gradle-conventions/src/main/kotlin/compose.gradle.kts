@@ -20,7 +20,7 @@ configure<KotlinJvmExtension> {
 
 dependencies {
     implementation(compose.desktop.currentOs)
-    implementation(compose.preview)
-    implementation(compose.components.resources)
+    implementation(libs.library("jetbrainsComposePreview"))
+    implementation(libs.library("jetbrainsComposeResources"))
     implementation(libs.library("material3"))
 }

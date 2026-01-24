@@ -73,7 +73,7 @@ dependencies {
     implementation(libs.material3)
     implementation(libs.aboutLibrariesCore)
 
-    implementation(compose.materialIconsExtended)
+    implementation(libs.jetbrainsComposeMaterialIconsExtended)
     testImplementation(libs.kotlinTest)
 }
 

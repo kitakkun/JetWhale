@@ -64,8 +64,11 @@ androidxActivityKtx = { module = "androidx.activity:activity-ktx", version.ref =
 androidxDatastorePreferences = { module = "androidx.datastore:datastore-preferences", version.ref = "androidxDatastore" }
 
 # compose
-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
 jetbrainsComposeRuntime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "jetbrainsCompose" }
+jetbrainsComposePreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "jetbrainsCompose" }
+jetbrainsComposeResources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "jetbrainsCompose" }
+jetbrainsComposeMaterialIconsExtended = { module = "org.jetbrains.compose.material:material-icons-extended", version = "1.7.3" }
+material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
 rin = { module = "io.github.takahirom.rin:rin", version.ref = "rin" }
 
 # navigation3
