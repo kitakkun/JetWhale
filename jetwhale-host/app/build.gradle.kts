@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.compose)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.metro)
-    alias(libs.plugins.composeHotReload)
     alias(libs.plugins.aboutLibraries)
 }
 
