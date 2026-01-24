@@ -10,7 +10,7 @@ dependencies {
     implementation(libs.soilQueryCore)
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(libs.kotlinxDatetime)
-    implementation(compose.runtime)
+    implementation(libs.jetbrainsComposeRuntime)
     implementation(compose.desktop.currentOs)
     implementation(libs.aboutLibrariesCore)
 }

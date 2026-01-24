@@ -18,5 +18,5 @@ kotlin {
 
 dependencies {
     implementation(libs.library("soilQueryCompose"))
-    implementation(compose.materialIconsExtended)
+    implementation(libs.library("jetbrainsComposeMaterialIconsExtended"))
 }

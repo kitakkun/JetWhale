@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.compose)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.metro)
-    alias(libs.plugins.composeHotReload)
     alias(libs.plugins.aboutLibraries)
 }
 
@@ -74,7 +73,7 @@ dependencies {
     implementation(libs.material3)
     implementation(libs.aboutLibrariesCore)
 
-    implementation(compose.materialIconsExtended)
+    implementation(libs.jetbrainsComposeMaterialIconsExtended)
     testImplementation(libs.kotlinTest)
 }
 
