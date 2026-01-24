@@ -17,6 +17,7 @@ struct ios_cmpApp: App {
     var body: some Scene {
         WindowGroup {
             CMPAppViewControllerWrapper()
+                .ignoresSafeArea(.all)
         }
     }
 }
