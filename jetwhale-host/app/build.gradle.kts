@@ -31,6 +31,16 @@ compose.desktop {
             jvmArgs(
                 "-Dapple.awt.application.appearance=system"
             )
+
+            macOS {
+                iconFile.set(file("src/main/resources/icon.icns"))
+            }
+            windows {
+                iconFile.set(file("src/main/resources/icon.ico"))
+            }
+            linux {
+                iconFile.set(file("src/main/resources/icon.png"))
+            }
         }
     }
 }
