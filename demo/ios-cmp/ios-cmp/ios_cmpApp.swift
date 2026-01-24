@@ -11,7 +11,7 @@ import SwiftUI
 struct ios_cmpApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            CMPAppViewControllerWrapper()
         }
     }
 }
