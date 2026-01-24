@@ -17,6 +17,7 @@ plugins {
     alias(libs.plugins.aboutLibraries) apply false
     alias(libs.plugins.mavenPublish) apply false
     alias(libs.plugins.publish) apply false
+    alias(libs.plugins.jetwhaleHostPlugin) apply false
 }
 
 allprojects {
