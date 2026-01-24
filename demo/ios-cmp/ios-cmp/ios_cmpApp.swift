@@ -6,9 +6,14 @@
 //
 
 import SwiftUI
+import shared
 
 @main
 struct ios_cmpApp: App {
+    init() {
+        InitializeJetWhaleKt.initializeJetWhale()
+    }
+
     var body: some Scene {
         WindowGroup {
             CMPAppViewControllerWrapper()
