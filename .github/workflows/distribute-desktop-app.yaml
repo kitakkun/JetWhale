@@ -28,7 +28,7 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
-      - uses: ./github/actions/setup-java
+      - uses: ./.github/actions/setup-java
       - name: Build Distributable
         run: ./gradlew :jetwhale-host:app:${{ matrix.gradleTask }}
       - name: Upload Distributable Artifact
