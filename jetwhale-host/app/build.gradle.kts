@@ -8,6 +8,27 @@ plugins {
     alias(libs.plugins.aboutLibraries)
 }
 
+val generateBuildConfig by tasks.registering {
+    val outputDir = layout.buildDirectory.dir("generated/buildconfig")
+    val version = libs.versions.jetwhale.get()
+
+    outputs.dir(outputDir)
+
+    doLast {
+        val file = outputDir.get().file("com/kitakkun/jetwhale/host/BuildConfig.kt").asFile
+        file.parentFile.mkdirs()
+        file.writeText(
+            """
+            |package com.kitakkun.jetwhale.host
+            |
+            |object BuildConfig {
+            |    const val VERSION: String = "$version"
+            |}
+            """.trimMargin()
+        )
+    }
+}
+
 compose.desktop {
     application {
         mainClass = "com.kitakkun.jetwhale.host.MainKt"
@@ -58,6 +79,7 @@ kotlin {
 
     sourceSets {
         main {
+            kotlin.srcDir(generateBuildConfig.map { it.outputs.files })
             resources.srcDir(aboutLibrariesDir)
         }
     }

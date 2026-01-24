@@ -1,4 +1,9 @@
 <resources>
+    <string name="app_name">JetWhale Debugger</string>
+    <string name="version_format">バージョン %1$s</string>
+    <string name="developed_by">開発者: kitakkun</string>
+    <string name="github_url">GitHub: https://github.com/kitakkun/JetWhale</string>
+    <string name="oss_licenses">OSSライセンス</string>
     <string name="no_plugin_selected">プラグインが選択されていません</string>
     <string name="no_session_available">利用可能なセッションがありません</string>
     <string name="select_session">セッションを選択</string>
