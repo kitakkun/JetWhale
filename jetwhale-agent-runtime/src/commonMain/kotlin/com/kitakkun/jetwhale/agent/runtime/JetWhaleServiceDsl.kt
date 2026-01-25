@@ -13,6 +13,11 @@ import io.ktor.client.HttpClient
 @OptIn(InternalJetWhaleApi::class)
 fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
     val configuration = JetWhaleConfiguration().apply(configure)
+
+    JetWhaleLogger.setEnabled(configuration.logging.enabled)
+    JetWhaleLogger.setLogLevel(configuration.logging.logLevel)
+    JetWhaleLogger.setKtorLogLevel(configuration.logging.ktorLogLevel)
+
     val json = JetWhaleJson
     val service: JetWhaleMessagingService =
         DefaultJetWhaleMessagingService(
@@ -35,6 +40,7 @@ internal annotation class JetWhaleDsl
 @JetWhaleDsl
 interface JetWhaleConfigurationScope {
     fun connection(configure: JetWhaleConnectionConfigurationScope.() -> Unit)
+    fun logging(configure: JetWhaleLoggingConfigurationScope.() -> Unit)
     fun plugins(configure: JetWhalePluginConfigurationScope.() -> Unit)
 }
 
@@ -45,16 +51,28 @@ interface JetWhaleConnectionConfigurationScope {
 }
 
 @JetWhaleDsl
+interface JetWhaleLoggingConfigurationScope {
+    var enabled: Boolean
+    var logLevel: LogLevel
+    var ktorLogLevel: KtorLogLevel
+}
+
+@JetWhaleDsl
 interface JetWhalePluginConfigurationScope {
     fun register(plugin: AgentPlugin)
 }
 
 private class JetWhaleConfiguration : JetWhaleConfigurationScope {
     val connection: JetWhaleConnectionConfiguration = JetWhaleConnectionConfiguration()
+    val logging: JetWhaleLoggingConfiguration = JetWhaleLoggingConfiguration()
     val plugins: JetWhalePluginConfiguration = JetWhalePluginConfiguration()
 
     override fun connection(configure: JetWhaleConnectionConfigurationScope.() -> Unit) {
         connection.configure()
+    }
+
+    override fun logging(configure: JetWhaleLoggingConfigurationScope.() -> Unit) {
+        logging.configure()
     }
 
     override fun plugins(configure: JetWhalePluginConfigurationScope.() -> Unit) {
@@ -65,6 +83,12 @@ private class JetWhaleConfiguration : JetWhaleConfigurationScope {
 private class JetWhaleConnectionConfiguration : JetWhaleConnectionConfigurationScope {
     override var host: String = "localhost"
     override var port: Int = 8080
+}
+
+private class JetWhaleLoggingConfiguration : JetWhaleLoggingConfigurationScope {
+    override var enabled: Boolean = true
+    override var logLevel: LogLevel = LogLevel.WARN
+    override var ktorLogLevel: KtorLogLevel = KtorLogLevel.NONE
 }
 
 private class JetWhalePluginConfiguration : JetWhalePluginConfigurationScope {

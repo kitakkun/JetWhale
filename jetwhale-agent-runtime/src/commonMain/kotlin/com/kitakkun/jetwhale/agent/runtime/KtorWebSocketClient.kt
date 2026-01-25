@@ -113,7 +113,12 @@ internal class KtorWebSocketClient(
 
         install(Logging) {
             logger = JetWhaleLogger
-            level = LogLevel.HEADERS
+            level = when (JetWhaleLogger.ktorLogLevel) {
+                KtorLogLevel.ALL -> LogLevel.ALL
+                KtorLogLevel.HEADERS -> LogLevel.HEADERS
+                KtorLogLevel.BODY -> LogLevel.BODY
+                KtorLogLevel.NONE -> LogLevel.NONE
+            }
         }
     }
 }
