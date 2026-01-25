@@ -23,6 +23,7 @@ internal class DefaultJetWhaleMessagingService(
     private var keepAwakeJob: Job? = null
     private var reconnectDelayMillis: Long = DEFAULT_RECONNECT_DELAY_MILLIS
     private var hasConnectedOnce: Boolean = false
+    private var hasLoggedInitialConnectionFailure: Boolean = false
 
     override fun startService(host: String, port: Int) {
         JetWhaleLogger.i("Starting JetWhale service...")
@@ -31,11 +32,17 @@ internal class DefaultJetWhaleMessagingService(
             try {
                 openConnectionAndCollectServerMessages(host, port)
             } catch (e: Throwable) {
-                // show as warning only if the connection was established at least once to reduce noise
-                if (hasConnectedOnce) {
-                    JetWhaleLogger.w("Connection closed: ${e.message}", e)
-                } else {
-                    JetWhaleLogger.d("Connection failed: ${e.message}. Is the debugger running? Is the port correct?")
+                when {
+                    hasConnectedOnce -> {
+                        JetWhaleLogger.w("Connection closed: ${e.message}", e)
+                    }
+                    !hasLoggedInitialConnectionFailure -> {
+                        hasLoggedInitialConnectionFailure = true
+                        JetWhaleLogger.w("Connection failed: ${e.message}. Is the debugger running? Is the port correct?")
+                    }
+                    else -> {
+                        JetWhaleLogger.d("Connection failed: ${e.message}")
+                    }
                 }
             } finally {
                 JetWhaleLogger.v("Detaching senders...")
