@@ -35,7 +35,7 @@ internal class DefaultJetWhaleMessagingService(
                 if (hasConnectedOnce) {
                     JetWhaleLogger.w("Connection closed: ${e.message}", e)
                 } else {
-                    JetWhaleLogger.d("Connection failed: ${e.message}")
+                    JetWhaleLogger.d("Connection failed: ${e.message}. Is the debugger running? Is the port correct?")
                 }
             } finally {
                 JetWhaleLogger.v("Detaching senders...")
