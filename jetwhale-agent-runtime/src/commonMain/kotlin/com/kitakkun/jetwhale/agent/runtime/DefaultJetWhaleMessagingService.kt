@@ -22,6 +22,7 @@ internal class DefaultJetWhaleMessagingService(
     private val coroutineScope: CoroutineScope = CoroutineScope(messagingServiceCoroutineDispatcher())
     private var keepAwakeJob: Job? = null
     private var reconnectDelayMillis: Long = DEFAULT_RECONNECT_DELAY_MILLIS
+    private var hasConnectedOnce: Boolean = false
 
     override fun startService(host: String, port: Int) {
         JetWhaleLogger.i("Starting JetWhale service...")
@@ -30,14 +31,19 @@ internal class DefaultJetWhaleMessagingService(
             try {
                 openConnectionAndCollectServerMessages(host, port)
             } catch (e: Throwable) {
-                JetWhaleLogger.w("Connection closed: ${e.message}", e)
+                // show as warning only if the connection was established at least once to reduce noise
+                if (hasConnectedOnce) {
+                    JetWhaleLogger.w("Connection closed: ${e.message}", e)
+                } else {
+                    JetWhaleLogger.d("Connection failed: ${e.message}")
+                }
             } finally {
                 JetWhaleLogger.v("Detaching senders...")
                 detachSenderFromPlugins()
             }
 
             reconnectDelayMillis = (reconnectDelayMillis + RECONNECT_DELAY_INCREMENT_MILLIS).coerceAtMost(MAX_RECONNECT_DELAY_MILLIS)
-            JetWhaleLogger.d("Reconnecting in $reconnectDelayMillis ms")
+            JetWhaleLogger.v("Reconnecting in $reconnectDelayMillis ms")
             delay(reconnectDelayMillis)
             startService(host, port)
         }
@@ -45,6 +51,7 @@ internal class DefaultJetWhaleMessagingService(
 
     private suspend fun CoroutineScope.openConnectionAndCollectServerMessages(host: String, port: Int) {
         val serverRawJsonMessageFlow = socketClient.openConnection(host, port)
+        hasConnectedOnce = true
         JetWhaleLogger.d("Connection established to $host:$port")
         reconnectDelayMillis = DEFAULT_RECONNECT_DELAY_MILLIS
 
