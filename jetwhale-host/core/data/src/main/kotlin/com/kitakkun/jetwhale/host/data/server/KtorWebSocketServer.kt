@@ -1,0 +1,156 @@
+package com.kitakkun.jetwhale.host.data.server
+
+import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationResult
+import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationStrategy
+import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
+import dev.zacsweers.metro.Inject
+import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
+import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStarted
+import io.ktor.server.application.ApplicationStopped
+import io.ktor.server.application.install
+import io.ktor.server.application.log
+import io.ktor.server.engine.EmbeddedServer
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
+import io.ktor.server.routing.routing
+import io.ktor.server.websocket.DefaultWebSocketServerSession
+import io.ktor.server.websocket.WebSocketServerSession
+import io.ktor.server.websocket.WebSockets
+import io.ktor.server.websocket.webSocket
+import io.ktor.util.logging.Logger
+import io.ktor.websocket.Frame
+import io.ktor.websocket.close
+import io.ktor.websocket.readText
+import io.ktor.websocket.send
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlin.coroutines.CoroutineContext
+
+/**
+ * A Ktor-based WebSocket server for handling debug sessions.
+ * This class mainly focuses on WebSocket connection management and message routing.
+ */
+@Inject
+class KtorWebSocketServer(
+    private val json: Json,
+    private val negotiationStrategy: ServerSessionNegotiationStrategy,
+) {
+    private var embeddedServer: EmbeddedServer<*, *>? = null
+    private val sessions: MutableMap<String, WebSocketServerSession> = mutableMapOf()
+
+    private val mutableStatusFlow: MutableStateFlow<DebugWebSocketServerStatus> = MutableStateFlow(DebugWebSocketServerStatus.Stopped)
+    val statusFlow: StateFlow<DebugWebSocketServerStatus> = mutableStatusFlow
+
+    private val mutableMessageFlow: MutableSharedFlow<Pair<String, String>> = MutableSharedFlow()
+    val receivedMessageFlow: SharedFlow<Pair<String, String>> = mutableMessageFlow
+
+    private val mutableSessionClosedFlow: MutableSharedFlow<String> = MutableSharedFlow()
+    val sessionClosedFlow: SharedFlow<String> = mutableSessionClosedFlow
+
+    private val mutableNegotiationCompletedFlow: MutableSharedFlow<ServerSessionNegotiationResult.Success> = MutableSharedFlow()
+    val negotiationCompletedFlow: SharedFlow<ServerSessionNegotiationResult.Success> = mutableNegotiationCompletedFlow
+
+    suspend fun start(host: String, port: Int) {
+        mutableStatusFlow.update { DebugWebSocketServerStatus.Starting }
+        try {
+            embeddedServer(
+                factory = Netty,
+                host = host,
+                port = port,
+                module = { configureWebSocket(host, port) },
+            ).also {
+                it.startSuspend()
+                embeddedServer = it
+            }
+        } catch (e: Throwable) {
+            mutableStatusFlow.update { DebugWebSocketServerStatus.Error(e.message ?: "Unknown error") }
+        }
+    }
+
+    suspend fun stop() {
+        mutableStatusFlow.update { DebugWebSocketServerStatus.Stopping }
+        embeddedServer?.stopSuspend()
+        embeddedServer = null
+        mutableStatusFlow.update { DebugWebSocketServerStatus.Stopped }
+    }
+
+    private fun Application.configureWebSocket(
+        host: String,
+        port: Int,
+    ) {
+        install(WebSockets.Plugin) {
+            contentConverter = KotlinxWebsocketSerializationConverter(json)
+        }
+
+        monitor.subscribe(ApplicationStarted) {
+            mutableStatusFlow.update {
+                DebugWebSocketServerStatus.Started(host, port)
+            }
+        }
+
+        monitor.subscribe(ApplicationStopped) {
+            mutableStatusFlow.update {
+                DebugWebSocketServerStatus.Stopped
+            }
+        }
+
+        routing {
+            webSocket {
+                context(log) {
+                    configureSession()
+                }
+            }
+        }
+    }
+
+    context(log: Logger)
+    private suspend fun DefaultWebSocketServerSession.configureSession() {
+        val negotiationResult = with(negotiationStrategy) { negotiate() }
+
+        if (negotiationResult !is ServerSessionNegotiationResult.Success) {
+            log.info("negotiation failed")
+            close()
+            return
+        }
+
+        val sessionId: String = negotiationResult.session.sessionId
+        sessions[sessionId] = this
+
+        val receiveJob = launch {
+            incoming.receiveAsFlow()
+                .filterIsInstance<Frame.Text>()
+                .collect {
+                    mutableMessageFlow.emit(sessionId to it.readText())
+                }
+        }
+
+        mutableNegotiationCompletedFlow.emit(negotiationResult)
+
+        closeReason.await().also {
+            println("closed: ${it?.message}")
+        }
+
+        receiveJob.cancel()
+        sessions.remove(sessionId)
+
+        println("session $sessionId closed")
+
+        mutableSessionClosedFlow.emit(sessionId)
+    }
+
+    suspend fun sendToSession(sessionId: String, message: String) {
+        sessions[sessionId]?.send(message)
+    }
+
+    fun getSessionCoroutineContext(sessionId: String): CoroutineContext {
+        return sessions[sessionId]?.coroutineContext ?: throw IllegalArgumentException("No session with ID $sessionId")
+    }
+}

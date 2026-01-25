@@ -1,44 +1,28 @@
 package com.kitakkun.jetwhale.host.data.server
 
-import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationResult
-import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationStrategy
 import com.kitakkun.jetwhale.host.model.ADBAutoWiringService
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.PluginRepository
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
+import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
-import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationStarted
-import io.ktor.server.application.ApplicationStopped
-import io.ktor.server.application.install
-import io.ktor.server.application.log
-import io.ktor.server.engine.EmbeddedServer
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
-import io.ktor.server.routing.routing
-import io.ktor.server.websocket.WebSocketServerSession
-import io.ktor.server.websocket.WebSockets
-import io.ktor.server.websocket.receiveDeserialized
-import io.ktor.server.websocket.sendSerialized
-import io.ktor.server.websocket.webSocket
-import io.ktor.websocket.close
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
@@ -49,75 +33,60 @@ import java.util.UUID
 @ContributesBinding(AppScope::class)
 class DefaultDebugWebSocketServer(
     private val json: Json,
-    private val negotiationStrategy: ServerSessionNegotiationStrategy,
     private val adbAutoWiringService: ADBAutoWiringService,
-    private val pluginsRepository: PluginRepository,
     private val sessionRepository: DebugSessionRepository,
+    private val pluginsRepository: PluginRepository,
     private val settingsRepository: DebuggerSettingsRepository,
+    private val ktorWebSocketServer: KtorWebSocketServer,
 ) : DebugWebSocketServer {
-    private val mutableStatusFlow: MutableStateFlow<DebugWebSocketServerStatus> =
-        MutableStateFlow(DebugWebSocketServerStatus.Stopped)
-    override val statusFlow: StateFlow<DebugWebSocketServerStatus> = mutableStatusFlow
-    private val mutableSessionClosedFlow: MutableSharedFlow<String> = MutableSharedFlow()
-    override val sessionClosedFlow: Flow<String> = mutableSessionClosedFlow
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+    override val sessionClosedFlow: Flow<String> get() = ktorWebSocketServer.sessionClosedFlow
 
-    private var ktorEmbeddedServer: EmbeddedServer<*, *>? = null
-
-    private val sessions: MutableMap<String, WebSocketServerSession> = mutableMapOf()
-    private val methodRequestResultFlow: MutableSharedFlow<JetWhaleDebuggeeEvent.MethodResultResponse> = MutableSharedFlow()
-
-    private var adbPortWiringPerformed: Boolean = false
+    private var serverMonitoringJob: Job? = null
 
     override suspend fun start(host: String, port: Int) {
-        mutableStatusFlow.update { DebugWebSocketServerStatus.Starting }
-        try {
-            val server = embeddedServer(
-                factory = Netty,
-                host = host,
-                port = port,
-            ) {
-                configureWebSocket(host, port)
-            }
-
-            ktorEmbeddedServer = server
-            server.startSuspend()
-        } catch (e: Throwable) {
-            mutableStatusFlow.update { DebugWebSocketServerStatus.Error(e.message ?: "Unknown error") }
-        }
+        setupAdbAutoWiringIfNeeded()
+        ktorWebSocketServer.start(
+            host = host,
+            port = port,
+        )
     }
 
     override suspend fun stop() {
-        mutableStatusFlow.update { DebugWebSocketServerStatus.Stopping }
-        ktorEmbeddedServer?.stopSuspend()
-        ktorEmbeddedServer = null
-        mutableStatusFlow.update { DebugWebSocketServerStatus.Stopped }
+        serverMonitoringJob?.cancel()
+        serverMonitoringJob = null
+        ktorWebSocketServer.stop()
     }
 
+    @OptIn(InternalJetWhaleApi::class)
     override suspend fun sendMethod(
         pluginId: String,
         sessionId: String,
         payload: String
     ): String? {
-        logDebug("Sending message: $payload")
-        val session = sessions[sessionId] ?: return null
         val requestId = UUID.randomUUID().toString()
-        logDebug("send method message with requestId: $requestId")
-        session.sendSerialized(
-            JetWhaleDebuggerEvent.MethodRequest(
-                pluginId = pluginId,
-                requestId = requestId,
-                payload = payload,
+
+        ktorWebSocketServer.sendToSession(
+            sessionId = sessionId,
+            message = json.encodeToString(
+                JetWhaleDebuggerEvent.MethodRequest(
+                    pluginId = pluginId,
+                    requestId = requestId,
+                    payload = payload,
+                )
             )
         )
 
         return withTimeoutOrNull(METHOD_RESULT_WAIT_TIMEOUT) {
-            logDebug("waiting for method result response...")
-            val response = methodRequestResultFlow.filter { it.requestId == requestId }.first()
-            logDebug("received!")
+            val response = ktorWebSocketServer.receivedMessageFlow
+                .filter { it.first == sessionId }
+                .mapNotNull { json.decodeFromStringOrNull<JetWhaleDebuggeeEvent>(it.second) }
+                .filterIsInstance<JetWhaleDebuggeeEvent.MethodResultResponse>()
+                .filter { it.requestId == requestId }
+                .first()
 
             when (response) {
                 is JetWhaleDebuggeeEvent.MethodResultResponse.Failure -> {
-                    logDebug(response.errorMessage)
                     null
                 }
 
@@ -129,106 +98,62 @@ class DefaultDebugWebSocketServer(
     }
 
     override fun getCoroutineScopeForSession(sessionId: String): CoroutineScope {
-        val session = sessions[sessionId] ?: throw IllegalArgumentException("No session with ID $sessionId")
-        return CoroutineScope(session.coroutineContext)
+        return CoroutineScope(ktorWebSocketServer.getSessionCoroutineContext(sessionId))
     }
 
-    private fun Application.configureWebSocket(
-        host: String,
-        port: Int,
-    ) {
-        install(WebSockets.Plugin) {
-            contentConverter = KotlinxWebsocketSerializationConverter(json)
-        }
+    @OptIn(InternalJetWhaleApi::class)
+    private fun setupAdbAutoWiringIfNeeded() {
+        serverMonitoringJob?.cancel()
 
-        monitor.subscribe(ApplicationStarted) {
-            mutableStatusFlow.update {
-                DebugWebSocketServerStatus.Started(host, port)
-            }
-            if (settingsRepository.adbAutoPortMappingEnabledFlow.value) {
-                adbAutoWiringService.startAutoWiring(port)
-                adbPortWiringPerformed = true
-            }
-        }
-
-        monitor.subscribe(ApplicationStopped) {
-            mutableStatusFlow.update { DebugWebSocketServerStatus.Stopped }
-            if (adbPortWiringPerformed) {
-                adbAutoWiringService.stopAutoWiring(port)
-            }
-        }
-
-        routing {
-            webSocket {
-                log.info("web socket started")
-
-
-                val sessionId: String
-                val sessionName: String?
-
-                val negotiationResult = context(log) {
-                    with(negotiationStrategy) { negotiate() }
-                }
-
-                when (negotiationResult) {
-                    is ServerSessionNegotiationResult.Failure -> {
-                        log.info("negotiation failed")
-                        close()
-                        return@webSocket
-                    }
-
-                    is ServerSessionNegotiationResult.Success -> {
-                        log.info("negotiation succeeded: ${negotiationResult.session.sessionId}")
-                        sessionId = negotiationResult.session.sessionId
-                        sessionName = negotiationResult.session.sessionName
-                    }
-                }
-
-                sessions[sessionId] = this
-
-                sessionRepository.registerDebugSession(
-                    sessionId = sessionId,
-                    sessionName = sessionName,
-                    installedPlugins = negotiationResult.plugin.requestedPlugins,
-                )
-
-                log.debug("start listening to PluginMessage event...")
-                val receiveJob = launch {
-                    do {
-                        try {
-                            when (val event = receiveDeserialized<JetWhaleDebuggeeEvent>()) {
-                                is JetWhaleDebuggeeEvent.MethodResultResponse -> methodRequestResultFlow.emit(event)
-                                is JetWhaleDebuggeeEvent.PluginMessage -> {
-                                    log.debug("received message: {}", event)
-                                    pluginsRepository.getOrPutPluginInstanceForSession(
-                                        pluginId = event.pluginId,
-                                        sessionId = sessionId
-                                    ).onRawEvent(event.payload)
-                                }
-                            }
-                        } catch (e: Throwable) {
-                            log.error(e.message)
+        serverMonitoringJob = coroutineScope.launch {
+            coroutineScope.launch {
+                if (!settingsRepository.adbAutoPortMappingEnabledFlow.value) return@launch
+                var port: Int? = null
+                ktorWebSocketServer.statusFlow.collect { status ->
+                    if (status is DebugWebSocketServerStatus.Started) {
+                        port = status.port
+                        adbAutoWiringService.startAutoWiring(status.port)
+                    } else if (status is DebugWebSocketServerStatus.Stopped) {
+                        port?.let {
+                            adbAutoWiringService.stopAutoWiring(it)
                         }
-                    } while (this.isActive)
+                        cancel()
+                    }
                 }
+            }
 
-                closeReason.await().also {
-                    println(it?.message)
+            coroutineScope.launch {
+                ktorWebSocketServer.negotiationCompletedFlow.collect {
+                    sessionRepository.registerDebugSession(
+                        sessionId = it.session.sessionId,
+                        sessionName = it.session.sessionName,
+                        installedPlugins = it.plugin.requestedPlugins,
+                    )
                 }
+            }
 
-                receiveJob.cancel()
-                sessions.remove(sessionId)
+            coroutineScope.launch {
+                ktorWebSocketServer.sessionClosedFlow.collect { sessionId ->
+                    sessionRepository.unregisterDebugSession(sessionId)
+                    pluginsRepository.unloadPluginInstanceForSession(sessionId)
+                }
+            }
 
-                sessionRepository.unregisterDebugSession(sessionId)
-                pluginsRepository.unloadPluginInstanceForSession(sessionId)
-
-                mutableSessionClosedFlow.emit(sessionId)
+            coroutineScope.launch {
+                ktorWebSocketServer.receivedMessageFlow
+                    .mapNotNull { (sessionId, payload) ->
+                        val pluginMessage = json.decodeFromStringOrNull<JetWhaleDebuggeeEvent.PluginMessage>(payload) ?: return@mapNotNull null
+                        sessionId to pluginMessage
+                    }
+                    .collect { (sessionId, pluginMessage) ->
+                        val pluginInstance = pluginsRepository.getOrPutPluginInstanceForSession(
+                            pluginId = pluginMessage.pluginId,
+                            sessionId = sessionId
+                        )
+                        pluginInstance.onRawEvent(pluginMessage.payload)
+                    }
             }
         }
-    }
-
-    private fun logDebug(message: String) {
-        ktorEmbeddedServer?.environment?.log?.debug(message)
     }
 
     companion object {
