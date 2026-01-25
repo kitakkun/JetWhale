@@ -13,24 +13,29 @@ import com.kitakkun.jetwhale.host.architecture.MutableConsumableEffect
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginMetaData
+import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
 import io.github.takahirom.rin.rememberRetained
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import soil.query.compose.rememberMutation
 
 sealed interface ToolingScaffoldEvent {
     data class SelectSession(val session: DebugSession) : ToolingScaffoldEvent
     data class UpdateSelectedPlugin(val pluginId: String) : ToolingScaffoldEvent
+    data class SetPluginEnabled(val pluginId: String, val enabled: Boolean) : ToolingScaffoldEvent
 }
 
 sealed interface ToolingScaffoldEffect {
     data class SessionClosed(val closedSessionIds: List<String>) : ToolingScaffoldEffect
 }
 
+context(screenContext: ToolingScaffoldScreenContext)
 @Composable
 fun toolingScaffoldPresenter(
     eventFlow: EventFlow<ToolingScaffoldEvent>,
     loadedPlugins: ImmutableList<PluginMetaData>,
     debugSessions: ImmutableList<DebugSession>,
+    enabledPluginIds: Set<String>,
 ): ToolingScaffoldUiState {
     var selectedSessionId by rememberRetained { mutableStateOf("") }
     var selectedPluginId by rememberRetained { mutableStateOf("") }
@@ -38,23 +43,25 @@ fun toolingScaffoldPresenter(
         derivedStateOf { debugSessions.firstOrNull { it.id == selectedSessionId } }
     }
 
-    val plugins by remember(loadedPlugins, selectedSession) {
+    val setPluginEnabledMutation = rememberMutation(screenContext.setPluginEnabledMutationKey)
+
+    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds) {
         derivedStateOf {
             loadedPlugins.map { metaData ->
+                val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
+                val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
+
                 DrawerPluginItemUiState(
                     id = metaData.id,
                     name = metaData.name,
                     activeIconResource = metaData.activeIconResource,
                     inactiveIconResource = metaData.inactiveIconResource,
-                    pluginAvailability = selectedSession?.let {
-                        // FIXME: Provide version checking logic for plugins
-                        //   For now, we just check the plugin ID
-                        if (it.installedPlugins.any { installed -> installed.pluginId == metaData.id }) {
-                            PluginAvailability.Enabled
-                        } else {
-                            PluginAvailability.Disabled
-                        }
-                    } ?: PluginAvailability.Unavailable,
+                    pluginAvailability = when {
+                        selectedSession == null -> PluginAvailability.Unavailable
+                        !isInstalledOnAgent -> PluginAvailability.Unavailable
+                        isEnabledInSettings -> PluginAvailability.Enabled
+                        else -> PluginAvailability.Disabled
+                    },
                 )
             }.toImmutableList()
         }
@@ -82,6 +89,10 @@ fun toolingScaffoldPresenter(
 
             is ToolingScaffoldEvent.UpdateSelectedPlugin -> {
                 selectedPluginId = event.pluginId
+            }
+
+            is ToolingScaffoldEvent.SetPluginEnabled -> {
+                setPluginEnabledMutation.mutate(SetPluginEnabledParams(event.pluginId, event.enabled))
             }
         }
     }

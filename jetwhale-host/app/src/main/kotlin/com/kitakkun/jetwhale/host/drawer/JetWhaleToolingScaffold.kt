@@ -20,6 +20,7 @@ fun ToolingScaffold(
     onClickPlugin: (String) -> Unit,
     onClickPopout: (DrawerPluginItemUiState) -> Unit,
     onSelectSession: (DebugSession) -> Unit,
+    onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -36,6 +37,7 @@ fun ToolingScaffold(
                     onClickPlugin = onClickPlugin,
                     onSelectSession = onSelectSession,
                     onClickPopout = onClickPopout,
+                    onSetPluginEnabled = onSetPluginEnabled,
                 )
             },
             content = {
@@ -61,6 +63,7 @@ private fun ToolingScaffoldPreview() {
         onClickPlugin = {},
         onSelectSession = {},
         onClickPopout = {},
+        onSetPluginEnabled = { _, _ -> },
     ) {
         Text("Hello, World!")
     }

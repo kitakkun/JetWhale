@@ -35,6 +35,8 @@ fun PluginDrawerItemView(
     selected: Boolean,
     activeIconResource: PluginIconResource?,
     inactiveIconResource: PluginIconResource?,
+    onClickEnable: () -> Unit,
+    onClickDisable: () -> Unit,
     onClickPopout: () -> Unit,
     onClick: () -> Unit,
 ) {
@@ -77,7 +79,10 @@ fun PluginDrawerItemView(
                                     DropdownMenuItem(
                                         text = { Text("Enable") },
                                         leadingIcon = { Icon(Icons.Default.AddCircle, null) },
-                                        onClick = { expanded = false }
+                                        onClick = {
+                                            expanded = false
+                                            onClickEnable()
+                                        }
                                     )
                                 }
 
@@ -85,7 +90,10 @@ fun PluginDrawerItemView(
                                     DropdownMenuItem(
                                         text = { Text("Disable") },
                                         leadingIcon = { Icon(Icons.Default.RemoveCircle, null) },
-                                        onClick = { expanded = false }
+                                        onClick = {
+                                            expanded = false
+                                            onClickDisable()
+                                        }
                                     )
                                 }
 

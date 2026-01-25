@@ -22,6 +22,7 @@ fun ToolingDrawer(
     onClickPlugin: (String) -> Unit,
     onSelectSession: (DebugSession) -> Unit,
     onClickPopout: (DrawerPluginItemUiState) -> Unit,
+    onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
 ) {
     var expandMenu by remember { mutableStateOf(true) }
 
@@ -37,7 +38,8 @@ fun ToolingDrawer(
                 onClickSettings = onClickSettings,
                 onClickPlugin = { onClickPlugin(it.id) },
                 onSelectSession = onSelectSession,
-                onClickPopout = onClickPopout
+                onClickPopout = onClickPopout,
+                onSetPluginEnabled = onSetPluginEnabled,
             )
         },
         content2 = {
