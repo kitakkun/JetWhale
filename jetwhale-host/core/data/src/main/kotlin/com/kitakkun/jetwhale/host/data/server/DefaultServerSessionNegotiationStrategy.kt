@@ -14,7 +14,7 @@ import java.util.UUID
 
 @Inject
 @ContributesBinding(AppScope::class)
-class DefaultServerSessionNegotiator : ServerSessionNegotiator {
+class DefaultServerSessionNegotiationStrategy : ServerSessionNegotiationStrategy {
     context(logger: Logger)
     override suspend fun DefaultWebSocketServerSession.negotiate(): ServerSessionNegotiationResult {
         val protocol = negotiateProtocolVersion()

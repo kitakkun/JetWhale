@@ -11,7 +11,7 @@ class JetWhaleWebSocketServerTest {
     fun test() {
         val server = DefaultDebugWebSocketServer(
             json = Json.Default,
-            sessionNegotiator = mock(),
+            negotiationStrategy = mock(),
             adbAutoWiringService = mock(),
             pluginsRepository = mock(),
             sessionRepository = mock(),

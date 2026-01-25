@@ -22,7 +22,7 @@ import kotlinx.serialization.json.Json
  */
 internal class KtorWebSocketClient(
     private val json: Json,
-    private val sessionNegotiator: ClientSessionNegotiator,
+    private val negotiationStrategy: ClientSessionNegotiationStrategy,
     httpClient: HttpClient
 ) : JetWhaleSocketClient {
     private var session: DefaultClientWebSocketSession? = null
@@ -50,7 +50,7 @@ internal class KtorWebSocketClient(
     private suspend fun DefaultClientWebSocketSession.configureSession(): Flow<String> {
         JetWhaleLogger.v("Configuring WebSocket session")
 
-        val negotiationResult = with(sessionNegotiator) { negotiate() }
+        val negotiationResult = with(negotiationStrategy) { negotiate() }
 
         when (negotiationResult) {
             is ClientSessionNegotiationResult.Success -> {

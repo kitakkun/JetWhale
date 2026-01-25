@@ -47,7 +47,7 @@ import java.util.UUID
 @ContributesBinding(AppScope::class)
 class DefaultDebugWebSocketServer(
     private val json: Json,
-    private val sessionNegotiator: ServerSessionNegotiator,
+    private val negotiationStrategy: ServerSessionNegotiationStrategy,
     private val adbAutoWiringService: ADBAutoWiringService,
     private val pluginsRepository: PluginRepository,
     private val sessionRepository: DebugSessionRepository,
@@ -165,7 +165,7 @@ class DefaultDebugWebSocketServer(
                 val sessionName: String?
 
                 val negotiationResult = context(log) {
-                    with(sessionNegotiator) { negotiate() }
+                    with(negotiationStrategy) { negotiate() }
                 }
 
                 when (negotiationResult) {
