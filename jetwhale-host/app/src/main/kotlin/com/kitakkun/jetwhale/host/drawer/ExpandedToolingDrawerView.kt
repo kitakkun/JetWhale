@@ -25,9 +25,11 @@ import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.disabled_plugins
 import com.kitakkun.jetwhale.host.enabled_plugins
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.no_plugins_installed
 import com.kitakkun.jetwhale.host.plugins
 import com.kitakkun.jetwhale.host.puzzle_outlined
+import com.kitakkun.jetwhale.host.unavailable_plugins
 import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -107,10 +109,10 @@ fun ExpandedToolingDrawerView(
                                 modifier = Modifier.padding(16.dp)
                             )
                         }
-                        items(plugins.filter { it.enabledForCurrentSession }) {
+                        items(plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }) {
                             PluginDrawerItemView(
                                 name = it.name,
-                                enabled = true,
+                                availability = it.pluginAvailability,
                                 activeIconResource = it.activeIconResource,
                                 inactiveIconResource = it.inactiveIconResource,
                                 selected = it.id == selectedPluginId,
@@ -125,19 +127,33 @@ fun ExpandedToolingDrawerView(
                                 modifier = Modifier.padding(16.dp)
                             )
                         }
-                        items(plugins.filter { !it.enabledForCurrentSession }) {
+                        items(plugins.filter { it.pluginAvailability == PluginAvailability.Disabled }) {
                             PluginDrawerItemView(
                                 name = it.name,
-                                enabled = false,
+                                availability = it.pluginAvailability,
                                 activeIconResource = it.activeIconResource,
                                 inactiveIconResource = it.inactiveIconResource,
-                                selected = false, // Disabled plugins cannot be selected
-                                onClick = {
-                                    // No-op for disabled plugins
-                                },
-                                onClickPopout = {
-                                    // No-op for disabled plugins
-                                }
+                                selected = false,
+                                onClick = { },
+                                onClickPopout = { }
+                            )
+                        }
+                        item {
+                            Text(
+                                text = stringResource(Res.string.unavailable_plugins),
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                        items(plugins.filter { it.pluginAvailability == PluginAvailability.Unavailable }) {
+                            PluginDrawerItemView(
+                                name = it.name,
+                                availability = it.pluginAvailability,
+                                activeIconResource = it.activeIconResource,
+                                inactiveIconResource = it.inactiveIconResource,
+                                selected = false,
+                                onClick = { },
+                                onClickPopout = { }
                             )
                         }
                     }

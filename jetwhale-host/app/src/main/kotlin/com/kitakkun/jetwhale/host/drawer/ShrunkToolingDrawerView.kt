@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginIconResource
 import com.kitakkun.jetwhale.host.puzzle_filled
 import com.kitakkun.jetwhale.host.puzzle_outlined
@@ -119,7 +120,7 @@ fun ShrunkToolingDrawerView(
         LazyColumn(
             modifier = Modifier.weight(1f),
         ) {
-            items(plugins.filter { it.enabledForCurrentSession }) {
+            items(plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }) {
                 TooltipBox(
                     positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
                     tooltip = {

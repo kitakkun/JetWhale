@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
+import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginIconResource
 import com.kitakkun.jetwhale.host.puzzle_filled
 import com.kitakkun.jetwhale.host.puzzle_outlined
@@ -30,20 +31,21 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun PluginDrawerItemView(
     name: String,
-    enabled: Boolean,
+    availability: PluginAvailability,
     selected: Boolean,
     activeIconResource: PluginIconResource?,
     inactiveIconResource: PluginIconResource?,
     onClickPopout: () -> Unit,
     onClick: () -> Unit,
 ) {
+    val isEnabled = availability == PluginAvailability.Enabled
     Box {
         NavigationDrawerItem(
             label = { Text(name) },
             icon = {
                 Icon(
                     painter = when {
-                        selected && enabled -> rememberPluginIconSvgPainter(activeIconResource)
+                        selected && isEnabled -> rememberPluginIconSvgPainter(activeIconResource)
                             ?: painterResource(Res.drawable.puzzle_filled)
 
                         else -> rememberPluginIconSvgPainter(inactiveIconResource)
@@ -54,49 +56,58 @@ fun PluginDrawerItemView(
                 )
             },
             badge = {
-                Box {
-                    var expanded by remember { mutableStateOf(false) }
-                    IconButton(
-                        onClick = { expanded = true }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = null
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        if (!enabled) {
-                            DropdownMenuItem(
-                                text = { Text("Enable") },
-                                leadingIcon = { Icon(Icons.Default.AddCircle, null) },
-                                onClick = { expanded = false }
-                            )
-                        } else {
-                            DropdownMenuItem(
-                                text = { Text("Disable") },
-                                leadingIcon = { Icon(Icons.Default.RemoveCircle, null) },
-                                onClick = { expanded = false }
+                // Unavailable plugins do not have any actions
+                if (availability != PluginAvailability.Unavailable) {
+                    Box {
+                        var expanded by remember { mutableStateOf(false) }
+                        IconButton(
+                            onClick = { expanded = true }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = null
                             )
                         }
-                        DropdownMenuItem(
-                            text = { Text("Pop-out") },
-                            leadingIcon = { Icon(Icons.Default.ArrowOutward, null) },
-                            onClick = {
-                                expanded = false
-                                onClickPopout()
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            when (availability) {
+                                PluginAvailability.Disabled -> {
+                                    DropdownMenuItem(
+                                        text = { Text("Enable") },
+                                        leadingIcon = { Icon(Icons.Default.AddCircle, null) },
+                                        onClick = { expanded = false }
+                                    )
+                                }
+
+                                PluginAvailability.Enabled -> {
+                                    DropdownMenuItem(
+                                        text = { Text("Disable") },
+                                        leadingIcon = { Icon(Icons.Default.RemoveCircle, null) },
+                                        onClick = { expanded = false }
+                                    )
+                                }
+
+                                PluginAvailability.Unavailable -> Unit
                             }
-                        )
+                            DropdownMenuItem(
+                                text = { Text("Pop-out") },
+                                leadingIcon = { Icon(Icons.Default.ArrowOutward, null) },
+                                onClick = {
+                                    expanded = false
+                                    onClickPopout()
+                                }
+                            )
+                        }
                     }
                 }
             },
             selected = selected,
             onClick = onClick,
             // Because NavigationDrawerItem does not have enabled parameter,
-            // we manually provide better visual feedback for disabled plugins
-            modifier = Modifier.alpha(if (enabled) 1.0f else 0.5f),
+            // we manually provide better visual feedback for non-enabled plugins
+            modifier = Modifier.alpha(if (isEnabled) 1.0f else 0.5f),
         )
     }
 }

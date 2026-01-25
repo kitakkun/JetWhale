@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.architecture.EventEffect
 import com.kitakkun.jetwhale.host.architecture.EventFlow
 import com.kitakkun.jetwhale.host.architecture.MutableConsumableEffect
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import io.github.takahirom.rin.rememberRetained
 import kotlinx.collections.immutable.ImmutableList
@@ -45,11 +46,15 @@ fun toolingScaffoldPresenter(
                     name = metaData.name,
                     activeIconResource = metaData.activeIconResource,
                     inactiveIconResource = metaData.inactiveIconResource,
-                    enabledForCurrentSession = selectedSession?.installedPlugins.orEmpty().any {
+                    pluginAvailability = selectedSession?.let {
                         // FIXME: Provide version checking logic for plugins
                         //   For now, we just check the plugin ID
-                        it.pluginId == metaData.id
-                    }
+                        if (it.installedPlugins.any { installed -> installed.pluginId == metaData.id }) {
+                            PluginAvailability.Enabled
+                        } else {
+                            PluginAvailability.Disabled
+                        }
+                    } ?: PluginAvailability.Unavailable,
                 )
             }.toImmutableList()
         }

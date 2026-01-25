@@ -16,4 +16,5 @@
     <string name="no_plugins_installed">プラグインがインストールされていません。</string>
     <string name="enabled_plugins">有効なプラグイン</string>
     <string name="disabled_plugins">無効なプラグイン</string>
+    <string name="unavailable_plugins">利用不可能なプラグイン</string>
 </resources>
