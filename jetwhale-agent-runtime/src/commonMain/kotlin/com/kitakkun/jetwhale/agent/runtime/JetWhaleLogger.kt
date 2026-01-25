@@ -55,4 +55,10 @@ internal object JetWhaleLogger : Logger {
         if (minLogLevel > LogLevel.INFO) return
         runtimeLogger.i(message)
     }
+
+    fun w(message: String, throwable: Throwable? = null) {
+        if (!enabled) return
+        if (minLogLevel > LogLevel.WARN) return
+        runtimeLogger.w(message, throwable)
+    }
 }

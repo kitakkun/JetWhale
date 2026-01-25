@@ -55,13 +55,13 @@ internal class KtorWebSocketClient(
     }
 
     private suspend fun DefaultClientWebSocketSession.configureSession(): Flow<String> {
-        JetWhaleLogger.d("Configuring WebSocket session")
+        JetWhaleLogger.v("Configuring WebSocket session")
 
         // protocol version negotiation
-        JetWhaleLogger.d("Starting protocol version negotiation")
+        JetWhaleLogger.v("Starting protocol version negotiation")
         sendSerialized(JetWhaleAgentNegotiationRequest.ProtocolVersion(JetWhaleProtocolVersion.Current))
         val protocolNegotiationResponse: JetWhaleHostNegotiationResponse.ProtocolVersionResponse = receiveDeserialized()
-        JetWhaleLogger.d("Received protocol version negotiation response: $protocolNegotiationResponse")
+        JetWhaleLogger.v("Received protocol version negotiation response: $protocolNegotiationResponse")
 
         when (protocolNegotiationResponse) {
             is JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept -> {
@@ -75,9 +75,9 @@ internal class KtorWebSocketClient(
         }
 
         // sessionId negotiation
-        JetWhaleLogger.d("Starting session negotiation")
+        JetWhaleLogger.v("Starting session negotiation")
         if (sessionId == null) {
-            JetWhaleLogger.d("Requesting new session")
+            JetWhaleLogger.v("Requesting new session")
         } else {
             JetWhaleLogger.d("Resuming existing session with sessionId: $sessionId")
         }
@@ -87,21 +87,21 @@ internal class KtorWebSocketClient(
                 sessionName = getDeviceModelName(),
             )
         )
-        JetWhaleLogger.d("Sent session negotiation request" + " with sessionId: $sessionId".takeIf { sessionId != null })
+        JetWhaleLogger.v("Sent session negotiation request" + " with sessionId: $sessionId".takeIf { sessionId != null })
 
         sessionId = receiveDeserialized<JetWhaleHostNegotiationResponse.AcceptSession>().sessionId
-        JetWhaleLogger.d("Received session negotiation accept with sessionId: $sessionId")
+        JetWhaleLogger.d("Session negotiation completed with sessionId: $sessionId")
 
         // TODO: Capabilities negotiation (currently not implemented)
 
         // TODO: Available plugins negotiation (currently not implemented)
 
         closeReason.invokeOnCompletion {
-            JetWhaleLogger.d("WebSocket session closed: $closeReason")
+            JetWhaleLogger.i("WebSocket session closed")
             session = null
         }
 
-        JetWhaleLogger.d("WebSocket session configured successfully with sessionId: $sessionId. Listening for messages...")
+        JetWhaleLogger.i("WebSocket session established with sessionId: $sessionId")
 
         return incoming.consumeAsFlow().filterIsInstance<Frame.Text>().map { it.readText() }
     }

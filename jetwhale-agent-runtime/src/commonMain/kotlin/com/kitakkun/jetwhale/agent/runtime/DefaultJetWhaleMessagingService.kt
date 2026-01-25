@@ -24,20 +24,20 @@ internal class DefaultJetWhaleMessagingService(
     private var reconnectDelayMillis: Long = DEFAULT_RECONNECT_DELAY_MILLIS
 
     override fun startService(host: String, port: Int) {
-        JetWhaleLogger.d("Starting JetWhale service...")
+        JetWhaleLogger.i("Starting JetWhale service...")
         keepAwakeJob?.cancel()
         keepAwakeJob = coroutineScope.launch {
             try {
                 openConnectionAndCollectServerMessages(host, port)
             } catch (e: Throwable) {
-                JetWhaleLogger.d("Failed to open connection or connection closed: ${e.message}", e)
+                JetWhaleLogger.w("Connection closed: ${e.message}", e)
             } finally {
-                JetWhaleLogger.d("Detaching senders...")
+                JetWhaleLogger.v("Detaching senders...")
                 detachSenderFromPlugins()
             }
 
             reconnectDelayMillis = (reconnectDelayMillis + RECONNECT_DELAY_INCREMENT_MILLIS).coerceAtMost(MAX_RECONNECT_DELAY_MILLIS)
-            JetWhaleLogger.i("Reconnecting in $reconnectDelayMillis ms")
+            JetWhaleLogger.d("Reconnecting in $reconnectDelayMillis ms")
             delay(reconnectDelayMillis)
             startService(host, port)
         }
@@ -45,7 +45,7 @@ internal class DefaultJetWhaleMessagingService(
 
     private suspend fun CoroutineScope.openConnectionAndCollectServerMessages(host: String, port: Int) {
         val serverRawJsonMessageFlow = socketClient.openConnection(host, port)
-        JetWhaleLogger.i("Connection established to $host:$port")
+        JetWhaleLogger.d("Connection established to $host:$port")
         reconnectDelayMillis = DEFAULT_RECONNECT_DELAY_MILLIS
 
         attachSenderToPlugins()
@@ -53,7 +53,7 @@ internal class DefaultJetWhaleMessagingService(
     }
 
     private fun CoroutineScope.attachSenderToPlugins() {
-        JetWhaleLogger.d("Attaching sender to each plugin")
+        JetWhaleLogger.v("Attaching sender to each plugin")
         plugins.forEach { plugin ->
             plugin.attachSender { payload ->
                 val event = JetWhaleDebuggeeEvent.PluginMessage(
@@ -76,11 +76,11 @@ internal class DefaultJetWhaleMessagingService(
     }
 
     private suspend fun collectServerMessages(serverRawJsonMessageFlow: Flow<String>) {
-        JetWhaleLogger.d("Start listening server messages...")
+        JetWhaleLogger.v("Start listening server messages...")
         serverRawJsonMessageFlow
             .mapNotNull { json.decodeFromStringOrNull<JetWhaleDebuggerEvent>(it) }
             .collect { event ->
-                JetWhaleLogger.d("Received event: $event")
+                JetWhaleLogger.v("Received event: $event")
                 handleDebuggerEvent(event)
             }
     }
@@ -100,7 +100,7 @@ internal class DefaultJetWhaleMessagingService(
                         )
                     )
                 )
-                JetWhaleLogger.d("sent method result!")
+                JetWhaleLogger.v("Sent method result for request: ${event.requestId}")
             }
         }
     }
