@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.host.data.server
+package com.kitakkun.jetwhale.host.data.server.negotiation
 
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAgentNegotiationRequest
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleHostNegotiationResponse

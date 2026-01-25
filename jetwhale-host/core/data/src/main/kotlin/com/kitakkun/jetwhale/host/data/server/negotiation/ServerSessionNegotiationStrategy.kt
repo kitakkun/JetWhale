@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.host.data.server
+package com.kitakkun.jetwhale.host.data.server.negotiation
 
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.util.logging.Logger
