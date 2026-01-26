@@ -10,8 +10,8 @@ import soil.query.buildSubscriptionKey
 @Inject
 @ContributesBinding(AppScope::class)
 class DefaultServerStatusSubscriptionKey(
-    private val debugWebSocketServer: DefaultDebugWebSocketServer,
+    private val ktorWebSocketServer: KtorWebSocketServer,
 ) : ServerStatusSubscriptionKey by buildSubscriptionKey(
     id = SubscriptionId("server_status"),
-    subscribe = { debugWebSocketServer.statusFlow }
+    subscribe = { ktorWebSocketServer.statusFlow }
 )

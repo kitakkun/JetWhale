@@ -1,15 +1,14 @@
 package com.kitakkun.jetwhale.host.drawer
 
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.component.ToolingDrawer
 import com.kitakkun.jetwhale.host.model.DebugSession
-import com.kitakkun.jetwhale.host.model.PluginMetaData
 import kotlinx.collections.immutable.persistentListOf
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -19,8 +18,9 @@ fun ToolingScaffold(
     onClickSettings: () -> Unit,
     onClickInfo: () -> Unit,
     onClickPlugin: (String) -> Unit,
-    onClickPopout: (PluginMetaData) -> Unit,
+    onClickPopout: (DrawerPluginItemUiState) -> Unit,
     onSelectSession: (DebugSession) -> Unit,
+    onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -37,6 +37,7 @@ fun ToolingScaffold(
                     onClickPlugin = onClickPlugin,
                     onSelectSession = onSelectSession,
                     onClickPopout = onClickPopout,
+                    onSetPluginEnabled = onSetPluginEnabled,
                 )
             },
             content = {
@@ -62,6 +63,7 @@ private fun ToolingScaffoldPreview() {
         onClickPlugin = {},
         onSelectSession = {},
         onClickPopout = {},
+        onSetPluginEnabled = { _, _ -> },
     ) {
         Text("Hello, World!")
     }

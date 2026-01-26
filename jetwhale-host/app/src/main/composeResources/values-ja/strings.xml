@@ -12,4 +12,9 @@
     <string name="plugin_popped_out_message">このプラグインはポップアウトされています。別のウィンドウを確認してください。</string>
     <string name="bring_back_to_main_window">メインウィンドウに戻す</string>
     <string name="log_viewer_window_title">ログビューワー</string>
+    <string name="plugins">プラグイン</string>
+    <string name="no_plugins_installed">プラグインがインストールされていません。</string>
+    <string name="enabled_plugins">有効なプラグイン</string>
+    <string name="disabled_plugins">無効なプラグイン</string>
+    <string name="unavailable_plugins">利用不可能なプラグイン</string>
 </resources>
