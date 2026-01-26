@@ -46,7 +46,7 @@ public abstract class JetWhaleRawAgentPlugin {
      * Enqueues a raw event message to be sent to the debugger.
      * If a sender is attached, the message is sent immediately.
      */
-    public fun enqueueEvent(message: String) {
+    public fun enqueueRawEvent(message: String) {
         if (sender != null) {
             sender?.send(message)
             return

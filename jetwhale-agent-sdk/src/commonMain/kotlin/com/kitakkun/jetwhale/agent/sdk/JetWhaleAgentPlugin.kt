@@ -31,7 +31,7 @@ public abstract class JetWhaleAgentPlugin<Event, Method, MethodResult> : JetWhal
      */
     public fun enqueueEvent(event: Event) {
         val rawPayload = protocol.encodeEvent(event)
-        enqueueEvent(rawPayload)
+        enqueueRawEvent(rawPayload)
         onEnqueueEvent(event)
     }
 
