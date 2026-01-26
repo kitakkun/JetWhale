@@ -7,18 +7,6 @@ import com.kitakkun.jetwhale.protocol.agent.JetWhaleAgentPluginProtocol
  */
 public abstract class JetWhaleAgentPlugin<Event, Method, MethodResult> : JetWhaleRawAgentPlugin() {
     /**
-     * unique id to distinguish plugins.
-     * For example, "com.kitakkun.jetwhale.debugger.agent.plugin.sample"
-     */
-    public abstract val pluginId: String
-
-    /**
-     * Version of this plugin.
-     * For example, "1.0.0"
-     */
-    public abstract val pluginVersion: String
-
-    /**
      * The protocol used for encoding and decoding messages.
      */
     protected abstract val protocol: JetWhaleAgentPluginProtocol<Event, Method, MethodResult>
@@ -43,7 +31,7 @@ public abstract class JetWhaleAgentPlugin<Event, Method, MethodResult> : JetWhal
      */
     public fun enqueueEvent(event: Event) {
         val rawPayload = protocol.encodeEvent(event)
-        enqueueEvent(rawPayload)
+        enqueueRawEvent(rawPayload)
         onEnqueueEvent(event)
     }
 

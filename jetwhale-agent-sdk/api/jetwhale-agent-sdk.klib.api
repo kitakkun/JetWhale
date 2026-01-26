@@ -17,10 +17,6 @@ abstract interface com.kitakkun.jetwhale.agent.sdk/JetWhaleMessagingService { //
 abstract class <#A: kotlin/Any?, #B: kotlin/Any?, #C: kotlin/Any?> com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin { // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin|null[0]
     constructor <init>() // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.<init>|<init>(){}[0]
 
-    abstract val pluginId // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginId|{}pluginId[0]
-        abstract fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
-    abstract val pluginVersion // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginVersion|{}pluginVersion[0]
-        abstract fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
     abstract val protocol // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.protocol|{}protocol[0]
         abstract fun <get-protocol>(): com.kitakkun.jetwhale.protocol.agent/JetWhaleAgentPluginProtocol<#A, #B, #C> // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.protocol.<get-protocol>|<get-protocol>(){}[0]
 
@@ -33,9 +29,14 @@ abstract class <#A: kotlin/Any?, #B: kotlin/Any?, #C: kotlin/Any?> com.kitakkun.
 abstract class com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin { // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin|null[0]
     constructor <init>() // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.<init>|<init>(){}[0]
 
+    abstract val pluginId // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.pluginId|{}pluginId[0]
+        abstract fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    abstract val pluginVersion // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.pluginVersion|{}pluginVersion[0]
+        abstract fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+
     abstract suspend fun onRawMethod(kotlin/String): kotlin/String? // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.onRawMethod|onRawMethod(kotlin.String){}[0]
     final fun attachSender(com.kitakkun.jetwhale.agent.sdk/JetWhaleMessageSender) // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.attachSender|attachSender(com.kitakkun.jetwhale.agent.sdk.JetWhaleMessageSender){}[0]
     final fun detachSender() // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.detachSender|detachSender(){}[0]
-    final fun enqueueEvent(kotlin/String) // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.enqueueEvent|enqueueEvent(kotlin.String){}[0]
+    final fun enqueueRawEvent(kotlin/String) // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.enqueueRawEvent|enqueueRawEvent(kotlin.String){}[0]
     open fun queueBufferSize(): kotlin/Int // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.queueBufferSize|queueBufferSize(){}[0]
 }

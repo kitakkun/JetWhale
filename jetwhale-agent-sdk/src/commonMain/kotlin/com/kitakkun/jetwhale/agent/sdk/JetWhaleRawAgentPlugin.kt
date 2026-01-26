@@ -9,6 +9,18 @@ package com.kitakkun.jetwhale.agent.sdk
  */
 public abstract class JetWhaleRawAgentPlugin {
     /**
+     * unique id to distinguish plugins.
+     * For example, "com.kitakkun.jetwhale.debugger.agent.plugin.sample"
+     */
+    public abstract val pluginId: String
+
+    /**
+     * Version of this plugin.
+     * For example, "1.0.0"
+     */
+    public abstract val pluginVersion: String
+
+    /**
      * The message sender used to send messages to the debugger.
      * [JetWhaleMessagingService] will attach/detach this sender.
      */
@@ -34,7 +46,7 @@ public abstract class JetWhaleRawAgentPlugin {
      * Enqueues a raw event message to be sent to the debugger.
      * If a sender is attached, the message is sent immediately.
      */
-    public fun enqueueEvent(message: String) {
+    public fun enqueueRawEvent(message: String) {
         if (sender != null) {
             sender?.send(message)
             return
