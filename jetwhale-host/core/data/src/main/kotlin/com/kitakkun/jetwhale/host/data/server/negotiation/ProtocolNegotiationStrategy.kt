@@ -15,20 +15,28 @@ class ProtocolNegotiationStrategy : NegotiationStrategy<ProtocolVersionNegotiati
     override suspend fun DefaultWebSocketServerSession.negotiate(): ProtocolVersionNegotiationResult {
         val protocolVersionNegotiationRequest = receiveDeserialized<JetWhaleAgentNegotiationRequest.ProtocolVersion>()
         logger.info("Received protocol version negotiation request: $protocolVersionNegotiationRequest")
-        // TODO: support multiple protocol versions
-        val hostVersion = JetWhaleProtocolVersion.Current
-        if (protocolVersionNegotiationRequest.version != hostVersion) {
-            logger.info("Unsupported protocol version: ${protocolVersionNegotiationRequest.version}")
+
+        val requestedVersion = protocolVersionNegotiationRequest.version
+
+        if (requestedVersion !in SUPPORTED_VERSIONS) {
+            logger.info("Unsupported protocol version: ${requestedVersion.version}")
             sendSerialized(
                 JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Reject(
-                    reason = "Unsupported protocol version: ${protocolVersionNegotiationRequest.version}",
-                    supportedVersions = listOf(hostVersion),
+                    reason = "Unsupported protocol version: ${requestedVersion.version}",
+                    supportedVersions = SUPPORTED_VERSIONS,
                 )
             )
             return ProtocolVersionNegotiationResult.Failure
-        } else {
-            sendSerialized(JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept(hostVersion))
-            return ProtocolVersionNegotiationResult.Success(hostVersion)
         }
+
+        logger.info("Accepted protocol version: ${requestedVersion.version}")
+
+        sendSerialized(JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept(requestedVersion))
+        return ProtocolVersionNegotiationResult.Success(requestedVersion)
+    }
+
+    companion object {
+        private val SUPPORTED_VERSION_INT_RANGE = 2..JetWhaleProtocolVersion.Current.version
+        private val SUPPORTED_VERSIONS = SUPPORTED_VERSION_INT_RANGE.map { JetWhaleProtocolVersion(it) }
     }
 }

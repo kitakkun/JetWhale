@@ -16,6 +16,6 @@ public value class JetWhaleProtocolVersion(public val version: Int) {
         /**
          * Current version of JetWhale Debugger Protocol
          */
-        public val Current: JetWhaleProtocolVersion = JetWhaleProtocolVersion(1)
+        public val Current: JetWhaleProtocolVersion = JetWhaleProtocolVersion(2)
     }
 }
