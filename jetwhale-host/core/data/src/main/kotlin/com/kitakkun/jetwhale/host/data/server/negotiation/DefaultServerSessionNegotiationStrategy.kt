@@ -16,20 +16,21 @@ class DefaultServerSessionNegotiationStrategy(
 ) : ServerSessionNegotiationStrategy {
     context(logger: Logger)
     override suspend fun DefaultWebSocketServerSession.negotiate(): ServerSessionNegotiationResult {
-        val protocol = with(protocolNegotiationStrategy) { negotiate() }
+        try {
+            with(protocolNegotiationStrategy) { negotiate() }
 
-        if (protocol is ProtocolVersionNegotiationResult.Failure) {
+            val session = with(sessionNegotiationStrategy) { negotiate() }
+
+            with(capabilitiesNegotiationStrategy) { negotiate() }
+
+            val plugin = with(pluginNegotiationStrategy) { negotiate() }
+
+            return ServerSessionNegotiationResult.Success(
+                session = session,
+                plugin = plugin,
+            )
+        } catch (_: Throwable) {
             return ServerSessionNegotiationResult.Failure
         }
-        val session = with(sessionNegotiationStrategy) { negotiate() }
-
-        with(capabilitiesNegotiationStrategy) { negotiate() }
-
-        val plugin = with(pluginNegotiationStrategy) { negotiate() }
-
-        return ServerSessionNegotiationResult.Success(
-            session = session,
-            plugin = plugin,
-        )
     }
 }

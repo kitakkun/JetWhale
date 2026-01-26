@@ -26,13 +26,13 @@ class ProtocolNegotiationStrategy : NegotiationStrategy<ProtocolVersionNegotiati
                     supportedVersions = SUPPORTED_VERSIONS,
                 )
             )
-            return ProtocolVersionNegotiationResult.Failure
+            error("Unsupported protocol version: ${requestedVersion.version}")
         }
 
         logger.info("Accepted protocol version: ${requestedVersion.version}")
 
         sendSerialized(JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept(requestedVersion))
-        return ProtocolVersionNegotiationResult.Success(requestedVersion)
+        return ProtocolVersionNegotiationResult(negotiatedVersion = requestedVersion)
     }
 
     companion object {

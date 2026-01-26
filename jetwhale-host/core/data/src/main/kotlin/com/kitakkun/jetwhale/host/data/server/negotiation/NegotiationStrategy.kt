@@ -9,6 +9,7 @@ import io.ktor.util.logging.Logger
  * @param Result The type of the negotiation result.
  */
 interface NegotiationStrategy<Result> {
+    @Throws(Throwable::class)
     context(logger: Logger)
     suspend fun DefaultWebSocketServerSession.negotiate(): Result
 }
