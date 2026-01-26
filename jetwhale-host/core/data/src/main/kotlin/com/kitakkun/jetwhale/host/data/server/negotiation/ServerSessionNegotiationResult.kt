@@ -6,5 +6,5 @@ sealed interface ServerSessionNegotiationResult {
         val plugin: PluginNegotiationResult,
     ) : ServerSessionNegotiationResult
 
-    data object Failure : ServerSessionNegotiationResult
+    data class Failure(val error: Throwable) : ServerSessionNegotiationResult
 }

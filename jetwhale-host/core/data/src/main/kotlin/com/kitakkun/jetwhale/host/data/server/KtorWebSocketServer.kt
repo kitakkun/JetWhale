@@ -20,7 +20,7 @@ import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
 import io.ktor.util.logging.Logger
 import io.ktor.websocket.Frame
-import io.ktor.websocket.close
+import io.ktor.websocket.closeExceptionally
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -115,35 +115,39 @@ class KtorWebSocketServer(
     private suspend fun DefaultWebSocketServerSession.configureSession() {
         val negotiationResult = with(negotiationStrategy) { negotiate() }
 
-        if (negotiationResult !is ServerSessionNegotiationResult.Success) {
-            log.info("negotiation failed")
-            close()
-            return
-        }
+        when (negotiationResult) {
+            is ServerSessionNegotiationResult.Failure -> {
+                log.info("negotiation failed: ${negotiationResult.error.localizedMessage}")
+                closeExceptionally(negotiationResult.error)
+                return
+            }
 
-        val sessionId: String = negotiationResult.session.sessionId
-        sessions[sessionId] = this
+            is ServerSessionNegotiationResult.Success -> {
+                val sessionId = negotiationResult.session.sessionId
+                sessions[sessionId] = this
 
-        val receiveJob = launch {
-            incoming.receiveAsFlow()
-                .filterIsInstance<Frame.Text>()
-                .collect {
-                    mutableMessageFlow.emit(sessionId to it.readText())
+                val receiveJob = launch {
+                    incoming.receiveAsFlow()
+                        .filterIsInstance<Frame.Text>()
+                        .collect {
+                            mutableMessageFlow.emit(sessionId to it.readText())
+                        }
                 }
+
+                mutableNegotiationCompletedFlow.emit(negotiationResult)
+
+                closeReason.await().also {
+                    println("closed: ${it?.message}")
+                }
+
+                receiveJob.cancel()
+                sessions.remove(sessionId)
+
+                println("session $sessionId closed")
+
+                mutableSessionClosedFlow.emit(sessionId)
+            }
         }
-
-        mutableNegotiationCompletedFlow.emit(negotiationResult)
-
-        closeReason.await().also {
-            println("closed: ${it?.message}")
-        }
-
-        receiveJob.cancel()
-        sessions.remove(sessionId)
-
-        println("session $sessionId closed")
-
-        mutableSessionClosedFlow.emit(sessionId)
     }
 
     suspend fun sendToSession(sessionId: String, message: String) {

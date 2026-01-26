@@ -29,8 +29,8 @@ class DefaultServerSessionNegotiationStrategy(
                 session = session,
                 plugin = plugin,
             )
-        } catch (_: Throwable) {
-            return ServerSessionNegotiationResult.Failure
+        } catch (e: Throwable) {
+            return ServerSessionNegotiationResult.Failure(e)
         }
     }
 }
