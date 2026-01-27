@@ -58,10 +58,13 @@ JetWhale plugins consist of three components:
 
 First, define the data types shared between Agent and Host.
 
+> **Important**: Always use `@SerialName` on all sealed interface members. Without it, the fully qualified class name is embedded in JSON, which breaks protocol compatibility when refactoring.
+
 ```kotlin
 // Event: Agent → Host
 @Serializable
 sealed interface MyEvent {
+    @SerialName("state_changed")
     @Serializable
     data class StateChanged(val newState: String) : MyEvent
 }
@@ -69,6 +72,7 @@ sealed interface MyEvent {
 // Method: Host → Agent
 @Serializable
 sealed interface MyMethod {
+    @SerialName("update_state")
     @Serializable
     data class UpdateState(val state: String) : MyMethod
 }
@@ -76,9 +80,11 @@ sealed interface MyMethod {
 // MethodResult: Agent → Host (response to Method)
 @Serializable
 sealed interface MyMethodResult {
+    @SerialName("success")
     @Serializable
     data object Success : MyMethodResult
 
+    @SerialName("error")
     @Serializable
     data class Error(val message: String) : MyMethodResult
 }
