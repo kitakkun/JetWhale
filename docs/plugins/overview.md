@@ -10,7 +10,7 @@ JetWhale plugins consist of three components:
 |-----------|-------------|---------------------|
 | **Protocol** | Event, Method, and MethodResult definitions | Shared (Agent/Host) |
 | **Agent Plugin** | Plugin on the debuggee (application) side | Android/JVM/iOS/Web |
-| **Host Plugin** | Plugin on the host (debugger) side | Desktop/Android |
+| **Host Plugin** | Plugin on the host (debugger) side | Desktop (JVM) |
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
