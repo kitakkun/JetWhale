@@ -18,11 +18,15 @@ fun pluginSettingsScreenPresenter(
     failedJarPaths: ImmutableList<String>,
 ): PluginSettingsScreenUiState {
     val pluginInstallMutation = rememberMutation(presenterContext.pluginInstallMutationKey)
+    val pluginInstallFromMavenMutation = rememberMutation(presenterContext.pluginInstallFromMavenMutationKey)
 
     ActionEffect(screenChannel) { action ->
         when (action) {
             is PluginSettingsScreenAction.PluginJarSelected -> {
                 pluginInstallMutation.mutateAsync(action.path)
+            }
+            is PluginSettingsScreenAction.InstallFromMaven -> {
+                pluginInstallFromMavenMutation.mutate(action.coordinates)
             }
         }
     }

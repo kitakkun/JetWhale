@@ -44,6 +44,10 @@ class AppDataDirectoryProvider {
         return pluginDirectory.listFiles { file -> file.extension == "jar" }?.map { it.absolutePath } ?: emptyList()
     }
 
+    fun getPluginDirectory(): File {
+        return File(pluginDir)
+    }
+
     /**
      * The development-only "dev plugins directory" supplied by a plugin developer via the
      * `jetwhale.devPluginsDir` JVM system property (set by the `runJetWhale` Gradle task).
@@ -63,5 +67,9 @@ class AppDataDirectoryProvider {
 
     companion object {
         const val DEV_PLUGINS_DIR_PROPERTY = "jetwhale.devPluginsDir"
+=======
+    fun getPluginDirectory(): File {
+        return File(pluginDir)
+>>>>>>> 6c7db1b (feat: add plugin installation from Maven repository)
     }
 }
