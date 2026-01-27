@@ -176,11 +176,9 @@ class MyPluginFactory : JetWhaleHostPluginFactory {
 ### Step 4: Implement the UI
 
 ```kotlin
-import androidx.compose.runtime.snapshots.SnapshotStateList
-
 @Composable
 fun MyPluginContent(
-    eventLogs: SnapshotStateList<String>,
+    eventLogs: List<String>,
     currentState: String,
     context: JetWhaleDebugOperationContext<MyMethod, MyMethodResult>,
 ) {
@@ -372,7 +370,7 @@ class ExampleHostPlugin : JetWhaleHostPlugin<ExampleEvent, ExampleMethod, Exampl
 // UI
 @Composable
 fun ExamplePluginUI(
-    eventLogs: SnapshotStateList<String>,
+    eventLogs: List<String>,
     context: JetWhaleDebugOperationContext<ExampleMethod, ExampleMethodResult>,
 ) {
     val scope = context.coroutineScope
