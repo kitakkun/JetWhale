@@ -155,11 +155,6 @@ class MyHostPlugin : JetWhaleHostPlugin<MyEvent, MyMethod, MyMethodResult>() {
             context = context,
         )
     }
-
-    // Optional: Cleanup resources
-    override fun onDispose() {
-        eventLogs.clear()
-    }
 }
 ```
 
@@ -369,10 +364,6 @@ class ExampleHostPlugin : JetWhaleHostPlugin<ExampleEvent, ExampleMethod, Exampl
     @Composable
     override fun Content(context: JetWhaleDebugOperationContext<ExampleMethod, ExampleMethodResult>) {
         ExamplePluginUI(eventLogs = eventLogs, context = context)
-    }
-
-    override fun onDispose() {
-        eventLogs.clear()
     }
 }
 
