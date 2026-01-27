@@ -31,6 +31,10 @@ fun pluginSettingsScreenPresenter(
         }
     }
 
+    val isInstalling = pluginInstallMutation.isPending || pluginInstallFromMavenMutation.isPending
+    val installError = pluginInstallFromMavenMutation.error?.message
+        ?: pluginInstallMutation.error?.message
+
     return PluginSettingsScreenUiState(
         plugins = loadedPlugins.map {
             PluginInfoUiState(
@@ -40,5 +44,7 @@ fun pluginSettingsScreenPresenter(
             )
         }.toPersistentList(),
         failedJarPaths = failedJarPaths,
+        isInstalling = isInstalling,
+        installError = installError,
     )
 }
