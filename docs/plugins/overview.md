@@ -189,12 +189,17 @@ dependencies {
 
 ```kotlin
 // build.gradle.kts
+plugins {
+    // ...
+    id("com.google.devtools.ksp")
+}
+
 dependencies {
     implementation("com.kitakkun.jetwhale:jetwhale-host-sdk:$version")
     implementation("com.kitakkun.jetwhale:jetwhale-protocol-host:$version")
 
-    // AutoService (optional)
-    kapt("com.google.auto.service:auto-service:1.1.1")
+    // AutoService with KSP
+    ksp("dev.zacsweers.autoservice:auto-service-ksp:1.2.0")
     implementation("com.google.auto.service:auto-service-annotations:1.1.1")
 }
 ```
