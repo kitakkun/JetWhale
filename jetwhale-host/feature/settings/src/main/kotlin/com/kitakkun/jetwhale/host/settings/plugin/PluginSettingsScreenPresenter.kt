@@ -17,11 +17,15 @@ fun pluginSettingsScreenPresenter(
     loadedPlugins: ImmutableList<PluginMetaData>,
 ): PluginSettingsScreenUiState {
     val pluginInstallMutation = rememberMutation(screenContext.pluginInstallMutationKey)
+    val pluginInstallFromMavenMutation = rememberMutation(screenContext.pluginInstallFromMavenMutationKey)
 
     EventEffect(eventFlow) { event ->
         when (event) {
             is PluginSettingsScreenEvent.PluginJarSelected -> {
                 pluginInstallMutation.mutate(event.path)
+            }
+            is PluginSettingsScreenEvent.InstallFromMaven -> {
+                pluginInstallFromMavenMutation.mutate(event.coordinates)
             }
         }
     }

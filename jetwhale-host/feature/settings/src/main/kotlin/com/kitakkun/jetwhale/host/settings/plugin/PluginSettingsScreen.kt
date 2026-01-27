@@ -26,6 +26,7 @@ import org.jetbrains.compose.resources.stringResource
 fun PluginSettingsScreen(
     uiState: PluginSettingsScreenUiState,
     onClickAddPlugin: () -> Unit,
+    onClickInstallFromMaven: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -79,8 +80,15 @@ fun PluginSettingsScreen(
                 }
             }
         }
-        Button(onClickAddPlugin) {
-            Text("Add Plugin")
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Button(onClick = onClickAddPlugin) {
+                Text("Add Plugin from File")
+            }
+            Button(onClick = onClickInstallFromMaven) {
+                Text("Install from Maven")
+            }
         }
     }
 }
