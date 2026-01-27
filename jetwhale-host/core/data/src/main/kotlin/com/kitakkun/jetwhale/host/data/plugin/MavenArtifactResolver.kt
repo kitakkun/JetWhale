@@ -45,8 +45,10 @@ class MavenArtifactResolver {
 
             return destinationFile.absolutePath
         } catch (e: MavenArtifactDownloadException) {
+            destinationFile.delete()
             throw e
         } catch (e: Exception) {
+            destinationFile.delete()
             throw MavenArtifactDownloadException(
                 "Failed to download artifact $coordinates: ${e.message}",
                 e

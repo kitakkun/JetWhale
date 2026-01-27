@@ -9,6 +9,7 @@ import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import soil.query.MutationId
 import soil.query.buildMutationKey
+import java.io.File
 
 @Inject
 @ContributesBinding(AppScope::class)
@@ -22,6 +23,19 @@ class DefaultPluginInstallFromMavenMutationKey(
         appDataDirectoryProvider.createAppDataDirectoriesIfNeeded()
         val pluginDir = appDataDirectoryProvider.getPluginDirectory()
         val downloadedJarPath = mavenArtifactResolver.downloadJar(coordinates, pluginDir)
-        pluginRepository.loadPluginFactory(downloadedJarPath)
+        try {
+            pluginRepository.loadPluginFactory(downloadedJarPath)
+        } catch (e: Exception) {
+            File(downloadedJarPath).delete()
+            throw PluginInstallationException(
+                "Failed to load plugin from $coordinates: ${e.message}",
+                e
+            )
+        }
     }
 )
+
+class PluginInstallationException(
+    message: String,
+    cause: Throwable? = null,
+) : Exception(message, cause)
