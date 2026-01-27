@@ -14,11 +14,11 @@ JetWhale plugins communicate using three types of messages:
 
 All message types are serialized to JSON using [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization).
 
-> **Important: Always use `@SerialName`**
+> **Highly Recommended: Always use `@SerialName`**
 >
-> JetWhale uses `useClassDiscriminator = true` by default, which means the fully qualified class name (e.g., `com.example.MyEvent.StateChanged`) is embedded in the JSON if `@SerialName` is not specified. This creates a tight coupling between your class names/packages and the serialized protocol.
+> JetWhale uses `classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS`, which adds a `"type"` field to all JSON objects. Without `@SerialName`, the fully qualified class name (e.g., `com.example.MyEvent.StateChanged`) is used as the type discriminator. This creates a tight coupling between your class names/packages and the serialized protocol.
 >
-> **Always specify `@SerialName` on all sealed interface members** to:
+> **It is highly recommended to specify `@SerialName` on all sealed interface members** to:
 > - Maintain protocol compatibility when refactoring (renaming classes, moving packages)
 > - Keep JSON payloads clean and readable
 > - Ensure binary compatibility between different versions of Agent and Host plugins
@@ -220,11 +220,11 @@ dependencies {
 }
 ```
 
-### SerialName Annotation (Required)
+### SerialName Annotation (Highly Recommended)
 
-**Always use `@SerialName`** on all Event, Method, and MethodResult types.
+**It is highly recommended to use `@SerialName`** on all Event, Method, and MethodResult types.
 
-JetWhale uses `useClassDiscriminator = true`, which means that without `@SerialName`, the **fully qualified class name** is used as the type discriminator:
+JetWhale uses `classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS`, which means that without `@SerialName`, the **fully qualified class name** is used as the type discriminator:
 
 ```kotlin
 // WITHOUT @SerialName (NOT RECOMMENDED)
