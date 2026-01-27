@@ -47,4 +47,8 @@ class AppDataDirectoryProvider {
         val pluginDirectory = File(pluginDir)
         return pluginDirectory.listFiles { file -> file.extension == "jar" }?.map { it.absolutePath } ?: emptyList()
     }
+
+    fun getPluginDirectory(): File {
+        return File(pluginDir)
+    }
 }

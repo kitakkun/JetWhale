@@ -21,6 +21,8 @@ dependencies {
     implementation(libs.androidxDatastorePreferences)
 
     implementation(libs.bundles.ktorServer)
+    implementation(libs.ktorClientCore)
+    implementation(libs.ktorClientCio)
     implementation(libs.logbackClassic)
     implementation(libs.kotlinTest)
 }

@@ -1,6 +1,10 @@
 package com.kitakkun.jetwhale.host.settings.plugin
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberEventFlow
 import soil.query.compose.rememberSubscription
@@ -11,6 +15,8 @@ import java.io.File
 context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
 @Composable
 fun PluginSettingsScreenRoot() {
+    var showMavenDialog by remember { mutableStateOf(false) }
+
     SoilDataBoundary(
         state = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
     ) { loadedPlugins ->
@@ -26,7 +32,19 @@ fun PluginSettingsScreenRoot() {
                 val selectedJar = selectJarFile() ?: return@PluginSettingsScreen
                 eventFlow.tryEmit(PluginSettingsScreenEvent.PluginJarSelected(selectedJar.path))
             },
+            onClickInstallFromMaven = {
+                showMavenDialog = true
+            },
         )
+
+        if (showMavenDialog) {
+            MavenPluginInstallDialog(
+                onDismissRequest = { showMavenDialog = false },
+                onInstall = { coordinates ->
+                    eventFlow.tryEmit(PluginSettingsScreenEvent.InstallFromMaven(coordinates))
+                },
+            )
+        }
     }
 }
 
