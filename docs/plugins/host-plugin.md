@@ -56,7 +56,7 @@ class MyPluginFactory : JetWhaleHostPluginFactory {
         inactiveIconPath = "icons/my_plugin_inactive.svg",
     )
 
-    override fun createPlugin(): JetWhaleHostPlugin<*, *, *> {
+    override fun createPlugin(): JetWhaleRawHostPlugin {
         return MyHostPlugin()
     }
 }
