@@ -287,12 +287,17 @@ class MyPluginFactory : JetWhaleHostPluginFactory {
 }
 ```
 
-Add the AutoService dependency:
+Add the AutoService dependency with KSP:
 
 ```kotlin
 // build.gradle.kts
+plugins {
+    // ...
+    id("com.google.devtools.ksp")
+}
+
 dependencies {
-    kapt("com.google.auto.service:auto-service:1.1.1")
+    ksp("dev.zacsweers.autoservice:auto-service-ksp:1.2.0")
     implementation("com.google.auto.service:auto-service-annotations:1.1.1")
 }
 ```
@@ -419,9 +424,9 @@ fun ExamplePluginUI(
 // build.gradle.kts
 plugins {
     kotlin("jvm")
-    kotlin("kapt")
     kotlin("plugin.compose")
     id("org.jetbrains.compose")
+    id("com.google.devtools.ksp")
 }
 
 dependencies {
@@ -431,7 +436,7 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
 
-    kapt("com.google.auto.service:auto-service:1.1.1")
+    ksp("dev.zacsweers.autoservice:auto-service-ksp:1.2.0")
     implementation("com.google.auto.service:auto-service-annotations:1.1.1")
 }
 
