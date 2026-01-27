@@ -14,6 +14,15 @@ JetWhale plugins communicate using three types of messages:
 
 All message types are serialized to JSON using [kotlinx.serialization](https://github.com/Kotlin/kotlinx.serialization).
 
+> **Important: Always use `@SerialName`**
+>
+> JetWhale uses `useClassDiscriminator = true` by default, which means the fully qualified class name (e.g., `com.example.MyEvent.StateChanged`) is embedded in the JSON if `@SerialName` is not specified. This creates a tight coupling between your class names/packages and the serialized protocol.
+>
+> **Always specify `@SerialName` on all sealed interface members** to:
+> - Maintain protocol compatibility when refactoring (renaming classes, moving packages)
+> - Keep JSON payloads clean and readable
+> - Ensure binary compatibility between different versions of Agent and Host plugins
+
 ## Project Structure
 
 Protocol types should be defined in a shared module that both Agent and Host plugins depend on:
@@ -73,7 +82,7 @@ sealed interface MyEvent {
 
 - Use `sealed interface` for type-safe exhaustive handling
 - Annotate with `@Serializable` for JSON serialization
-- Use `@SerialName` to control JSON representation
+- **Always use `@SerialName`** on all sealed interface members to ensure protocol stability (see warning above)
 - Include all relevant data needed by the Host
 - Use optional parameters with defaults for backward compatibility
 
@@ -211,22 +220,37 @@ dependencies {
 }
 ```
 
-### SerialName Annotation
+### SerialName Annotation (Required)
 
-Use `@SerialName` to control the JSON representation:
+**Always use `@SerialName`** on all Event, Method, and MethodResult types.
+
+JetWhale uses `useClassDiscriminator = true`, which means that without `@SerialName`, the **fully qualified class name** is used as the type discriminator:
 
 ```kotlin
-@SerialName("button_clicked")  // JSON: {"type": "button_clicked", ...}
+// WITHOUT @SerialName (NOT RECOMMENDED)
 @Serializable
 data class ButtonClicked(val count: Int) : MyEvent
+// JSON: {"type": "com.example.myplugin.MyEvent.ButtonClicked", "count": 42}
+//       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//       Full class path is embedded - breaks if you rename or move the class!
 ```
 
-Without `@SerialName`, the class name is used as-is:
+With `@SerialName`, you control the discriminator value explicitly:
 
 ```kotlin
+// WITH @SerialName (RECOMMENDED)
+@SerialName("button_clicked")
 @Serializable
-data class ButtonClicked(val count: Int) : MyEvent  // JSON: {"type": "ButtonClicked", ...}
+data class ButtonClicked(val count: Int) : MyEvent
+// JSON: {"type": "button_clicked", "count": 42}
+//       ^^^^^^^^^^^^^^^^^^^^^
+//       Stable identifier - safe to refactor class names/packages
 ```
+
+This ensures:
+- **Protocol stability**: Renaming classes or moving packages won't break compatibility
+- **Cleaner JSON**: Shorter, more readable type discriminators
+- **Version compatibility**: Agent and Host can evolve independently
 
 ### JSON Format
 
