@@ -33,12 +33,12 @@ class CACertificateGenerator {
     ): CaMaterial {
         // Java built-in provider does not support some algorithms required to generate CA certificate.
         // So we use BouncyCastle as a security provider.
-        if (Security.getProvider("BC") == null) {
+        if (Security.getProvider(CertificateSpec.PROVIDER) == null) {
             Security.addProvider(BouncyCastleProvider())
         }
 
         // Generate key pair
-        val keyPairGenerator = KeyPairGenerator.getInstance("EC", "BC")
+        val keyPairGenerator = KeyPairGenerator.getInstance(CertificateSpec.ALGORITHM, CertificateSpec.PROVIDER)
         keyPairGenerator.initialize(256)
         val cakeyPair = keyPairGenerator.generateKeyPair()
 
@@ -71,14 +71,14 @@ class CACertificateGenerator {
             JcaX509ExtensionUtils().createSubjectKeyIdentifier(cakeyPair.public),
         ).build(
             // sign the certificate with private key
-            JcaContentSignerBuilder("SHA256withECDSA")
-                .setProvider("BC")
+            JcaContentSignerBuilder(CertificateSpec.SIGNATURE_ALGORITHM)
+                .setProvider(CertificateSpec.PROVIDER)
                 .build(cakeyPair.private)
         )
 
         // convert to X509Certificate
         val caCert = JcaX509CertificateConverter()
-            .setProvider("BC")
+            .setProvider(CertificateSpec.PROVIDER)
             .getCertificate(certHolder)
 
         // verify the certificate

@@ -79,13 +79,13 @@ class ServerCertificateIssuer {
             extUtils.createAuthorityKeyIdentifier(ca.cert),
         )
 
-        val signer = JcaContentSignerBuilder("SHA256withECDSA")
-            .setProvider("BC")
+        val signer = JcaContentSignerBuilder(CertificateSpec.SIGNATURE_ALGORITHM)
+            .setProvider(CertificateSpec.PROVIDER)
             .build(ca.keyPair.private)
 
         val certHolder = builder.build(signer)
         val cert = JcaX509CertificateConverter()
-            .setProvider("BC")
+            .setProvider(CertificateSpec.PROVIDER)
             .getCertificate(certHolder)
 
         cert.verify(ca.cert.publicKey)
