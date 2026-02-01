@@ -38,6 +38,8 @@ kermit = "2.0.8"
 
 aboutLibraries = "13.2.1"
 
+bouncyCastle = "1.83"
+
 [libraries]
 # Gradle Plugins
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -107,6 +109,10 @@ aboutLibrariesCore = { module = "com.mikepenz:aboutlibraries-core", version.ref 
 
 autoServiceKsp = { module = "dev.zacsweers.autoservice:auto-service-ksp", version.ref = "autoServiceKsp" }
 autoServiceAnnotations = { module = "com.google.auto.service:auto-service-annotations", version.ref = "autoServiceAnnotations" }
+
+# certs
+bouncyCastleBcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncyCastle" }
+bouncyCastleBcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle" }
 
 [bundles]
 gradlePlugins = [
