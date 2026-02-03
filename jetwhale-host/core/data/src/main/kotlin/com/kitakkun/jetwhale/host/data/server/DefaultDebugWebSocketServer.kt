@@ -106,7 +106,7 @@ class DefaultDebugWebSocketServer(
         serverMonitoringJob?.cancel()
 
         serverMonitoringJob = coroutineScope.launch {
-            coroutineScope.launch {
+            launch {
                 if (!settingsRepository.adbAutoPortMappingEnabledFlow.value) return@launch
                 var port: Int? = null
                 ktorWebSocketServer.statusFlow.collect { status ->
@@ -122,7 +122,7 @@ class DefaultDebugWebSocketServer(
                 }
             }
 
-            coroutineScope.launch {
+            launch {
                 ktorWebSocketServer.negotiationCompletedFlow.collect {
                     sessionRepository.registerDebugSession(
                         sessionId = it.session.sessionId,
@@ -132,14 +132,14 @@ class DefaultDebugWebSocketServer(
                 }
             }
 
-            coroutineScope.launch {
+            launch {
                 ktorWebSocketServer.sessionClosedFlow.collect { sessionId ->
                     sessionRepository.unregisterDebugSession(sessionId)
                     pluginsRepository.unloadPluginInstanceForSession(sessionId)
                 }
             }
 
-            coroutineScope.launch {
+            launch {
                 ktorWebSocketServer.receivedMessageFlow
                     .mapNotNull { (sessionId, payload) ->
                         val pluginMessage = json.decodeFromStringOrNull<JetWhaleDebuggeeEvent.PluginMessage>(payload) ?: return@mapNotNull null
