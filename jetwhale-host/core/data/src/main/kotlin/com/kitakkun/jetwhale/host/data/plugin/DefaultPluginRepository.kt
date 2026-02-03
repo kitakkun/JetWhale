@@ -23,6 +23,7 @@ import kotlin.io.path.Path
 class DefaultPluginRepository : PluginRepository {
     private val mutablePluginFactoriesFlow: MutableStateFlow<ImmutableMap<String, JetWhaleHostPluginFactory>> = MutableStateFlow(persistentMapOf())
     override val loadedPluginFactoriesFlow: Flow<Map<String, JetWhaleHostPluginFactory>> = mutablePluginFactoriesFlow
+    override val loadedPluginFactories: Map<String, JetWhaleHostPluginFactory> get() = mutablePluginFactoriesFlow.value
 
     private val mutableLoadedPlugins: MutableMap<String, JetWhaleRawHostPlugin> = mutableMapOf()
 

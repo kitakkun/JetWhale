@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface PluginRepository {
     val loadedPluginFactoriesFlow: Flow<Map<String, JetWhaleHostPluginFactory>>
+    val loadedPluginFactories: Map<String, JetWhaleHostPluginFactory>
 
     suspend fun loadPluginFactory(pluginJarPath: String)
     suspend fun unloadPlugin(pluginId: String)
