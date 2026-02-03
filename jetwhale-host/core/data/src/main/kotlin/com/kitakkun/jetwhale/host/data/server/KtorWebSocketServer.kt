@@ -3,7 +3,9 @@ package com.kitakkun.jetwhale.host.data.server
 import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationResult
 import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationStrategy
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
+import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStarted
@@ -38,6 +40,7 @@ import kotlin.coroutines.CoroutineContext
  * A Ktor-based WebSocket server for handling debug sessions.
  * This class mainly focuses on WebSocket connection management and message routing.
  */
+@SingleIn(AppScope::class)
 @Inject
 class KtorWebSocketServer(
     private val json: Json,
