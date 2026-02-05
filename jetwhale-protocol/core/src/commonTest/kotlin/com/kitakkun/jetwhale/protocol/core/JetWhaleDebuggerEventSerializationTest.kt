@@ -38,4 +38,56 @@ class JetWhaleDebuggerEventSerializationTest : JetWhaleSerializationTest() {
         assertEquals("req-2", request.requestId)
         assertEquals("doSomethingElse", request.payload)
     }
+
+    @Test
+    fun `plugin activated event should be serialized stably`() {
+        val event = JetWhaleDebuggerEvent.PluginActivated(
+            pluginId = "example-plugin",
+            pluginVersion = "1.0.0"
+        )
+
+        val encoded = json.encodeToString(event)
+
+        assertEquals(
+            expected = """{"type":"event/host/plugin_activated","pluginId":"example-plugin","pluginVersion":"1.0.0"}""",
+            actual = encoded
+        )
+    }
+
+    @Test
+    fun `plugin activated event should be deserializable`() {
+        val jsonString =
+            """{"type":"event/host/plugin_activated","pluginId":"example-plugin","pluginVersion":"1.0.0"}"""
+
+        val decoded = json.decodeFromString<JetWhaleDebuggerEvent>(jsonString)
+
+        val activated = assertIs<JetWhaleDebuggerEvent.PluginActivated>(decoded)
+        assertEquals("example-plugin", activated.pluginId)
+        assertEquals("1.0.0", activated.pluginVersion)
+    }
+
+    @Test
+    fun `plugin deactivated event should be serialized stably`() {
+        val event = JetWhaleDebuggerEvent.PluginDeactivated(
+            pluginId = "example-plugin"
+        )
+
+        val encoded = json.encodeToString(event)
+
+        assertEquals(
+            expected = """{"type":"event/host/plugin_deactivated","pluginId":"example-plugin"}""",
+            actual = encoded
+        )
+    }
+
+    @Test
+    fun `plugin deactivated event should be deserializable`() {
+        val jsonString =
+            """{"type":"event/host/plugin_deactivated","pluginId":"example-plugin"}"""
+
+        val decoded = json.decodeFromString<JetWhaleDebuggerEvent>(jsonString)
+
+        val deactivated = assertIs<JetWhaleDebuggerEvent.PluginDeactivated>(decoded)
+        assertEquals("example-plugin", deactivated.pluginId)
+    }
 }

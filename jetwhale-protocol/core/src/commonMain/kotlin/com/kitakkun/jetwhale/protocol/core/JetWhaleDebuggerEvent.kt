@@ -25,4 +25,28 @@ public sealed interface JetWhaleDebuggerEvent {
         val requestId: String,
         val payload: String,
     ) : JetWhaleDebuggerEvent
+
+    /**
+     * Notification sent from debugger when a plugin becomes available.
+     *
+     * @param pluginId The unique identifier of the activated plugin.
+     * @param pluginVersion The version of the activated plugin.
+     */
+    @SerialName(JetWhaleSerialNames.EVENT_HOST_PLUGIN_ACTIVATED)
+    @Serializable
+    public data class PluginActivated(
+        val pluginId: String,
+        val pluginVersion: String,
+    ) : JetWhaleDebuggerEvent
+
+    /**
+     * Notification sent from debugger when a plugin is no longer available.
+     *
+     * @param pluginId The unique identifier of the deactivated plugin.
+     */
+    @SerialName(JetWhaleSerialNames.EVENT_HOST_PLUGIN_DEACTIVATED)
+    @Serializable
+    public data class PluginDeactivated(
+        val pluginId: String,
+    ) : JetWhaleDebuggerEvent
 }

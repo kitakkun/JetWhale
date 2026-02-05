@@ -19,7 +19,7 @@ class JetWhaleHostNegotiationResponseSerializationTest : JetWhaleSerializationTe
         val encoded = json.encodeToString(response)
 
         assertEquals(
-            expected = """{"type":"negotiation/host/protocol_version_response/accept","version":1}""",
+            expected = """{"type":"negotiation/host/protocol_version_response/accept","version":3}""",
             actual = encoded
         )
     }
