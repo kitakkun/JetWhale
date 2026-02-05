@@ -6,16 +6,17 @@ import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
-import com.kitakkun.jetwhale.host.model.PluginRepository
+import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
+import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -38,7 +39,8 @@ class DefaultDebugWebSocketServer(
     private val json: Json,
     private val adbAutoWiringService: ADBAutoWiringService,
     private val sessionRepository: DebugSessionRepository,
-    private val pluginsRepository: PluginRepository,
+    private val pluginsRepository: PluginFactoryRepository,
+    private val pluginInstanceService: PluginInstanceService,
     private val settingsRepository: DebuggerSettingsRepository,
     private val enabledPluginsRepository: EnabledPluginsRepository,
     private val ktorWebSocketServer: KtorWebSocketServer,
@@ -153,7 +155,7 @@ class DefaultDebugWebSocketServer(
                 ktorWebSocketServer.sessionClosedFlow.collect { sessionId ->
                     sessionAvailablePlugins.remove(sessionId)
                     sessionRepository.unregisterDebugSession(sessionId)
-                    pluginsRepository.unloadPluginInstanceForSession(sessionId)
+                    pluginInstanceService.unloadPluginInstanceForSession(sessionId)
                 }
             }
 
@@ -179,9 +181,12 @@ class DefaultDebugWebSocketServer(
                             return@collect
                         }
 
-                        val pluginInstance = pluginsRepository.getOrPutPluginInstanceForSession(
+                        val pluginFactory = pluginsRepository.loadedPluginFactories[pluginId] ?: return@collect
+
+                        val pluginInstance = pluginInstanceService.getOrPutPluginInstanceForSession(
                             pluginId = pluginId,
-                            sessionId = sessionId
+                            sessionId = sessionId,
+                            pluginFactory = pluginFactory,
                         )
                         pluginInstance.onRawEvent(pluginMessage.payload)
                     }

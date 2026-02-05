@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.host.data.server.negotiation
 
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
-import com.kitakkun.jetwhale.host.model.PluginRepository
+import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAgentNegotiationRequest
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleHostNegotiationResponse
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
@@ -14,13 +14,13 @@ import kotlinx.coroutines.flow.first
 
 @Inject
 class PluginNegotiationStrategy(
-    private val pluginRepository: PluginRepository,
+    private val pluginFactoryRepository: PluginFactoryRepository,
     private val enabledPluginsRepository: EnabledPluginsRepository,
 ) : NegotiationStrategy<PluginNegotiationResult> {
     context(logger: Logger)
     override suspend fun DefaultWebSocketServerSession.negotiate(): PluginNegotiationResult {
         val request = receiveDeserialized<JetWhaleAgentNegotiationRequest.AvailablePlugins>()
-        val installedPluginsMeta = pluginRepository.loadedPluginFactories.values.map { it.meta }
+        val installedPluginsMeta = pluginFactoryRepository.loadedPluginFactories.values.map { it.meta }
         val enabledPluginIds = enabledPluginsRepository.enabledPluginIdsFlow.first()
         sendSerialized(
             JetWhaleHostNegotiationResponse.AvailablePluginsResponse(

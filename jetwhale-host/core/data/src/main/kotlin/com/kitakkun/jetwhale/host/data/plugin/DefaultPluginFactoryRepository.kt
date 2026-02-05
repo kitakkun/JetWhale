@@ -1,8 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
-import com.kitakkun.jetwhale.host.model.PluginRepository
+import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
-import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -20,12 +19,10 @@ import kotlin.io.path.Path
 @Inject
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
-class DefaultPluginRepository : PluginRepository {
+class DefaultPluginFactoryRepository : PluginFactoryRepository {
     private val mutablePluginFactoriesFlow: MutableStateFlow<ImmutableMap<String, JetWhaleHostPluginFactory>> = MutableStateFlow(persistentMapOf())
     override val loadedPluginFactoriesFlow: Flow<Map<String, JetWhaleHostPluginFactory>> = mutablePluginFactoriesFlow
     override val loadedPluginFactories: Map<String, JetWhaleHostPluginFactory> get() = mutablePluginFactoriesFlow.value
-
-    private val mutableLoadedPlugins: MutableMap<String, JetWhaleRawHostPlugin> = mutableMapOf()
 
     override suspend fun loadPluginFactory(pluginJarPath: String) {
         try {
@@ -47,21 +44,5 @@ class DefaultPluginRepository : PluginRepository {
 
     override suspend fun unloadPlugin(pluginId: String) {
         println("Unloaded plugin: $pluginId")
-    }
-
-    override suspend fun getOrPutPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleRawHostPlugin {
-        val key = "$pluginId-$sessionId"
-        return mutableLoadedPlugins.getOrPut(key) {
-            val factory = mutablePluginFactoriesFlow.value[pluginId] ?: throw IllegalArgumentException("Plugin with ID $pluginId is not loaded.")
-            factory.createPlugin()
-        }
-    }
-
-    override fun unloadPluginInstanceForSession(sessionId: String) {
-        val keysToRemove = mutableLoadedPlugins.keys.filter { it.endsWith("-$sessionId") }
-        for (key in keysToRemove) {
-            mutableLoadedPlugins[key]?.onDispose()
-            mutableLoadedPlugins.remove(key)
-        }
     }
 }
