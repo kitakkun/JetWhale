@@ -83,6 +83,10 @@ internal class DefaultJetWhaleMessagingService(
     private fun CoroutineScope.attachSenderToPlugin(plugin: AgentPlugin) {
         JetWhaleLogger.v("Attaching sender to plugin: ${plugin.pluginId}")
         plugin.attachSender { payload ->
+            if (plugin.pluginId !in activatedPluginIds) {
+                JetWhaleLogger.w("Ignoring event from deactivated plugin: ${plugin.pluginId}")
+                return@attachSender
+            }
             val event = JetWhaleDebuggeeEvent.PluginMessage(
                 pluginId = plugin.pluginId,
                 payload = payload,
@@ -114,6 +118,10 @@ internal class DefaultJetWhaleMessagingService(
     private suspend fun handleDebuggerEvent(event: JetWhaleDebuggerEvent) {
         when (event) {
             is JetWhaleDebuggerEvent.MethodRequest -> {
+                if (event.pluginId !in activatedPluginIds) {
+                    JetWhaleLogger.w("Ignoring method request for deactivated plugin: ${event.pluginId}")
+                    return
+                }
                 val plugin = plugins.firstOrNull { it.pluginId == event.pluginId } ?: return
                 val methodResult = plugin.onRawMethod(event.payload)
 

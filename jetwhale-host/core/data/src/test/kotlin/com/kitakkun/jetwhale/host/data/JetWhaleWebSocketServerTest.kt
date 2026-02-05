@@ -16,6 +16,7 @@ class JetWhaleWebSocketServerTest {
             pluginsRepository = mock(),
             sessionRepository = mock(),
             settingsRepository = mock(),
+            enabledPluginsRepository = mock(),
             ktorWebSocketServer = mock<KtorWebSocketServer>(),
         )
         runBlocking {
