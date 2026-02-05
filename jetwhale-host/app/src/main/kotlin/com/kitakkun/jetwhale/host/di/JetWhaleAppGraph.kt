@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldScreenContext
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
+import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneRepository
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
@@ -37,6 +38,7 @@ interface JetWhaleAppGraph :
     val debugWebSocketServer: DebugWebSocketServer
     val pluginComposeSceneRepository: PluginComposeSceneRepository
     val logCaptureService: LogCaptureService
+    val enabledPluginsRepository: EnabledPluginsRepository
 
     @Provides
     fun provideSwrClient(): SwrClientPlus = SwrCachePlus(SwrCachePlusPolicy(SwrCacheScope()))

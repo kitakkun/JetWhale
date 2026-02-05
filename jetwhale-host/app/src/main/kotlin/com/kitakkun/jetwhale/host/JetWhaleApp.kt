@@ -21,6 +21,7 @@ import com.kitakkun.jetwhale.host.navigation.addSingleTop
 import com.kitakkun.jetwhale.host.ui.AppEnvironment
 import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
 import io.github.takahirom.rin.rememberRetained
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.modules.SerializersModule
 import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberSubscription
@@ -50,6 +51,23 @@ fun JetWhaleApp() {
             // dispose compose scenes when plugin sessions are closed
             // this cannot be done in the debugWebSocketServer directly because of circular dependencies
             appGraph.pluginComposeSceneRepository.disposePluginSceneForSession(it)
+        }
+    }
+
+    LaunchedEffect(backStack) {
+        var previousEnabledPluginIds: Set<String> = appGraph.enabledPluginsRepository.enabledPluginIdsFlow.first()
+        appGraph.enabledPluginsRepository.enabledPluginIdsFlow.collect { enabledPluginIds ->
+            val disabledPluginIds = previousEnabledPluginIds - enabledPluginIds
+            previousEnabledPluginIds = enabledPluginIds
+
+            // automatically remove disabled plugin entries from back stack
+            backStack.removeAll { navKey ->
+                when (navKey) {
+                    is PluginNavKey -> navKey.pluginId in disabledPluginIds
+                    is PluginPopoutNavKey -> navKey.pluginId in disabledPluginIds
+                    else -> false
+                }
+            }
         }
     }
 
