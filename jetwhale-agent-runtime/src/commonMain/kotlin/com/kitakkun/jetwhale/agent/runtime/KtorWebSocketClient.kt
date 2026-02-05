@@ -11,7 +11,6 @@ import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
@@ -38,7 +37,7 @@ internal class KtorWebSocketClient(
     override suspend fun openConnection(
         host: String,
         port: Int,
-    ): Flow<String> {
+    ): JetWhaleConnection {
         val session = client.webSocketSession(
             host = host,
             port = port,
@@ -47,7 +46,7 @@ internal class KtorWebSocketClient(
         return session.configureSession()
     }
 
-    private suspend fun DefaultClientWebSocketSession.configureSession(): Flow<String> {
+    private suspend fun DefaultClientWebSocketSession.configureSession(): JetWhaleConnection {
         JetWhaleLogger.v("Configuring WebSocket session")
 
         val negotiationResult = with(negotiationStrategy) { negotiate() }
@@ -70,7 +69,12 @@ internal class KtorWebSocketClient(
 
         JetWhaleLogger.i("WebSocket session established")
 
-        return incoming.consumeAsFlow().filterIsInstance<Frame.Text>().map { it.readText() }
+        val messageFlow = incoming.consumeAsFlow().filterIsInstance<Frame.Text>().map { it.readText() }
+
+        return JetWhaleConnection(
+            negotiationResult = negotiationResult,
+            messageFlow = messageFlow,
+        )
     }
 
     private fun HttpClientConfig<*>.configureHttpClient() {

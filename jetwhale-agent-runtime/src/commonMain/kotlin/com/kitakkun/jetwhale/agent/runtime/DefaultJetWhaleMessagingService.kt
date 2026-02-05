@@ -24,6 +24,7 @@ internal class DefaultJetWhaleMessagingService(
     private var reconnectDelayMillis: Long = DEFAULT_RECONNECT_DELAY_MILLIS
     private var hasConnectedOnce: Boolean = false
     private var hasLoggedInitialConnectionFailure: Boolean = false
+    private val activatedPluginIds: MutableSet<String> = mutableSetOf()
 
     override fun startService(host: String, port: Int) {
         JetWhaleLogger.i("Starting JetWhale service...")
@@ -36,10 +37,12 @@ internal class DefaultJetWhaleMessagingService(
                     hasConnectedOnce -> {
                         JetWhaleLogger.w("Connection closed: ${e.message}", e)
                     }
+
                     !hasLoggedInitialConnectionFailure -> {
                         hasLoggedInitialConnectionFailure = true
                         JetWhaleLogger.w("Connection failed: ${e.message}. Is the debugger running? Is the port correct?")
                     }
+
                     else -> {
                         JetWhaleLogger.d("Connection failed: ${e.message}")
                     }
@@ -57,30 +60,39 @@ internal class DefaultJetWhaleMessagingService(
     }
 
     private suspend fun CoroutineScope.openConnectionAndCollectServerMessages(host: String, port: Int) {
-        val serverRawJsonMessageFlow = socketClient.openConnection(host, port)
+        val connectionResult = socketClient.openConnection(host, port)
         hasConnectedOnce = true
         JetWhaleLogger.d("Connection established to $host:$port")
         reconnectDelayMillis = DEFAULT_RECONNECT_DELAY_MILLIS
 
-        attachSenderToPlugins()
-        collectServerMessages(serverRawJsonMessageFlow)
+        val availablePluginIds = connectionResult.negotiationResult.availablePluginIds
+
+        activatedPluginIds.clear()
+        activatedPluginIds.addAll(availablePluginIds)
+        attachSenderToPlugins(availablePluginIds)
+        collectServerMessages(connectionResult.messageFlow)
     }
 
-    private fun CoroutineScope.attachSenderToPlugins() {
-        JetWhaleLogger.v("Attaching sender to each plugin")
-        plugins.forEach { plugin ->
-            plugin.attachSender { payload ->
-                val event = JetWhaleDebuggeeEvent.PluginMessage(
+    private fun CoroutineScope.attachSenderToPlugins(availablePluginIds: List<String>) {
+        JetWhaleLogger.v("Attaching sender to available plugins: $availablePluginIds")
+        plugins.filter { it.pluginId in availablePluginIds }.forEach { plugin ->
+            attachSenderToPlugin(plugin)
+        }
+    }
+
+    private fun CoroutineScope.attachSenderToPlugin(plugin: AgentPlugin) {
+        JetWhaleLogger.v("Attaching sender to plugin: ${plugin.pluginId}")
+        plugin.attachSender { payload ->
+            val event = JetWhaleDebuggeeEvent.PluginMessage(
+                pluginId = plugin.pluginId,
+                payload = payload,
+            )
+            val message = json.encodeToString(event)
+            launch {
+                socketClient.sendMessage(
                     pluginId = plugin.pluginId,
-                    payload = payload,
+                    message = message,
                 )
-                val message = json.encodeToString(event)
-                launch {
-                    socketClient.sendMessage(
-                        pluginId = plugin.pluginId,
-                        message = message,
-                    )
-                }
             }
         }
     }
@@ -115,6 +127,26 @@ internal class DefaultJetWhaleMessagingService(
                     )
                 )
                 JetWhaleLogger.v("Sent method result for request: ${event.requestId}")
+            }
+
+            is JetWhaleDebuggerEvent.PluginActivated -> {
+                JetWhaleLogger.i("Plugin activated: ${event.pluginId}")
+                if (activatedPluginIds.add(event.pluginId)) {
+                    val plugin = plugins.firstOrNull { it.pluginId == event.pluginId }
+                    if (plugin != null) {
+                        with(coroutineScope) {
+                            attachSenderToPlugin(plugin)
+                        }
+                    }
+                }
+            }
+
+            is JetWhaleDebuggerEvent.PluginDeactivated -> {
+                JetWhaleLogger.i("Plugin deactivated: ${event.pluginId}")
+                if (activatedPluginIds.remove(event.pluginId)) {
+                    val plugin = plugins.firstOrNull { it.pluginId == event.pluginId }
+                    plugin?.detachSender()
+                }
             }
         }
     }

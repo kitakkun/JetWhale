@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.first
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 /**
  * Native and Web targets are ignored because the Ktor WebSocket test engine is not supported there.
@@ -27,10 +28,10 @@ import kotlin.test.assertFailsWith
 @IgnoreWeb
 @IgnoreNative
 class KtorWebSocketClientTest {
-    @Suppress("UnusedFlow")
     @Test
     fun `test fail to connect to non-existent server`() = testApplication {
-        val webSocketClient = KtorWebSocketClient(json, client)
+        val negotiationStrategy = DefaultClientSessionNegotiationStrategy(emptyList())
+        val webSocketClient = KtorWebSocketClient(json, negotiationStrategy, client)
 
         assertFailsWith<Throwable> {
             webSocketClient.openConnection(
@@ -40,67 +41,27 @@ class KtorWebSocketClientTest {
         }
     }
 
-    @Suppress("UnusedFlow")
     @Test
     fun `test connection established successfully`() = testApplication {
         configureTestServer()
 
-        val webSocketClient = KtorWebSocketClient(json, client)
+        val negotiationStrategy = DefaultClientSessionNegotiationStrategy(emptyList())
+        val webSocketClient = KtorWebSocketClient(json, negotiationStrategy, client)
 
-        webSocketClient.openConnection(
+        val result = webSocketClient.openConnection(
             host = TEST_SERVER_HOST,
             port = TEST_SERVER_PORT,
         )
+
+        assertTrue(result.availablePluginIds.isEmpty())
     }
 
-    @Suppress("UnusedFlow")
-    @Test
-    fun `test session Id generated from server`() = testApplication {
-        configureTestServer()
-
-        val webSocketClient = KtorWebSocketClient(json, client)
-
-        webSocketClient.openConnection(
-            host = TEST_SERVER_HOST,
-            port = TEST_SERVER_PORT,
-        )
-
-        assertEquals(webSocketClient.sessionId, "session-1")
-    }
-
-    @Suppress("UnusedFlow")
-    @Test
-    fun `test session Id reused after resuming connection`() = testApplication {
-        configureTestServer()
-
-        val websocketClient = KtorWebSocketClient(json, client)
-
-        websocketClient.openConnection(
-            host = TEST_SERVER_HOST,
-            port = TEST_SERVER_PORT,
-        )
-
-        val firstSessionId = websocketClient.sessionId!!
-
-        // emulate unexpected disconnection
-        client.close()
-
-        websocketClient.openConnection(
-            host = TEST_SERVER_HOST,
-            port = TEST_SERVER_PORT,
-        )
-
-        val secondSessionId = websocketClient.sessionId!!
-
-        assertEquals(firstSessionId, secondSessionId)
-    }
-
-    @Suppress("UnusedFlow")
     @Test
     fun `test send message`() = testApplication {
         configureTestServer()
 
-        val webSocketClient = KtorWebSocketClient(json, client)
+        val negotiationStrategy = DefaultClientSessionNegotiationStrategy(emptyList())
+        val webSocketClient = KtorWebSocketClient(json, negotiationStrategy, client)
 
         webSocketClient.openConnection(
             host = TEST_SERVER_HOST,
@@ -116,16 +77,17 @@ class KtorWebSocketClientTest {
             send("serverMessage")
         }
 
-        val webSocketClient = KtorWebSocketClient(json, client)
+        val negotiationStrategy = DefaultClientSessionNegotiationStrategy(emptyList())
+        val webSocketClient = KtorWebSocketClient(json, negotiationStrategy, client)
 
-        val messageFlow = webSocketClient.openConnection(
+        val connectionResult = webSocketClient.openConnection(
             host = TEST_SERVER_HOST,
             port = TEST_SERVER_PORT,
         )
 
         assertEquals(
             expected = "serverMessage",
-            actual = messageFlow.first()
+            actual = connectionResult.messageFlow.first()
         )
     }
 
@@ -147,6 +109,7 @@ class KtorWebSocketClientTest {
 
         routing {
             webSocket {
+                // Protocol version negotiation
                 val protocolVersionRequest: JetWhaleAgentNegotiationRequest.ProtocolVersion = receiveDeserialized()
                 sendSerialized(
                     JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept(
@@ -154,9 +117,18 @@ class KtorWebSocketClientTest {
                     )
                 )
 
+                // Session negotiation
                 val sessionNegotiationRequest: JetWhaleAgentNegotiationRequest.Session = receiveDeserialized()
                 val sessionId = sessionNegotiationRequest.sessionId ?: "session-${sessionNumber++}"
                 sendSerialized(JetWhaleHostNegotiationResponse.AcceptSession(sessionId))
+
+                // Capabilities negotiation
+                val capabilitiesRequest: JetWhaleAgentNegotiationRequest.Capabilities = receiveDeserialized()
+                sendSerialized(JetWhaleHostNegotiationResponse.CapabilitiesResponse(capabilities = emptyMap()))
+
+                // Plugins negotiation
+                val pluginsRequest: JetWhaleAgentNegotiationRequest.AvailablePlugins = receiveDeserialized()
+                sendSerialized(JetWhaleHostNegotiationResponse.AvailablePluginsResponse(availablePlugins = emptyList(), incompatiblePlugins = emptyList()))
 
                 extraWebSocketSessionHandler()
 
