@@ -50,7 +50,7 @@ fun JetWhaleApp() {
             }
             // dispose compose scenes when plugin sessions are closed
             // this cannot be done in the debugWebSocketServer directly because of circular dependencies
-            appGraph.pluginComposeSceneRepository.disposePluginSceneForSession(it)
+            appGraph.pluginComposeSceneService.disposePluginSceneForSession(it)
         }
     }
 

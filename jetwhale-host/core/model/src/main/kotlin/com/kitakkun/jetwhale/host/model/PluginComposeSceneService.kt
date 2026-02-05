@@ -4,7 +4,7 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.unit.Density
 
-interface PluginComposeSceneRepository {
+interface PluginComposeSceneService {
     @OptIn(InternalComposeUiApi::class)
     suspend fun getOrCreatePluginScene(
         pluginId: String,

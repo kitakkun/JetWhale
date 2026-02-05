@@ -6,8 +6,9 @@ import androidx.compose.ui.scene.PlatformLayersComposeScene
 import androidx.compose.ui.unit.Density
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneRepository
-import com.kitakkun.jetwhale.host.model.PluginRepository
+import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
+import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -19,11 +20,12 @@ import kotlinx.coroutines.CoroutineScope
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
 @Inject
-class DefaultPluginComposeSceneRepository(
+class DefaultPluginComposeSceneService(
     private val pluginBridgeProvider: DynamicPluginBridgeProvider,
-    private val pluginRepository: PluginRepository,
+    private val pluginFactoryRepository: PluginFactoryRepository,
+    private val pluginInstanceService: PluginInstanceService,
     private val debugWebSocketServer: DebugWebSocketServer,
-) : PluginComposeSceneRepository {
+) : PluginComposeSceneService {
     private val pluginScenes = mutableMapOf<String, ComposeScene>()
 
     override suspend fun getOrCreatePluginScene(
@@ -32,9 +34,10 @@ class DefaultPluginComposeSceneRepository(
         density: Density,
     ): ComposeScene {
         println("Creating plugin scene for pluginId=$pluginId, sessionId=$sessionId")
-        val pluginInstance = pluginRepository.getOrPutPluginInstanceForSession(
+        val pluginInstance = pluginInstanceService.getOrPutPluginInstanceForSession(
             pluginId = pluginId,
             sessionId = sessionId,
+            pluginFactory = pluginFactoryRepository.loadedPluginFactories.getValue(pluginId)
         )
         return pluginScenes.getOrPut("$pluginId:$sessionId") {
             val debugOperationContext = object : JetWhaleDebugOperationContext<String, String> {
