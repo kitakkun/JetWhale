@@ -13,13 +13,13 @@ class JetWhaleHostNegotiationResponseSerializationTest : JetWhaleSerializationTe
     @Test
     fun `protocol version accept response should be serialized stably`() {
         val response = JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept(
-            version = JetWhaleProtocolVersion.Current
+            version = JetWhaleProtocolVersion(1)
         )
 
         val encoded = json.encodeToString(response)
 
         assertEquals(
-            expected = """{"type":"negotiation/host/protocol_version_response/accept","version":2}""",
+            expected = """{"type":"negotiation/host/protocol_version_response/accept","version":1}""",
             actual = encoded
         )
     }
