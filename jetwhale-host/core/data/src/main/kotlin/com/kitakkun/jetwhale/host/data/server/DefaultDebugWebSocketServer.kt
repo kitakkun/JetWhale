@@ -57,7 +57,7 @@ class DefaultDebugWebSocketServer(
     private val sessionAvailablePlugins: ConcurrentHashMap<String, List<JetWhalePluginInfo>> = ConcurrentHashMap()
 
     override suspend fun start(host: String, port: Int) {
-        setupAdbAutoWiringIfNeeded()
+        subscribeServerEvents()
         ktorWebSocketServer.start(
             host = host,
             port = port,
@@ -114,7 +114,7 @@ class DefaultDebugWebSocketServer(
     }
 
     @OptIn(InternalJetWhaleApi::class)
-    private fun setupAdbAutoWiringIfNeeded() {
+    private fun subscribeServerEvents() {
         serverMonitoringJob?.cancel()
 
         serverMonitoringJob = coroutineScope.launch {
