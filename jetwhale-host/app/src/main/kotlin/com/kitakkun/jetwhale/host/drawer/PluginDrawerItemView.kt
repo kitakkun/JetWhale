@@ -33,8 +33,11 @@ fun PluginDrawerItemView(
     inactiveIconResource: PluginIconResource?,
     onClick: () -> Unit,
     popupMenuContent: (@Composable ColumnScope.() -> Unit)? = null,
+    modifier: Modifier = Modifier
 ) {
-    Box {
+    Box(
+        modifier = modifier,
+    ) {
         NavigationDrawerItem(
             label = { Text(name) },
             icon = {

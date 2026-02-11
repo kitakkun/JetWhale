@@ -18,10 +18,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -37,6 +40,7 @@ import com.kitakkun.jetwhale.host.plugins
 import com.kitakkun.jetwhale.host.popout
 import com.kitakkun.jetwhale.host.puzzle_outlined
 import com.kitakkun.jetwhale.host.unavailable_plugins
+import io.github.takahirom.rin.rememberRetained
 import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -107,97 +111,132 @@ fun ExpandedToolingDrawerView(
                 }
 
                 else -> {
+                    var enabledPluginsExpanded by rememberRetained { mutableStateOf(true) }
+                    var disabledPluginsExpanded by rememberRetained { mutableStateOf(true) }
+                    var unavailablePluginsExpanded by rememberRetained { mutableStateOf(true) }
+
+                    val enabledPlugins by rememberUpdatedState(plugins.filter { it.pluginAvailability == PluginAvailability.Enabled })
+                    val disabledPlugins by rememberUpdatedState(plugins.filter { it.pluginAvailability == PluginAvailability.Disabled })
+                    val unavailablePlugins by rememberUpdatedState(plugins.filter { it.pluginAvailability == PluginAvailability.Unavailable })
+
                     LazyColumn(
                         modifier = Modifier.weight(1f)
                     ) {
-                        item {
-                            Text(
-                                text = stringResource(Res.string.enabled_plugins),
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
-                        items(plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }) {
-                            PluginDrawerItemView(
-                                enabled = true,
-                                name = it.name,
-                                activeIconResource = it.activeIconResource,
-                                inactiveIconResource = it.inactiveIconResource,
-                                selected = it.id == selectedPluginId,
-                                onClick = { onClickPlugin(it) },
-                                popupMenuContent = {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(Res.string.disable)) },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = Icons.Default.RemoveCircle,
-                                                contentDescription = null,
+                        if (enabledPlugins.isNotEmpty()) {
+                            item {
+                                PluginAccordionHeadingView(
+                                    title = stringResource(Res.string.enabled_plugins),
+                                    expanded = enabledPluginsExpanded,
+                                    onExpandToggle = { enabledPluginsExpanded = !enabledPluginsExpanded },
+                                    pluginCount = enabledPlugins.size,
+                                )
+                            }
+                            if (enabledPluginsExpanded) {
+                                items(
+                                    items = enabledPlugins,
+                                    key = { it.id },
+                                ) {
+                                    PluginDrawerItemView(
+                                        enabled = true,
+                                        name = it.name,
+                                        activeIconResource = it.activeIconResource,
+                                        inactiveIconResource = it.inactiveIconResource,
+                                        selected = it.id == selectedPluginId,
+                                        onClick = { onClickPlugin(it) },
+                                        popupMenuContent = {
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(Res.string.disable)) },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Default.RemoveCircle,
+                                                        contentDescription = null,
+                                                    )
+                                                },
+                                                onClick = { onSetPluginEnabled(it.id, false) },
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(Res.string.popout)) },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Default.ArrowOutward,
+                                                        contentDescription = null,
+                                                    )
+                                                },
+                                                onClick = { onClickPopout(it) }
                                             )
                                         },
-                                        onClick = { onSetPluginEnabled(it.id, false) },
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(Res.string.popout)) },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = Icons.Default.ArrowOutward,
-                                                contentDescription = null,
-                                            )
-                                        },
-                                        onClick = { onClickPopout(it) }
-                                    )
-                                },
-                            )
-                        }
-                        item {
-                            Text(
-                                text = stringResource(Res.string.disabled_plugins),
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
-                        items(plugins.filter { it.pluginAvailability == PluginAvailability.Disabled }) {
-                            PluginDrawerItemView(
-                                enabled = false,
-                                name = it.name,
-                                activeIconResource = it.activeIconResource,
-                                inactiveIconResource = it.inactiveIconResource,
-                                selected = false,
-                                onClick = {
-                                    // do nothing
-                                },
-                                popupMenuContent = {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(Res.string.enable)) },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = Icons.Default.AddCircle,
-                                                contentDescription = null,
-                                            )
-                                        },
-                                        onClick = { onSetPluginEnabled(it.id, true) },
+                                        modifier = Modifier.animateItem(),
                                     )
                                 }
-                            )
+                            }
                         }
-                        item {
-                            Text(
-                                text = stringResource(Res.string.unavailable_plugins),
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(16.dp)
-                            )
+                        if (disabledPlugins.isNotEmpty()) {
+                            item {
+                                PluginAccordionHeadingView(
+                                    title = stringResource(Res.string.disabled_plugins),
+                                    expanded = disabledPluginsExpanded,
+                                    onExpandToggle = { disabledPluginsExpanded = !disabledPluginsExpanded },
+                                    pluginCount = disabledPlugins.size,
+                                )
+                            }
+                            if (disabledPluginsExpanded) {
+                                items(
+                                    items = disabledPlugins,
+                                    key = { it.id },
+                                ) {
+                                    PluginDrawerItemView(
+                                        enabled = false,
+                                        name = it.name,
+                                        activeIconResource = it.activeIconResource,
+                                        inactiveIconResource = it.inactiveIconResource,
+                                        selected = false,
+                                        onClick = {
+                                            // do nothing
+                                        },
+                                        popupMenuContent = {
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(Res.string.enable)) },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Default.AddCircle,
+                                                        contentDescription = null,
+                                                    )
+                                                },
+                                                onClick = { onSetPluginEnabled(it.id, true) },
+                                            )
+                                        },
+                                        modifier = Modifier.animateItem(),
+                                    )
+                                }
+                            }
                         }
-                        items(plugins.filter { it.pluginAvailability == PluginAvailability.Unavailable }) {
-                            PluginDrawerItemView(
-                                enabled = false,
-                                name = it.name,
-                                activeIconResource = it.activeIconResource,
-                                inactiveIconResource = it.inactiveIconResource,
-                                selected = false,
-                                onClick = {
-                                    // do nothing
-                                },
-                            )
+                        if (unavailablePlugins.isNotEmpty()) {
+                            item {
+                                PluginAccordionHeadingView(
+                                    title = stringResource(Res.string.unavailable_plugins),
+                                    expanded = unavailablePluginsExpanded,
+                                    onExpandToggle = { unavailablePluginsExpanded = !unavailablePluginsExpanded },
+                                    pluginCount = unavailablePlugins.size,
+                                )
+                            }
+                            if (unavailablePluginsExpanded) {
+                                items(
+                                    items = unavailablePlugins,
+                                    key = { it.id },
+                                ) {
+                                    PluginDrawerItemView(
+                                        enabled = false,
+                                        name = it.name,
+                                        activeIconResource = it.activeIconResource,
+                                        inactiveIconResource = it.inactiveIconResource,
+                                        selected = false,
+                                        onClick = {
+                                            // do nothing
+                                        },
+                                        modifier = Modifier.animateItem(),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
