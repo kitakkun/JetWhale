@@ -82,10 +82,7 @@ class KtorWebSocketClientTest {
 
     @Test
     fun `test receive debugger event`() = testApplication {
-        val expectedEvent = JetWhaleDebuggerEvent.PluginActivated(
-            pluginId = "testPlugin",
-            pluginVersion = "1.0.0",
-        )
+        val expectedEvent = JetWhaleDebuggerEvent.PluginActivated(pluginId = "testPlugin")
 
         configureTestServer {
             sendSerialized(expectedEvent)

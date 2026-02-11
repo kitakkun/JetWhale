@@ -150,12 +150,9 @@ class DefaultDebugWebSocketServer(
             previousEnabledPluginIds = enabledPluginIds
 
             newlyEnabledPluginIds.forEach { pluginId ->
-                val loadedFactories = pluginsRepository.loadedPluginFactories
-                val factory = loadedFactories[pluginId] ?: return@forEach
                 ktorWebSocketServer.broadcastToSessions(
                     event = JetWhaleDebuggerEvent.PluginActivated(
                         pluginId = pluginId,
-                        pluginVersion = factory.meta.version, // TODO: do we really need this?
                     )
                 )
             }
