@@ -3,6 +3,10 @@ package com.kitakkun.jetwhale.host.data.server
 import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationResult
 import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationStrategy
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
+import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
+import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -19,17 +23,18 @@ import io.ktor.server.routing.routing
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.server.websocket.WebSocketServerSession
 import io.ktor.server.websocket.WebSockets
+import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
 import io.ktor.util.logging.Logger
 import io.ktor.websocket.Frame
 import io.ktor.websocket.closeExceptionally
 import io.ktor.websocket.readText
-import io.ktor.websocket.send
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -52,8 +57,8 @@ class KtorWebSocketServer(
     private val mutableStatusFlow: MutableStateFlow<DebugWebSocketServerStatus> = MutableStateFlow(DebugWebSocketServerStatus.Stopped)
     val statusFlow: StateFlow<DebugWebSocketServerStatus> = mutableStatusFlow
 
-    private val mutableMessageFlow: MutableSharedFlow<Pair<String, String>> = MutableSharedFlow()
-    val receivedMessageFlow: SharedFlow<Pair<String, String>> = mutableMessageFlow
+    private val mutableDebuggeeEventFlow: MutableSharedFlow<Pair<String, JetWhaleDebuggeeEvent>> = MutableSharedFlow()
+    val debuggeeEventFlow: SharedFlow<Pair<String, JetWhaleDebuggeeEvent>> = mutableDebuggeeEventFlow
 
     private val mutableSessionClosedFlow: MutableSharedFlow<String> = MutableSharedFlow()
     val sessionClosedFlow: SharedFlow<String> = mutableSessionClosedFlow
@@ -114,6 +119,7 @@ class KtorWebSocketServer(
         }
     }
 
+    @OptIn(InternalJetWhaleApi::class)
     context(log: Logger)
     private suspend fun DefaultWebSocketServerSession.configureSession() {
         val negotiationResult = with(negotiationStrategy) { negotiate() }
@@ -132,8 +138,9 @@ class KtorWebSocketServer(
                 val receiveJob = launch {
                     incoming.receiveAsFlow()
                         .filterIsInstance<Frame.Text>()
+                        .mapNotNull { json.decodeFromStringOrNull<JetWhaleDebuggeeEvent>(it.readText()) }
                         .collect {
-                            mutableMessageFlow.emit(sessionId to it.readText())
+                            mutableDebuggeeEventFlow.emit(sessionId to it)
                         }
                 }
 
@@ -153,8 +160,8 @@ class KtorWebSocketServer(
         }
     }
 
-    suspend fun sendToSession(sessionId: String, message: String) {
-        sessions[sessionId]?.send(message)
+    suspend fun sendToSession(sessionId: String, event: JetWhaleDebuggerEvent) {
+        sessions[sessionId]?.sendSerialized(event)
     }
 
     fun getSessionCoroutineContext(sessionId: String): CoroutineContext {

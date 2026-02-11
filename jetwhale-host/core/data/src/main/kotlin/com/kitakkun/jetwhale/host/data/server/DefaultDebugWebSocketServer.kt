@@ -12,7 +12,6 @@ import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
-import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -23,12 +22,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.serialization.json.Json
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -36,7 +33,6 @@ import java.util.concurrent.ConcurrentHashMap
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class DefaultDebugWebSocketServer(
-    private val json: Json,
     private val adbAutoWiringService: ADBAutoWiringService,
     private val sessionRepository: DebugSessionRepository,
     private val pluginsRepository: PluginFactoryRepository,
@@ -80,22 +76,18 @@ class DefaultDebugWebSocketServer(
 
         ktorWebSocketServer.sendToSession(
             sessionId = sessionId,
-            message = json.encodeToString(
-                JetWhaleDebuggerEvent.MethodRequest(
-                    pluginId = pluginId,
-                    requestId = requestId,
-                    payload = payload,
-                )
+            event = JetWhaleDebuggerEvent.MethodRequest(
+                pluginId = pluginId,
+                requestId = requestId,
+                payload = payload,
             )
         )
 
         return withTimeoutOrNull(METHOD_RESULT_WAIT_TIMEOUT) {
-            val response = ktorWebSocketServer.receivedMessageFlow
+            val response = ktorWebSocketServer.debuggeeEventFlow
                 .filter { it.first == sessionId }
-                .mapNotNull { json.decodeFromStringOrNull<JetWhaleDebuggeeEvent>(it.second) }
-                .filterIsInstance<JetWhaleDebuggeeEvent.MethodResultResponse>()
-                .filter { it.requestId == requestId }
-                .first()
+                .mapNotNull { it.second as? JetWhaleDebuggeeEvent.MethodResultResponse }
+                .first { it.requestId == requestId }
 
             when (response) {
                 is JetWhaleDebuggeeEvent.MethodResultResponse.Failure -> {
@@ -168,13 +160,11 @@ class DefaultDebugWebSocketServer(
             }
 
             launch {
-                ktorWebSocketServer.receivedMessageFlow
-                    .mapNotNull { (sessionId, payload) ->
-                        val pluginMessage = json.decodeFromStringOrNull<JetWhaleDebuggeeEvent.PluginMessage>(payload) ?: return@mapNotNull null
-                        sessionId to pluginMessage
-                    }
-                    .collect { (sessionId, pluginMessage) ->
-                        val pluginId = pluginMessage.pluginId
+                ktorWebSocketServer.debuggeeEventFlow
+                    .collect { (sessionId, event) ->
+                        if (event !is JetWhaleDebuggeeEvent.PluginMessage) return@collect
+
+                        val pluginId = event.pluginId
 
                         // Skip if the plugin is not enabled
                         if (!enabledPluginsRepository.isPluginEnabled(pluginId)) {
@@ -188,7 +178,7 @@ class DefaultDebugWebSocketServer(
                             sessionId = sessionId,
                             pluginFactory = pluginFactory,
                         )
-                        pluginInstance.onRawEvent(pluginMessage.payload)
+                        pluginInstance.onRawEvent(event.payload)
                     }
             }
         }
@@ -216,11 +206,9 @@ class DefaultDebugWebSocketServer(
                         if (factory != null) {
                             ktorWebSocketServer.sendToSession(
                                 sessionId = sessionId,
-                                message = json.encodeToString(
-                                    JetWhaleDebuggerEvent.PluginActivated(
-                                        pluginId = pluginId,
-                                        pluginVersion = factory.meta.version,
-                                    )
+                                event = JetWhaleDebuggerEvent.PluginActivated(
+                                    pluginId = pluginId,
+                                    pluginVersion = factory.meta.version,
                                 )
                             )
                         }
@@ -233,11 +221,7 @@ class DefaultDebugWebSocketServer(
                     if (wasAvailable) {
                         ktorWebSocketServer.sendToSession(
                             sessionId = sessionId,
-                            message = json.encodeToString(
-                                JetWhaleDebuggerEvent.PluginDeactivated(
-                                    pluginId = pluginId,
-                                )
-                            )
+                            event = JetWhaleDebuggerEvent.PluginDeactivated(pluginId = pluginId)
                         )
                     }
                 }
@@ -265,11 +249,9 @@ class DefaultDebugWebSocketServer(
                     if (pluginInfo != null && factory != null) {
                         ktorWebSocketServer.sendToSession(
                             sessionId = sessionId,
-                            message = json.encodeToString(
-                                JetWhaleDebuggerEvent.PluginActivated(
-                                    pluginId = pluginId,
-                                    pluginVersion = factory.meta.version,
-                                )
+                            event = JetWhaleDebuggerEvent.PluginActivated(
+                                pluginId = pluginId,
+                                pluginVersion = factory.meta.version,
                             )
                         )
                     }
@@ -281,11 +263,7 @@ class DefaultDebugWebSocketServer(
                     if (wasAvailable && loadedFactories.containsKey(pluginId)) {
                         ktorWebSocketServer.sendToSession(
                             sessionId = sessionId,
-                            message = json.encodeToString(
-                                JetWhaleDebuggerEvent.PluginDeactivated(
-                                    pluginId = pluginId,
-                                )
-                            )
+                            event = JetWhaleDebuggerEvent.PluginDeactivated(pluginId = pluginId)
                         )
                     }
                 }
