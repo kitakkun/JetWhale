@@ -17,10 +17,12 @@ public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugi
 	public abstract fun createPlugin ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleRawHostPlugin;
 	public fun getIcon ()Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginIcon;
 	public abstract fun getMeta ()Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginMetaData;
+	public fun isCompatibleWithAgentPlugin (Ljava/lang/String;)Z
 }
 
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory$DefaultImpls {
 	public static fun getIcon (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory;)Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginIcon;
+	public static fun isCompatibleWithAgentPlugin (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory;Ljava/lang/String;)Z
 }
 
 public final class com/kitakkun/jetwhale/host/sdk/JetWhalePluginIcon {
