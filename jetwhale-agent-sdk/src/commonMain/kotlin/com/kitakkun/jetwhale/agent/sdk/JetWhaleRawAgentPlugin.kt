@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.agent.sdk
 
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
+
 /**
  * An abstract class representing a raw agent plugin for JetWhale.
  * This plugin handles raw method messages and event messages as strings.
@@ -7,6 +9,7 @@ package com.kitakkun.jetwhale.agent.sdk
  *
  * Implementations should provide logic for handling typed method messages.
  */
+@InternalJetWhaleApi
 public abstract class JetWhaleRawAgentPlugin {
     /**
      * unique id to distinguish plugins.

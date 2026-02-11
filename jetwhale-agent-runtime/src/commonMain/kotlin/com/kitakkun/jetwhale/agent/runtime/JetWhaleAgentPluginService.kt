@@ -1,7 +1,9 @@
 package com.kitakkun.jetwhale.agent.runtime
 
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleRawAgentPlugin
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 
+@OptIn(InternalJetWhaleApi::class)
 class JetWhaleAgentPluginService(
     private val plugins: List<JetWhaleRawAgentPlugin>,
 ) {
