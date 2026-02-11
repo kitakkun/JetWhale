@@ -4,22 +4,18 @@ import com.kitakkun.jetwhale.agent.sdk.JetWhaleMessagingService
 import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
-import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import kotlin.coroutines.cancellation.CancellationException
 
 @OptIn(InternalJetWhaleApi::class)
 internal class DefaultJetWhaleMessagingService(
     private val socketClient: JetWhaleSocketClient,
     private val pluginService: JetWhaleAgentPluginService,
-    private val json: Json,
 ) : JetWhaleMessagingService {
     private val coroutineScope: CoroutineScope = CoroutineScope(messagingServiceCoroutineDispatcher() + SupervisorJob())
     private var keepAwakeJob: Job? = null
@@ -49,47 +45,43 @@ internal class DefaultJetWhaleMessagingService(
 
         retryCount = 0
 
-        val sendPluginMessage: (String, String) -> Unit = { pluginId: String, pluginMessagePayload: String ->
-            val event = JetWhaleDebuggeeEvent.PluginMessage(
-                pluginId = pluginId,
-                payload = pluginMessagePayload,
-            )
-            val message = json.encodeToString(event)
+        val sendPluginMessageEvent: (String, String) -> Unit = { pluginId: String, pluginMessagePayload: String ->
             coroutineScope.launch {
-                socketClient.sendMessage(message = message)
+                socketClient.sendDebuggeeEvent(
+                    JetWhaleDebuggeeEvent.PluginMessage(
+                        pluginId = pluginId,
+                        payload = pluginMessagePayload,
+                    )
+                )
             }
         }
 
         pluginService.activatePlugins(
             ids = connection.negotiationResult.availablePluginIds.toTypedArray(),
-            baseSender = sendPluginMessage,
+            baseSender = sendPluginMessageEvent,
         )
 
-        connection.messageFlow
-            .mapNotNull { json.decodeFromStringOrNull<JetWhaleDebuggerEvent>(it) }
-            .collect { event ->
-                when (event) {
-                    is JetWhaleDebuggerEvent.PluginActivated -> pluginService.activatePlugins(event.pluginId, baseSender = sendPluginMessage)
+        connection.debuggerEventFlow.collect { event ->
+            when (event) {
+                is JetWhaleDebuggerEvent.PluginActivated -> pluginService.activatePlugins(event.pluginId, baseSender = sendPluginMessageEvent)
 
-                    is JetWhaleDebuggerEvent.PluginDeactivated -> pluginService.deactivatePlugins(event.pluginId)
+                is JetWhaleDebuggerEvent.PluginDeactivated -> pluginService.deactivatePlugins(event.pluginId)
 
-                    is JetWhaleDebuggerEvent.MethodRequest -> {
-                        val plugin = pluginService.getPluginById(event.pluginId) ?: return@collect
-                        val methodResult = plugin.onRawMethod(event.payload)
+                is JetWhaleDebuggerEvent.MethodRequest -> {
+                    val plugin = pluginService.getPluginById(event.pluginId) ?: return@collect
+                    val methodResult = plugin.onRawMethod(event.payload)
 
-                        coroutineScope.launch {
-                            socketClient.sendMessage(
-                                message = json.encodeToString(
-                                    JetWhaleDebuggeeEvent.MethodResultResponse.Success(
-                                        requestId = event.requestId,
-                                        payload = methodResult,
-                                    )
-                                )
+                    coroutineScope.launch {
+                        socketClient.sendDebuggeeEvent(
+                            event = JetWhaleDebuggeeEvent.MethodResultResponse.Success(
+                                requestId = event.requestId,
+                                payload = methodResult,
                             )
-                        }
+                        )
                     }
                 }
             }
+        }
     }
 
     companion object {

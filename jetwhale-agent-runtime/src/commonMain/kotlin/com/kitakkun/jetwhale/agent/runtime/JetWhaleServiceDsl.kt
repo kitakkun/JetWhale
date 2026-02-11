@@ -29,7 +29,6 @@ fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
             pluginService = JetWhaleAgentPluginService(
                 plugins = configuration.plugins.plugins,
             ),
-            json = json,
         )
     service.startService(
         host = configuration.connection.host,

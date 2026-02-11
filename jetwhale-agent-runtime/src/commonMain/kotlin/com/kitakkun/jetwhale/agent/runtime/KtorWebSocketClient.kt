@@ -1,19 +1,23 @@
 package com.kitakkun.jetwhale.agent.runtime
 
+import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
+import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
+import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.client.plugins.websocket.sendSerialized
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
-import io.ktor.websocket.send
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.serialization.json.Json
 
 /**
@@ -30,8 +34,8 @@ internal class KtorWebSocketClient(
         configureHttpClient()
     }
 
-    override suspend fun sendMessage(message: String) {
-        session?.send(message)
+    override suspend fun sendDebuggeeEvent(event: JetWhaleDebuggeeEvent) {
+        session?.sendSerialized(event)
     }
 
     override suspend fun openConnection(
@@ -46,6 +50,7 @@ internal class KtorWebSocketClient(
         return session.configureSession()
     }
 
+    @OptIn(InternalJetWhaleApi::class)
     private suspend fun DefaultClientWebSocketSession.configureSession(): JetWhaleConnection {
         JetWhaleLogger.v("Configuring WebSocket session")
 
@@ -69,11 +74,13 @@ internal class KtorWebSocketClient(
 
         JetWhaleLogger.i("WebSocket session established")
 
-        val messageFlow = incoming.consumeAsFlow().filterIsInstance<Frame.Text>().map { it.readText() }
+        val debuggerEventFlow = incoming.consumeAsFlow().filterIsInstance<Frame.Text>().mapNotNull {
+            json.decodeFromStringOrNull<JetWhaleDebuggerEvent>(it.readText())
+        }
 
         return JetWhaleConnection(
             negotiationResult = negotiationResult,
-            messageFlow = messageFlow,
+            debuggerEventFlow = debuggerEventFlow,
         )
     }
 
