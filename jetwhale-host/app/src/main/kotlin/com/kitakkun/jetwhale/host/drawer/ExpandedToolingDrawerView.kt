@@ -143,7 +143,7 @@ fun ExpandedToolingDrawerView(
                                         inactiveIconResource = it.inactiveIconResource,
                                         selected = it.id == selectedPluginId,
                                         onClick = { onClickPlugin(it) },
-                                        popupMenuContent = {
+                                        popupMenuContent = { dismiss ->
                                             DropdownMenuItem(
                                                 text = { Text(stringResource(Res.string.disable)) },
                                                 leadingIcon = {
@@ -152,7 +152,10 @@ fun ExpandedToolingDrawerView(
                                                         contentDescription = null,
                                                     )
                                                 },
-                                                onClick = { onSetPluginEnabled(it.id, false) },
+                                                onClick = {
+                                                    onSetPluginEnabled(it.id, false)
+                                                    dismiss()
+                                                },
                                             )
                                             DropdownMenuItem(
                                                 text = { Text(stringResource(Res.string.popout)) },
@@ -162,7 +165,10 @@ fun ExpandedToolingDrawerView(
                                                         contentDescription = null,
                                                     )
                                                 },
-                                                onClick = { onClickPopout(it) }
+                                                onClick = {
+                                                    onClickPopout(it)
+                                                    dismiss()
+                                                }
                                             )
                                         },
                                         modifier = Modifier.animateItem(),
@@ -193,7 +199,7 @@ fun ExpandedToolingDrawerView(
                                         onClick = {
                                             // do nothing
                                         },
-                                        popupMenuContent = {
+                                        popupMenuContent = { dismiss ->
                                             DropdownMenuItem(
                                                 text = { Text(stringResource(Res.string.enable)) },
                                                 leadingIcon = {
@@ -202,7 +208,10 @@ fun ExpandedToolingDrawerView(
                                                         contentDescription = null,
                                                     )
                                                 },
-                                                onClick = { onSetPluginEnabled(it.id, true) },
+                                                onClick = {
+                                                    onSetPluginEnabled(it.id, true)
+                                                    dismiss()
+                                                },
                                             )
                                         },
                                         modifier = Modifier.animateItem(),

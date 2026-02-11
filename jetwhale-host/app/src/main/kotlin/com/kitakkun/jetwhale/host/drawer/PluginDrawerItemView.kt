@@ -32,7 +32,7 @@ fun PluginDrawerItemView(
     activeIconResource: PluginIconResource?,
     inactiveIconResource: PluginIconResource?,
     onClick: () -> Unit,
-    popupMenuContent: (@Composable ColumnScope.() -> Unit)? = null,
+    popupMenuContent: (@Composable ColumnScope.(dismiss: () -> Unit) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -69,7 +69,7 @@ fun PluginDrawerItemView(
                             expanded = expanded,
                             onDismissRequest = { expanded = false }
                         ) {
-                            it()
+                            it({ expanded = false })
                         }
                     }
                 }
