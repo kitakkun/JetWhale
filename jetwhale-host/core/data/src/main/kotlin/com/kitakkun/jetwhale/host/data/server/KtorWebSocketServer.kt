@@ -164,6 +164,10 @@ class KtorWebSocketServer(
         sessions[sessionId]?.sendSerialized(event)
     }
 
+    suspend fun broadcastToSessions(event: JetWhaleDebuggerEvent) {
+        sessions.values.forEach { session -> session.sendSerialized(event) }
+    }
+
     fun getSessionCoroutineContext(sessionId: String): CoroutineContext {
         return sessions[sessionId]?.coroutineContext ?: throw IllegalArgumentException("No session with ID $sessionId")
     }

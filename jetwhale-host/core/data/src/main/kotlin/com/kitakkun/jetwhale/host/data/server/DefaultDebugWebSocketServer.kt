@@ -11,7 +11,6 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
-import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -19,15 +18,12 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
 @Inject
 @SingleIn(AppScope::class)
@@ -45,12 +41,6 @@ class DefaultDebugWebSocketServer(
     override val sessionClosedFlow: Flow<String> get() = ktorWebSocketServer.sessionClosedFlow
 
     private var serverMonitoringJob: Job? = null
-
-    /**
-     * Tracks available plugins for each session.
-     * Key: sessionId, Value: List of JetWhalePluginInfo representing plugins available for that session.
-     */
-    private val sessionAvailablePlugins: ConcurrentHashMap<String, List<JetWhalePluginInfo>> = ConcurrentHashMap()
 
     override suspend fun start(host: String, port: Int) {
         subscribeServerEvents()
@@ -86,17 +76,13 @@ class DefaultDebugWebSocketServer(
         return withTimeoutOrNull(METHOD_RESULT_WAIT_TIMEOUT) {
             val response = ktorWebSocketServer.debuggeeEventFlow
                 .filter { it.first == sessionId }
-                .mapNotNull { it.second as? JetWhaleDebuggeeEvent.MethodResultResponse }
-                .first { it.requestId == requestId }
+                .filter { it.second is JetWhaleDebuggeeEvent.MethodResultResponse }
+                .first { (it.second as JetWhaleDebuggeeEvent.MethodResultResponse).requestId == requestId }
+                .second as JetWhaleDebuggeeEvent.MethodResultResponse
 
             when (response) {
-                is JetWhaleDebuggeeEvent.MethodResultResponse.Failure -> {
-                    null
-                }
-
-                is JetWhaleDebuggeeEvent.MethodResultResponse.Success -> {
-                    response.payload
-                }
+                is JetWhaleDebuggeeEvent.MethodResultResponse.Failure -> null
+                is JetWhaleDebuggeeEvent.MethodResultResponse.Success -> response.payload
             }
         }
     }
@@ -110,164 +96,92 @@ class DefaultDebugWebSocketServer(
         serverMonitoringJob?.cancel()
 
         serverMonitoringJob = coroutineScope.launch {
-            launch {
-                if (!settingsRepository.adbAutoPortMappingEnabledFlow.value) return@launch
-                var port: Int? = null
-                ktorWebSocketServer.statusFlow.collect { status ->
-                    if (status is DebugWebSocketServerStatus.Started) {
-                        port = status.port
-                        adbAutoWiringService.startAutoWiring(status.port)
-                    } else if (status is DebugWebSocketServerStatus.Stopped) {
-                        port?.let {
-                            adbAutoWiringService.stopAutoWiring(it)
-                        }
-                        cancel()
-                    }
+            launch { monitorAdbAutoWiring() }
+            launch { monitorNegotiationCompleted() }
+            launch { monitorSessionClosed() }
+            launch { monitorEnabledPluginChanges() }
+            launch { monitorPluginMessages() }
+        }
+    }
+
+    private suspend fun monitorAdbAutoWiring() {
+        if (!settingsRepository.adbAutoPortMappingEnabledFlow.value) return
+
+        var port: Int? = null
+        ktorWebSocketServer.statusFlow.collect { status ->
+            when (status) {
+                is DebugWebSocketServerStatus.Started -> {
+                    port = status.port
+                    adbAutoWiringService.startAutoWiring(status.port)
                 }
-            }
 
-            launch {
-                ktorWebSocketServer.negotiationCompletedFlow.collect {
-                    val sessionId = it.session.sessionId
-                    val requestedPlugins = it.plugin.requestedPlugins
-                    val loadedPluginIds = pluginsRepository.loadedPluginFactories.keys
-                    val availablePlugins = requestedPlugins.filter { plugin -> plugin.pluginId in loadedPluginIds }
-
-                    sessionAvailablePlugins[sessionId] = availablePlugins
-
-                    sessionRepository.registerDebugSession(
-                        sessionId = sessionId,
-                        sessionName = it.session.sessionName,
-                        installedPlugins = requestedPlugins,
-                    )
+                is DebugWebSocketServerStatus.Stopped -> {
+                    port?.let { adbAutoWiringService.stopAutoWiring(it) }
                 }
-            }
 
-            launch {
-                ktorWebSocketServer.sessionClosedFlow.collect { sessionId ->
-                    sessionAvailablePlugins.remove(sessionId)
-                    sessionRepository.unregisterDebugSession(sessionId)
-                    pluginInstanceService.unloadPluginInstanceForSession(sessionId)
-                }
-            }
-
-            launch {
-                monitorPluginChanges()
-            }
-
-            launch {
-                monitorEnabledPluginChanges()
-            }
-
-            launch {
-                ktorWebSocketServer.debuggeeEventFlow
-                    .collect { (sessionId, event) ->
-                        if (event !is JetWhaleDebuggeeEvent.PluginMessage) return@collect
-
-                        val pluginId = event.pluginId
-
-                        // Skip if the plugin is not enabled
-                        if (!enabledPluginsRepository.isPluginEnabled(pluginId)) {
-                            return@collect
-                        }
-
-                        val pluginFactory = pluginsRepository.loadedPluginFactories[pluginId] ?: return@collect
-
-                        val pluginInstance = pluginInstanceService.getOrPutPluginInstanceForSession(
-                            pluginId = pluginId,
-                            sessionId = sessionId,
-                            pluginFactory = pluginFactory,
-                        )
-                        pluginInstance.onRawEvent(event.payload)
-                    }
+                else -> Unit
             }
         }
     }
 
-    @OptIn(InternalJetWhaleApi::class)
-    private suspend fun monitorPluginChanges() {
-        var previousLoadedPluginIds: Set<String> = pluginsRepository.loadedPluginFactories.keys
-
-        pluginsRepository.loadedPluginFactoriesFlow.collect { loadedFactories ->
-            val currentLoadedPluginIds = loadedFactories.keys
-
-            val newlyLoadedPluginIds = currentLoadedPluginIds - previousLoadedPluginIds
-            val unloadedPluginIds = previousLoadedPluginIds - currentLoadedPluginIds
-
-            previousLoadedPluginIds = currentLoadedPluginIds
-
-            // For each session, check which plugins should be activated or deactivated
-            for ((sessionId, requestedPlugins) in sessionAvailablePlugins) {
-                // Plugins that are newly loaded and requested by this session
-                for (pluginId in newlyLoadedPluginIds) {
-                    val pluginInfo = requestedPlugins.find { it.pluginId == pluginId }
-                    if (pluginInfo != null) {
-                        val factory = loadedFactories[pluginId]
-                        if (factory != null) {
-                            ktorWebSocketServer.sendToSession(
-                                sessionId = sessionId,
-                                event = JetWhaleDebuggerEvent.PluginActivated(
-                                    pluginId = pluginId,
-                                    pluginVersion = factory.meta.version,
-                                )
-                            )
-                        }
-                    }
-                }
-
-                // Plugins that are unloaded and were available to this session
-                for (pluginId in unloadedPluginIds) {
-                    val wasAvailable = requestedPlugins.any { it.pluginId == pluginId }
-                    if (wasAvailable) {
-                        ktorWebSocketServer.sendToSession(
-                            sessionId = sessionId,
-                            event = JetWhaleDebuggerEvent.PluginDeactivated(pluginId = pluginId)
-                        )
-                    }
-                }
-            }
+    private suspend fun monitorNegotiationCompleted() {
+        ktorWebSocketServer.negotiationCompletedFlow.collect { result ->
+            sessionRepository.registerDebugSession(
+                sessionId = result.session.sessionId,
+                sessionName = result.session.sessionName,
+                installedPlugins = result.plugin.requestedPlugins,
+            )
         }
     }
 
-    @OptIn(InternalJetWhaleApi::class)
+    private suspend fun monitorSessionClosed() {
+        ktorWebSocketServer.sessionClosedFlow.collect { sessionId ->
+            sessionRepository.unregisterDebugSession(sessionId)
+            pluginInstanceService.unloadPluginInstanceForSession(sessionId)
+        }
+    }
+
     private suspend fun monitorEnabledPluginChanges() {
         var previousEnabledPluginIds: Set<String> = enabledPluginsRepository.enabledPluginIdsFlow.first()
 
         enabledPluginsRepository.enabledPluginIdsFlow.collect { enabledPluginIds ->
             val newlyEnabledPluginIds = enabledPluginIds - previousEnabledPluginIds
             val newlyDisabledPluginIds = previousEnabledPluginIds - enabledPluginIds
-
             previousEnabledPluginIds = enabledPluginIds
 
-            val loadedFactories = pluginsRepository.loadedPluginFactories
-
-            for ((sessionId, requestedPlugins) in sessionAvailablePlugins) {
-                // Plugins that are newly enabled and requested by this session
-                for (pluginId in newlyEnabledPluginIds) {
-                    val pluginInfo = requestedPlugins.find { it.pluginId == pluginId }
-                    val factory = loadedFactories[pluginId]
-                    if (pluginInfo != null && factory != null) {
-                        ktorWebSocketServer.sendToSession(
-                            sessionId = sessionId,
-                            event = JetWhaleDebuggerEvent.PluginActivated(
-                                pluginId = pluginId,
-                                pluginVersion = factory.meta.version,
-                            )
-                        )
-                    }
-                }
-
-                // Plugins that are newly disabled and were available to this session
-                for (pluginId in newlyDisabledPluginIds) {
-                    val wasAvailable = requestedPlugins.any { it.pluginId == pluginId }
-                    if (wasAvailable && loadedFactories.containsKey(pluginId)) {
-                        ktorWebSocketServer.sendToSession(
-                            sessionId = sessionId,
-                            event = JetWhaleDebuggerEvent.PluginDeactivated(pluginId = pluginId)
-                        )
-                    }
-                }
+            newlyEnabledPluginIds.forEach { pluginId ->
+                val loadedFactories = pluginsRepository.loadedPluginFactories
+                val factory = loadedFactories[pluginId] ?: return@forEach
+                ktorWebSocketServer.broadcastToSessions(
+                    event = JetWhaleDebuggerEvent.PluginActivated(
+                        pluginId = pluginId,
+                        pluginVersion = factory.meta.version, // TODO: do we really need this?
+                    )
+                )
             }
+
+            newlyDisabledPluginIds.forEach { pluginId ->
+                ktorWebSocketServer.broadcastToSessions(JetWhaleDebuggerEvent.PluginDeactivated(pluginId = pluginId))
+            }
+        }
+    }
+
+    private suspend fun monitorPluginMessages() {
+        ktorWebSocketServer.debuggeeEventFlow.collect { (sessionId, event) ->
+            if (event !is JetWhaleDebuggeeEvent.PluginMessage) return@collect
+
+            val pluginId = event.pluginId
+
+            if (!enabledPluginsRepository.isPluginEnabled(pluginId)) return@collect
+
+            val pluginFactory = pluginsRepository.loadedPluginFactories[pluginId] ?: return@collect
+
+            val pluginInstance = pluginInstanceService.getOrPutPluginInstanceForSession(
+                pluginId = pluginId,
+                sessionId = sessionId,
+                pluginFactory = pluginFactory,
+            )
+            pluginInstance.onRawEvent(event.payload)
         }
     }
 
