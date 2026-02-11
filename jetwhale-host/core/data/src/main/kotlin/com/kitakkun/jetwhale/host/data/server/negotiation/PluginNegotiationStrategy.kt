@@ -20,25 +20,35 @@ class PluginNegotiationStrategy(
     context(logger: Logger)
     override suspend fun DefaultWebSocketServerSession.negotiate(): PluginNegotiationResult {
         val request = receiveDeserialized<JetWhaleAgentNegotiationRequest.AvailablePlugins>()
-        val installedPluginsMeta = pluginFactoryRepository.loadedPluginFactories.values.map { it.meta }
+
+        val loadedPluginFactories = pluginFactoryRepository.loadedPluginFactories
         val enabledPluginIds = enabledPluginsRepository.enabledPluginIdsFlow.first()
+
+        val availablePlugins = mutableListOf<JetWhalePluginInfo>()
+        val incompatiblePlugins = mutableListOf<JetWhalePluginInfo>()
+
+        request.plugins.forEach { requestedPlugin ->
+            val factory = loadedPluginFactories[requestedPlugin.pluginId] ?: return@forEach
+            val isEnabled = requestedPlugin.pluginId in enabledPluginIds
+            val isCompatible = factory.isCompatibleWithAgentPlugin(requestedPlugin.pluginVersion)
+
+            when {
+                !isEnabled -> Unit
+                !isCompatible -> incompatiblePlugins += requestedPlugin
+                else -> availablePlugins += JetWhalePluginInfo(
+                    pluginId = factory.meta.pluginId,
+                    pluginVersion = factory.meta.version,
+                )
+            }
+        }
+
         sendSerialized(
             JetWhaleHostNegotiationResponse.AvailablePluginsResponse(
-                availablePlugins = installedPluginsMeta
-                    .filter { meta ->
-                        val isRequested = request.plugins.any { it.pluginId == meta.pluginId }
-                        val isEnabled = meta.pluginId in enabledPluginIds
-                        isRequested && isEnabled // TODO: check version compatibility, too
-                    }
-                    .map {
-                        JetWhalePluginInfo(
-                            pluginId = it.pluginId,
-                            pluginVersion = it.version,
-                        )
-                    },
-                incompatiblePlugins = listOf(), // TODO: Provide actual incompatible plugins
+                availablePlugins = availablePlugins,
+                incompatiblePlugins = incompatiblePlugins,
             )
         )
+
         return PluginNegotiationResult(requestedPlugins = request.plugins)
     }
 }

@@ -33,6 +33,10 @@ class ExampleHostPluginFactory : JetWhaleHostPluginFactory {
     override fun createPlugin(): JetWhaleHostPlugin<*, *, *> {
         return ExampleHostPlugin()
     }
+
+    override fun isCompatibleWithAgentPlugin(agentVersion: String): Boolean {
+        return agentVersion == this.meta.version
+    }
 }
 
 private class ExampleHostPlugin() : JetWhaleHostPlugin<ExampleEvent, ExampleMethod, ExampleMethodResult>() {
