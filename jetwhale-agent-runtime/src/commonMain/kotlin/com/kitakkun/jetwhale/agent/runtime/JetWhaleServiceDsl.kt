@@ -26,7 +26,9 @@ fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
                 httpClient = HttpClient(defaultKtorEngineFactory()),
                 negotiationStrategy = DefaultClientSessionNegotiationStrategy(configuration.plugins.plugins),
             ),
-            plugins = configuration.plugins.plugins,
+            pluginService = JetWhaleAgentPluginService(
+                plugins = configuration.plugins.plugins,
+            ),
             json = json,
         )
     service.startService(

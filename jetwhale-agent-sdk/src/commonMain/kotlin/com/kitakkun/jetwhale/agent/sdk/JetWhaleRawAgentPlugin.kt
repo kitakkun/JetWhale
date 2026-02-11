@@ -55,10 +55,10 @@ public abstract class JetWhaleRawAgentPlugin {
     }
 
     /**
-     * Attaches a message sender to send messages to the debugger.
+     * Activates the plugin by attaching a message sender.
      * Flushes any queued messages upon attachment.
      */
-    public fun attachSender(sender: JetWhaleMessageSender) {
+    public fun activate(sender: JetWhaleMessageSender) {
         this.sender = sender
         flushQueue()
     }
@@ -66,7 +66,7 @@ public abstract class JetWhaleRawAgentPlugin {
     /**
      * Detaches the current message sender.
      */
-    public fun detachSender() {
+    public fun deactivate() {
         this.sender = null
     }
 
