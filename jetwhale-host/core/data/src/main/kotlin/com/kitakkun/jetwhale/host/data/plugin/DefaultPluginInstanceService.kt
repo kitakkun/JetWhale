@@ -30,4 +30,12 @@ class DefaultPluginInstanceService : PluginInstanceService {
             mutableLoadedPlugins.remove(key)
         }
     }
+
+    override fun unloadPluginInstancesForPlugin(pluginId: String) {
+        val keysToRemove = mutableLoadedPlugins.keys.filter { it.startsWith("$pluginId-") }
+        for (key in keysToRemove) {
+            mutableLoadedPlugins[key]?.onDispose()
+            mutableLoadedPlugins.remove(key)
+        }
+    }
 }

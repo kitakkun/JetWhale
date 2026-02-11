@@ -68,6 +68,11 @@ fun JetWhaleApp() {
                     else -> false
                 }
             }
+
+            disabledPluginIds.forEach { pluginId ->
+                appGraph.pluginInstancService.unloadPluginInstancesForPlugin(pluginId)
+                appGraph.pluginComposeSceneService.disposePluginScenesForPlugin(pluginId)
+            }
         }
     }
 

@@ -70,4 +70,12 @@ class DefaultPluginComposeSceneService(
             pluginScenes.remove(key)
         }
     }
+
+    override fun disposePluginScenesForPlugin(pluginId: String) {
+        val keysToRemove = pluginScenes.keys.filter { it.startsWith("$pluginId:") }
+        for (key in keysToRemove) {
+            pluginScenes[key]?.close()
+            pluginScenes.remove(key)
+        }
+    }
 }

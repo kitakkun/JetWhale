@@ -13,4 +13,6 @@ interface PluginComposeSceneService {
     ): ComposeScene
 
     fun disposePluginSceneForSession(sessionId: String)
+
+    fun disposePluginScenesForPlugin(pluginId: String)
 }

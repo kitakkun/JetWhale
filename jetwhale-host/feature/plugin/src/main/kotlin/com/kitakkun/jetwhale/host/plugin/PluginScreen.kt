@@ -50,7 +50,15 @@ fun PluginScreen(pluginComposeScene: ComposeScene) {
 
     Canvas(
         modifier = Modifier.fillMaxSize()
-            .onSizeChanged { pluginComposeScene.size = it }
+            .onSizeChanged {
+                try {
+                    pluginComposeScene.size = it
+                } catch (_: IllegalStateException) {
+                    // ignore: may happen during dispose
+                    // without this try-catch, sometimes crashes with:
+                    // java.lang.IllegalStateException: size set after ComposeScene is closed
+                }
+            }
             .focusRequester(focusRequester)
             .focusable()
             .pointerInput(Unit) {
