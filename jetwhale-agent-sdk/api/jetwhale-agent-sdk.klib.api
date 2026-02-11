@@ -35,8 +35,8 @@ abstract class com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin { // com.k
         abstract fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
 
     abstract suspend fun onRawMethod(kotlin/String): kotlin/String? // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.onRawMethod|onRawMethod(kotlin.String){}[0]
-    final fun attachSender(com.kitakkun.jetwhale.agent.sdk/JetWhaleMessageSender) // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.attachSender|attachSender(com.kitakkun.jetwhale.agent.sdk.JetWhaleMessageSender){}[0]
-    final fun detachSender() // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.detachSender|detachSender(){}[0]
+    final fun activate(com.kitakkun.jetwhale.agent.sdk/JetWhaleMessageSender) // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.activate|activate(com.kitakkun.jetwhale.agent.sdk.JetWhaleMessageSender){}[0]
+    final fun deactivate() // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.deactivate|deactivate(){}[0]
     final fun enqueueRawEvent(kotlin/String) // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.enqueueRawEvent|enqueueRawEvent(kotlin.String){}[0]
     open fun queueBufferSize(): kotlin/Int // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.queueBufferSize|queueBufferSize(){}[0]
 }
