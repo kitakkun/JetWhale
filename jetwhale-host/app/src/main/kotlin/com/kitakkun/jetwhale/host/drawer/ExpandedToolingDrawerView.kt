@@ -8,8 +8,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -22,12 +26,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
+import com.kitakkun.jetwhale.host.disable
 import com.kitakkun.jetwhale.host.disabled_plugins
+import com.kitakkun.jetwhale.host.enable
 import com.kitakkun.jetwhale.host.enabled_plugins
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.no_plugins_installed
 import com.kitakkun.jetwhale.host.plugins
+import com.kitakkun.jetwhale.host.popout
 import com.kitakkun.jetwhale.host.puzzle_outlined
 import com.kitakkun.jetwhale.host.unavailable_plugins
 import kotlinx.collections.immutable.ImmutableList
@@ -112,15 +119,34 @@ fun ExpandedToolingDrawerView(
                         }
                         items(plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }) {
                             PluginDrawerItemView(
+                                enabled = true,
                                 name = it.name,
-                                availability = it.pluginAvailability,
                                 activeIconResource = it.activeIconResource,
                                 inactiveIconResource = it.inactiveIconResource,
                                 selected = it.id == selectedPluginId,
-                                onClickEnable = { },
-                                onClickDisable = { onSetPluginEnabled(it.id, false) },
                                 onClick = { onClickPlugin(it) },
-                                onClickPopout = { onClickPopout(it) }
+                                popupMenuContent = {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(Res.string.disable)) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.RemoveCircle,
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        onClick = { onSetPluginEnabled(it.id, false) },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(Res.string.popout)) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.ArrowOutward,
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        onClick = { onClickPopout(it) }
+                                    )
+                                },
                             )
                         }
                         item {
@@ -132,15 +158,26 @@ fun ExpandedToolingDrawerView(
                         }
                         items(plugins.filter { it.pluginAvailability == PluginAvailability.Disabled }) {
                             PluginDrawerItemView(
+                                enabled = false,
                                 name = it.name,
-                                availability = it.pluginAvailability,
                                 activeIconResource = it.activeIconResource,
                                 inactiveIconResource = it.inactiveIconResource,
                                 selected = false,
-                                onClickEnable = { onSetPluginEnabled(it.id, true) },
-                                onClickDisable = { },
-                                onClick = { },
-                                onClickPopout = { }
+                                onClick = {
+                                    // do nothing
+                                },
+                                popupMenuContent = {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(Res.string.enable)) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.AddCircle,
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        onClick = { onSetPluginEnabled(it.id, true) },
+                                    )
+                                }
                             )
                         }
                         item {
@@ -152,15 +189,14 @@ fun ExpandedToolingDrawerView(
                         }
                         items(plugins.filter { it.pluginAvailability == PluginAvailability.Unavailable }) {
                             PluginDrawerItemView(
+                                enabled = false,
                                 name = it.name,
-                                availability = it.pluginAvailability,
                                 activeIconResource = it.activeIconResource,
                                 inactiveIconResource = it.inactiveIconResource,
                                 selected = false,
-                                onClickEnable = { },
-                                onClickDisable = { },
-                                onClick = { },
-                                onClickPopout = { }
+                                onClick = {
+                                    // do nothing
+                                },
                             )
                         }
                     }

@@ -1,14 +1,11 @@
 package com.kitakkun.jetwhale.host.drawer
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationDrawerItem
@@ -22,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
-import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginIconResource
 import com.kitakkun.jetwhale.host.puzzle_filled
 import com.kitakkun.jetwhale.host.puzzle_outlined
@@ -30,24 +26,21 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun PluginDrawerItemView(
+    enabled: Boolean,
     name: String,
-    availability: PluginAvailability,
     selected: Boolean,
     activeIconResource: PluginIconResource?,
     inactiveIconResource: PluginIconResource?,
-    onClickEnable: () -> Unit,
-    onClickDisable: () -> Unit,
-    onClickPopout: () -> Unit,
     onClick: () -> Unit,
+    popupMenuContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
-    val isEnabled = availability == PluginAvailability.Enabled
     Box {
         NavigationDrawerItem(
             label = { Text(name) },
             icon = {
                 Icon(
                     painter = when {
-                        selected && isEnabled -> rememberPluginIconSvgPainter(activeIconResource)
+                        selected && enabled -> rememberPluginIconSvgPainter(activeIconResource)
                             ?: painterResource(Res.drawable.puzzle_filled)
 
                         else -> rememberPluginIconSvgPainter(inactiveIconResource)
@@ -58,8 +51,7 @@ fun PluginDrawerItemView(
                 )
             },
             badge = {
-                // Unavailable plugins do not have any actions
-                if (availability != PluginAvailability.Unavailable) {
+                popupMenuContent?.let {
                     Box {
                         var expanded by remember { mutableStateOf(false) }
                         IconButton(
@@ -67,46 +59,14 @@ fun PluginDrawerItemView(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
-                                contentDescription = null
+                                contentDescription = null,
                             )
                         }
                         DropdownMenu(
                             expanded = expanded,
                             onDismissRequest = { expanded = false }
                         ) {
-                            when (availability) {
-                                PluginAvailability.Disabled -> {
-                                    DropdownMenuItem(
-                                        text = { Text("Enable") },
-                                        leadingIcon = { Icon(Icons.Default.AddCircle, null) },
-                                        onClick = {
-                                            expanded = false
-                                            onClickEnable()
-                                        }
-                                    )
-                                }
-
-                                PluginAvailability.Enabled -> {
-                                    DropdownMenuItem(
-                                        text = { Text("Disable") },
-                                        leadingIcon = { Icon(Icons.Default.RemoveCircle, null) },
-                                        onClick = {
-                                            expanded = false
-                                            onClickDisable()
-                                        }
-                                    )
-                                }
-
-                                PluginAvailability.Unavailable -> Unit
-                            }
-                            DropdownMenuItem(
-                                text = { Text("Pop-out") },
-                                leadingIcon = { Icon(Icons.Default.ArrowOutward, null) },
-                                onClick = {
-                                    expanded = false
-                                    onClickPopout()
-                                }
-                            )
+                            it()
                         }
                     }
                 }
@@ -115,7 +75,7 @@ fun PluginDrawerItemView(
             onClick = onClick,
             // Because NavigationDrawerItem does not have enabled parameter,
             // we manually provide better visual feedback for non-enabled plugins
-            modifier = Modifier.alpha(if (isEnabled) 1.0f else 0.5f),
+            modifier = Modifier.alpha(if (enabled) 1.0f else 0.5f),
         )
     }
 }
