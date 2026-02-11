@@ -30,7 +30,7 @@ internal class KtorWebSocketClient(
         configureHttpClient()
     }
 
-    override suspend fun sendMessage(pluginId: String, message: String) {
+    override suspend fun sendMessage(message: String) {
         session?.send(message)
     }
 

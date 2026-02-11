@@ -8,6 +8,6 @@ internal data class JetWhaleConnection(
 )
 
 internal interface JetWhaleSocketClient {
-    suspend fun sendMessage(pluginId: String, message: String)
+    suspend fun sendMessage(message: String)
     suspend fun openConnection(host: String, port: Int): JetWhaleConnection
 }

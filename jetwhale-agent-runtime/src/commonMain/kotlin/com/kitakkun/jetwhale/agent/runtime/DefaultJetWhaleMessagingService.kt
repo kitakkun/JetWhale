@@ -56,10 +56,7 @@ internal class DefaultJetWhaleMessagingService(
             )
             val message = json.encodeToString(event)
             coroutineScope.launch {
-                socketClient.sendMessage(
-                    pluginId = pluginId,
-                    message = message,
-                )
+                socketClient.sendMessage(message = message)
             }
         }
 
@@ -82,7 +79,6 @@ internal class DefaultJetWhaleMessagingService(
 
                         coroutineScope.launch {
                             socketClient.sendMessage(
-                                pluginId = event.pluginId,
                                 message = json.encodeToString(
                                     JetWhaleDebuggeeEvent.MethodResultResponse.Success(
                                         requestId = event.requestId,
