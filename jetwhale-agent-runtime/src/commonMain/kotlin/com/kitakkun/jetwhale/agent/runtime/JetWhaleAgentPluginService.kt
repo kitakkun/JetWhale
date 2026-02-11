@@ -4,7 +4,7 @@ import com.kitakkun.jetwhale.agent.sdk.JetWhaleRawAgentPlugin
 import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 
 @OptIn(InternalJetWhaleApi::class)
-class JetWhaleAgentPluginService(
+internal class JetWhaleAgentPluginService(
     private val plugins: List<JetWhaleRawAgentPlugin>,
 ) {
     fun activatePlugins(vararg ids: String, baseSender: (String, String) -> Unit) {
