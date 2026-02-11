@@ -49,7 +49,7 @@ internal class DefaultJetWhaleMessagingService(
 
         retryCount = 0
 
-        val sender: (String, String) -> Unit = { pluginId: String, pluginMessagePayload: String ->
+        val sendPluginMessage: (String, String) -> Unit = { pluginId: String, pluginMessagePayload: String ->
             val event = JetWhaleDebuggeeEvent.PluginMessage(
                 pluginId = pluginId,
                 payload = pluginMessagePayload,
@@ -65,31 +65,33 @@ internal class DefaultJetWhaleMessagingService(
 
         pluginService.activatePlugins(
             ids = connection.negotiationResult.availablePluginIds.toTypedArray(),
-            baseSender = sender,
+            baseSender = sendPluginMessage,
         )
 
         connection.messageFlow
             .mapNotNull { json.decodeFromStringOrNull<JetWhaleDebuggerEvent>(it) }
             .collect { event ->
                 when (event) {
+                    is JetWhaleDebuggerEvent.PluginActivated -> pluginService.activatePlugins(event.pluginId, baseSender = sendPluginMessage)
+
+                    is JetWhaleDebuggerEvent.PluginDeactivated -> pluginService.deactivatePlugins(event.pluginId)
+
                     is JetWhaleDebuggerEvent.MethodRequest -> {
                         val plugin = pluginService.getPluginById(event.pluginId) ?: return@collect
                         val methodResult = plugin.onRawMethod(event.payload)
 
-                        sender.invoke(
-                            event.pluginId,
-                            json.encodeToString(
-                                JetWhaleDebuggeeEvent.MethodResultResponse.Success(
-                                    requestId = event.requestId,
-                                    payload = methodResult,
+                        coroutineScope.launch {
+                            socketClient.sendMessage(
+                                pluginId = event.pluginId,
+                                message = json.encodeToString(
+                                    JetWhaleDebuggeeEvent.MethodResultResponse.Success(
+                                        requestId = event.requestId,
+                                        payload = methodResult,
+                                    )
                                 )
                             )
-                        )
+                        }
                     }
-
-                    is JetWhaleDebuggerEvent.PluginActivated -> pluginService.activatePlugins(event.pluginId, baseSender = sender)
-
-                    is JetWhaleDebuggerEvent.PluginDeactivated -> pluginService.deactivatePlugins(event.pluginId)
                 }
             }
     }
