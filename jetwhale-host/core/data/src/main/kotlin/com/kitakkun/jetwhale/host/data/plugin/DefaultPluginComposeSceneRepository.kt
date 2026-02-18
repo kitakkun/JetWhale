@@ -8,7 +8,7 @@ import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneRepository
 import com.kitakkun.jetwhale.host.model.PluginRepository
-import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
+import com.kitakkun.jetwhale.host.sdk.JetWhaleRawDebugOperationContext
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -37,7 +37,7 @@ class DefaultPluginComposeSceneRepository(
             sessionId = sessionId,
         )
         return pluginScenes.getOrPut("$pluginId:$sessionId") {
-            val debugOperationContext = object : JetWhaleDebugOperationContext<String, String> {
+            val debugOperationContext = object : JetWhaleRawDebugOperationContext {
                 override val coroutineScope: CoroutineScope = debugWebSocketServer.getCoroutineScopeForSession(sessionId)
                 override suspend fun dispatch(method: String): String? {
                     return debugWebSocketServer.sendMethod(
