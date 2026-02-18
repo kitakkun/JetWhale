@@ -25,5 +25,5 @@ public abstract class JetWhaleRawHostPlugin {
      * @param context The context for dispatching debug operations
      */
     @Composable
-    public abstract fun ContentRaw(context: JetWhaleDebugOperationContext<String, String>)
+    public abstract fun ContentRaw(context: JetWhaleRawDebugOperationContext)
 }

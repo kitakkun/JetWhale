@@ -28,7 +28,7 @@ fun ExamplePluginContent(
             context.coroutineScope.launch {
                 val method = ExampleMethod.Ping
                 eventLogs.add("Method: $method")
-                val result = context.dispatch(method)
+                val result: ExampleMethodResult.Pong? = context.dispatch(method)
                 eventLogs.add("Method Result: $result")
             }
         },
