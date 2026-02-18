@@ -14,6 +14,8 @@ import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.plus
 
 @OptIn(InternalComposeUiApi::class)
 @ContributesBinding(AppScope::class)
@@ -38,7 +40,7 @@ class DefaultPluginComposeSceneRepository(
         )
         return pluginScenes.getOrPut("$pluginId:$sessionId") {
             val debugOperationContext = object : JetWhaleRawDebugOperationContext {
-                override val coroutineScope: CoroutineScope = debugWebSocketServer.getCoroutineScopeForSession(sessionId)
+                override val coroutineScope: CoroutineScope = debugWebSocketServer.getCoroutineScopeForSession(sessionId) + SupervisorJob()
                 override suspend fun dispatch(method: String): String? {
                     return debugWebSocketServer.sendMethod(
                         pluginId = pluginId,
