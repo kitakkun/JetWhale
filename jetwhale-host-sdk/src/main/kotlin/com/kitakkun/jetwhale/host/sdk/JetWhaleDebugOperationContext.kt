@@ -20,5 +20,26 @@ public interface JetWhaleDebugOperationContext<Method, MethodResult> {
      * @param method The method to dispatch
      * @return The result of the method call, or null if there is no result
      */
-    public suspend fun dispatch(method: Method): MethodResult?
+    public suspend fun <MR : MethodResult> dispatch(method: Method): MR?
+}
+
+/**
+ * Context for dispatching raw debug operations from JetWhale Host to the plugin.
+ * This context uses raw String for method calls and results, without any encoding or decoding.
+ * It is used internally by JetWhaleHostPlugin to adapt to the typed JetWhaleDebugOperationContext.
+ */
+public interface JetWhaleRawDebugOperationContext {
+    /**
+     * The CoroutineScope for executing method calls
+     */
+    public val coroutineScope: CoroutineScope
+
+    /**
+     * Dispatches a raw method call to the plugin and returns the raw result.
+     * Do not call this method from the UI thread.
+     *
+     * @param method The raw method to dispatch
+     * @return The raw result of the method call, or null if there is no result
+     */
+    public suspend fun dispatch(method: String): String?
 }

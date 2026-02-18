@@ -7,7 +7,7 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin : com/ki
 	public static final field $stable I
 	public fun <init> ()V
 	public abstract fun Content (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleDebugOperationContext;Landroidx/compose/runtime/Composer;I)V
-	public final fun ContentRaw (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleDebugOperationContext;Landroidx/compose/runtime/Composer;I)V
+	public final fun ContentRaw (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleRawDebugOperationContext;Landroidx/compose/runtime/Composer;I)V
 	protected abstract fun getProtocol ()Lcom/kitakkun/jetwhale/protocol/host/JetWhaleHostPluginProtocol;
 	public abstract fun onEvent (Ljava/lang/Object;)V
 	public final fun onRawEvent (Ljava/lang/String;)V
@@ -51,10 +51,15 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhalePluginMetaDataKt {
 	public static final fun jetWhalePluginMetaData (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginMetaData;
 }
 
+public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleRawDebugOperationContext {
+	public abstract fun dispatch (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun getCoroutineScope ()Lkotlinx/coroutines/CoroutineScope;
+}
+
 public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleRawHostPlugin {
 	public static final field $stable I
 	public fun <init> ()V
-	public abstract fun ContentRaw (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleDebugOperationContext;Landroidx/compose/runtime/Composer;I)V
+	public abstract fun ContentRaw (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleRawDebugOperationContext;Landroidx/compose/runtime/Composer;I)V
 	public fun onDispose ()V
 	public abstract fun onRawEvent (Ljava/lang/String;)V
 }

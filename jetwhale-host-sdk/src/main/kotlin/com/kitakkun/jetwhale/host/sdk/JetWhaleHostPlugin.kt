@@ -45,13 +45,14 @@ public abstract class JetWhaleHostPlugin<Event, Method, MethodResult> : JetWhale
      * @param context The raw debug operation context
      */
     @Composable
-    final override fun ContentRaw(context: JetWhaleDebugOperationContext<String, String>) {
+    final override fun ContentRaw(context: JetWhaleRawDebugOperationContext) {
         val typedContext = object : JetWhaleDebugOperationContext<Method, MethodResult> {
-            override val coroutineScope: CoroutineScope get() = context.coroutineScope
-            override suspend fun dispatch(method: Method): MethodResult? {
+            override val coroutineScope: CoroutineScope = context.coroutineScope
+            override suspend fun <MR : MethodResult> dispatch(method: Method): MR? {
                 val encodedMethod = protocol.encodeMethod(method)
                 val rawResult = context.dispatch(encodedMethod)
-                return rawResult?.let { protocol.decodeMethodResult(it) }
+                @Suppress("UNCHECKED_CAST")
+                return rawResult?.let { protocol.decodeMethodResult(it) } as? MR
             }
         }
         Content(context = typedContext)
