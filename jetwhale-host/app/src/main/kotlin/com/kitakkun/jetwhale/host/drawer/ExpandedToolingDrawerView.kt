@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -131,11 +132,11 @@ fun ExpandedToolingDrawerView(
                                     pluginCount = enabledPlugins.size,
                                 )
                             }
-                            if (enabledPluginsExpanded) {
-                                items(
-                                    items = enabledPlugins,
-                                    key = { it.id },
-                                ) {
+                            items(
+                                items = enabledPlugins,
+                                key = { it.id },
+                            ) {
+                                AnimatedVisibility(enabledPluginsExpanded) {
                                     PluginDrawerItemView(
                                         enabled = true,
                                         name = it.name,
@@ -171,7 +172,7 @@ fun ExpandedToolingDrawerView(
                                                 }
                                             )
                                         },
-                                        modifier = Modifier.animateItem(),
+                                        modifier = Modifier.animateItem()
                                     )
                                 }
                             }
@@ -185,11 +186,11 @@ fun ExpandedToolingDrawerView(
                                     pluginCount = disabledPlugins.size,
                                 )
                             }
-                            if (disabledPluginsExpanded) {
-                                items(
-                                    items = disabledPlugins,
-                                    key = { it.id },
-                                ) {
+                            items(
+                                items = disabledPlugins,
+                                key = { it.id },
+                            ) {
+                                AnimatedVisibility(disabledPluginsExpanded) {
                                     PluginDrawerItemView(
                                         enabled = false,
                                         name = it.name,
@@ -228,23 +229,22 @@ fun ExpandedToolingDrawerView(
                                     pluginCount = unavailablePlugins.size,
                                 )
                             }
-                            if (unavailablePluginsExpanded) {
-                                items(
-                                    items = unavailablePlugins,
-                                    key = { it.id },
-                                ) {
-                                    PluginDrawerItemView(
-                                        enabled = false,
-                                        name = it.name,
-                                        activeIconResource = it.activeIconResource,
-                                        inactiveIconResource = it.inactiveIconResource,
-                                        selected = false,
-                                        onClick = {
-                                            // do nothing
-                                        },
-                                        modifier = Modifier.animateItem(),
-                                    )
-                                }
+                        }
+                        items(
+                            items = unavailablePlugins,
+                            key = { it.id },
+                        ) {
+                            AnimatedVisibility(unavailablePluginsExpanded) {
+                                PluginDrawerItemView(
+                                    enabled = false,
+                                    name = it.name,
+                                    activeIconResource = it.activeIconResource,
+                                    inactiveIconResource = it.inactiveIconResource,
+                                    selected = false,
+                                    onClick = {
+                                        // do nothing
+                                    },
+                                )
                             }
                         }
                     }
