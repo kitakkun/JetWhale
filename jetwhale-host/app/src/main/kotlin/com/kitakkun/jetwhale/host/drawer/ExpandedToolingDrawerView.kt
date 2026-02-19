@@ -23,7 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -115,9 +115,9 @@ fun ExpandedToolingDrawerView(
                     var disabledPluginsExpanded by rememberRetained { mutableStateOf(true) }
                     var unavailablePluginsExpanded by rememberRetained { mutableStateOf(true) }
 
-                    val enabledPlugins by rememberUpdatedState(plugins.filter { it.pluginAvailability == PluginAvailability.Enabled })
-                    val disabledPlugins by rememberUpdatedState(plugins.filter { it.pluginAvailability == PluginAvailability.Disabled })
-                    val unavailablePlugins by rememberUpdatedState(plugins.filter { it.pluginAvailability == PluginAvailability.Unavailable })
+                    val enabledPlugins = remember(plugins) { plugins.filter { it.pluginAvailability == PluginAvailability.Enabled } }
+                    val disabledPlugins = remember(plugins) { plugins.filter { it.pluginAvailability == PluginAvailability.Disabled } }
+                    val unavailablePlugins = remember(plugins) { plugins.filter { it.pluginAvailability == PluginAvailability.Unavailable } }
 
                     LazyColumn(
                         modifier = Modifier.weight(1f)
