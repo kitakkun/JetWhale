@@ -37,7 +37,7 @@ interface JetWhaleAppGraph :
     val appearanceSettingsSubscriptionKey: AppearanceSettingsSubscriptionKey
     val debugWebSocketServer: DebugWebSocketServer
     val pluginComposeSceneService: PluginComposeSceneService
-    val pluginInstancService: PluginInstanceService
+    val pluginInstanceService: PluginInstanceService
     val logCaptureService: LogCaptureService
     val enabledPluginsRepository: EnabledPluginsRepository
 

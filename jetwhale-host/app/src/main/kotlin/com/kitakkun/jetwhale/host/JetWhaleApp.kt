@@ -70,7 +70,7 @@ fun JetWhaleApp() {
             }
 
             disabledPluginIds.forEach { pluginId ->
-                appGraph.pluginInstancService.unloadPluginInstancesForPlugin(pluginId)
+                appGraph.pluginInstanceService.unloadPluginInstancesForPlugin(pluginId)
                 appGraph.pluginComposeSceneService.disposePluginScenesForPlugin(pluginId)
             }
         }
