@@ -14,9 +14,9 @@ Agent Plugins run within the debuggee application and are responsible for:
 
 JetWhale provides two base classes for Agent Plugins:
 
-| Class | Description |
-|-------|-------------|
-| `JetWhaleRawAgentPlugin` | Base class for raw string-based communication |
+| Class                                              | Description                                    |
+|----------------------------------------------------|------------------------------------------------|
+| `JetWhaleRawAgentPlugin`                           | Base class for raw string-based communication  |
 | `JetWhaleAgentPlugin<Event, Method, MethodResult>` | Type-safe abstract class with protocol support |
 
 For most use cases, extend `JetWhaleAgentPlugin` for type-safe communication.
@@ -45,18 +45,19 @@ public abstract class JetWhaleAgentPlugin<Event, Method, MethodResult>
 
 ### Required Properties and Methods
 
-| Member | Type | Description |
-|--------|------|-------------|
-| `pluginId` | `String` | Unique plugin identifier (reverse domain notation) |
-| `pluginVersion` | `String` | Plugin version string |
-| `protocol` | `JetWhaleAgentPluginProtocol` | Serialization protocol |
-| `onReceiveMethod()` | `suspend fun` | Handle incoming method calls |
+| Member              | Type                          | Description                                        |
+|---------------------|-------------------------------|----------------------------------------------------|
+| `pluginId`          | `String`                      | Unique plugin identifier (reverse domain notation) |
+| `pluginVersion`     | `String`                      | Plugin version string                              |
+| `protocol`          | `JetWhaleAgentPluginProtocol` | Serialization protocol                             |
+| `onReceiveMethod()` | `suspend fun`                 | Handle incoming method calls                       |
 
 ## Implementation Steps
 
 ### Step 1: Define Protocol Types
 
-First, define the Event, Method, and MethodResult types in a shared module. See [Protocol Definition Guide](./protocol.md) for details.
+First, define the Event, Method, and MethodResult types in a shared module.
+See [Protocol Definition Guide](./protocol.md) for details.
 
 ### Step 2: Create the Agent Plugin Class
 
@@ -211,10 +212,6 @@ abstract class JetWhaleRawAgentPlugin {
 
     // Send raw event message
     fun enqueueRawEvent(message: String)
-
-    // Plugin lifecycle (called by JetWhale runtime)
-    fun activate(sender: JetWhaleMessageSender)
-    fun deactivate()
 }
 ```
 
@@ -266,15 +263,20 @@ class ExampleAgentPlugin : JetWhaleAgentPlugin<ExampleEvent, ExampleMethod, Exam
 
 ## Best Practices
 
-1. **Use type-safe plugins**: Prefer `JetWhaleAgentPlugin` over `JetWhaleRawAgentPlugin` for compile-time safety
+1. **Use type-safe plugins**: Prefer `JetWhaleAgentPlugin` over `JetWhaleRawAgentPlugin` for
+   compile-time safety
 
-2. **Keep method handlers fast**: `onReceiveMethod()` runs on the message processing thread; offload heavy work to coroutines
+2. **Keep method handlers fast**: `onReceiveMethod()` runs on the message processing thread; offload
+   heavy work to coroutines
 
-3. **Use meaningful plugin IDs**: Follow reverse domain notation and keep IDs consistent between Agent and Host
+3. **Use meaningful plugin IDs**: Follow reverse domain notation and keep IDs consistent between
+   Agent and Host
 
-4. **Handle errors gracefully**: Return error results instead of throwing exceptions in `onReceiveMethod()`
+4. **Handle errors gracefully**: Return error results instead of throwing exceptions in
+   `onReceiveMethod()`
 
-5. **Consider buffer size**: If your application generates many events rapidly, increase the queue buffer size
+5. **Consider buffer size**: If your application generates many events rapidly, increase the queue
+   buffer size
 
 ## See Also
 
