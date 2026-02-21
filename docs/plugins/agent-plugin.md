@@ -212,9 +212,9 @@ abstract class JetWhaleRawAgentPlugin {
     // Send raw event message
     fun enqueueRawEvent(message: String)
 
-    // Message sender management
-    fun attachSender(sender: JetWhaleMessageSender)
-    fun detachSender()
+    // Plugin lifecycle (called by JetWhale runtime)
+    fun activate(sender: JetWhaleMessageSender)
+    fun deactivate()
 }
 ```
 
