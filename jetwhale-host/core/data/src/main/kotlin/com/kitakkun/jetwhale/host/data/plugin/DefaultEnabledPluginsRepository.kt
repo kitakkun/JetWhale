@@ -36,7 +36,7 @@ class DefaultEnabledPluginsRepository(
             initialValue = emptySet(),
         )
 
-    private val mutableDisabledPluginIdFlow: MutableSharedFlow<String> = MutableSharedFlow()
+    private val mutableDisabledPluginIdFlow: MutableSharedFlow<String> = MutableSharedFlow(extraBufferCapacity = 1)
     override val disabledPluginIdFlow: Flow<String> = mutableDisabledPluginIdFlow
 
     override suspend fun setPluginEnabled(pluginId: String, enabled: Boolean) {
@@ -47,9 +47,9 @@ class DefaultEnabledPluginsRepository(
             } else {
                 currentSet - pluginId
             }
-            if (!enabled) {
-                mutableDisabledPluginIdFlow.emit(pluginId)
-            }
+        }
+        if (!enabled) {
+            mutableDisabledPluginIdFlow.emit(pluginId)
         }
     }
 
