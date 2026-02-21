@@ -7,7 +7,6 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneQueryKey
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginIdQualifier
 import com.kitakkun.jetwhale.host.model.SessionIdQualifier
-import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -15,7 +14,7 @@ import soil.query.QueryContentCacheable
 import soil.query.QueryId
 import soil.query.buildQueryKey
 
-@OptIn(InternalComposeUiApi::class, InternalJetWhaleApi::class)
+@OptIn(InternalComposeUiApi::class)
 @ContributesBinding(AppScope::class)
 @Inject
 class DefaultPluginComposeSceneQueryKey(

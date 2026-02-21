@@ -13,7 +13,6 @@ import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
 import com.kitakkun.jetwhale.host.plugin.PluginScreenContext
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 import com.kitakkun.jetwhale.host.settings.licenses.LicensesScreenContext
-import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
@@ -45,7 +44,6 @@ interface JetWhaleAppGraph :
     @Provides
     fun provideSwrClient(): SwrClientPlus = SwrCachePlus(SwrCachePlusPolicy(SwrCacheScope()))
 
-    @OptIn(InternalJetWhaleApi::class)
     @Provides
     fun providesWebSocketPayloadJson(): Json {
         return JetWhaleJson

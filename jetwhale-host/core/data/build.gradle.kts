@@ -6,6 +6,12 @@ plugins {
     alias(libs.plugins.jetbrainsCompose)
 }
 
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-opt-in=com.kitakkun.jetwhale.annotations.InternalJetWhaleApi")
+    }
+}
+
 dependencies {
     implementation(projects.jetwhaleHostSdk)
     implementation(projects.jetwhaleHost.core.model)

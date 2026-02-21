@@ -3,7 +3,6 @@ package com.kitakkun.jetwhale.host.data.server
 import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationResult
 import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationStrategy
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
-import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
@@ -119,7 +118,6 @@ class KtorWebSocketServer(
         }
     }
 
-    @OptIn(InternalJetWhaleApi::class)
     context(log: Logger)
     private suspend fun DefaultWebSocketServerSession.configureSession() {
         val negotiationResult = with(negotiationStrategy) { negotiate() }

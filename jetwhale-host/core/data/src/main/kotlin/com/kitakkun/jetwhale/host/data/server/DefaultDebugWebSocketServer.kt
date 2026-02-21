@@ -8,7 +8,6 @@ import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
-import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import dev.zacsweers.metro.AppScope
@@ -58,7 +57,6 @@ class DefaultDebugWebSocketServer(
         ktorWebSocketServer.stop()
     }
 
-    @OptIn(InternalJetWhaleApi::class)
     override suspend fun sendMethod(
         pluginId: String,
         sessionId: String,
@@ -93,7 +91,6 @@ class DefaultDebugWebSocketServer(
         return CoroutineScope(ktorWebSocketServer.getSessionCoroutineContext(sessionId))
     }
 
-    @OptIn(InternalJetWhaleApi::class)
     private fun subscribeServerEvents() {
         serverMonitoringJob?.cancel()
 

@@ -75,6 +75,7 @@ val aboutLibrariesDir = layout.buildDirectory.dir("generated/aboutlibraries")
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-opt-in=soil.query.annotation.ExperimentalSoilQueryApi")
+        freeCompilerArgs.add("-opt-in=com.kitakkun.jetwhale.annotations.InternalJetWhaleApi")
     }
 
     sourceSets {
