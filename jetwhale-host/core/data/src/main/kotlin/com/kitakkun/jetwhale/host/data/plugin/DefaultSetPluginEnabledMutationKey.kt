@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledMutationKey
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
 import dev.zacsweers.metro.AppScope
@@ -11,7 +12,7 @@ import soil.query.buildMutationKey
 @ContributesBinding(AppScope::class)
 @Inject
 class DefaultSetPluginEnabledMutationKey(
-    private val enabledPluginsRepository: DefaultEnabledPluginsRepository,
+    private val enabledPluginsRepository: EnabledPluginsRepository,
 ) : SetPluginEnabledMutationKey by buildMutationKey(
     id = MutationId("set_plugin_enabled"),
     mutate = { params: SetPluginEnabledParams ->
