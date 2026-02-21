@@ -14,7 +14,7 @@ import dev.zacsweers.metro.SingleIn
 class DefaultPluginInstanceService : PluginInstanceService {
     private val mutableLoadedPlugins: MutableMap<String, JetWhaleRawHostPlugin> = mutableMapOf()
 
-    override suspend fun getOrPutPluginInstanceForSession(
+    override fun getOrPutPluginInstanceForSession(
         pluginId: String,
         sessionId: String,
         pluginFactory: JetWhaleHostPluginFactory,

@@ -5,6 +5,6 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
 
 interface PluginInstanceService {
     fun unloadPluginInstanceForSession(sessionId: String)
-    suspend fun getOrPutPluginInstanceForSession(pluginId: String, sessionId: String, pluginFactory: JetWhaleHostPluginFactory): JetWhaleRawHostPlugin
+    fun getOrPutPluginInstanceForSession(pluginId: String, sessionId: String, pluginFactory: JetWhaleHostPluginFactory): JetWhaleRawHostPlugin
     fun unloadPluginInstancesForPlugin(pluginId: String)
 }
