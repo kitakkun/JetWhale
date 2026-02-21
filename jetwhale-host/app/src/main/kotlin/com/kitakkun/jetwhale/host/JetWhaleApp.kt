@@ -21,7 +21,6 @@ import com.kitakkun.jetwhale.host.navigation.addSingleTop
 import com.kitakkun.jetwhale.host.ui.AppEnvironment
 import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
 import io.github.takahirom.rin.rememberRetained
-import kotlinx.coroutines.flow.first
 import kotlinx.serialization.modules.SerializersModule
 import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberSubscription
@@ -55,24 +54,18 @@ fun JetWhaleApp() {
     }
 
     LaunchedEffect(backStack) {
-        var previousEnabledPluginIds: Set<String> = appGraph.enabledPluginsRepository.enabledPluginIdsFlow.first()
-        appGraph.enabledPluginsRepository.enabledPluginIdsFlow.collect { enabledPluginIds ->
-            val disabledPluginIds = previousEnabledPluginIds - enabledPluginIds
-            previousEnabledPluginIds = enabledPluginIds
-
+        appGraph.enabledPluginsRepository.disabledPluginIdFlow.collect { disabledPluginId ->
             // automatically remove disabled plugin entries from back stack
             backStack.removeAll { navKey ->
                 when (navKey) {
-                    is PluginNavKey -> navKey.pluginId in disabledPluginIds
-                    is PluginPopoutNavKey -> navKey.pluginId in disabledPluginIds
+                    is PluginNavKey -> navKey.pluginId == disabledPluginId
+                    is PluginPopoutNavKey -> navKey.pluginId == disabledPluginId
                     else -> false
                 }
             }
 
-            disabledPluginIds.forEach { pluginId ->
-                appGraph.pluginInstanceService.unloadPluginInstancesForPlugin(pluginId)
-                appGraph.pluginComposeSceneService.disposePluginScenesForPlugin(pluginId)
-            }
+            appGraph.pluginInstanceService.unloadPluginInstancesForPlugin(disabledPluginId)
+            appGraph.pluginComposeSceneService.disposePluginScenesForPlugin(disabledPluginId)
         }
     }
 
