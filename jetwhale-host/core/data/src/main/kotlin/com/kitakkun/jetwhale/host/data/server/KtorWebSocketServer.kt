@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -51,7 +52,7 @@ class KtorWebSocketServer(
     private val negotiationStrategy: ServerSessionNegotiationStrategy,
 ) {
     private var embeddedServer: EmbeddedServer<*, *>? = null
-    private val sessions: MutableMap<String, WebSocketServerSession> = mutableMapOf()
+    private val sessions: ConcurrentHashMap<String, WebSocketServerSession> = ConcurrentHashMap()
 
     private val mutableStatusFlow: MutableStateFlow<DebugWebSocketServerStatus> = MutableStateFlow(DebugWebSocketServerStatus.Stopped)
     val statusFlow: StateFlow<DebugWebSocketServerStatus> = mutableStatusFlow
