@@ -58,6 +58,30 @@ class JetWhaleHostNegotiationResponseSerializationTest : JetWhaleSerializationTe
     }
 
     @Test
+    fun `capabilities response should be serialized stably`() {
+        val response = JetWhaleHostNegotiationResponse.CapabilitiesResponse(
+            capabilities = mapOf("feature1" to "enabled", "feature2" to "disabled")
+        )
+
+        val encoded = json.encodeToString(response)
+
+        assertEquals(
+            expected = """{"type":"negotiation/host/capabilities_response","capabilities":{"feature1":"enabled","feature2":"disabled"}}""",
+            actual = encoded
+        )
+    }
+
+    @Test
+    fun `capabilities response should be deserializable`() {
+        val jsonString = """{"type":"negotiation/host/capabilities_response","capabilities":{"key":"value"}}"""
+
+        val decoded = json.decodeFromString<JetWhaleHostNegotiationResponse>(jsonString)
+
+        val capabilities = assertIs<JetWhaleHostNegotiationResponse.CapabilitiesResponse>(decoded)
+        assertEquals(mapOf("key" to "value"), capabilities.capabilities)
+    }
+
+    @Test
     fun `available plugins response should be serialized stably`() {
         val response = JetWhaleHostNegotiationResponse.AvailablePluginsResponse(
             availablePlugins = listOf(

@@ -40,6 +40,30 @@ class JetWhaleAgentNegotiationRequestSerializationTest : JetWhaleSerializationTe
     }
 
     @Test
+    fun `capabilities negotiation request should be serialized stably`() {
+        val request = JetWhaleAgentNegotiationRequest.Capabilities(
+            capabilities = mapOf("feature1" to "enabled", "feature2" to "disabled")
+        )
+
+        val encoded = json.encodeToString(request)
+
+        assertEquals(
+            expected = """{"type":"negotiation/agent/capabilities","capabilities":{"feature1":"enabled","feature2":"disabled"}}""",
+            actual = encoded
+        )
+    }
+
+    @Test
+    fun `capabilities negotiation request should be deserializable`() {
+        val jsonString = """{"type":"negotiation/agent/capabilities","capabilities":{"key":"value"}}"""
+
+        val decoded = json.decodeFromString<JetWhaleAgentNegotiationRequest>(jsonString)
+
+        val capabilities = assertIs<JetWhaleAgentNegotiationRequest.Capabilities>(decoded)
+        assertEquals(mapOf("key" to "value"), capabilities.capabilities)
+    }
+
+    @Test
     fun `available plugins negotiation request should be serialized stably`() {
         val request = JetWhaleAgentNegotiationRequest.AvailablePlugins(
             plugins = listOf(
