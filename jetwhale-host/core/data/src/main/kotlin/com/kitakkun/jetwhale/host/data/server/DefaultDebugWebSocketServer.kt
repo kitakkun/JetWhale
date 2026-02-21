@@ -152,19 +152,22 @@ class DefaultDebugWebSocketServer(
                 combine(
                     enabledPluginsRepository.enabledPluginIdsFlow,
                     sessionRepository.debugSessionsFlow.map { sessions ->
-                        sessions
-                            .filter { it.isActive }
-                            .fastMap { it.id }
+                        sessions.filter { it.isActive }
                     }
-                ) { enabledPluginIds, activeSessionIds ->
-                    enabledPluginIds to activeSessionIds.toSet()
-                }.collect { (enabledPluginIds, activeSessionIds) ->
-                    enabledPluginIds.forEach {
-                        // Initialize plugin instances for all existing sessions
-                        // to ensure that the plugin is activated in all sessions immediately after being enabled.
+                ) { enabledPluginIds, activeSessions ->
+                    enabledPluginIds to activeSessions
+                }.collect { (enabledPluginIds, activeSessions) ->
+                    enabledPluginIds.forEach { pluginId ->
+                        // Filter sessions that have the plugin installed (negotiated)
+                        val sessionIdsWithPlugin = activeSessions
+                            .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
+                            .fastMap { it.id }
+                            .toSet()
+                        // Initialize plugin instances for sessions that have the plugin installed
+                        // to ensure that the plugin is activated immediately after being enabled.
                         val pluginActivatedSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
-                            pluginId = it,
-                            sessionIds = activeSessionIds,
+                            pluginId = pluginId,
+                            sessionIds = sessionIdsWithPlugin,
                         )
                         // Plugin instances are also initialized when a new session is created,
                         // so it's possible that some sessions already have the plugin instance initialized when the plugin is enabled.
@@ -173,7 +176,7 @@ class DefaultDebugWebSocketServer(
                         pluginActivatedSessionIds.forEach { sessionId ->
                             ktorWebSocketServer.sendToSession(
                                 sessionId = sessionId,
-                                event = JetWhaleDebuggerEvent.PluginActivated(pluginId = it),
+                                event = JetWhaleDebuggerEvent.PluginActivated(pluginId = pluginId),
                             )
                         }
                     }
