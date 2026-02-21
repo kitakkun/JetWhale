@@ -12,4 +12,12 @@
     <string name="plugin_popped_out_message">This plugin is popped out. Please check the separate window.</string>
     <string name="bring_back_to_main_window">Bring back to main window</string>
     <string name="log_viewer_window_title">Log Viewer</string>
+    <string name="plugins">Plugins</string>
+    <string name="no_plugins_installed">No plugins installed.</string>
+    <string name="enabled_plugins">Enabled Plugins</string>
+    <string name="disabled_plugins">Disabled Plugins</string>
+    <string name="unavailable_plugins">Unavailable Plugins</string>
+    <string name="popout">Pop out</string>
+    <string name="enable">Enable</string>
+    <string name="disable">Disable</string>
 </resources>

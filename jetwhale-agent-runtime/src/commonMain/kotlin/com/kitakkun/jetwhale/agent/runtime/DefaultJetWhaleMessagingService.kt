@@ -1,127 +1,91 @@
 package com.kitakkun.jetwhale.agent.runtime
 
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleMessagingService
-import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
-import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
+import kotlin.coroutines.cancellation.CancellationException
 
 @OptIn(InternalJetWhaleApi::class)
 internal class DefaultJetWhaleMessagingService(
     private val socketClient: JetWhaleSocketClient,
-    private val plugins: List<AgentPlugin>,
-    private val json: Json,
+    private val pluginService: JetWhaleAgentPluginService,
 ) : JetWhaleMessagingService {
-    private val coroutineScope: CoroutineScope = CoroutineScope(messagingServiceCoroutineDispatcher())
+    private val coroutineScope: CoroutineScope = CoroutineScope(messagingServiceCoroutineDispatcher() + SupervisorJob())
     private var keepAwakeJob: Job? = null
-    private var reconnectDelayMillis: Long = DEFAULT_RECONNECT_DELAY_MILLIS
-    private var hasConnectedOnce: Boolean = false
-    private var hasLoggedInitialConnectionFailure: Boolean = false
+    private var retryCount = 0
 
     override fun startService(host: String, port: Int) {
-        JetWhaleLogger.i("Starting JetWhale service...")
+        JetWhaleLogger.i("Starting JetWhale Messaging Service")
         keepAwakeJob?.cancel()
         keepAwakeJob = coroutineScope.launch {
-            try {
-                openConnectionAndCollectServerMessages(host, port)
-            } catch (e: Throwable) {
-                when {
-                    hasConnectedOnce -> {
-                        JetWhaleLogger.w("Connection closed: ${e.message}", e)
-                    }
-                    !hasLoggedInitialConnectionFailure -> {
-                        hasLoggedInitialConnectionFailure = true
-                        JetWhaleLogger.w("Connection failed: ${e.message}. Is the debugger running? Is the port correct?")
-                    }
-                    else -> {
-                        JetWhaleLogger.d("Connection failed: ${e.message}")
-                    }
+            while (isActive) {
+                try {
+                    openConnection(host, port)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Throwable) {
+                    pluginService.deactivateAllPlugins()
+                    retryCount++
+                    val delayMillis = (retryCount * RETRY_DELAY_INCREMENT_MILLIS).coerceAtMost(MAX_RECONNECT_DELAY_MILLIS)
+                    delay(delayMillis)
                 }
-            } finally {
-                JetWhaleLogger.v("Detaching senders...")
-                detachSenderFromPlugins()
             }
-
-            reconnectDelayMillis = (reconnectDelayMillis + RECONNECT_DELAY_INCREMENT_MILLIS).coerceAtMost(MAX_RECONNECT_DELAY_MILLIS)
-            JetWhaleLogger.v("Reconnecting in $reconnectDelayMillis ms")
-            delay(reconnectDelayMillis)
-            startService(host, port)
         }
     }
 
-    private suspend fun CoroutineScope.openConnectionAndCollectServerMessages(host: String, port: Int) {
-        val serverRawJsonMessageFlow = socketClient.openConnection(host, port)
-        hasConnectedOnce = true
-        JetWhaleLogger.d("Connection established to $host:$port")
-        reconnectDelayMillis = DEFAULT_RECONNECT_DELAY_MILLIS
+    private suspend fun openConnection(host: String, port: Int) {
+        val connection = socketClient.openConnection(host, port)
 
-        attachSenderToPlugins()
-        collectServerMessages(serverRawJsonMessageFlow)
-    }
+        retryCount = 0
 
-    private fun CoroutineScope.attachSenderToPlugins() {
-        JetWhaleLogger.v("Attaching sender to each plugin")
-        plugins.forEach { plugin ->
-            plugin.attachSender { payload ->
-                val event = JetWhaleDebuggeeEvent.PluginMessage(
-                    pluginId = plugin.pluginId,
-                    payload = payload,
-                )
-                val message = json.encodeToString(event)
-                launch {
-                    socketClient.sendMessage(
-                        pluginId = plugin.pluginId,
-                        message = message,
+        val sendPluginMessageEvent: (String, String) -> Unit = { pluginId: String, pluginMessagePayload: String ->
+            coroutineScope.launch {
+                socketClient.sendDebuggeeEvent(
+                    JetWhaleDebuggeeEvent.PluginMessage(
+                        pluginId = pluginId,
+                        payload = pluginMessagePayload,
                     )
-                }
+                )
             }
         }
-    }
 
-    private fun detachSenderFromPlugins() {
-        plugins.forEach { plugin -> plugin.detachSender() }
-    }
+        pluginService.activatePlugins(
+            ids = connection.negotiationResult.availablePluginIds.toTypedArray(),
+            baseSender = sendPluginMessageEvent,
+        )
 
-    private suspend fun collectServerMessages(serverRawJsonMessageFlow: Flow<String>) {
-        JetWhaleLogger.v("Start listening server messages...")
-        serverRawJsonMessageFlow
-            .mapNotNull { json.decodeFromStringOrNull<JetWhaleDebuggerEvent>(it) }
-            .collect { event ->
-                JetWhaleLogger.v("Received event: $event")
-                handleDebuggerEvent(event)
-            }
-    }
+        connection.debuggerEventFlow.collect { event ->
+            when (event) {
+                is JetWhaleDebuggerEvent.PluginActivated -> pluginService.activatePlugins(event.pluginId, baseSender = sendPluginMessageEvent)
 
-    private suspend fun handleDebuggerEvent(event: JetWhaleDebuggerEvent) {
-        when (event) {
-            is JetWhaleDebuggerEvent.MethodRequest -> {
-                val plugin = plugins.firstOrNull { it.pluginId == event.pluginId } ?: return
-                val methodResult = plugin.onRawMethod(event.payload)
+                is JetWhaleDebuggerEvent.PluginDeactivated -> pluginService.deactivatePlugins(event.pluginId)
 
-                socketClient.sendMessage(
-                    pluginId = event.pluginId,
-                    message = json.encodeToString(
-                        JetWhaleDebuggeeEvent.MethodResultResponse.Success(
-                            requestId = event.requestId,
-                            payload = methodResult,
+                is JetWhaleDebuggerEvent.MethodRequest -> {
+                    val plugin = pluginService.getPluginById(event.pluginId) ?: return@collect
+                    val methodResult = plugin.onRawMethod(event.payload)
+
+                    coroutineScope.launch {
+                        socketClient.sendDebuggeeEvent(
+                            event = JetWhaleDebuggeeEvent.MethodResultResponse.Success(
+                                requestId = event.requestId,
+                                payload = methodResult,
+                            )
                         )
-                    )
-                )
-                JetWhaleLogger.v("Sent method result for request: ${event.requestId}")
+                    }
+                }
             }
         }
     }
 
     companion object {
-        private const val DEFAULT_RECONNECT_DELAY_MILLIS = 1000L
-        private const val RECONNECT_DELAY_INCREMENT_MILLIS = 1000L
+        private const val RETRY_DELAY_INCREMENT_MILLIS = 1000L
         private const val MAX_RECONNECT_DELAY_MILLIS = 5000L
     }
 }

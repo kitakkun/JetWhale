@@ -1,25 +1,23 @@
 package com.kitakkun.jetwhale.agent.runtime
 
-import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAgentNegotiationRequest
-import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleHostNegotiationResponse
-import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleProtocolVersion
+import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
+import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
+import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
+import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
-import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.sendSerialized
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
-import io.ktor.websocket.send
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.serialization.json.Json
 
 /**
@@ -27,25 +25,23 @@ import kotlinx.serialization.json.Json
  */
 internal class KtorWebSocketClient(
     private val json: Json,
+    private val negotiationStrategy: ClientSessionNegotiationStrategy,
     httpClient: HttpClient
 ) : JetWhaleSocketClient {
     private var session: DefaultClientWebSocketSession? = null
-
-    var sessionId: String? = null
-        private set
 
     private val client: HttpClient = httpClient.config {
         configureHttpClient()
     }
 
-    override suspend fun sendMessage(pluginId: String, message: String) {
-        session?.send(message)
+    override suspend fun sendDebuggeeEvent(event: JetWhaleDebuggeeEvent) {
+        session?.sendSerialized(event)
     }
 
     override suspend fun openConnection(
         host: String,
         port: Int,
-    ): Flow<String> {
+    ): JetWhaleConnection {
         val session = client.webSocketSession(
             host = host,
             port = port,
@@ -54,56 +50,38 @@ internal class KtorWebSocketClient(
         return session.configureSession()
     }
 
-    private suspend fun DefaultClientWebSocketSession.configureSession(): Flow<String> {
+    @OptIn(InternalJetWhaleApi::class)
+    private suspend fun DefaultClientWebSocketSession.configureSession(): JetWhaleConnection {
         JetWhaleLogger.v("Configuring WebSocket session")
 
-        // protocol version negotiation
-        JetWhaleLogger.v("Starting protocol version negotiation")
-        sendSerialized(JetWhaleAgentNegotiationRequest.ProtocolVersion(JetWhaleProtocolVersion.Current))
-        val protocolNegotiationResponse: JetWhaleHostNegotiationResponse.ProtocolVersionResponse = receiveDeserialized()
-        JetWhaleLogger.v("Received protocol version negotiation response: $protocolNegotiationResponse")
+        val negotiationResult = with(negotiationStrategy) { negotiate() }
 
-        when (protocolNegotiationResponse) {
-            is JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept -> {
-                JetWhaleLogger.d("Protocol version accepted: ${protocolNegotiationResponse.version}")
+        when (negotiationResult) {
+            is ClientSessionNegotiationResult.Success -> {
+                JetWhaleLogger.d("Session negotiation succeeded: $negotiationResult")
             }
 
-            is JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Reject -> {
-                JetWhaleLogger.e("Incompatible protocol version. Rejected by host: ${protocolNegotiationResponse.reason}")
-                throw IllegalStateException("Protocol version rejected by host: ${protocolNegotiationResponse.reason}")
+            is ClientSessionNegotiationResult.Failure -> {
+                JetWhaleLogger.e("Session negotiation failed: ${negotiationResult.reason}")
+                throw IllegalStateException("Session negotiation failed: ${negotiationResult.reason}")
             }
         }
-
-        // sessionId negotiation
-        JetWhaleLogger.v("Starting session negotiation")
-        if (sessionId == null) {
-            JetWhaleLogger.v("Requesting new session")
-        } else {
-            JetWhaleLogger.d("Resuming existing session with sessionId: $sessionId")
-        }
-        sendSerialized(
-            JetWhaleAgentNegotiationRequest.Session(
-                sessionId = sessionId,
-                sessionName = getDeviceModelName(),
-            )
-        )
-        JetWhaleLogger.v("Sent session negotiation request" + " with sessionId: $sessionId".takeIf { sessionId != null })
-
-        sessionId = receiveDeserialized<JetWhaleHostNegotiationResponse.AcceptSession>().sessionId
-        JetWhaleLogger.d("Session negotiation completed with sessionId: $sessionId")
-
-        // TODO: Capabilities negotiation (currently not implemented)
-
-        // TODO: Available plugins negotiation (currently not implemented)
 
         closeReason.invokeOnCompletion {
             JetWhaleLogger.i("WebSocket session closed")
             session = null
         }
 
-        JetWhaleLogger.i("WebSocket session established with sessionId: $sessionId")
+        JetWhaleLogger.i("WebSocket session established")
 
-        return incoming.consumeAsFlow().filterIsInstance<Frame.Text>().map { it.readText() }
+        val debuggerEventFlow = incoming.consumeAsFlow().filterIsInstance<Frame.Text>().mapNotNull {
+            json.decodeFromStringOrNull<JetWhaleDebuggerEvent>(it.readText())
+        }
+
+        return JetWhaleConnection(
+            negotiationResult = negotiationResult,
+            debuggerEventFlow = debuggerEventFlow,
+        )
     }
 
     private fun HttpClientConfig<*>.configureHttpClient() {

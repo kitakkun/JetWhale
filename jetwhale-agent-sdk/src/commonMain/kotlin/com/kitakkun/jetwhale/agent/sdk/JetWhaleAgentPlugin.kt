@@ -1,10 +1,12 @@
 package com.kitakkun.jetwhale.agent.sdk
 
+import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.agent.JetWhaleAgentPluginProtocol
 
 /**
  * Plugin client which runs on the debug-target app.
  */
+@OptIn(InternalJetWhaleApi::class)
 public abstract class JetWhaleAgentPlugin<Event, Method, MethodResult> : JetWhaleRawAgentPlugin() {
     /**
      * The protocol used for encoding and decoding messages.

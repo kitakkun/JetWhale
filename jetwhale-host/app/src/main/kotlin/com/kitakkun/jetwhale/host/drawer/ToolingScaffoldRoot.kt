@@ -17,9 +17,15 @@ fun ToolingScaffoldRoot(
     SoilDataBoundary(
         state1 = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
         state2 = rememberSubscription(screenContext.debugSessionsSubscriptionKey),
-    ) { loadedPlugins, debugSessions ->
+        state3 = rememberSubscription(screenContext.enabledPluginsSubscriptionKey),
+    ) { loadedPlugins, debugSessions, enabledPluginIds ->
         val eventFlow = rememberEventFlow<ToolingScaffoldEvent>()
-        val uiState = toolingScaffoldPresenter(eventFlow, loadedPlugins, debugSessions)
+        val uiState = toolingScaffoldPresenter(
+            eventFlow = eventFlow,
+            loadedPlugins = loadedPlugins,
+            debugSessions = debugSessions,
+            enabledPluginIds = enabledPluginIds,
+        )
 
         ToolingScaffold(
             uiState = uiState,
@@ -35,6 +41,9 @@ fun ToolingScaffoldRoot(
                 onClickPopout(it.id, it.name, selectedSession.id)
             },
             onSelectSession = { eventFlow.tryEmit(ToolingScaffoldEvent.SelectSession(it)) },
+            onSetPluginEnabled = { pluginId, enabled ->
+                eventFlow.tryEmit(ToolingScaffoldEvent.SetPluginEnabled(pluginId, enabled))
+            },
             content = content,
         )
     }

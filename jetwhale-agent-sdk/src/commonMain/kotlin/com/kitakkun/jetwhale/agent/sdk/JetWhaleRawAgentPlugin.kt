@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.agent.sdk
 
+import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
+
 /**
  * An abstract class representing a raw agent plugin for JetWhale.
  * This plugin handles raw method messages and event messages as strings.
@@ -7,6 +9,7 @@ package com.kitakkun.jetwhale.agent.sdk
  *
  * Implementations should provide logic for handling typed method messages.
  */
+@InternalJetWhaleApi
 public abstract class JetWhaleRawAgentPlugin {
     /**
      * unique id to distinguish plugins.
@@ -40,12 +43,14 @@ public abstract class JetWhaleRawAgentPlugin {
     /**
      * Handles a raw method message received from the debugger.
      */
+    @InternalJetWhaleApi
     public abstract suspend fun onRawMethod(message: String): String?
 
     /**
      * Enqueues a raw event message to be sent to the debugger.
      * If a sender is attached, the message is sent immediately.
      */
+    @InternalJetWhaleApi
     public fun enqueueRawEvent(message: String) {
         if (sender != null) {
             sender?.send(message)
@@ -55,10 +60,11 @@ public abstract class JetWhaleRawAgentPlugin {
     }
 
     /**
-     * Attaches a message sender to send messages to the debugger.
+     * Activates the plugin by attaching a message sender.
      * Flushes any queued messages upon attachment.
      */
-    public fun attachSender(sender: JetWhaleMessageSender) {
+    @InternalJetWhaleApi
+    public fun activate(sender: JetWhaleMessageSender) {
         this.sender = sender
         flushQueue()
     }
@@ -66,7 +72,8 @@ public abstract class JetWhaleRawAgentPlugin {
     /**
      * Detaches the current message sender.
      */
-    public fun detachSender() {
+    @InternalJetWhaleApi
+    public fun deactivate() {
         this.sender = null
     }
 

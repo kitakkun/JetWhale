@@ -18,6 +18,9 @@ annotation class DebuggerSettingsDataStoreQualifier
 @Qualifier
 annotation class ThemeDataStoreQualifier
 
+@Qualifier
+annotation class EnabledPluginsDataStoreQualifier
+
 @ContributesTo(AppScope::class)
 interface DataStoreDependencyProvider {
     @DebuggerSettingsDataStoreQualifier
@@ -40,5 +43,16 @@ interface DataStoreDependencyProvider {
             corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
             scope = CoroutineScope(Dispatchers.IO),
         ) { appDataDirectoryProvider.resolveDataStoreFilePath("theme.preferences_pb") }
+    }
+
+    @EnabledPluginsDataStoreQualifier
+    @Provides
+    fun provideEnabledPluginsDataStore(
+        appDataDirectoryProvider: AppDataDirectoryProvider,
+    ): DataStore<Preferences> {
+        return PreferenceDataStoreFactory.createWithPath(
+            corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+            scope = CoroutineScope(Dispatchers.IO),
+        ) { appDataDirectoryProvider.resolveDataStoreFilePath("enabled_plugins.preferences_pb") }
     }
 }

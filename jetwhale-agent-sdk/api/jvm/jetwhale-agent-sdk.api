@@ -17,8 +17,8 @@ public abstract interface class com/kitakkun/jetwhale/agent/sdk/JetWhaleMessagin
 
 public abstract class com/kitakkun/jetwhale/agent/sdk/JetWhaleRawAgentPlugin {
 	public fun <init> ()V
-	public final fun attachSender (Lcom/kitakkun/jetwhale/agent/sdk/JetWhaleMessageSender;)V
-	public final fun detachSender ()V
+	public final fun activate (Lcom/kitakkun/jetwhale/agent/sdk/JetWhaleMessageSender;)V
+	public final fun deactivate ()V
 	public final fun enqueueRawEvent (Ljava/lang/String;)V
 	public abstract fun getPluginId ()Ljava/lang/String;
 	public abstract fun getPluginVersion ()Ljava/lang/String;

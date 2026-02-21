@@ -5,13 +5,14 @@ import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldScreenContext
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
+import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.LogCaptureService
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneRepository
+import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
+import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
 import com.kitakkun.jetwhale.host.plugin.PluginScreenContext
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 import com.kitakkun.jetwhale.host.settings.licenses.LicensesScreenContext
-import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
@@ -35,13 +36,14 @@ interface JetWhaleAppGraph :
     val themeSubscriptionKey: ThemeSubscriptionKey
     val appearanceSettingsSubscriptionKey: AppearanceSettingsSubscriptionKey
     val debugWebSocketServer: DebugWebSocketServer
-    val pluginComposeSceneRepository: PluginComposeSceneRepository
+    val pluginComposeSceneService: PluginComposeSceneService
+    val pluginInstanceService: PluginInstanceService
     val logCaptureService: LogCaptureService
+    val enabledPluginsRepository: EnabledPluginsRepository
 
     @Provides
     fun provideSwrClient(): SwrClientPlus = SwrCachePlus(SwrCachePlusPolicy(SwrCacheScope()))
 
-    @OptIn(InternalJetWhaleApi::class)
     @Provides
     fun providesWebSocketPayloadJson(): Json {
         return JetWhaleJson
