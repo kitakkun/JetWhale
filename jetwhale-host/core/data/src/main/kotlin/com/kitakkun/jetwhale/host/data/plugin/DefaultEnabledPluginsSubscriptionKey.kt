@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsSubscriptionKey
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -12,7 +13,7 @@ import soil.query.buildSubscriptionKey
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class DefaultEnabledPluginsSubscriptionKey(
-    private val enabledPluginsRepository: DefaultEnabledPluginsRepository,
+    private val enabledPluginsRepository: EnabledPluginsRepository,
 ) : EnabledPluginsSubscriptionKey by buildSubscriptionKey(
     id = SubscriptionId("enabled_plugins"),
     subscribe = {
