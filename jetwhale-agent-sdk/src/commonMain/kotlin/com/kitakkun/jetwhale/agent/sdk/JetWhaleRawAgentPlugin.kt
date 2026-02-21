@@ -43,12 +43,14 @@ public abstract class JetWhaleRawAgentPlugin {
     /**
      * Handles a raw method message received from the debugger.
      */
+    @InternalJetWhaleApi
     public abstract suspend fun onRawMethod(message: String): String?
 
     /**
      * Enqueues a raw event message to be sent to the debugger.
      * If a sender is attached, the message is sent immediately.
      */
+    @InternalJetWhaleApi
     public fun enqueueRawEvent(message: String) {
         if (sender != null) {
             sender?.send(message)
@@ -61,6 +63,7 @@ public abstract class JetWhaleRawAgentPlugin {
      * Activates the plugin by attaching a message sender.
      * Flushes any queued messages upon attachment.
      */
+    @InternalJetWhaleApi
     public fun activate(sender: JetWhaleMessageSender) {
         this.sender = sender
         flushQueue()
@@ -69,6 +72,7 @@ public abstract class JetWhaleRawAgentPlugin {
     /**
      * Detaches the current message sender.
      */
+    @InternalJetWhaleApi
     public fun deactivate() {
         this.sender = null
     }
