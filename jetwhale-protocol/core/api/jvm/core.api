@@ -1,6 +1,3 @@
-public abstract interface annotation class com/kitakkun/jetwhale/protocol/InternalJetWhaleApi : java/lang/annotation/Annotation {
-}
-
 public abstract interface class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$Companion;
 }

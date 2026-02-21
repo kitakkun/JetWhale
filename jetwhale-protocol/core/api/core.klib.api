@@ -6,10 +6,6 @@
 // - Show declarations: true
 
 // Library unique name: <com.kitakkun.jetwhale.protocol:core>
-open annotation class com.kitakkun.jetwhale.protocol/InternalJetWhaleApi : kotlin/Annotation { // com.kitakkun.jetwhale.protocol/InternalJetWhaleApi|null[0]
-    constructor <init>() // com.kitakkun.jetwhale.protocol/InternalJetWhaleApi.<init>|<init>(){}[0]
-}
-
 sealed interface com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent|null[0]
     sealed interface MethodResultResponse : com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse|null[0]
         abstract val requestId // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.requestId|{}requestId[0]

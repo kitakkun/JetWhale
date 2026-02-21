@@ -1,0 +1,3 @@
+public abstract interface annotation class com/kitakkun/jetwhale/annotations/InternalJetWhaleApi : java/lang/annotation/Annotation {
+}
+

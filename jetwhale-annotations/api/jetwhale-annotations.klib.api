@@ -1,0 +1,11 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, iosX64, js, linuxArm64, linuxX64, macosArm64, macosX64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale:jetwhale-annotations>
+open annotation class com.kitakkun.jetwhale.annotations/InternalJetWhaleApi : kotlin/Annotation { // com.kitakkun.jetwhale.annotations/InternalJetWhaleApi|null[0]
+    constructor <init>() // com.kitakkun.jetwhale.annotations/InternalJetWhaleApi.<init>|<init>(){}[0]
+}
