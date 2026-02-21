@@ -36,6 +36,9 @@ public interface JetWhaleHostPluginFactory {
 
     // Create plugin instance
     fun createPlugin(): JetWhaleRawHostPlugin
+
+    // Check compatibility with agent plugin version (optional)
+    fun isCompatibleWithAgentPlugin(agentVersion: String): Boolean = true
 }
 ```
 
@@ -321,7 +324,7 @@ public abstract class JetWhaleRawHostPlugin {
 
     // Render UI with raw string context
     @Composable
-    abstract fun ContentRaw(context: JetWhaleDebugOperationContext<String, String>)
+    abstract fun ContentRaw(context: JetWhaleRawDebugOperationContext)
 }
 ```
 
