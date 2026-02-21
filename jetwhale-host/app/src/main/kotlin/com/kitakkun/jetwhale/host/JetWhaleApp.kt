@@ -64,7 +64,6 @@ fun JetWhaleApp() {
                 }
             }
 
-            appGraph.pluginInstanceService.unloadPluginInstancesForPlugin(disabledPluginId)
             appGraph.pluginComposeSceneService.disposePluginScenesForPlugin(disabledPluginId)
         }
     }
