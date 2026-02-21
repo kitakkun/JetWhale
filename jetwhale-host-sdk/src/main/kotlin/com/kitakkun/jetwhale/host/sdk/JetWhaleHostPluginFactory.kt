@@ -1,5 +1,8 @@
 package com.kitakkun.jetwhale.host.sdk
 
+import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
+
+@OptIn(InternalJetWhaleApi::class)
 public interface JetWhaleHostPluginFactory {
     /**
      * Metadata about the plugin.

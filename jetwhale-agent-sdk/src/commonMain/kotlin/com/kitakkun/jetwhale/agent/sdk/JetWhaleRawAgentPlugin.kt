@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.agent.sdk
 
-import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 
 /**
  * An abstract class representing a raw agent plugin for JetWhale.

@@ -1,12 +1,14 @@
 package com.kitakkun.jetwhale.host.sdk
 
 import androidx.compose.runtime.Composable
+import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.host.JetWhaleHostPluginProtocol
 import kotlinx.coroutines.CoroutineScope
 
 /**
  * Plugin interface for JetWhale.
  */
+@OptIn(InternalJetWhaleApi::class)
 public abstract class JetWhaleHostPlugin<Event, Method, MethodResult> : JetWhaleRawHostPlugin() {
     /**
      * The protocol used for encoding and decoding events, methods, and method results

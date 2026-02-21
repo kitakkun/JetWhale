@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.agent.sdk
 
-import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.agent.JetWhaleAgentPluginProtocol
 
 /**
