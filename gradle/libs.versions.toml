@@ -1,5 +1,5 @@
 [versions]
-jetwhale = "1.0.0-alpha02"
+jetwhale = "1.0.0-alpha03"
 mavenPublish = "0.33.0"
 
 # kotlin
