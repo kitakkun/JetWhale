@@ -1,12 +1,10 @@
 package com.kitakkun.jetwhale.host.sdk
 
 import androidx.compose.runtime.Composable
-import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 
 /**
  * Base class for JetWhale Host Plugins that handle raw events from the debuggee.
  */
-@InternalJetWhaleApi
 public abstract class JetWhaleRawHostPlugin {
     /**
      * Called when an event is received from debuggee

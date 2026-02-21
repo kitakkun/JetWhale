@@ -5,12 +5,6 @@ plugins {
     alias(libs.plugins.metro)
 }
 
-kotlin {
-    compilerOptions {
-        freeCompilerArgs.add("-opt-in=com.kitakkun.jetwhale.annotations.InternalJetWhaleApi")
-    }
-}
-
 dependencies {
     implementation(projects.jetwhaleHostSdk)
     implementation(libs.soilQueryCore)

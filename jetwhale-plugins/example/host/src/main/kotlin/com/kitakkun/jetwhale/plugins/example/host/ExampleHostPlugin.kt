@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhalePluginIcon
 import com.kitakkun.jetwhale.host.sdk.JetWhalePluginMetaData
+import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
 import com.kitakkun.jetwhale.host.sdk.jetWhalePluginMetaData
 import com.kitakkun.jetwhale.host.sdk.pluginIcon
 import com.kitakkun.jetwhale.plugins.example.protocol.ExampleEvent
@@ -30,7 +31,7 @@ class ExampleHostPluginFactory : JetWhaleHostPluginFactory {
         inactiveIconPath = "icons/window_outlined.svg",
     )
 
-    override fun createPlugin(): JetWhaleHostPlugin<*, *, *> {
+    override fun createPlugin(): JetWhaleRawHostPlugin {
         return ExampleHostPlugin()
     }
 
