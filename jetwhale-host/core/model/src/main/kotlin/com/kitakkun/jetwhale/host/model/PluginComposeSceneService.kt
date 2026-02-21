@@ -15,4 +15,6 @@ interface PluginComposeSceneService {
     fun disposePluginSceneForSession(sessionId: String)
 
     fun disposePluginScenesForPlugin(pluginId: String)
+
+    fun disposeAllPluginScenes()
 }

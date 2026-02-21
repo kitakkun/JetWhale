@@ -81,4 +81,11 @@ class DefaultPluginComposeSceneService(
             pluginScenes.remove(key)
         }
     }
+
+    override fun disposeAllPluginScenes() {
+        for (scene in pluginScenes.values) {
+            scene.close()
+        }
+        pluginScenes.clear()
+    }
 }

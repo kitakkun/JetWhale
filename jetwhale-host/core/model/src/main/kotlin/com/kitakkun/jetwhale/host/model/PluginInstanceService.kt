@@ -6,6 +6,7 @@ interface PluginInstanceService {
     fun unloadPluginInstanceForSession(sessionId: String)
     fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleRawHostPlugin?
     fun unloadPluginInstancesForPlugin(pluginId: String)
+    fun clearAllPluginInstances()
 
     /**
      * Initializes plugin instances for the specified plugin and sessions if they don't already exist.

@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -40,6 +41,8 @@ class DefaultDebugWebSocketServer(
 ) : DebugWebSocketServer {
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
     override val sessionClosedFlow: Flow<String> get() = ktorWebSocketServer.sessionClosedFlow
+    private val mutableServerStoppedFlow: MutableSharedFlow<Unit> = MutableSharedFlow()
+    override val serverStoppedFlow: Flow<Unit> = mutableServerStoppedFlow
 
     private var serverMonitoringJob: Job? = null
 
@@ -55,6 +58,9 @@ class DefaultDebugWebSocketServer(
         serverMonitoringJob?.cancel()
         serverMonitoringJob = null
         ktorWebSocketServer.stop()
+        sessionRepository.markAllSessionsInactive()
+        pluginInstanceService.clearAllPluginInstances()
+        mutableServerStoppedFlow.emit(Unit)
     }
 
     override suspend fun sendMethod(

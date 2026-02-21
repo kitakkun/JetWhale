@@ -41,6 +41,17 @@ fun JetWhaleApp() {
         EmptyPluginNavKey
     )
 
+    LaunchedEffect(Unit) {
+        // dispose plugin scenes when the debug websocket server is stopped, as all plugin sessions will be closed
+        appGraph.debugWebSocketServer.serverStoppedFlow.collect {
+            backStack.removeAll { navKey ->
+                navKey is PluginNavKey || navKey is PluginPopoutNavKey
+            }
+
+            appGraph.pluginComposeSceneService.disposeAllPluginScenes()
+        }
+    }
+
     LaunchedEffect(backStack) {
         appGraph.debugWebSocketServer.sessionClosedFlow.collect {
             // automatically remove closed plugin sessions from back stack

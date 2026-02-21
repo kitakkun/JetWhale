@@ -54,4 +54,11 @@ class DefaultPluginInstanceService(
             mutableLoadedPlugins.remove(key)
         }
     }
+
+    override fun clearAllPluginInstances() {
+        for (plugin in mutableLoadedPlugins.values) {
+            plugin.onDispose()
+        }
+        mutableLoadedPlugins.clear()
+    }
 }

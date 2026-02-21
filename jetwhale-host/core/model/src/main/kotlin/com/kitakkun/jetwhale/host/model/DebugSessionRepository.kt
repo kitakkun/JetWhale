@@ -14,4 +14,5 @@ interface DebugSessionRepository {
     )
 
     fun unregisterDebugSession(sessionId: String)
+    fun markAllSessionsInactive()
 }

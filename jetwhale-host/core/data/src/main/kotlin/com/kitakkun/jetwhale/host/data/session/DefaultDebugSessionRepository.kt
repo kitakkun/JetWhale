@@ -53,4 +53,12 @@ class DefaultDebugSessionRepository : DebugSessionRepository {
             }.toPersistentMap()
         }
     }
+
+    override fun markAllSessionsInactive() {
+        mutableDebugSessions.update { sessions ->
+            sessions.mapValues { (_, session) ->
+                session.copy(isActive = false)
+            }.toPersistentMap()
+        }
+    }
 }
