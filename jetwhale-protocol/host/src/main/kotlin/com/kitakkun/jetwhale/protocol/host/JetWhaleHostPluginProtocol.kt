@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.protocol.host
 
-import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
+import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json

@@ -20,6 +20,7 @@ kotlin {
     }
 
     sourceSets.commonMain.dependencies {
+        api(projects.jetwhaleAnnotations)
         implementation(libs.kotlinTest)
     }
 }
