@@ -36,11 +36,12 @@ class DefaultPluginComposeSceneService(
         density: Density,
     ): ComposeScene {
         println("Creating plugin scene for pluginId=$pluginId, sessionId=$sessionId")
-        val pluginInstance = pluginInstanceService.getOrPutPluginInstanceForSession(
+        val pluginInstance = pluginInstanceService.getPluginInstanceForSession(
             pluginId = pluginId,
             sessionId = sessionId,
-            pluginFactory = pluginFactoryRepository.loadedPluginFactories.getValue(pluginId)
-        )
+        ) ?: run {
+            error("Plugin instance not found for pluginId=$pluginId, sessionId=$sessionId")
+        }
         return pluginScenes.getOrPut("$pluginId:$sessionId") {
             val debugOperationContext = object : JetWhaleRawDebugOperationContext {
                 override val coroutineScope: CoroutineScope = debugWebSocketServer.getCoroutineScopeForSession(sessionId) + SupervisorJob()

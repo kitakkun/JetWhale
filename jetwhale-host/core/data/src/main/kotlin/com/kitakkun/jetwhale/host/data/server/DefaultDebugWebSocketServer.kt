@@ -1,12 +1,12 @@
 package com.kitakkun.jetwhale.host.data.server
 
+import androidx.compose.ui.util.fastMap
 import com.kitakkun.jetwhale.host.model.ADBAutoWiringService
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
-import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.protocol.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
@@ -18,9 +18,12 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
@@ -31,7 +34,6 @@ import java.util.UUID
 class DefaultDebugWebSocketServer(
     private val adbAutoWiringService: ADBAutoWiringService,
     private val sessionRepository: DebugSessionRepository,
-    private val pluginsRepository: PluginFactoryRepository,
     private val pluginInstanceService: PluginInstanceService,
     private val settingsRepository: DebuggerSettingsRepository,
     private val enabledPluginsRepository: EnabledPluginsRepository,
@@ -142,23 +144,45 @@ class DefaultDebugWebSocketServer(
     }
 
     private suspend fun monitorEnabledPluginChanges() {
-        var previousEnabledPluginIds: Set<String> = enabledPluginsRepository.enabledPluginIdsFlow.first()
-
-        enabledPluginsRepository.enabledPluginIdsFlow.collect { enabledPluginIds ->
-            val newlyEnabledPluginIds = enabledPluginIds - previousEnabledPluginIds
-            val newlyDisabledPluginIds = previousEnabledPluginIds - enabledPluginIds
-            previousEnabledPluginIds = enabledPluginIds
-
-            newlyEnabledPluginIds.forEach { pluginId ->
-                ktorWebSocketServer.broadcastToSessions(
-                    event = JetWhaleDebuggerEvent.PluginActivated(
-                        pluginId = pluginId,
-                    )
-                )
+        coroutineScope {
+            launch {
+                combine(
+                    enabledPluginsRepository.enabledPluginIdsFlow,
+                    sessionRepository.debugSessionsFlow.map { sessions ->
+                        sessions
+                            .filter { it.isActive }
+                            .fastMap { it.id }
+                    }
+                ) { enabledPluginIds, activeSessionIds ->
+                    enabledPluginIds to activeSessionIds.toSet()
+                }.collect { (enabledPluginIds, activeSessionIds) ->
+                    enabledPluginIds.forEach {
+                        // Initialize plugin instances for all existing sessions
+                        // to ensure that the plugin is activated in all sessions immediately after being enabled.
+                        val pluginActivatedSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
+                            pluginId = it,
+                            sessionIds = activeSessionIds,
+                        )
+                        // Plugin instances are also initialized when a new session is created,
+                        // so it's possible that some sessions already have the plugin instance initialized when the plugin is enabled.
+                        // Only send the activation event to sessions for which the plugin instance is initialized
+                        // in this step to avoid sending duplicate activation events to sessions that already have the plugin instance initialized.
+                        pluginActivatedSessionIds.forEach { sessionId ->
+                            ktorWebSocketServer.sendToSession(
+                                sessionId = sessionId,
+                                event = JetWhaleDebuggerEvent.PluginActivated(pluginId = it),
+                            )
+                        }
+                    }
+                }
             }
 
-            newlyDisabledPluginIds.forEach { pluginId ->
-                ktorWebSocketServer.broadcastToSessions(JetWhaleDebuggerEvent.PluginDeactivated(pluginId = pluginId))
+            launch {
+                enabledPluginsRepository.disabledPluginIdFlow.collect { pluginId ->
+                    ktorWebSocketServer.broadcastToSessions(JetWhaleDebuggerEvent.PluginDeactivated(pluginId = pluginId))
+                    // Unload plugin instances for all sessions to ensure that the plugin is deactivated in all sessions immediately after being disabled.
+                    pluginInstanceService.unloadPluginInstancesForPlugin(pluginId)
+                }
             }
         }
     }
@@ -169,15 +193,21 @@ class DefaultDebugWebSocketServer(
 
             val pluginId = event.pluginId
 
-            if (!enabledPluginsRepository.isPluginEnabled(pluginId)) return@collect
-
-            val pluginFactory = pluginsRepository.loadedPluginFactories[pluginId] ?: return@collect
-
-            val pluginInstance = pluginInstanceService.getOrPutPluginInstanceForSession(
+            val pluginInstance = pluginInstanceService.getPluginInstanceForSession(
                 pluginId = pluginId,
                 sessionId = sessionId,
-                pluginFactory = pluginFactory,
             )
+
+            if (pluginInstance == null) {
+                println(
+                    """
+                        Received message for pluginId=$pluginId in sessionId=$sessionId, but plugin instance is not found. Skipping message processing.
+                        This may happen when the message is received before the plugin instance is initialized, or when the plugin is disabled after the message is sent.
+                    """.trimIndent()
+                )
+                return@collect
+            }
+
             pluginInstance.onRawEvent(event.payload)
         }
     }

@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
-import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -11,16 +11,32 @@ import dev.zacsweers.metro.SingleIn
 @Inject
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
-class DefaultPluginInstanceService : PluginInstanceService {
+class DefaultPluginInstanceService(
+    private val pluginFactoryRepository: PluginFactoryRepository,
+) : PluginInstanceService {
     private val mutableLoadedPlugins: MutableMap<String, JetWhaleRawHostPlugin> = mutableMapOf()
 
-    override fun getOrPutPluginInstanceForSession(
+    override fun getPluginInstanceForSession(
         pluginId: String,
         sessionId: String,
-        pluginFactory: JetWhaleHostPluginFactory,
-    ): JetWhaleRawHostPlugin {
+    ): JetWhaleRawHostPlugin? {
         val key = "$pluginId-$sessionId"
-        return mutableLoadedPlugins.getOrPut(key) { pluginFactory.createPlugin() }
+        return mutableLoadedPlugins[key]
+    }
+
+    override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
+        val pluginFactory = pluginFactoryRepository.loadedPluginFactories[pluginId] ?: return emptySet()
+
+        val newlyInitializedSessions = mutableSetOf<String>()
+        for (sessionId in sessionIds) {
+            val key = "$pluginId-$sessionId"
+            mutableLoadedPlugins.computeIfAbsent(key) {
+                newlyInitializedSessions += sessionId
+                pluginFactory.createPlugin()
+            }
+        }
+
+        return newlyInitializedSessions
     }
 
     override fun unloadPluginInstanceForSession(sessionId: String) {

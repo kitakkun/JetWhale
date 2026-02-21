@@ -13,6 +13,7 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -35,6 +36,9 @@ class DefaultEnabledPluginsRepository(
             initialValue = emptySet(),
         )
 
+    private val mutableDisabledPluginIdFlow: MutableSharedFlow<String> = MutableSharedFlow()
+    override val disabledPluginIdFlow: Flow<String> = mutableDisabledPluginIdFlow
+
     override suspend fun setPluginEnabled(pluginId: String, enabled: Boolean) {
         dataStore.edit { preferences ->
             val currentSet = preferences[KEY_ENABLED_PLUGIN_IDS] ?: emptySet()
@@ -42,6 +46,9 @@ class DefaultEnabledPluginsRepository(
                 currentSet + pluginId
             } else {
                 currentSet - pluginId
+            }
+            if (!enabled) {
+                mutableDisabledPluginIdFlow.emit(pluginId)
             }
         }
     }
