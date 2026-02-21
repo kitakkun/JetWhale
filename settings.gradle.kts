@@ -18,6 +18,7 @@ dependencyResolutionManagement {
     }
 }
 
+include(":jetwhale-annotations")
 include(":jetwhale-protocol:core")
 include(":jetwhale-protocol:host")
 include(":jetwhale-protocol:agent")
