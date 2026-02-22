@@ -1,12 +1,15 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.CanvasLayersComposeScene
-import androidx.compose.ui.scene.ComposeScene
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
+import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
 import com.kitakkun.jetwhale.host.sdk.JetWhaleRawDebugOperationContext
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -25,12 +28,12 @@ class DefaultPluginComposeSceneService(
     private val pluginInstanceService: PluginInstanceService,
     private val debugWebSocketServer: DebugWebSocketServer,
 ) : PluginComposeSceneService {
-    private val pluginScenes = mutableMapOf<String, ComposeScene>()
+    private val pluginScenes = mutableMapOf<String, PluginComposeScene>()
 
     override suspend fun getOrCreatePluginScene(
         pluginId: String,
         sessionId: String,
-    ): ComposeScene {
+    ): PluginComposeScene {
         println("Creating plugin scene for pluginId=$pluginId, sessionId=$sessionId")
         val pluginInstance = pluginInstanceService.getPluginInstanceForSession(
             pluginId = pluginId,
@@ -50,7 +53,11 @@ class DefaultPluginComposeSceneService(
                 }
             }
 
-            CanvasLayersComposeScene().apply {
+            val windowUpdatableContext = DynamicWindowInfoPlatformContext()
+
+            val composeScene = CanvasLayersComposeScene(
+                platformContext = windowUpdatableContext,
+            ).apply {
                 setContent {
                     pluginBridgeProvider.PluginEntryPoint {
                         pluginInstance.ContentRaw(context = debugOperationContext)
@@ -59,13 +66,18 @@ class DefaultPluginComposeSceneService(
             }.also {
                 println("Plugin scene created for pluginId=$pluginId, sessionId=$sessionId $it")
             }
+
+            PluginComposeScene(
+                composeScene = composeScene,
+                windowInfoUpdater = windowUpdatableContext,
+            )
         }
     }
 
     override fun disposePluginSceneForSession(sessionId: String) {
         val keysToRemove = pluginScenes.keys.filter { it.endsWith(":$sessionId") }
         for (key in keysToRemove) {
-            pluginScenes[key]?.close()
+            pluginScenes[key]?.composeScene?.close()
             pluginScenes.remove(key)
         }
     }
@@ -73,15 +85,27 @@ class DefaultPluginComposeSceneService(
     override fun disposePluginScenesForPlugin(pluginId: String) {
         val keysToRemove = pluginScenes.keys.filter { it.startsWith("$pluginId:") }
         for (key in keysToRemove) {
-            pluginScenes[key]?.close()
+            pluginScenes[key]?.composeScene?.close()
             pluginScenes.remove(key)
         }
     }
 
     override fun disposeAllPluginScenes() {
         for (scene in pluginScenes.values) {
-            scene.close()
+            scene.composeScene.close()
         }
         pluginScenes.clear()
+    }
+}
+
+@OptIn(InternalComposeUiApi::class)
+private class DynamicWindowInfoPlatformContext(
+    private val baseContext: PlatformContext = PlatformContext.Empty(),
+) : PlatformContext by baseContext, WindowInfoUpdater {
+    private var windowInfoOverride: WindowInfo? = null
+    override val windowInfo: WindowInfo get() = windowInfoOverride ?: baseContext.windowInfo
+
+    override fun setWindowInfo(windowInfo: WindowInfo) {
+        windowInfoOverride = windowInfo
     }
 }

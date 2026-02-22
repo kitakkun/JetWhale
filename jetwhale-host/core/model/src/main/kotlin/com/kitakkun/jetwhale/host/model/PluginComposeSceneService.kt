@@ -1,14 +1,13 @@
 package com.kitakkun.jetwhale.host.model
 
 import androidx.compose.ui.InternalComposeUiApi
-import androidx.compose.ui.scene.ComposeScene
 
 interface PluginComposeSceneService {
     @OptIn(InternalComposeUiApi::class)
     suspend fun getOrCreatePluginScene(
         pluginId: String,
         sessionId: String,
-    ): ComposeScene
+    ): PluginComposeScene
 
     fun disposePluginSceneForSession(sessionId: String)
 
