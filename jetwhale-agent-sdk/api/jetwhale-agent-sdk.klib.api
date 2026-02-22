@@ -7,7 +7,7 @@
 
 // Library unique name: <com.kitakkun.jetwhale:jetwhale-agent-sdk>
 abstract fun interface com.kitakkun.jetwhale.agent.sdk/JetWhaleMessageSender { // com.kitakkun.jetwhale.agent.sdk/JetWhaleMessageSender|null[0]
-    abstract fun send(kotlin/String) // com.kitakkun.jetwhale.agent.sdk/JetWhaleMessageSender.send|send(kotlin.String){}[0]
+    abstract fun send(kotlin/Array<out kotlin/String>...) // com.kitakkun.jetwhale.agent.sdk/JetWhaleMessageSender.send|send(kotlin.Array<out|kotlin.String>...){}[0]
 }
 
 abstract interface com.kitakkun.jetwhale.agent.sdk/JetWhaleMessagingService { // com.kitakkun.jetwhale.agent.sdk/JetWhaleMessagingService|null[0]

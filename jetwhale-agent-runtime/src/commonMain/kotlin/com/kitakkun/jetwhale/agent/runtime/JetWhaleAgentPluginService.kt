@@ -7,12 +7,12 @@ import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 internal class JetWhaleAgentPluginService(
     private val plugins: List<JetWhaleRawAgentPlugin>,
 ) {
-    fun activatePlugins(vararg ids: String, baseSender: (String, String) -> Unit) {
+    fun activatePlugins(vararg ids: String, sender: PluginAwareMessageSender) {
         plugins
             .filter { it.pluginId in ids }
             .forEach { plugin ->
-                plugin.activate { payload ->
-                    baseSender(plugin.pluginId, payload)
+                plugin.activate { messages ->
+                    sender.send(plugin.pluginId, *messages)
                 }
             }
     }
