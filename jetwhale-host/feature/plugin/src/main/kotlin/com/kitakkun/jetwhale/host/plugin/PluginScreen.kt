@@ -19,9 +19,10 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.scene.ComposeScenePointer
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.toIntSize
+import androidx.compose.ui.unit.DpSize
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import soil.plant.compose.reacty.LocalCatchThrowHost
@@ -49,8 +50,25 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
         }
     }
 
+    val density = LocalDensity.current
+
     Canvas(
         modifier = Modifier.fillMaxSize()
+            .onSizeChanged {
+                try {
+                    pluginComposeScene.composeScene.density = density
+                    pluginComposeScene.composeScene.size = it
+                } catch (_: IllegalStateException) {
+                    // ignore: may happen during dispose
+                    // without this try-catch, sometimes crashes with:
+                    // java.lang.IllegalStateException: size/density set after ComposeScene is closed
+                    // See: [androidx.compose.ui.scene.CanvasLayersComposeScene] implementation of size and density setter
+                }
+                pluginComposeScene.windowInfoUpdater.updateWindowSize(
+                    intSize = it,
+                    dpSize = with(density) { DpSize(it.width.toDp(), it.height.toDp()) }
+                )
+            }
             .focusRequester(focusRequester)
             .focusable()
             .pointerInput(Unit) {
@@ -84,23 +102,6 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                 }
             },
     ) {
-        try {
-            val intSize = this.size.toIntSize()
-            if (pluginComposeScene.composeScene.density.density != this.density) {
-                pluginComposeScene.composeScene.density = Density(this.density)
-            }
-            if (pluginComposeScene.composeScene.size != intSize) {
-                pluginComposeScene.composeScene.size = intSize
-            }
-        } catch (_: IllegalStateException) {
-            /**
-             * ignore: may happen during dispose
-             * without this try-catch, sometimes crashes with:
-             * java.lang.IllegalStateException: size/density set after ComposeScene is closed
-             * See: [androidx.compose.ui.scene.CanvasLayersComposeScene] implementation of size and density setter
-             */
-        }
-        pluginComposeScene.windowInfoUpdater.updateWindowSize(this.size.toIntSize(), this.size.toDpSize())
         this.drawIntoCanvas {
             pluginComposeScene.composeScene.render(it, frameNanoTime)
         }
