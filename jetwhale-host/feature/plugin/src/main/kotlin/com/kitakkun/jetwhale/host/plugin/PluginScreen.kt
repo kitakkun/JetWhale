@@ -85,8 +85,13 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
             },
     ) {
         try {
-            pluginComposeScene.composeScene.size = this.size.toIntSize()
-            pluginComposeScene.composeScene.density = Density(this.density)
+            val intSize = this.size.toIntSize()
+            if (pluginComposeScene.composeScene.density.density != this.density) {
+                pluginComposeScene.composeScene.density = Density(this.density)
+            }
+            if (pluginComposeScene.composeScene.size != intSize) {
+                pluginComposeScene.composeScene.size = intSize
+            }
         } catch (_: IllegalStateException) {
             /**
              * ignore: may happen during dispose
