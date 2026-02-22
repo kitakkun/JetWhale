@@ -6,7 +6,6 @@ import androidx.compose.ui.scene.ComposeScene
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
-import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleRawDebugOperationContext
 import dev.zacsweers.metro.AppScope
@@ -23,7 +22,6 @@ import kotlinx.coroutines.plus
 @Inject
 class DefaultPluginComposeSceneService(
     private val pluginBridgeProvider: DynamicPluginBridgeProvider,
-    private val pluginFactoryRepository: PluginFactoryRepository,
     private val pluginInstanceService: PluginInstanceService,
     private val debugWebSocketServer: DebugWebSocketServer,
 ) : PluginComposeSceneService {
