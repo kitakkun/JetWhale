@@ -45,7 +45,7 @@ internal class DefaultJetWhaleMessagingService(
 
         retryCount = 0
 
-        val sendPluginMessageEvent: PluginAwareMessageSender = { pluginId: String, pluginMessages: List<String> ->
+        val sendPluginMessageEvent: PluginAwareMessageSender = { pluginId: String, pluginMessages: Array<out String> ->
             coroutineScope.launch {
                 pluginMessages.forEach {
                     socketClient.sendDebuggeeEvent(
