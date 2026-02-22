@@ -1,6 +1,7 @@
 name: ABI Check
 
 on:
+  push:
   pull_request:
     paths:
       - 'jetwhale-host-sdk/**'
