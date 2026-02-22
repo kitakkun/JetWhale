@@ -1,8 +1,9 @@
 package com.kitakkun.jetwhale.host.model
 
 import androidx.compose.ui.InternalComposeUiApi
-import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.ComposeScene
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntSize
 
 @OptIn(InternalComposeUiApi::class)
 data class PluginComposeScene(
@@ -11,5 +12,5 @@ data class PluginComposeScene(
 )
 
 interface WindowInfoUpdater {
-    fun setWindowInfo(windowInfo: WindowInfo)
+    fun updateWindowSize(intSize: IntSize, dpSize: DpSize)
 }

@@ -1,9 +1,14 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.CanvasLayersComposeScene
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
@@ -96,10 +101,13 @@ class DefaultPluginComposeSceneService(
 private class DynamicWindowInfoPlatformContext(
     private val baseContext: PlatformContext = PlatformContext.Empty(),
 ) : PlatformContext by baseContext, WindowInfoUpdater {
-    private var windowInfoOverride: WindowInfo? = null
+    private var windowInfoOverride: WindowInfo? by mutableStateOf(null)
     override val windowInfo: WindowInfo get() = windowInfoOverride ?: baseContext.windowInfo
 
-    override fun setWindowInfo(windowInfo: WindowInfo) {
-        windowInfoOverride = windowInfo
+    override fun updateWindowSize(intSize: IntSize, dpSize: DpSize) {
+        windowInfoOverride = object : WindowInfo by baseContext.windowInfo {
+            override val containerSize: IntSize = intSize
+            override val containerDpSize: DpSize = dpSize
+        }
     }
 }
