@@ -65,8 +65,10 @@ public abstract class JetWhaleRawAgentPlugin {
      */
     @InternalJetWhaleApi
     public fun activate(sender: JetWhaleMessageSender) {
-        this.sender = sender
+        // Flush before setting sender to ensure queued messages are sent
+        // before any new messages from concurrent enqueueRawEvent calls.
         flushQueue(sender)
+        this.sender = sender
     }
 
     /**
@@ -83,7 +85,7 @@ public abstract class JetWhaleRawAgentPlugin {
     private fun flushQueue(sender: JetWhaleMessageSender) {
         val messages = queue.dequeueAll()
         if (messages.isEmpty()) return
-        sender.send(*messages.toTypedArray())
+        sender.send(*messages)
     }
 }
 
@@ -106,10 +108,10 @@ private class JetWhaleAgentMessageQueue(
     }
 
     /**
-     * Dequeues all messages from the queue and returns them as a list.
+     * Dequeues all messages from the queue and returns them as an array.
      */
-    fun dequeueAll(): List<String> {
-        val messages = queue.toList()
+    fun dequeueAll(): Array<String> {
+        val messages = queue.toTypedArray()
         queue.clear()
         return messages
     }
