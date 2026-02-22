@@ -1,8 +1,8 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.scene.ComposeScene
-import androidx.compose.ui.scene.PlatformLayersComposeScene
 import androidx.compose.ui.unit.Density
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
@@ -54,7 +54,7 @@ class DefaultPluginComposeSceneService(
                 }
             }
 
-            PlatformLayersComposeScene(density = density).apply {
+            CanvasLayersComposeScene(density = density).apply {
                 setContent {
                     pluginBridgeProvider.PluginEntryPoint {
                         pluginInstance.ContentRaw(context = debugOperationContext)
