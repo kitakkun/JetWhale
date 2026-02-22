@@ -20,15 +20,17 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.scene.ComposeScene
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.scene.ComposeScenePointer
+import androidx.compose.ui.unit.toSize
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import soil.plant.compose.reacty.LocalCatchThrowHost
 import soil.query.core.uuid
 
 @OptIn(InternalComposeUiApi::class, ExperimentalComposeUiApi::class)
 @Composable
-fun PluginScreen(pluginComposeScene: ComposeScene) {
+fun PluginScreen(pluginComposeScene: PluginComposeScene) {
     val catchThrowHost = LocalCatchThrowHost.current
     var frameNanoTime by remember(pluginComposeScene) { mutableLongStateOf(0L) }
     val focusRequester = remember { FocusRequester() }
@@ -48,11 +50,18 @@ fun PluginScreen(pluginComposeScene: ComposeScene) {
         }
     }
 
+    val density = LocalDensity.current
+
+    LaunchedEffect(density) {
+        pluginComposeScene.composeScene.density = density
+    }
+
     Canvas(
         modifier = Modifier.fillMaxSize()
             .onSizeChanged {
                 try {
-                    pluginComposeScene.size = it
+                    pluginComposeScene.composeScene.size = it
+                    pluginComposeScene.windowInfoUpdater.updateWindowSize(it, density.run { it.toSize().toDpSize() })
                 } catch (_: IllegalStateException) {
                     // ignore: may happen during dispose
                     // without this try-catch, sometimes crashes with:
@@ -68,7 +77,7 @@ fun PluginScreen(pluginComposeScene: ComposeScene) {
                         try {
                             val scrollDelta = event.changes.map { it.scrollDelta }.reduce { acc, offset -> acc + offset }
 
-                            pluginComposeScene.sendPointerEvent(
+                            pluginComposeScene.composeScene.sendPointerEvent(
                                 eventType = event.type,
                                 pointers = event.toComposeScenePointers(),
                                 buttons = event.buttons,
@@ -85,7 +94,7 @@ fun PluginScreen(pluginComposeScene: ComposeScene) {
             }
             .onKeyEvent {
                 try {
-                    pluginComposeScene.sendKeyEvent(it)
+                    pluginComposeScene.composeScene.sendKeyEvent(it)
                 } catch (e: Throwable) {
                     catchThrowHost[uuid()] = e
                     false
@@ -93,7 +102,7 @@ fun PluginScreen(pluginComposeScene: ComposeScene) {
             },
     ) {
         this.drawIntoCanvas {
-            pluginComposeScene.render(it, frameNanoTime)
+            pluginComposeScene.composeScene.render(it, frameNanoTime)
         }
     }
 }

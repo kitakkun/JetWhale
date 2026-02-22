@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.host.plugin
 
 import androidx.compose.ui.InternalComposeUiApi
-import androidx.compose.ui.unit.Density
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneQueryKey
 import com.kitakkun.jetwhale.host.model.PluginIdQualifier
@@ -29,7 +28,6 @@ interface PluginScreenContext : ScreenContext {
         fun createPluginScreenContext(
             @PluginIdQualifier @Provides pluginId: String,
             @SessionIdQualifier @Provides sessionId: String,
-            @Provides density: Density,
         ): PluginScreenContext
     }
 }
