@@ -106,18 +106,6 @@ private class JetWhaleAgentMessageQueue(
     }
 
     /**
-     * Dequeues a message from the queue.
-     * Returns null if the queue is empty.
-     */
-    fun dequeue(): String? {
-        return if (queue.isNotEmpty()) {
-            queue.removeFirst()
-        } else {
-            null
-        }
-    }
-
-    /**
      * Dequeues all messages from the queue and returns them as a list.
      */
     fun dequeueAll(): List<String> {
