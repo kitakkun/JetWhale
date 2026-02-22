@@ -34,7 +34,6 @@ class DefaultPluginComposeSceneService(
         pluginId: String,
         sessionId: String,
     ): PluginComposeScene {
-        println("Creating plugin scene for pluginId=$pluginId, sessionId=$sessionId")
         val pluginInstance = pluginInstanceService.getPluginInstanceForSession(
             pluginId = pluginId,
             sessionId = sessionId,
@@ -54,17 +53,12 @@ class DefaultPluginComposeSceneService(
             }
 
             val windowUpdatableContext = DynamicWindowInfoPlatformContext()
+            val composeScene = CanvasLayersComposeScene(platformContext = windowUpdatableContext)
 
-            val composeScene = CanvasLayersComposeScene(
-                platformContext = windowUpdatableContext,
-            ).apply {
-                setContent {
-                    pluginBridgeProvider.PluginEntryPoint {
-                        pluginInstance.ContentRaw(context = debugOperationContext)
-                    }
+            composeScene.setContent {
+                pluginBridgeProvider.PluginEntryPoint {
+                    pluginInstance.ContentRaw(context = debugOperationContext)
                 }
-            }.also {
-                println("Plugin scene created for pluginId=$pluginId, sessionId=$sessionId $it")
             }
 
             PluginComposeScene(
