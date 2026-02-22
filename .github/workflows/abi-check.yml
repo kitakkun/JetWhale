@@ -1,6 +1,16 @@
 name: ABI Check
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'jetwhale-host-sdk/**'
+      - 'jetwhale-agent-sdk/**'
+      - 'jetwhale-annotations/**'
+      - 'jetwhale-protocol/core/**'
+      - 'jetwhale-protocol/agent/**'
+      - 'jetwhale-protocol/host/**'
   pull_request:
     paths:
       - 'jetwhale-host-sdk/**'
