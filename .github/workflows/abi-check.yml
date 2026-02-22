@@ -5,6 +5,7 @@ on:
     paths:
       - 'jetwhale-host-sdk/**'
       - 'jetwhale-agent-sdk/**'
+      - 'jetwhale-annotations/**'
       - 'jetwhale-protocol/core/**'
       - 'jetwhale-protocol/agent/**'
       - 'jetwhale-protocol/host/**'
@@ -24,4 +25,11 @@ jobs:
       - uses: ./.github/actions/setup-java
 
       - name: Run ABI check
-        run: ./gradlew checkLegacyAbi
+        run: |
+          ./gradlew \
+            :jetwhale-host-sdk:checkLegacyAbi \
+            :jetwhale-agent-sdk:checkLegacyAbi \
+            :jetwhale-annotations:checkLegacyAbi \
+            :jetwhale-protocol:core:checkLegacyAbi \
+            :jetwhale-protocol:agent:checkLegacyAbi \
+            :jetwhale-protocol:host:checkLegacyAbi
