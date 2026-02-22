@@ -45,25 +45,27 @@ internal class DefaultJetWhaleMessagingService(
 
         retryCount = 0
 
-        val sendPluginMessageEvent: (String, String) -> Unit = { pluginId: String, pluginMessagePayload: String ->
+        val sendPluginMessageEvent: PluginAwareMessageSender = { pluginId: String, pluginMessages: Array<out String> ->
             coroutineScope.launch {
-                socketClient.sendDebuggeeEvent(
-                    JetWhaleDebuggeeEvent.PluginMessage(
-                        pluginId = pluginId,
-                        payload = pluginMessagePayload,
+                pluginMessages.forEach {
+                    socketClient.sendDebuggeeEvent(
+                        JetWhaleDebuggeeEvent.PluginMessage(
+                            pluginId = pluginId,
+                            payload = it,
+                        )
                     )
-                )
+                }
             }
         }
 
         pluginService.activatePlugins(
             ids = connection.negotiationResult.availablePluginIds.toTypedArray(),
-            baseSender = sendPluginMessageEvent,
+            sender = sendPluginMessageEvent,
         )
 
         connection.debuggerEventFlow.collect { event ->
             when (event) {
-                is JetWhaleDebuggerEvent.PluginActivated -> pluginService.activatePlugins(event.pluginId, baseSender = sendPluginMessageEvent)
+                is JetWhaleDebuggerEvent.PluginActivated -> pluginService.activatePlugins(event.pluginId, sender = sendPluginMessageEvent)
 
                 is JetWhaleDebuggerEvent.PluginDeactivated -> pluginService.deactivatePlugins(event.pluginId)
 

@@ -8,7 +8,7 @@ public abstract class com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin : com/
 }
 
 public abstract interface class com/kitakkun/jetwhale/agent/sdk/JetWhaleMessageSender {
-	public abstract fun send (Ljava/lang/String;)V
+	public abstract fun send ([Ljava/lang/String;)V
 }
 
 public abstract interface class com/kitakkun/jetwhale/agent/sdk/JetWhaleMessagingService {

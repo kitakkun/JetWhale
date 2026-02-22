@@ -65,8 +65,10 @@ public abstract class JetWhaleRawAgentPlugin {
      */
     @InternalJetWhaleApi
     public fun activate(sender: JetWhaleMessageSender) {
+        // Flush before setting sender to ensure queued messages are sent
+        // before any new messages from concurrent enqueueRawEvent calls.
+        flushQueue(sender)
         this.sender = sender
-        flushQueue()
     }
 
     /**
@@ -80,11 +82,10 @@ public abstract class JetWhaleRawAgentPlugin {
     /**
      * Flushes the message queue by sending all queued messages using the attached sender.
      */
-    private fun flushQueue() {
-        while (true) {
-            val message = queue.dequeue() ?: break
-            sender?.send(message)
-        }
+    private fun flushQueue(sender: JetWhaleMessageSender) {
+        val messages = queue.dequeueAll()
+        if (messages.isEmpty()) return
+        sender.send(*messages)
     }
 }
 
@@ -107,21 +108,25 @@ private class JetWhaleAgentMessageQueue(
     }
 
     /**
-     * Dequeues a message from the queue.
-     * Returns null if the queue is empty.
+     * Dequeues all messages from the queue and returns them as an array.
      */
-    fun dequeue(): String? {
-        return if (queue.isNotEmpty()) {
-            queue.removeFirst()
-        } else {
-            null
-        }
+    fun dequeueAll(): Array<String> {
+        val messages = queue.toTypedArray()
+        queue.clear()
+        return messages
     }
 }
 
 /**
  * A functional interface representing a message sender to send messages to the debugger.
+ * Supports sending one or more messages in a single call.
  */
+@InternalJetWhaleApi
 public fun interface JetWhaleMessageSender {
-    public fun send(message: String)
+    /**
+     * Sends one or more messages to the debugger.
+     *
+     * @param messages The messages to send.
+     */
+    public fun send(vararg messages: String)
 }
