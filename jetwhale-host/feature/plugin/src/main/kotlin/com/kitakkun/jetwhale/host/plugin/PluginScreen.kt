@@ -22,7 +22,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.scene.ComposeScenePointer
-import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.unit.DpSize
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import soil.plant.compose.reacty.LocalCatchThrowHost
@@ -52,21 +52,22 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
 
     val density = LocalDensity.current
 
-    LaunchedEffect(density) {
-        pluginComposeScene.composeScene.density = density
-    }
-
     Canvas(
         modifier = Modifier.fillMaxSize()
             .onSizeChanged {
                 try {
+                    pluginComposeScene.composeScene.density = density
                     pluginComposeScene.composeScene.size = it
-                    pluginComposeScene.windowInfoUpdater.updateWindowSize(it, density.run { it.toSize().toDpSize() })
                 } catch (_: IllegalStateException) {
                     // ignore: may happen during dispose
                     // without this try-catch, sometimes crashes with:
-                    // java.lang.IllegalStateException: size set after ComposeScene is closed
+                    // java.lang.IllegalStateException: size/density set after ComposeScene is closed
+                    // See: [androidx.compose.ui.scene.CanvasLayersComposeScene] implementation of size and density setter
                 }
+                pluginComposeScene.windowInfoUpdater.updateWindowSize(
+                    intSize = it,
+                    dpSize = with(density) { DpSize(it.width.toDp(), it.height.toDp()) }
+                )
             }
             .focusRequester(focusRequester)
             .focusable()
