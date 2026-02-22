@@ -3,7 +3,6 @@ package com.kitakkun.jetwhale.host.data.plugin
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.scene.ComposeScene
-import androidx.compose.ui.unit.Density
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
@@ -33,7 +32,6 @@ class DefaultPluginComposeSceneService(
     override suspend fun getOrCreatePluginScene(
         pluginId: String,
         sessionId: String,
-        density: Density,
     ): ComposeScene {
         println("Creating plugin scene for pluginId=$pluginId, sessionId=$sessionId")
         val pluginInstance = pluginInstanceService.getPluginInstanceForSession(
@@ -54,7 +52,7 @@ class DefaultPluginComposeSceneService(
                 }
             }
 
-            CanvasLayersComposeScene(density = density).apply {
+            CanvasLayersComposeScene().apply {
                 setContent {
                     pluginBridgeProvider.PluginEntryPoint {
                         pluginInstance.ContentRaw(context = debugOperationContext)

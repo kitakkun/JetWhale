@@ -20,6 +20,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -46,6 +47,12 @@ fun PluginScreen(pluginComposeScene: ComposeScene) {
         onPauseOrDispose {
             focusRequester.freeFocus()
         }
+    }
+
+    val density = LocalDensity.current
+
+    LaunchedEffect(density) {
+        pluginComposeScene.density = density
     }
 
     Canvas(

@@ -7,7 +7,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation3.runtime.EntryProviderScope
@@ -50,13 +49,11 @@ fun EntryProviderScope<NavKey>.pluginEntries(
     onBringbackToMainWindow: (pluginId: String, sessionId: String) -> Unit,
 ) {
     entry<PluginNavKey> { navKey ->
-        val density = LocalDensity.current
         context(
             rememberRetained {
                 appGraph.createPluginScreenContext(
                     pluginId = navKey.pluginId,
                     sessionId = navKey.sessionId,
-                    density = density,
                 )
             }
         ) {
@@ -85,14 +82,11 @@ fun EntryProviderScope<NavKey>.pluginEntries(
             window.title = "${navKey.pluginName} on ${navKey.sessionId}"
         }
 
-        val density = LocalDensity.current
-
         context(
             rememberRetained {
                 appGraph.createPluginScreenContext(
                     pluginId = navKey.pluginId,
                     sessionId = navKey.sessionId,
-                    density = density,
                 )
             }
         ) {
