@@ -11,7 +11,7 @@ import io.ktor.client.HttpClient
  * @param configure A lambda function to configure the JetWhale service.
  */
 @OptIn(InternalJetWhaleApi::class)
-fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
+public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
     val configuration = JetWhaleConfiguration().apply(configure)
 
     JetWhaleLogger.setEnabled(configuration.logging.enabled)
@@ -40,28 +40,28 @@ fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
 internal annotation class JetWhaleDsl
 
 @JetWhaleDsl
-interface JetWhaleConfigurationScope {
-    fun connection(configure: JetWhaleConnectionConfigurationScope.() -> Unit)
-    fun logging(configure: JetWhaleLoggingConfigurationScope.() -> Unit)
-    fun plugins(configure: JetWhalePluginConfigurationScope.() -> Unit)
+public interface JetWhaleConfigurationScope {
+    public fun connection(configure: JetWhaleConnectionConfigurationScope.() -> Unit)
+    public fun logging(configure: JetWhaleLoggingConfigurationScope.() -> Unit)
+    public fun plugins(configure: JetWhalePluginConfigurationScope.() -> Unit)
 }
 
 @JetWhaleDsl
-interface JetWhaleConnectionConfigurationScope {
-    var host: String
-    var port: Int
+public interface JetWhaleConnectionConfigurationScope {
+    public var host: String
+    public var port: Int
 }
 
 @JetWhaleDsl
-interface JetWhaleLoggingConfigurationScope {
-    var enabled: Boolean
-    var logLevel: LogLevel
-    var ktorLogLevel: KtorLogLevel
+public interface JetWhaleLoggingConfigurationScope {
+    public var enabled: Boolean
+    public var logLevel: LogLevel
+    public var ktorLogLevel: KtorLogLevel
 }
 
 @JetWhaleDsl
-interface JetWhalePluginConfigurationScope {
-    fun register(plugin: AgentPlugin)
+public interface JetWhalePluginConfigurationScope {
+    public fun register(plugin: AgentPlugin)
 }
 
 private class JetWhaleConfiguration : JetWhaleConfigurationScope {
