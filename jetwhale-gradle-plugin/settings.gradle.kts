@@ -1,6 +1,7 @@
 rootProject.name = "jetwhale-gradle-plugin"
 
 pluginManagement {
+    includeBuild("../gradle-conventions")
     repositories {
         mavenCentral()
         gradlePluginPortal()
