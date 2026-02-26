@@ -6,6 +6,8 @@ plugins {
 }
 
 kotlin {
+    explicitApi()
+
     androidLibrary {
         namespace = "com.kitakkun.jetwhale.agent.runtime"
         compileSdk = 36
