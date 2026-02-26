@@ -25,7 +25,7 @@ public abstract class JetWhaleRawAgentPlugin {
 
     /**
      * The message sender used to send messages to the debugger.
-     * [JetWhaleMessagingService] will attach/detach this sender.
+     * [com.kitakkun.jetwhale.agent.runtime.JetWhaleMessagingService] will attach/detach this sender.
      */
     private var sender: JetWhaleMessageSender? = null
 
