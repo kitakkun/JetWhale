@@ -5,6 +5,7 @@ on:
     paths:
       - 'jetwhale-host-sdk/**'
       - 'jetwhale-agent-sdk/**'
+      - 'jetwhale-agent-runtime/**'
       - 'jetwhale-annotations/**'
       - 'jetwhale-protocol/core/**'
       - 'jetwhale-protocol/agent/**'
@@ -30,6 +31,7 @@ jobs:
           ./gradlew \
             :jetwhale-host-sdk:checkLegacyAbi \
             :jetwhale-agent-sdk:checkLegacyAbi \
+            :jetwhale-agent-runtime:checkLegacyAbi \
             :jetwhale-annotations:checkLegacyAbi \
             :jetwhale-protocol:core:checkLegacyAbi \
             :jetwhale-protocol:agent:checkLegacyAbi \
