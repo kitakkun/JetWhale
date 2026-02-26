@@ -1,0 +1,68 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, iosX64, js, linuxArm64, linuxX64, macosArm64, macosX64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale:jetwhale-agent-runtime>
+final enum class com.kitakkun.jetwhale.agent.runtime/KtorLogLevel : kotlin/Enum<com.kitakkun.jetwhale.agent.runtime/KtorLogLevel> { // com.kitakkun.jetwhale.agent.runtime/KtorLogLevel|null[0]
+    enum entry ALL // com.kitakkun.jetwhale.agent.runtime/KtorLogLevel.ALL|null[0]
+    enum entry BODY // com.kitakkun.jetwhale.agent.runtime/KtorLogLevel.BODY|null[0]
+    enum entry HEADERS // com.kitakkun.jetwhale.agent.runtime/KtorLogLevel.HEADERS|null[0]
+    enum entry NONE // com.kitakkun.jetwhale.agent.runtime/KtorLogLevel.NONE|null[0]
+
+    final val entries // com.kitakkun.jetwhale.agent.runtime/KtorLogLevel.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.agent.runtime/KtorLogLevel> // com.kitakkun.jetwhale.agent.runtime/KtorLogLevel.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.agent.runtime/KtorLogLevel // com.kitakkun.jetwhale.agent.runtime/KtorLogLevel.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.agent.runtime/KtorLogLevel> // com.kitakkun.jetwhale.agent.runtime/KtorLogLevel.values|values#static(){}[0]
+}
+
+final enum class com.kitakkun.jetwhale.agent.runtime/LogLevel : kotlin/Enum<com.kitakkun.jetwhale.agent.runtime/LogLevel> { // com.kitakkun.jetwhale.agent.runtime/LogLevel|null[0]
+    enum entry ASSERT // com.kitakkun.jetwhale.agent.runtime/LogLevel.ASSERT|null[0]
+    enum entry DEBUG // com.kitakkun.jetwhale.agent.runtime/LogLevel.DEBUG|null[0]
+    enum entry ERROR // com.kitakkun.jetwhale.agent.runtime/LogLevel.ERROR|null[0]
+    enum entry INFO // com.kitakkun.jetwhale.agent.runtime/LogLevel.INFO|null[0]
+    enum entry VERBOSE // com.kitakkun.jetwhale.agent.runtime/LogLevel.VERBOSE|null[0]
+    enum entry WARN // com.kitakkun.jetwhale.agent.runtime/LogLevel.WARN|null[0]
+
+    final val entries // com.kitakkun.jetwhale.agent.runtime/LogLevel.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.agent.runtime/LogLevel> // com.kitakkun.jetwhale.agent.runtime/LogLevel.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.agent.runtime/LogLevel // com.kitakkun.jetwhale.agent.runtime/LogLevel.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.agent.runtime/LogLevel> // com.kitakkun.jetwhale.agent.runtime/LogLevel.values|values#static(){}[0]
+}
+
+abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope|null[0]
+    abstract fun connection(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope.connection|connection(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleConnectionConfigurationScope,kotlin.Unit>){}[0]
+    abstract fun logging(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope.logging|logging(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleLoggingConfigurationScope,kotlin.Unit>){}[0]
+    abstract fun plugins(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhalePluginConfigurationScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope.plugins|plugins(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhalePluginConfigurationScope,kotlin.Unit>){}[0]
+}
+
+abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope|null[0]
+    abstract var host // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.host|{}host[0]
+        abstract fun <get-host>(): kotlin/String // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.host.<get-host>|<get-host>(){}[0]
+        abstract fun <set-host>(kotlin/String) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.host.<set-host>|<set-host>(kotlin.String){}[0]
+    abstract var port // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.port|{}port[0]
+        abstract fun <get-port>(): kotlin/Int // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.port.<get-port>|<get-port>(){}[0]
+        abstract fun <set-port>(kotlin/Int) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.port.<set-port>|<set-port>(kotlin.Int){}[0]
+}
+
+abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope|null[0]
+    abstract var enabled // com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope.enabled|{}enabled[0]
+        abstract fun <get-enabled>(): kotlin/Boolean // com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope.enabled.<get-enabled>|<get-enabled>(){}[0]
+        abstract fun <set-enabled>(kotlin/Boolean) // com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope.enabled.<set-enabled>|<set-enabled>(kotlin.Boolean){}[0]
+    abstract var ktorLogLevel // com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope.ktorLogLevel|{}ktorLogLevel[0]
+        abstract fun <get-ktorLogLevel>(): com.kitakkun.jetwhale.agent.runtime/KtorLogLevel // com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope.ktorLogLevel.<get-ktorLogLevel>|<get-ktorLogLevel>(){}[0]
+        abstract fun <set-ktorLogLevel>(com.kitakkun.jetwhale.agent.runtime/KtorLogLevel) // com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope.ktorLogLevel.<set-ktorLogLevel>|<set-ktorLogLevel>(com.kitakkun.jetwhale.agent.runtime.KtorLogLevel){}[0]
+    abstract var logLevel // com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope.logLevel|{}logLevel[0]
+        abstract fun <get-logLevel>(): com.kitakkun.jetwhale.agent.runtime/LogLevel // com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope.logLevel.<get-logLevel>|<get-logLevel>(){}[0]
+        abstract fun <set-logLevel>(com.kitakkun.jetwhale.agent.runtime/LogLevel) // com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope.logLevel.<set-logLevel>|<set-logLevel>(com.kitakkun.jetwhale.agent.runtime.LogLevel){}[0]
+}
+
+abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhalePluginConfigurationScope { // com.kitakkun.jetwhale.agent.runtime/JetWhalePluginConfigurationScope|null[0]
+    abstract fun register(com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin<*, *, *>) // com.kitakkun.jetwhale.agent.runtime/JetWhalePluginConfigurationScope.register|register(com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin<*,*,*>){}[0]
+}
+
+final fun com.kitakkun.jetwhale.agent.runtime/startJetWhale(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/startJetWhale|startJetWhale(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleConfigurationScope,kotlin.Unit>){}[0]

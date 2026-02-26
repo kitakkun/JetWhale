@@ -1,0 +1,52 @@
+public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleConfigurationScope {
+	public abstract fun connection (Lkotlin/jvm/functions/Function1;)V
+	public abstract fun logging (Lkotlin/jvm/functions/Function1;)V
+	public abstract fun plugins (Lkotlin/jvm/functions/Function1;)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleConnectionConfigurationScope {
+	public abstract fun getHost ()Ljava/lang/String;
+	public abstract fun getPort ()I
+	public abstract fun setHost (Ljava/lang/String;)V
+	public abstract fun setPort (I)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleLoggingConfigurationScope {
+	public abstract fun getEnabled ()Z
+	public abstract fun getKtorLogLevel ()Lcom/kitakkun/jetwhale/agent/runtime/KtorLogLevel;
+	public abstract fun getLogLevel ()Lcom/kitakkun/jetwhale/agent/runtime/LogLevel;
+	public abstract fun setEnabled (Z)V
+	public abstract fun setKtorLogLevel (Lcom/kitakkun/jetwhale/agent/runtime/KtorLogLevel;)V
+	public abstract fun setLogLevel (Lcom/kitakkun/jetwhale/agent/runtime/LogLevel;)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhalePluginConfigurationScope {
+	public abstract fun register (Lcom/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin;)V
+}
+
+public final class com/kitakkun/jetwhale/agent/runtime/JetWhaleServiceDslKt {
+	public static final fun startJetWhale (Lkotlin/jvm/functions/Function1;)V
+}
+
+public final class com/kitakkun/jetwhale/agent/runtime/KtorLogLevel : java/lang/Enum {
+	public static final field ALL Lcom/kitakkun/jetwhale/agent/runtime/KtorLogLevel;
+	public static final field BODY Lcom/kitakkun/jetwhale/agent/runtime/KtorLogLevel;
+	public static final field HEADERS Lcom/kitakkun/jetwhale/agent/runtime/KtorLogLevel;
+	public static final field NONE Lcom/kitakkun/jetwhale/agent/runtime/KtorLogLevel;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/agent/runtime/KtorLogLevel;
+	public static fun values ()[Lcom/kitakkun/jetwhale/agent/runtime/KtorLogLevel;
+}
+
+public final class com/kitakkun/jetwhale/agent/runtime/LogLevel : java/lang/Enum {
+	public static final field ASSERT Lcom/kitakkun/jetwhale/agent/runtime/LogLevel;
+	public static final field DEBUG Lcom/kitakkun/jetwhale/agent/runtime/LogLevel;
+	public static final field ERROR Lcom/kitakkun/jetwhale/agent/runtime/LogLevel;
+	public static final field INFO Lcom/kitakkun/jetwhale/agent/runtime/LogLevel;
+	public static final field VERBOSE Lcom/kitakkun/jetwhale/agent/runtime/LogLevel;
+	public static final field WARN Lcom/kitakkun/jetwhale/agent/runtime/LogLevel;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/agent/runtime/LogLevel;
+	public static fun values ()[Lcom/kitakkun/jetwhale/agent/runtime/LogLevel;
+}
+
