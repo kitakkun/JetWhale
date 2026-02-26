@@ -14,8 +14,8 @@ kotlin {
             commonWebpackConfig {
                 outputFileName = "demo.js"
             }
-            binaries.executable()
         }
+        binaries.executable()
     }
     wasmJs {
         browser {
