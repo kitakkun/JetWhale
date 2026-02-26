@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalWasmDsl::class)
 
-import com.android.build.api.dsl.androidLibrary
+import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryExtension
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
@@ -20,7 +20,6 @@ configure<KotlinMultiplatformExtension> {
         browser()
         nodejs()
     }
-    iosX64()
     iosArm64()
     iosSimulatorArm64()
     macosX64()
@@ -29,7 +28,7 @@ configure<KotlinMultiplatformExtension> {
     linuxX64()
     linuxArm64()
 
-    androidLibrary {
+    configure<KotlinMultiplatformAndroidLibraryExtension> {
         compileSdk = 36
     }
 }
