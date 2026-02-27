@@ -27,7 +27,7 @@ class DefaultPluginComposeSceneQueryKey(
             pluginId = pluginId,
             sessionId = sessionId,
         )
-    }
+    },
 ) {
     override val contentCacheable: QueryContentCacheable<PluginComposeScene>
         // Disable caching to avoid issues with ComposeScene re-use when session is resumed

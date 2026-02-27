@@ -105,7 +105,7 @@ fun ShrunkToolingDrawerView(
                         onClick = {
                             onSelectSession(session)
                             expanded = false
-                        }
+                        },
                     )
                 }
             }
@@ -163,7 +163,7 @@ fun ShrunkToolingDrawerView(
 
 @Composable
 fun rememberPluginIconSvgPainter(
-    resource: PluginIconResource?
+    resource: PluginIconResource?,
 ): Painter? {
     if (resource == null) return null
     val density = LocalDensity.current

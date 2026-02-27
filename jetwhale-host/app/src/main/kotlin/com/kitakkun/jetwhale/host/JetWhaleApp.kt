@@ -25,8 +25,8 @@ import kotlinx.serialization.modules.SerializersModule
 import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberSubscription
 
-context(appGraph: JetWhaleAppGraph)
 @Composable
+context(appGraph: JetWhaleAppGraph)
 fun JetWhaleApp() {
     val backStack = rememberNavBackStack(
         configuration = SavedStateConfiguration {
@@ -38,7 +38,7 @@ fun JetWhaleApp() {
                 polymorphic(NavKey::class, LicensesNavKey::class, LicensesNavKey.serializer())
             }
         },
-        EmptyPluginNavKey
+        EmptyPluginNavKey,
     )
 
     LaunchedEffect(Unit) {
@@ -104,9 +104,9 @@ fun JetWhaleApp() {
                                                 pluginId = pluginId,
                                                 sessionId = sessionId,
                                                 pluginName = pluginName,
-                                            )
+                                            ),
                                         )
-                                    }
+                                    },
                                 ) {
                                     JetWhaleNavDisplay(backStack)
                                 }

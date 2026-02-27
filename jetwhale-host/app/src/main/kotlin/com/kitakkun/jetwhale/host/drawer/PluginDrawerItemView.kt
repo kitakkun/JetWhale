@@ -33,7 +33,7 @@ fun PluginDrawerItemView(
     inactiveIconResource: PluginIconResource?,
     onClick: () -> Unit,
     popupMenuContent: (@Composable ColumnScope.(dismiss: () -> Unit) -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier,
@@ -58,7 +58,7 @@ fun PluginDrawerItemView(
                     Box {
                         var expanded by remember { mutableStateOf(false) }
                         IconButton(
-                            onClick = { expanded = true }
+                            onClick = { expanded = true },
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
@@ -67,7 +67,7 @@ fun PluginDrawerItemView(
                         }
                         DropdownMenu(
                             expanded = expanded,
-                            onDismissRequest = { expanded = false }
+                            onDismissRequest = { expanded = false },
                         ) {
                             it({ expanded = false })
                         }

@@ -25,7 +25,7 @@ fun <T> SoilDataBoundary(
             coroutineScope.launch {
                 state.performResetIfNeeded()
             }
-        }
+        },
     ) {
         Suspense(
             fallback = { fallback.suspenseFallback() },
@@ -55,7 +55,7 @@ fun <T1, T2> SoilDataBoundary(
                 state1.performResetIfNeeded()
                 state2.performResetIfNeeded()
             }
-        }
+        },
     ) {
         Suspense(fallback = { fallback.suspenseFallback() }) {
             Await(
@@ -85,7 +85,7 @@ fun <T1, T2, T3> SoilDataBoundary(
                 state2.performResetIfNeeded()
                 state3.performResetIfNeeded()
             }
-        }
+        },
     ) {
         Suspense(
             fallback = { fallback.suspenseFallback() },

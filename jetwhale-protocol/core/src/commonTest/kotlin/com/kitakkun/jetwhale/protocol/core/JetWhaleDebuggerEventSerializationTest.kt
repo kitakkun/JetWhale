@@ -15,14 +15,14 @@ class JetWhaleDebuggerEventSerializationTest : JetWhaleSerializationTest() {
         val event = JetWhaleDebuggerEvent.MethodRequest(
             pluginId = "example-plugin",
             requestId = "req-1",
-            payload = "doSomething"
+            payload = "doSomething",
         )
 
         val encoded = json.encodeToString(event)
 
         assertEquals(
             expected = """{"type":"event/host/plugin_method_request","pluginId":"example-plugin","requestId":"req-1","payload":"doSomething"}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 
@@ -49,7 +49,7 @@ class JetWhaleDebuggerEventSerializationTest : JetWhaleSerializationTest() {
 
         assertEquals(
             expected = """{"type":"event/host/plugin_activated","pluginId":"example-plugin"}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 
@@ -67,14 +67,14 @@ class JetWhaleDebuggerEventSerializationTest : JetWhaleSerializationTest() {
     @Test
     fun `plugin deactivated event should be serialized stably`() {
         val event = JetWhaleDebuggerEvent.PluginDeactivated(
-            pluginId = "example-plugin"
+            pluginId = "example-plugin",
         )
 
         val encoded = json.encodeToString(event)
 
         assertEquals(
             expected = """{"type":"event/host/plugin_deactivated","pluginId":"example-plugin"}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 

@@ -18,27 +18,19 @@ public class KotlinxSerializationJetWhaleHostPluginProtocol<Event, Method, Metho
     private val methodSerializer: KSerializer<Method>,
     private val methodResultSerializer: KSerializer<MethodResult>,
 ) : JetWhaleHostPluginProtocol<Event, Method, MethodResult> {
-    override fun encodeMethod(value: Method): String {
-        return json.encodeToString(methodSerializer, value)
-    }
+    override fun encodeMethod(value: Method): String = json.encodeToString(methodSerializer, value)
 
-    override fun decodeMethodResult(value: String): MethodResult {
-        return json.decodeFromString(methodResultSerializer, value)
-    }
+    override fun decodeMethodResult(value: String): MethodResult = json.decodeFromString(methodResultSerializer, value)
 
-    override fun decodeEvent(value: String): Event {
-        return json.decodeFromString(eventSerializer, value)
-    }
+    override fun decodeEvent(value: String): Event = json.decodeFromString(eventSerializer, value)
 }
 
 @OptIn(InternalJetWhaleApi::class)
 public inline fun <reified Event : Any, reified Method : Any, reified MethodResult : Any> kotlinxSerializationJetWhaleHostPluginProtocol(
     json: Json = JetWhaleJson,
-): JetWhaleHostPluginProtocol<Event, Method, MethodResult> {
-    return KotlinxSerializationJetWhaleHostPluginProtocol(
-        json = json,
-        eventSerializer = serializer(),
-        methodSerializer = serializer(),
-        methodResultSerializer = serializer(),
-    )
-}
+): JetWhaleHostPluginProtocol<Event, Method, MethodResult> = KotlinxSerializationJetWhaleHostPluginProtocol(
+    json = json,
+    eventSerializer = serializer(),
+    methodSerializer = serializer(),
+    methodResultSerializer = serializer(),
+)

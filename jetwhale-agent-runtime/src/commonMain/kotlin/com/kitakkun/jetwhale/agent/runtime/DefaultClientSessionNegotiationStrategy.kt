@@ -11,21 +11,19 @@ import io.ktor.client.plugins.websocket.sendSerialized
 internal class DefaultClientSessionNegotiationStrategy(private val plugins: List<AgentPlugin>) : ClientSessionNegotiationStrategy {
     private var sessionId: String? = null
 
-    override suspend fun DefaultClientWebSocketSession.negotiate(): ClientSessionNegotiationResult {
-        return try {
-            negotiateProtocolVersion()
-            sessionId = negotiateSessionId(sessionId)
+    override suspend fun DefaultClientWebSocketSession.negotiate(): ClientSessionNegotiationResult = try {
+        negotiateProtocolVersion()
+        sessionId = negotiateSessionId(sessionId)
 
-            // Currently, we are not using the capabilities response for anything,
-            // Just for future extensibility.
-            negotiateCapabilities()
+        // Currently, we are not using the capabilities response for anything,
+        // Just for future extensibility.
+        negotiateCapabilities()
 
-            val response = negotiatePlugins(plugins)
+        val response = negotiatePlugins(plugins)
 
-            ClientSessionNegotiationResult.Success(availablePluginIds = response.availablePlugins.map { it.pluginId })
-        } catch (e: Throwable) {
-            ClientSessionNegotiationResult.Failure(reason = e.message ?: "Unknown error during negotiation")
-        }
+        ClientSessionNegotiationResult.Success(availablePluginIds = response.availablePlugins.map { it.pluginId })
+    } catch (e: Throwable) {
+        ClientSessionNegotiationResult.Failure(reason = e.message ?: "Unknown error during negotiation")
     }
 
     private suspend fun DefaultClientWebSocketSession.negotiateProtocolVersion() {
@@ -57,7 +55,7 @@ internal class DefaultClientSessionNegotiationStrategy(private val plugins: List
             JetWhaleAgentNegotiationRequest.Session(
                 sessionId = resumingSessionId,
                 sessionName = getDeviceModelName(),
-            )
+            ),
         )
         JetWhaleLogger.v("Sent session negotiation request" + " with sessionId: $resumingSessionId".takeIf { resumingSessionId != null })
 
@@ -80,7 +78,7 @@ internal class DefaultClientSessionNegotiationStrategy(private val plugins: List
                     pluginId = it.pluginId,
                     pluginVersion = it.pluginVersion,
                 )
-            }
+            },
         )
         sendSerialized(request)
         return receiveDeserialized()

@@ -18,7 +18,9 @@ fun SettingsScreenRoot(
             SettingsScreenSegmentedMenu.General -> GeneralSettingsScreenRoot(
                 onOpenLogViewer = onOpenLogViewer,
             )
+
             SettingsScreenSegmentedMenu.Server -> ServerSettingsScreenRoot()
+
             SettingsScreenSegmentedMenu.Plugins -> PluginSettingsScreenRoot()
         }
     }

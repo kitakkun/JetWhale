@@ -70,16 +70,12 @@ internal class WindowOverlayScene<T : Any>(
             windowEntries == other.windowEntries
     }
 
-    override fun hashCode(): Int {
-        return key.hashCode() * 31 +
-            previousEntries.hashCode() * 31 +
-            overlaidEntries.hashCode() * 31 +
-            windowEntries.hashCode() * 31
-    }
+    override fun hashCode(): Int = key.hashCode() * 31 +
+        previousEntries.hashCode() * 31 +
+        overlaidEntries.hashCode() * 31 +
+        windowEntries.hashCode() * 31
 
-    override fun toString(): String {
-        return "WindowOverlayScene(key=$key, entries=$windowEntries, previousEntries=$previousEntries, overlaidEntries=$overlaidEntries)"
-    }
+    override fun toString(): String = "WindowOverlayScene(key=$key, entries=$windowEntries, previousEntries=$previousEntries, overlaidEntries=$overlaidEntries)"
 }
 
 class WindowSceneStrategy<T : Any>(
@@ -110,7 +106,7 @@ class WindowSceneStrategy<T : Any>(
             windowEntries = windowEntries,
             previousEntries = nonWindowEntries,
             overlaidEntries = nonWindowEntries,
-            onCloseRequest = onCloseRequest
+            onCloseRequest = onCloseRequest,
         )
     }
 

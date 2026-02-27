@@ -13,5 +13,5 @@ class DefaultServerStatusSubscriptionKey(
     private val ktorWebSocketServer: KtorWebSocketServer,
 ) : ServerStatusSubscriptionKey by buildSubscriptionKey(
     id = SubscriptionId("server_status"),
-    subscribe = { ktorWebSocketServer.statusFlow }
+    subscribe = { ktorWebSocketServer.statusFlow },
 )

@@ -53,9 +53,7 @@ class DefaultEnabledPluginsRepository(
         }
     }
 
-    override suspend fun isPluginEnabled(pluginId: String): Boolean {
-        return dataStore.data.first()[KEY_ENABLED_PLUGIN_IDS]?.contains(pluginId) ?: false
-    }
+    override suspend fun isPluginEnabled(pluginId: String): Boolean = dataStore.data.first()[KEY_ENABLED_PLUGIN_IDS]?.contains(pluginId) ?: false
 
     companion object {
         private val KEY_ENABLED_PLUGIN_IDS = stringSetPreferencesKey("enabled_plugin_ids")

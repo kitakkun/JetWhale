@@ -24,7 +24,7 @@ val generateBuildConfig by tasks.registering {
             |object BuildConfig {
             |    const val VERSION: String = "$version"
             |}
-            """.trimMargin()
+            """.trimMargin(),
         )
     }
 }
@@ -50,7 +50,7 @@ compose.desktop {
                 TargetFormat.Deb,
             )
             jvmArgs(
-                "-Dapple.awt.application.appearance=system"
+                "-Dapple.awt.application.appearance=system",
             )
 
             macOS {

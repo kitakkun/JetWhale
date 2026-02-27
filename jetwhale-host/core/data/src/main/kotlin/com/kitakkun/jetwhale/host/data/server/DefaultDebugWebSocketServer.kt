@@ -66,7 +66,7 @@ class DefaultDebugWebSocketServer(
     override suspend fun sendMethod(
         pluginId: String,
         sessionId: String,
-        payload: String
+        payload: String,
     ): String? {
         val requestId = UUID.randomUUID().toString()
 
@@ -76,7 +76,7 @@ class DefaultDebugWebSocketServer(
                 pluginId = pluginId,
                 requestId = requestId,
                 payload = payload,
-            )
+            ),
         )
 
         return withTimeoutOrNull(METHOD_RESULT_WAIT_TIMEOUT) {
@@ -93,9 +93,7 @@ class DefaultDebugWebSocketServer(
         }
     }
 
-    override fun getCoroutineScopeForSession(sessionId: String): CoroutineScope {
-        return CoroutineScope(ktorWebSocketServer.getSessionCoroutineContext(sessionId))
-    }
+    override fun getCoroutineScopeForSession(sessionId: String): CoroutineScope = CoroutineScope(ktorWebSocketServer.getSessionCoroutineContext(sessionId))
 
     private fun subscribeServerEvents() {
         serverMonitoringJob?.cancel()
@@ -153,7 +151,7 @@ class DefaultDebugWebSocketServer(
                     enabledPluginsRepository.enabledPluginIdsFlow,
                     sessionRepository.debugSessionsFlow.map { sessions ->
                         sessions.filter { it.isActive }
-                    }
+                    },
                 ) { enabledPluginIds, activeSessions ->
                     enabledPluginIds to activeSessions
                 }.collect { (enabledPluginIds, activeSessions) ->
@@ -209,7 +207,7 @@ class DefaultDebugWebSocketServer(
                     """
                         Received message for pluginId=$pluginId in sessionId=$sessionId, but plugin instance is not found. Skipping message processing.
                         This may happen when the message is received before the plugin instance is initialized, or when the plugin is disabled after the message is sent.
-                    """.trimIndent()
+                    """.trimIndent(),
                 )
                 return@collect
             }

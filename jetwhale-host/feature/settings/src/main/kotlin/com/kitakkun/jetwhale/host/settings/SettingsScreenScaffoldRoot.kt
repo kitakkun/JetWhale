@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.architecture.rememberEventFlow
 
-context(_: ScreenContext)
 @Composable
+context(_: ScreenContext)
 fun SettingsScreenScaffoldRoot(
     onClickClose: () -> Unit,
     content: @Composable (SettingsScreenSegmentedMenu) -> Unit,

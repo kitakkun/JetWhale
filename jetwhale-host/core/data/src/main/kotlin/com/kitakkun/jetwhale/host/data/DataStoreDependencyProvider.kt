@@ -27,32 +27,26 @@ interface DataStoreDependencyProvider {
     @Provides
     fun provideDebuggerSettingsDataStore(
         appDataDirectoryProvider: AppDataDirectoryProvider,
-    ): DataStore<Preferences> {
-        return PreferenceDataStoreFactory.createWithPath(
-            corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
-            scope = CoroutineScope(Dispatchers.IO),
-        ) { appDataDirectoryProvider.resolveDataStoreFilePath("debugger_settings.preferences_pb") }
-    }
+    ): DataStore<Preferences> = PreferenceDataStoreFactory.createWithPath(
+        corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+        scope = CoroutineScope(Dispatchers.IO),
+    ) { appDataDirectoryProvider.resolveDataStoreFilePath("debugger_settings.preferences_pb") }
 
     @ThemeDataStoreQualifier
     @Provides
     fun provideThemeDataStore(
         appDataDirectoryProvider: AppDataDirectoryProvider,
-    ): DataStore<Preferences> {
-        return PreferenceDataStoreFactory.createWithPath(
-            corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
-            scope = CoroutineScope(Dispatchers.IO),
-        ) { appDataDirectoryProvider.resolveDataStoreFilePath("theme.preferences_pb") }
-    }
+    ): DataStore<Preferences> = PreferenceDataStoreFactory.createWithPath(
+        corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+        scope = CoroutineScope(Dispatchers.IO),
+    ) { appDataDirectoryProvider.resolveDataStoreFilePath("theme.preferences_pb") }
 
     @EnabledPluginsDataStoreQualifier
     @Provides
     fun provideEnabledPluginsDataStore(
         appDataDirectoryProvider: AppDataDirectoryProvider,
-    ): DataStore<Preferences> {
-        return PreferenceDataStoreFactory.createWithPath(
-            corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
-            scope = CoroutineScope(Dispatchers.IO),
-        ) { appDataDirectoryProvider.resolveDataStoreFilePath("enabled_plugins.preferences_pb") }
-    }
+    ): DataStore<Preferences> = PreferenceDataStoreFactory.createWithPath(
+        corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
+        scope = CoroutineScope(Dispatchers.IO),
+    ) { appDataDirectoryProvider.resolveDataStoreFilePath("enabled_plugins.preferences_pb") }
 }

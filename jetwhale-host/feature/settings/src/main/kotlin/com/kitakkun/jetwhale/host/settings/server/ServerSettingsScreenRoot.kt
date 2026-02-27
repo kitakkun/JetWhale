@@ -5,8 +5,8 @@ import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberEventFlow
 import soil.query.compose.rememberSubscription
 
-context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
 @Composable
+context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
 fun ServerSettingsScreenRoot() {
     SoilDataBoundary(
         state1 = rememberSubscription(screenContext.serverStatusSubscriptionKey),

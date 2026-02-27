@@ -27,6 +27,6 @@ fun settingsScreenScaffoldPresenter(
     }
 
     return SettingsScreenScaffoldUiState(
-        selectedMenu = selectedMenu
+        selectedMenu = selectedMenu,
     )
 }

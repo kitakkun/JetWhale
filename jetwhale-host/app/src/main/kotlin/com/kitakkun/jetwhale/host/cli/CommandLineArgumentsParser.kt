@@ -22,8 +22,11 @@ class CommandLineArgumentsParser {
         while (iterator.hasNext()) {
             when (iterator.next()) {
                 "--plugin-dir" -> {
-                    if (iterator.hasNext()) pluginDirs.add(iterator.next())
-                    else error("Expected a directory path after --plugin-dir")
+                    if (iterator.hasNext()) {
+                        pluginDirs.add(iterator.next())
+                    } else {
+                        error("Expected a directory path after --plugin-dir")
+                    }
                 }
 
                 "--log-level" -> {

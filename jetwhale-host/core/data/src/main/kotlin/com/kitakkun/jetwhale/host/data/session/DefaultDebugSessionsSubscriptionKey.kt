@@ -14,5 +14,5 @@ class DefaultDebugSessionsSubscriptionKey(
     private val debugSessionRepository: DebugSessionRepository,
 ) : DebugSessionsSubscriptionKey by buildSubscriptionKey(
     id = SubscriptionId("DefaultDebugSessionsSubscriptionKey"),
-    subscribe = { debugSessionRepository.debugSessionsFlow }
+    subscribe = { debugSessionRepository.debugSessionsFlow },
 )

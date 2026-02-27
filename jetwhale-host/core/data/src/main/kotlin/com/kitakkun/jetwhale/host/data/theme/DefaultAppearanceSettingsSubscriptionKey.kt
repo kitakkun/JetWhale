@@ -26,8 +26,8 @@ class DefaultAppearanceSettingsSubscriptionKey(
             AppearanceSettings(
                 appLanguage = language,
                 activeColorScheme = preferredColorSchemeId,
-                availableColorSchemes = persistentListOf(*JetWhaleColorSchemeId.BuiltIns.toTypedArray())
+                availableColorSchemes = persistentListOf(*JetWhaleColorSchemeId.BuiltIns.toTypedArray()),
             )
         }
-    }
+    },
 )

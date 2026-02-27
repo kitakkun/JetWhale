@@ -12,7 +12,7 @@ configure<KotlinJvmExtension> {
     compilerOptions {
         freeCompilerArgs.addAll(
             listOf(
-                "-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi"
+                "-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi",
             ),
         )
     }

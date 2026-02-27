@@ -99,7 +99,7 @@ fun ExpandedToolingDrawerView(
                             .fillMaxWidth()
                             .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(32.dp)
+                        verticalArrangement = Arrangement.spacedBy(32.dp),
                     ) {
                         Icon(
                             painter = painterResource(Res.drawable.puzzle_outlined),
@@ -121,7 +121,7 @@ fun ExpandedToolingDrawerView(
                     val unavailablePlugins = remember(plugins) { plugins.filter { it.pluginAvailability == PluginAvailability.Unavailable } }
 
                     LazyColumn(
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         if (enabledPlugins.isNotEmpty()) {
                             item {
@@ -169,10 +169,10 @@ fun ExpandedToolingDrawerView(
                                                 onClick = {
                                                     onClickPopout(it)
                                                     dismiss()
-                                                }
+                                                },
                                             )
                                         },
-                                        modifier = Modifier.animateItem()
+                                        modifier = Modifier.animateItem(),
                                     )
                                 }
                             }

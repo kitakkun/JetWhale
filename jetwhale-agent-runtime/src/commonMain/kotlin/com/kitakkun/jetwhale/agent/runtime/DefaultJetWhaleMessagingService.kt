@@ -52,7 +52,7 @@ internal class DefaultJetWhaleMessagingService(
                         JetWhaleDebuggeeEvent.PluginMessage(
                             pluginId = pluginId,
                             payload = it,
-                        )
+                        ),
                     )
                 }
             }
@@ -78,7 +78,7 @@ internal class DefaultJetWhaleMessagingService(
                             event = JetWhaleDebuggeeEvent.MethodResultResponse.Success(
                                 requestId = event.requestId,
                                 payload = methodResult,
-                            )
+                            ),
                         )
                     }
                 }

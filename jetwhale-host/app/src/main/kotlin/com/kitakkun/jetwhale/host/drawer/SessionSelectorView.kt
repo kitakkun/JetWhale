@@ -46,7 +46,7 @@ fun SessionSelectorView(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = 56.dp)
-                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryEditable)
+                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryEditable),
         ) {
             Row(
                 modifier = Modifier
@@ -82,7 +82,7 @@ fun SessionSelectorView(
                     onClick = {
                         onSelectSession(it)
                         expanded = false
-                    }
+                    },
                 )
             }
         }

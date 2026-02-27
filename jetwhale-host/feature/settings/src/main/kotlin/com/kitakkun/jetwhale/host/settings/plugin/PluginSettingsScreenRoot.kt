@@ -8,8 +8,8 @@ import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
 
-context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
 @Composable
+context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
 fun PluginSettingsScreenRoot() {
     SoilDataBoundary(
         state = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),

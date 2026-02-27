@@ -5,8 +5,8 @@ import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberEventFlow
 import soil.query.compose.rememberSubscription
 
-context(screenContext: ToolingScaffoldScreenContext)
 @Composable
+context(screenContext: ToolingScaffoldScreenContext)
 fun ToolingScaffoldRoot(
     onClickSettings: () -> Unit,
     onClickInfo: () -> Unit,

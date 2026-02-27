@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import soil.query.compose.rememberQuery
 
-context(screenContext: LicensesScreenContext)
 @Composable
+context(screenContext: LicensesScreenContext)
 fun LicensesScreenRoot(
     onClickBack: () -> Unit,
 ) {
@@ -14,7 +14,7 @@ fun LicensesScreenRoot(
     ) {
         LicensesScreen(
             libraries = it,
-            onClickBack = onClickBack
+            onClickBack = onClickBack,
         )
     }
 }

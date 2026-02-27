@@ -23,5 +23,5 @@ class DefaultDiagnosticsQueryKey(
             adbPath = adbPath,
             appDataPath = appDataPath,
         )
-    }
+    },
 )

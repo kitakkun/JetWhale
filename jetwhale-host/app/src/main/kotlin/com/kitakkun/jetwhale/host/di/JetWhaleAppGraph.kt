@@ -45,7 +45,5 @@ interface JetWhaleAppGraph :
     fun provideSwrClient(): SwrClientPlus = SwrCachePlus(SwrCachePlusPolicy(SwrCacheScope()))
 
     @Provides
-    fun providesWebSocketPayloadJson(): Json {
-        return JetWhaleJson
-    }
+    fun providesWebSocketPayloadJson(): Json = JetWhaleJson
 }

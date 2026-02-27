@@ -19,9 +19,9 @@ import androidx.navigation3.scene.DialogSceneStrategy
 import androidx.navigation3.ui.NavDisplay
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 
-context(appGraph: JetWhaleAppGraph)
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
+context(appGraph: JetWhaleAppGraph)
 fun JetWhaleNavDisplay(
     backStack: NavBackStack<NavKey>,
     modifier: Modifier = Modifier,
@@ -58,7 +58,7 @@ fun JetWhaleNavDisplay(
             emptyPluginEntry()
             settingsEntry(
                 onClickClose = { backStack.removeIf { it is SettingsNavKey } },
-                onOpenLogViewer = { backStack.addSingleTop(0, LogViewerNavKey) }
+                onOpenLogViewer = { backStack.addSingleTop(0, LogViewerNavKey) },
             )
             licensesEntry(onClickBack = backStack::removeLastOrNull)
             logViewerEntry()
@@ -75,17 +75,17 @@ fun JetWhaleNavDisplay(
                         PluginNavKey(
                             pluginId = pluginId,
                             sessionId = sessionId,
-                        )
+                        ),
                     )
                     backStack.removeAll {
                         it is PluginPopoutNavKey &&
                             it.pluginId == pluginId &&
                             it.sessionId == sessionId
                     }
-                }
+                },
             )
             disabledPluginEntry()
         },
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize(),
     )
 }

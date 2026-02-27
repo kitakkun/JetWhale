@@ -91,7 +91,7 @@ class DefaultLogCaptureService : LogCaptureService {
                     original.flush()
                 }
             }
-        }
+        },
     ) {
         override fun println(x: String?) {
             x?.let { addLogEntry(it, level) }

@@ -14,5 +14,5 @@ class DefaultAppColorSchemeMutationKey(
     private val appearanceDataStore: AppAppearanceRepository,
 ) : AppColorSchemeMutationKey by buildMutationKey(
     id = MutationId("DefaultAppColorSchemeMutationKey"),
-    mutate = { appearanceDataStore.setPreferredColorSchemeId(it) }
+    mutate = { appearanceDataStore.setPreferredColorSchemeId(it) },
 )

@@ -24,7 +24,7 @@ class ProtocolNegotiationStrategy : NegotiationStrategy<ProtocolVersionNegotiati
                 JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Reject(
                     reason = "Unsupported protocol version: ${requestedVersion.version}",
                     supportedVersions = SUPPORTED_VERSIONS,
-                )
+                ),
             )
             error("Unsupported protocol version: ${requestedVersion.version}")
         }

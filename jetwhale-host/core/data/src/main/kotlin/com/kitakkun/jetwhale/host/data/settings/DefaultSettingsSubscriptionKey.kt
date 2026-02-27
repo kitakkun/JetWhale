@@ -29,5 +29,5 @@ class DefaultSettingsSubscriptionKey(
                 serverPort = serverPort,
             )
         }
-    }
+    },
 )

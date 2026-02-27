@@ -167,7 +167,5 @@ class KtorWebSocketServer(
         sessions.values.forEach { session -> session.sendSerialized(event) }
     }
 
-    fun getSessionCoroutineContext(sessionId: String): CoroutineContext {
-        return sessions[sessionId]?.coroutineContext ?: throw IllegalArgumentException("No session with ID $sessionId")
-    }
+    fun getSessionCoroutineContext(sessionId: String): CoroutineContext = sessions[sessionId]?.coroutineContext ?: throw IllegalArgumentException("No session with ID $sessionId")
 }

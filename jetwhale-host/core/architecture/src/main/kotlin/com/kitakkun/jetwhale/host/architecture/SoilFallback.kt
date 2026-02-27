@@ -51,11 +51,8 @@ object SoilFallbackDefaults {
     fun custom(
         suspenseFallback: @Composable () -> Unit,
         errorFallback: @Composable (ErrorBoundaryContext) -> Unit,
-    ): SoilFallback {
-        return CustomFallback(
-            suspenseFallback = suspenseFallback,
-            errorFallback = errorFallback,
-        )
-    }
+    ): SoilFallback = CustomFallback(
+        suspenseFallback = suspenseFallback,
+        errorFallback = errorFallback,
+    )
 }
-

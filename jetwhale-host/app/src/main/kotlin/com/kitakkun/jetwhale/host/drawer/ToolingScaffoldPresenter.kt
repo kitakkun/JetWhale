@@ -29,8 +29,8 @@ sealed interface ToolingScaffoldEffect {
     data class SessionClosed(val closedSessionIds: List<String>) : ToolingScaffoldEffect
 }
 
-context(screenContext: ToolingScaffoldScreenContext)
 @Composable
+context(screenContext: ToolingScaffoldScreenContext)
 fun toolingScaffoldPresenter(
     eventFlow: EventFlow<ToolingScaffoldEvent>,
     loadedPlugins: ImmutableList<PluginMetaData>,

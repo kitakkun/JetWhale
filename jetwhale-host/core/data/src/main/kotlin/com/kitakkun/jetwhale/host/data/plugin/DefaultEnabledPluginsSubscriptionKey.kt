@@ -18,5 +18,5 @@ class DefaultEnabledPluginsSubscriptionKey(
     id = SubscriptionId("enabled_plugins"),
     subscribe = {
         enabledPluginsRepository.enabledPluginIdsFlow
-    }
+    },
 )

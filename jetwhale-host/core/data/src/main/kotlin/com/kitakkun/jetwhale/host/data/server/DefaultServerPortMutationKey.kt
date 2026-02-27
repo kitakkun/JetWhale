@@ -20,5 +20,5 @@ class DefaultServerPortMutationKey(
         settingsRepository.updateServerPort(port)
         debugWebSocketServer.stop()
         debugWebSocketServer.start(host = "localhost", port = port)
-    }
+    },
 )
