@@ -165,3 +165,6 @@ multiplatform = { id = "multiplatform" }
 serialization = { id = "serialization" }
 debuggerComposeFeature = { id = "debugger-compose-feature" }
 publish = { id = "publish" }
+
+# gradle plugins to help developing jetwhale plugins
+jetwhaleHostPlugin = { id = "com.kitakkun.jetwhale.host.plugin" }
