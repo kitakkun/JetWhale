@@ -37,6 +37,7 @@ logback = "1.5.32"
 kermit = "2.0.8"
 
 aboutLibraries = "13.2.1"
+spotless = "8.2.1"
 
 [libraries]
 # Gradle Plugins
@@ -157,6 +158,7 @@ mokkery = { id = "dev.mokkery", version.ref = "mokkery" }
 
 aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutLibraries" }
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 
 # conventions
 compose = { id = "compose" }

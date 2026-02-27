@@ -16,6 +16,20 @@ plugins {
     alias(libs.plugins.aboutLibraries) apply false
     alias(libs.plugins.mavenPublish) apply false
     alias(libs.plugins.publish) apply false
+    alias(libs.plugins.spotless)
+}
+
+spotless {
+    kotlin {
+        target("**/*.kt")
+        targetExclude("**/build/**")
+        ktlint()
+    }
+    kotlinGradle {
+        target("**/*.gradle.kts")
+        targetExclude("**/build/**")
+        ktlint()
+    }
 }
 
 allprojects {
