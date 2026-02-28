@@ -76,7 +76,7 @@ class KtorWebSocketClientTest {
             event = JetWhaleDebuggeeEvent.PluginMessage(
                 pluginId = "pluginId",
                 payload = "message",
-            )
+            ),
         )
     }
 

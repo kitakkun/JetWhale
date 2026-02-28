@@ -90,7 +90,7 @@ fun <T> DropdownSettingsItemView(
                             if (it == currentItem) {
                                 Icon(Icons.Default.Check, null)
                             }
-                        }
+                        },
                     )
                 }
             }

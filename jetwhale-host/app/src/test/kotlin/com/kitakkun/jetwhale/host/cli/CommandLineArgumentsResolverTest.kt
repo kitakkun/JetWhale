@@ -9,8 +9,10 @@ class CommandLineArgumentsResolverTest {
     fun testPluginDirs() {
         val resolver = CommandLineArgumentsParser()
         val args = arrayOf(
-            "--plugin-dir", "/path/to/plugin1",
-            "--plugin-dir", "/path/to/plugin2",
+            "--plugin-dir",
+            "/path/to/plugin1",
+            "--plugin-dir",
+            "/path/to/plugin2",
         )
         val options = resolver.parse(args)
 
@@ -36,8 +38,10 @@ class CommandLineArgumentsResolverTest {
     fun testUnknownArguments() {
         val resolver = CommandLineArgumentsParser()
         val args = arrayOf(
-            "--unknown-arg", "some_value",
-            "--plugin-dir", "/path/to/plugin",
+            "--unknown-arg",
+            "some_value",
+            "--plugin-dir",
+            "/path/to/plugin",
         )
         val options = resolver.parse(args)
 
@@ -51,7 +55,7 @@ class CommandLineArgumentsResolverTest {
     fun testMissingPluginDirValue() {
         val resolver = CommandLineArgumentsParser()
         val args = arrayOf(
-            "--plugin-dir"
+            "--plugin-dir",
         )
 
         assertFailsWith<IllegalStateException> {

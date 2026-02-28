@@ -16,5 +16,5 @@ class DefaultAdbAutoPortMappingMutationKey(
     id = MutationId("adb_auto_port_mapping"),
     mutate = { isEnabled: Boolean ->
         settingsDataStore.updateAdbAutoPortMappingEnabled(enabled = isEnabled)
-    }
+    },
 )

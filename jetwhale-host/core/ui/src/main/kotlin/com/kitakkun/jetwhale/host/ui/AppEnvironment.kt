@@ -33,7 +33,7 @@ object LocalAppLocale {
 @Composable
 fun AppEnvironment(
     appLanguage: AppLanguage,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
         LocalAppLocale provides appLanguage.toLocaleString(),

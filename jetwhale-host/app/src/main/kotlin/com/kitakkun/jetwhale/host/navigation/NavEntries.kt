@@ -55,13 +55,13 @@ fun EntryProviderScope<NavKey>.pluginEntries(
                     pluginId = navKey.pluginId,
                     sessionId = navKey.sessionId,
                 )
-            }
+            },
         ) {
             if (isOpenedOnPopout(navKey.pluginId, navKey.sessionId)) {
                 PluginPoppedOutScreen(
                     onBringbackToMainWindow = {
                         onBringbackToMainWindow(navKey.pluginId, navKey.sessionId)
-                    }
+                    },
                 )
             } else {
                 PluginScreenRoot()
@@ -73,7 +73,7 @@ fun EntryProviderScope<NavKey>.pluginEntries(
             WindowProperties(
                 width = 800.dp,
                 height = 600.dp,
-            )
+            ),
         ),
     ) { navKey ->
         val window = LocalComposeWindow.current
@@ -88,7 +88,7 @@ fun EntryProviderScope<NavKey>.pluginEntries(
                     pluginId = navKey.pluginId,
                     sessionId = navKey.sessionId,
                 )
-            }
+            },
         ) {
             Surface {
                 PluginScreenRoot()
@@ -119,13 +119,13 @@ fun EntryProviderScope<NavKey>.settingsEntry(
         metadata = DialogSceneStrategy.dialog(
             dialogProperties = DialogProperties(
                 usePlatformDefaultWidth = false,
-            )
+            ),
         ),
     ) {
         context(
             rememberRetained {
                 appGraph.createSettingsScreenContext()
-            }
+            },
         ) {
             SettingsScreenRoot(
                 onClickClose = onClickClose,
@@ -143,13 +143,13 @@ fun EntryProviderScope<NavKey>.licensesEntry(
         metadata = DialogSceneStrategy.dialog(
             dialogProperties = DialogProperties(
                 usePlatformDefaultWidth = false,
-            )
-        )
+            ),
+        ),
     ) {
         context(
             rememberRetained {
                 appGraph.createLicensesScreenContext()
-            }
+            },
         ) {
             LicensesScreenRoot(
                 onClickBack = onClickBack,
@@ -165,8 +165,8 @@ fun EntryProviderScope<NavKey>.logViewerEntry() {
             WindowProperties(
                 width = 1000.dp,
                 height = 700.dp,
-            )
-        )
+            ),
+        ),
     ) {
         val window = LocalComposeWindow.current
         val windowTitle = stringResource(Res.string.log_viewer_window_title)
@@ -178,7 +178,7 @@ fun EntryProviderScope<NavKey>.logViewerEntry() {
         context(
             rememberRetained {
                 appGraph.createSettingsScreenContext()
-            }
+            },
         ) {
             LogViewerScreenRoot()
         }

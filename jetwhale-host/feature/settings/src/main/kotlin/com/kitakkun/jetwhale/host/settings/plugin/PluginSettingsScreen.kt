@@ -51,14 +51,14 @@ fun PluginSettingsScreen(
                 .background(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = MaterialTheme.shapes.small,
-                )
+                ),
         ) {
             stickyHeader {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(top = 8.dp)
+                        .padding(top = 8.dp),
                 ) {
                     Text("id", Modifier.weight(1f))
                     Text("name", Modifier.weight(1f))

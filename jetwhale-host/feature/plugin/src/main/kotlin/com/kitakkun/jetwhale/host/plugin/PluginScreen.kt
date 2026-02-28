@@ -66,7 +66,7 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                 }
                 pluginComposeScene.windowInfoUpdater.updateWindowSize(
                     intSize = it,
-                    dpSize = with(density) { DpSize(it.width.toDp(), it.height.toDp()) }
+                    dpSize = with(density) { DpSize(it.width.toDp(), it.height.toDp()) },
                 )
             }
             .focusRequester(focusRequester)
@@ -109,15 +109,13 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
-private fun PointerEvent.toComposeScenePointers(): List<ComposeScenePointer> {
-    return this.changes.map { pointerInputChange ->
-        ComposeScenePointer(
-            id = pointerInputChange.id,
-            position = pointerInputChange.position,
-            pressed = pointerInputChange.pressed,
-            type = pointerInputChange.type,
-            pressure = pointerInputChange.pressure,
-            historical = pointerInputChange.historical,
-        )
-    }
+private fun PointerEvent.toComposeScenePointers(): List<ComposeScenePointer> = this.changes.map { pointerInputChange ->
+    ComposeScenePointer(
+        id = pointerInputChange.id,
+        position = pointerInputChange.position,
+        pressed = pointerInputChange.pressed,
+        type = pointerInputChange.type,
+        pressure = pointerInputChange.pressure,
+        historical = pointerInputChange.historical,
+    )
 }

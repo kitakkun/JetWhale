@@ -27,12 +27,10 @@ public val JetWhaleJson: Json = Json {
  * Returns null if decoding fails.
  */
 @InternalJetWhaleApi
-public inline fun <reified T> Json.decodeFromStringOrNull(value: String): T? {
-    return try {
-        decodeFromString<T>(value)
-    } catch (_: Throwable) {
-        null
-    }
+public inline fun <reified T> Json.decodeFromStringOrNull(value: String): T? = try {
+    decodeFromString<T>(value)
+} catch (_: Throwable) {
+    null
 }
 
 /**
@@ -40,12 +38,10 @@ public inline fun <reified T> Json.decodeFromStringOrNull(value: String): T? {
  * Returns null if decoding fails.
  */
 @InternalJetWhaleApi
-public fun <T> Json.decodeFromStringOrNull(deserializer: DeserializationStrategy<T>, value: String): T? {
-    return try {
-        decodeFromString(deserializer, value)
-    } catch (_: Throwable) {
-        null
-    }
+public fun <T> Json.decodeFromStringOrNull(deserializer: DeserializationStrategy<T>, value: String): T? = try {
+    decodeFromString(deserializer, value)
+} catch (_: Throwable) {
+    null
 }
 
 /**
@@ -53,12 +49,10 @@ public fun <T> Json.decodeFromStringOrNull(deserializer: DeserializationStrategy
  * Returns null if encoding fails.
  */
 @InternalJetWhaleApi
-public inline fun <reified T> Json.encodeToStringOrNull(value: T): String? {
-    return try {
-        encodeToString(value)
-    } catch (_: Throwable) {
-        null
-    }
+public inline fun <reified T> Json.encodeToStringOrNull(value: T): String? = try {
+    encodeToString(value)
+} catch (_: Throwable) {
+    null
 }
 
 /**
@@ -66,10 +60,8 @@ public inline fun <reified T> Json.encodeToStringOrNull(value: T): String? {
  * Returns null if encoding fails.
  */
 @InternalJetWhaleApi
-public inline fun <reified T> Json.encodeToStringOrNull(serializer: SerializationStrategy<T>, value: T): String? {
-    return try {
-        encodeToString(value)
-    } catch (_: Throwable) {
-        null
-    }
+public inline fun <reified T> Json.encodeToStringOrNull(serializer: SerializationStrategy<T>, value: T): String? = try {
+    encodeToString(value)
+} catch (_: Throwable) {
+    null
 }

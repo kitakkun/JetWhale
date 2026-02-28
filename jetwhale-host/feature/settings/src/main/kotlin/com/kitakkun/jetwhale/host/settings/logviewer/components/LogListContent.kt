@@ -74,7 +74,7 @@ private fun LogList(
     ) {
         items(
             items = logs,
-            key = { "${it.timestamp}-${it.message.hashCode()}" }
+            key = { "${it.timestamp}-${it.message.hashCode()}" },
         ) { logEntry ->
             LogEntryRow(logEntry)
         }

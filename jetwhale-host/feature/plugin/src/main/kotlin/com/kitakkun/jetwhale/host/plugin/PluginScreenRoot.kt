@@ -12,8 +12,8 @@ import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
 import soil.query.compose.rememberQuery
 
 @OptIn(InternalComposeUiApi::class)
-context(screenContext: PluginScreenContext)
 @Composable
+context(screenContext: PluginScreenContext)
 fun PluginScreenRoot() {
     var reset by remember { mutableStateOf(false) }
 
@@ -30,7 +30,7 @@ fun PluginScreenRoot() {
                         onClickReset = { reset = !reset },
                     )
                 },
-            )
+            ),
         ) { pluginComposeScene ->
             PluginScreen(pluginComposeScene = pluginComposeScene)
         }

@@ -10,8 +10,8 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toPersistentList
 import soil.query.compose.rememberMutation
 
-context(screenContext: SettingsScreenContext)
 @Composable
+context(screenContext: SettingsScreenContext)
 fun pluginSettingsScreenPresenter(
     eventFlow: EventFlow<PluginSettingsScreenEvent>,
     loadedPlugins: ImmutableList<PluginMetaData>,

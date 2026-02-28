@@ -15,13 +15,9 @@ class AppDataDirectoryProvider {
     private val pluginDir = "$appDataDir/plugins"
     private val dataStoreFilesDir = "$appDataDir/dataStorePreferences"
 
-    fun resolveDataStoreFilePath(fileName: String): Path {
-        return "$dataStoreFilesDir/$fileName".toPath()
-    }
+    fun resolveDataStoreFilePath(fileName: String): Path = "$dataStoreFilesDir/$fileName".toPath()
 
-    fun getAppDataPath(): String {
-        return "~/.jetwhale"
-    }
+    fun getAppDataPath(): String = "~/.jetwhale"
 
     fun createAppDataDirectoriesIfNeeded() {
         val appDataDirectory = File(appDataDir)

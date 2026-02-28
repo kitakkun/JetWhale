@@ -14,14 +14,14 @@ class JetWhaleDebuggeeEventSerializationTest : JetWhaleSerializationTest() {
     fun `plugin message event should be serialized stably`() {
         val event = JetWhaleDebuggeeEvent.PluginMessage(
             pluginId = "example-plugin",
-            payload = "hello"
+            payload = "hello",
         )
 
         val encoded = json.encodeToString(event)
 
         assertEquals(
             expected = """{"type":"event/agent/plugin_message","pluginId":"example-plugin","payload":"hello"}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 
@@ -29,14 +29,14 @@ class JetWhaleDebuggeeEventSerializationTest : JetWhaleSerializationTest() {
     fun `method result success event should be serialized stably`() {
         val event = JetWhaleDebuggeeEvent.MethodResultResponse.Success(
             requestId = "req-1",
-            payload = "result"
+            payload = "result",
         )
 
         val encoded = json.encodeToString(event)
 
         assertEquals(
             expected = """{"type":"event/agent/method_result_response/success","requestId":"req-1","payload":"result"}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 
@@ -44,14 +44,14 @@ class JetWhaleDebuggeeEventSerializationTest : JetWhaleSerializationTest() {
     fun `method result failed event should be serialized stably`() {
         val event = JetWhaleDebuggeeEvent.MethodResultResponse.Failure(
             requestId = "req-2",
-            errorMessage = "something went wrong"
+            errorMessage = "something went wrong",
         )
 
         val encoded = json.encodeToString(event)
 
         assertEquals(
             expected = """{"type":"event/agent/method_result_response/failure","requestId":"req-2","errorMessage":"something went wrong"}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 

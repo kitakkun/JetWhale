@@ -21,9 +21,7 @@ class DefaultThemeSubscriptionKey(
         appAppearanceRepository.preferredColorSchemeFlow.map {
             JetWhaleTheme(colorScheme = it)
         }
-    }
+    },
 ) {
-    override fun onInitialData(): SubscriptionInitialData<JetWhaleTheme> {
-        return { JetWhaleTheme() }
-    }
+    override fun onInitialData(): SubscriptionInitialData<JetWhaleTheme> = { JetWhaleTheme() }
 }

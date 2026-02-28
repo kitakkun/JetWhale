@@ -20,5 +20,5 @@ class DefaultPluginInstallMutationKey(
         appDataDirectoryProvider.createAppDataDirectoriesIfNeeded()
         val copiedJarFilePath = appDataDirectoryProvider.copyJarFileToAppDataDirectory(jarUrlString)
         pluginFactoryRepository.loadPluginFactory(copiedJarFilePath)
-    }
+    },
 )

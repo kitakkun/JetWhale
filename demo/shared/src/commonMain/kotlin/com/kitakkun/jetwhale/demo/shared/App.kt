@@ -36,9 +36,9 @@ fun App() {
                     TopAppBar(
                         title = {
                             Text("JetWhale Demo App (Agent)")
-                        }
+                        },
                     )
-                }
+                },
             ) {
                 LazyColumn(
                     modifier = Modifier
@@ -48,10 +48,10 @@ fun App() {
                 ) {
                     stickyHeader {
                         Button(
-                            onClick = { plugin.enqueueEvent(ExampleEvent.ButtonClicked(++counter)) }
+                            onClick = { plugin.enqueueEvent(ExampleEvent.ButtonClicked(++counter)) },
                         ) {
                             Text(
-                                text = "Send ExampleEvent.ButtonClicked(${counter + 1})"
+                                text = "Send ExampleEvent.ButtonClicked(${counter + 1})",
                             )
                         }
                     }

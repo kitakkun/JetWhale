@@ -44,7 +44,7 @@ fun LicensesScreen(
     ) {
         LibrariesContainer(
             libraries = libraries,
-            modifier = Modifier.padding(it)
+            modifier = Modifier.padding(it),
         )
     }
 }

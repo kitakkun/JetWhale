@@ -7,7 +7,5 @@ import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
  * This strategy skips all negotiation steps and immediately returns a successful result.
  */
 internal class NoopClientSessionNegotiationStrategy : ClientSessionNegotiationStrategy {
-    override suspend fun DefaultClientWebSocketSession.negotiate(): ClientSessionNegotiationResult {
-        return ClientSessionNegotiationResult.Success(availablePluginIds = emptyList())
-    }
+    override suspend fun DefaultClientWebSocketSession.negotiate(): ClientSessionNegotiationResult = ClientSessionNegotiationResult.Success(availablePluginIds = emptyList())
 }

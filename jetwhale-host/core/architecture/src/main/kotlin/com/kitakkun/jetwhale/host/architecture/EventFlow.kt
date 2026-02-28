@@ -8,15 +8,13 @@ import kotlinx.coroutines.launch
 
 typealias EventFlow<T> = MutableSharedFlow<T>
 
-context(_: ScreenContext)
 @Composable
-fun <T> rememberEventFlow(): EventFlow<T> {
-    return remember {
-        MutableSharedFlow(
-            replay = 1,
-            extraBufferCapacity = 10,
-        )
-    }
+context(_: ScreenContext)
+fun <T> rememberEventFlow(): EventFlow<T> = remember {
+    MutableSharedFlow(
+        replay = 1,
+        extraBufferCapacity = 10,
+    )
 }
 
 @Composable

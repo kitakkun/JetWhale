@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.host.settings.general
 
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.AppLanguage
 import com.kitakkun.jetwhale.host.model.JetWhaleColorSchemeId
@@ -113,7 +113,7 @@ fun GeneralSettingsScreen(
             SettingOptionView(stringResource(Res.string.health_check)) {
                 SettingsItemRow(stringResource(Res.string.adb_executable_path)) {
                     Text(
-                        text = uiState.adbPath.ifEmpty { stringResource(Res.string.adb_unavailable) }
+                        text = uiState.adbPath.ifEmpty { stringResource(Res.string.adb_unavailable) },
                     )
                     Spacer(Modifier.width(8.dp))
                     if (uiState.adbPath.isNotEmpty()) {

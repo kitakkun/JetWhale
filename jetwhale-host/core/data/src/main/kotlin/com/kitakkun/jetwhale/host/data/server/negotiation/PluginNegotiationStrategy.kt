@@ -34,7 +34,9 @@ class PluginNegotiationStrategy(
 
             when {
                 !isEnabled -> Unit
+
                 !isCompatible -> incompatiblePlugins += requestedPlugin
+
                 else -> availablePlugins += JetWhalePluginInfo(
                     pluginId = factory.meta.pluginId,
                     pluginVersion = factory.meta.version,
@@ -46,7 +48,7 @@ class PluginNegotiationStrategy(
             JetWhaleHostNegotiationResponse.AvailablePluginsResponse(
                 availablePlugins = availablePlugins,
                 incompatiblePlugins = incompatiblePlugins,
-            )
+            ),
         )
 
         return PluginNegotiationResult(requestedPlugins = request.plugins)

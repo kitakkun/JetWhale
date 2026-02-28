@@ -55,9 +55,9 @@ fun PluginScreenErrorFallback(
             onClick = {
                 clipboard.awtClipboard?.setContents(
                     StringSelection(errorBoundaryContext.err.stackTraceToString()),
-                    null
+                    null,
                 )
-            }
+            },
         ) {
             Text(stringResource(Res.string.plugin_ui_crash_copy_full_stacktrace))
         }

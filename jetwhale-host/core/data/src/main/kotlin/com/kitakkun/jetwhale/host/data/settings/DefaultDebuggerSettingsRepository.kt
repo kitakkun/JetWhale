@@ -67,9 +67,7 @@ class DefaultDebuggerSettingsRepository(
         }
     }
 
-    override suspend fun readServerPort(): Int {
-        return dataStore.data.first()[KEY_SERVER_PORT] ?: DEFAULT_SERVER_PORT
-    }
+    override suspend fun readServerPort(): Int = dataStore.data.first()[KEY_SERVER_PORT] ?: DEFAULT_SERVER_PORT
 
     companion object Companion {
         private val KEY_ADB_AUTO_PORT_MAPPING_ENABLED = booleanPreferencesKey("adb_auto_port_mapping_enabled")

@@ -13,14 +13,14 @@ class JetWhaleHostNegotiationResponseSerializationTest : JetWhaleSerializationTe
     @Test
     fun `protocol version accept response should be serialized stably`() {
         val response = JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept(
-            version = JetWhaleProtocolVersion(1)
+            version = JetWhaleProtocolVersion(1),
         )
 
         val encoded = json.encodeToString(response)
 
         assertEquals(
             expected = """{"type":"negotiation/host/protocol_version_response/accept","version":1}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 
@@ -31,43 +31,43 @@ class JetWhaleHostNegotiationResponseSerializationTest : JetWhaleSerializationTe
             supportedVersions = listOf(
                 JetWhaleProtocolVersion(1),
                 JetWhaleProtocolVersion(2),
-            )
+            ),
         )
 
         val encoded = json.encodeToString(response)
 
         assertEquals(
             expected =
-                """{"type":"negotiation/host/protocol_version_response/reject","reason":"unsupported","supportedVersions":[1,2]}""",
-            actual = encoded
+            """{"type":"negotiation/host/protocol_version_response/reject","reason":"unsupported","supportedVersions":[1,2]}""",
+            actual = encoded,
         )
     }
 
     @Test
     fun `accept session response should be serialized stably`() {
         val response = JetWhaleHostNegotiationResponse.AcceptSession(
-            sessionId = "session-123"
+            sessionId = "session-123",
         )
 
         val encoded = json.encodeToString(response)
 
         assertEquals(
             expected = """{"type":"negotiation/host/accept_session","sessionId":"session-123"}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 
     @Test
     fun `capabilities response should be serialized stably`() {
         val response = JetWhaleHostNegotiationResponse.CapabilitiesResponse(
-            capabilities = mapOf("feature1" to "enabled", "feature2" to "disabled")
+            capabilities = mapOf("feature1" to "enabled", "feature2" to "disabled"),
         )
 
         val encoded = json.encodeToString(response)
 
         assertEquals(
             expected = """{"type":"negotiation/host/capabilities_response","capabilities":{"feature1":"enabled","feature2":"disabled"}}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 
@@ -88,21 +88,21 @@ class JetWhaleHostNegotiationResponseSerializationTest : JetWhaleSerializationTe
                 JetWhalePluginInfo(
                     pluginId = "plugin-a",
                     pluginVersion = "1.0.0",
-                )
+                ),
             ),
             incompatiblePlugins = listOf(
                 JetWhalePluginInfo(
                     pluginId = "plugin-b",
                     pluginVersion = "0.9.0",
-                )
-            )
+                ),
+            ),
         )
 
         val encoded = json.encodeToString(response)
 
         assertEquals(
             expected = """{"type":"negotiation/host/available_plugins_response","availablePlugins":[{"type":"model/plugin_info","pluginId":"plugin-a","pluginVersion":"1.0.0"}],"incompatiblePlugins":[{"type":"model/plugin_info","pluginId":"plugin-b","pluginVersion":"0.9.0"}]}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 

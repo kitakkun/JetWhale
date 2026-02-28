@@ -10,12 +10,13 @@ import soil.query.buildQueryKey
 
 @ContributesBinding(AppScope::class)
 @Inject
-class DefaultLibrariesQueryKey : LibrariesQueryKey by buildQueryKey(
-    id = QueryId("DefaultLibrariesQueryKey"),
-    fetch = {
-        Libs.Builder()
-            .withJson(
-                object {}.javaClass.getResource("/licenses.json")!!.readText()
-            ).build()
-    }
-)
+class DefaultLibrariesQueryKey :
+    LibrariesQueryKey by buildQueryKey(
+        id = QueryId("DefaultLibrariesQueryKey"),
+        fetch = {
+            Libs.Builder()
+                .withJson(
+                    object {}.javaClass.getResource("/licenses.json")!!.readText(),
+                ).build()
+        },
+    )

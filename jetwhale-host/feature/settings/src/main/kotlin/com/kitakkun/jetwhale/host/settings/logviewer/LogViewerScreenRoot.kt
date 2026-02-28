@@ -3,8 +3,8 @@ package com.kitakkun.jetwhale.host.settings.logviewer
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.rememberEventFlow
 
-context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
 @Composable
+context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
 fun LogViewerScreenRoot() {
     val eventFlow = rememberEventFlow<LogViewerScreenEvent>()
     val uiState = logViewerScreenPresenter(

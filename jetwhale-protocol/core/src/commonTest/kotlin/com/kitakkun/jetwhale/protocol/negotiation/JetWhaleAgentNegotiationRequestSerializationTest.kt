@@ -13,14 +13,14 @@ class JetWhaleAgentNegotiationRequestSerializationTest : JetWhaleSerializationTe
     @Test
     fun `protocol version negotiation request should be serialized stably`() {
         val request = JetWhaleAgentNegotiationRequest.ProtocolVersion(
-            version = JetWhaleProtocolVersion.Current
+            version = JetWhaleProtocolVersion.Current,
         )
 
         val encoded = json.encodeToString(request)
 
         assertEquals(
             expected = """{"type":"negotiation/agent/protocol_version","version":${JetWhaleProtocolVersion.Current.version}}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 
@@ -28,28 +28,28 @@ class JetWhaleAgentNegotiationRequestSerializationTest : JetWhaleSerializationTe
     fun `session negotiation request should be serialized stably`() {
         val request = JetWhaleAgentNegotiationRequest.Session(
             sessionId = null,
-            sessionName = "SessionName"
+            sessionName = "SessionName",
         )
 
         val encoded = json.encodeToString(request)
 
         assertEquals(
             expected = """{"type":"negotiation/agent/session","sessionId":null,"sessionName":"SessionName"}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 
     @Test
     fun `capabilities negotiation request should be serialized stably`() {
         val request = JetWhaleAgentNegotiationRequest.Capabilities(
-            capabilities = mapOf("feature1" to "enabled", "feature2" to "disabled")
+            capabilities = mapOf("feature1" to "enabled", "feature2" to "disabled"),
         )
 
         val encoded = json.encodeToString(request)
 
         assertEquals(
             expected = """{"type":"negotiation/agent/capabilities","capabilities":{"feature1":"enabled","feature2":"disabled"}}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 
@@ -70,15 +70,15 @@ class JetWhaleAgentNegotiationRequestSerializationTest : JetWhaleSerializationTe
                 JetWhalePluginInfo(
                     pluginId = "example-plugin",
                     pluginVersion = "1.0.0",
-                )
-            )
+                ),
+            ),
         )
 
         val encoded = json.encodeToString(request)
 
         assertEquals(
             expected = """{"type":"negotiation/agent/available_plugins","plugins":[{"type":"model/plugin_info","pluginId":"example-plugin","pluginVersion":"1.0.0"}]}""",
-            actual = encoded
+            actual = encoded,
         )
     }
 

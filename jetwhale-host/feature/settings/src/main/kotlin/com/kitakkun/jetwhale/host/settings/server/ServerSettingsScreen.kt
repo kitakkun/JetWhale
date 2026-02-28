@@ -13,9 +13,9 @@ import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
 import com.kitakkun.jetwhale.host.settings.component.TextFieldSettingsItemView
-import com.kitakkun.jetwhale.host.settings.server_configuration
 import com.kitakkun.jetwhale.host.settings.dialog_cancel
 import com.kitakkun.jetwhale.host.settings.dialog_ok
+import com.kitakkun.jetwhale.host.settings.server_configuration
 import com.kitakkun.jetwhale.host.settings.server_port_apply
 import com.kitakkun.jetwhale.host.settings.server_port_apply_confirm_message
 import com.kitakkun.jetwhale.host.settings.server_port_apply_confirm_title
@@ -44,8 +44,8 @@ fun ServerSettingsScreen(
                 Text(
                     stringResource(
                         Res.string.server_port_apply_confirm_message,
-                        uiState.editingPortText
-                    )
+                        uiState.editingPortText,
+                    ),
                 )
             },
             confirmButton = {
@@ -67,22 +67,24 @@ fun ServerSettingsScreen(
     ) {
         item {
             SettingOptionView(
-                stringResource(Res.string.server_status)
+                stringResource(Res.string.server_status),
             ) {
                 Text(
                     text = when (uiState.serverState) {
                         is ServerState.Starting -> stringResource(Res.string.server_status_starting)
+
                         is ServerState.Running -> stringResource(
                             Res.string.server_status_running,
-                            uiState.serverState.port
+                            uiState.serverState.port,
                         )
 
                         is ServerState.Error -> stringResource(
                             Res.string.server_status_error,
-                            uiState.serverState.reason
+                            uiState.serverState.reason,
                         )
 
                         is ServerState.Stopping -> stringResource(Res.string.server_status_stopping)
+
                         is ServerState.Stopped -> stringResource(Res.string.server_status_stopped)
                     },
                 )

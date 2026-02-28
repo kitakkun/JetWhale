@@ -38,7 +38,7 @@ class DefaultDebugSessionRepository : DebugSessionRepository {
                         name = sessionName,
                         isActive = true,
                         installedPlugins = installedPlugins.toImmutableList(),
-                    )
+                    ),
                 )
             }.toPersistentMap()
         }

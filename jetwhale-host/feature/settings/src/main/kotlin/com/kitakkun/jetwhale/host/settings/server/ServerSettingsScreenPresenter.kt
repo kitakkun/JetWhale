@@ -15,8 +15,8 @@ import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 import soil.query.compose.rememberMutation
 
-context(screenContext: SettingsScreenContext)
 @Composable
+context(screenContext: SettingsScreenContext)
 fun serverSettingsScreenPresenter(
     eventFlow: EventFlow<ServerSettingsScreenEvent>,
     serverStatus: DebugWebSocketServerStatus,
@@ -65,7 +65,9 @@ fun serverSettingsScreenPresenter(
     return ServerSettingsScreenUiState(
         serverState = when (serverStatus) {
             is DebugWebSocketServerStatus.Stopped -> ServerState.Stopped
+
             is DebugWebSocketServerStatus.Starting -> ServerState.Starting
+
             is DebugWebSocketServerStatus.Started -> ServerState.Running(
                 host = serverStatus.host,
                 port = serverStatus.port,

@@ -17,5 +17,5 @@ class DefaultSetPluginEnabledMutationKey(
     id = MutationId("set_plugin_enabled"),
     mutate = { params: SetPluginEnabledParams ->
         enabledPluginsRepository.setPluginEnabled(params.pluginId, params.enabled)
-    }
+    },
 )

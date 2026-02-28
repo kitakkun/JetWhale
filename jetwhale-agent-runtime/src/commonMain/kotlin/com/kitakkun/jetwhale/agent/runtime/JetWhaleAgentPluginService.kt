@@ -27,7 +27,5 @@ internal class JetWhaleAgentPluginService(
         plugins.forEach { it.deactivate() }
     }
 
-    fun getPluginById(id: String): JetWhaleRawAgentPlugin? {
-        return plugins.firstOrNull { it.pluginId == id }
-    }
+    fun getPluginById(id: String): JetWhaleRawAgentPlugin? = plugins.firstOrNull { it.pluginId == id }
 }

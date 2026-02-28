@@ -56,15 +56,17 @@ fun main(args: Array<String>) = runBlocking {
                 } else {
                     false
                 }
-            }
+            },
         ) {
             when (applicationState) {
                 ApplicationLifecycleOwner.ApplicationState.INITIALIZING -> InitializingDialog()
+
                 ApplicationLifecycleOwner.ApplicationState.STOPPING -> ShuttingDownDialog()
+
                 ApplicationLifecycleOwner.ApplicationState.NONE,
                 ApplicationLifecycleOwner.ApplicationState.INITIALIZED,
                 ApplicationLifecycleOwner.ApplicationState.STOPPED,
-                    -> {
+                -> {
                     // show nothing
                 }
             }

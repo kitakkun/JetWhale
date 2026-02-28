@@ -48,14 +48,14 @@ fun ExamplePluginView(
             TopAppBar(
                 title = {
                     Text("Example JetWhale Plugin")
-                }
+                },
             )
-        }
+        },
     ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(it)
+                .padding(it),
         ) {
             stickyHeader {
                 Button(onClickSendPing) {

@@ -31,16 +31,12 @@ class ExampleHostPluginFactory : JetWhaleHostPluginFactory {
         inactiveIconPath = "icons/window_outlined.svg",
     )
 
-    override fun createPlugin(): JetWhaleRawHostPlugin {
-        return ExampleHostPlugin()
-    }
+    override fun createPlugin(): JetWhaleRawHostPlugin = ExampleHostPlugin()
 
-    override fun isCompatibleWithAgentPlugin(agentVersion: String): Boolean {
-        return agentVersion == this.meta.version
-    }
+    override fun isCompatibleWithAgentPlugin(agentVersion: String): Boolean = agentVersion == this.meta.version
 }
 
-private class ExampleHostPlugin() : JetWhaleHostPlugin<ExampleEvent, ExampleMethod, ExampleMethodResult>() {
+private class ExampleHostPlugin : JetWhaleHostPlugin<ExampleEvent, ExampleMethod, ExampleMethodResult>() {
     override val protocol: JetWhaleHostPluginProtocol<ExampleEvent, ExampleMethod, ExampleMethodResult> = kotlinxSerializationJetWhaleHostPluginProtocol()
 
     private val eventLogs: SnapshotStateList<String> = mutableStateListOf()

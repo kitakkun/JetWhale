@@ -48,13 +48,11 @@ class DefaultPluginComposeSceneService(
         return pluginScenes.getOrPut("$pluginId:$sessionId") {
             val debugOperationContext = object : JetWhaleRawDebugOperationContext {
                 override val coroutineScope: CoroutineScope = debugWebSocketServer.getCoroutineScopeForSession(sessionId) + SupervisorJob()
-                override suspend fun dispatch(method: String): String? {
-                    return debugWebSocketServer.sendMethod(
-                        pluginId = pluginId,
-                        sessionId = sessionId,
-                        payload = method
-                    )
-                }
+                override suspend fun dispatch(method: String): String? = debugWebSocketServer.sendMethod(
+                    pluginId = pluginId,
+                    sessionId = sessionId,
+                    payload = method,
+                )
             }
 
             val windowUpdatableContext = DynamicWindowInfoPlatformContext()
@@ -100,7 +98,8 @@ class DefaultPluginComposeSceneService(
 @OptIn(InternalComposeUiApi::class)
 private class DynamicWindowInfoPlatformContext(
     private val baseContext: PlatformContext = PlatformContext.Empty(),
-) : PlatformContext by baseContext, WindowInfoUpdater {
+) : PlatformContext by baseContext,
+    WindowInfoUpdater {
     private var windowInfoOverride: WindowInfo? by mutableStateOf(null)
     override val windowInfo: WindowInfo get() = windowInfoOverride ?: baseContext.windowInfo
 

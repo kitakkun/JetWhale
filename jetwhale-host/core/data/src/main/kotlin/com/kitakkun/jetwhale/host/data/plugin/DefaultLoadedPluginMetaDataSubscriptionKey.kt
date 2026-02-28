@@ -38,5 +38,5 @@ class DefaultLoadedPluginMetaDataSubscriptionKey(
                 )
             }.toPersistentList()
         }
-    }
+    },
 )

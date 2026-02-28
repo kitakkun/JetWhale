@@ -66,7 +66,7 @@ class DefaultAppAppearanceRepository(
         dataStore.edit { prefs ->
             val customThemeDefinition = CustomThemeDefinition(
                 id = id,
-                colors = theme.colors.mapKeys { entry -> entry.key.name }
+                colors = theme.colors.mapKeys { entry -> entry.key.name },
             )
 
             val currentThemeDefinitions = prefs[customThemesPreferencesKey]?.let { serialized ->
@@ -75,8 +75,8 @@ class DefaultAppAppearanceRepository(
 
             prefs[customThemesPreferencesKey] = json.encodeToString(
                 currentThemeDefinitions.copy(
-                    colorSchemes = currentThemeDefinitions.colorSchemes.filter { it.id != id } + customThemeDefinition
-                )
+                    colorSchemes = currentThemeDefinitions.colorSchemes.filter { it.id != id } + customThemeDefinition,
+                ),
             )
         }
     }
@@ -99,8 +99,8 @@ class DefaultAppAppearanceRepository(
 
             prefs[dynamicThemesPreferencesKey] = json.encodeToString(
                 currentDynamicThemes.copy(
-                    colorSchemes = currentDynamicThemes.colorSchemes.filter { it.id != id } + dynamicThemeDefinition
-                )
+                    colorSchemes = currentDynamicThemes.colorSchemes.filter { it.id != id } + dynamicThemeDefinition,
+                ),
             )
         }
     }
@@ -145,7 +145,6 @@ class DefaultAppAppearanceRepository(
                 } ?: JetWhaleColorScheme.Dynamic.BuiltIn
             }
         }
-
     }
 
     // TODO: Expose as public API if needed
@@ -185,7 +184,7 @@ internal data class CustomThemeDefinition(
 
 @Serializable
 internal data class DynamicThemes(
-    val colorSchemes: List<DynamicThemeDefinition>
+    val colorSchemes: List<DynamicThemeDefinition>,
 )
 
 @Serializable

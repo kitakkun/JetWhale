@@ -7,8 +7,8 @@ import soil.query.compose.rememberQuery
 import soil.query.compose.rememberSubscription
 import java.awt.Desktop
 
-context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
 @Composable
+context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
 fun GeneralSettingsScreenRoot(
     onOpenLogViewer: () -> Unit = {},
 ) {

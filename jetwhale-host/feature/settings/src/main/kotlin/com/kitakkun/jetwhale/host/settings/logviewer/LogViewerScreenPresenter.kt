@@ -25,9 +25,11 @@ fun logViewerScreenPresenter(
             is LogViewerScreenEvent.ClearLogs -> {
                 logCaptureService.clearLogs()
             }
+
             is LogViewerScreenEvent.UpdateFilterText -> {
                 filterText = event.text
             }
+
             is LogViewerScreenEvent.UpdateAutoScroll -> {
                 autoScroll = event.enabled
             }
