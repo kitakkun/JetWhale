@@ -5,9 +5,9 @@ import io.ktor.client.plugins.logging.Logger
 private typealias KermitLogger = co.touchlab.kermit.Logger
 
 internal object JetWhaleLogger : Logger {
-    private const val tagPrefix = "JetWhale"
-    private val runtimeLogger: KermitLogger = KermitLogger.withTag("${tagPrefix}-runtime")
-    private val ktorLogger: KermitLogger = KermitLogger.withTag("${tagPrefix}-ktor")
+    private const val TAG_PREFIX = "JetWhale"
+    private val runtimeLogger: KermitLogger = KermitLogger.withTag("$TAG_PREFIX-runtime")
+    private val ktorLogger: KermitLogger = KermitLogger.withTag("$TAG_PREFIX-ktor")
 
     private var enabled: Boolean = true
     private var minLogLevel: LogLevel = LogLevel.WARN
