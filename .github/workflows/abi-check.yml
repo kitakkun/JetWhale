@@ -9,6 +9,7 @@ on:
       - 'jetwhale-protocol/core/**'
       - 'jetwhale-protocol/agent/**'
       - 'jetwhale-protocol/host/**'
+      - '**/build.gradle.kts'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
