@@ -13,8 +13,6 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -23,7 +21,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.DpSize
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import soil.plant.compose.reacty.LocalCatchThrowHost
 import soil.query.core.uuid
@@ -33,20 +30,12 @@ import soil.query.core.uuid
 fun PluginScreen(pluginComposeScene: PluginComposeScene) {
     val catchThrowHost = LocalCatchThrowHost.current
     var frameNanoTime by remember(pluginComposeScene) { mutableLongStateOf(0L) }
-    val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(pluginComposeScene) {
         while (true) {
             withFrameNanos {
                 frameNanoTime = it
             }
-        }
-    }
-
-    LifecycleResumeEffect(Unit) {
-        focusRequester.requestFocus()
-        onPauseOrDispose {
-            focusRequester.freeFocus()
         }
     }
 
@@ -69,7 +58,6 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                     dpSize = with(density) { DpSize(it.width.toDp(), it.height.toDp()) },
                 )
             }
-            .focusRequester(focusRequester)
             .focusable()
             .pointerInput(Unit) {
                 awaitPointerEventScope {
