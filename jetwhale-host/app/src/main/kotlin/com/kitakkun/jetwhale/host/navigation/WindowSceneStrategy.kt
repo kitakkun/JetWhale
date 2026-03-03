@@ -26,13 +26,14 @@ internal data class WindowEntry<T : Any>(
     val properties: WindowProperties,
 )
 
-internal class WindowOverlayScene<T : Any>(
-    override val key: Any,
+internal data class WindowOverlayScene<T : Any>(
     private val windowEntries: List<WindowEntry<T>>,
     override val previousEntries: List<NavEntry<T>>,
     override val overlaidEntries: List<NavEntry<T>>,
     private val onCloseRequest: (NavEntry<T>) -> Unit,
 ) : OverlayScene<T> {
+    override val key: Any = windowEntries.map { it.entry.contentKey }.joinToString(separator = "_")
+
     override val content: @Composable () -> Unit = {
         windowEntries.forEach { windowEntry ->
             key(windowEntry.entry.contentKey) {
@@ -57,25 +58,6 @@ internal class WindowOverlayScene<T : Any>(
     }
 
     override val entries: List<NavEntry<T>> = windowEntries.map { it.entry }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || this::class != other::class) return false
-
-        other as WindowOverlayScene<*>
-
-        return key == other.key &&
-            previousEntries == other.previousEntries &&
-            overlaidEntries == other.overlaidEntries &&
-            windowEntries == other.windowEntries
-    }
-
-    override fun hashCode(): Int = key.hashCode() * 31 +
-        previousEntries.hashCode() * 31 +
-        overlaidEntries.hashCode() * 31 +
-        windowEntries.hashCode() * 31
-
-    override fun toString(): String = "WindowOverlayScene(key=$key, entries=$windowEntries, previousEntries=$previousEntries, overlaidEntries=$overlaidEntries)"
 }
 
 class WindowSceneStrategy<T : Any>(
@@ -99,10 +81,7 @@ class WindowSceneStrategy<T : Any>(
             onCloseRequestForContentKey(entry.contentKey)
         }
 
-        val key = windowEntries.last().entry.contentKey
-
         return WindowOverlayScene(
-            key = key,
             windowEntries = windowEntries,
             previousEntries = nonWindowEntries,
             overlaidEntries = nonWindowEntries,
