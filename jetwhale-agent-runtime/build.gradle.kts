@@ -1,3 +1,7 @@
+@file:OptIn(ExperimentalAbiValidation::class)
+
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
+
 plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.serialization)
@@ -6,6 +10,12 @@ plugins {
 }
 
 kotlin {
+    explicitApi()
+
+    abiValidation {
+        enabled.set(true)
+    }
+
     androidLibrary {
         namespace = "com.kitakkun.jetwhale.agent.runtime"
         compileSdk = 36

@@ -11,10 +11,6 @@ public abstract interface class com/kitakkun/jetwhale/agent/sdk/JetWhaleMessageS
 	public abstract fun send ([Ljava/lang/String;)V
 }
 
-public abstract interface class com/kitakkun/jetwhale/agent/sdk/JetWhaleMessagingService {
-	public abstract fun startService (Ljava/lang/String;I)V
-}
-
 public abstract class com/kitakkun/jetwhale/agent/sdk/JetWhaleRawAgentPlugin {
 	public fun <init> ()V
 	public final fun activate (Lcom/kitakkun/jetwhale/agent/sdk/JetWhaleMessageSender;)V

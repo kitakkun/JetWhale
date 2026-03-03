@@ -3,7 +3,7 @@ package com.kitakkun.jetwhale.agent.runtime
 /**
  * Log levels for JetWhale agent runtime logging
  */
-enum class LogLevel {
+public enum class LogLevel {
     VERBOSE,
     DEBUG,
     INFO,
@@ -15,7 +15,7 @@ enum class LogLevel {
 /**
  * Log levels for Ktor HTTP client logging
  */
-enum class KtorLogLevel {
+public enum class KtorLogLevel {
     ALL,
     HEADERS,
     BODY,

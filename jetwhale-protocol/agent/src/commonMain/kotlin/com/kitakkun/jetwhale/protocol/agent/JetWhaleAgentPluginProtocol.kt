@@ -12,7 +12,8 @@ public interface JetWhaleAgentPluginProtocol<Event, Method, MethodResult> {
     public fun encodeEvent(value: Event): String
 }
 
-public class KotlinxSerializationJetWhaleAgentPluginProtocol<Event, Method, MethodResult>(
+@PublishedApi
+internal class KotlinxSerializationJetWhaleAgentPluginProtocol<Event, Method, MethodResult>(
     private val json: Json,
     private val eventSerializer: KSerializer<Event>,
     private val methodSerializer: KSerializer<Method>,
