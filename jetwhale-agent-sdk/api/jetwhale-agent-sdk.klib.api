@@ -10,10 +10,6 @@ abstract fun interface com.kitakkun.jetwhale.agent.sdk/JetWhaleMessageSender { /
     abstract fun send(kotlin/Array<out kotlin/String>...) // com.kitakkun.jetwhale.agent.sdk/JetWhaleMessageSender.send|send(kotlin.Array<out|kotlin.String>...){}[0]
 }
 
-abstract interface com.kitakkun.jetwhale.agent.sdk/JetWhaleMessagingService { // com.kitakkun.jetwhale.agent.sdk/JetWhaleMessagingService|null[0]
-    abstract fun startService(kotlin/String, kotlin/Int) // com.kitakkun.jetwhale.agent.sdk/JetWhaleMessagingService.startService|startService(kotlin.String;kotlin.Int){}[0]
-}
-
 abstract class <#A: kotlin/Any?, #B: kotlin/Any?, #C: kotlin/Any?> com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin { // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin|null[0]
     constructor <init>() // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.<init>|<init>(){}[0]
 
