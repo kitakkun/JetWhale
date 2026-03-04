@@ -25,14 +25,14 @@ class DefaultPluginInstanceService(
     }
 
     override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
-        val pluginFactory = pluginFactoryRepository.loadedPluginFactories[pluginId] ?: return emptySet()
+        val loadedPlugin = pluginFactoryRepository.loadedPlugins[pluginId] ?: return emptySet()
 
         val newlyInitializedSessions = mutableSetOf<String>()
         for (sessionId in sessionIds) {
             val key = "$pluginId-$sessionId"
             mutableLoadedPlugins.computeIfAbsent(key) {
                 newlyInitializedSessions += sessionId
-                pluginFactory.createPlugin()
+                loadedPlugin.factory.createPlugin()
             }
         }
 

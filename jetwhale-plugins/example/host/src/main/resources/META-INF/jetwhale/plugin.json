@@ -1,0 +1,7 @@
+{
+  "pluginId": "com.kitakkun.jetwhale.example",
+  "pluginName": "Example JetWhale Plugin",
+  "version": "1.0.0",
+  "activeIconPath": "icons/window_filled.svg",
+  "inactiveIconPath": "icons/window_outlined.svg"
+}

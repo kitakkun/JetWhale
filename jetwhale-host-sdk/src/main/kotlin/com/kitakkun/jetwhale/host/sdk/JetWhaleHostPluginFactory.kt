@@ -2,16 +2,6 @@ package com.kitakkun.jetwhale.host.sdk
 
 public interface JetWhaleHostPluginFactory {
     /**
-     * Metadata about the plugin.
-     */
-    public val meta: JetWhalePluginMetaData
-
-    /**
-     * Icon representing the plugin which can be displayed in the UI.
-     */
-    public val icon: JetWhalePluginIcon get() = unspecifiedPluginIcon()
-
-    /**
      * Creates an instance of the plugin.
      * @return An instance of [JetWhaleRawHostPlugin].
      */
