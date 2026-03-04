@@ -2,6 +2,16 @@ name: Lint
 
 on:
   pull_request:
+    paths:
+      - '**/*.kt'
+      - '**/*.kts'
+      - '**/*.java'
+      - 'gradle/**'
+      - 'gradle.properties'
+      - 'gradlew'
+      - 'gradlew.bat'
+      - '.github/workflows/lint.yml'
+      - '.github/actions/setup-java/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
