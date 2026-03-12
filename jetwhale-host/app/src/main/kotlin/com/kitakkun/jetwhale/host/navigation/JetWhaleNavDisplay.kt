@@ -39,7 +39,7 @@ fun JetWhaleNavDisplay(
         sceneStrategies = listOf(
             dialogSceneStrategy,
             windowSceneStrategy,
-            listDetailSceneStrategy
+            listDetailSceneStrategy,
         ),
         transitionSpec = {
             ContentTransform(
