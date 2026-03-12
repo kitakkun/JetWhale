@@ -27,12 +27,13 @@ internal data class WindowEntry<T : Any>(
 )
 
 internal class WindowOverlayScene<T : Any>(
-    override val key: Any,
     private val windowEntries: List<WindowEntry<T>>,
     override val previousEntries: List<NavEntry<T>>,
     override val overlaidEntries: List<NavEntry<T>>,
     private val onCloseRequest: (NavEntry<T>) -> Unit,
 ) : OverlayScene<T> {
+    override val key: Any = windowEntries.map { it.entry.contentKey }.joinToString(separator = "_")
+
     override val content: @Composable () -> Unit = {
         windowEntries.forEach { windowEntry ->
             key(windowEntry.entry.contentKey) {
@@ -60,22 +61,29 @@ internal class WindowOverlayScene<T : Any>(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other == null || this::class != other::class) return false
+        if (javaClass != other?.javaClass) return false
 
         other as WindowOverlayScene<*>
 
-        return key == other.key &&
-            previousEntries == other.previousEntries &&
-            overlaidEntries == other.overlaidEntries &&
-            windowEntries == other.windowEntries
+        if (windowEntries != other.windowEntries) return false
+        if (previousEntries != other.previousEntries) return false
+        if (overlaidEntries != other.overlaidEntries) return false
+        if (key != other.key) return false
+        if (content != other.content) return false
+        if (entries != other.entries) return false
+
+        return true
     }
 
-    override fun hashCode(): Int = key.hashCode() * 31 +
-        previousEntries.hashCode() * 31 +
-        overlaidEntries.hashCode() * 31 +
-        windowEntries.hashCode() * 31
-
-    override fun toString(): String = "WindowOverlayScene(key=$key, entries=$windowEntries, previousEntries=$previousEntries, overlaidEntries=$overlaidEntries)"
+    override fun hashCode(): Int {
+        var result = windowEntries.hashCode()
+        result = 31 * result + previousEntries.hashCode()
+        result = 31 * result + overlaidEntries.hashCode()
+        result = 31 * result + key.hashCode()
+        result = 31 * result + content.hashCode()
+        result = 31 * result + entries.hashCode()
+        return result
+    }
 }
 
 class WindowSceneStrategy<T : Any>(
@@ -99,10 +107,7 @@ class WindowSceneStrategy<T : Any>(
             onCloseRequestForContentKey(entry.contentKey)
         }
 
-        val key = windowEntries.last().entry.contentKey
-
         return WindowOverlayScene(
-            key = key,
             windowEntries = windowEntries,
             previousEntries = nonWindowEntries,
             overlaidEntries = nonWindowEntries,
