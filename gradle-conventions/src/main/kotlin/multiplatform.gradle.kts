@@ -22,7 +22,6 @@ configure<KotlinMultiplatformExtension> {
     }
     iosArm64()
     iosSimulatorArm64()
-    macosX64()
     macosArm64()
     mingwX64()
     linuxX64()
