@@ -26,7 +26,7 @@ internal data class WindowEntry<T : Any>(
     val properties: WindowProperties,
 )
 
-internal data class WindowOverlayScene<T : Any>(
+internal class WindowOverlayScene<T : Any>(
     private val windowEntries: List<WindowEntry<T>>,
     override val previousEntries: List<NavEntry<T>>,
     override val overlaidEntries: List<NavEntry<T>>,
@@ -58,6 +58,32 @@ internal data class WindowOverlayScene<T : Any>(
     }
 
     override val entries: List<NavEntry<T>> = windowEntries.map { it.entry }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as WindowOverlayScene<*>
+
+        if (windowEntries != other.windowEntries) return false
+        if (previousEntries != other.previousEntries) return false
+        if (overlaidEntries != other.overlaidEntries) return false
+        if (key != other.key) return false
+        if (content != other.content) return false
+        if (entries != other.entries) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = windowEntries.hashCode()
+        result = 31 * result + previousEntries.hashCode()
+        result = 31 * result + overlaidEntries.hashCode()
+        result = 31 * result + key.hashCode()
+        result = 31 * result + content.hashCode()
+        result = 31 * result + entries.hashCode()
+        return result
+    }
 }
 
 class WindowSceneStrategy<T : Any>(
