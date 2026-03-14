@@ -1,13 +1,10 @@
 package com.kitakkun.jetwhale.host.architecture
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
 import soil.plant.compose.reacty.Await
 import soil.plant.compose.reacty.ErrorBoundary
 import soil.plant.compose.reacty.Suspense
-import soil.query.compose.QueryObject
-import soil.query.compose.SubscriptionObject
+import soil.query.compose.util.rememberQueriesErrorReset
 import soil.query.core.DataModel
 
 @Composable
@@ -17,15 +14,9 @@ fun <T> SoilDataBoundary(
     fallback: SoilFallback = SoilFallbackDefaults.default(),
     content: @Composable (T) -> Unit,
 ) {
-    val coroutineScope = rememberCoroutineScope()
-
     ErrorBoundary(
         fallback = { fallback.errorFallback(it) },
-        onReset = {
-            coroutineScope.launch {
-                state.performResetIfNeeded()
-            }
-        },
+        onReset = rememberQueriesErrorReset(),
     ) {
         Suspense(
             fallback = { fallback.suspenseFallback() },
@@ -46,16 +37,9 @@ fun <T1, T2> SoilDataBoundary(
     fallback: SoilFallback = SoilFallbackDefaults.default(),
     content: @Composable (T1, T2) -> Unit,
 ) {
-    val coroutineScope = rememberCoroutineScope()
-
     ErrorBoundary(
         fallback = { fallback.errorFallback(it) },
-        onReset = {
-            coroutineScope.launch {
-                state1.performResetIfNeeded()
-                state2.performResetIfNeeded()
-            }
-        },
+        onReset = rememberQueriesErrorReset(),
     ) {
         Suspense(fallback = { fallback.suspenseFallback() }) {
             Await(
@@ -75,17 +59,9 @@ fun <T1, T2, T3> SoilDataBoundary(
     fallback: SoilFallback = SoilFallbackDefaults.default(),
     content: @Composable (T1, T2, T3) -> Unit,
 ) {
-    val coroutineScope = rememberCoroutineScope()
-
     ErrorBoundary(
         fallback = { fallback.errorFallback(it) },
-        onReset = {
-            coroutineScope.launch {
-                state1.performResetIfNeeded()
-                state2.performResetIfNeeded()
-                state3.performResetIfNeeded()
-            }
-        },
+        onReset = rememberQueriesErrorReset(),
     ) {
         Suspense(
             fallback = { fallback.suspenseFallback() },
@@ -97,12 +73,5 @@ fun <T1, T2, T3> SoilDataBoundary(
                 content = content,
             )
         }
-    }
-}
-
-private suspend fun <T> DataModel<T>.performResetIfNeeded() {
-    when (this) {
-        is QueryObject<T> -> this.error?.let { this.refresh() }
-        is SubscriptionObject<T> -> this.error?.let { this.reset() }
     }
 }
