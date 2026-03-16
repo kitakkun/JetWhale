@@ -36,11 +36,7 @@ fun JetWhaleNavDisplay(
 
     NavDisplay(
         backStack = backStack,
-        sceneStrategies = listOf(
-            dialogSceneStrategy,
-            windowSceneStrategy,
-            listDetailSceneStrategy,
-        ),
+        sceneStrategy = dialogSceneStrategy then windowSceneStrategy then listDetailSceneStrategy,
         transitionSpec = {
             ContentTransform(
                 fadeIn(animationSpec = tween(100)),
