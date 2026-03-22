@@ -6,7 +6,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
-import com.kitakkun.jetwhale.host.ui.isShortcutModifierPressed
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
@@ -15,6 +14,7 @@ import com.kitakkun.jetwhale.host.cli.CommandLineArgumentsParser
 import com.kitakkun.jetwhale.host.component.InitializingDialog
 import com.kitakkun.jetwhale.host.component.ShuttingDownDialog
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
+import com.kitakkun.jetwhale.host.ui.isShortcutModifierPressed
 import dev.zacsweers.metro.createGraph
 import kotlinx.coroutines.runBlocking
 
