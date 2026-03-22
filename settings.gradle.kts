@@ -18,6 +18,10 @@ dependencyResolutionManagement {
     }
 }
 
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
 include(":jetwhale-annotations")
 include(":jetwhale-protocol:core")
 include(":jetwhale-protocol:host")
