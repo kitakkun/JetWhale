@@ -5,7 +5,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
@@ -50,7 +52,7 @@ internal class WindowOverlayScene<T : Any>(
                     state = windowState,
                     onCloseRequest = { onCloseRequest(windowEntry.entry) },
                     onPreviewKeyEvent = { keyEvent ->
-                        if (keyEvent.isShortcutModifierPressed && keyEvent.key == Key.W) {
+                        if (keyEvent.type == KeyEventType.KeyDown && keyEvent.isShortcutModifierPressed && keyEvent.key == Key.W) {
                             onCloseRequest(windowEntry.entry)
                             true
                         } else {
