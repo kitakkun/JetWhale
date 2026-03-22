@@ -4,6 +4,8 @@ import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
@@ -14,6 +16,7 @@ import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SceneStrategyScope
 import com.kitakkun.jetwhale.host.LocalComposeWindow
+import com.kitakkun.jetwhale.host.ui.isShortcutModifierPressed
 
 data class WindowProperties(
     val windowPlacement: WindowPlacement = WindowPlacement.Floating,
@@ -46,6 +49,14 @@ internal class WindowOverlayScene<T : Any>(
                 Window(
                     state = windowState,
                     onCloseRequest = { onCloseRequest(windowEntry.entry) },
+                    onPreviewKeyEvent = { keyEvent ->
+                        if (keyEvent.isShortcutModifierPressed && keyEvent.key == Key.W) {
+                            onCloseRequest(windowEntry.entry)
+                            true
+                        } else {
+                            false
+                        }
+                    },
                 ) {
                     CompositionLocalProvider(LocalComposeWindow provides this.window) {
                         Surface {
