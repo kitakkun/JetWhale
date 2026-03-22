@@ -5,8 +5,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
+import com.kitakkun.jetwhale.host.ui.isShortcutModifierPressed
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
@@ -50,7 +50,7 @@ fun main(args: Array<String>) = runBlocking {
             state = WindowState(position = WindowPosition.Aligned(Alignment.Center)),
             onCloseRequest = appGraph.applicationLifecycleOwner::shutdown,
             onPreviewKeyEvent = { keyEvent ->
-                if (keyEvent.isMetaPressed && keyEvent.key == Key.Q) {
+                if (keyEvent.isShortcutModifierPressed && keyEvent.key == Key.Q) {
                     appGraph.applicationLifecycleOwner.shutdown()
                     true
                 } else {
