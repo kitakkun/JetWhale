@@ -28,5 +28,7 @@ dependencies {
 
     implementation(libs.bundles.ktorServer)
     implementation(libs.logbackClassic)
+    implementation(libs.bouncyCastleBcprov)
+    implementation(libs.bouncyCastleBcpkix)
     implementation(libs.kotlinTest)
 }
