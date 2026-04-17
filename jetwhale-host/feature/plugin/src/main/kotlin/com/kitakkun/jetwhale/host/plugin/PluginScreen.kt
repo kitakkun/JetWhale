@@ -13,6 +13,8 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -30,6 +32,11 @@ import soil.query.core.uuid
 fun PluginScreen(pluginComposeScene: PluginComposeScene) {
     val catchThrowHost = LocalCatchThrowHost.current
     var frameNanoTime by remember(pluginComposeScene) { mutableLongStateOf(0L) }
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(pluginComposeScene) {
+        focusRequester.requestFocus()
+    }
 
     LaunchedEffect(pluginComposeScene) {
         while (true) {
@@ -58,6 +65,7 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                     dpSize = with(density) { DpSize(it.width.toDp(), it.height.toDp()) },
                 )
             }
+            .focusRequester(focusRequester)
             .focusable()
             .pointerInput(Unit) {
                 awaitPointerEventScope {
