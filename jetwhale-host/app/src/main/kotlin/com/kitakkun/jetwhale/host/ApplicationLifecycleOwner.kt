@@ -44,7 +44,7 @@ class ApplicationLifecycleOwner(
             )
 
             appDataDirectoryProvider.getAllPluginJarFilePaths().forEach {
-                pluginFactoryRepository.loadPluginFactory(it)
+                pluginFactoryRepository.loadPlugin(it)
             }
 
             mutableApplicationStateFlow.update { ApplicationState.INITIALIZED }

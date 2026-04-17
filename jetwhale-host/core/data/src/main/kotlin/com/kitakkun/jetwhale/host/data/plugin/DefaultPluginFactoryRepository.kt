@@ -1,7 +1,9 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -12,6 +14,7 @@ import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.serialization.json.Json
 import java.net.URLClassLoader
 import java.util.ServiceLoader
 import kotlin.io.path.Path
@@ -20,20 +23,31 @@ import kotlin.io.path.Path
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class DefaultPluginFactoryRepository : PluginFactoryRepository {
-    private val mutablePluginFactoriesFlow: MutableStateFlow<ImmutableMap<String, JetWhaleHostPluginFactory>> = MutableStateFlow(persistentMapOf())
-    override val loadedPluginFactoriesFlow: Flow<Map<String, JetWhaleHostPluginFactory>> = mutablePluginFactoriesFlow
-    override val loadedPluginFactories: Map<String, JetWhaleHostPluginFactory> get() = mutablePluginFactoriesFlow.value
+    private val mutablePluginsFlow: MutableStateFlow<ImmutableMap<String, LoadedHostPlugin>> =
+        MutableStateFlow(persistentMapOf())
+    override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = mutablePluginsFlow
+    override val loadedPlugins: Map<String, LoadedHostPlugin> get() = mutablePluginsFlow.value
 
-    override suspend fun loadPluginFactory(pluginJarPath: String) {
+    override suspend fun loadPlugin(pluginJarPath: String) {
         try {
             val classLoader = URLClassLoader(arrayOf(Path(pluginJarPath).toUri().toURL()))
-            val factoryClasses: List<JetWhaleHostPluginFactory> = ServiceLoader.load(JetWhaleHostPluginFactory::class.java, classLoader).toList()
 
-            mutablePluginFactoriesFlow.update { pluginFactories ->
-                pluginFactories.toMutableMap().apply {
-                    factoryClasses.forEach {
-                        put(it.meta.pluginId, it)
-                        println("Loaded plugin: ${it.meta}")
+            val manifestJson = classLoader
+                .getResourceAsStream(MANIFEST_PATH)
+                ?.bufferedReader()
+                ?.readText()
+                ?: error("$MANIFEST_PATH not found in $pluginJarPath")
+
+            val manifest = Json.decodeFromString<JetWhaleHostPluginManifest>(manifestJson)
+
+            val factories: List<JetWhaleHostPluginFactory> =
+                ServiceLoader.load(JetWhaleHostPluginFactory::class.java, classLoader).toList()
+
+            mutablePluginsFlow.update { current ->
+                current.toMutableMap().apply {
+                    factories.forEach { factory ->
+                        put(manifest.pluginId, LoadedHostPlugin(manifest = manifest, factory = factory))
+                        println("Loaded plugin: ${manifest.pluginId} v${manifest.version}")
                     }
                 }.toPersistentMap()
             }
@@ -44,5 +58,9 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
 
     override suspend fun unloadPlugin(pluginId: String) {
         println("Unloaded plugin: $pluginId")
+    }
+
+    companion object {
+        private const val MANIFEST_PATH = "META-INF/jetwhale/plugin-manifest.json"
     }
 }

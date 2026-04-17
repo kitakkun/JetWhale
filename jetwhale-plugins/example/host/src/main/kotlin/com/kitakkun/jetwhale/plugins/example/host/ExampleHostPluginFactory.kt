@@ -7,11 +7,7 @@ import com.google.auto.service.AutoService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
-import com.kitakkun.jetwhale.host.sdk.JetWhalePluginIcon
-import com.kitakkun.jetwhale.host.sdk.JetWhalePluginMetaData
 import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
-import com.kitakkun.jetwhale.host.sdk.jetWhalePluginMetaData
-import com.kitakkun.jetwhale.host.sdk.pluginIcon
 import com.kitakkun.jetwhale.plugins.example.protocol.ExampleEvent
 import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethod
 import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethodResult
@@ -21,19 +17,9 @@ import com.kitakkun.jetwhale.protocol.host.kotlinxSerializationJetWhaleHostPlugi
 @Suppress("UNUSED")
 @AutoService(JetWhaleHostPluginFactory::class)
 class ExampleHostPluginFactory : JetWhaleHostPluginFactory {
-    override val meta: JetWhalePluginMetaData = jetWhalePluginMetaData(
-        pluginId = "com.kitakkun.jetwhale.example",
-        pluginName = "Example JetWhale Plugin",
-        version = "1.0.0",
-    )
-    override val icon: JetWhalePluginIcon = pluginIcon(
-        activeIconPath = "icons/window_filled.svg",
-        inactiveIconPath = "icons/window_outlined.svg",
-    )
-
     override fun createPlugin(): JetWhaleRawHostPlugin = ExampleHostPlugin()
 
-    override fun isCompatibleWithAgentPlugin(agentVersion: String): Boolean = agentVersion == this.meta.version
+    override fun isCompatibleWithAgentPlugin(agentVersion: String): Boolean = agentVersion == "1.0.0"
 }
 
 private class ExampleHostPlugin : JetWhaleHostPlugin<ExampleEvent, ExampleMethod, ExampleMethodResult>() {
