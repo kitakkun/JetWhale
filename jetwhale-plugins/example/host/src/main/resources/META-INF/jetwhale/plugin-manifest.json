@@ -1,0 +1,13 @@
+{
+  "pluginId": "com.kitakkun.jetwhale.example",
+  "pluginName": "Example JetWhale Plugin",
+  "version": "1.0.0",
+  "agentVersionRange": {
+    "min": "1.0.0",
+    "max": "1.0.0"
+  },
+  "icon": {
+    "activePath": "icons/window_filled.svg",
+    "inactivePath": "icons/window_outlined.svg"
+  }
+}

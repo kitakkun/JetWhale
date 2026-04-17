@@ -27,6 +27,7 @@ dependencies {
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(libs.androidxDatastorePreferences)
 
+    implementation(libs.kotlinxSerializationJson)
     implementation(libs.bundles.ktorServer)
     implementation(libs.logbackClassic)
     implementation(libs.kotlinTest)

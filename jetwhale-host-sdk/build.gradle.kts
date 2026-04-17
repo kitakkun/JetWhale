@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.publish)
+    alias(libs.plugins.kotlinxSerialization)
 }
 
 kotlin {

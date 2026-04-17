@@ -19,20 +19,19 @@ class DefaultLoadedPluginMetaDataSubscriptionKey(
 ) : LoadedPluginsMetaDataSubscriptionKey by buildSubscriptionKey(
     id = SubscriptionId("default_loaded_plugin_meta_data_subscription_key"),
     subscribe = {
-        pluginFactoryRepository.loadedPluginFactoriesFlow.map { pluginMap ->
-            pluginMap.map { (_, plugin) ->
+        pluginFactoryRepository.loadedPluginsFlow.map { pluginMap ->
+            pluginMap.map { (_, loaded) ->
+                val classLoader = loaded.factory.javaClass.classLoader
                 PluginMetaData(
-                    name = plugin.meta.pluginName,
-                    id = plugin.meta.pluginId,
-                    version = plugin.meta.version,
-                    activeIconResource = plugin.icon.activeIconPath?.let {
-                        val resource =
-                            plugin.javaClass.classLoader.getResource(it) ?: return@let null
+                    name = loaded.manifest.pluginName,
+                    id = loaded.manifest.pluginId,
+                    version = loaded.manifest.version,
+                    activeIconResource = loaded.manifest.icon?.activePath?.let {
+                        val resource = classLoader.getResource(it) ?: return@let null
                         PluginIconResource(resource)
                     },
-                    inactiveIconResource = plugin.icon.inactiveIconPath?.let {
-                        val resource =
-                            plugin.javaClass.classLoader.getResource(it) ?: return@let null
+                    inactiveIconResource = loaded.manifest.icon?.inactivePath?.let {
+                        val resource = classLoader.getResource(it) ?: return@let null
                         PluginIconResource(resource)
                     },
                 )

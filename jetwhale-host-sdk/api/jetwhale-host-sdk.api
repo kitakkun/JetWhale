@@ -18,14 +18,110 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin : com/ki
 
 public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory {
 	public abstract fun createPlugin ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleRawHostPlugin;
-	public fun getIcon ()Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginIcon;
-	public abstract fun getMeta ()Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginMetaData;
-	public fun isCompatibleWithAgentPlugin (Ljava/lang/String;)Z
 }
 
-public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory$DefaultImpls {
-	public static fun getIcon (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory;)Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginIcon;
-	public static fun isCompatibleWithAgentPlugin (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory;Ljava/lang/String;)Z
+public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest {
+	public static final field $stable I
+	public static final field Companion Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
+	public final fun component5 ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAgentVersionRange ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
+	public final fun getIcon ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;
+	public final fun getPluginId ()Ljava/lang/String;
+	public final fun getPluginName ()Ljava/lang/String;
+	public final fun getVersion ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange {
+	public static final field $stable I
+	public static final field Companion Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMax ()Ljava/lang/String;
+	public final fun getMin ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon {
+	public static final field $stable I
+	public static final field Companion Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getActivePath ()Ljava/lang/String;
+	public final fun getInactivePath ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCapablePlugin {
@@ -65,32 +161,6 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor {
 	public final fun getParameters ()Ljava/util/Map;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
-}
-
-public final class com/kitakkun/jetwhale/host/sdk/JetWhalePluginIcon {
-	public static final field $stable I
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getActiveIconPath ()Ljava/lang/String;
-	public final fun getInactiveIconPath ()Ljava/lang/String;
-	public fun hashCode ()I
-}
-
-public final class com/kitakkun/jetwhale/host/sdk/JetWhalePluginIconKt {
-	public static final fun pluginIcon (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginIcon;
-	public static final fun unspecifiedPluginIcon ()Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginIcon;
-}
-
-public final class com/kitakkun/jetwhale/host/sdk/JetWhalePluginMetaData {
-	public static final field $stable I
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getPluginId ()Ljava/lang/String;
-	public final fun getPluginName ()Ljava/lang/String;
-	public final fun getVersion ()Ljava/lang/String;
-	public fun hashCode ()I
-}
-
-public final class com/kitakkun/jetwhale/host/sdk/JetWhalePluginMetaDataKt {
-	public static final fun jetWhalePluginMetaData (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginMetaData;
 }
 
 public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleRawDebugOperationContext {

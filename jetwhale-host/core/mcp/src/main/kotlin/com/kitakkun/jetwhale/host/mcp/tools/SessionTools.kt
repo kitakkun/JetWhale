@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.host.mcp.tools
 
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.errorResult
-import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
@@ -47,15 +46,15 @@ suspend fun listPlugins(
         ?.find { it.id == sessionId }
         ?: return "[]"
 
-    val factories = pluginFactoryRepository.loadedPluginFactories
+    val loadedPlugins = pluginFactoryRepository.loadedPlugins
     val result = session.installedPlugins.mapNotNull { pluginInfo ->
-        val factory = factories[pluginInfo.pluginId] ?: return@mapNotNull null
-        val meta = factory.meta
-        val instance = pluginInstanceService.getPluginInstanceForSession(meta.pluginId, sessionId)
+        val loadedPlugin = loadedPlugins[pluginInfo.pluginId] ?: return@mapNotNull null
+        val manifest = loadedPlugin.manifest
+        val instance = pluginInstanceService.getPluginInstanceForSession(manifest.pluginId, sessionId)
         PluginInfo(
-            pluginId = meta.pluginId,
-            pluginName = meta.pluginName,
-            version = meta.version,
+            pluginId = manifest.pluginId,
+            pluginName = manifest.pluginName,
+            version = manifest.version,
             mcpCapable = instance is JetWhaleMcpCapablePlugin,
         )
     }
