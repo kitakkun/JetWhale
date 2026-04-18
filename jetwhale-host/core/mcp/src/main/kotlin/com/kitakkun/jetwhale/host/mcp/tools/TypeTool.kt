@@ -1,7 +1,14 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.text.AnnotatedString
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
@@ -16,8 +23,6 @@ import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.serialization.json.JsonObject
-import java.awt.Component
-import java.awt.event.KeyEvent as AwtKeyEvent
 
 @Inject
 @ContributesIntoSet(AppScope::class)
@@ -51,11 +56,14 @@ class TypeMcpTool(
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
             when {
-                text != null -> dispatchTyping(scene, text)
+                text != null -> {
+                    val success = dispatchTyping(scene, text)
+                    if (!success) return@addTool errorResult("No editable text field found in the scene")
+                }
                 specialKey != null -> {
-                    val keyCode = specialKeyCode(specialKey)
+                    val key = specialKeyToComposeKey(specialKey)
                         ?: return@addTool errorResult("Unknown special key: $specialKey")
-                    dispatchSpecialKey(scene, keyCode)
+                    dispatchSpecialKey(scene, key)
                 }
                 else -> return@addTool errorResult("Either 'text' or 'specialKey' must be provided")
             }
@@ -65,90 +73,73 @@ class TypeMcpTool(
 }
 
 /**
- * Dispatches keyboard input to a plugin's ComposeScene by sending KEY_TYPED events
- * for each character in [text].
+ * Inserts [text] into the first editable node in the scene via [SemanticsActions.InsertTextAtCursor].
  *
- * For printable characters this mirrors how the JVM/AWT keyboard model works: a
- * KEY_TYPED event carries the Unicode character directly without needing a key code.
+ * Using a semantics action avoids the need to simulate low-level key events and works
+ * reliably in headless ComposeScenes where the platform event loop is not running.
  *
- * Special keys (Enter, Tab, Backspace, etc.) should be passed via [dispatchSpecialKey].
- *
- * @param scene The plugin ComposeScene to receive the events.
- * @param text  The string to type.
+ * @return true if an editable node was found and the text was inserted, false otherwise.
  */
-@OptIn(InternalComposeUiApi::class)
-fun dispatchTyping(
-    scene: PluginComposeScene,
-    text: String,
-) {
-    for (char in text) {
-        val awtEvent = AwtKeyEvent(
-            DUMMY_COMPONENT,
-            AwtKeyEvent.KEY_TYPED,
-            System.currentTimeMillis(),
-            0,
-            AwtKeyEvent.VK_UNDEFINED,
-            char,
-        )
-        scene.composeScene.sendKeyEvent(KeyEvent(awtEvent))
+fun dispatchTyping(scene: PluginComposeScene, text: String): Boolean {
+    val rootNodes = scene.semanticsOwners.map { it.rootSemanticsNode }
+    val target = rootNodes.firstNotNullOfOrNull { findInsertableNode(it) } ?: return false
+    target.config.getOrNull(SemanticsActions.InsertTextAtCursor)?.action?.invoke(AnnotatedString(text))
+    return true
+}
+
+private fun findInsertableNode(node: SemanticsNode): SemanticsNode? {
+    for (child in node.children) {
+        val result = findInsertableNode(child)
+        if (result != null) return result
     }
+    return if (node.config.getOrNull(SemanticsActions.InsertTextAtCursor) != null) node else null
 }
 
 /**
- * Dispatches a single special key (press + release) to a plugin's ComposeScene.
+ * Dispatches a single special key (press + release) to a plugin's ComposeScene using the
+ * Skiko-based [KeyEvent] factory.
  *
- * @param scene   The plugin ComposeScene to receive the events.
- * @param keyCode AWT virtual key code, e.g. [AwtKeyEvent.VK_ENTER], [AwtKeyEvent.VK_BACK_SPACE].
- * @param modifiers AWT modifier mask, e.g. [AwtKeyEvent.SHIFT_DOWN_MASK]. Defaults to 0.
+ * @param scene    The plugin ComposeScene to receive the events.
+ * @param key      The Compose [Key] to dispatch.
+ * @param isAltPressed   Whether the Alt modifier is held.
+ * @param isCtrlPressed  Whether the Ctrl modifier is held.
+ * @param isMetaPressed  Whether the Meta/Command modifier is held.
+ * @param isShiftPressed Whether the Shift modifier is held.
  */
-@OptIn(InternalComposeUiApi::class)
+@OptIn(InternalComposeUiApi::class, ExperimentalComposeUiApi::class)
 fun dispatchSpecialKey(
     scene: PluginComposeScene,
-    keyCode: Int,
-    modifiers: Int = 0,
+    key: Key,
+    isAltPressed: Boolean = false,
+    isCtrlPressed: Boolean = false,
+    isMetaPressed: Boolean = false,
+    isShiftPressed: Boolean = false,
 ) {
-    val pressEvent = AwtKeyEvent(
-        DUMMY_COMPONENT,
-        AwtKeyEvent.KEY_PRESSED,
-        System.currentTimeMillis(),
-        modifiers,
-        keyCode,
-        AwtKeyEvent.CHAR_UNDEFINED,
+    scene.composeScene.sendKeyEvent(
+        KeyEvent(key, KeyEventType.KeyDown, 0, isAltPressed, isCtrlPressed, isMetaPressed, isShiftPressed),
     )
-    val releaseEvent = AwtKeyEvent(
-        DUMMY_COMPONENT,
-        AwtKeyEvent.KEY_RELEASED,
-        System.currentTimeMillis(),
-        modifiers,
-        keyCode,
-        AwtKeyEvent.CHAR_UNDEFINED,
+    scene.composeScene.sendKeyEvent(
+        KeyEvent(key, KeyEventType.KeyUp, 0, isAltPressed, isCtrlPressed, isMetaPressed, isShiftPressed),
     )
-    scene.composeScene.sendKeyEvent(KeyEvent(pressEvent))
-    scene.composeScene.sendKeyEvent(KeyEvent(releaseEvent))
 }
 
 /**
- * Maps a human-readable special key name to the corresponding AWT virtual key code.
+ * Maps a human-readable special key name to the corresponding Compose [Key].
  * Used by the MCP tool to accept string-based key names from the AI agent.
  */
-fun specialKeyCode(name: String): Int? = when (name.uppercase()) {
-    "ENTER" -> AwtKeyEvent.VK_ENTER
-    "BACKSPACE" -> AwtKeyEvent.VK_BACK_SPACE
-    "DELETE" -> AwtKeyEvent.VK_DELETE
-    "TAB" -> AwtKeyEvent.VK_TAB
-    "ESCAPE" -> AwtKeyEvent.VK_ESCAPE
-    "UP" -> AwtKeyEvent.VK_UP
-    "DOWN" -> AwtKeyEvent.VK_DOWN
-    "LEFT" -> AwtKeyEvent.VK_LEFT
-    "RIGHT" -> AwtKeyEvent.VK_RIGHT
-    "HOME" -> AwtKeyEvent.VK_HOME
-    "END" -> AwtKeyEvent.VK_END
-    "PAGE_UP" -> AwtKeyEvent.VK_PAGE_UP
-    "PAGE_DOWN" -> AwtKeyEvent.VK_PAGE_DOWN
+fun specialKeyToComposeKey(name: String): Key? = when (name.uppercase()) {
+    "ENTER" -> Key.Enter
+    "BACKSPACE" -> Key.Backspace
+    "DELETE" -> Key.Delete
+    "TAB" -> Key.Tab
+    "ESCAPE" -> Key.Escape
+    "UP" -> Key.DirectionUp
+    "DOWN" -> Key.DirectionDown
+    "LEFT" -> Key.DirectionLeft
+    "RIGHT" -> Key.DirectionRight
+    "HOME" -> Key.MoveHome
+    "END" -> Key.MoveEnd
+    "PAGE_UP" -> Key.PageUp
+    "PAGE_DOWN" -> Key.PageDown
     else -> null
-}
-
-// AWT requires a non-null Component source; Compose ignores the nativeEvent source for input
-private val DUMMY_COMPONENT: Component by lazy {
-    object : Component() {}
 }
