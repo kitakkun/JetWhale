@@ -94,6 +94,7 @@ dependencies {
     implementation(projects.jetwhaleHost.feature.plugin)
     implementation(projects.jetwhaleHost.core.model)
     implementation(projects.jetwhaleHost.core.data)
+    implementation(projects.jetwhaleHost.core.mcp)
     implementation(projects.jetwhaleHost.core.architecture)
     implementation(projects.jetwhaleHost.core.ui)
 
