@@ -22,6 +22,8 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 
 @Inject
@@ -56,17 +58,21 @@ class TypeMcpTool(
             val text = request.arguments?.get("text")?.jsonContent
             val specialKey = request.arguments?.get("specialKey")?.jsonContent
 
+            if (text != null && specialKey != null) {
+                return@addTool errorResult("'text' and 'specialKey' are mutually exclusive; provide only one")
+            }
+
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
             when {
                 text != null -> {
-                    val success = dispatchTyping(scene, text)
+                    val success = withContext(Dispatchers.Main) { dispatchTyping(scene, text) }
                     if (!success) return@addTool errorResult("No editable text field found in the scene")
                 }
 
                 specialKey != null -> {
                     val key = specialKeyToComposeKey(specialKey)
                         ?: return@addTool errorResult("Unknown special key: $specialKey")
-                    dispatchSpecialKey(scene, key)
+                    withContext(Dispatchers.Main) { dispatchSpecialKey(scene, key) }
                 }
 
                 else -> return@addTool errorResult("Either 'text' or 'specialKey' must be provided")

@@ -26,6 +26,10 @@
     <string name="server_port_apply">適用</string>
     <string name="server_port_apply_confirm_title">ポート変更の適用</string>
     <string name="server_port_apply_confirm_message">ポート %1$s でサーバーを再起動しますか？</string>
+    <string name="debug_server_port_apply_confirm_title">デバッグサーバーのポート変更を適用</string>
+    <string name="debug_server_port_apply_confirm_message">デバッグサーバーをポート %1$s で再起動しますか？</string>
+    <string name="mcp_server_port_apply_confirm_title">MCPサーバーのポート変更を適用</string>
+    <string name="mcp_server_port_apply_confirm_message">MCPサーバーをポート %1$s で再起動しますか？</string>
     <string name="dialog_ok">OK</string>
     <string name="dialog_cancel">キャンセル</string>
     <string name="health_check">ヘルスチェック</string>

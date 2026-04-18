@@ -40,7 +40,6 @@ class ClickMcpTool(
                         "sessionId" to stringProperty("The session ID."),
                         "x" to numberProperty("X coordinate in pixels from the left edge of the plugin UI."),
                         "y" to numberProperty("Y coordinate in pixels from the top edge of the plugin UI."),
-                        "button" to stringProperty("Mouse button: \"primary\" (default), \"secondary\", or \"middle\"."),
                     ),
                 ),
                 required = listOf("pluginId", "sessionId", "x", "y"),

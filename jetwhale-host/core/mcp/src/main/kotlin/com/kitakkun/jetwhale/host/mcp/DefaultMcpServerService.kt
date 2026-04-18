@@ -86,6 +86,8 @@ class DefaultMcpServerService(
             server.start(wait = false)
             _statusFlow.value = McpServerStatus.Running(host = host, port = port)
         } catch (e: Exception) {
+            server.stop(gracePeriodMillis = 0, timeoutMillis = 0)
+            ktorServer = null
             running.set(false)
             _statusFlow.value = McpServerStatus.Error(e.message ?: "Unknown error")
         }

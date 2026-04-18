@@ -12,6 +12,8 @@ import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.stringProperty
+import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
+import com.kitakkun.jetwhale.host.mcp.viewport.applyViewport
 import com.kitakkun.jetwhale.host.mcp.viewport.isValidForViewport
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
@@ -24,6 +26,8 @@ import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 
 @Inject
@@ -52,7 +56,7 @@ class GetAccessibilityTreeMcpTool(
                 ?: return@addTool errorResult("Missing required argument: sessionId")
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
-            val json = captureAccessibilityTree(scene)
+            val json = withContext(Dispatchers.Main) { captureAccessibilityTree(scene) }
             CallToolResult(content = listOf(TextContent(json)))
         }
     }
@@ -72,6 +76,8 @@ fun captureAccessibilityTree(scene: PluginComposeScene): String {
     val size = currentSize?.takeIf { it.isValidForViewport() }
         ?: scene.windowInfoUpdater.currentIntSize.takeIf { it.isValidForViewport() }
         ?: IntSize(1280, 720)
+    val viewport = McpViewport(size = size, density = scene.composeScene.density)
+    applyViewport(scene, viewport)
     scene.composeScene.render(Canvas(ImageBitmap(size.width, size.height)), System.nanoTime())
 
     val rootNodes = scene.semanticsOwners.map { it.rootSemanticsNode }

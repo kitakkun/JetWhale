@@ -26,6 +26,10 @@
     <string name="server_port_apply">Apply</string>
     <string name="server_port_apply_confirm_title">Apply Port Change</string>
     <string name="server_port_apply_confirm_message">Restart server on port %1$s?</string>
+    <string name="debug_server_port_apply_confirm_title">Apply Debug Server Port Change</string>
+    <string name="debug_server_port_apply_confirm_message">Restart Debug Server on port %1$s?</string>
+    <string name="mcp_server_port_apply_confirm_title">Apply MCP Server Port Change</string>
+    <string name="mcp_server_port_apply_confirm_message">Restart MCP Server on port %1$s?</string>
     <string name="dialog_ok">OK</string>
     <string name="dialog_cancel">Cancel</string>
     <string name="health_check">Health Check</string>

@@ -8,7 +8,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 fun errorResult(message: String): CallToolResult = CallToolResult(
-    content = listOf(TextContent("""{"error":"$message"}""")),
+    content = listOf(TextContent(buildJsonObject { put("error", message) }.toString())),
     isError = true,
 )
 

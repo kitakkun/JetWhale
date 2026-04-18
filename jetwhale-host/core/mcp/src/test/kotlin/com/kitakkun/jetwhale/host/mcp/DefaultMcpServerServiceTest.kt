@@ -53,7 +53,7 @@ class DefaultMcpServerServiceTest {
     )
 
     private val host = "localhost"
-    private val port = 19876
+    private val port = java.net.ServerSocket(0).use { it.localPort }
 
     @Test
     fun `listTools returns all expected built-in tools`() = runBlocking {

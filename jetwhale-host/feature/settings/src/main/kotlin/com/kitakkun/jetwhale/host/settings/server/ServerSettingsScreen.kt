@@ -21,8 +21,10 @@ import com.kitakkun.jetwhale.host.settings.mcp_server_label
 import com.kitakkun.jetwhale.host.settings.mcp_server_port_label
 import com.kitakkun.jetwhale.host.settings.server_configuration
 import com.kitakkun.jetwhale.host.settings.server_port_apply
-import com.kitakkun.jetwhale.host.settings.server_port_apply_confirm_message
-import com.kitakkun.jetwhale.host.settings.server_port_apply_confirm_title
+import com.kitakkun.jetwhale.host.settings.debug_server_port_apply_confirm_message
+import com.kitakkun.jetwhale.host.settings.debug_server_port_apply_confirm_title
+import com.kitakkun.jetwhale.host.settings.mcp_server_port_apply_confirm_message
+import com.kitakkun.jetwhale.host.settings.mcp_server_port_apply_confirm_title
 import com.kitakkun.jetwhale.host.settings.server_status_error
 import com.kitakkun.jetwhale.host.settings.server_status_running
 import com.kitakkun.jetwhale.host.settings.server_status_starting
@@ -45,11 +47,11 @@ fun ServerSettingsScreen(
     if (uiState.showDebugApplyConfirmDialog) {
         AlertDialog(
             onDismissRequest = onDismissApplyDebugPortDialog,
-            title = { Text(stringResource(Res.string.server_port_apply_confirm_title)) },
+            title = { Text(stringResource(Res.string.debug_server_port_apply_confirm_title)) },
             text = {
                 Text(
                     stringResource(
-                        Res.string.server_port_apply_confirm_message,
+                        Res.string.debug_server_port_apply_confirm_message,
                         uiState.editingDebugPortText,
                     ),
                 )
@@ -70,11 +72,11 @@ fun ServerSettingsScreen(
     if (uiState.showMcpApplyConfirmDialog) {
         AlertDialog(
             onDismissRequest = onDismissApplyMcpPortDialog,
-            title = { Text(stringResource(Res.string.server_port_apply_confirm_title)) },
+            title = { Text(stringResource(Res.string.mcp_server_port_apply_confirm_title)) },
             text = {
                 Text(
                     stringResource(
-                        Res.string.server_port_apply_confirm_message,
+                        Res.string.mcp_server_port_apply_confirm_message,
                         uiState.editingMcpPortText,
                     ),
                 )

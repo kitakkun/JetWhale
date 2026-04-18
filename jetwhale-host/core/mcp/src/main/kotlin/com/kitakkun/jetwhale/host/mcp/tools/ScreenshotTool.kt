@@ -75,7 +75,7 @@ class ScreenshotMcpTool(
 /**
  * Renders the plugin's ComposeScene to an in-memory PNG image.
  *
- * Uses a CPU-only Skia surface (no GPU context required), safe to call from any coroutine.
+ * Must be called on the UI thread (Dispatchers.Main), as it mutates the ComposeScene.
  *
  * @param scene  The plugin ComposeScene to render.
  * @param viewport Output viewport (size + density) to render with.

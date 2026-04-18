@@ -73,7 +73,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
             pluginId = registration.pluginId,
             sessionId = registration.sessionId,
         ) as? JetWhaleMcpCapablePlugin ?: return null
-        return plugin.handleMcpTool(toolName, arguments)
+        return plugin.handleMcpTool(registration.originalDescriptor.name, arguments)
     }
 
     /** Returns all currently registered tool names (scoped). */
