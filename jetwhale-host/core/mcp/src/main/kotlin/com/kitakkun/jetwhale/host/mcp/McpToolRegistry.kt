@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import java.util.concurrent.ConcurrentHashMap
@@ -13,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap
  * multiple sessions have the same plugin installed. The name exposed to AI agents
  * appends a 6-character sessionId prefix: `<originalName>.<sessionId.take(6)>`.
  */
+@OptIn(ExperimentalJetWhaleApi::class)
 class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) {
 
     /**
@@ -83,12 +85,14 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     fun allRegistrations(): List<Pair<String, JetWhaleMcpToolDescriptor>> = registrations.entries.map { (name, reg) -> name to reg.originalDescriptor }
 }
 
+@OptIn(ExperimentalJetWhaleApi::class)
 data class PluginToolRegistration(
     val pluginId: String,
     val sessionId: String,
     val originalDescriptor: JetWhaleMcpToolDescriptor,
 )
 
+@OptIn(ExperimentalJetWhaleApi::class)
 data class ScopedToolDescriptor(
     val scopedName: String,
     val original: JetWhaleMcpToolDescriptor,

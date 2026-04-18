@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
@@ -34,6 +35,7 @@ suspend fun listSessions(debugSessionRepository: DebugSessionRepository): String
  * Returns a JSON string listing plugins installed in the given session.
  * Each entry includes whether the plugin implements [JetWhaleMcpCapablePlugin].
  */
+@OptIn(ExperimentalJetWhaleApi::class)
 suspend fun listPlugins(
     sessionId: String,
     debugSessionRepository: DebugSessionRepository,

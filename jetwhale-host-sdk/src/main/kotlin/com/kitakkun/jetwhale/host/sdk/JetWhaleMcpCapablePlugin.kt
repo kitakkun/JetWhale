@@ -35,6 +35,7 @@ package com.kitakkun.jetwhale.host.sdk
  * }
  * ```
  */
+@ExperimentalJetWhaleApi
 public interface JetWhaleMcpCapablePlugin {
     /**
      * Returns the list of MCP tool descriptors this plugin exposes.
@@ -66,6 +67,7 @@ public interface JetWhaleMcpCapablePlugin {
  * @param description Human-readable description shown to the AI agent.
  * @param parameters  Parameter descriptors keyed by parameter name.
  */
+@ExperimentalJetWhaleApi
 public data class JetWhaleMcpToolDescriptor(
     val name: String,
     val description: String,
@@ -79,6 +81,7 @@ public data class JetWhaleMcpToolDescriptor(
  * @param description Human-readable description of the parameter.
  * @param required    Whether the parameter is required. Defaults to true.
  */
+@ExperimentalJetWhaleApi
 public data class JetWhaleMcpParameterDescriptor(
     val type: String,
     val description: String,
