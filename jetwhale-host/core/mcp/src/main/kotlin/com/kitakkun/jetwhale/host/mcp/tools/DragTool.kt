@@ -45,7 +45,7 @@ class DragMcpTool(
                         "endX" to numberProperty("X coordinate in pixels where the drag ends."),
                         "endY" to numberProperty("Y coordinate in pixels where the drag ends."),
                         "steps" to numberProperty("Number of intermediate move events between start and end (default: 10)."),
-                    )
+                    ),
                 ),
                 required = listOf("pluginId", "sessionId", "startX", "startY", "endX", "endY"),
             ),

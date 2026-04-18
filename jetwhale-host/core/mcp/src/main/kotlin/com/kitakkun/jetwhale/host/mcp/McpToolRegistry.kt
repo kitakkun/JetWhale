@@ -80,8 +80,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     fun registeredToolNames(): Set<String> = registrations.keys.toSet()
 
     /** Returns all currently registered scoped descriptors with their original metadata. */
-    fun allRegistrations(): List<Pair<String, JetWhaleMcpToolDescriptor>> =
-        registrations.entries.map { (name, reg) -> name to reg.originalDescriptor }
+    fun allRegistrations(): List<Pair<String, JetWhaleMcpToolDescriptor>> = registrations.entries.map { (name, reg) -> name to reg.originalDescriptor }
 }
 
 data class PluginToolRegistration(

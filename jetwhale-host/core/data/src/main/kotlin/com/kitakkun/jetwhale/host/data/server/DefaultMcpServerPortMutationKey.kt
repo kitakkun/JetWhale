@@ -16,11 +16,12 @@ import soil.query.buildMutationKey
 class DefaultMcpServerPortMutationKey(
     private val settingsRepository: DebuggerSettingsRepository,
     private val mcpServerService: McpServerService,
-) : McpServerPortMutationKey, MutationKey<Unit, Int> by buildMutationKey(
-    id = MutationId("mcp_server_port"),
-    mutate = { port: Int ->
-        settingsRepository.updateMcpServerPort(port)
-        mcpServerService.stop()
-        mcpServerService.start(host = "localhost", port = port)
-    },
-)
+) : McpServerPortMutationKey,
+    MutationKey<Unit, Int> by buildMutationKey(
+        id = MutationId("mcp_server_port"),
+        mutate = { port: Int ->
+            settingsRepository.updateMcpServerPort(port)
+            mcpServerService.stop()
+            mcpServerService.start(host = "localhost", port = port)
+        },
+    )

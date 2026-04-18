@@ -105,22 +105,30 @@ fun serverSettingsScreenPresenter(
     return ServerSettingsScreenUiState(
         debugServerState = when (serverStatus) {
             is DebugWebSocketServerStatus.Stopped -> ServerState.Stopped
+
             is DebugWebSocketServerStatus.Starting -> ServerState.Starting
+
             is DebugWebSocketServerStatus.Started -> ServerState.Running(
                 host = serverStatus.host,
                 port = serverStatus.port,
             )
+
             is DebugWebSocketServerStatus.Error -> ServerState.Error(reason = serverStatus.message)
+
             is DebugWebSocketServerStatus.Stopping -> ServerState.Stopping
         },
         mcpServerState = when (mcpServerStatus) {
             is McpServerStatus.Stopped -> ServerState.Stopped
+
             is McpServerStatus.Starting -> ServerState.Starting
+
             is McpServerStatus.Running -> ServerState.Running(
                 host = mcpServerStatus.host,
                 port = mcpServerStatus.port,
             )
+
             is McpServerStatus.Error -> ServerState.Error(reason = mcpServerStatus.message)
+
             is McpServerStatus.Stopping -> ServerState.Stopping
         },
         editingDebugPortText = editingDebugPortText,

@@ -40,12 +40,14 @@ class ScreenshotMcpTool(
             name = "jetwhale.screenshot",
             description = "Captures the current rendered frame of a plugin's Compose UI as a PNG image.",
             inputSchema = ToolSchema(
-                properties = JsonObject(mapOf(
-                    "pluginId" to stringProperty("The plugin ID."),
-                    "sessionId" to stringProperty("The session ID."),
-                    "width" to numberProperty("Image width in pixels. Defaults to the current UI width (fallback: 1280)."),
-                    "height" to numberProperty("Image height in pixels. Defaults to the current UI height (fallback: 720)."),
-                )),
+                properties = JsonObject(
+                    mapOf(
+                        "pluginId" to stringProperty("The plugin ID."),
+                        "sessionId" to stringProperty("The session ID."),
+                        "width" to numberProperty("Image width in pixels. Defaults to the current UI width (fallback: 1280)."),
+                        "height" to numberProperty("Image height in pixels. Defaults to the current UI height (fallback: 720)."),
+                    ),
+                ),
                 required = listOf("pluginId", "sessionId"),
             ),
         ) { request ->

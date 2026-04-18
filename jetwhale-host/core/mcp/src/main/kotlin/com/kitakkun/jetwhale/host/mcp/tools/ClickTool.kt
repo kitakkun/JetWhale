@@ -12,8 +12,6 @@ import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
@@ -21,6 +19,8 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 
 @Inject
@@ -41,7 +41,7 @@ class ClickMcpTool(
                         "x" to numberProperty("X coordinate in pixels from the left edge of the plugin UI."),
                         "y" to numberProperty("Y coordinate in pixels from the top edge of the plugin UI."),
                         "button" to stringProperty("Mouse button: \"primary\" (default), \"secondary\", or \"middle\"."),
-                    )
+                    ),
                 ),
                 required = listOf("pluginId", "sessionId", "x", "y"),
             ),

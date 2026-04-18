@@ -96,9 +96,11 @@ class ListPluginsMcpTool(
             name = "jetwhale.listPlugins",
             description = "Lists plugins installed in the specified debug session, including whether each plugin supports additional MCP tools.",
             inputSchema = ToolSchema(
-                properties = JsonObject(mapOf(
-                    "sessionId" to stringProperty("The session ID obtained from jetwhale.listSessions."),
-                )),
+                properties = JsonObject(
+                    mapOf(
+                        "sessionId" to stringProperty("The session ID obtained from jetwhale.listSessions."),
+                    ),
+                ),
                 required = listOf("sessionId"),
             ),
         ) { request ->

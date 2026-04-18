@@ -26,7 +26,8 @@ fun createTestScene(content: @Composable () -> Unit = {}): PluginComposeScene {
 @OptIn(InternalComposeUiApi::class)
 private class TestPlatformContext(
     private val base: PlatformContext = PlatformContext.Empty(),
-) : PlatformContext by base, WindowInfoUpdater {
+) : PlatformContext by base,
+    WindowInfoUpdater {
 
     val semanticsOwners = mutableSetOf<SemanticsOwner>()
 

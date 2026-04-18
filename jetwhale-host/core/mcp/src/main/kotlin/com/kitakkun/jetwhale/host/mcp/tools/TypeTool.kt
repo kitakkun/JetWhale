@@ -36,14 +36,16 @@ class TypeMcpTool(
                 "Use 'text' for printable characters. Use 'specialKey' for keys like ENTER, BACKSPACE, TAB, ESCAPE, " +
                 "UP, DOWN, LEFT, RIGHT, HOME, END, PAGE_UP, PAGE_DOWN, DELETE.",
             inputSchema = ToolSchema(
-                properties = JsonObject(mapOf(
-                    "pluginId" to stringProperty("The plugin ID."),
-                    "sessionId" to stringProperty("The session ID."),
-                    "text" to stringProperty("Printable characters to type. Mutually exclusive with specialKey."),
-                    "specialKey" to stringProperty(
-                        "Name of a special key to press (e.g. ENTER, BACKSPACE). Mutually exclusive with text.",
+                properties = JsonObject(
+                    mapOf(
+                        "pluginId" to stringProperty("The plugin ID."),
+                        "sessionId" to stringProperty("The session ID."),
+                        "text" to stringProperty("Printable characters to type. Mutually exclusive with specialKey."),
+                        "specialKey" to stringProperty(
+                            "Name of a special key to press (e.g. ENTER, BACKSPACE). Mutually exclusive with text.",
+                        ),
                     ),
-                )),
+                ),
                 required = listOf("pluginId", "sessionId"),
             ),
         ) { request ->
@@ -60,11 +62,13 @@ class TypeMcpTool(
                     val success = dispatchTyping(scene, text)
                     if (!success) return@addTool errorResult("No editable text field found in the scene")
                 }
+
                 specialKey != null -> {
                     val key = specialKeyToComposeKey(specialKey)
                         ?: return@addTool errorResult("Unknown special key: $specialKey")
                     dispatchSpecialKey(scene, key)
                 }
+
                 else -> return@addTool errorResult("Either 'text' or 'specialKey' must be provided")
             }
             CallToolResult(content = listOf(TextContent("""{"success":true}""")))

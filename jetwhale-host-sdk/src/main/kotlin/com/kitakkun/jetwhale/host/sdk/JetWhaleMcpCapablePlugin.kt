@@ -51,7 +51,7 @@ public interface JetWhaleMcpCapablePlugin {
      *
      * @param toolName  The exact name returned in [mcpTools].
      * @param arguments Map of argument name to JSON value string.
-     * @return          A result string (plain text or JSON); null means no result.
+     * @return A result string (plain text or JSON); null means no result.
      */
     public suspend fun handleMcpTool(
         toolName: String,

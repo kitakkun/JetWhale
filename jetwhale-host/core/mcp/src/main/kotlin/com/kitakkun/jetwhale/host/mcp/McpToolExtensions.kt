@@ -7,11 +7,10 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-fun errorResult(message: String): CallToolResult =
-    CallToolResult(
-        content = listOf(TextContent("""{"error":"$message"}""")),
-        isError = true,
-    )
+fun errorResult(message: String): CallToolResult = CallToolResult(
+    content = listOf(TextContent("""{"error":"$message"}""")),
+    isError = true,
+)
 
 fun stringProperty(description: String): JsonObject = buildJsonObject {
     put("type", "string")

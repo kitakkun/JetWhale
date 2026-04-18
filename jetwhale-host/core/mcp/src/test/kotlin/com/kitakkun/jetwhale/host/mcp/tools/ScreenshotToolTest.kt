@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
-import androidx.compose.ui.unit.Density
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -48,7 +48,7 @@ class ScreenshotToolTest {
         for ((width, height) in listOf(160 to 120, 640 to 480, 1280 to 720)) {
             val viewport = McpViewport(size = IntSize(width, height), density = Density(1f))
             val bytes = captureScreenshot(scene, viewport)
-            assertTrue(bytes.isNotEmpty(), "Expected non-empty PNG for ${width}x${height}")
+            assertTrue(bytes.isNotEmpty(), "Expected non-empty PNG for ${width}x$height")
         }
     }
 }

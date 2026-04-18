@@ -43,7 +43,7 @@ class ScrollMcpTool(
                         "y" to numberProperty("Y coordinate in pixels from the top edge of the plugin UI."),
                         "deltaX" to numberProperty("Horizontal scroll delta in pixels. Positive scrolls right, negative scrolls left."),
                         "deltaY" to numberProperty("Vertical scroll delta in pixels. Positive scrolls down, negative scrolls up."),
-                    )
+                    ),
                 ),
                 required = listOf("pluginId", "sessionId", "x", "y", "deltaX", "deltaY"),
             ),

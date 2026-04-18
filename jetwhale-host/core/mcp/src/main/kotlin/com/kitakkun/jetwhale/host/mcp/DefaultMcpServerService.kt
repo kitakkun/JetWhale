@@ -18,7 +18,6 @@ import io.ktor.server.routing.routing
 import io.ktor.server.sse.SSE
 import io.ktor.server.sse.sse
 import io.modelcontextprotocol.kotlin.sdk.server.Server
-import kotlinx.coroutines.awaitCancellation
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
@@ -26,6 +25,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -68,9 +68,15 @@ class DefaultMcpServerService(
                 }
                 post("/message") {
                     val sessionId = call.request.queryParameters["sessionId"]
-                        ?: run { call.respondText("Missing sessionId", status = HttpStatusCode.BadRequest); return@post }
+                        ?: run {
+                            call.respondText("Missing sessionId", status = HttpStatusCode.BadRequest)
+                            return@post
+                        }
                     val transport = transports[sessionId]
-                        ?: run { call.respondText("Session not found", status = HttpStatusCode.NotFound); return@post }
+                        ?: run {
+                            call.respondText("Session not found", status = HttpStatusCode.NotFound)
+                            return@post
+                        }
                     transport.handlePostMessage(call)
                 }
             }
@@ -133,12 +139,14 @@ class DefaultMcpServerService(
     private fun registerPluginTools(server: Server) {
         for ((scopedName, descriptor) in toolRegistry.allRegistrations()) {
             val inputSchema = ToolSchema(
-                properties = JsonObject(descriptor.parameters.mapValues { (_, param) ->
-                    buildJsonObject {
-                        put("type", param.type)
-                        put("description", param.description)
-                    }
-                }),
+                properties = JsonObject(
+                    descriptor.parameters.mapValues { (_, param) ->
+                        buildJsonObject {
+                            put("type", param.type)
+                            put("description", param.description)
+                        }
+                    },
+                ),
                 required = descriptor.parameters.filterValues { it.required }.keys.toList(),
             )
             server.addTool(

@@ -37,10 +37,12 @@ class GetAccessibilityTreeMcpTool(
             description = "Returns the Compose semantics (accessibility) tree of a plugin's UI. " +
                 "Use this to identify elements by role or label and obtain their pixel bounds for targeted clicks.",
             inputSchema = ToolSchema(
-                properties = JsonObject(mapOf(
-                    "pluginId" to stringProperty("The plugin ID."),
-                    "sessionId" to stringProperty("The session ID."),
-                )),
+                properties = JsonObject(
+                    mapOf(
+                        "pluginId" to stringProperty("The plugin ID."),
+                        "sessionId" to stringProperty("The session ID."),
+                    ),
+                ),
                 required = listOf("pluginId", "sessionId"),
             ),
         ) { request ->
