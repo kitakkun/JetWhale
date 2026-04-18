@@ -4,14 +4,11 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import com.kitakkun.jetwhale.demo.shared.App
 import com.kitakkun.jetwhale.demo.shared.initializeJetWhale
-import kotlinx.browser.document
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     initializeJetWhale()
-
-    val body = document.body ?: return
-    ComposeViewport(body) {
+    ComposeViewport {
         App()
     }
 }
