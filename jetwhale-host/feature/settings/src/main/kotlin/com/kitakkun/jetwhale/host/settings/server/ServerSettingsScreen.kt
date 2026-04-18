@@ -13,14 +13,16 @@ import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
 import com.kitakkun.jetwhale.host.settings.component.TextFieldSettingsItemView
+import com.kitakkun.jetwhale.host.settings.debug_server_label
+import com.kitakkun.jetwhale.host.settings.debug_server_port_label
 import com.kitakkun.jetwhale.host.settings.dialog_cancel
 import com.kitakkun.jetwhale.host.settings.dialog_ok
+import com.kitakkun.jetwhale.host.settings.mcp_server_label
+import com.kitakkun.jetwhale.host.settings.mcp_server_port_label
 import com.kitakkun.jetwhale.host.settings.server_configuration
 import com.kitakkun.jetwhale.host.settings.server_port_apply
 import com.kitakkun.jetwhale.host.settings.server_port_apply_confirm_message
 import com.kitakkun.jetwhale.host.settings.server_port_apply_confirm_title
-import com.kitakkun.jetwhale.host.settings.server_port_label
-import com.kitakkun.jetwhale.host.settings.server_status
 import com.kitakkun.jetwhale.host.settings.server_status_error
 import com.kitakkun.jetwhale.host.settings.server_status_running
 import com.kitakkun.jetwhale.host.settings.server_status_starting
@@ -31,35 +33,65 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ServerSettingsScreen(
     uiState: ServerSettingsScreenUiState,
-    onPortTextChange: (String) -> Unit,
-    onApplyPortChange: () -> Unit,
-    onConfirmApplyPortChange: () -> Unit,
-    onDismissApplyPortDialog: () -> Unit,
+    onDebugPortTextChange: (String) -> Unit,
+    onApplyDebugPortChange: () -> Unit,
+    onConfirmApplyDebugPortChange: () -> Unit,
+    onDismissApplyDebugPortDialog: () -> Unit,
+    onMcpPortTextChange: (String) -> Unit,
+    onApplyMcpPortChange: () -> Unit,
+    onConfirmApplyMcpPortChange: () -> Unit,
+    onDismissApplyMcpPortDialog: () -> Unit,
 ) {
-    if (uiState.showApplyConfirmDialog) {
+    if (uiState.showDebugApplyConfirmDialog) {
         AlertDialog(
-            onDismissRequest = onDismissApplyPortDialog,
+            onDismissRequest = onDismissApplyDebugPortDialog,
             title = { Text(stringResource(Res.string.server_port_apply_confirm_title)) },
             text = {
                 Text(
                     stringResource(
                         Res.string.server_port_apply_confirm_message,
-                        uiState.editingPortText,
+                        uiState.editingDebugPortText,
                     ),
                 )
             },
             confirmButton = {
-                Button(onClick = onConfirmApplyPortChange) {
+                Button(onClick = onConfirmApplyDebugPortChange) {
                     Text(stringResource(Res.string.dialog_ok))
                 }
             },
             dismissButton = {
-                Button(onClick = onDismissApplyPortDialog) {
+                Button(onClick = onDismissApplyDebugPortDialog) {
                     Text(stringResource(Res.string.dialog_cancel))
                 }
             },
         )
     }
+
+    if (uiState.showMcpApplyConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = onDismissApplyMcpPortDialog,
+            title = { Text(stringResource(Res.string.server_port_apply_confirm_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        Res.string.server_port_apply_confirm_message,
+                        uiState.editingMcpPortText,
+                    ),
+                )
+            },
+            confirmButton = {
+                Button(onClick = onConfirmApplyMcpPortChange) {
+                    Text(stringResource(Res.string.dialog_ok))
+                }
+            },
+            dismissButton = {
+                Button(onClick = onDismissApplyMcpPortDialog) {
+                    Text(stringResource(Res.string.dialog_cancel))
+                }
+            },
+        )
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -67,49 +99,56 @@ fun ServerSettingsScreen(
     ) {
         item {
             SettingOptionView(
-                stringResource(Res.string.server_status),
+                label = stringResource(Res.string.debug_server_label),
             ) {
                 Text(
-                    text = when (uiState.serverState) {
-                        is ServerState.Starting -> stringResource(Res.string.server_status_starting)
-
-                        is ServerState.Running -> stringResource(
-                            Res.string.server_status_running,
-                            uiState.serverState.port,
-                        )
-
-                        is ServerState.Error -> stringResource(
-                            Res.string.server_status_error,
-                            uiState.serverState.reason,
-                        )
-
-                        is ServerState.Stopping -> stringResource(Res.string.server_status_stopping)
-
-                        is ServerState.Stopped -> stringResource(Res.string.server_status_stopped)
-                    },
+                    text = serverStateText(uiState.debugServerState),
                 )
+                TextFieldSettingsItemView(
+                    label = stringResource(Res.string.debug_server_port_label),
+                    text = uiState.editingDebugPortText,
+                    onTextChange = onDebugPortTextChange,
+                )
+                if (uiState.isDebugApplyVisible) {
+                    Button(
+                        onClick = onApplyDebugPortChange,
+                        enabled = uiState.isDebugApplyEnabled,
+                    ) {
+                        Text(stringResource(Res.string.server_port_apply))
+                    }
+                }
             }
         }
         item {
             SettingOptionView(
-                label = stringResource(Res.string.server_configuration),
+                label = stringResource(Res.string.mcp_server_label),
             ) {
-                TextFieldSettingsItemView(
-                    label = stringResource(Res.string.server_port_label),
-                    text = uiState.editingPortText,
-                    onTextChange = onPortTextChange,
+                Text(
+                    text = serverStateText(uiState.mcpServerState),
                 )
-            }
-        }
-        if (uiState.isApplyVisible) {
-            item {
-                Button(
-                    onClick = onApplyPortChange,
-                    enabled = uiState.isApplyEnabled,
-                ) {
-                    Text(stringResource(Res.string.server_port_apply))
+                TextFieldSettingsItemView(
+                    label = stringResource(Res.string.mcp_server_port_label),
+                    text = uiState.editingMcpPortText,
+                    onTextChange = onMcpPortTextChange,
+                )
+                if (uiState.isMcpApplyVisible) {
+                    Button(
+                        onClick = onApplyMcpPortChange,
+                        enabled = uiState.isMcpApplyEnabled,
+                    ) {
+                        Text(stringResource(Res.string.server_port_apply))
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun serverStateText(state: ServerState): String = when (state) {
+    is ServerState.Starting -> stringResource(Res.string.server_status_starting)
+    is ServerState.Running -> stringResource(Res.string.server_status_running, state.port)
+    is ServerState.Error -> stringResource(Res.string.server_status_error, state.reason)
+    is ServerState.Stopping -> stringResource(Res.string.server_status_stopping)
+    is ServerState.Stopped -> stringResource(Res.string.server_status_stopped)
 }

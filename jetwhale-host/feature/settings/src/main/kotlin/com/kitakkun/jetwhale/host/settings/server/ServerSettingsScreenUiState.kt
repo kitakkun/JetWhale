@@ -1,11 +1,16 @@
 package com.kitakkun.jetwhale.host.settings.server
 
 data class ServerSettingsScreenUiState(
-    val serverState: ServerState,
-    val editingPortText: String,
-    val isApplyVisible: Boolean,
-    val isApplyEnabled: Boolean,
-    val showApplyConfirmDialog: Boolean,
+    val debugServerState: ServerState,
+    val mcpServerState: ServerState,
+    val editingDebugPortText: String,
+    val editingMcpPortText: String,
+    val isDebugApplyVisible: Boolean,
+    val isMcpApplyVisible: Boolean,
+    val isDebugApplyEnabled: Boolean,
+    val isMcpApplyEnabled: Boolean,
+    val showDebugApplyConfirmDialog: Boolean,
+    val showMcpApplyConfirmDialog: Boolean,
 )
 
 sealed interface ServerState {

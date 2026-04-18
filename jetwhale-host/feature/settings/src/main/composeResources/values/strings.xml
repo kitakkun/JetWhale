@@ -18,9 +18,11 @@
     <string name="server_status_starting">Starting...</string>
     <string name="server_status_stopping">Stopping...</string>
     <string name="server_status_error">Error: %1$s</string>
-    <string name="server_status">Status</string>
+    <string name="debug_server_label">Debug Server</string>
+    <string name="mcp_server_label">MCP Server</string>
     <string name="server_configuration">Configuration</string>
-    <string name="server_port_label">Server Port</string>
+    <string name="debug_server_port_label">Debug Server Port</string>
+    <string name="mcp_server_port_label">MCP Server Port</string>
     <string name="server_port_apply">Apply</string>
     <string name="server_port_apply_confirm_title">Apply Port Change</string>
     <string name="server_port_apply_confirm_message">Restart server on port %1$s?</string>

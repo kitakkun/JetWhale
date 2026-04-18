@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp
 
+import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import dev.zacsweers.metro.AppScope
@@ -25,6 +26,9 @@ import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -43,9 +47,13 @@ class DefaultMcpServerService(
     private var ktorServer: EmbeddedServer<*, *>? = null
     private val running = AtomicBoolean(false)
 
+    private val _statusFlow = MutableStateFlow<McpServerStatus>(McpServerStatus.Stopped)
+    override val statusFlow: StateFlow<McpServerStatus> = _statusFlow.asStateFlow()
+
     override suspend fun start(host: String, port: Int) {
         if (!running.compareAndSet(false, true)) return
 
+        _statusFlow.value = McpServerStatus.Starting
         val transports = java.util.concurrent.ConcurrentHashMap<String, SseServerTransport>()
         val server = embeddedServer(Netty, host = host, port = port) {
             install(SSE)
@@ -68,13 +76,21 @@ class DefaultMcpServerService(
             }
         }
         ktorServer = server
-        server.start(wait = false)
+        try {
+            server.start(wait = false)
+            _statusFlow.value = McpServerStatus.Running(host = host, port = port)
+        } catch (e: Exception) {
+            running.set(false)
+            _statusFlow.value = McpServerStatus.Error(e.message ?: "Unknown error")
+        }
     }
 
     override suspend fun stop() {
         if (!running.compareAndSet(true, false)) return
+        _statusFlow.value = McpServerStatus.Stopping
         ktorServer?.stop(gracePeriodMillis = 500, timeoutMillis = 2000)
         ktorServer = null
+        _statusFlow.value = McpServerStatus.Stopped
     }
 
     override fun onPluginInstanceReady(pluginId: String, sessionId: String) {

@@ -8,6 +8,8 @@ import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.LogCaptureService
+import com.kitakkun.jetwhale.host.model.McpServerPortMutationKey
+import com.kitakkun.jetwhale.host.model.McpServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.PluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.ServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
@@ -26,9 +28,11 @@ interface SettingsScreenContext : ScreenContext {
     val appColorSchemeMutationKey: AppColorSchemeMutationKey
     val loadedPluginsMetaDataSubscriptionKey: LoadedPluginsMetaDataSubscriptionKey
     val serverStatusSubscriptionKey: ServerStatusSubscriptionKey
+    val mcpServerStatusSubscriptionKey: McpServerStatusSubscriptionKey
     val pluginInstallMutationKey: PluginInstallMutationKey
     val adbAutoPortMappingMutationKey: AdbAutoPortMappingMutationKey
     val serverPortMutationKey: ServerPortMutationKey
+    val mcpServerPortMutationKey: McpServerPortMutationKey
     val logCaptureService: LogCaptureService
 
     @GraphExtension.Factory

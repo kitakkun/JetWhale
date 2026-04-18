@@ -48,6 +48,13 @@ class DefaultDebuggerSettingsRepository(
             started = SharingStarted.Eagerly,
             initialValue = DEFAULT_SERVER_PORT,
         )
+    override val mcpServerPortFlow = dataStore.data
+        .map { it[KEY_MCP_SERVER_PORT] ?: DEFAULT_MCP_SERVER_PORT }
+        .stateIn(
+            scope = coroutineScope,
+            started = SharingStarted.Eagerly,
+            initialValue = DEFAULT_MCP_SERVER_PORT,
+        )
 
     override suspend fun updateAdbAutoPortMappingEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
@@ -69,10 +76,20 @@ class DefaultDebuggerSettingsRepository(
 
     override suspend fun readServerPort(): Int = dataStore.data.first()[KEY_SERVER_PORT] ?: DEFAULT_SERVER_PORT
 
+    override suspend fun readMcpServerPort(): Int = dataStore.data.first()[KEY_MCP_SERVER_PORT] ?: DEFAULT_MCP_SERVER_PORT
+
+    override suspend fun updateMcpServerPort(port: Int) {
+        dataStore.edit { prefs ->
+            prefs[KEY_MCP_SERVER_PORT] = port
+        }
+    }
+
     companion object Companion {
         private val KEY_ADB_AUTO_PORT_MAPPING_ENABLED = booleanPreferencesKey("adb_auto_port_mapping_enabled")
         private val KEY_PERSIST_DATA = booleanPreferencesKey("persist_data")
         private val KEY_SERVER_PORT = intPreferencesKey("server_port")
+        private val KEY_MCP_SERVER_PORT = intPreferencesKey("mcp_server_port")
         private const val DEFAULT_SERVER_PORT = 5080
+        private const val DEFAULT_MCP_SERVER_PORT = 7080
     }
 }

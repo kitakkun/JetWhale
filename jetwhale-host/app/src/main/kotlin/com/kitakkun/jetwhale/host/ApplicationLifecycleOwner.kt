@@ -44,7 +44,10 @@ class ApplicationLifecycleOwner(
                 host = "localhost",
                 port = settingsRepository.readServerPort(),
             )
-            mcpServerService.start()
+            mcpServerService.start(
+                host = "localhost",
+                port = settingsRepository.readMcpServerPort(),
+            )
 
             appDataDirectoryProvider.getAllPluginJarFilePaths().forEach {
                 pluginFactoryRepository.loadPluginFactory(it)

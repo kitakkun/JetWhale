@@ -1,5 +1,8 @@
 package com.kitakkun.jetwhale.host.mcp
 
+import com.kitakkun.jetwhale.host.model.McpServerStatus
+import kotlinx.coroutines.flow.StateFlow
+
 /**
  * Service that manages the MCP (Model Context Protocol) HTTP+SSE server embedded in JetWhale.
  *
@@ -11,6 +14,8 @@ package com.kitakkun.jetwhale.host.mcp
  * - Invoke plugin-defined semantic tools (via [com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin])
  */
 interface McpServerService {
+    val statusFlow: StateFlow<McpServerStatus>
+
     /**
      * Start the MCP HTTP+SSE server. Idempotent — calling while already running is a no-op.
      *
