@@ -68,6 +68,9 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
     }
 
     override suspend fun unloadPlugin(pluginId: String) {
+        mutablePluginsFlow.update { current ->
+            current.toMutableMap().apply { remove(pluginId) }.toPersistentMap()
+        }
         println("Unloaded plugin: $pluginId")
     }
 
