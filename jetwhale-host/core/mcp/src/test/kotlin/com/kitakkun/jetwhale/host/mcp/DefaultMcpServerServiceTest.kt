@@ -10,6 +10,7 @@ import com.kitakkun.jetwhale.host.mcp.tools.ScreenshotMcpTool
 import com.kitakkun.jetwhale.host.mcp.tools.ScrollMcpTool
 import com.kitakkun.jetwhale.host.mcp.tools.TypeMcpTool
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
+import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
@@ -128,7 +129,7 @@ class DefaultMcpServerServiceTest {
         val fakePlugin = FakeMcpCapablePlugin()
 
         every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
-            Triple(testPluginId, testSessionId, fakePlugin as JetWhaleRawHostPlugin),
+            LoadedPluginInstance(testPluginId, testSessionId, fakePlugin),
         )
         every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns fakePlugin
 

@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
@@ -26,10 +27,10 @@ class DefaultPluginInstanceService(
     private val mutablePluginInstanceEventFlow: MutableSharedFlow<PluginInstanceEvent> = MutableSharedFlow(extraBufferCapacity = 64)
     override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent> = mutablePluginInstanceEventFlow.asSharedFlow()
 
-    override fun getLoadedPluginInstances(): List<Triple<String, String, JetWhaleRawHostPlugin>> {
+    override fun getLoadedPluginInstances(): List<LoadedPluginInstance> {
         return keyToIds.mapNotNull { (key, ids) ->
             val plugin = mutableLoadedPlugins[key] ?: return@mapNotNull null
-            Triple(ids.first, ids.second, plugin)
+            LoadedPluginInstance(pluginId = ids.first, sessionId = ids.second, plugin = plugin)
         }
     }
 
