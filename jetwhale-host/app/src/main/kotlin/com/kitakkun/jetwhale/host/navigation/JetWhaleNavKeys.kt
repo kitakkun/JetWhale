@@ -7,7 +7,10 @@ import kotlinx.serialization.Serializable
 data object EmptyPluginNavKey : NavKey
 
 @Serializable
-data object SettingsNavKey : NavKey
+data class SettingsNavKey(
+    val initialMenu: com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu =
+        com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu.General,
+) : NavKey
 
 @Serializable
 data object LicensesNavKey : NavKey

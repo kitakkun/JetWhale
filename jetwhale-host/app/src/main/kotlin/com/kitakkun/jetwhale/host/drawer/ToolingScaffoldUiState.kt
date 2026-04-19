@@ -8,6 +8,7 @@ data class ToolingScaffoldUiState(
     val selectedPluginId: String,
     val sessions: ImmutableList<DebugSession>,
     val plugins: ImmutableList<DrawerPluginItemUiState>,
+    val hasFailedJars: Boolean,
 ) {
     val selectedSession: DebugSession? get() = sessions.find { it.id == selectedSessionId }
 }

@@ -33,6 +33,7 @@ fun JetWhaleApp() {
             serializersModule = SerializersModule {
                 polymorphic(NavKey::class, EmptyPluginNavKey::class, EmptyPluginNavKey.serializer())
                 polymorphic(NavKey::class, SettingsNavKey::class, SettingsNavKey.serializer())
+                // Note: SettingsNavKey is now a data class; old data object state is incompatible but acceptable
                 polymorphic(NavKey::class, InfoNavKey::class, InfoNavKey.serializer())
                 polymorphic(NavKey::class, PluginNavKey::class, PluginNavKey.serializer())
                 polymorphic(NavKey::class, LicensesNavKey::class, LicensesNavKey.serializer())
@@ -80,7 +81,7 @@ fun JetWhaleApp() {
     }
 
     KeyboardShortcutHandlerProvider(
-        onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey) },
+        onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey()) },
     ) {
         SwrClientProvider(appGraph.swrClient) {
             SoilDataBoundary(
@@ -93,7 +94,12 @@ fun JetWhaleApp() {
                         Surface {
                             context(rememberRetained { appGraph.createToolingScaffoldScreenContext() }) {
                                 ToolingScaffoldRoot(
-                                    onClickSettings = { backStack.addSingleTop(SettingsNavKey) },
+                                    onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },
+                                    onClickPluginSettings = {
+                                        backStack.addSingleTop(
+                                            SettingsNavKey(initialMenu = com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu.Plugins),
+                                        )
+                                    },
                                     onClickInfo = { backStack.addSingleTop(InfoNavKey) },
                                     onClickPlugin = { pluginId, sessionId ->
                                         backStack.addSingleTop(PluginNavKey(pluginId, sessionId))

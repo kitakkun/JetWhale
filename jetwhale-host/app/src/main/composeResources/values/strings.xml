@@ -14,6 +14,7 @@
     <string name="log_viewer_window_title">Log Viewer</string>
     <string name="plugins">Plugins</string>
     <string name="no_plugins_installed">No plugins installed.</string>
+    <string name="plugin_load_error_hint">Some plugins failed to load. Check Settings.</string>
     <string name="enabled_plugins">Enabled Plugins</string>
     <string name="disabled_plugins">Disabled Plugins</string>
     <string name="unavailable_plugins">Unavailable Plugins</string>

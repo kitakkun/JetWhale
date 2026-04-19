@@ -14,10 +14,12 @@ import kotlinx.collections.immutable.ImmutableList
 @Composable
 fun ToolingDrawer(
     plugins: ImmutableList<DrawerPluginItemUiState>,
+    hasFailedJars: Boolean,
     sessions: ImmutableList<DebugSession>,
     selectedSession: DebugSession?,
     selectedPluginId: String,
     onClickSettings: () -> Unit,
+    onClickPluginSettings: () -> Unit,
     onClickInfo: () -> Unit,
     onClickPlugin: (String) -> Unit,
     onSelectSession: (DebugSession) -> Unit,
@@ -32,10 +34,12 @@ fun ToolingDrawer(
             ExpandedToolingDrawerView(
                 selectedPluginId = selectedPluginId,
                 plugins = plugins,
+                hasFailedJars = hasFailedJars,
                 sessions = sessions,
                 selectedSession = selectedSession,
                 onClickShrinkDrawer = { expandMenu = false },
                 onClickSettings = onClickSettings,
+                onClickPluginSettings = onClickPluginSettings,
                 onClickPlugin = { onClickPlugin(it.id) },
                 onSelectSession = onSelectSession,
                 onClickPopout = onClickPopout,

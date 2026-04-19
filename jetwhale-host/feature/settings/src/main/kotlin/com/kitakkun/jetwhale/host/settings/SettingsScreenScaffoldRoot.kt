@@ -8,11 +8,13 @@ import com.kitakkun.jetwhale.host.architecture.rememberEventFlow
 context(_: ScreenContext)
 fun SettingsScreenScaffoldRoot(
     onClickClose: () -> Unit,
+    initialMenu: SettingsScreenSegmentedMenu = SettingsScreenSegmentedMenu.General,
     content: @Composable (SettingsScreenSegmentedMenu) -> Unit,
 ) {
     val eventFlow = rememberEventFlow<SettingsScreenScaffoldEvent>()
     val uiState = settingsScreenScaffoldPresenter(
         eventFlow = eventFlow,
+        initialMenu = initialMenu,
     )
 
     SettingsScreenScaffold(
