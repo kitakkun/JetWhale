@@ -15,7 +15,7 @@ interface SettingsScreenScaffoldEvent {
 @Composable
 fun settingsScreenScaffoldPresenter(
     eventFlow: EventFlow<SettingsScreenScaffoldEvent>,
-    initialMenu: SettingsScreenSegmentedMenu = SettingsScreenSegmentedMenu.General,
+    initialMenu: SettingsScreenSegmentedMenu,
 ): SettingsScreenScaffoldUiState {
     var selectedMenu by rememberRetained { mutableStateOf(initialMenu) }
 
