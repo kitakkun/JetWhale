@@ -12,6 +12,8 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Logger
 
 private data class PluginInstanceKey(val pluginId: String, val sessionId: String)
 
@@ -21,7 +23,8 @@ private data class PluginInstanceKey(val pluginId: String, val sessionId: String
 class DefaultPluginInstanceService(
     private val pluginFactoryRepository: PluginFactoryRepository,
 ) : PluginInstanceService {
-    private val loadedPlugins: MutableMap<PluginInstanceKey, JetWhaleRawHostPlugin> = mutableMapOf()
+    private val logger = Logger.getLogger(DefaultPluginInstanceService::class.java.name)
+    private val loadedPlugins: ConcurrentHashMap<PluginInstanceKey, JetWhaleRawHostPlugin> = ConcurrentHashMap()
 
     private val mutablePluginInstanceEventFlow: MutableSharedFlow<PluginInstanceEvent> = MutableSharedFlow(extraBufferCapacity = 64)
     override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent> = mutablePluginInstanceEventFlow.asSharedFlow()
@@ -45,7 +48,7 @@ class DefaultPluginInstanceService(
         }
 
         newlyInitializedSessions.forEach { sessionId ->
-            mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Ready(pluginId, sessionId))
+            emitEvent(PluginInstanceEvent.Ready(pluginId, sessionId))
         }
         return newlyInitializedSessions
     }
@@ -53,21 +56,29 @@ class DefaultPluginInstanceService(
     override fun unloadPluginInstanceForSession(sessionId: String) {
         val keysToRemove = loadedPlugins.keys.filter { it.sessionId == sessionId }
         for (key in keysToRemove) {
-            loadedPlugins.remove(key)?.onDispose()
-            mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
+            val removed = loadedPlugins.remove(key) ?: continue
+            removed.onDispose()
+            emitEvent(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
         }
     }
 
     override fun unloadPluginInstancesForPlugin(pluginId: String) {
         val keysToRemove = loadedPlugins.keys.filter { it.pluginId == pluginId }
         for (key in keysToRemove) {
-            loadedPlugins.remove(key)?.onDispose()
-            mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
+            val removed = loadedPlugins.remove(key) ?: continue
+            removed.onDispose()
+            emitEvent(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
         }
     }
 
     override fun clearAllPluginInstances() {
         loadedPlugins.values.forEach { it.onDispose() }
         loadedPlugins.clear()
+    }
+
+    private fun emitEvent(event: PluginInstanceEvent) {
+        if (!mutablePluginInstanceEventFlow.tryEmit(event)) {
+            logger.warning("Plugin instance event dropped (buffer full): $event")
+        }
     }
 }
