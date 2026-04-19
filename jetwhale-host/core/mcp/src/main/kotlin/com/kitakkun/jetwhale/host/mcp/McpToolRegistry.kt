@@ -68,6 +68,11 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
         return plugin.handleMcpTool(toolName, arguments - "sessionId")
     }
 
+    /** Removes all registered plugin tools. Call on server stop to avoid stale entries on restart. */
+    fun clear() {
+        registrations.clear()
+    }
+
     /** Returns all tools that have at least one active session, with their descriptors. */
     fun allRegistrations(): List<Pair<String, JetWhaleMcpToolDescriptor>> = registrations.entries
         .filter { it.value.sessionToPlugin.isNotEmpty() }

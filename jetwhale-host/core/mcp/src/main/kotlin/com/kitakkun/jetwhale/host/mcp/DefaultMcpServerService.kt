@@ -123,6 +123,7 @@ class DefaultMcpServerService(
         if (!running.compareAndSet(true, false)) return
         lifecycleObserverJob?.cancel()
         lifecycleObserverJob = null
+        toolRegistry.clear()
         _statusFlow.value = McpServerStatus.Stopping
         ktorServer?.stop(gracePeriodMillis = 500, timeoutMillis = 2000)
         ktorServer = null
