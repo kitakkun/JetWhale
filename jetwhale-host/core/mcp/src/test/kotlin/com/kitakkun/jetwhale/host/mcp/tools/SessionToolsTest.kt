@@ -45,6 +45,22 @@ class SessionToolsTest {
     }
 
     @Test
+    fun `listSessions reflects isActive = false correctly`() = runBlocking {
+        val session = DebugSession(
+            id = "session-id-456",
+            name = "InactiveDevice",
+            isActive = false,
+            installedPlugins = persistentListOf(),
+        )
+        val repo = mock<DebugSessionRepository> {
+            every { debugSessionsFlow } returns flowOf(persistentListOf(session))
+        }
+
+        val expected = """[{"sessionId":"session-id-456","sessionName":"InactiveDevice","isActive":false,"installedPlugins":[]}]"""
+        assertEquals(expected, listSessions(repo))
+    }
+
+    @Test
     fun `listPlugins returns empty array when session is not found`() = runBlocking {
         val repo = mock<DebugSessionRepository> {
             every { debugSessionsFlow } returns flowOf(persistentListOf())
