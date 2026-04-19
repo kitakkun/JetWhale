@@ -3,29 +3,11 @@ package com.kitakkun.jetwhale.host.sdk
 import kotlinx.coroutines.CoroutineScope
 
 /**
- * Context for sending fire-and-forget debugger events from JetWhale Host to the plugin.
- * @param DebuggerEvent The type representing an event sent from the debugger to the debuggee
- */
-public interface JetWhaleDebugOperationContext<DebuggerEvent> {
-    /**
-     * The CoroutineScope for executing operations
-     */
-    public val coroutineScope: CoroutineScope
-
-    /**
-     * Sends a fire-and-forget event to the debuggee plugin.
-     *
-     * @param event The event to send
-     */
-    public suspend fun send(event: DebuggerEvent)
-}
-
-/**
- * Context for dispatching request-response method calls from JetWhale Host to the plugin.
+ * Context for dispatching debug operations from JetWhale Host to the plugin.
  * @param Method The type representing a method call
  * @param MethodResult The type representing the result of a method call
  */
-public interface JetWhaleMethodDebugOperationContext<Method, MethodResult> {
+public interface JetWhaleDebugOperationContext<Method, MethodResult> {
     /**
      * The CoroutineScope for executing method calls
      */
@@ -43,12 +25,12 @@ public interface JetWhaleMethodDebugOperationContext<Method, MethodResult> {
 
 /**
  * Context for dispatching raw debug operations from JetWhale Host to the plugin.
- * This context uses raw String for operations, without any encoding or decoding.
- * It is used internally by JetWhaleHostPlugin and JetWhaleMethodHostPlugin.
+ * This context uses raw String for method calls and results, without any encoding or decoding.
+ * It is used internally by JetWhaleHostPlugin to adapt to the typed JetWhaleDebugOperationContext.
  */
 public interface JetWhaleRawDebugOperationContext {
     /**
-     * The CoroutineScope for executing operations
+     * The CoroutineScope for executing method calls
      */
     public val coroutineScope: CoroutineScope
 
@@ -60,11 +42,4 @@ public interface JetWhaleRawDebugOperationContext {
      * @return The raw result of the method call, or null if there is no result
      */
     public suspend fun dispatch(method: String): String?
-
-    /**
-     * Sends a raw fire-and-forget event to the plugin.
-     *
-     * @param encodedEvent The raw encoded event to send
-     */
-    public suspend fun send(encodedEvent: String)
 }

@@ -1,7 +1,5 @@
 package com.kitakkun.jetwhale.agent.runtime
 
-import com.kitakkun.jetwhale.agent.sdk.JetWhaleRawAgentPlugin
-import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
+import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
 
-@OptIn(InternalJetWhaleApi::class)
-internal typealias AgentPlugin = JetWhaleRawAgentPlugin
+internal typealias AgentPlugin = JetWhaleAgentPlugin<*, *, *>

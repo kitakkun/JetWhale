@@ -93,20 +93,6 @@ class DefaultDebugWebSocketServer(
         }
     }
 
-    override suspend fun sendEvent(
-        pluginId: String,
-        sessionId: String,
-        payload: String,
-    ) {
-        ktorWebSocketServer.sendToSession(
-            sessionId = sessionId,
-            event = JetWhaleDebuggerEvent.PluginEvent(
-                pluginId = pluginId,
-                payload = payload,
-            ),
-        )
-    }
-
     override fun getCoroutineScopeForSession(sessionId: String): CoroutineScope = CoroutineScope(ktorWebSocketServer.getSessionCoroutineContext(sessionId))
 
     private fun subscribeServerEvents() {

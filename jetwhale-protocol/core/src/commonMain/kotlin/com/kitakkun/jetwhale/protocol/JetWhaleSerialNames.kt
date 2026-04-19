@@ -33,7 +33,6 @@ internal object JetWhaleSerialNames {
 
     // event/host/*
     const val EVENT_HOST_PLUGIN_METHOD_REQUEST = "event/host/plugin_method_request"
-    const val EVENT_HOST_PLUGIN_EVENT = "event/host/plugin_event"
     const val EVENT_HOST_PLUGIN_ACTIVATED = "event/host/plugin_activated"
     const val EVENT_HOST_PLUGIN_DEACTIVATED = "event/host/plugin_deactivated"
 

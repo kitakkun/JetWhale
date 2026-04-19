@@ -5,18 +5,18 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.google.auto.service.AutoService
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMethodDebugOperationContext
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMethodHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
 import com.kitakkun.jetwhale.plugins.example.protocol.ExampleEvent
 import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethod
 import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethodResult
-import com.kitakkun.jetwhale.protocol.host.JetWhaleMethodHostPluginProtocol
-import com.kitakkun.jetwhale.protocol.host.kotlinxSerializationJetWhaleMethodHostPluginProtocol
+import com.kitakkun.jetwhale.protocol.host.JetWhaleHostPluginProtocol
+import com.kitakkun.jetwhale.protocol.host.kotlinxSerializationJetWhaleHostPluginProtocol
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
@@ -30,15 +30,15 @@ class ExampleHostPluginFactory : JetWhaleHostPluginFactory {
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private class ExampleHostPlugin :
-    JetWhaleMethodHostPlugin<ExampleEvent, ExampleMethod, ExampleMethodResult>(),
+    JetWhaleHostPlugin<ExampleEvent, ExampleMethod, ExampleMethodResult>(),
     JetWhaleMcpCapablePlugin {
 
-    override val protocol: JetWhaleMethodHostPluginProtocol<ExampleEvent, ExampleMethod, ExampleMethodResult> = kotlinxSerializationJetWhaleMethodHostPluginProtocol()
+    override val protocol: JetWhaleHostPluginProtocol<ExampleEvent, ExampleMethod, ExampleMethodResult> = kotlinxSerializationJetWhaleHostPluginProtocol()
 
     private val eventLogs: SnapshotStateList<String> = mutableStateListOf()
 
     // Stored so that MCP tool handlers can dispatch methods to the debuggee.
-    private var debugContext: JetWhaleMethodDebugOperationContext<ExampleMethod, ExampleMethodResult>? = null
+    private var debugContext: JetWhaleDebugOperationContext<ExampleMethod, ExampleMethodResult>? = null
 
     override fun onEvent(event: ExampleEvent) {
         when (event) {
@@ -51,7 +51,7 @@ private class ExampleHostPlugin :
     }
 
     @Composable
-    override fun Content(context: JetWhaleMethodDebugOperationContext<ExampleMethod, ExampleMethodResult>) {
+    override fun Content(context: JetWhaleDebugOperationContext<ExampleMethod, ExampleMethodResult>) {
         // FIXME: `context` should ideally be provided to MCP tool handlers via a safer API rather than relying on Composable function execution.
         //   This is just for demonstration purposes to show that method dispatch from MCP tools is possible.
         //   We should consider alternative ways to provide context to tools.

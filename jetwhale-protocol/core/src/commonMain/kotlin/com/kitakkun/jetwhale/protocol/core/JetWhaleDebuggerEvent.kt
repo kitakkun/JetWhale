@@ -27,20 +27,6 @@ public sealed interface JetWhaleDebuggerEvent {
     ) : JetWhaleDebuggerEvent
 
     /**
-     * Fire-and-forget event sent from debugger to a plugin in the debuggee.
-     * This event does not expect a response.
-     *
-     * @param pluginId The unique identifier of the target plugin.
-     * @param payload The content of the event.
-     */
-    @SerialName(JetWhaleSerialNames.EVENT_HOST_PLUGIN_EVENT)
-    @Serializable
-    public data class PluginEvent(
-        val pluginId: String,
-        val payload: String,
-    ) : JetWhaleDebuggerEvent
-
-    /**
      * Notification sent from debugger when a plugin becomes available.
      *
      * @param pluginId The unique identifier of the activated plugin.

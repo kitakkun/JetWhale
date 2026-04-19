@@ -57,11 +57,6 @@ class DefaultPluginComposeSceneService(
                         sessionId = sessionId,
                         payload = method,
                     )
-                    override suspend fun send(encodedEvent: String) = debugWebSocketServer.sendEvent(
-                        pluginId = pluginId,
-                        sessionId = sessionId,
-                        payload = encodedEvent,
-                    )
                 }
 
                 val windowUpdatableContext = DynamicWindowInfoPlatformContext()

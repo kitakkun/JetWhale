@@ -6,27 +6,32 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 
-public interface JetWhaleAgentPluginProtocol<DebuggeeEvent, DebuggerEvent> {
-    public fun encodeDebuggeeEvent(value: DebuggeeEvent): String
-    public fun decodeDebuggerEvent(value: String): DebuggerEvent
+public interface JetWhaleAgentPluginProtocol<Event, Method, MethodResult> {
+    public fun decodeMethod(value: String): Method
+    public fun encodeMethodResult(value: MethodResult): String
+    public fun encodeEvent(value: Event): String
 }
 
 @PublishedApi
-internal class KotlinxSerializationJetWhaleAgentPluginProtocol<DebuggeeEvent, DebuggerEvent>(
+internal class KotlinxSerializationJetWhaleAgentPluginProtocol<Event, Method, MethodResult>(
     private val json: Json,
-    private val debuggeeEventSerializer: KSerializer<DebuggeeEvent>,
-    private val debuggerEventSerializer: KSerializer<DebuggerEvent>,
-) : JetWhaleAgentPluginProtocol<DebuggeeEvent, DebuggerEvent> {
-    override fun encodeDebuggeeEvent(value: DebuggeeEvent): String = json.encodeToString(debuggeeEventSerializer, value)
+    private val eventSerializer: KSerializer<Event>,
+    private val methodSerializer: KSerializer<Method>,
+    private val methodResultSerializer: KSerializer<MethodResult>,
+) : JetWhaleAgentPluginProtocol<Event, Method, MethodResult> {
+    override fun decodeMethod(value: String): Method = json.decodeFromString(methodSerializer, value)
 
-    override fun decodeDebuggerEvent(value: String): DebuggerEvent = json.decodeFromString(debuggerEventSerializer, value)
+    override fun encodeMethodResult(value: MethodResult): String = json.encodeToString(methodResultSerializer, value)
+
+    override fun encodeEvent(value: Event): String = json.encodeToString(eventSerializer, value)
 }
 
 @OptIn(InternalJetWhaleApi::class)
-public inline fun <reified DebuggeeEvent : Any, reified DebuggerEvent : Any> kotlinxSerializationJetWhaleAgentPluginProtocol(
+public inline fun <reified Event : Any, reified Method : Any, reified MethodResult : Any> kotlinxSerializationJetWhaleAgentPluginProtocol(
     json: Json = JetWhaleJson,
-): JetWhaleAgentPluginProtocol<DebuggeeEvent, DebuggerEvent> = KotlinxSerializationJetWhaleAgentPluginProtocol(
+): JetWhaleAgentPluginProtocol<Event, Method, MethodResult> = KotlinxSerializationJetWhaleAgentPluginProtocol(
     json = json,
-    debuggeeEventSerializer = serializer(),
-    debuggerEventSerializer = serializer(),
+    eventSerializer = serializer(),
+    methodSerializer = serializer(),
+    methodResultSerializer = serializer(),
 )
