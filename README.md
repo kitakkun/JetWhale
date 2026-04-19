@@ -32,3 +32,10 @@ Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal lea
 - ✅ **Multiplatform Support**
     - Supports **Android**, **Desktop(JVM)**, **iOS**(Simulator Only), and **Web** (Js, WasmJs)
       debuggees
+
+- 🤖 **MCP Server Support** *(Experimental)*
+    - JetWhale exposes a built-in **MCP (Model Context Protocol) HTTP+SSE server**, allowing AI
+      agents (e.g. Claude) to interact with debuggee apps directly
+    - Built-in tools include `screenshot`, `click`, `type`, `scroll`, `drag`, and
+      `getAccessibilityTree`
+    - Plugins can expose their own custom MCP tools by implementing `JetWhaleMcpCapablePlugin`
