@@ -11,10 +11,6 @@ import dev.mokkery.mock
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -44,15 +40,8 @@ class SessionToolsTest {
             every { debugSessionsFlow } returns flowOf(persistentListOf(session))
         }
 
-        val result = Json.parseToJsonElement(listSessions(repo)).jsonArray
-        assertEquals(1, result.size)
-        val obj = result[0].jsonObject
-        assertEquals("session-id-123", obj["sessionId"]?.jsonPrimitive?.content)
-        assertEquals("TestDevice", obj["sessionName"]?.jsonPrimitive?.content)
-        assertEquals("true", obj["isActive"]?.jsonPrimitive?.content)
-        val plugins = obj["installedPlugins"]?.jsonArray
-        assertEquals(1, plugins?.size)
-        assertEquals("com.example.plugin", plugins?.get(0)?.jsonPrimitive?.content)
+        val expected = """[{"sessionId":"session-id-123","sessionName":"TestDevice","isActive":true,"installedPlugins":["com.example.plugin"]}]"""
+        assertEquals(expected, listSessions(repo))
     }
 
     @Test
@@ -79,6 +68,6 @@ class SessionToolsTest {
         every { pluginFactoryRepository.loadedPluginFactories } returns emptyMap()
 
         val result = listPlugins("session-abc", repo, pluginFactoryRepository, pluginInstanceService)
-        assertTrue(Json.parseToJsonElement(result).jsonArray.isEmpty())
+        assertEquals("[]", result)
     }
 }
