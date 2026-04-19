@@ -65,6 +65,5 @@ class AccessibilityTreeToolTest {
         assertEquals(200f, target.bounds.bottom)
     }
 
-    private fun collectAllNodes(node: NodeInfo): List<NodeInfo> =
-        listOf(node) + node.children.flatMap { collectAllNodes(it) }
+    private fun collectAllNodes(node: NodeInfo): List<NodeInfo> = listOf(node) + node.children.flatMap { collectAllNodes(it) }
 }
