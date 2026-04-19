@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class SessionToolsTest {
 
@@ -81,7 +80,7 @@ class SessionToolsTest {
         val repo = mock<DebugSessionRepository> {
             every { debugSessionsFlow } returns flowOf(persistentListOf(session))
         }
-        every { pluginFactoryRepository.loadedPluginFactories } returns emptyMap()
+        every { pluginFactoryRepository.loadedPlugins } returns emptyMap()
 
         val result = listPlugins("session-abc", repo, pluginFactoryRepository, pluginInstanceService)
         assertEquals("[]", result)
