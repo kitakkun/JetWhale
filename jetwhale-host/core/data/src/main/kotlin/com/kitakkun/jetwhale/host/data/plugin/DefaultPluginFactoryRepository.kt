@@ -47,7 +47,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
                     return
                 }
 
-            val manifest = Json.decodeFromString<JetWhaleHostPluginManifest>(manifestJson)
+            val manifest = pluginManifestJson.decodeFromString<JetWhaleHostPluginManifest>(manifestJson)
 
             val factory = ServiceLoader.load(JetWhaleHostPluginFactory::class.java, classLoader)
                 .toList()
@@ -76,5 +76,6 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
 
     companion object {
         private const val MANIFEST_PATH = "META-INF/jetwhale/plugin-manifest.json"
+        private val pluginManifestJson = Json { ignoreUnknownKeys = true }
     }
 }
