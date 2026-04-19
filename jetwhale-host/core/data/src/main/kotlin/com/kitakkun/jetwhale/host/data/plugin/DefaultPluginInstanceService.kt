@@ -13,33 +13,27 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
+private data class PluginInstanceKey(val pluginId: String, val sessionId: String)
+
 @Inject
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class DefaultPluginInstanceService(
     private val pluginFactoryRepository: PluginFactoryRepository,
 ) : PluginInstanceService {
-    private val mutableLoadedPlugins: MutableMap<String, JetWhaleRawHostPlugin> = mutableMapOf()
-
-    // Tracks (pluginId, sessionId) for each key so we can emit Disposed events without parsing keys.
-    private val keyToIds: MutableMap<String, Pair<String, String>> = mutableMapOf()
+    private val loadedPlugins: MutableMap<PluginInstanceKey, JetWhaleRawHostPlugin> = mutableMapOf()
 
     private val mutablePluginInstanceEventFlow: MutableSharedFlow<PluginInstanceEvent> = MutableSharedFlow(extraBufferCapacity = 64)
     override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent> = mutablePluginInstanceEventFlow.asSharedFlow()
 
     override fun getLoadedPluginInstances(): List<LoadedPluginInstance> {
-        return keyToIds.mapNotNull { (key, ids) ->
-            val plugin = mutableLoadedPlugins[key] ?: return@mapNotNull null
-            LoadedPluginInstance(pluginId = ids.first, sessionId = ids.second, plugin = plugin)
+        return loadedPlugins.entries.map { (key, plugin) ->
+            LoadedPluginInstance(pluginId = key.pluginId, sessionId = key.sessionId, plugin = plugin)
         }
     }
 
-    override fun getPluginInstanceForSession(
-        pluginId: String,
-        sessionId: String,
-    ): JetWhaleRawHostPlugin? {
-        val key = "$pluginId-$sessionId"
-        return mutableLoadedPlugins[key]
+    override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleRawHostPlugin? {
+        return loadedPlugins[PluginInstanceKey(pluginId, sessionId)]
     }
 
     override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
@@ -47,10 +41,9 @@ class DefaultPluginInstanceService(
 
         val newlyInitializedSessions = mutableSetOf<String>()
         for (sessionId in sessionIds) {
-            val key = "$pluginId-$sessionId"
-            mutableLoadedPlugins.computeIfAbsent(key) {
+            val key = PluginInstanceKey(pluginId, sessionId)
+            loadedPlugins.computeIfAbsent(key) {
                 newlyInitializedSessions += sessionId
-                keyToIds[key] = pluginId to sessionId
                 pluginFactory.createPlugin()
             }
         }
@@ -62,32 +55,23 @@ class DefaultPluginInstanceService(
     }
 
     override fun unloadPluginInstanceForSession(sessionId: String) {
-        val keysToRemove = mutableLoadedPlugins.keys.filter { it.endsWith("-$sessionId") }
+        val keysToRemove = loadedPlugins.keys.filter { it.sessionId == sessionId }
         for (key in keysToRemove) {
-            mutableLoadedPlugins[key]?.onDispose()
-            mutableLoadedPlugins.remove(key)
-            keyToIds.remove(key)?.let { (pluginId, sid) ->
-                mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(pluginId, sid))
-            }
+            loadedPlugins.remove(key)?.onDispose()
+            mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
         }
     }
 
     override fun unloadPluginInstancesForPlugin(pluginId: String) {
-        val keysToRemove = mutableLoadedPlugins.keys.filter { it.startsWith("$pluginId-") }
+        val keysToRemove = loadedPlugins.keys.filter { it.pluginId == pluginId }
         for (key in keysToRemove) {
-            mutableLoadedPlugins[key]?.onDispose()
-            mutableLoadedPlugins.remove(key)
-            keyToIds.remove(key)?.let { (pid, sessionId) ->
-                mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(pid, sessionId))
-            }
+            loadedPlugins.remove(key)?.onDispose()
+            mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
         }
     }
 
     override fun clearAllPluginInstances() {
-        for (plugin in mutableLoadedPlugins.values) {
-            plugin.onDispose()
-        }
-        mutableLoadedPlugins.clear()
-        keyToIds.clear()
+        loadedPlugins.values.forEach { it.onDispose() }
+        loadedPlugins.clear()
     }
 }
