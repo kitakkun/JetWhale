@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/kitakkun/JetWhale/schemas/plugin-manifest.schema.json",
+  "title": "JetWhale Host Plugin Manifest",
+  "description": "Manifest file for a JetWhale host plugin JAR. Place at META-INF/jetwhale/plugin-manifest.json.",
+  "type": "object",
+  "required": ["pluginId", "pluginName", "version"],
+  "additionalProperties": false,
+  "properties": {
+    "pluginId": {
+      "type": "string",
+      "description": "Unique identifier for the plugin (e.g. com.example.myplugin)."
+    },
+    "pluginName": {
+      "type": "string",
+      "description": "Human-readable display name of the plugin."
+    },
+    "version": {
+      "type": "string",
+      "description": "Plugin version string (e.g. 1.0.0)."
+    },
+    "agentVersionRange": {
+      "type": "object",
+      "description": "Specifies the range of agent plugin versions this host plugin is compatible with. Omit to allow all agent versions.",
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "type": ["string", "null"],
+          "description": "Minimum compatible agent version (inclusive). Null means no lower bound."
+        },
+        "max": {
+          "type": ["string", "null"],
+          "description": "Maximum compatible agent version (inclusive). Null means no upper bound."
+        }
+      }
+    },
+    "icon": {
+      "type": "object",
+      "description": "Icon paths relative to the JAR root.",
+      "additionalProperties": false,
+      "properties": {
+        "activePath": {
+          "type": ["string", "null"],
+          "description": "Path to the icon used when the plugin is active."
+        },
+        "inactivePath": {
+          "type": ["string", "null"],
+          "description": "Path to the icon used when the plugin is inactive."
+        }
+      }
+    }
+  }
+}
