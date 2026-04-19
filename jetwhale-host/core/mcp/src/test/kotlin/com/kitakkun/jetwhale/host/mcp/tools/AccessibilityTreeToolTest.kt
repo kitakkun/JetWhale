@@ -5,11 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Canvas
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -54,8 +51,7 @@ class AccessibilityTreeToolTest {
                     .clickable {},
             )
         }
-        scene.composeScene.size = IntSize(1280, 720)
-        scene.composeScene.render(Canvas(ImageBitmap(1280, 720)), System.nanoTime())
+        renderTestScene(scene)
 
         val json = captureAccessibilityTree(scene)
         val root = Json.parseToJsonElement(json).jsonObject
@@ -70,8 +66,7 @@ class AccessibilityTreeToolTest {
         val scene = createTestScene {
             Box(modifier = Modifier.size(200.dp).semantics { contentDescription = "bounded" })
         }
-        scene.composeScene.size = IntSize(1280, 720)
-        scene.composeScene.render(Canvas(ImageBitmap(1280, 720)), System.nanoTime())
+        renderTestScene(scene)
 
         val json = captureAccessibilityTree(scene)
 

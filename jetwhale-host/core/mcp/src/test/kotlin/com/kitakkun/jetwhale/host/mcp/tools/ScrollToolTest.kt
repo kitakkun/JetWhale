@@ -9,11 +9,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Canvas
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -63,8 +60,7 @@ class ScrollToolTest {
                 repeat(20) { Box(modifier = Modifier.size(50.dp)) }
             }
         }
-        scene.composeScene.size = IntSize(1280, 720)
-        scene.composeScene.render(Canvas(ImageBitmap(1280, 720)), System.nanoTime())
+        renderTestScene(scene)
 
         withContext(Dispatchers.Main) {
             dispatchScroll(scene, x = 100f, y = 100f, deltaX = 0f, deltaY = 50f)
@@ -93,8 +89,7 @@ class ScrollToolTest {
                     },
             )
         }
-        scene.composeScene.size = IntSize(1280, 720)
-        scene.composeScene.render(Canvas(ImageBitmap(1280, 720)), System.nanoTime())
+        renderTestScene(scene)
 
         withContext(Dispatchers.Main) {
             dispatchScroll(scene, x = 100f, y = 100f, deltaX = 0f, deltaY = 50f)

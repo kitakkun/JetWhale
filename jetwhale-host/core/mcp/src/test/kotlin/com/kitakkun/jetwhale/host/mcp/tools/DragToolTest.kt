@@ -6,11 +6,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Canvas
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -69,8 +66,7 @@ class DragToolTest {
                     },
             )
         }
-        scene.composeScene.size = IntSize(1280, 720)
-        scene.composeScene.render(Canvas(ImageBitmap(1280, 720)), System.nanoTime())
+        renderTestScene(scene)
 
         withContext(Dispatchers.Main) {
             dispatchDrag(scene, startX = 10f, startY = 20f, endX = 300f, endY = 400f, steps = 3)
@@ -106,8 +102,7 @@ class DragToolTest {
                     },
             )
         }
-        scene.composeScene.size = IntSize(1280, 720)
-        scene.composeScene.render(Canvas(ImageBitmap(1280, 720)), System.nanoTime())
+        renderTestScene(scene)
 
         val steps = 4
         withContext(Dispatchers.Main) {

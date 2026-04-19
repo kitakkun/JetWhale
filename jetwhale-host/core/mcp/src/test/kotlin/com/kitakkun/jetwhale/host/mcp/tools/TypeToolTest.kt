@@ -5,13 +5,10 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Canvas
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -92,8 +89,7 @@ class TypeToolTest {
     @Test
     fun `dispatchTyping returns false when no text field is present`() {
         val scene = createTestScene()
-        scene.composeScene.size = IntSize(1280, 720)
-        scene.composeScene.render(Canvas(ImageBitmap(1280, 720)), System.nanoTime())
+        renderTestScene(scene)
 
         val result = dispatchTyping(scene, "hello")
 
@@ -107,8 +103,7 @@ class TypeToolTest {
         val scene = createTestScene {
             BasicTextField(state = textState, modifier = Modifier.size(200.dp))
         }
-        scene.composeScene.size = IntSize(1280, 720)
-        scene.composeScene.render(Canvas(ImageBitmap(1280, 720)), System.nanoTime())
+        renderTestScene(scene)
 
         val result = dispatchTyping(scene, "hello")
 
@@ -123,8 +118,7 @@ class TypeToolTest {
         val scene = createTestScene {
             BasicTextField(state = textState, modifier = Modifier.size(200.dp))
         }
-        scene.composeScene.size = IntSize(1280, 720)
-        scene.composeScene.render(Canvas(ImageBitmap(1280, 720)), System.nanoTime())
+        renderTestScene(scene)
 
         dispatchTyping(scene, "foo")
         dispatchTyping(scene, "bar")
@@ -139,8 +133,7 @@ class TypeToolTest {
         val scene = createTestScene {
             BasicTextField(state = textState, modifier = Modifier.size(200.dp))
         }
-        scene.composeScene.size = IntSize(1280, 720)
-        scene.composeScene.render(Canvas(ImageBitmap(1280, 720)), System.nanoTime())
+        renderTestScene(scene)
 
         dispatchTyping(scene, "hello")
         assertEquals("hello", textState.text.toString())
