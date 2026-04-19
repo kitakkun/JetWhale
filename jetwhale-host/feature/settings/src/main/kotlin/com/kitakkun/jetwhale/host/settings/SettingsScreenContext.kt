@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.host.model.AppColorSchemeMutationKey
 import com.kitakkun.jetwhale.host.model.AppLanguageMutationKey
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
+import com.kitakkun.jetwhale.host.model.FailedPluginJarPathsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.McpServerPortMutationKey
@@ -27,6 +28,7 @@ interface SettingsScreenContext : ScreenContext {
     val appLanguageMutationKey: AppLanguageMutationKey
     val appColorSchemeMutationKey: AppColorSchemeMutationKey
     val loadedPluginsMetaDataSubscriptionKey: LoadedPluginsMetaDataSubscriptionKey
+    val failedPluginJarPathsSubscriptionKey: FailedPluginJarPathsSubscriptionKey
     val serverStatusSubscriptionKey: ServerStatusSubscriptionKey
     val mcpServerStatusSubscriptionKey: McpServerStatusSubscriptionKey
     val pluginInstallMutationKey: PluginInstallMutationKey

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 interface PluginFactoryRepository {
     val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>>
     val loadedPlugins: Map<String, LoadedHostPlugin>
+    val failedJarPathsFlow: Flow<List<String>>
 
     suspend fun loadPlugin(pluginJarPath: String)
     suspend fun unloadPlugin(pluginId: String)

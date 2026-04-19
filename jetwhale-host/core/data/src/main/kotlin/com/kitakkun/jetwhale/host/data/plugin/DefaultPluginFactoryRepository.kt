@@ -13,6 +13,7 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import java.net.URLClassLoader
@@ -28,6 +29,9 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
     override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = mutablePluginsFlow
     override val loadedPlugins: Map<String, LoadedHostPlugin> get() = mutablePluginsFlow.value
 
+    private val mutableFailedJarPathsFlow: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())
+    override val failedJarPathsFlow: Flow<List<String>> = mutableFailedJarPathsFlow.asStateFlow()
+
     override suspend fun loadPlugin(pluginJarPath: String) {
         try {
             val classLoader = URLClassLoader(arrayOf(Path(pluginJarPath).toUri().toURL()))
@@ -36,7 +40,11 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
                 .getResourceAsStream(MANIFEST_PATH)
                 ?.bufferedReader()
                 ?.readText()
-                ?: error("$MANIFEST_PATH not found in $pluginJarPath")
+                ?: run {
+                    println("Warning: $MANIFEST_PATH not found in $pluginJarPath")
+                    mutableFailedJarPathsFlow.update { it + pluginJarPath }
+                    return
+                }
 
             val manifest = Json.decodeFromString<JetWhaleHostPluginManifest>(manifestJson)
 
@@ -53,6 +61,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             }
         } catch (e: Throwable) {
             println("Failed to load plugin from $pluginJarPath: ${e.message}")
+            mutableFailedJarPathsFlow.update { it + pluginJarPath }
         }
     }
 
