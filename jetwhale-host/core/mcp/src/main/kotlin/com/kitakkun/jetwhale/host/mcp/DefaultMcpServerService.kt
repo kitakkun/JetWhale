@@ -86,6 +86,7 @@ class DefaultMcpServerService(
             routing {
                 sse("/sse") {
                     val transport = SseServerTransport("/message", this)
+                    // transport.sessionId: MCP-library-assigned UUID per SSE connection (not a JetWhale device session)
                     transports[transport.sessionId] = transport
                     val mcpServer = createMcpServer()
                     mcpServer.onClose { transports.remove(transport.sessionId) }
@@ -93,6 +94,8 @@ class DefaultMcpServerService(
                     awaitCancellation()
                 }
                 post("/message") {
+                    // sessionId here is the MCP transport session ID (matches transport.sessionId above),
+                    // not a JetWhale device session ID. Used to route the POST body to the correct SSE channel.
                     val sessionId = call.request.queryParameters["sessionId"]
                         ?: run {
                             call.respondText("Missing sessionId", status = HttpStatusCode.BadRequest)
