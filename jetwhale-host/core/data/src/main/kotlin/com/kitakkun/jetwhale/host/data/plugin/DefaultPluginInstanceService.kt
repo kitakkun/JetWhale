@@ -26,15 +26,11 @@ class DefaultPluginInstanceService(
     private val mutablePluginInstanceEventFlow: MutableSharedFlow<PluginInstanceEvent> = MutableSharedFlow(extraBufferCapacity = 64)
     override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent> = mutablePluginInstanceEventFlow.asSharedFlow()
 
-    override fun getLoadedPluginInstances(): List<LoadedPluginInstance> {
-        return loadedPlugins.entries.map { (key, plugin) ->
-            LoadedPluginInstance(pluginId = key.pluginId, sessionId = key.sessionId, plugin = plugin)
-        }
+    override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = loadedPlugins.entries.map { (key, plugin) ->
+        LoadedPluginInstance(pluginId = key.pluginId, sessionId = key.sessionId, plugin = plugin)
     }
 
-    override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleRawHostPlugin? {
-        return loadedPlugins[PluginInstanceKey(pluginId, sessionId)]
-    }
+    override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleRawHostPlugin? = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]
 
     override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
         val pluginFactory = pluginFactoryRepository.loadedPluginFactories[pluginId] ?: return emptySet()
