@@ -49,15 +49,15 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
 
             val manifest = Json.decodeFromString<JetWhaleHostPluginManifest>(manifestJson)
 
-            val factories: List<JetWhaleHostPluginFactory> =
-                ServiceLoader.load(JetWhaleHostPluginFactory::class.java, classLoader).toList()
+            val factory = ServiceLoader.load(JetWhaleHostPluginFactory::class.java, classLoader)
+                .toList()
+                .singleOrNull()
+                ?: error("Expected exactly one ${JetWhaleHostPluginFactory::class.java.simpleName} in $pluginJarPath")
 
             mutablePluginsFlow.update { current ->
                 current.toMutableMap().apply {
-                    factories.forEach { factory ->
-                        put(manifest.pluginId, LoadedHostPlugin(manifest = manifest, factory = factory))
-                        println("Loaded plugin: ${manifest.pluginId} v${manifest.version}")
-                    }
+                    put(manifest.pluginId, LoadedHostPlugin(manifest = manifest, factory = factory))
+                    println("Loaded plugin: ${manifest.pluginId} v${manifest.version}")
                 }.toPersistentMap()
             }
         } catch (e: Throwable) {
