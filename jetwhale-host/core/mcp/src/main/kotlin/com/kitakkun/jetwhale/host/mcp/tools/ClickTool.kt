@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.getOrNull
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
+import com.kitakkun.jetwhale.host.mcp.successResult
 import com.kitakkun.jetwhale.host.mcp.jsonFloat
 import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
@@ -16,8 +17,6 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
 import io.modelcontextprotocol.kotlin.sdk.server.Server
-import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -57,7 +56,7 @@ class ClickMcpTool(
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
             val clicked = withContext(Dispatchers.Main) { dispatchClick(scene, x, y) }
             if (clicked) {
-                CallToolResult(content = listOf(TextContent("""{"success":true}""")))
+                successResult()
             } else {
                 errorResult("No clickable element found at ($x, $y)")
             }

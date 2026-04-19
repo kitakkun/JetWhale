@@ -12,6 +12,10 @@ fun errorResult(message: String): CallToolResult = CallToolResult(
     isError = true,
 )
 
+fun successResult(): CallToolResult = CallToolResult(
+    content = listOf(TextContent(buildJsonObject { put("success", true) }.toString())),
+)
+
 fun stringProperty(description: String): JsonObject = buildJsonObject {
     put("type", "string")
     put("description", description)
