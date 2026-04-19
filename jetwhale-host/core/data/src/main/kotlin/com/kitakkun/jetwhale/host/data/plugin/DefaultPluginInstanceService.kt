@@ -19,6 +19,7 @@ class DefaultPluginInstanceService(
     private val pluginFactoryRepository: PluginFactoryRepository,
 ) : PluginInstanceService {
     private val mutableLoadedPlugins: MutableMap<String, JetWhaleRawHostPlugin> = mutableMapOf()
+
     // Tracks (pluginId, sessionId) for each key so we can emit Disposed events without parsing keys.
     private val keyToIds: MutableMap<String, Pair<String, String>> = mutableMapOf()
 

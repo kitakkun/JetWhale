@@ -229,7 +229,9 @@ class DefaultMcpServerServiceTest {
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
-private class FakeMcpCapablePlugin : JetWhaleRawHostPlugin(), JetWhaleMcpCapablePlugin {
+private class FakeMcpCapablePlugin :
+    JetWhaleRawHostPlugin(),
+    JetWhaleMcpCapablePlugin {
     override fun onRawEvent(event: String) = Unit
 
     @Composable
@@ -248,10 +250,8 @@ private class FakeMcpCapablePlugin : JetWhaleRawHostPlugin(), JetWhaleMcpCapable
         ),
     )
 
-    override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? {
-        return when (toolName) {
-            "com.example.test.greet" -> "Hello, ${arguments["name"]}!"
-            else -> null
-        }
+    override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? = when (toolName) {
+        "com.example.test.greet" -> "Hello, ${arguments["name"]}!"
+        else -> null
     }
 }

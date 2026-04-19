@@ -69,10 +69,9 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     }
 
     /** Returns all tools that have at least one active session, with their descriptors. */
-    fun allRegistrations(): List<Pair<String, JetWhaleMcpToolDescriptor>> =
-        registrations.entries
-            .filter { it.value.sessionToPlugin.isNotEmpty() }
-            .map { (name, entry) -> name to entry.descriptor }
+    fun allRegistrations(): List<Pair<String, JetWhaleMcpToolDescriptor>> = registrations.entries
+        .filter { it.value.sessionToPlugin.isNotEmpty() }
+        .map { (name, entry) -> name to entry.descriptor }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
