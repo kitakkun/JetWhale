@@ -3,7 +3,6 @@ package com.kitakkun.jetwhale.host.drawer
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberEventFlow
-import kotlinx.collections.immutable.persistentListOf
 import soil.query.compose.rememberSubscription
 
 @Composable
@@ -20,9 +19,8 @@ fun ToolingScaffoldRoot(
         state1 = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
         state2 = rememberSubscription(screenContext.debugSessionsSubscriptionKey),
         state3 = rememberSubscription(screenContext.enabledPluginsSubscriptionKey),
-    ) { loadedPlugins, debugSessions, enabledPluginIds ->
-        val failedJarPaths = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey).data
-            ?: persistentListOf()
+        state4 = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey),
+    ) { loadedPlugins, debugSessions, enabledPluginIds, failedJarPaths ->
         val eventFlow = rememberEventFlow<ToolingScaffoldEvent>()
         val uiState = toolingScaffoldPresenter(
             eventFlow = eventFlow,
