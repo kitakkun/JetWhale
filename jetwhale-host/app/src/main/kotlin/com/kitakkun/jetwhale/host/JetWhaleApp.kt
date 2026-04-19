@@ -18,6 +18,7 @@ import com.kitakkun.jetwhale.host.navigation.PluginNavKey
 import com.kitakkun.jetwhale.host.navigation.PluginPopoutNavKey
 import com.kitakkun.jetwhale.host.navigation.SettingsNavKey
 import com.kitakkun.jetwhale.host.navigation.addSingleTop
+import com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu
 import com.kitakkun.jetwhale.host.ui.AppEnvironment
 import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
 import io.github.takahirom.rin.rememberRetained
@@ -33,7 +34,6 @@ fun JetWhaleApp() {
             serializersModule = SerializersModule {
                 polymorphic(NavKey::class, EmptyPluginNavKey::class, EmptyPluginNavKey.serializer())
                 polymorphic(NavKey::class, SettingsNavKey::class, SettingsNavKey.serializer())
-                // Note: SettingsNavKey is now a data class; old data object state is incompatible but acceptable
                 polymorphic(NavKey::class, InfoNavKey::class, InfoNavKey.serializer())
                 polymorphic(NavKey::class, PluginNavKey::class, PluginNavKey.serializer())
                 polymorphic(NavKey::class, LicensesNavKey::class, LicensesNavKey.serializer())
@@ -97,7 +97,7 @@ fun JetWhaleApp() {
                                     onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },
                                     onClickPluginSettings = {
                                         backStack.addSingleTop(
-                                            SettingsNavKey(initialMenu = com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu.Plugins),
+                                            SettingsNavKey(initialMenu = SettingsScreenSegmentedMenu.Plugins),
                                         )
                                     },
                                     onClickInfo = { backStack.addSingleTop(InfoNavKey) },
