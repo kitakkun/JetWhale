@@ -40,7 +40,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             val manifestJson = classLoader
                 .getResourceAsStream(MANIFEST_PATH)
                 ?.bufferedReader()
-                ?.readText()
+                ?.use { it.readText() }
                 ?: run {
                     println("Warning: $MANIFEST_PATH not found in $pluginJarPath")
                     mutableFailedJarPathsFlow.update { it + pluginJarPath }
