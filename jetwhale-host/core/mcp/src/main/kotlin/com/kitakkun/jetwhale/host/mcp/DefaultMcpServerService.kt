@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.McpServerStatus
+import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
@@ -26,10 +27,14 @@ import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -45,6 +50,9 @@ class DefaultMcpServerService(
     private val builtInTools: Set<JetWhaleMcpTool>,
 ) : McpServerService {
 
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+    private var lifecycleObserverJob: Job? = null
+
     private val toolRegistry = McpToolRegistry(pluginInstanceService)
     private var ktorServer: EmbeddedServer<*, *>? = null
     private val running = AtomicBoolean(false)
@@ -54,6 +62,22 @@ class DefaultMcpServerService(
 
     override suspend fun start(host: String, port: Int) {
         if (!running.compareAndSet(false, true)) return
+
+        // Register plugin instances that were already created before the MCP server started.
+        pluginInstanceService.getLoadedPluginInstances().forEach { (pluginId, sessionId, plugin) ->
+            if (plugin is JetWhaleMcpCapablePlugin) {
+                toolRegistry.register(pluginId, sessionId, plugin)
+            }
+        }
+
+        lifecycleObserverJob = coroutineScope.launch {
+            pluginInstanceService.pluginInstanceEventFlow.collect { event ->
+                when (event) {
+                    is PluginInstanceEvent.Ready -> onPluginInstanceReady(event.pluginId, event.sessionId)
+                    is PluginInstanceEvent.Disposed -> onPluginInstanceDisposed(event.pluginId, event.sessionId)
+                }
+            }
+        }
 
         _statusFlow.value = McpServerStatus.Starting
         val transports = java.util.concurrent.ConcurrentHashMap<String, SseServerTransport>()
@@ -97,20 +121,22 @@ class DefaultMcpServerService(
 
     override suspend fun stop() {
         if (!running.compareAndSet(true, false)) return
+        lifecycleObserverJob?.cancel()
+        lifecycleObserverJob = null
         _statusFlow.value = McpServerStatus.Stopping
         ktorServer?.stop(gracePeriodMillis = 500, timeoutMillis = 2000)
         ktorServer = null
         _statusFlow.value = McpServerStatus.Stopped
     }
 
-    override fun onPluginInstanceReady(pluginId: String, sessionId: String) {
+    private fun onPluginInstanceReady(pluginId: String, sessionId: String) {
         val plugin = pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId)
         if (plugin is JetWhaleMcpCapablePlugin) {
             toolRegistry.register(pluginId, sessionId, plugin)
         }
     }
 
-    override fun onPluginInstanceDisposed(pluginId: String, sessionId: String) {
+    private fun onPluginInstanceDisposed(pluginId: String, sessionId: String) {
         toolRegistry.unregister(pluginId, sessionId)
     }
 
@@ -139,29 +165,35 @@ class DefaultMcpServerService(
      * Registers plugin-defined tools from the [McpToolRegistry] at connection time.
      * Since tool lists are computed at connection-time, newly added tools appear on the
      * next client reconnect.
+     *
+     * A `sessionId` parameter is automatically injected into every plugin tool's schema
+     * so the caller can identify which session to route the call to.
      */
     private fun registerPluginTools(server: Server) {
-        for ((scopedName, descriptor) in toolRegistry.allRegistrations()) {
+        for ((toolName, descriptor) in toolRegistry.allRegistrations()) {
+            val sessionIdProperty = buildJsonObject {
+                put("type", "string")
+                put("description", "Session ID of the target device (from jetwhale.listSessions)")
+            }
+            val pluginProperties = descriptor.parameters.mapValues { (_, param) ->
+                buildJsonObject {
+                    put("type", param.type)
+                    put("description", param.description)
+                }
+            }
             val inputSchema = ToolSchema(
-                properties = JsonObject(
-                    descriptor.parameters.mapValues { (_, param) ->
-                        buildJsonObject {
-                            put("type", param.type)
-                            put("description", param.description)
-                        }
-                    },
-                ),
-                required = descriptor.parameters.filterValues { it.required }.keys.toList(),
+                properties = JsonObject(mapOf("sessionId" to sessionIdProperty) + pluginProperties),
+                required = listOf("sessionId") + descriptor.parameters.filterValues { it.required }.keys,
             )
             server.addTool(
-                name = scopedName,
+                name = toolName,
                 description = descriptor.description,
                 inputSchema = inputSchema,
             ) { request ->
                 val arguments = request.arguments?.mapValues { (_, v) ->
                     (v as? JsonPrimitive)?.content ?: v.toString()
                 } ?: emptyMap()
-                val result = toolRegistry.dispatch(scopedName, arguments)
+                val result = toolRegistry.dispatch(toolName, arguments)
                 CallToolResult(content = listOf(TextContent(result ?: "null")))
             }
         }

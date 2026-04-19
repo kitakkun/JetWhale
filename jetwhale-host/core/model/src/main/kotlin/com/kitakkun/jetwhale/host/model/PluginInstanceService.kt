@@ -1,8 +1,15 @@
 package com.kitakkun.jetwhale.host.model
 
 import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
+import kotlinx.coroutines.flow.SharedFlow
 
 interface PluginInstanceService {
+    /** Emits lifecycle events as plugin instances are created or disposed. */
+    val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent>
+
+    /** Returns all currently loaded plugin instances as (pluginId, sessionId, plugin) triples. */
+    fun getLoadedPluginInstances(): List<Triple<String, String, JetWhaleRawHostPlugin>>
+
     fun unloadPluginInstanceForSession(sessionId: String)
     fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleRawHostPlugin?
     fun unloadPluginInstancesForPlugin(pluginId: String)

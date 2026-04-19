@@ -1,12 +1,16 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 @Inject
 @SingleIn(AppScope::class)
@@ -15,6 +19,18 @@ class DefaultPluginInstanceService(
     private val pluginFactoryRepository: PluginFactoryRepository,
 ) : PluginInstanceService {
     private val mutableLoadedPlugins: MutableMap<String, JetWhaleRawHostPlugin> = mutableMapOf()
+    // Tracks (pluginId, sessionId) for each key so we can emit Disposed events without parsing keys.
+    private val keyToIds: MutableMap<String, Pair<String, String>> = mutableMapOf()
+
+    private val mutablePluginInstanceEventFlow: MutableSharedFlow<PluginInstanceEvent> = MutableSharedFlow(extraBufferCapacity = 64)
+    override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent> = mutablePluginInstanceEventFlow.asSharedFlow()
+
+    override fun getLoadedPluginInstances(): List<Triple<String, String, JetWhaleRawHostPlugin>> {
+        return keyToIds.mapNotNull { (key, ids) ->
+            val plugin = mutableLoadedPlugins[key] ?: return@mapNotNull null
+            Triple(ids.first, ids.second, plugin)
+        }
+    }
 
     override fun getPluginInstanceForSession(
         pluginId: String,
@@ -32,10 +48,14 @@ class DefaultPluginInstanceService(
             val key = "$pluginId-$sessionId"
             mutableLoadedPlugins.computeIfAbsent(key) {
                 newlyInitializedSessions += sessionId
+                keyToIds[key] = pluginId to sessionId
                 pluginFactory.createPlugin()
             }
         }
 
+        newlyInitializedSessions.forEach { sessionId ->
+            mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Ready(pluginId, sessionId))
+        }
         return newlyInitializedSessions
     }
 
@@ -44,6 +64,9 @@ class DefaultPluginInstanceService(
         for (key in keysToRemove) {
             mutableLoadedPlugins[key]?.onDispose()
             mutableLoadedPlugins.remove(key)
+            keyToIds.remove(key)?.let { (pluginId, sid) ->
+                mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(pluginId, sid))
+            }
         }
     }
 
@@ -52,6 +75,9 @@ class DefaultPluginInstanceService(
         for (key in keysToRemove) {
             mutableLoadedPlugins[key]?.onDispose()
             mutableLoadedPlugins.remove(key)
+            keyToIds.remove(key)?.let { (pid, sessionId) ->
+                mutablePluginInstanceEventFlow.tryEmit(PluginInstanceEvent.Disposed(pid, sessionId))
+            }
         }
     }
 
@@ -60,5 +86,6 @@ class DefaultPluginInstanceService(
             plugin.onDispose()
         }
         mutableLoadedPlugins.clear()
+        keyToIds.clear()
     }
 }
