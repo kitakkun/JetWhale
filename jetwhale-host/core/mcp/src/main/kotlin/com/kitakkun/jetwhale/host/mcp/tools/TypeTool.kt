@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.successResult
+import com.kitakkun.jetwhale.host.mcp.viewport.ensureSceneRendered
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import dev.zacsweers.metro.AppScope
@@ -64,14 +65,20 @@ class TypeMcpTool(
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
             when {
                 text != null -> {
-                    val success = withContext(Dispatchers.Main) { dispatchTyping(scene, text) }
+                    val success = withContext(Dispatchers.Main) {
+                        ensureSceneRendered(scene)
+                        dispatchTyping(scene, text)
+                    }
                     if (!success) return@addTool errorResult("No editable text field found in the scene")
                 }
 
                 specialKey != null -> {
                     val key = specialKeyToComposeKey(specialKey)
                         ?: return@addTool errorResult("Unknown special key: $specialKey")
-                    withContext(Dispatchers.Main) { dispatchSpecialKey(scene, key) }
+                    withContext(Dispatchers.Main) {
+                        ensureSceneRendered(scene)
+                        dispatchSpecialKey(scene, key)
+                    }
                 }
 
                 else -> return@addTool errorResult("Either 'text' or 'specialKey' must be provided")

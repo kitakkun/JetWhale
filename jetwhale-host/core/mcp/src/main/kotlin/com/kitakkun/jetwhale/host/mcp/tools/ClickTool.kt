@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.mcp.jsonFloat
 import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.successResult
+import com.kitakkun.jetwhale.host.mcp.viewport.ensureSceneRendered
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import dev.zacsweers.metro.AppScope
@@ -54,7 +55,10 @@ class ClickMcpTool(
                 ?: return@addTool errorResult("Missing required argument: y")
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
-            val clicked = withContext(Dispatchers.Main) { dispatchClick(scene, x, y) }
+            val clicked = withContext(Dispatchers.Main) {
+                ensureSceneRendered(scene)
+                dispatchClick(scene, x, y)
+            }
             if (clicked) {
                 successResult()
             } else {
