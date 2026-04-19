@@ -7,6 +7,7 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.CanvasLayersComposeScene
+import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
@@ -21,8 +22,10 @@ import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.plus
+import kotlinx.coroutines.withContext
 
 @OptIn(InternalComposeUiApi::class)
 @ContributesBinding(AppScope::class)
@@ -45,29 +48,32 @@ class DefaultPluginComposeSceneService(
         ) ?: run {
             error("Plugin instance not found for pluginId=$pluginId, sessionId=$sessionId")
         }
-        return pluginScenes.getOrPut("$pluginId:$sessionId") {
-            val debugOperationContext = object : JetWhaleRawDebugOperationContext {
-                override val coroutineScope: CoroutineScope = debugWebSocketServer.getCoroutineScopeForSession(sessionId) + SupervisorJob()
-                override suspend fun dispatch(method: String): String? = debugWebSocketServer.sendMethod(
-                    pluginId = pluginId,
-                    sessionId = sessionId,
-                    payload = method,
+        return withContext(Dispatchers.Main) {
+            pluginScenes.getOrPut("$pluginId:$sessionId") {
+                val debugOperationContext = object : JetWhaleRawDebugOperationContext {
+                    override val coroutineScope: CoroutineScope = debugWebSocketServer.getCoroutineScopeForSession(sessionId) + SupervisorJob()
+                    override suspend fun dispatch(method: String): String? = debugWebSocketServer.sendMethod(
+                        pluginId = pluginId,
+                        sessionId = sessionId,
+                        payload = method,
+                    )
+                }
+
+                val windowUpdatableContext = DynamicWindowInfoPlatformContext()
+                val composeScene = CanvasLayersComposeScene(platformContext = windowUpdatableContext)
+
+                composeScene.setContent {
+                    pluginBridgeProvider.PluginEntryPoint {
+                        pluginInstance.ContentRaw(context = debugOperationContext)
+                    }
+                }
+
+                PluginComposeScene(
+                    composeScene = composeScene,
+                    windowInfoUpdater = windowUpdatableContext,
+                    semanticsOwners = windowUpdatableContext.semanticsOwners,
                 )
             }
-
-            val windowUpdatableContext = DynamicWindowInfoPlatformContext()
-            val composeScene = CanvasLayersComposeScene(platformContext = windowUpdatableContext)
-
-            composeScene.setContent {
-                pluginBridgeProvider.PluginEntryPoint {
-                    pluginInstance.ContentRaw(context = debugOperationContext)
-                }
-            }
-
-            PluginComposeScene(
-                composeScene = composeScene,
-                windowInfoUpdater = windowUpdatableContext,
-            )
         }
     }
 
@@ -102,6 +108,23 @@ private class DynamicWindowInfoPlatformContext(
     WindowInfoUpdater {
     private var windowInfoOverride: WindowInfo? by mutableStateOf(null)
     override val windowInfo: WindowInfo get() = windowInfoOverride ?: baseContext.windowInfo
+
+    val semanticsOwners = mutableSetOf<SemanticsOwner>()
+    override val semanticsOwnerListener = object : PlatformContext.SemanticsOwnerListener {
+        override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
+            semanticsOwners.add(semanticsOwner)
+        }
+
+        override fun onSemanticsOwnerRemoved(semanticsOwner: SemanticsOwner) {
+            semanticsOwners.remove(semanticsOwner)
+        }
+
+        override fun onSemanticsChange(semanticsOwner: SemanticsOwner) = Unit
+        override fun onLayoutChange(semanticsOwner: SemanticsOwner, semanticsNodeId: Int) = Unit
+    }
+
+    override val currentIntSize: IntSize get() = windowInfo.containerSize
+    override val currentDpSize: DpSize get() = windowInfo.containerDpSize
 
     override fun updateWindowSize(intSize: IntSize, dpSize: DpSize) {
         windowInfoOverride = object : WindowInfo by baseContext.windowInfo {

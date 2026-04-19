@@ -12,6 +12,7 @@ import com.kitakkun.jetwhale.host.architecture.EventEffect
 import com.kitakkun.jetwhale.host.architecture.EventFlow
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
+import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 import soil.query.compose.rememberMutation
 
@@ -20,50 +21,89 @@ context(screenContext: SettingsScreenContext)
 fun serverSettingsScreenPresenter(
     eventFlow: EventFlow<ServerSettingsScreenEvent>,
     serverStatus: DebugWebSocketServerStatus,
+    mcpServerStatus: McpServerStatus,
     debuggerSettings: DebuggerBehaviorSettings,
 ): ServerSettingsScreenUiState {
-    var editingPortText by remember { mutableStateOf(debuggerSettings.serverPort.toString()) }
-    var showApplyConfirmDialog by remember { mutableStateOf(false) }
+    var editingDebugPortText by remember { mutableStateOf(debuggerSettings.serverPort.toString()) }
+    var editingMcpPortText by remember { mutableStateOf(debuggerSettings.mcpServerPort.toString()) }
+    var showDebugApplyConfirmDialog by remember { mutableStateOf(false) }
+    var showMcpApplyConfirmDialog by remember { mutableStateOf(false) }
 
-    val serverPortMutation = rememberMutation(screenContext.serverPortMutationKey)
-    val savedPortText by rememberUpdatedState(debuggerSettings.serverPort.toString())
-    val isDirty by remember { derivedStateOf { editingPortText != savedPortText } }
-    val parsedPort by remember { derivedStateOf { editingPortText.toIntOrNull() } }
-    val isPortValid by remember { derivedStateOf { parsedPort != null && parsedPort in 1..65535 } }
+    val debugPortMutation = rememberMutation(screenContext.serverPortMutationKey)
+    val mcpPortMutation = rememberMutation(screenContext.mcpServerPortMutationKey)
+
+    val savedDebugPortText by rememberUpdatedState(debuggerSettings.serverPort.toString())
+    val savedMcpPortText by rememberUpdatedState(debuggerSettings.mcpServerPort.toString())
+
+    val isDebugDirty by remember { derivedStateOf { editingDebugPortText != savedDebugPortText } }
+    val isMcpDirty by remember { derivedStateOf { editingMcpPortText != savedMcpPortText } }
+
+    val parsedDebugPort by remember { derivedStateOf { editingDebugPortText.toIntOrNull() } }
+    val parsedMcpPort by remember { derivedStateOf { editingMcpPortText.toIntOrNull() } }
+
+    val isDebugPortValid by remember { derivedStateOf { parsedDebugPort != null && parsedDebugPort in 1..65535 } }
+    val isMcpPortValid by remember { derivedStateOf { parsedMcpPort != null && parsedMcpPort in 1..65535 } }
 
     LaunchedEffect(serverStatus) {
         if (serverStatus is DebugWebSocketServerStatus.Started) {
-            editingPortText = serverStatus.port.toString()
+            editingDebugPortText = serverStatus.port.toString()
+        }
+    }
+
+    LaunchedEffect(mcpServerStatus) {
+        if (mcpServerStatus is McpServerStatus.Running) {
+            editingMcpPortText = mcpServerStatus.port.toString()
         }
     }
 
     EventEffect(eventFlow) { event ->
         when (event) {
-            is ServerSettingsScreenEvent.ChangePortText -> {
-                editingPortText = event.text.filter { it.isDigit() }
+            is ServerSettingsScreenEvent.ChangeDebugPortText -> {
+                editingDebugPortText = event.text.filter { it.isDigit() }
             }
 
-            ServerSettingsScreenEvent.ApplyPortChange -> {
-                if (isPortValid && isDirty) {
-                    showApplyConfirmDialog = true
+            ServerSettingsScreenEvent.ApplyDebugPortChange -> {
+                if (isDebugPortValid && isDebugDirty) {
+                    showDebugApplyConfirmDialog = true
                 }
             }
 
-            ServerSettingsScreenEvent.ConfirmApplyPortChange -> {
-                val parsedPort = parsedPort ?: return@EventEffect
-                if (!isPortValid) return@EventEffect
-                showApplyConfirmDialog = false
-                serverPortMutation.mutate(parsedPort)
+            ServerSettingsScreenEvent.ConfirmApplyDebugPortChange -> {
+                val port = parsedDebugPort ?: return@EventEffect
+                if (!isDebugPortValid) return@EventEffect
+                showDebugApplyConfirmDialog = false
+                debugPortMutation.mutate(port)
             }
 
-            ServerSettingsScreenEvent.DismissApplyPortDialog -> {
-                showApplyConfirmDialog = false
+            ServerSettingsScreenEvent.DismissApplyDebugPortDialog -> {
+                showDebugApplyConfirmDialog = false
+            }
+
+            is ServerSettingsScreenEvent.ChangeMcpPortText -> {
+                editingMcpPortText = event.text.filter { it.isDigit() }
+            }
+
+            ServerSettingsScreenEvent.ApplyMcpPortChange -> {
+                if (isMcpPortValid && isMcpDirty) {
+                    showMcpApplyConfirmDialog = true
+                }
+            }
+
+            ServerSettingsScreenEvent.ConfirmApplyMcpPortChange -> {
+                val port = parsedMcpPort ?: return@EventEffect
+                if (!isMcpPortValid) return@EventEffect
+                showMcpApplyConfirmDialog = false
+                mcpPortMutation.mutate(port)
+            }
+
+            ServerSettingsScreenEvent.DismissApplyMcpPortDialog -> {
+                showMcpApplyConfirmDialog = false
             }
         }
     }
 
     return ServerSettingsScreenUiState(
-        serverState = when (serverStatus) {
+        debugServerState = when (serverStatus) {
             is DebugWebSocketServerStatus.Stopped -> ServerState.Stopped
 
             is DebugWebSocketServerStatus.Starting -> ServerState.Starting
@@ -73,15 +113,31 @@ fun serverSettingsScreenPresenter(
                 port = serverStatus.port,
             )
 
-            is DebugWebSocketServerStatus.Error -> ServerState.Error(
-                reason = serverStatus.message,
-            )
+            is DebugWebSocketServerStatus.Error -> ServerState.Error(reason = serverStatus.message)
 
             is DebugWebSocketServerStatus.Stopping -> ServerState.Stopping
         },
-        editingPortText = editingPortText,
-        isApplyVisible = isDirty,
-        isApplyEnabled = isPortValid && isDirty,
-        showApplyConfirmDialog = showApplyConfirmDialog,
+        mcpServerState = when (mcpServerStatus) {
+            is McpServerStatus.Stopped -> ServerState.Stopped
+
+            is McpServerStatus.Starting -> ServerState.Starting
+
+            is McpServerStatus.Running -> ServerState.Running(
+                host = mcpServerStatus.host,
+                port = mcpServerStatus.port,
+            )
+
+            is McpServerStatus.Error -> ServerState.Error(reason = mcpServerStatus.message)
+
+            is McpServerStatus.Stopping -> ServerState.Stopping
+        },
+        editingDebugPortText = editingDebugPortText,
+        editingMcpPortText = editingMcpPortText,
+        isDebugApplyVisible = isDebugDirty,
+        isMcpApplyVisible = isMcpDirty,
+        isDebugApplyEnabled = isDebugPortValid && isDebugDirty,
+        isMcpApplyEnabled = isMcpPortValid && isMcpDirty,
+        showDebugApplyConfirmDialog = showDebugApplyConfirmDialog,
+        showMcpApplyConfirmDialog = showMcpApplyConfirmDialog,
     )
 }

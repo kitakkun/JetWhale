@@ -1,3 +1,6 @@
+public abstract interface annotation class com/kitakkun/jetwhale/host/sdk/ExperimentalJetWhaleApi : java/lang/annotation/Annotation {
+}
+
 public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleDebugOperationContext {
 	public abstract fun dispatch (Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun getCoroutineScope ()Lkotlinx/coroutines/CoroutineScope;
@@ -23,6 +26,45 @@ public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugi
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory$DefaultImpls {
 	public static fun getIcon (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory;)Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginIcon;
 	public static fun isCompatibleWithAgentPlugin (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory;Ljava/lang/String;)Z
+}
+
+public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCapablePlugin {
+	public abstract fun handleMcpTool (Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun mcpTools ()Ljava/util/List;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Z)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Z)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getRequired ()Z
+	public final fun getType ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/util/Map;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getParameters ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class com/kitakkun/jetwhale/host/sdk/JetWhalePluginIcon {

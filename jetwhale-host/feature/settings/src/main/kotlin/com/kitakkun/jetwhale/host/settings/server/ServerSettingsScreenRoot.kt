@@ -10,28 +10,42 @@ context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 fun ServerSettingsScreenRoot() {
     SoilDataBoundary(
         state1 = rememberSubscription(screenContext.serverStatusSubscriptionKey),
-        state2 = rememberSubscription(screenContext.settingsSubscriptionKey),
-    ) { serverStatus, debuggerSettings ->
+        state2 = rememberSubscription(screenContext.mcpServerStatusSubscriptionKey),
+        state3 = rememberSubscription(screenContext.settingsSubscriptionKey),
+    ) { serverStatus, mcpServerStatus, debuggerSettings ->
         val eventFlow = rememberEventFlow<ServerSettingsScreenEvent>()
         val uiState = serverSettingsScreenPresenter(
             eventFlow = eventFlow,
             serverStatus = serverStatus,
+            mcpServerStatus = mcpServerStatus,
             debuggerSettings = debuggerSettings,
         )
 
         ServerSettingsScreen(
             uiState = uiState,
-            onPortTextChange = {
-                eventFlow.tryEmit(ServerSettingsScreenEvent.ChangePortText(it))
+            onDebugPortTextChange = {
+                eventFlow.tryEmit(ServerSettingsScreenEvent.ChangeDebugPortText(it))
             },
-            onApplyPortChange = {
-                eventFlow.tryEmit(ServerSettingsScreenEvent.ApplyPortChange)
+            onApplyDebugPortChange = {
+                eventFlow.tryEmit(ServerSettingsScreenEvent.ApplyDebugPortChange)
             },
-            onConfirmApplyPortChange = {
-                eventFlow.tryEmit(ServerSettingsScreenEvent.ConfirmApplyPortChange)
+            onConfirmApplyDebugPortChange = {
+                eventFlow.tryEmit(ServerSettingsScreenEvent.ConfirmApplyDebugPortChange)
             },
-            onDismissApplyPortDialog = {
-                eventFlow.tryEmit(ServerSettingsScreenEvent.DismissApplyPortDialog)
+            onDismissApplyDebugPortDialog = {
+                eventFlow.tryEmit(ServerSettingsScreenEvent.DismissApplyDebugPortDialog)
+            },
+            onMcpPortTextChange = {
+                eventFlow.tryEmit(ServerSettingsScreenEvent.ChangeMcpPortText(it))
+            },
+            onApplyMcpPortChange = {
+                eventFlow.tryEmit(ServerSettingsScreenEvent.ApplyMcpPortChange)
+            },
+            onConfirmApplyMcpPortChange = {
+                eventFlow.tryEmit(ServerSettingsScreenEvent.ConfirmApplyMcpPortChange)
+            },
+            onDismissApplyMcpPortDialog = {
+                eventFlow.tryEmit(ServerSettingsScreenEvent.DismissApplyMcpPortDialog)
             },
         )
     }

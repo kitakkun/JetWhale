@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
+import com.kitakkun.jetwhale.host.mcp.McpServerService
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -18,6 +19,7 @@ import kotlinx.coroutines.launch
 @SingleIn(AppScope::class)
 class ApplicationLifecycleOwner(
     private val server: DebugWebSocketServer,
+    private val mcpServerService: McpServerService,
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val settingsRepository: DebuggerSettingsRepository,
@@ -42,6 +44,10 @@ class ApplicationLifecycleOwner(
                 host = "localhost",
                 port = settingsRepository.readServerPort(),
             )
+            mcpServerService.start(
+                host = "localhost",
+                port = settingsRepository.readMcpServerPort(),
+            )
 
             appDataDirectoryProvider.getAllPluginJarFilePaths().forEach {
                 pluginFactoryRepository.loadPluginFactory(it)
@@ -54,6 +60,7 @@ class ApplicationLifecycleOwner(
     fun shutdown() {
         mutableApplicationStateFlow.update { ApplicationState.STOPPING }
         coroutineScope.launch {
+            mcpServerService.stop()
             server.stop()
             mutableApplicationStateFlow.update { ApplicationState.STOPPED }
         }
