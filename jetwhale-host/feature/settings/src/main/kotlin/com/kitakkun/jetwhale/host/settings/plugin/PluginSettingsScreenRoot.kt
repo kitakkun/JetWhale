@@ -12,12 +12,14 @@ import java.io.File
 context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
 fun PluginSettingsScreenRoot() {
     SoilDataBoundary(
-        state = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
-    ) { loadedPlugins ->
+        state1 = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
+        state2 = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey),
+    ) { loadedPlugins, failedJarPaths ->
         val eventFlow = rememberEventFlow<PluginSettingsScreenEvent>()
         val uiState = pluginSettingsScreenPresenter(
             eventFlow = eventFlow,
             loadedPlugins = loadedPlugins,
+            failedJarPaths = failedJarPaths,
         )
 
         PluginSettingsScreen(

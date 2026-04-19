@@ -36,14 +36,14 @@ class DefaultPluginInstanceService(
     override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleRawHostPlugin? = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]
 
     override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
-        val pluginFactory = pluginFactoryRepository.loadedPluginFactories[pluginId] ?: return emptySet()
+        val loaded = pluginFactoryRepository.loadedPlugins[pluginId] ?: return emptySet()
 
         val newlyInitializedSessions = mutableSetOf<String>()
         for (sessionId in sessionIds) {
             val key = PluginInstanceKey(pluginId, sessionId)
             loadedPlugins.computeIfAbsent(key) {
                 newlyInitializedSessions += sessionId
-                pluginFactory.createPlugin()
+                loaded.factory.createPlugin()
             }
         }
 

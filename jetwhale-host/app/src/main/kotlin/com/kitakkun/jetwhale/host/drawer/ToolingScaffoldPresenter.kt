@@ -36,6 +36,7 @@ fun toolingScaffoldPresenter(
     loadedPlugins: ImmutableList<PluginMetaData>,
     debugSessions: ImmutableList<DebugSession>,
     enabledPluginIds: Set<String>,
+    hasFailedJars: Boolean,
 ): ToolingScaffoldUiState {
     var selectedSessionId by rememberRetained { mutableStateOf("") }
     var selectedPluginId by rememberRetained { mutableStateOf("") }
@@ -102,5 +103,6 @@ fun toolingScaffoldPresenter(
         selectedPluginId = selectedPluginId,
         sessions = debugSessions,
         plugins = plugins,
+        hasFailedJars = hasFailedJars,
     )
 }

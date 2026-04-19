@@ -12,6 +12,8 @@
     <string name="check_for_updates_on_startup">Check for updates on startup</string>
     <string name="check_for_updates">Check for Updates</string>
     <string name="installed_plugins">Installed Plugins</string>
+    <string name="failed_to_load_plugins">Failed to Load</string>
+    <string name="failed_jar_path_hint">plugin-manifest.json was not found or the JAR is invalid.</string>
     <string name="application_data_directory">Application Data Directory</string>
     <string name="server_status_stopped">Stopped</string>
     <string name="server_status_running">Running on port %1$d</string>

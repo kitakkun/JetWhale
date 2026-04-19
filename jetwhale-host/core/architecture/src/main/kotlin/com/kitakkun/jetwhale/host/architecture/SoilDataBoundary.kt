@@ -75,3 +75,31 @@ fun <T1, T2, T3> SoilDataBoundary(
         }
     }
 }
+
+@Composable
+context(_: ScreenContext)
+fun <T1, T2, T3, T4> SoilDataBoundary(
+    state1: DataModel<T1>,
+    state2: DataModel<T2>,
+    state3: DataModel<T3>,
+    state4: DataModel<T4>,
+    fallback: SoilFallback = SoilFallbackDefaults.default(),
+    content: @Composable (T1, T2, T3, T4) -> Unit,
+) {
+    ErrorBoundary(
+        fallback = { fallback.errorFallback(it) },
+        onReset = rememberQueriesErrorReset(),
+    ) {
+        Suspense(
+            fallback = { fallback.suspenseFallback() },
+        ) {
+            Await(
+                state1 = state1,
+                state2 = state2,
+                state3 = state3,
+                state4 = state4,
+                content = content,
+            )
+        }
+    }
+}

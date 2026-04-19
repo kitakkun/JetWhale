@@ -16,6 +16,7 @@ import kotlinx.collections.immutable.persistentListOf
 fun ToolingScaffold(
     uiState: ToolingScaffoldUiState,
     onClickSettings: () -> Unit,
+    onClickPluginSettings: () -> Unit,
     onClickInfo: () -> Unit,
     onClickPlugin: (String) -> Unit,
     onClickPopout: (DrawerPluginItemUiState) -> Unit,
@@ -29,10 +30,12 @@ fun ToolingScaffold(
             drawerContent = {
                 ToolingDrawer(
                     plugins = uiState.plugins,
+                    hasFailedJars = uiState.hasFailedJars,
                     sessions = uiState.sessions,
                     selectedSession = uiState.selectedSession,
                     selectedPluginId = uiState.selectedPluginId,
                     onClickSettings = onClickSettings,
+                    onClickPluginSettings = onClickPluginSettings,
                     onClickInfo = onClickInfo,
                     onClickPlugin = onClickPlugin,
                     onSelectSession = onSelectSession,
@@ -57,8 +60,10 @@ private fun ToolingScaffoldPreview() {
             selectedPluginId = "",
             sessions = persistentListOf(),
             plugins = persistentListOf(),
+            hasFailedJars = false,
         ),
         onClickSettings = {},
+        onClickPluginSettings = {},
         onClickInfo = {},
         onClickPlugin = {},
         onSelectSession = {},

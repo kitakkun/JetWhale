@@ -4,4 +4,5 @@ import kotlinx.collections.immutable.ImmutableList
 
 data class PluginSettingsScreenUiState(
     val plugins: ImmutableList<com.kitakkun.jetwhale.host.settings.component.PluginInfoUiState>,
+    val failedJarPaths: ImmutableList<String>,
 )

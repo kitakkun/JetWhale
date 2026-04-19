@@ -15,6 +15,7 @@ context(screenContext: SettingsScreenContext)
 fun pluginSettingsScreenPresenter(
     eventFlow: EventFlow<PluginSettingsScreenEvent>,
     loadedPlugins: ImmutableList<PluginMetaData>,
+    failedJarPaths: ImmutableList<String>,
 ): PluginSettingsScreenUiState {
     val pluginInstallMutation = rememberMutation(screenContext.pluginInstallMutationKey)
 
@@ -34,5 +35,6 @@ fun pluginSettingsScreenPresenter(
                 version = it.version,
             )
         }.toPersistentList(),
+        failedJarPaths = failedJarPaths,
     )
 }

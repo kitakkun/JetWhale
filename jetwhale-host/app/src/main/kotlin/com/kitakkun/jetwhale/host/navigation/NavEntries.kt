@@ -121,13 +121,14 @@ fun EntryProviderScope<NavKey>.settingsEntry(
                 usePlatformDefaultWidth = false,
             ),
         ),
-    ) {
+    ) { navKey ->
         context(
             rememberRetained {
                 appGraph.createSettingsScreenContext()
             },
         ) {
             SettingsScreenRoot(
+                initialMenu = navKey.initialMenu,
                 onClickClose = onClickClose,
                 onOpenLogViewer = onOpenLogViewer,
             )

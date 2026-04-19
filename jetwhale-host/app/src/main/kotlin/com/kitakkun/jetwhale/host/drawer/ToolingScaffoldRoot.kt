@@ -9,6 +9,7 @@ import soil.query.compose.rememberSubscription
 context(screenContext: ToolingScaffoldScreenContext)
 fun ToolingScaffoldRoot(
     onClickSettings: () -> Unit,
+    onClickPluginSettings: () -> Unit,
     onClickInfo: () -> Unit,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
     onClickPopout: (pluginId: String, pluginName: String, sessionId: String) -> Unit,
@@ -18,18 +19,21 @@ fun ToolingScaffoldRoot(
         state1 = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
         state2 = rememberSubscription(screenContext.debugSessionsSubscriptionKey),
         state3 = rememberSubscription(screenContext.enabledPluginsSubscriptionKey),
-    ) { loadedPlugins, debugSessions, enabledPluginIds ->
+        state4 = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey),
+    ) { loadedPlugins, debugSessions, enabledPluginIds, failedJarPaths ->
         val eventFlow = rememberEventFlow<ToolingScaffoldEvent>()
         val uiState = toolingScaffoldPresenter(
             eventFlow = eventFlow,
             loadedPlugins = loadedPlugins,
             debugSessions = debugSessions,
             enabledPluginIds = enabledPluginIds,
+            hasFailedJars = failedJarPaths.isNotEmpty(),
         )
 
         ToolingScaffold(
             uiState = uiState,
             onClickSettings = onClickSettings,
+            onClickPluginSettings = onClickPluginSettings,
             onClickInfo = onClickInfo,
             onClickPlugin = {
                 val selectedSession = uiState.selectedSession ?: return@ToolingScaffold

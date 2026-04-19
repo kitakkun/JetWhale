@@ -14,13 +14,16 @@ import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +40,7 @@ import com.kitakkun.jetwhale.host.enabled_plugins
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.no_plugins_installed
+import com.kitakkun.jetwhale.host.plugin_load_error_hint
 import com.kitakkun.jetwhale.host.plugins
 import com.kitakkun.jetwhale.host.popout
 import com.kitakkun.jetwhale.host.puzzle_outlined
@@ -51,10 +55,12 @@ import org.jetbrains.compose.resources.stringResource
 fun ExpandedToolingDrawerView(
     selectedPluginId: String,
     plugins: ImmutableList<DrawerPluginItemUiState>,
+    hasFailedJars: Boolean,
     selectedSession: DebugSession?,
     sessions: ImmutableList<DebugSession>,
     onClickShrinkDrawer: () -> Unit,
     onClickSettings: () -> Unit,
+    onClickPluginSettings: () -> Unit,
     onClickPlugin: (DrawerPluginItemUiState) -> Unit,
     onSelectSession: (DebugSession) -> Unit,
     onClickPopout: (DrawerPluginItemUiState) -> Unit,
@@ -108,6 +114,19 @@ fun ExpandedToolingDrawerView(
                         Text(
                             text = stringResource(Res.string.no_plugins_installed),
                         )
+                        if (hasFailedJars) {
+                            TextButton(onClick = onClickPluginSettings) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                                Text(
+                                    text = stringResource(Res.string.plugin_load_error_hint),
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        }
                     }
                 }
 
