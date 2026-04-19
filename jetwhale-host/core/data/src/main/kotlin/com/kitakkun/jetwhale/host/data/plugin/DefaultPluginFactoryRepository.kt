@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import java.net.URLClassLoader
 import java.util.ServiceLoader
@@ -60,6 +61,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
                 }.toPersistentMap()
             }
         } catch (e: Throwable) {
+            if (e is CancellationException) throw e
             println("Failed to load plugin from $pluginJarPath: ${e.message}")
             mutableFailedJarPathsFlow.update { it + pluginJarPath }
         }
