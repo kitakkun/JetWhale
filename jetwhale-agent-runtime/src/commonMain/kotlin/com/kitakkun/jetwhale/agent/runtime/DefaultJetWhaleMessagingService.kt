@@ -68,6 +68,11 @@ internal class DefaultJetWhaleMessagingService(
 
                 is JetWhaleDebuggerEvent.PluginDeactivated -> pluginService.deactivatePlugins(event.pluginId)
 
+                is JetWhaleDebuggerEvent.PluginEvent -> {
+                    val plugin = pluginService.getPluginById(event.pluginId) ?: return@collect
+                    plugin.onRawDebuggerEvent(event.payload)
+                }
+
                 is JetWhaleDebuggerEvent.MethodRequest -> {
                     val plugin = pluginService.getPluginById(event.pluginId) ?: return@collect
                     val methodResult = plugin.onRawMethod(event.payload)

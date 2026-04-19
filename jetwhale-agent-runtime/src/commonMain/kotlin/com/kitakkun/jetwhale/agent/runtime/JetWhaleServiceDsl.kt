@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.agent.runtime
 
+import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
+import com.kitakkun.jetwhale.agent.sdk.JetWhaleMethodAgentPlugin
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import io.ktor.client.HttpClient
@@ -60,7 +62,8 @@ public interface JetWhaleLoggingConfigurationScope {
 
 @JetWhaleDsl
 public interface JetWhalePluginConfigurationScope {
-    public fun register(plugin: AgentPlugin)
+    public fun register(plugin: JetWhaleAgentPlugin<*, *>)
+    public fun register(plugin: JetWhaleMethodAgentPlugin<*, *, *>)
 }
 
 private class JetWhaleConfiguration : JetWhaleConfigurationScope {
@@ -92,10 +95,15 @@ private class JetWhaleLoggingConfiguration : JetWhaleLoggingConfigurationScope {
     override var ktorLogLevel: KtorLogLevel = KtorLogLevel.NONE
 }
 
+@OptIn(InternalJetWhaleApi::class)
 private class JetWhalePluginConfiguration : JetWhalePluginConfigurationScope {
     val plugins: MutableList<AgentPlugin> = mutableListOf()
 
-    override fun register(plugin: AgentPlugin) {
+    override fun register(plugin: JetWhaleAgentPlugin<*, *>) {
+        plugins.add(plugin)
+    }
+
+    override fun register(plugin: JetWhaleMethodAgentPlugin<*, *, *>) {
         plugins.add(plugin)
     }
 }

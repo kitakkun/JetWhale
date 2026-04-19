@@ -10,5 +10,6 @@ interface DebugWebSocketServer {
     suspend fun start(host: String, port: Int)
     suspend fun stop()
     suspend fun sendMethod(pluginId: String, sessionId: String, payload: String): String?
+    suspend fun sendEvent(pluginId: String, sessionId: String, payload: String)
     fun getCoroutineScopeForSession(sessionId: String): CoroutineScope
 }

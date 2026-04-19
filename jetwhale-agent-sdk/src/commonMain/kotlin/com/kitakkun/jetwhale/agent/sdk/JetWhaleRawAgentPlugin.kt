@@ -42,9 +42,17 @@ public abstract class JetWhaleRawAgentPlugin {
 
     /**
      * Handles a raw method message received from the debugger.
+     * Used by method-based plugins that expect a response.
      */
     @InternalJetWhaleApi
     public abstract suspend fun onRawMethod(message: String): String?
+
+    /**
+     * Handles a raw fire-and-forget event message received from the debugger.
+     * Used by simple bidirectional event-based plugins.
+     */
+    @InternalJetWhaleApi
+    public open suspend fun onRawDebuggerEvent(message: String): Unit = Unit
 
     /**
      * Enqueues a raw event message to be sent to the debugger.

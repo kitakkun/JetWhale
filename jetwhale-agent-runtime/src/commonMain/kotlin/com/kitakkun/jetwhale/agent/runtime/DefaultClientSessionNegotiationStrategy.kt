@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.agent.runtime
 
+import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAgentNegotiationRequest
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleHostNegotiationResponse
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
@@ -8,6 +9,7 @@ import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.sendSerialized
 
+@OptIn(InternalJetWhaleApi::class)
 internal class DefaultClientSessionNegotiationStrategy(private val plugins: List<AgentPlugin>) : ClientSessionNegotiationStrategy {
     private var sessionId: String? = null
 
