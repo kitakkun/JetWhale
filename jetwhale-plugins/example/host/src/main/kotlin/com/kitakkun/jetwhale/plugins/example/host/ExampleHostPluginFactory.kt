@@ -68,6 +68,9 @@ private class ExampleHostPlugin :
 
     @Composable
     override fun Content(context: JetWhaleDebugOperationContext<ExampleMethod, ExampleMethodResult>) {
+        // FIXME: `context` should ideally be provided to MCP tool handlers via a safer API rather than relying on Composable function execution.
+        //   This is just for demonstration purposes to show that method dispatch from MCP tools is possible.
+        //   We should consider alternative ways to provide context to tools.
         debugContext = context
         ExamplePluginContent(
             eventLogs = eventLogs,
