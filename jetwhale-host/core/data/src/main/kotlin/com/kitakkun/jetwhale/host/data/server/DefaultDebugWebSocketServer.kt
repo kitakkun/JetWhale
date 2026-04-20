@@ -67,6 +67,7 @@ class DefaultDebugWebSocketServer(
         ktorWebSocketServer.stop()
         sessionRepository.markAllSessionsInactive()
         pluginInstanceService.clearAllPluginInstances()
+        connections.values.forEach { it.dispose() }
         connections.clear()
         mutableServerStoppedFlow.emit(Unit)
     }
@@ -159,7 +160,7 @@ class DefaultDebugWebSocketServer(
             val pluginId = key.substringBefore(":")
             val plugin = pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId)
             (plugin as? JetWhaleMessagingCapablePlugin)?.onDisconnect()
-            connections.remove(key)
+            connections.remove(key)?.dispose()
         }
     }
 
@@ -169,7 +170,7 @@ class DefaultDebugWebSocketServer(
             val sessionId = key.substringAfter(":")
             val plugin = pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId)
             (plugin as? JetWhaleMessagingCapablePlugin)?.onDisconnect()
-            connections.remove(key)
+            connections.remove(key)?.dispose()
         }
     }
 
@@ -286,6 +287,10 @@ private class PluginRawConnection(
 
     fun onEvent(event: String) {
         handlers.forEach { it(event) }
+    }
+
+    fun dispose() {
+        handlers.clear()
     }
 
     override suspend fun send(method: String): String? = sender(method)
