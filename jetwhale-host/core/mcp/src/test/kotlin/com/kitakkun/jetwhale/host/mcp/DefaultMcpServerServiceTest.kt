@@ -220,10 +220,12 @@ private class FakeMcpTool(
 private class FakeMcpCapablePlugin :
     JetWhaleRawHostPlugin(),
     JetWhaleMcpCapablePlugin {
-    override fun onRawEvent(event: String) = Unit
+    @Suppress("OVERRIDE_DEPRECATION")
+    override fun onRawEvent(event: String): Unit = Unit
 
+    @Suppress("OVERRIDE_DEPRECATION")
     @Composable
-    override fun ContentRaw(context: JetWhaleRawDebugOperationContext) = Unit
+    override fun ContentRaw(context: JetWhaleRawDebugOperationContext): Unit = Unit
 
     override fun mcpTools() = listOf(
         JetWhaleMcpToolDescriptor(

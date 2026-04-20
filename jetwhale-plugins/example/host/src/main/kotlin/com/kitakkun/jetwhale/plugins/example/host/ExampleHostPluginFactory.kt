@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.google.auto.service.AutoService
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
-import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
@@ -37,25 +36,14 @@ private class ExampleHostPlugin :
 
     private val eventLogs: SnapshotStateList<String> = mutableStateListOf()
 
-    // Stored so that MCP tool handlers can dispatch methods to the debuggee.
-    private var debugContext: JetWhaleDebugOperationContext<ExampleMethod, ExampleMethodResult>? = null
-
     override fun onEvent(event: ExampleEvent) {
         when (event) {
             is ExampleEvent.ButtonClicked -> eventLogs.add("Event: $event")
         }
     }
 
-    override fun onDispose() {
-        debugContext = null
-    }
-
     @Composable
-    override fun Content(context: JetWhaleDebugOperationContext<ExampleMethod, ExampleMethodResult>) {
-        // FIXME: `context` should ideally be provided to MCP tool handlers via a safer API rather than relying on Composable function execution.
-        //   This is just for demonstration purposes to show that method dispatch from MCP tools is possible.
-        //   We should consider alternative ways to provide context to tools.
-        debugContext = context
+    override fun Content() {
         ExamplePluginContent(
             eventLogs = eventLogs,
             context = context,
@@ -87,8 +75,6 @@ private class ExampleHostPlugin :
     override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? {
         return when (toolName) {
             "com.kitakkun.jetwhale.example.sendPing" -> {
-                val context = debugContext
-                    ?: return buildJsonObject { put("error", "Plugin UI is not active") }.toString()
                 val result: ExampleMethodResult? = context.dispatch(ExampleMethod.Ping)
                 buildJsonObject {
                     put("pongReceived", result is ExampleMethodResult.Pong)
