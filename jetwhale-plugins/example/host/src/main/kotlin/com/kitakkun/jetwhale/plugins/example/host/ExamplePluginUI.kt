@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.example.host
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.input.TextFieldState
@@ -14,8 +15,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.ui.Modifier
-import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
+import com.kitakkun.jetwhale.host.sdk.JetWhaleConnection
 import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethod
 import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethodResult
 import kotlinx.coroutines.launch
@@ -23,15 +23,15 @@ import kotlinx.coroutines.launch
 @Composable
 fun ExamplePluginContent(
     eventLogs: SnapshotStateList<String>,
-    context: JetWhaleDebugOperationContext<ExampleMethod, ExampleMethodResult>,
+    connection: JetWhaleConnection<*, ExampleMethod, ExampleMethodResult>,
 ) {
     ExamplePluginView(
         eventLogs = eventLogs,
         onClickSendPing = {
-            context.coroutineScope.launch {
+            connection.coroutineScope.launch {
                 val method = ExampleMethod.Ping
                 eventLogs.add("Method: $method")
-                val result: ExampleMethodResult.Pong? = context.dispatch(method)
+                val result: ExampleMethodResult.Pong? = connection.send(method) as? ExampleMethodResult.Pong
                 eventLogs.add("Method Result: $result")
             }
         },

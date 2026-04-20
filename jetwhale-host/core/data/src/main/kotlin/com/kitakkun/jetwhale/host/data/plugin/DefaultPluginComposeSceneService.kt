@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.kitakkun.jetwhale.host.data.plugin
 
 import androidx.compose.runtime.getValue
@@ -61,6 +63,7 @@ class DefaultPluginComposeSceneService(
                             else -> {
                                 // Deprecated path: plugins that directly extend JetWhaleRawHostPlugin
                                 // and override ContentRaw without implementing JetWhaleRenderablePlugin.
+                                @Suppress("DEPRECATION")
                                 val debugOperationContext = object : JetWhaleRawDebugOperationContext {
                                     override val coroutineScope: CoroutineScope = debugWebSocketServer.getCoroutineScopeForSession(sessionId) + SupervisorJob()
                                     override suspend fun dispatch(method: String): String? = debugWebSocketServer.sendMethod(

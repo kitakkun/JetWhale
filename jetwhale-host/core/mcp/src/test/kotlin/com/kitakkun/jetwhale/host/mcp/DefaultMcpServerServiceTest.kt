@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.kitakkun.jetwhale.host.mcp
 
 import androidx.compose.runtime.Composable

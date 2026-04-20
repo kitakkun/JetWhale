@@ -2,21 +2,20 @@ package com.kitakkun.jetwhale.host.sdk
 
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.protocol.host.JetWhaleHostPluginProtocol
-import kotlinx.coroutines.CoroutineScope
 
 /**
  * Typed base class for JetWhale host plugins.
  *
  * Extend this class to implement a plugin that:
- * - Receives typed [Event] objects from the debuggee.
- * - Dispatches typed [Method] calls to the debuggee and receives [MethodResult] back.
+ * - Receives typed [Event] objects from the debuggee via [onEvent].
+ * - Dispatches typed [Method] calls to the debuggee via [connection.send] and receives [MethodResult] back.
  * - Renders a Compose UI panel via [Content].
  *
  * The connection lifecycle is managed by the framework:
- * - [onConnect] is called (via [JetWhaleMessagingCapablePlugin]) when a session becomes active.
+ * - [onConnect] (via [JetWhaleMessagingCapablePlugin]) is called when a session becomes active.
  * - [onDisconnect] is called when the session ends or the plugin is deactivated.
  *
- * Inside [Content] and MCP tool handlers, use [context] to dispatch methods to the debuggee.
+ * Inside [Content] and MCP tool handlers, use [connection] to dispatch methods to the debuggee.
  *
  * @param Event        Type of events received from the debuggee.
  * @param Method       Type of method calls sent to the debuggee.
@@ -31,14 +30,16 @@ public abstract class JetWhaleHostPlugin<Event, Method, MethodResult> : JetWhale
      */
     protected abstract val protocol: JetWhaleHostPluginProtocol<Event, Method, MethodResult>
 
-    private var _context: JetWhaleDebugOperationContext<Method, MethodResult>? = null
+    private var _connection: JetWhaleConnection<Event, Method, MethodResult>? = null
 
     /**
-     * The context for dispatching method calls to the debuggee.
+     * The typed connection to the debuggee session.
      * Only accessible while the plugin is connected (between [onConnect] and [onDisconnect]).
+     *
+     * Use [connection.send] to dispatch method calls and [connection.coroutineScope] for async work.
      */
-    protected val context: JetWhaleDebugOperationContext<Method, MethodResult>
-        get() = checkNotNull(_context) { "Plugin is not connected to a session" }
+    protected val connection: JetWhaleConnection<Event, Method, MethodResult>
+        get() = checkNotNull(_connection) { "Plugin is not connected to a session" }
 
     /**
      * Called when a typed event is received from the debuggee.
@@ -50,32 +51,31 @@ public abstract class JetWhaleHostPlugin<Event, Method, MethodResult> : JetWhale
     /**
      * Composable UI panel for this plugin.
      *
-     * Use [context] to dispatch method calls to the debuggee.
+     * Use [connection] to dispatch method calls to the debuggee.
      * The composition is kept alive for the duration of the plugin instance.
      */
     @Composable
     public abstract override fun Content()
 
-    final override fun onConnect(connection: JetWhaleRawConnection) {
-        _context = object : JetWhaleDebugOperationContext<Method, MethodResult> {
-            override val coroutineScope: CoroutineScope = connection.coroutineScope
-            override suspend fun <MR : MethodResult> dispatch(method: Method): MR? {
-                val encoded = protocol.encodeMethod(method)
-                val raw = connection.send(encoded)
-                @Suppress("UNCHECKED_CAST")
-                return raw?.let { protocol.decodeMethodResult(it) } as? MR
+    final override fun onConnect(rawConnection: JetWhaleRawConnection) {
+        val typed = object : JetWhaleConnection<Event, Method, MethodResult> {
+            override val coroutineScope = rawConnection.coroutineScope
+            override fun receive(handler: (Event) -> Unit) {
+                rawConnection.receive { raw -> handler(protocol.decodeEvent(raw)) }
+            }
+            override suspend fun send(method: Method): MethodResult? {
+                val raw = rawConnection.send(protocol.encodeMethod(method))
+                return raw?.let { protocol.decodeMethodResult(it) }
             }
         }
-        connection.receive { raw ->
-            onEvent(protocol.decodeEvent(raw))
-        }
+        _connection = typed
+        typed.receive { event -> onEvent(event) }
     }
 
     final override fun onDisconnect() {
-        _context = null
+        _connection = null
     }
 
-    // Event routing now goes through JetWhaleMessagingCapablePlugin.onConnect / connection.receive.
     @Deprecated("Event routing is handled via JetWhaleMessagingCapablePlugin.onConnect.")
     final override fun onRawEvent(event: String): Unit = Unit
 

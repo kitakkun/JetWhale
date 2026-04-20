@@ -46,7 +46,7 @@ private class ExampleHostPlugin :
     override fun Content() {
         ExamplePluginContent(
             eventLogs = eventLogs,
-            context = context,
+            connection = connection,
         )
     }
 
@@ -75,7 +75,7 @@ private class ExampleHostPlugin :
     override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? {
         return when (toolName) {
             "com.kitakkun.jetwhale.example.sendPing" -> {
-                val result: ExampleMethodResult? = context.dispatch(ExampleMethod.Ping)
+                val result: ExampleMethodResult? = connection.send(ExampleMethod.Ping)
                 buildJsonObject {
                     put("pongReceived", result is ExampleMethodResult.Pong)
                 }.toString()
