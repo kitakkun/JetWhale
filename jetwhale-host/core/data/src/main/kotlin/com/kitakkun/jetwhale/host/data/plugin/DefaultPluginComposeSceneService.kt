@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.kitakkun.jetwhale.host.data.plugin
 
 import androidx.compose.runtime.getValue
@@ -17,6 +19,7 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
 import com.kitakkun.jetwhale.host.sdk.JetWhaleRawDebugOperationContext
+import com.kitakkun.jetwhale.host.sdk.JetWhaleRenderablePlugin
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -50,21 +53,29 @@ class DefaultPluginComposeSceneService(
         }
         return withContext(Dispatchers.Main) {
             pluginScenes.getOrPut("$pluginId:$sessionId") {
-                val debugOperationContext = object : JetWhaleRawDebugOperationContext {
-                    override val coroutineScope: CoroutineScope = debugWebSocketServer.getCoroutineScopeForSession(sessionId) + SupervisorJob()
-                    override suspend fun dispatch(method: String): String? = debugWebSocketServer.sendMethod(
-                        pluginId = pluginId,
-                        sessionId = sessionId,
-                        payload = method,
-                    )
-                }
-
                 val windowUpdatableContext = DynamicWindowInfoPlatformContext()
                 val composeScene = CanvasLayersComposeScene(platformContext = windowUpdatableContext)
 
                 composeScene.setContent {
                     pluginBridgeProvider.PluginEntryPoint {
-                        pluginInstance.ContentRaw(context = debugOperationContext)
+                        when (pluginInstance) {
+                            is JetWhaleRenderablePlugin -> pluginInstance.Content()
+                            else -> {
+                                // Deprecated path: plugins that directly extend JetWhaleRawHostPlugin
+                                // and override ContentRaw without implementing JetWhaleRenderablePlugin.
+                                @Suppress("DEPRECATION")
+                                val debugOperationContext = object : JetWhaleRawDebugOperationContext {
+                                    override val coroutineScope: CoroutineScope = debugWebSocketServer.getCoroutineScopeForSession(sessionId) + SupervisorJob()
+                                    override suspend fun dispatch(method: String): String? = debugWebSocketServer.sendMethod(
+                                        pluginId = pluginId,
+                                        sessionId = sessionId,
+                                        payload = method,
+                                    )
+                                }
+                                @Suppress("DEPRECATION")
+                                pluginInstance.ContentRaw(context = debugOperationContext)
+                            }
+                        }
                     }
                 }
 

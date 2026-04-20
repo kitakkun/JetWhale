@@ -8,6 +8,8 @@ import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingCapablePlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleRawConnection
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import dev.zacsweers.metro.AppScope
@@ -27,6 +29,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 @Inject
 @SingleIn(AppScope::class)
@@ -46,6 +49,10 @@ class DefaultDebugWebSocketServer(
 
     private var serverMonitoringJob: Job? = null
 
+    private val connections = ConcurrentHashMap<String, PluginRawConnection>()
+
+    private fun connectionKey(pluginId: String, sessionId: String) = "$pluginId:$sessionId"
+
     override suspend fun start(host: String, port: Int) {
         subscribeServerEvents()
         ktorWebSocketServer.start(
@@ -60,6 +67,8 @@ class DefaultDebugWebSocketServer(
         ktorWebSocketServer.stop()
         sessionRepository.markAllSessionsInactive()
         pluginInstanceService.clearAllPluginInstances()
+        connections.values.forEach { it.dispose() }
+        connections.clear()
         mutableServerStoppedFlow.emit(Unit)
     }
 
@@ -140,7 +149,28 @@ class DefaultDebugWebSocketServer(
     private suspend fun monitorSessionClosed() {
         ktorWebSocketServer.sessionClosedFlow.collect { sessionId ->
             sessionRepository.unregisterDebugSession(sessionId)
+            disconnectPluginsForSession(sessionId)
             pluginInstanceService.unloadPluginInstanceForSession(sessionId)
+        }
+    }
+
+    private fun disconnectPluginsForSession(sessionId: String) {
+        val keysToRemove = connections.keys.filter { it.endsWith(":$sessionId") }
+        for (key in keysToRemove) {
+            val pluginId = key.substringBefore(":")
+            val plugin = pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId)
+            (plugin as? JetWhaleMessagingCapablePlugin)?.onDisconnect()
+            connections.remove(key)?.dispose()
+        }
+    }
+
+    private fun disconnectPluginsForPlugin(pluginId: String) {
+        val keysToRemove = connections.keys.filter { it.startsWith("$pluginId:") }
+        for (key in keysToRemove) {
+            val sessionId = key.substringAfter(":")
+            val plugin = pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId)
+            (plugin as? JetWhaleMessagingCapablePlugin)?.onDisconnect()
+            connections.remove(key)?.dispose()
         }
     }
 
@@ -172,6 +202,7 @@ class DefaultDebugWebSocketServer(
                         // Only send the activation event to sessions for which the plugin instance is initialized
                         // in this step to avoid sending duplicate activation events to sessions that already have the plugin instance initialized.
                         pluginActivatedSessionIds.forEach { sessionId ->
+                            connectPlugin(pluginId, sessionId)
                             ktorWebSocketServer.sendToSession(
                                 sessionId = sessionId,
                                 event = JetWhaleDebuggerEvent.PluginActivated(pluginId = pluginId),
@@ -184,11 +215,25 @@ class DefaultDebugWebSocketServer(
             launch {
                 enabledPluginsRepository.disabledPluginIdFlow.collect { pluginId ->
                     ktorWebSocketServer.broadcastToSessions(JetWhaleDebuggerEvent.PluginDeactivated(pluginId = pluginId))
+                    disconnectPluginsForPlugin(pluginId)
                     // Unload plugin instances for all sessions to ensure that the plugin is deactivated in all sessions immediately after being disabled.
                     pluginInstanceService.unloadPluginInstancesForPlugin(pluginId)
                 }
             }
         }
+    }
+
+    private fun connectPlugin(pluginId: String, sessionId: String) {
+        val plugin = pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId)
+        if (plugin !is JetWhaleMessagingCapablePlugin) return
+
+        val key = connectionKey(pluginId, sessionId)
+        val connection = PluginRawConnection(
+            coroutineScope = getCoroutineScopeForSession(sessionId),
+            sender = { method -> sendMethod(pluginId = pluginId, sessionId = sessionId, payload = method) },
+        )
+        connections[key] = connection
+        plugin.onConnect(connection)
     }
 
     private suspend fun monitorPluginMessages() {
@@ -197,6 +242,14 @@ class DefaultDebugWebSocketServer(
 
             val pluginId = event.pluginId
 
+            val connection = connections[connectionKey(pluginId, sessionId)]
+            if (connection != null) {
+                connection.onEvent(event.payload)
+                return@collect
+            }
+
+            // Fallback for plugins that directly extend JetWhaleRawHostPlugin without implementing
+            // JetWhaleMessagingCapablePlugin (deprecated path).
             val pluginInstance = pluginInstanceService.getPluginInstanceForSession(
                 pluginId = pluginId,
                 sessionId = sessionId,
@@ -212,6 +265,7 @@ class DefaultDebugWebSocketServer(
                 return@collect
             }
 
+            @Suppress("DEPRECATION")
             pluginInstance.onRawEvent(event.payload)
         }
     }
@@ -219,4 +273,25 @@ class DefaultDebugWebSocketServer(
     companion object {
         private const val METHOD_RESULT_WAIT_TIMEOUT = 5000L
     }
+}
+
+private class PluginRawConnection(
+    override val coroutineScope: CoroutineScope,
+    private val sender: suspend (String) -> String?,
+) : JetWhaleRawConnection {
+    private val handlers = mutableListOf<(String) -> Unit>()
+
+    override fun receive(handler: (String) -> Unit) {
+        handlers.add(handler)
+    }
+
+    fun onEvent(event: String) {
+        handlers.forEach { it(event) }
+    }
+
+    fun dispose() {
+        handlers.clear()
+    }
+
+    override suspend fun send(method: String): String? = sender(method)
 }
