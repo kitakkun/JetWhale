@@ -1,9 +1,11 @@
 package com.kitakkun.jetwhale.host.drawer
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import com.kitakkun.jetwhale.host.architecture.ActionResultEffect
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
+import com.kitakkun.jetwhale.host.model.DebugSession
 import soil.query.compose.rememberSubscription
 
 @Composable
@@ -14,6 +16,7 @@ fun ToolingScaffoldRoot(
     onClickInfo: () -> Unit,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
     onClickPopout: (pluginId: String, pluginName: String, sessionId: String) -> Unit,
+    onSelectedSessionChange: (selectedSession: DebugSession) -> Unit,
     content: @Composable () -> Unit,
 ) {
     SoilDataBoundary(
@@ -40,6 +43,13 @@ fun ToolingScaffoldRoot(
                 enabledPluginIds = enabledPluginIds,
                 hasFailedJars = failedJarPaths.isNotEmpty(),
             )
+        }
+
+        // When the active/selected session changes, notify the host so that an open plugin
+        // screen can follow the newly-selected session instead of lingering on the old one.
+        LaunchedEffect(uiState.selectedSessionId) {
+            val selectedSession = uiState.selectedSession ?: return@LaunchedEffect
+            onSelectedSessionChange(selectedSession)
         }
 
         ToolingScaffold(
