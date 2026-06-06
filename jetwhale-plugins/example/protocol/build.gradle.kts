@@ -8,7 +8,7 @@ plugins {
 }
 
 kotlin {
-    androidLibrary.namespace = "com.kitakkun.jetwhale.plugins.example.protocol"
+    android.namespace = "com.kitakkun.jetwhale.plugins.example.protocol"
 }
 
 dependencies {

@@ -15,7 +15,6 @@ kotlin {
     explicitApi()
 
     abiValidation {
-        enabled.set(true)
     }
 }
 

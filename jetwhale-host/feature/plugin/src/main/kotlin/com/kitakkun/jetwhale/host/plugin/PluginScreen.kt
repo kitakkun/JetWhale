@@ -104,7 +104,7 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
 private fun PointerEvent.toComposeScenePointers(): List<ComposeScenePointer> = this.changes.map { pointerInputChange ->
     ComposeScenePointer(
         id = pointerInputChange.id,

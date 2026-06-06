@@ -9,12 +9,11 @@ plugins {
 }
 
 kotlin {
-    androidLibrary.namespace = "com.kitakkun.jetwhale.protocol.agent"
+    android.namespace = "com.kitakkun.jetwhale.protocol.agent"
 
     explicitApi()
 
     abiValidation {
-        enabled.set(true)
     }
 
     sourceSets.commonMain.dependencies {

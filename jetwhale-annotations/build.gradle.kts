@@ -11,10 +11,9 @@ kotlin {
     explicitApi()
 
     abiValidation {
-        enabled.set(true)
     }
 
-    androidLibrary.namespace = "com.kitakkun.jetwhale.annotations"
+    android.namespace = "com.kitakkun.jetwhale.annotations"
 }
 
 jetwhalePublish {

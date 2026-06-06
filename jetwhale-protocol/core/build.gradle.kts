@@ -9,14 +9,13 @@ plugins {
 }
 
 kotlin {
-    androidLibrary {
+    android {
         namespace = "com.kitakkun.jetwhale.protocol.core"
     }
 
     explicitApi()
 
     abiValidation {
-        enabled.set(true)
     }
 
     sourceSets.commonMain.dependencies {

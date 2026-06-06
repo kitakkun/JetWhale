@@ -12,10 +12,9 @@ kotlin {
     explicitApi()
 
     abiValidation {
-        enabled.set(true)
     }
 
-    androidLibrary.namespace = "com.kitakkun.jetwhale.agent.sdk"
+    android.namespace = "com.kitakkun.jetwhale.agent.sdk"
 }
 
 dependencies {

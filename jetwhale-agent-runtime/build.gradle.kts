@@ -13,10 +13,9 @@ kotlin {
     explicitApi()
 
     abiValidation {
-        enabled.set(true)
     }
 
-    androidLibrary {
+    android {
         namespace = "com.kitakkun.jetwhale.agent.runtime"
         compileSdk = 36
     }
