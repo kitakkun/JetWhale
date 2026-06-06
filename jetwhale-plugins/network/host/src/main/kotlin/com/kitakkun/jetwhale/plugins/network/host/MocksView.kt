@@ -51,22 +51,36 @@ internal fun MocksTab(
     var editing by remember { mutableStateOf<MockRule?>(null) }
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             Switch(mockingEnabled, onToggleMocking)
-            Text("Mocking enabled", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = "Mocking enabled",
+                style = MaterialTheme.typography.bodyMedium,
+            )
             Spacer(Modifier.weight(1f))
             Button(onClick = { editing = blankRule() }) { Text("Add rule") }
         }
         if (rules.isEmpty()) {
-            Text("No mock rules. Add one to override matching responses.", color = MaterialTheme.colorScheme.outline)
+            Text(
+                text = "No mock rules. Add one to override matching responses.",
+                color = MaterialTheme.colorScheme.outline,
+            )
         }
         rules.forEach { rule ->
             MockRuleRow(
                 rule = rule,
-                onToggle = { enabled -> onChanged(rules.map { if (it.id == rule.id) it.copy(enabled = enabled) else it }) },
+                onToggle = { enabled ->
+                    onChanged(rules.map { if (it.id == rule.id) it.copy(enabled = enabled) else it })
+                },
                 onEdit = { editing = rule },
                 onDelete = { onChanged(rules.filterNot { it.id == rule.id }) },
             )
@@ -94,15 +108,19 @@ private fun MockRuleRow(
 ) {
     Card(Modifier.fillMaxWidth()) {
         Row(
-            Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Switch(rule.enabled, onToggle)
             Column(Modifier.weight(1f)) {
-                Text(rule.name.ifBlank { "(unnamed rule)" }, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "${rule.matcher.method ?: "ANY"} • ${rule.matcher.matchType} '${rule.matcher.urlPattern}' → ${rule.response.statusCode}",
+                    text = rule.name.ifBlank { "(unnamed rule)" },
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    text = "${rule.matcher.method ?: "ANY"} • ${rule.matcher.matchType} '${rule.matcher.urlPattern}' → ${rule.response.statusCode}",
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = FontFamily.Monospace,
                     color = MaterialTheme.colorScheme.outline,
@@ -124,18 +142,36 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
             TextButton(
                 onClick = { onSave(draft) },
                 enabled = draft.matcher.urlPattern.isNotBlank(),
-            ) { Text("Register") }
+            ) { Text("Save") }
         },
         dismissButton = { TextButton(onDismiss) { Text("Cancel") } },
         text = {
             Column(
-                Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
+                modifier = Modifier
+                    .heightIn(max = 460.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedTextField(draft.name, { draft = draft.copy(name = it) }, label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = draft.name,
+                    onValueChange = { draft = draft.copy(name = it) },
+                    label = { Text("Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MethodDropdown(draft.matcher.method, { draft = draft.copy(matcher = draft.matcher.copy(method = it)) }, Modifier.width(150.dp))
-                    OutlinedTextField(draft.matcher.urlPattern, { draft = draft.copy(matcher = draft.matcher.copy(urlPattern = it)) }, label = { Text("URL pattern") }, singleLine = true, modifier = Modifier.weight(1f))
+                    MethodDropdown(
+                        method = draft.matcher.method,
+                        onSelect = { draft = draft.copy(matcher = draft.matcher.copy(method = it)) },
+                        modifier = Modifier.width(150.dp),
+                    )
+                    OutlinedTextField(
+                        value = draft.matcher.urlPattern,
+                        onValueChange = { draft = draft.copy(matcher = draft.matcher.copy(urlPattern = it)) },
+                        label = { Text("URL pattern") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     MockMatchType.entries.forEach { type ->
@@ -147,11 +183,55 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(draft.response.statusCode.toString(), { v -> draft = draft.copy(response = draft.response.copy(statusCode = v.toIntOrNull() ?: draft.response.statusCode)) }, label = { Text("Status") }, singleLine = true, modifier = Modifier.width(110.dp))
-                    OutlinedTextField(draft.response.delayMs.toString(), { v -> draft = draft.copy(response = draft.response.copy(delayMs = v.toLongOrNull() ?: draft.response.delayMs)) }, label = { Text("Delay ms") }, singleLine = true, modifier = Modifier.width(120.dp))
-                    OutlinedTextField(draft.response.headers["Content-Type"].orEmpty(), { v -> draft = draft.copy(response = draft.response.copy(headers = if (v.isBlank()) draft.response.headers - "Content-Type" else draft.response.headers + ("Content-Type" to v))) }, label = { Text("Content-Type") }, singleLine = true, modifier = Modifier.weight(1f))
+                    OutlinedTextField(
+                        value = draft.response.statusCode.toString(),
+                        onValueChange = { value ->
+                            draft = draft.copy(
+                                response = draft.response.copy(
+                                    statusCode = value.toIntOrNull() ?: draft.response.statusCode,
+                                ),
+                            )
+                        },
+                        label = { Text("Status") },
+                        singleLine = true,
+                        modifier = Modifier.width(110.dp),
+                    )
+                    OutlinedTextField(
+                        value = draft.response.delayMs.toString(),
+                        onValueChange = { value ->
+                            draft = draft.copy(
+                                response = draft.response.copy(
+                                    delayMs = value.toLongOrNull() ?: draft.response.delayMs,
+                                ),
+                            )
+                        },
+                        label = { Text("Delay ms") },
+                        singleLine = true,
+                        modifier = Modifier.width(120.dp),
+                    )
+                    OutlinedTextField(
+                        value = draft.response.headers["Content-Type"].orEmpty(),
+                        onValueChange = { value ->
+                            val headers = if (value.isBlank()) {
+                                draft.response.headers - "Content-Type"
+                            } else {
+                                draft.response.headers + ("Content-Type" to value)
+                            }
+                            draft = draft.copy(response = draft.response.copy(headers = headers))
+                        },
+                        label = { Text("Content-Type") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
-                OutlinedTextField(draft.response.body, { draft = draft.copy(response = draft.response.copy(body = it)) }, label = { Text("Response body") }, modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp))
+                OutlinedTextField(
+                    value = draft.response.body,
+                    onValueChange = { draft = draft.copy(response = draft.response.copy(body = it)) },
+                    label = { Text("Response body") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 100.dp),
+                )
             }
         },
     )
@@ -164,7 +244,11 @@ private val httpMethods = listOf("ANY", "GET", "POST", "PUT", "PATCH", "DELETE",
 private fun MethodDropdown(method: String?, onSelect: (String?) -> Unit, modifier: Modifier) {
     var expanded by remember { mutableStateOf(false) }
     val current = method?.takeIf { it.isNotBlank() } ?: "ANY"
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }, modifier = modifier) {
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier,
+    ) {
         OutlinedTextField(
             value = current,
             onValueChange = {},
@@ -195,4 +279,8 @@ private fun blankRule(): MockRule = MockRule(
     response = MockResponseSpec(),
 )
 
-private fun List<MockRule>.upsert(rule: MockRule): List<MockRule> = if (any { it.id == rule.id }) map { if (it.id == rule.id) rule else it } else this + rule
+private fun List<MockRule>.upsert(rule: MockRule): List<MockRule> = if (any { it.id == rule.id }) {
+    map { if (it.id == rule.id) rule else it }
+} else {
+    this + rule
+}
