@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.kitakkun.jetwhale.host.architecture.ActionEffect
+import com.kitakkun.jetwhale.host.architecture.MutationErrorEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
@@ -26,6 +27,7 @@ sealed interface ToolingScaffoldScreenAction {
 
 sealed interface ToolingScaffoldScreenActionResult {
     data class SessionClosed(val closedSessionIds: List<String>) : ToolingScaffoldScreenActionResult
+    data class SetPluginEnabledFailed(val error: Throwable) : ToolingScaffoldScreenActionResult
 }
 
 @Composable
@@ -90,9 +92,13 @@ fun toolingScaffoldPresenter(
             }
 
             is ToolingScaffoldScreenAction.SetPluginEnabled -> {
-                setPluginEnabledMutation.mutate(SetPluginEnabledParams(action.pluginId, action.enabled))
+                setPluginEnabledMutation.mutateAsync(SetPluginEnabledParams(action.pluginId, action.enabled))
             }
         }
+    }
+
+    MutationErrorEffect(setPluginEnabledMutation) { error ->
+        screenChannel.emit(ToolingScaffoldScreenActionResult.SetPluginEnabledFailed(error))
     }
 
     return ToolingScaffoldUiState(
