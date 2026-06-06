@@ -18,6 +18,9 @@ dependencies {
 }
 
 tasks.jar {
+    // Unique name so the fat jar doesn't collide with `example:host` (also project name "host").
+    archiveBaseName = "jetwhale-network-inspector"
+
     val dependencies = configurations
         .runtimeClasspath
         .get()
