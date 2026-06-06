@@ -17,4 +17,7 @@ compose.desktop {
 dependencies {
     implementation(projects.demo.shared)
     implementation(compose.desktop.currentOs)
+
+    // Self-contained local API the demo client calls, so the demo never depends on a public endpoint.
+    implementation(libs.ktorServerNetty)
 }
