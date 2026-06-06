@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.settings
 
+import com.kitakkun.jetwhale.host.architecture.PresenterContext
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.model.AdbAutoPortMappingMutationKey
 import com.kitakkun.jetwhale.host.model.AppColorSchemeMutationKey
@@ -15,30 +16,36 @@ import com.kitakkun.jetwhale.host.model.PluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.ServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
-import dev.zacsweers.metro.AppScope
-import dev.zacsweers.metro.ContributesTo
-import dev.zacsweers.metro.GraphExtension
+import dev.zacsweers.metro.Inject
 
-@ContributesTo(AppScope::class)
-@GraphExtension
-interface SettingsScreenContext : ScreenContext {
-    val settingsSubscriptionKey: SettingsSubscriptionKey
-    val appearanceSettingsSubscriptionKey: AppearanceSettingsSubscriptionKey
-    val diagnosticsQueryKey: DiagnosticsQueryKey
-    val appLanguageMutationKey: AppLanguageMutationKey
-    val appColorSchemeMutationKey: AppColorSchemeMutationKey
-    val loadedPluginsMetaDataSubscriptionKey: LoadedPluginsMetaDataSubscriptionKey
-    val failedPluginJarPathsSubscriptionKey: FailedPluginJarPathsSubscriptionKey
-    val serverStatusSubscriptionKey: ServerStatusSubscriptionKey
-    val mcpServerStatusSubscriptionKey: McpServerStatusSubscriptionKey
-    val pluginInstallMutationKey: PluginInstallMutationKey
-    val adbAutoPortMappingMutationKey: AdbAutoPortMappingMutationKey
-    val serverPortMutationKey: ServerPortMutationKey
-    val mcpServerPortMutationKey: McpServerPortMutationKey
-    val logCaptureService: LogCaptureService
+/**
+ * Presenter-role context shared by the settings sub-presenters. Settings is a single screen
+ * with a segmented menu, so the presenter dependencies (mutations and the log capture
+ * service) are aggregated here rather than per sub-presenter.
+ */
+@Inject
+class SettingsPresenterContext(
+    val appLanguageMutationKey: AppLanguageMutationKey,
+    val appColorSchemeMutationKey: AppColorSchemeMutationKey,
+    val adbAutoPortMappingMutationKey: AdbAutoPortMappingMutationKey,
+    val serverPortMutationKey: ServerPortMutationKey,
+    val mcpServerPortMutationKey: McpServerPortMutationKey,
+    val pluginInstallMutationKey: PluginInstallMutationKey,
+    val logCaptureService: LogCaptureService,
+) : PresenterContext
 
-    @GraphExtension.Factory
-    fun interface Factory {
-        fun createSettingsScreenContext(): SettingsScreenContext
-    }
-}
+/**
+ * Screen-role context: the subscription/query keys consumed by the sub-Roots, plus the
+ * presenter context held by composition (has-a).
+ */
+@Inject
+class SettingsScreenContext(
+    val settingsSubscriptionKey: SettingsSubscriptionKey,
+    val appearanceSettingsSubscriptionKey: AppearanceSettingsSubscriptionKey,
+    val diagnosticsQueryKey: DiagnosticsQueryKey,
+    val loadedPluginsMetaDataSubscriptionKey: LoadedPluginsMetaDataSubscriptionKey,
+    val failedPluginJarPathsSubscriptionKey: FailedPluginJarPathsSubscriptionKey,
+    val serverStatusSubscriptionKey: ServerStatusSubscriptionKey,
+    val mcpServerStatusSubscriptionKey: McpServerStatusSubscriptionKey,
+    val presenterContext: SettingsPresenterContext,
+) : ScreenContext

@@ -27,7 +27,6 @@ import soil.query.SwrClientPlus
 @DependencyGraph(AppScope::class)
 interface JetWhaleAppGraph :
     PluginScreenContext.Factory,
-    SettingsScreenContext.Factory,
     ScreenContext {
     val applicationLifecycleOwner: ApplicationLifecycleOwner
     val mcpServerService: McpServerService
@@ -35,6 +34,7 @@ interface JetWhaleAppGraph :
 
     val toolingScaffoldScreenContext: ToolingScaffoldScreenContext
     val licensesScreenContext: LicensesScreenContext
+    val settingsScreenContext: SettingsScreenContext
 
     val themeSubscriptionKey: ThemeSubscriptionKey
     val appearanceSettingsSubscriptionKey: AppearanceSettingsSubscriptionKey

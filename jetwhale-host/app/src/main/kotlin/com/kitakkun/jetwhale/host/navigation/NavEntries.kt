@@ -124,7 +124,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     ) { navKey ->
         context(
             rememberRetained {
-                appGraph.createSettingsScreenContext()
+                appGraph.settingsScreenContext
             },
         ) {
             SettingsScreenRoot(
@@ -178,7 +178,7 @@ fun EntryProviderScope<NavKey>.logViewerEntry() {
 
         context(
             rememberRetained {
-                appGraph.createSettingsScreenContext()
+                appGraph.settingsScreenContext
             },
         ) {
             LogViewerScreenRoot()

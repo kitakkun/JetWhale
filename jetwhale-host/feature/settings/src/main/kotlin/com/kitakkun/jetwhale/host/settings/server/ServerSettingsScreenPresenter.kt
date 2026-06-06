@@ -8,18 +8,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import com.kitakkun.jetwhale.host.architecture.EventEffect
-import com.kitakkun.jetwhale.host.architecture.EventFlow
+import com.kitakkun.jetwhale.host.architecture.ActionEffect
+import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
 import com.kitakkun.jetwhale.host.model.McpServerStatus
-import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
+import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
 import soil.query.compose.rememberMutation
 
 @Composable
-context(screenContext: SettingsScreenContext)
+context(presenterContext: SettingsPresenterContext)
 fun serverSettingsScreenPresenter(
-    eventFlow: EventFlow<ServerSettingsScreenEvent>,
+    screenChannel: ScreenChannel<ServerSettingsScreenAction, Nothing>,
     serverStatus: DebugWebSocketServerStatus,
     mcpServerStatus: McpServerStatus,
     debuggerSettings: DebuggerBehaviorSettings,
@@ -29,8 +29,8 @@ fun serverSettingsScreenPresenter(
     var showDebugApplyConfirmDialog by remember { mutableStateOf(false) }
     var showMcpApplyConfirmDialog by remember { mutableStateOf(false) }
 
-    val debugPortMutation = rememberMutation(screenContext.serverPortMutationKey)
-    val mcpPortMutation = rememberMutation(screenContext.mcpServerPortMutationKey)
+    val debugPortMutation = rememberMutation(presenterContext.serverPortMutationKey)
+    val mcpPortMutation = rememberMutation(presenterContext.mcpServerPortMutationKey)
 
     val savedDebugPortText by rememberUpdatedState(debuggerSettings.serverPort.toString())
     val savedMcpPortText by rememberUpdatedState(debuggerSettings.mcpServerPort.toString())
@@ -56,47 +56,47 @@ fun serverSettingsScreenPresenter(
         }
     }
 
-    EventEffect(eventFlow) { event ->
-        when (event) {
-            is ServerSettingsScreenEvent.ChangeDebugPortText -> {
-                editingDebugPortText = event.text.filter { it.isDigit() }
+    ActionEffect(screenChannel) { action ->
+        when (action) {
+            is ServerSettingsScreenAction.ChangeDebugPortText -> {
+                editingDebugPortText = action.text.filter { it.isDigit() }
             }
 
-            ServerSettingsScreenEvent.ApplyDebugPortChange -> {
+            ServerSettingsScreenAction.ApplyDebugPortChange -> {
                 if (isDebugPortValid && isDebugDirty) {
                     showDebugApplyConfirmDialog = true
                 }
             }
 
-            ServerSettingsScreenEvent.ConfirmApplyDebugPortChange -> {
-                val port = parsedDebugPort ?: return@EventEffect
-                if (!isDebugPortValid) return@EventEffect
+            ServerSettingsScreenAction.ConfirmApplyDebugPortChange -> {
+                val port = parsedDebugPort ?: return@ActionEffect
+                if (!isDebugPortValid) return@ActionEffect
                 showDebugApplyConfirmDialog = false
-                debugPortMutation.mutate(port)
+                debugPortMutation.mutateAsync(port)
             }
 
-            ServerSettingsScreenEvent.DismissApplyDebugPortDialog -> {
+            ServerSettingsScreenAction.DismissApplyDebugPortDialog -> {
                 showDebugApplyConfirmDialog = false
             }
 
-            is ServerSettingsScreenEvent.ChangeMcpPortText -> {
-                editingMcpPortText = event.text.filter { it.isDigit() }
+            is ServerSettingsScreenAction.ChangeMcpPortText -> {
+                editingMcpPortText = action.text.filter { it.isDigit() }
             }
 
-            ServerSettingsScreenEvent.ApplyMcpPortChange -> {
+            ServerSettingsScreenAction.ApplyMcpPortChange -> {
                 if (isMcpPortValid && isMcpDirty) {
                     showMcpApplyConfirmDialog = true
                 }
             }
 
-            ServerSettingsScreenEvent.ConfirmApplyMcpPortChange -> {
-                val port = parsedMcpPort ?: return@EventEffect
-                if (!isMcpPortValid) return@EventEffect
+            ServerSettingsScreenAction.ConfirmApplyMcpPortChange -> {
+                val port = parsedMcpPort ?: return@ActionEffect
+                if (!isMcpPortValid) return@ActionEffect
                 showMcpApplyConfirmDialog = false
-                mcpPortMutation.mutate(port)
+                mcpPortMutation.mutateAsync(port)
             }
 
-            ServerSettingsScreenEvent.DismissApplyMcpPortDialog -> {
+            ServerSettingsScreenAction.DismissApplyMcpPortDialog -> {
                 showMcpApplyConfirmDialog = false
             }
         }
