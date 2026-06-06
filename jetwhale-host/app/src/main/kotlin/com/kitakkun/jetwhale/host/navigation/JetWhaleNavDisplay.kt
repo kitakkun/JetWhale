@@ -51,6 +51,7 @@ fun JetWhaleNavDisplay(
         },
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
+            rememberRetainedNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator(),
         ),
         entryProvider = entryProvider {

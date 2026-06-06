@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.retain.retain
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.savedstate.serialization.SavedStateConfiguration
@@ -21,7 +22,6 @@ import com.kitakkun.jetwhale.host.navigation.addSingleTop
 import com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu
 import com.kitakkun.jetwhale.host.ui.AppEnvironment
 import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
-import io.github.takahirom.rin.rememberRetained
 import kotlinx.serialization.modules.SerializersModule
 import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberSubscription
@@ -92,7 +92,7 @@ fun JetWhaleApp() {
                 JetWhaleTheme(theme.colorScheme) {
                     AppEnvironment(settings.appLanguage) {
                         Surface {
-                            context(rememberRetained { appGraph.toolingScaffoldScreenContext }) {
+                            context(retain { appGraph.toolingScaffoldScreenContext }) {
                                 ToolingScaffoldRoot(
                                     onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },
                                     onClickPluginSettings = {
