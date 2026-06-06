@@ -68,6 +68,8 @@ class DefaultPluginHotReloadService(
     private var watchService: WatchService? = null
 
     override suspend fun start() {
+        // Idempotent: a second start() must not spin up another WatchService/job and leak the first.
+        if (watchJob != null) return
         val devDir = appDataDirectoryProvider.getDevPluginsDir() ?: return
         val devDirectory = File(devDir)
         if (!devDirectory.exists()) {

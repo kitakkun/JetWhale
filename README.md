@@ -60,11 +60,17 @@ under the module's `build` folder. The host loads plugins from that directory **
 plugin's running instances, drops its classloader, reloads the factory from a fresh classloader, and
 refreshes the open plugin screen — no host restart needed.
 
-Combine it with Gradle continuous mode (`-t`) so the jar is rebuilt and re-staged on every source
-change:
+`runJetWhale` is a long-running process (it blocks until you close the host), so do **not** add
+`-t` to it — Gradle continuous mode only starts a new build once the current task graph finishes.
+Instead, run the host in one terminal and continuous re-staging in another; the host watches the
+dev directory and hot-reloads whenever the jar is re-staged:
 
 ```shell
-./gradlew :jetwhale-plugins:example:host:runJetWhale -t
+# Terminal 1 — launch the host (stays running)
+./gradlew :jetwhale-plugins:example:host:runJetWhale
+
+# Terminal 2 — rebuild & re-stage the plugin jar on every source change
+./gradlew :jetwhale-plugins:example:host:stageDevPlugin -t
 ```
 
 When the `jetwhale.devPluginsDir` system property is absent (i.e. a normal production launch), dev

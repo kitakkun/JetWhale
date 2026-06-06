@@ -81,6 +81,9 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             // Discard a previously loaded classloader for the same plugin id (e.g. a reload) so that
             // no stale classloader (and its classes) leaks.
             classLoaders.put(manifest.pluginId, classLoader)?.close()
+            // Remove any other jar-path entries that pointed at this plugin id (e.g. the jar was
+            // renamed/moved or duplicated) so findPluginIdByJarPath never returns a stale path's id.
+            jarPathToPluginId.entries.removeIf { it.value == manifest.pluginId && it.key != pluginJarPath }
             jarPathToPluginId[pluginJarPath] = manifest.pluginId
 
             mutablePluginsFlow.update { current ->

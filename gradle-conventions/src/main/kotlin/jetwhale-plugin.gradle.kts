@@ -14,8 +14,10 @@ import util.JetWhalePluginExtension
  * - `installPlugin` — copies the packaged fat-jar into `~/.jetwhale/plugins/`.
  * - `runJetWhale` — the IntelliJ-`runIde`-equivalent: packages the plugin, places it in a private
  *   dev directory and launches the JetWhale host with `-Djetwhale.devPluginsDir=<dir>` so the host
- *   loads and hot-reloads the plugin under development. Combine with Gradle continuous mode (`-t`)
- *   for live reload: `./gradlew :your:plugin:runJetWhale -t`.
+ *   loads and hot-reloads the plugin under development. For live reload, run `runJetWhale` (which
+ *   blocks while the host is open) in one terminal and `stageDevPlugin -t` in another — the host
+ *   hot-reloads whenever the jar is re-staged. (Do not use `runJetWhale -t`: a blocking JavaExec
+ *   never lets Gradle continuous mode start the next build.)
  */
 
 val pluginExtension = extensions.create("jetwhalePlugin", JetWhalePluginExtension::class.java).apply {
@@ -64,7 +66,7 @@ tasks.register<Copy>("installPlugin") {
 // ---------------------------------------------------------------------------
 
 // A private dev directory under the module's build folder. The host watches it and hot-reloads the
-// plugin jar whenever `packagePlugin` rewrites it (e.g. under Gradle continuous mode `-t`).
+// plugin jar whenever it is re-staged (e.g. by running `stageDevPlugin -t` in a separate terminal).
 val devPluginsDir = layout.buildDirectory.dir("jetwhale/devPlugins")
 
 // Stage the freshly packaged plugin into the dev directory before launching the host.
