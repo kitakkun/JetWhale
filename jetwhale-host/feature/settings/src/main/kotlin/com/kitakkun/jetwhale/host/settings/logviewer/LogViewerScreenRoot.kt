@@ -1,27 +1,29 @@
 package com.kitakkun.jetwhale.host.settings.logviewer
 
 import androidx.compose.runtime.Composable
-import com.kitakkun.jetwhale.host.architecture.rememberEventFlow
+import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
+import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 
 @Composable
-context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
+context(screenContext: SettingsScreenContext)
 fun LogViewerScreenRoot() {
-    val eventFlow = rememberEventFlow<LogViewerScreenEvent>()
-    val uiState = logViewerScreenPresenter(
-        eventFlow = eventFlow,
-        logCaptureService = screenContext.logCaptureService,
-    )
+    val screenChannel = rememberScreenChannel<LogViewerScreenAction, Nothing>()
+    val uiState = context(screenContext.presenterContext) {
+        logViewerScreenPresenter(
+            screenChannel = screenChannel,
+        )
+    }
 
     LogViewerScreen(
         uiState = uiState,
         onClearLogs = {
-            eventFlow.tryEmit(LogViewerScreenEvent.ClearLogs)
+            screenChannel.send(LogViewerScreenAction.ClearLogs)
         },
         onFilterTextChange = {
-            eventFlow.tryEmit(LogViewerScreenEvent.UpdateFilterText(it))
+            screenChannel.send(LogViewerScreenAction.UpdateFilterText(it))
         },
         onAutoScrollChange = {
-            eventFlow.tryEmit(LogViewerScreenEvent.UpdateAutoScroll(it))
+            screenChannel.send(LogViewerScreenAction.UpdateAutoScroll(it))
         },
     )
 }

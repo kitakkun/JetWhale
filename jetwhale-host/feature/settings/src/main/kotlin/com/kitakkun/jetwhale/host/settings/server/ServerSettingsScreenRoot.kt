@@ -2,50 +2,53 @@ package com.kitakkun.jetwhale.host.settings.server
 
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
-import com.kitakkun.jetwhale.host.architecture.rememberEventFlow
+import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
+import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 import soil.query.compose.rememberSubscription
 
 @Composable
-context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
+context(screenContext: SettingsScreenContext)
 fun ServerSettingsScreenRoot() {
     SoilDataBoundary(
         state1 = rememberSubscription(screenContext.serverStatusSubscriptionKey),
         state2 = rememberSubscription(screenContext.mcpServerStatusSubscriptionKey),
         state3 = rememberSubscription(screenContext.settingsSubscriptionKey),
     ) { serverStatus, mcpServerStatus, debuggerSettings ->
-        val eventFlow = rememberEventFlow<ServerSettingsScreenEvent>()
-        val uiState = serverSettingsScreenPresenter(
-            eventFlow = eventFlow,
-            serverStatus = serverStatus,
-            mcpServerStatus = mcpServerStatus,
-            debuggerSettings = debuggerSettings,
-        )
+        val screenChannel = rememberScreenChannel<ServerSettingsScreenAction, Nothing>()
+        val uiState = context(screenContext.presenterContext) {
+            serverSettingsScreenPresenter(
+                screenChannel = screenChannel,
+                serverStatus = serverStatus,
+                mcpServerStatus = mcpServerStatus,
+                debuggerSettings = debuggerSettings,
+            )
+        }
 
         ServerSettingsScreen(
             uiState = uiState,
             onDebugPortTextChange = {
-                eventFlow.tryEmit(ServerSettingsScreenEvent.ChangeDebugPortText(it))
+                screenChannel.send(ServerSettingsScreenAction.ChangeDebugPortText(it))
             },
             onApplyDebugPortChange = {
-                eventFlow.tryEmit(ServerSettingsScreenEvent.ApplyDebugPortChange)
+                screenChannel.send(ServerSettingsScreenAction.ApplyDebugPortChange)
             },
             onConfirmApplyDebugPortChange = {
-                eventFlow.tryEmit(ServerSettingsScreenEvent.ConfirmApplyDebugPortChange)
+                screenChannel.send(ServerSettingsScreenAction.ConfirmApplyDebugPortChange)
             },
             onDismissApplyDebugPortDialog = {
-                eventFlow.tryEmit(ServerSettingsScreenEvent.DismissApplyDebugPortDialog)
+                screenChannel.send(ServerSettingsScreenAction.DismissApplyDebugPortDialog)
             },
             onMcpPortTextChange = {
-                eventFlow.tryEmit(ServerSettingsScreenEvent.ChangeMcpPortText(it))
+                screenChannel.send(ServerSettingsScreenAction.ChangeMcpPortText(it))
             },
             onApplyMcpPortChange = {
-                eventFlow.tryEmit(ServerSettingsScreenEvent.ApplyMcpPortChange)
+                screenChannel.send(ServerSettingsScreenAction.ApplyMcpPortChange)
             },
             onConfirmApplyMcpPortChange = {
-                eventFlow.tryEmit(ServerSettingsScreenEvent.ConfirmApplyMcpPortChange)
+                screenChannel.send(ServerSettingsScreenAction.ConfirmApplyMcpPortChange)
             },
             onDismissApplyMcpPortDialog = {
-                eventFlow.tryEmit(ServerSettingsScreenEvent.DismissApplyMcpPortDialog)
+                screenChannel.send(ServerSettingsScreenAction.DismissApplyMcpPortDialog)
             },
         )
     }

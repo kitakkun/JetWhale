@@ -51,7 +51,7 @@ fun EntryProviderScope<NavKey>.pluginEntries(
     entry<PluginNavKey> { navKey ->
         context(
             rememberRetained {
-                appGraph.createPluginScreenContext(
+                appGraph.pluginScreenContextFactory.create(
                     pluginId = navKey.pluginId,
                     sessionId = navKey.sessionId,
                 )
@@ -84,7 +84,7 @@ fun EntryProviderScope<NavKey>.pluginEntries(
 
         context(
             rememberRetained {
-                appGraph.createPluginScreenContext(
+                appGraph.pluginScreenContextFactory.create(
                     pluginId = navKey.pluginId,
                     sessionId = navKey.sessionId,
                 )
@@ -124,7 +124,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     ) { navKey ->
         context(
             rememberRetained {
-                appGraph.createSettingsScreenContext()
+                appGraph.settingsScreenContext
             },
         ) {
             SettingsScreenRoot(
@@ -149,7 +149,7 @@ fun EntryProviderScope<NavKey>.licensesEntry(
     ) {
         context(
             rememberRetained {
-                appGraph.createLicensesScreenContext()
+                appGraph.licensesScreenContext
             },
         ) {
             LicensesScreenRoot(
@@ -178,7 +178,7 @@ fun EntryProviderScope<NavKey>.logViewerEntry() {
 
         context(
             rememberRetained {
-                appGraph.createSettingsScreenContext()
+                appGraph.settingsScreenContext
             },
         ) {
             LogViewerScreenRoot()

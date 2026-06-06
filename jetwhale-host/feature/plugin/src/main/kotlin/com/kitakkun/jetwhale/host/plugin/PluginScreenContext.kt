@@ -1,33 +1,28 @@
 package com.kitakkun.jetwhale.host.plugin
 
-import androidx.compose.ui.InternalComposeUiApi
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneQueryKey
-import com.kitakkun.jetwhale.host.model.PluginIdQualifier
-import com.kitakkun.jetwhale.host.model.PluginScope
-import com.kitakkun.jetwhale.host.model.SessionIdQualifier
-import dev.zacsweers.metro.AppScope
-import dev.zacsweers.metro.ContributesTo
-import dev.zacsweers.metro.GraphExtension
-import dev.zacsweers.metro.Provides
+import com.kitakkun.jetwhale.host.model.PluginComposeSceneQueryKeyFactory
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 
-@GraphExtension(PluginScope::class)
-interface PluginScreenContext : ScreenContext {
-    @OptIn(InternalComposeUiApi::class)
-    val pluginComposeSceneQueryKey: PluginComposeSceneQueryKey
+/**
+ * Screen context for a plugin instance. The plugin/session ids arrive as NavKey arguments, so
+ * this is created via assisted injection; the compose-scene query is keyed by those ids and
+ * built by the injected [PluginComposeSceneQueryKeyFactory].
+ */
+@AssistedInject
+class PluginScreenContext(
+    @Assisted val pluginId: String,
+    @Assisted val sessionId: String,
+    pluginComposeSceneQueryKeyFactory: PluginComposeSceneQueryKeyFactory,
+) : ScreenContext {
+    val pluginComposeSceneQueryKey: PluginComposeSceneQueryKey =
+        pluginComposeSceneQueryKeyFactory.create(pluginId, sessionId)
 
-    @PluginIdQualifier
-    val pluginId: String
-
-    @SessionIdQualifier
-    val sessionId: String
-
-    @ContributesTo(AppScope::class)
-    @GraphExtension.Factory
+    @AssistedFactory
     fun interface Factory {
-        fun createPluginScreenContext(
-            @PluginIdQualifier @Provides pluginId: String,
-            @SessionIdQualifier @Provides sessionId: String,
-        ): PluginScreenContext
+        fun create(pluginId: String, sessionId: String): PluginScreenContext
     }
 }

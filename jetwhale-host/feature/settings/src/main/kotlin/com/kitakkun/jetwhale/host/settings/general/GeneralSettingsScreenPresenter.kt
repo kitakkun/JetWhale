@@ -1,40 +1,41 @@
 package com.kitakkun.jetwhale.host.settings.general
 
 import androidx.compose.runtime.Composable
-import com.kitakkun.jetwhale.host.architecture.EventEffect
-import com.kitakkun.jetwhale.host.architecture.EventFlow
+import com.kitakkun.jetwhale.host.architecture.ActionEffect
+import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.AppearanceSettings
 import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
 import com.kitakkun.jetwhale.host.model.DebuggingToolsDiagnostics
+import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
 import soil.query.compose.rememberMutation
 
 @Composable
-context(screenContext: com.kitakkun.jetwhale.host.settings.SettingsScreenContext)
+context(presenterContext: SettingsPresenterContext)
 fun generalSettingsScreenPresenter(
-    eventFlow: EventFlow<GeneralSettingsScreenEvent>,
+    screenChannel: ScreenChannel<GeneralSettingsScreenAction, Nothing>,
     debuggerBehaviorSettings: DebuggerBehaviorSettings,
     appearanceSettings: AppearanceSettings,
     diagnostics: DebuggingToolsDiagnostics,
 ): GeneralSettingsScreenUiState {
-    val appLanguageMutation = rememberMutation(screenContext.appLanguageMutationKey)
-    val appColorSchemeMutation = rememberMutation(screenContext.appColorSchemeMutationKey)
-    val adbAutoPortMappingMutation = rememberMutation(screenContext.adbAutoPortMappingMutationKey)
+    val appLanguageMutation = rememberMutation(presenterContext.appLanguageMutationKey)
+    val appColorSchemeMutation = rememberMutation(presenterContext.appColorSchemeMutationKey)
+    val adbAutoPortMappingMutation = rememberMutation(presenterContext.adbAutoPortMappingMutationKey)
 
-    EventEffect(eventFlow) { event ->
-        when (event) {
-            is GeneralSettingsScreenEvent.ChangePersistData -> {
+    ActionEffect(screenChannel) { action ->
+        when (action) {
+            is GeneralSettingsScreenAction.ChangePersistData -> {
             }
 
-            is GeneralSettingsScreenEvent.ChangeAutomaticallyWireADBTransport -> {
-                adbAutoPortMappingMutation.mutate(event.shouldAutomaticallyWire)
+            is GeneralSettingsScreenAction.ChangeAutomaticallyWireADBTransport -> {
+                adbAutoPortMappingMutation.mutateAsync(action.shouldAutomaticallyWire)
             }
 
-            is GeneralSettingsScreenEvent.AppLanguageSelected -> {
-                appLanguageMutation.mutate(event.language)
+            is GeneralSettingsScreenAction.AppLanguageSelected -> {
+                appLanguageMutation.mutateAsync(action.language)
             }
 
-            is GeneralSettingsScreenEvent.ColorSchemeSelected -> {
-                appColorSchemeMutation.mutate(event.colorSchemeId)
+            is GeneralSettingsScreenAction.ColorSchemeSelected -> {
+                appColorSchemeMutation.mutateAsync(action.colorSchemeId)
             }
         }
     }
