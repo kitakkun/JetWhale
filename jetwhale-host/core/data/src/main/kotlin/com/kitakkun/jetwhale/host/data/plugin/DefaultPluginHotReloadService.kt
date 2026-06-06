@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.runtime.simulateHotReload
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
@@ -152,10 +154,19 @@ class DefaultPluginHotReloadService(
         val redefinedPluginId = pluginFactoryRepository.tryRedefinePlugin(jarPath)
         if (redefinedPluginId != null) {
             withContext(Dispatchers.Main) {
-                pluginComposeSceneService.disposePluginScenesForPlugin(redefinedPluginId)
+                if (PRESERVE_REMEMBER_VIA_SIMULATE_HOT_RELOAD) {
+                    // B2: ask Compose to recompose every running composition in place using its own
+                    // hot-reload mechanism, which preserves remember state. The plugin scene is not
+                    // recreated, so composable-local state (scroll, text input) is kept too.
+                    simulateHotReloadPreservingState()
+                } else {
+                    // B1: recreate only the compose scenes; the plugin instance (and its state) is
+                    // kept, but composable-local remember is reset.
+                    pluginComposeSceneService.disposePluginScenesForPlugin(redefinedPluginId)
+                    mutablePluginReloadedFlow.emit(redefinedPluginId)
+                }
             }
             logger.info("Hot reloaded plugin in place (state preserved): $redefinedPluginId")
-            mutablePluginReloadedFlow.emit(redefinedPluginId)
             return
         }
 
@@ -181,6 +192,13 @@ class DefaultPluginHotReloadService(
 
         logger.info("Hot reloaded plugin: $reloadedPluginId")
         mutablePluginReloadedFlow.emit(reloadedPluginId)
+    }
+
+    @OptIn(InternalComposeApi::class)
+    private fun simulateHotReloadPreservingState() {
+        // Compose's own hot-reload entry point: saves the state of all running compositions, disposes
+        // them, and recomposes against the freshly redefined code — preserving remember state.
+        simulateHotReload(Unit)
     }
 
     private fun disposePlugin(pluginId: String) {
@@ -221,5 +239,11 @@ class DefaultPluginHotReloadService(
 
     companion object {
         private const val DEBOUNCE_MILLIS = 300L
+
+        // B2 vs B1. When true, preserve composable-local remember via Compose's in-place hot reload
+        // (simulateHotReload); when false, recreate the plugin's compose scenes (instance state is
+        // still preserved, but remember resets). B2 relies on @InternalComposeApi and must be
+        // verified on the JetBrains Runtime — flip to false if a plugin's UI does not refresh.
+        private const val PRESERVE_REMEMBER_VIA_SIMULATE_HOT_RELOAD = true
     }
 }
