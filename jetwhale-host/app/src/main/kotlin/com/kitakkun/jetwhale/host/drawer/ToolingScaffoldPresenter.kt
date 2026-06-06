@@ -6,6 +6,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.MutationErrorEffect
@@ -14,7 +15,6 @@ import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
-import io.github.takahirom.rin.rememberRetained
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import soil.query.compose.rememberMutation
@@ -39,8 +39,8 @@ fun toolingScaffoldPresenter(
     enabledPluginIds: Set<String>,
     hasFailedJars: Boolean,
 ): ToolingScaffoldUiState {
-    var selectedSessionId by rememberRetained { mutableStateOf("") }
-    var selectedPluginId by rememberRetained { mutableStateOf("") }
+    var selectedSessionId by retain { mutableStateOf("") }
+    var selectedPluginId by retain { mutableStateOf("") }
     val selectedSession by remember(debugSessions, selectedSessionId) {
         derivedStateOf { debugSessions.firstOrNull { it.id == selectedSessionId } }
     }

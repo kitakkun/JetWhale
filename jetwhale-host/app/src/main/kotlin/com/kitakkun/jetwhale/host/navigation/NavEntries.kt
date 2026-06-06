@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -22,7 +23,6 @@ import com.kitakkun.jetwhale.host.screen.InfoScreen
 import com.kitakkun.jetwhale.host.settings.SettingsScreenRoot
 import com.kitakkun.jetwhale.host.settings.licenses.LicensesScreenRoot
 import com.kitakkun.jetwhale.host.settings.logviewer.LogViewerScreenRoot
-import io.github.takahirom.rin.rememberRetained
 import org.jetbrains.compose.resources.stringResource
 
 fun EntryProviderScope<NavKey>.infoEntry(
@@ -50,7 +50,7 @@ fun EntryProviderScope<NavKey>.pluginEntries(
 ) {
     entry<PluginNavKey> { navKey ->
         context(
-            rememberRetained {
+            retain {
                 appGraph.pluginScreenContextFactory.create(
                     pluginId = navKey.pluginId,
                     sessionId = navKey.sessionId,
@@ -83,7 +83,7 @@ fun EntryProviderScope<NavKey>.pluginEntries(
         }
 
         context(
-            rememberRetained {
+            retain {
                 appGraph.pluginScreenContextFactory.create(
                     pluginId = navKey.pluginId,
                     sessionId = navKey.sessionId,
@@ -123,7 +123,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
         ),
     ) { navKey ->
         context(
-            rememberRetained {
+            retain {
                 appGraph.settingsScreenContext
             },
         ) {
@@ -148,7 +148,7 @@ fun EntryProviderScope<NavKey>.licensesEntry(
         ),
     ) {
         context(
-            rememberRetained {
+            retain {
                 appGraph.licensesScreenContext
             },
         ) {
@@ -177,7 +177,7 @@ fun EntryProviderScope<NavKey>.logViewerEntry() {
         }
 
         context(
-            rememberRetained {
+            retain {
                 appGraph.settingsScreenContext
             },
         ) {

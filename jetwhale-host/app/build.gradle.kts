@@ -103,7 +103,6 @@ dependencies {
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(libs.soilQueryCompose)
     implementation(libs.androidxDatastorePreferences)
-    implementation(libs.rin)
     implementation(libs.material3)
     implementation(libs.aboutLibrariesCore)
 

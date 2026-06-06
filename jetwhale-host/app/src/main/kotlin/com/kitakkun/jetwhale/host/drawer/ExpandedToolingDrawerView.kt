@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,7 +46,6 @@ import com.kitakkun.jetwhale.host.plugins
 import com.kitakkun.jetwhale.host.popout
 import com.kitakkun.jetwhale.host.puzzle_outlined
 import com.kitakkun.jetwhale.host.unavailable_plugins
-import io.github.takahirom.rin.rememberRetained
 import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -131,9 +131,9 @@ fun ExpandedToolingDrawerView(
                 }
 
                 else -> {
-                    var enabledPluginsExpanded by rememberRetained { mutableStateOf(true) }
-                    var disabledPluginsExpanded by rememberRetained { mutableStateOf(true) }
-                    var unavailablePluginsExpanded by rememberRetained { mutableStateOf(true) }
+                    var enabledPluginsExpanded by retain { mutableStateOf(true) }
+                    var disabledPluginsExpanded by retain { mutableStateOf(true) }
+                    var unavailablePluginsExpanded by retain { mutableStateOf(true) }
 
                     val enabledPlugins = remember(plugins) { plugins.filter { it.pluginAvailability == PluginAvailability.Enabled } }
                     val disabledPlugins = remember(plugins) { plugins.filter { it.pluginAvailability == PluginAvailability.Disabled } }
