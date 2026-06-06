@@ -60,8 +60,20 @@ reload hook — a separate, deeper spike.
 ## Toward an external "dev-host" (for plugin authors outside this repo)
 
 This module proves the mechanism locally with project dependencies. The external-developer version
-would be a Gradle `hotdev` task that resolves a **published dev-host launcher** plus the developer's
-plugin module (as a source/compile dependency) and runs it under Compose Hot Reload on JBR.
+puts the **launch entry point on the plugin side**: the plugin author's own module embeds JetWhale as
+a dependency and launches it, so the **run target is the plugin module itself** and Compose Hot
+Reload recompiles/redefines the plugin's source:
+
+```kotlin
+// in the plugin author's module (provided by a published jetwhale-dev-host + a Gradle plugin)
+fun main() = launchJetWhaleDevHost()
+```
+```shell
+./gradlew :myPlugin:hotRun --auto   # run target = your plugin module -> your plugin hot-reloads
+```
+
+A Gradle `hotdev` task would wire this up: apply Compose Hot Reload, add the published `jetwhale-dev-host`
+dependency, set the main class, and run on JBR.
 
 Publishing notes:
 
