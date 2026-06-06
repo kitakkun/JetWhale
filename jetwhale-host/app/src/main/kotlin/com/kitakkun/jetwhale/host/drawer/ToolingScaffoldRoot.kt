@@ -28,6 +28,7 @@ fun ToolingScaffoldRoot(
                 // No message sink yet; results are routed through the channel so a future
                 // Root-side handler (e.g. a Snackbar) can surface them during the rollout.
                 is ToolingScaffoldScreenActionResult.SessionClosed -> Unit
+
                 is ToolingScaffoldScreenActionResult.SetPluginEnabledFailed -> Unit
             }
         }
