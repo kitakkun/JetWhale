@@ -6,10 +6,4 @@ plugins {
 
 configure<KotlinJvmExtension> {
     jvmToolchain(17)
-
-    compilerOptions {
-        freeCompilerArgs.addAll(
-            "-Xcontext-parameters",
-        )
-    }
 }
