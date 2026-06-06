@@ -13,10 +13,9 @@ kotlin {
     explicitApi()
 
     abiValidation {
-        enabled.set(true)
     }
 
-    androidLibrary {
+    android {
         namespace = "com.kitakkun.jetwhale.agent.runtime"
         compileSdk = 36
     }
@@ -32,7 +31,10 @@ kotlin {
             implementation(libs.kermit)
         }
 
-        commonTest.dependencies {
+        // The websocket client test spins up a real Ktor server (ktor-server-test-host), which
+        // is JVM-only and pulls ktor-network; keeping it here avoids leaking node:net into the
+        // JS browser test bundle.
+        jvmTest.dependencies {
             implementation(projects.testAnnotations)
             implementation(libs.kotlinTest)
             implementation(libs.ktorServerTestHost)

@@ -32,7 +32,7 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
 
-    androidLibrary {
+    android {
         namespace = "com.kitakkun.jetwhale.demo.shared"
         compileSdk = 36
     }

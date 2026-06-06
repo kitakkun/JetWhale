@@ -3,7 +3,7 @@ plugins {
 }
 
 kotlin {
-    androidLibrary.namespace = "com.kitakkun.test.annotations"
+    android.namespace = "com.kitakkun.test.annotations"
 }
 
 dependencies {
