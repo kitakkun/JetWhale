@@ -83,12 +83,12 @@ val jetwhaleHostRuntime = configurations.create("jetwhaleHostRuntime") {
     isCanBeResolved = true
 }
 
-afterEvaluate {
-    dependencies.add(
-        "jetwhaleHostRuntime",
-        project(pluginExtension.hostApplicationProject.get()),
-    )
-}
+// Wire the host project dependency lazily (no afterEvaluate, so it stays configuration-cache safe)
+// while still honoring any override of `hostApplicationProject` set in the consumer's build script.
+dependencies.addProvider(
+    "jetwhaleHostRuntime",
+    pluginExtension.hostApplicationProject.map { projectPath -> dependencies.project(projectPath) },
+)
 
 tasks.register<JavaExec>("runJetWhale") {
     group = "jetwhale"

@@ -112,9 +112,10 @@ class DefaultPluginHotReloadService(
                 // settle before reloading to avoid reading a half-written jar.
                 if (changedJarNames.isNotEmpty()) {
                     delay(DEBOUNCE_MILLIS)
-                    // Drain any events queued during the debounce window.
-                    drainPendingEvents(service)
-                    changedJarNames.forEach { jarName ->
+                    // Drain events queued during the debounce window, keeping any *additional*
+                    // changed jars so a second jar modified in the window is not dropped.
+                    val allChangedJarNames = changedJarNames + drainPendingJarNames(service)
+                    allChangedJarNames.forEach { jarName ->
                         reloadJar(devDirPath.resolve(jarName).toAbsolutePath().toString())
                     }
                 }
@@ -127,13 +128,17 @@ class DefaultPluginHotReloadService(
         }
     }
 
-    private fun drainPendingEvents(service: WatchService) {
+    /** Drains events queued during the debounce window, returning the names of any changed jars. */
+    private fun drainPendingJarNames(service: WatchService): Set<String> {
+        val names = mutableSetOf<String>()
         var pending: WatchKey? = service.poll()
         while (pending != null) {
             pending.pollEvents()
+                .mapNotNullTo(names) { (it.context() as? Path)?.takeIf { path -> path.extension == "jar" }?.name }
             pending.reset()
             pending = service.poll()
         }
+        return names
     }
 
     private suspend fun reloadJar(jarPath: String) {

@@ -69,6 +69,15 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
                     error("Expected exactly one ${JetWhaleHostPluginFactory::class.java.simpleName} in $pluginJarPath")
                 }
 
+            // If this jar previously loaded under a *different* plugin id, drop that stale entry so
+            // we neither leak its classloader nor show a duplicate plugin.
+            jarPathToPluginId[pluginJarPath]?.takeIf { it != manifest.pluginId }?.let { stalePluginId ->
+                classLoaders.remove(stalePluginId)?.close()
+                mutablePluginsFlow.update { current ->
+                    current.toMutableMap().apply { remove(stalePluginId) }.toPersistentMap()
+                }
+            }
+
             // Discard a previously loaded classloader for the same plugin id (e.g. a reload) so that
             // no stale classloader (and its classes) leaks.
             classLoaders.put(manifest.pluginId, classLoader)?.close()
@@ -104,6 +113,9 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
         // loadPlugin already closes and replaces the previous classloader for the same plugin id,
         // dropping the stale classes. We simply re-run it and report the resulting plugin id.
         loadPlugin(pluginJarPath)
+        // loadPlugin records the path in failedJarPaths on failure; treat that as an unsuccessful
+        // reload (don't report stale success from a leftover jarPathToPluginId mapping).
+        if (pluginJarPath in mutableFailedJarPathsFlow.value) return null
         return jarPathToPluginId[pluginJarPath]
     }
 
