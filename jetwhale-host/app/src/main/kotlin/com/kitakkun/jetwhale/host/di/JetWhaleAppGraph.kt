@@ -28,12 +28,13 @@ import soil.query.SwrClientPlus
 interface JetWhaleAppGraph :
     PluginScreenContext.Factory,
     SettingsScreenContext.Factory,
-    ToolingScaffoldScreenContext.Factory,
     LicensesScreenContext.Factory,
     ScreenContext {
     val applicationLifecycleOwner: ApplicationLifecycleOwner
     val mcpServerService: McpServerService
     val swrClient: SwrClientPlus
+
+    val toolingScaffoldScreenContext: ToolingScaffoldScreenContext
 
     val themeSubscriptionKey: ThemeSubscriptionKey
     val appearanceSettingsSubscriptionKey: AppearanceSettingsSubscriptionKey
