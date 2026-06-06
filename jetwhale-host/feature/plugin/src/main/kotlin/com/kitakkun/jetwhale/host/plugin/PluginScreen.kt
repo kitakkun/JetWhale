@@ -67,7 +67,10 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
             }
             .focusRequester(focusRequester)
             .focusable()
-            .pointerInput(Unit) {
+            // Key on the scene (not Unit): on hot reload the scene instance is replaced, and a
+            // Unit-keyed pointerInput would keep dispatching to the old, now-closed scene — leaving
+            // the freshly reloaded UI unresponsive to clicks.
+            .pointerInput(pluginComposeScene) {
                 awaitPointerEventScope {
                     do {
                         val event = awaitPointerEvent()
