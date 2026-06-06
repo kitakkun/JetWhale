@@ -1,54 +1,66 @@
 # Example Plugin — Compose Hot Reload preview (PoC)
 
-A proof-of-concept harness that renders a JetWhale plugin's UI under **JetBrains Compose Hot
-Reload**, so plugin authors can edit UI code and see it reload **while Compose state is preserved**.
+A proof-of-concept that renders a **real** JetWhale plugin under JetBrains **Compose Hot Reload**, so
+plugin authors can edit UI code and see it reload **while the plugin's Compose state is preserved**.
 
-## Why this exists / how it differs from the runtime hot reload
+## What it actually exercises
 
-The host app's runtime hot reload (`PluginHotReloadService`) reloads a plugin by loading its **jar
-in a new classloader** and rebuilding the Compose scene — which **loses all plugin UI state**.
+Unlike a bare composable preview, the harness:
 
-Compose Hot Reload instead **redefines the loaded classes in place** (JetBrains Runtime / DCEVM) and
-recomposes, **preserving `remember` state**. But it only reloads classes on the **application
-classpath** — it does not target dynamically loaded plugin jars. So this harness puts the plugin on
-the classpath as a direct dependency (`:jetwhale-plugins:example:host`) and renders its
-`ExamplePluginView` directly.
+1. instantiates the real plugin via `ExampleHostPluginFactory().createPlugin()`, and
+2. renders it through the SDK's `ContentRaw` entry point — the **same path the host uses**.
+
+The plugin's state (its event-log `SnapshotStateList`) lives inside the plugin instance held by
+`main()`. So the test is meaningful: does the **plugin instance's own state** survive a hot reload of
+its UI code?
 
 ## Run it
 
-Requires the **JetBrains Runtime (JBR, Java 21)**. Compose Hot Reload provisions a compatible JBR via
-the foojay toolchain resolver (already configured in `settings.gradle.kts`). Compose Hot Reload ships
-bundled with Compose Multiplatform 1.11.1, so no extra plugin is needed.
+Requires the **JetBrains Runtime (JBR, Java 21)**; Compose Hot Reload provisions a compatible JBR via
+the foojay resolver (already configured in `settings.gradle.kts`). Compose Hot Reload ships bundled
+with Compose Multiplatform 1.11.1, so no extra plugin is needed.
 
 ```shell
 ./gradlew :jetwhale-plugins:example:dev-preview:hotRun --auto
 ```
 
-`--auto` enables Gradle continuous build, so saving a source file triggers a recompile + reload.
+Then:
+1. Click **"Send ping to debuggee"** a few times → entries are added to the plugin's event log.
+2. Edit `ExamplePluginView` in `:jetwhale-plugins:example:host` (e.g. change a label) and save.
+3. The UI updates with the new code **while the event log is preserved**.
 
-## What to verify
+## The important caveat: this is the *compile-dependency* path, not the jar path
 
-1. Click **"Send ping to debuggee"** a few times → the event log grows (this is the hoisted state).
-2. Edit `ExamplePluginView` in `:jetwhale-plugins:example:host` — e.g. change a button label or add a
-   `Text` — and save.
-3. The window updates with the new code **while the event log entries remain** (state preserved).
+This works only because the plugin is a **compile-time classpath dependency**, so Compose Hot Reload
+recompiles and redefines it like ordinary app code.
 
-## Known limits (what to expect)
+Production is different: the host loads plugins from external jars (`~/.jetwhale/plugins/*.jar`) via
+**isolated child classloaders** at runtime. Compose Hot Reload **cannot reach those**, because:
+
+- its **continuous build recompiles the modules in the Gradle build**, not a plugin that is only
+  present as a prebuilt jar at runtime; and
+- its class redefinition targets classes on the **application (hot) classpath**, not classes loaded
+  by an unrelated child classloader from an external jar.
+
+So Compose Hot Reload is **not** a drop-in for the installed-jar reload.
+
+## Recommended end state: hybrid
+
+- **Plugin UI development** → develop the plugin as a compile dependency under Compose Hot Reload
+  (this harness), getting state-preserving reloads.
+- **Installed-jar workflow** → keep the classloader-based reload (loses state, but handles any change
+  including new jars/dependencies) as the fallback.
+
+A fully state-preserving reload of the *installed-jar* path would require approach B: a JVM agent
+calling `Instrumentation.redefineClasses` on the plugin's loaded classes plus Compose's internal
+reload hook — a separate, deeper spike.
+
+## Limits to expect
 
 - **Requires JBR** to run; on a stock JDK only method-body changes redefine.
-- Method-body changes and (on JBR) adding/removing methods/fields reload fine; **changing a class's
-  supertype or adding brand-new top-level classes/files** generally cannot be redefined.
-- Restructuring a `@Composable` (changing the group structure) can reset the affected `remember`ed
-  state.
-- One plugin at a time (it is a direct classpath dependency here).
+- Adding/removing methods/fields works on JBR; **changing a supertype or adding new top-level
+  classes/files** generally cannot be redefined.
+- Restructuring a `@Composable` (changing its group structure) can reset the affected state.
 
-## Relationship to the production plugin model
-
-Production loads plugins from external jars via isolated classloaders, which Compose Hot Reload does
-not cover. The recommended end state is a **hybrid**: use this state-preserving reload during UI
-development, and keep the classloader-based reload (state lost, but handles any change including new
-jars/dependencies) as the fallback for the installed-jar workflow.
-
-> Status: PoC. The setup compiles and the `hotRun`/`reload` tasks are available; the actual
-> state-preserving reload behavior must be confirmed on a machine with the JetBrains Runtime (the GUI
-> could not be run in CI).
+> Status: PoC. Compiles and the `hotRun` / `reload` tasks are available; the actual
+> state-preserving reload must be confirmed on a machine with the JetBrains Runtime (no GUI in CI).
