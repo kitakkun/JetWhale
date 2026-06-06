@@ -52,7 +52,9 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
     /**
      * Private per-plugin copy of the jar that each classloader actually opens, keyed by `pluginId`.
      * Loading from a copy lets the source (dev) jar be overwritten without corrupting the running
-     * classloader's open zip handle. Deleted when the plugin is replaced or unloaded.
+     * classloader's open zip handle. Replaced copies are NOT deleted eagerly (cached resource URLs
+     * such as plugin icons may still point at them — deleting would throw NoSuchFileException); they
+     * are cleaned up on JVM exit via deleteOnExit.
      */
     private val runtimeJars: ConcurrentHashMap<String, File> = ConcurrentHashMap()
 
@@ -92,7 +94,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             // we neither leak its classloader nor show a duplicate plugin.
             jarPathToPluginId[pluginJarPath]?.takeIf { it != manifest.pluginId }?.let { stalePluginId ->
                 classLoaders.remove(stalePluginId)?.close()
-                runtimeJars.remove(stalePluginId)?.delete()
+                runtimeJars.remove(stalePluginId)
                 mutablePluginsFlow.update { current ->
                     current.toMutableMap().apply { remove(stalePluginId) }.toPersistentMap()
                 }
@@ -101,7 +103,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             // Discard a previously loaded classloader for the same plugin id (e.g. a reload) so that
             // no stale classloader (and its classes) leaks.
             classLoaders.put(manifest.pluginId, classLoader)?.close()
-            runtimeJars.put(manifest.pluginId, runtimeJar)?.delete()
+            runtimeJars.put(manifest.pluginId, runtimeJar)
             // Remove any other jar-path entries that pointed at this plugin id (e.g. the jar was
             // renamed/moved or duplicated) so findPluginIdByJarPath never returns a stale path's id.
             jarPathToPluginId.entries.removeIf { it.value == manifest.pluginId && it.key != pluginJarPath }
@@ -127,7 +129,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             current.toMutableMap().apply { remove(pluginId) }.toPersistentMap()
         }
         classLoaders.remove(pluginId)?.close()
-        runtimeJars.remove(pluginId)?.delete()
+        runtimeJars.remove(pluginId)
         jarPathToPluginId.entries.removeIf { it.value == pluginId }
         println("Unloaded plugin: $pluginId")
     }
