@@ -38,8 +38,8 @@ class ScreenChannel<Action, ActionResult>(
 fun <A, R> rememberScreenChannel(): ScreenChannel<A, R> = remember { ScreenChannel() }
 
 /** Consumes actions in the Presenter. Gated by [PresenterContext]. */
-context(_: PresenterContext)
 @Composable
+context(_: PresenterContext)
 fun <A> ActionEffect(
     screenChannel: ScreenChannel<A, *>,
     block: suspend (A) -> Unit,
@@ -50,8 +50,8 @@ fun <A> ActionEffect(
 }
 
 /** Consumes results in the Root. Gated by [ScreenContext]. */
-context(_: ScreenContext)
 @Composable
+context(_: ScreenContext)
 fun <R> ActionResultEffect(
     screenChannel: ScreenChannel<*, R>,
     block: suspend (R) -> Unit,
