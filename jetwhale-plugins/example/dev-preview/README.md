@@ -7,7 +7,9 @@ plugin authors can edit UI code and see it reload **while the plugin's Compose s
 
 Unlike a bare composable preview, the harness:
 
-1. instantiates the real plugin via `ExampleHostPluginFactory().createPlugin()`, and
+1. **discovers the plugin from the classpath via `ServiceLoader<JetWhaleHostPluginFactory>`** — the
+   same `@AutoService` mechanism the host uses (so it works for any plugin on the classpath, not just
+   the example), and
 2. renders it through the SDK's `ContentRaw` entry point — the **same path the host uses**.
 
 The plugin's state (its event-log `SnapshotStateList`) lives inside the plugin instance held by
@@ -54,6 +56,25 @@ So Compose Hot Reload is **not** a drop-in for the installed-jar reload.
 A fully state-preserving reload of the *installed-jar* path would require approach B: a JVM agent
 calling `Instrumentation.redefineClasses` on the plugin's loaded classes plus Compose's internal
 reload hook — a separate, deeper spike.
+
+## Toward an external "dev-host" (for plugin authors outside this repo)
+
+This module proves the mechanism locally with project dependencies. The external-developer version
+would be a Gradle `hotdev` task that resolves a **published dev-host launcher** plus the developer's
+plugin module (as a source/compile dependency) and runs it under Compose Hot Reload on JBR.
+
+Publishing notes:
+
+- The host runs as a **binary dependency** — only the plugin needs to be a source/compile dependency
+  to be hot-reloadable. So we publish the host to make it *runnable*, not reloadable.
+- Prefer a **thin `dev-host` aggregator library** published as a normal jar (`api`-depending on the
+  required host modules). The consumer adds **one** dependency and Gradle resolves the rest as normal
+  jars, so the Compose/Kotlin runtime stays **shared** with the plugin module.
+- Avoid a **shaded fat jar**: relocating Compose/Kotlin/coroutines breaks CHR (the plugin's Compose
+  classes must match the host's), and a non-relocated bundle risks duplicate-class conflicts with the
+  plugin's own transitive dependencies.
+- `:jetwhale-host:app` is a Compose Desktop *application* (resources, packaging, DI graph), not a
+  library — a dedicated minimal `dev-host` launcher module is the thing to publish, not `app`.
 
 ## Limits to expect
 

@@ -2,36 +2,38 @@ package com.kitakkun.jetwhale.plugins.example.devpreview
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.window.singleWindowApplication
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleRawDebugOperationContext
-import com.kitakkun.jetwhale.plugins.example.host.ExampleHostPluginFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import java.util.ServiceLoader
 
 /**
- * Compose Hot Reload PoC harness that exercises the *real* plugin rendering path.
+ * Compose Hot Reload "dev-host" spike.
  *
- * Unlike a bare composable preview, this instantiates the actual plugin via its
- * [com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory] and renders it through the SDK's
- * `ContentRaw` entry point — the same path the host uses. The plugin's own state (its event log
- * `SnapshotStateList`) lives inside the plugin instance held by [main], so we can observe whether it
- * survives a hot reload of the plugin's UI code.
+ * Instead of loading a plugin from an external jar via a child classloader (the production model,
+ * which Compose Hot Reload cannot reach), this discovers the plugin from the **application
+ * classpath** via [ServiceLoader] — the same `@AutoService(JetWhaleHostPluginFactory::class)`
+ * mechanism the host uses — and renders it through the SDK's `ContentRaw` entry point.
  *
- * Run on the JetBrains Runtime (see README):
+ * Because the plugin is a compile-time classpath dependency here, Compose Hot Reload can redefine it
+ * in place and recompose while preserving the plugin instance's state.
+ *
+ * This is the local proof of the "dev-host" approach: a plain dev JetWhale that finds plugins on its
+ * classpath and runs under CHR. The external-developer version would resolve a published dev-host
+ * launcher + the developer's plugin module via a Gradle `hotdev` task (see README).
+ *
+ * Run on the JetBrains Runtime:
  *   ./gradlew :jetwhale-plugins:example:dev-preview:hotRun --auto
- *
- * Then: click "Send ping" a few times (entries are added to the plugin's event log), edit
- * `ExamplePluginView` in `:jetwhale-plugins:example:host` and save. The UI updates with the new code
- * while the plugin instance — and its event log — is preserved.
- *
- * Caveat (the point of the PoC): this works because the plugin is a *compile-time classpath
- * dependency*, so Compose Hot Reload recompiles and redefines it like app code. It does NOT cover
- * the production model, where plugins are loaded from external jars via isolated classloaders — see
- * README for why CHR cannot reach those and what the hybrid end state is.
  */
 fun main() {
-    // Created once and kept alive across reloads; the plugin's state lives in this instance, exactly
-    // as it does inside the host.
-    val plugin = ExampleHostPluginFactory().createPlugin()
+    // Discover the plugin the same way the host does: ServiceLoader over the classpath. Whatever
+    // plugin module is on this app's classpath is picked up; here it is :jetwhale-plugins:example:host.
+    val factory = ServiceLoader.load(JetWhaleHostPluginFactory::class.java).firstOrNull()
+        ?: error("No JetWhaleHostPluginFactory found on the classpath")
+
+    // Created once and kept alive across reloads; the plugin's state lives in this instance.
+    val plugin = factory.createPlugin()
 
     val context = object : JetWhaleRawDebugOperationContext {
         override val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default)
@@ -40,7 +42,7 @@ fun main() {
         override suspend fun dispatch(method: String): String? = null
     }
 
-    singleWindowApplication(title = "Example Plugin — Hot Reload Preview") {
+    singleWindowApplication(title = "JetWhale dev-host — Hot Reload Preview") {
         MaterialTheme {
             plugin.ContentRaw(context)
         }
