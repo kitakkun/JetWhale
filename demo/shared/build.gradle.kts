@@ -37,13 +37,18 @@ kotlin {
         compileSdk = 36
     }
 
-    dependencies {
-        implementation(libs.material3)
-        implementation(libs.jetbrainsComposeRuntime)
-        implementation(projects.jetwhaleAgentRuntime)
-        implementation(projects.jetwhaleAgentSdk)
-        implementation(projects.jetwhalePlugins.example.agent)
-        implementation(projects.jetwhalePlugins.example.protocol)
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.material3)
+            implementation(libs.jetbrainsComposeRuntime)
+            implementation(projects.jetwhaleAgentRuntime)
+            implementation(projects.jetwhaleAgentSdk)
+            implementation(projects.jetwhalePlugins.example.agent)
+            implementation(projects.jetwhalePlugins.example.protocol)
+            implementation(projects.jetwhalePlugins.network.agent)
+            implementation(projects.jetwhalePlugins.network.agentKtor)
+            implementation(libs.ktorClientCio)
+        }
     }
 
     val xcFrameworkName = "shared"

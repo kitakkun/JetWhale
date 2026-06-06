@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.demo.shared.initializeJetWhale
 
 fun main() {
     initializeJetWhale()
+    startDemoApiServer()
 
     singleWindowApplication {
         App()

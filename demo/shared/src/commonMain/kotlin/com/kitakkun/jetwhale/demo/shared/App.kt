@@ -17,10 +17,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.plugins.example.protocol.ExampleEvent
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +32,7 @@ fun App() {
     val plugin = DIModule.exampleAgentPlugin
     val eventLogs by plugin.eventLogsFlow.collectAsState()
     var counter by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
 
     MaterialTheme {
         Surface {
@@ -53,6 +58,19 @@ fun App() {
                             Text(
                                 text = "Send ExampleEvent.ButtonClicked(${counter + 1})",
                             )
+                        }
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    runCatching {
+                                        DIModule.httpClient
+                                            .get("http://127.0.0.1:8080/api/todos/1")
+                                            .bodyAsText()
+                                    }
+                                }
+                            },
+                        ) {
+                            Text("Send HTTP GET (jsonplaceholder)")
                         }
                     }
                     items(eventLogs) {
