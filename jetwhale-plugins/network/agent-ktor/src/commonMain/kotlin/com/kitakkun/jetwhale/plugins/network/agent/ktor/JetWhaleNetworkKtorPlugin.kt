@@ -9,6 +9,7 @@ import io.ktor.client.call.save
 import io.ktor.client.plugins.api.ClientPlugin
 import io.ktor.client.plugins.api.Send
 import io.ktor.client.plugins.api.createClientPlugin
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.HttpResponseData
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HeadersBuilder
@@ -51,7 +52,7 @@ fun JetWhaleNetworkAgentPlugin.ktorClientPlugin(maxBodyChars: Int = 100_000): Cl
                     txId = txId,
                     method = method,
                     url = url,
-                    headers = request.headers.build().toCapturedMap(),
+                    headers = request.capturedRequestHeaders(),
                     body = requestBody.text,
                     bodyTruncated = requestBody.truncated,
                     timestampMs = GMTDate().timestamp,
@@ -132,3 +133,26 @@ private fun captureOutgoingBody(content: Any?, maxChars: Int): BodyCapture = whe
 }
 
 private fun StringValues.toCapturedMap(): Map<String, List<String>> = entries().associate { it.key to it.value }
+
+/**
+ * Captures the request headers visible at the [Send] phase, enriched with the body's
+ * Content-Type / Content-Length and any body-level headers. Headers injected later by the engine
+ * (e.g. User-Agent, Accept-Encoding, Host) are not visible to a client plugin and are omitted.
+ */
+private fun HttpRequestBuilder.capturedRequestHeaders(): Map<String, List<String>> {
+    val result = LinkedHashMap<String, List<String>>()
+    headers.build().entries().forEach { (key, value) -> result[key] = value }
+    val content = body
+    if (content is OutgoingContent) {
+        content.contentType?.let { type ->
+            if ("Content-Type" !in result) result["Content-Type"] = listOf(type.toString())
+        }
+        content.contentLength?.let { length ->
+            if ("Content-Length" !in result) result["Content-Length"] = listOf(length.toString())
+        }
+        content.headers.entries().forEach { (key, value) ->
+            if (key !in result) result[key] = value
+        }
+    }
+    return result
+}

@@ -4,7 +4,9 @@ import com.kitakkun.jetwhale.plugins.example.agent.ExampleAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.agent.ktor.ktorClientPlugin
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.request.header
 
 object DIModule {
     val exampleAgentPlugin: ExampleAgentPlugin by lazy { ExampleAgentPlugin() }
@@ -18,6 +20,11 @@ object DIModule {
             // "pending" forever. With it, the agent records the timeout as a failure instead.
             install(HttpTimeout) {
                 requestTimeoutMillis = 10_000
+            }
+            // A demo header so the inspector clearly shows application-level request headers
+            // (not just the Ktor default Accept).
+            install(DefaultRequest) {
+                header("X-Demo-Client", "JetWhale-Demo")
             }
             install(networkAgentPlugin.ktorClientPlugin())
         }

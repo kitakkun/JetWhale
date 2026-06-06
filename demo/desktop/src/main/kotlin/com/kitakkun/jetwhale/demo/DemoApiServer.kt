@@ -3,8 +3,10 @@ package com.kitakkun.jetwhale.demo
 import io.ktor.http.ContentType
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import io.ktor.server.request.receiveText
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 
 /**
@@ -18,6 +20,13 @@ fun startDemoApiServer(port: Int = 8080) {
                 val id = call.parameters["id"] ?: "0"
                 call.respondText(
                     """{"id":$id,"title":"Sample todo $id","completed":false}""",
+                    ContentType.Application.Json,
+                )
+            }
+            post("/api/todos") {
+                val received = call.receiveText()
+                call.respondText(
+                    """{"id":99,"created":true,"echo":$received}""",
                     ContentType.Application.Json,
                 )
             }
