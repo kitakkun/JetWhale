@@ -148,25 +148,34 @@ class DefaultPluginHotReloadService(
     private suspend fun reloadJar(jarPath: String) {
         if (!File(jarPath).exists()) return
 
-        // B1: try an in-place class redefinition first. On success the plugin's classloader and
-        // instances (and therefore their state) are kept; we only recreate the compose scenes so the
-        // redefined Content runs against the preserved instance state.
+        // Try an in-place class redefinition first. On success the plugin's classloader and instances
+        // (and therefore their state) are kept; how the UI is refreshed afterwards is configurable via
+        // [RELOAD_STRATEGY] so the remember-preservation approach can be experimented with.
         val redefinedPluginId = pluginFactoryRepository.tryRedefinePlugin(jarPath)
         if (redefinedPluginId != null) {
             withContext(Dispatchers.Main) {
-                if (PRESERVE_REMEMBER_VIA_SIMULATE_HOT_RELOAD) {
-                    // B2: ask Compose to recompose every running composition in place using its own
-                    // hot-reload mechanism, which preserves remember state. The plugin scene is not
-                    // recreated, so composable-local state (scroll, text input) is kept too.
-                    simulateHotReloadPreservingState()
-                } else {
-                    // B1: recreate only the compose scenes; the plugin instance (and its state) is
-                    // kept, but composable-local remember is reset.
-                    pluginComposeSceneService.disposePluginScenesForPlugin(redefinedPluginId)
-                    mutablePluginReloadedFlow.emit(redefinedPluginId)
+                when (RELOAD_STRATEGY) {
+                    ReloadStrategy.SCENE_RECREATE -> {
+                        // Recreate only the plugin's compose scenes. Instance state is preserved, but
+                        // composable-local remember is reset. Most robust; does not touch the host.
+                        pluginComposeSceneService.disposePluginScenesForPlugin(redefinedPluginId)
+                        mutablePluginReloadedFlow.emit(redefinedPluginId)
+                    }
+
+                    ReloadStrategy.SIMULATE_HOT_RELOAD -> {
+                        // Compose's own hot reload: recomposes every running composition in place,
+                        // preserving remember. Note it also recomposes the host UI.
+                        simulateHotReloadPreservingState()
+                    }
+
+                    ReloadStrategy.NONE -> {
+                        // Do nothing and rely on Compose's live-edit auto-invalidation (active when an
+                        // agent is attached) to recompose the redefined composables in place, keeping
+                        // remember. The cheapest path if Compose picks up our redefineClasses itself.
+                    }
                 }
             }
-            logger.info("Hot reloaded plugin in place (state preserved): $redefinedPluginId")
+            logger.info("Hot reloaded plugin in place via $RELOAD_STRATEGY (state preserved): $redefinedPluginId")
             return
         }
 
@@ -240,11 +249,21 @@ class DefaultPluginHotReloadService(
     companion object {
         private const val DEBOUNCE_MILLIS = 300L
 
-        // B2 vs B1. When true, preserve composable-local remember via Compose's in-place hot reload
-        // (simulateHotReload). NOTE: simulateHotReload recomposes EVERY running composition in the
-        // process — including the host UI — which can destabilize the host, so B1 is the default.
-        // When false, only the plugin's compose scenes are recreated (instance state preserved,
-        // remember reset). B2 relies on @InternalComposeApi and needs JetBrains Runtime verification.
-        private const val PRESERVE_REMEMBER_VIA_SIMULATE_HOT_RELOAD = false
+        // How the plugin UI is refreshed after a successful in-place class redefinition. Switch this
+        // to experiment with preserving composable-local remember state (see [ReloadStrategy]).
+        // SCENE_RECREATE is the safe default (instance state kept, remember reset).
+        private val RELOAD_STRATEGY = ReloadStrategy.SCENE_RECREATE
     }
+}
+
+/** How the plugin UI is refreshed after an in-place class redefinition (see [DefaultPluginHotReloadService]). */
+private enum class ReloadStrategy {
+    /** Recreate the plugin's compose scenes. Instance state kept, composable-local remember reset. */
+    SCENE_RECREATE,
+
+    /** Compose's simulateHotReload: keeps remember, but recomposes the whole host process. */
+    SIMULATE_HOT_RELOAD,
+
+    /** Do nothing; rely on Compose live-edit auto-invalidation to recompose the redefined code. */
+    NONE,
 }
