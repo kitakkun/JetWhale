@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.mcp.McpServerService
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.model.PluginHotReloadService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -22,6 +23,7 @@ class ApplicationLifecycleOwner(
     private val mcpServerService: McpServerService,
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
     private val pluginFactoryRepository: PluginFactoryRepository,
+    private val pluginHotReloadService: PluginHotReloadService,
     private val settingsRepository: DebuggerSettingsRepository,
 ) {
     enum class ApplicationState {
@@ -53,6 +55,10 @@ class ApplicationLifecycleOwner(
                 pluginFactoryRepository.loadPlugin(it)
             }
 
+            // Loads dev plugins (if any) and starts watching the dev directory for hot reload.
+            // No-op unless the jetwhale.devPluginsDir system property is set.
+            pluginHotReloadService.start()
+
             mutableApplicationStateFlow.update { ApplicationState.INITIALIZED }
         }
     }
@@ -60,6 +66,7 @@ class ApplicationLifecycleOwner(
     fun shutdown() {
         mutableApplicationStateFlow.update { ApplicationState.STOPPING }
         coroutineScope.launch {
+            pluginHotReloadService.stop()
             mcpServerService.stop()
             server.stop()
             mutableApplicationStateFlow.update { ApplicationState.STOPPED }

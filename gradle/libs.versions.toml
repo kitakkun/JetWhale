@@ -169,3 +169,4 @@ multiplatform = { id = "multiplatform" }
 serialization = { id = "serialization" }
 debuggerComposeFeature = { id = "debugger-compose-feature" }
 publish = { id = "publish" }
+jetwhalePlugin = { id = "jetwhale-plugin" }

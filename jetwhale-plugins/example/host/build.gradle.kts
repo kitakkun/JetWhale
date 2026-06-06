@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.jvm)
     alias(libs.plugins.compose)
     alias(libs.plugins.ksp)
+    // Provides packagePlugin / installPlugin / runJetWhale tasks (see the jetwhale-plugin convention).
+    alias(libs.plugins.jetwhalePlugin)
 }
 
 dependencies {
@@ -12,13 +14,4 @@ dependencies {
     compileOnly(libs.material3)
     compileOnly(libs.kotlinxSerializationJson)
     api(projects.jetwhalePlugins.example.protocol)
-}
-
-tasks.jar {
-    val dependencies = configurations
-        .runtimeClasspath
-        .get()
-        .map(::zipTree)
-    from(dependencies)
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

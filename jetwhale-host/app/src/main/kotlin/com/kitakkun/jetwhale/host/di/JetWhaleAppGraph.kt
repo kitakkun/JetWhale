@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
+import com.kitakkun.jetwhale.host.model.PluginHotReloadService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
 import com.kitakkun.jetwhale.host.plugin.PluginScreenContext
@@ -40,6 +41,7 @@ interface JetWhaleAppGraph : ScreenContext {
     val debugWebSocketServer: DebugWebSocketServer
     val pluginComposeSceneService: PluginComposeSceneService
     val pluginInstanceService: PluginInstanceService
+    val pluginHotReloadService: PluginHotReloadService
     val logCaptureService: LogCaptureService
     val enabledPluginsRepository: EnabledPluginsRepository
 
