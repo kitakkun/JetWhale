@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import net.bytebuddy.agent.ByteBuddyAgent
+import java.io.File
 import java.lang.instrument.ClassDefinition
 import java.lang.instrument.Instrumentation
 import java.net.URLClassLoader
@@ -48,9 +49,21 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
     /** Maps the absolute jar path a plugin was loaded from to its `pluginId`. */
     private val jarPathToPluginId: ConcurrentHashMap<String, String> = ConcurrentHashMap()
 
+    /**
+     * Private per-plugin copy of the jar that each classloader actually opens, keyed by `pluginId`.
+     * Loading from a copy lets the source (dev) jar be overwritten without corrupting the running
+     * classloader's open zip handle. Deleted when the plugin is replaced or unloaded.
+     */
+    private val runtimeJars: ConcurrentHashMap<String, File> = ConcurrentHashMap()
+
     override suspend fun loadPlugin(pluginJarPath: String) {
         try {
-            val classLoader = URLClassLoader(arrayOf(Path(pluginJarPath).toUri().toURL()))
+            // Open the classloader on a private copy of the jar so the source jar can be overwritten
+            // (e.g. by dev hot-reload restaging) without corrupting this classloader's open zip
+            // handle — which otherwise throws ZipException on later resource/class reads.
+            val runtimeJar = File.createTempFile("jetwhale-plugin-", ".jar").also { it.deleteOnExit() }
+            File(pluginJarPath).copyTo(runtimeJar, overwrite = true)
+            val classLoader = URLClassLoader(arrayOf(runtimeJar.toURI().toURL()))
 
             val manifestJson = classLoader
                 .getResourceAsStream(MANIFEST_PATH)
@@ -59,6 +72,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
                 ?: run {
                     println("Warning: $MANIFEST_PATH not found in $pluginJarPath")
                     classLoader.close()
+                    runtimeJar.delete()
                     mutableFailedJarPathsFlow.update { it + pluginJarPath }
                     return
                 }
@@ -70,6 +84,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
                 .singleOrNull()
                 ?: run {
                     classLoader.close()
+                    runtimeJar.delete()
                     error("Expected exactly one ${JetWhaleHostPluginFactory::class.java.simpleName} in $pluginJarPath")
                 }
 
@@ -77,6 +92,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             // we neither leak its classloader nor show a duplicate plugin.
             jarPathToPluginId[pluginJarPath]?.takeIf { it != manifest.pluginId }?.let { stalePluginId ->
                 classLoaders.remove(stalePluginId)?.close()
+                runtimeJars.remove(stalePluginId)?.delete()
                 mutablePluginsFlow.update { current ->
                     current.toMutableMap().apply { remove(stalePluginId) }.toPersistentMap()
                 }
@@ -85,6 +101,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             // Discard a previously loaded classloader for the same plugin id (e.g. a reload) so that
             // no stale classloader (and its classes) leaks.
             classLoaders.put(manifest.pluginId, classLoader)?.close()
+            runtimeJars.put(manifest.pluginId, runtimeJar)?.delete()
             // Remove any other jar-path entries that pointed at this plugin id (e.g. the jar was
             // renamed/moved or duplicated) so findPluginIdByJarPath never returns a stale path's id.
             jarPathToPluginId.entries.removeIf { it.value == manifest.pluginId && it.key != pluginJarPath }
@@ -110,6 +127,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             current.toMutableMap().apply { remove(pluginId) }.toPersistentMap()
         }
         classLoaders.remove(pluginId)?.close()
+        runtimeJars.remove(pluginId)?.delete()
         jarPathToPluginId.entries.removeIf { it.value == pluginId }
         println("Unloaded plugin: $pluginId")
     }

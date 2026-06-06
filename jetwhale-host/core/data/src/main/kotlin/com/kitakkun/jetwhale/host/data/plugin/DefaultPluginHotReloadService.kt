@@ -241,9 +241,10 @@ class DefaultPluginHotReloadService(
         private const val DEBOUNCE_MILLIS = 300L
 
         // B2 vs B1. When true, preserve composable-local remember via Compose's in-place hot reload
-        // (simulateHotReload); when false, recreate the plugin's compose scenes (instance state is
-        // still preserved, but remember resets). B2 relies on @InternalComposeApi and must be
-        // verified on the JetBrains Runtime — flip to false if a plugin's UI does not refresh.
-        private const val PRESERVE_REMEMBER_VIA_SIMULATE_HOT_RELOAD = true
+        // (simulateHotReload). NOTE: simulateHotReload recomposes EVERY running composition in the
+        // process — including the host UI — which can destabilize the host, so B1 is the default.
+        // When false, only the plugin's compose scenes are recreated (instance state preserved,
+        // remember reset). B2 relies on @InternalComposeApi and needs JetBrains Runtime verification.
+        private const val PRESERVE_REMEMBER_VIA_SIMULATE_HOT_RELOAD = false
     }
 }
