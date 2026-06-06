@@ -31,6 +31,9 @@ dependencies {
     // Used in dev hot-reload to obtain a JVM Instrumentation handle (self-attach) for in-place class
     // redefinition. Dormant in production: only touched when the dev plugins directory is configured.
     implementation(libs.byteBuddyAgent)
+    // Reads @FunctionKeyMeta (BINARY-retention) group keys from redefined plugin bytecode so the
+    // dev hot-reload can invalidate exactly those Compose groups (state-preserving reload).
+    implementation(libs.asm)
     implementation(libs.bundles.ktorServer)
     implementation(libs.logbackClassic)
     implementation(libs.kotlinTest)

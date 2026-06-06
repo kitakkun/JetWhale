@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.model.RedefinedPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import dev.zacsweers.metro.AppScope
@@ -18,6 +19,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import net.bytebuddy.agent.ByteBuddyAgent
+import org.objectweb.asm.AnnotationVisitor
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassVisitor
+import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.Opcodes
 import java.io.File
 import java.lang.instrument.ClassDefinition
 import java.lang.instrument.Instrumentation
@@ -146,7 +152,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
         return jarPathToPluginId[pluginJarPath]
     }
 
-    override fun tryRedefinePlugin(pluginJarPath: String): String? {
+    override fun tryRedefinePlugin(pluginJarPath: String): RedefinedPlugin? {
         val instrumentation = instrumentation ?: return null
         val pluginId = jarPathToPluginId[pluginJarPath] ?: return null
         val classLoader = classLoaders[pluginId] ?: return null
@@ -158,17 +164,21 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             val loadedClasses = instrumentation.allLoadedClasses.filter { it.classLoader === classLoader }
             if (loadedClasses.isEmpty()) return null
 
+            val composableGroupKeys = mutableSetOf<Int>()
             val definitions = JarFile(pluginJarPath).use { jar ->
                 loadedClasses.mapNotNull { clazz ->
                     val entry = jar.getJarEntry(clazz.name.replace('.', '/') + ".class") ?: return@mapNotNull null
                     val bytes = jar.getInputStream(entry).use { it.readBytes() }
+                    // Collect the @Composable group keys so the caller can invalidate exactly those
+                    // groups for a state-preserving recompose.
+                    composableGroupKeys += readFunctionKeyMetaKeys(bytes)
                     ClassDefinition(clazz, bytes)
                 }
             }
             if (definitions.isEmpty()) return null
 
             instrumentation.redefineClasses(*definitions.toTypedArray())
-            pluginId
+            RedefinedPlugin(pluginId = pluginId, composableGroupKeys = composableGroupKeys.toList())
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
@@ -177,6 +187,55 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             println("In-place redefine failed for $pluginId: ${e.message}; falling back to full reload")
             null
         }
+    }
+
+    /**
+     * Reads the Compose group keys from every `@FunctionKeyMeta(key, ...)` in [classBytes] (on the
+     * class and its methods). The annotation has BINARY retention, so it is read from the bytecode
+     * with ASM rather than reflection. Kotlin's `@Repeatable` stores multiples in a `$Container`.
+     */
+    private fun readFunctionKeyMetaKeys(classBytes: ByteArray): Set<Int> {
+        val keys = mutableSetOf<Int>()
+        val keyReader = object : AnnotationVisitor(Opcodes.ASM9) {
+            override fun visit(name: String?, value: Any?) {
+                if (name == "key" && value is Int) keys += value
+            }
+        }
+        fun visitorFor(descriptor: String?): AnnotationVisitor? = when (descriptor) {
+            FUNCTION_KEY_META_DESC -> keyReader
+
+            FUNCTION_KEY_META_CONTAINER_DESC -> object : AnnotationVisitor(Opcodes.ASM9) {
+                override fun visitArray(name: String?): AnnotationVisitor? = if (name == "value") {
+                    object : AnnotationVisitor(Opcodes.ASM9) {
+                        override fun visitAnnotation(name: String?, descriptor: String?): AnnotationVisitor? = if (descriptor == FUNCTION_KEY_META_DESC) keyReader else null
+                    }
+                } else {
+                    null
+                }
+            }
+
+            else -> null
+        }
+        val classVisitor = object : ClassVisitor(Opcodes.ASM9) {
+            override fun visitAnnotation(descriptor: String?, visible: Boolean): AnnotationVisitor? = visitorFor(descriptor)
+
+            override fun visitMethod(
+                access: Int,
+                name: String?,
+                descriptor: String?,
+                signature: String?,
+                exceptions: Array<out String>?,
+            ): MethodVisitor = object : MethodVisitor(Opcodes.ASM9) {
+                override fun visitAnnotation(descriptor: String?, visible: Boolean): AnnotationVisitor? = visitorFor(descriptor)
+            }
+        }
+        runCatching {
+            ClassReader(classBytes).accept(
+                classVisitor,
+                ClassReader.SKIP_CODE or ClassReader.SKIP_DEBUG or ClassReader.SKIP_FRAMES,
+            )
+        }
+        return keys
     }
 
     /**
@@ -190,5 +249,9 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
     companion object {
         private const val MANIFEST_PATH = "META-INF/jetwhale/plugin-manifest.json"
         private val pluginManifestJson = Json { ignoreUnknownKeys = true }
+
+        private const val FUNCTION_KEY_META_DESC = "Landroidx/compose/runtime/internal/FunctionKeyMeta;"
+        private const val FUNCTION_KEY_META_CONTAINER_DESC =
+            "Landroidx/compose/runtime/internal/FunctionKeyMeta\$Container;"
     }
 }

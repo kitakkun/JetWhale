@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import androidx.compose.runtime.InternalComposeApi
+import androidx.compose.runtime.invalidateGroupsWithKey
 import androidx.compose.runtime.simulateHotReload
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
@@ -151,20 +152,30 @@ class DefaultPluginHotReloadService(
         // Try an in-place class redefinition first. On success the plugin's classloader and instances
         // (and therefore their state) are kept; how the UI is refreshed afterwards is configurable via
         // [RELOAD_STRATEGY] so the remember-preservation approach can be experimented with.
-        val redefinedPluginId = pluginFactoryRepository.tryRedefinePlugin(jarPath)
-        if (redefinedPluginId != null) {
+        val redefined = pluginFactoryRepository.tryRedefinePlugin(jarPath)
+        if (redefined != null) {
             withContext(Dispatchers.Main) {
                 when (RELOAD_STRATEGY) {
+                    ReloadStrategy.INVALIDATE_GROUPS -> {
+                        // Invalidate exactly the redefined @Composable groups (by their compiler group
+                        // key). Compose recomposes them in place against the new code WITHOUT disposing
+                        // the composition, so remember state is preserved and the rest of the UI —
+                        // including the host — is untouched. This is the same primitive Compose's own
+                        // live edit uses.
+                        invalidateRedefinedGroups(redefined.composableGroupKeys)
+                    }
+
                     ReloadStrategy.SCENE_RECREATE -> {
                         // Recreate only the plugin's compose scenes. Instance state is preserved, but
                         // composable-local remember is reset. Most robust; does not touch the host.
-                        pluginComposeSceneService.disposePluginScenesForPlugin(redefinedPluginId)
-                        mutablePluginReloadedFlow.emit(redefinedPluginId)
+                        pluginComposeSceneService.disposePluginScenesForPlugin(redefined.pluginId)
+                        mutablePluginReloadedFlow.emit(redefined.pluginId)
                     }
 
                     ReloadStrategy.SIMULATE_HOT_RELOAD -> {
-                        // Compose's own hot reload: recomposes every running composition in place,
-                        // preserving remember. Note it also recomposes the host UI.
+                        // Compose's save/dispose/restore hot reload. NOTE: it DISPOSES every running
+                        // composition (host included) and recomposes — observed to reset the whole UI,
+                        // so it is not recommended. Kept for comparison.
                         simulateHotReloadPreservingState()
                     }
 
@@ -175,7 +186,10 @@ class DefaultPluginHotReloadService(
                     }
                 }
             }
-            logger.info("Hot reloaded plugin in place via $RELOAD_STRATEGY (state preserved): $redefinedPluginId")
+            logger.info(
+                "Hot reloaded plugin in place via $RELOAD_STRATEGY (state preserved): " +
+                    "${redefined.pluginId} (${redefined.composableGroupKeys.size} composable groups)",
+            )
             return
         }
 
@@ -201,6 +215,14 @@ class DefaultPluginHotReloadService(
 
         logger.info("Hot reloaded plugin: $reloadedPluginId")
         mutablePluginReloadedFlow.emit(reloadedPluginId)
+    }
+
+    @OptIn(InternalComposeApi::class)
+    private fun invalidateRedefinedGroups(groupKeys: List<Int>) {
+        // Invalidate-only (no dispose): Compose marks the groups with these keys dirty and recomposes
+        // them against the redefined code, keeping the slot table — and therefore remember state —
+        // intact. Only groups with these keys (the redefined plugin composables) are affected.
+        groupKeys.forEach { key -> invalidateGroupsWithKey(key) }
     }
 
     @OptIn(InternalComposeApi::class)
@@ -249,19 +271,26 @@ class DefaultPluginHotReloadService(
     companion object {
         private const val DEBOUNCE_MILLIS = 300L
 
-        // How the plugin UI is refreshed after a successful in-place class redefinition. Switch this
-        // to experiment with preserving composable-local remember state (see [ReloadStrategy]).
-        // SCENE_RECREATE is the safe default (instance state kept, remember reset).
-        private val RELOAD_STRATEGY = ReloadStrategy.SCENE_RECREATE
+        // How the plugin UI is refreshed after a successful in-place class redefinition (see
+        // [ReloadStrategy]). INVALIDATE_GROUPS is the state-preserving default; SCENE_RECREATE is the
+        // robust fallback if a target runtime does not support group invalidation as expected.
+        private val RELOAD_STRATEGY = ReloadStrategy.INVALIDATE_GROUPS
     }
 }
 
 /** How the plugin UI is refreshed after an in-place class redefinition (see [DefaultPluginHotReloadService]). */
 private enum class ReloadStrategy {
+    /**
+     * Invalidate exactly the redefined @Composable groups (by their @FunctionKeyMeta group key) so
+     * Compose recomposes them in place without disposing — preserving remember and leaving the host
+     * untouched. The theoretically-grounded, state-preserving default (same primitive as live edit).
+     */
+    INVALIDATE_GROUPS,
+
     /** Recreate the plugin's compose scenes. Instance state kept, composable-local remember reset. */
     SCENE_RECREATE,
 
-    /** Compose's simulateHotReload: keeps remember, but recomposes the whole host process. */
+    /** Compose's simulateHotReload: DISPOSES every composition (resets the whole UI). Not recommended. */
     SIMULATE_HOT_RELOAD,
 
     /** Do nothing; rely on Compose live-edit auto-invalidation to recompose the redefined code. */

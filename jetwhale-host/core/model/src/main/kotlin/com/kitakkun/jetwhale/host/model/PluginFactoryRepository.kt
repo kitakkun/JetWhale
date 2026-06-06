@@ -35,10 +35,25 @@ interface PluginFactoryRepository {
      * already-loaded classes are redefined from the rebuilt jar **without** dropping the classloader
      * or recreating the plugin instance, so the plugin instance's state is preserved.
      *
-     * Returns the `pluginId` on success, or `null` when an in-place swap is not possible (no JVM
+     * Returns a [RedefinedPlugin] on success (including the Compose group keys of the redefined
+     * `@Composable` functions, so the caller can invalidate exactly those groups for a
+     * state-preserving recompose), or `null` when an in-place swap is not possible (no JVM
      * Instrumentation available, an unsupported/structural change without an enhanced runtime such as
      * the JetBrains Runtime, etc.). On `null` the caller should fall back to [reloadPlugin], which
      * does a full reload at the cost of losing state.
      */
-    fun tryRedefinePlugin(pluginJarPath: String): String?
+    fun tryRedefinePlugin(pluginJarPath: String): RedefinedPlugin?
 }
+
+/**
+ * Result of a successful in-place plugin redefinition.
+ *
+ * @property pluginId the plugin that was redefined.
+ * @property composableGroupKeys the Compose group keys (`@FunctionKeyMeta.key`) of the redefined
+ *   `@Composable` functions. Passing these to `invalidateGroupsWithKey` recomposes exactly those
+ *   groups in place, preserving `remember` state and leaving the rest of the UI untouched.
+ */
+data class RedefinedPlugin(
+    val pluginId: String,
+    val composableGroupKeys: List<Int>,
+)
