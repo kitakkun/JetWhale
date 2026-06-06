@@ -12,10 +12,12 @@ import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.net.URLClassLoader
 import java.util.ServiceLoader
@@ -80,7 +82,11 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
 
             // Discard a previously loaded classloader for the same plugin id (e.g. a reload) so that
             // no stale classloader (and its classes) leaks.
-            classLoaders.put(manifest.pluginId, classLoader)?.close()
+            classLoaders.put(manifest.pluginId, classLoader)?.also { oldClassLoader ->
+                withContext(Dispatchers.IO) {
+                    oldClassLoader.close()
+                }
+            }
             // Remove any other jar-path entries that pointed at this plugin id (e.g. the jar was
             // renamed/moved or duplicated) so findPluginIdByJarPath never returns a stale path's id.
             jarPathToPluginId.entries.removeIf { it.value == manifest.pluginId && it.key != pluginJarPath }
