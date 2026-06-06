@@ -7,9 +7,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.kitakkun.jetwhale.host.architecture.EventEffect
-import com.kitakkun.jetwhale.host.architecture.EventFlow
-import com.kitakkun.jetwhale.host.architecture.MutableConsumableEffect
+import com.kitakkun.jetwhale.host.architecture.ActionEffect
+import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginMetaData
@@ -19,20 +18,20 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import soil.query.compose.rememberMutation
 
-sealed interface ToolingScaffoldEvent {
-    data class SelectSession(val session: DebugSession) : ToolingScaffoldEvent
-    data class UpdateSelectedPlugin(val pluginId: String) : ToolingScaffoldEvent
-    data class SetPluginEnabled(val pluginId: String, val enabled: Boolean) : ToolingScaffoldEvent
+sealed interface ToolingScaffoldScreenAction {
+    data class SelectSession(val session: DebugSession) : ToolingScaffoldScreenAction
+    data class UpdateSelectedPlugin(val pluginId: String) : ToolingScaffoldScreenAction
+    data class SetPluginEnabled(val pluginId: String, val enabled: Boolean) : ToolingScaffoldScreenAction
 }
 
-sealed interface ToolingScaffoldEffect {
-    data class SessionClosed(val closedSessionIds: List<String>) : ToolingScaffoldEffect
+sealed interface ToolingScaffoldScreenActionResult {
+    data class SessionClosed(val closedSessionIds: List<String>) : ToolingScaffoldScreenActionResult
 }
 
 @Composable
 context(presenterContext: ToolingScaffoldPresenterContext)
 fun toolingScaffoldPresenter(
-    eventFlow: EventFlow<ToolingScaffoldEvent>,
+    screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
     loadedPlugins: ImmutableList<PluginMetaData>,
     debugSessions: ImmutableList<DebugSession>,
     enabledPluginIds: Set<String>,
@@ -68,8 +67,6 @@ fun toolingScaffoldPresenter(
         }
     }
 
-    val consumableEffect = rememberRetained { MutableConsumableEffect<ToolingScaffoldEffect>() }
-
     LaunchedEffect(debugSessions) {
         if (selectedSession?.isActive != true) {
             selectedSessionId = debugSessions.firstOrNull { it.isActive }?.id.orEmpty()
@@ -79,21 +76,21 @@ fun toolingScaffoldPresenter(
     LaunchedEffect(debugSessions) {
         val inactiveSessionIds = debugSessions.filterNot { it.isActive }.map { it.id }
         if (inactiveSessionIds.isEmpty()) return@LaunchedEffect
-        consumableEffect.enqueue(ToolingScaffoldEffect.SessionClosed(inactiveSessionIds))
+        screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(inactiveSessionIds))
     }
 
-    EventEffect(eventFlow) { event ->
-        when (event) {
-            is ToolingScaffoldEvent.SelectSession -> {
-                selectedSessionId = event.session.id
+    ActionEffect(screenChannel) { action ->
+        when (action) {
+            is ToolingScaffoldScreenAction.SelectSession -> {
+                selectedSessionId = action.session.id
             }
 
-            is ToolingScaffoldEvent.UpdateSelectedPlugin -> {
-                selectedPluginId = event.pluginId
+            is ToolingScaffoldScreenAction.UpdateSelectedPlugin -> {
+                selectedPluginId = action.pluginId
             }
 
-            is ToolingScaffoldEvent.SetPluginEnabled -> {
-                setPluginEnabledMutation.mutate(SetPluginEnabledParams(event.pluginId, event.enabled))
+            is ToolingScaffoldScreenAction.SetPluginEnabled -> {
+                setPluginEnabledMutation.mutate(SetPluginEnabledParams(action.pluginId, action.enabled))
             }
         }
     }
