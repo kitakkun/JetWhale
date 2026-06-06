@@ -29,4 +29,16 @@ interface PluginFactoryRepository {
      * that was (re)loaded, or `null` if loading failed.
      */
     suspend fun reloadPlugin(pluginJarPath: String): String?
+
+    /**
+     * Attempts an in-place hot swap of the plugin served by [pluginJarPath]: the plugin's
+     * already-loaded classes are redefined from the rebuilt jar **without** dropping the classloader
+     * or recreating the plugin instance, so the plugin instance's state is preserved.
+     *
+     * Returns the `pluginId` on success, or `null` when an in-place swap is not possible (no JVM
+     * Instrumentation available, an unsupported/structural change without an enhanced runtime such as
+     * the JetBrains Runtime, etc.). On `null` the caller should fall back to [reloadPlugin], which
+     * does a full reload at the cost of losing state.
+     */
+    fun tryRedefinePlugin(pluginJarPath: String): String?
 }

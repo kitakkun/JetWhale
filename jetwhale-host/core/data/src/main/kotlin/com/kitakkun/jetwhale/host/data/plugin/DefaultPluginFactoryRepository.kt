@@ -17,9 +17,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
+import net.bytebuddy.agent.ByteBuddyAgent
+import java.lang.instrument.ClassDefinition
+import java.lang.instrument.Instrumentation
 import java.net.URLClassLoader
 import java.util.ServiceLoader
 import java.util.concurrent.ConcurrentHashMap
+import java.util.jar.JarFile
 import kotlin.io.path.Path
 
 @Inject
@@ -120,6 +124,47 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
         // reload (don't report stale success from a leftover jarPathToPluginId mapping).
         if (pluginJarPath in mutableFailedJarPathsFlow.value) return null
         return jarPathToPluginId[pluginJarPath]
+    }
+
+    override fun tryRedefinePlugin(pluginJarPath: String): String? {
+        val instrumentation = instrumentation ?: return null
+        val pluginId = jarPathToPluginId[pluginJarPath] ?: return null
+        val classLoader = classLoaders[pluginId] ?: return null
+
+        return try {
+            // Redefine every class this plugin's classloader has already loaded, using the rebuilt
+            // jar's bytecode. redefineClasses works on the loaded Class regardless of classloader, so
+            // this reaches the plugin's child-classloader classes (which Compose Hot Reload cannot).
+            val loadedClasses = instrumentation.allLoadedClasses.filter { it.classLoader === classLoader }
+            if (loadedClasses.isEmpty()) return null
+
+            val definitions = JarFile(pluginJarPath).use { jar ->
+                loadedClasses.mapNotNull { clazz ->
+                    val entry = jar.getJarEntry(clazz.name.replace('.', '/') + ".class") ?: return@mapNotNull null
+                    val bytes = jar.getInputStream(entry).use { it.readBytes() }
+                    ClassDefinition(clazz, bytes)
+                }
+            }
+            if (definitions.isEmpty()) return null
+
+            instrumentation.redefineClasses(*definitions.toTypedArray())
+            pluginId
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            // UnsupportedOperationException (structural change without an enhanced runtime),
+            // LinkageError, etc. The caller falls back to a full reload.
+            println("In-place redefine failed for $pluginId: ${e.message}; falling back to full reload")
+            null
+        }
+    }
+
+    /**
+     * JVM Instrumentation handle, obtained lazily by self-attaching an agent the first time an
+     * in-place redefine is attempted (dev hot-reload only). Null if the agent cannot be installed.
+     */
+    private val instrumentation: Instrumentation? by lazy {
+        runCatching { ByteBuddyAgent.install() }.getOrNull()
     }
 
     companion object {
