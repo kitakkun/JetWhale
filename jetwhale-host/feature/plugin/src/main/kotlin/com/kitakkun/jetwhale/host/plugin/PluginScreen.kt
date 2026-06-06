@@ -83,6 +83,12 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                                 nativeEvent = event.nativeEvent,
                                 button = event.button,
                             )
+                        } catch (e: IllegalStateException) {
+                            // The plugin scene can be closed mid-dispatch (navigation, session
+                            // switch, hot reload). A late event then hits the closed scene and
+                            // throws "... after ComposeScene is closed"; that is a benign teardown
+                            // race, so ignore it instead of surfacing it as a plugin error.
+                            if (!e.isComposeSceneClosed()) catchThrowHost[uuid()] = e
                         } catch (e: Throwable) {
                             catchThrowHost[uuid()] = e
                         }
@@ -92,6 +98,9 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
             .onKeyEvent {
                 try {
                     pluginComposeScene.composeScene.sendKeyEvent(it)
+                } catch (e: IllegalStateException) {
+                    if (!e.isComposeSceneClosed()) catchThrowHost[uuid()] = e
+                    false
                 } catch (e: Throwable) {
                     catchThrowHost[uuid()] = e
                     false
@@ -115,3 +124,10 @@ private fun PointerEvent.toComposeScenePointers(): List<ComposeScenePointer> = t
         historical = pointerInputChange.historical,
     )
 }
+
+/**
+ * True when this exception is the benign "input/render after the scene was closed" race that Compose
+ * throws if we dispatch to a [androidx.compose.ui.scene.ComposeScene] that has already been disposed
+ * (e.g. during navigation, session switch, or hot reload).
+ */
+private fun IllegalStateException.isComposeSceneClosed(): Boolean = message?.contains("ComposeScene is closed") == true
