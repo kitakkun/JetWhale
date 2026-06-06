@@ -30,7 +30,7 @@ sealed interface ToolingScaffoldEffect {
 }
 
 @Composable
-context(screenContext: ToolingScaffoldScreenContext)
+context(presenterContext: ToolingScaffoldPresenterContext)
 fun toolingScaffoldPresenter(
     eventFlow: EventFlow<ToolingScaffoldEvent>,
     loadedPlugins: ImmutableList<PluginMetaData>,
@@ -44,7 +44,7 @@ fun toolingScaffoldPresenter(
         derivedStateOf { debugSessions.firstOrNull { it.id == selectedSessionId } }
     }
 
-    val setPluginEnabledMutation = rememberMutation(screenContext.setPluginEnabledMutationKey)
+    val setPluginEnabledMutation = rememberMutation(presenterContext.setPluginEnabledMutationKey)
 
     val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds) {
         derivedStateOf {

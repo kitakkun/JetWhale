@@ -22,13 +22,15 @@ fun ToolingScaffoldRoot(
         state4 = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey),
     ) { loadedPlugins, debugSessions, enabledPluginIds, failedJarPaths ->
         val eventFlow = rememberEventFlow<ToolingScaffoldEvent>()
-        val uiState = toolingScaffoldPresenter(
-            eventFlow = eventFlow,
-            loadedPlugins = loadedPlugins,
-            debugSessions = debugSessions,
-            enabledPluginIds = enabledPluginIds,
-            hasFailedJars = failedJarPaths.isNotEmpty(),
-        )
+        val uiState = context(screenContext.presenterContext) {
+            toolingScaffoldPresenter(
+                eventFlow = eventFlow,
+                loadedPlugins = loadedPlugins,
+                debugSessions = debugSessions,
+                enabledPluginIds = enabledPluginIds,
+                hasFailedJars = failedJarPaths.isNotEmpty(),
+            )
+        }
 
         ToolingScaffold(
             uiState = uiState,

@@ -92,7 +92,7 @@ fun JetWhaleApp() {
                 JetWhaleTheme(theme.colorScheme) {
                     AppEnvironment(settings.appLanguage) {
                         Surface {
-                            context(rememberRetained { appGraph.createToolingScaffoldScreenContext() }) {
+                            context(rememberRetained { appGraph.toolingScaffoldScreenContext }) {
                                 ToolingScaffoldRoot(
                                     onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },
                                     onClickPluginSettings = {
