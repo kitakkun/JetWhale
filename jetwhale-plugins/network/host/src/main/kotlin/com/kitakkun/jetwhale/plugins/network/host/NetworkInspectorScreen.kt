@@ -30,8 +30,16 @@ fun NetworkInspectorScreen(
     var selectedTab by remember { mutableStateOf(0) }
     Column(Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = selectedTab) {
-            Tab(selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Traffic (${transactions.size})") })
-            Tab(selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Mocks (${mockRules.size})") })
+            Tab(
+                selected = selectedTab == 0,
+                onClick = { selectedTab = 0 },
+                text = { Text("Traffic (${transactions.size})") },
+            )
+            Tab(
+                selected = selectedTab == 1,
+                onClick = { selectedTab = 1 },
+                text = { Text("Mocks (${mockRules.size})") },
+            )
         }
         when (selectedTab) {
             0 -> TrafficTab(
@@ -45,7 +53,12 @@ fun NetworkInspectorScreen(
                 },
             )
 
-            else -> MocksTab(mockRules, mockingEnabled, onToggleMocking, onMockRulesChanged)
+            else -> MocksTab(
+                rules = mockRules,
+                mockingEnabled = mockingEnabled,
+                onToggleMocking = onToggleMocking,
+                onChanged = onMockRulesChanged,
+            )
         }
     }
 }
@@ -58,9 +71,11 @@ private fun mockRuleFrom(tx: HttpTransaction, response: CapturedHttpResponse): M
     return MockRule(
         id = UUID.randomUUID().toString(),
         name = "${tx.request.method} ${tx.request.url.substringBefore('?').takeLast(40)}",
+        // Use the full URL (including any query) so an EXACT rule matches the very request it was
+        // created from; the user can loosen it to CONTAINS/REGEX afterwards.
         matcher = MockMatcher(
             method = tx.request.method,
-            urlPattern = tx.request.url.substringBefore('?'),
+            urlPattern = tx.request.url,
             matchType = MockMatchType.EXACT,
         ),
         response = MockResponseSpec(

@@ -9,7 +9,7 @@ plugins {
 group = "com.kitakkun.jetwhale.plugins.network"
 
 kotlin {
-    android.namespace = "com.kitakkun.jetwhale.plugins.network.agentktor"
+    android.namespace = "com.kitakkun.jetwhale.plugins.network.agent.ktor"
 }
 
 dependencies {
