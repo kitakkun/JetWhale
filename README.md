@@ -39,3 +39,33 @@ Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal lea
     - Built-in tools include `screenshot`, `click`, `type`, `scroll`, `drag`, and
       `getAccessibilityTree`
     - Plugins can expose their own custom MCP tools by implementing `JetWhaleMcpCapablePlugin`
+
+## Developing plugins
+
+A host plugin is a fat-jar that JetWhale loads at runtime. Apply the `jetwhale-plugin` Gradle
+convention to a plugin's host module to get the following tasks for free (see
+`jetwhale-plugins/example/host` for a working example):
+
+| Task            | What it does                                                                                   |
+|-----------------|------------------------------------------------------------------------------------------------|
+| `packagePlugin` | Builds the distributable plugin fat-jar (the artifact you drop into `~/.jetwhale/plugins/`).   |
+| `installPlugin` | Copies the packaged fat-jar into `~/.jetwhale/plugins/`.                                        |
+| `runJetWhale`   | Launches the JetWhale host with your plugin loaded from a private dev directory (`runIde`-like).|
+
+### Live reload (dev mode)
+
+`runJetWhale` starts the host with `-Djetwhale.devPluginsDir=<dir>` pointing at a dev directory
+under the module's `build` folder. The host loads plugins from that directory **in addition to**
+`~/.jetwhale/plugins/` and watches it: whenever the plugin jar is rebuilt, the host disposes the
+plugin's running instances, drops its classloader, reloads the factory from a fresh classloader, and
+refreshes the open plugin screen — no host restart needed.
+
+Combine it with Gradle continuous mode (`-t`) so the jar is rebuilt and re-staged on every source
+change:
+
+```shell
+./gradlew :jetwhale-plugins:example:host:runJetWhale -t
+```
+
+When the `jetwhale.devPluginsDir` system property is absent (i.e. a normal production launch), dev
+mode and hot reload are completely inert — behaviour is unchanged.

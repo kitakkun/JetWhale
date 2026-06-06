@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import java.net.URLClassLoader
 import java.util.ServiceLoader
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.Path
 
 @Inject
@@ -33,6 +34,16 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
     private val mutableFailedJarPathsFlow: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())
     override val failedJarPathsFlow: Flow<List<String>> = mutableFailedJarPathsFlow.asStateFlow()
 
+    /**
+     * The classloader that owns each loaded plugin, keyed by `pluginId`. Each plugin gets its own
+     * [URLClassLoader] so that, on reload, the previous loader can be closed and discarded together
+     * with all of the plugin's stale classes.
+     */
+    private val classLoaders: ConcurrentHashMap<String, URLClassLoader> = ConcurrentHashMap()
+
+    /** Maps the absolute jar path a plugin was loaded from to its `pluginId`. */
+    private val jarPathToPluginId: ConcurrentHashMap<String, String> = ConcurrentHashMap()
+
     override suspend fun loadPlugin(pluginJarPath: String) {
         try {
             val classLoader = URLClassLoader(arrayOf(Path(pluginJarPath).toUri().toURL()))
@@ -43,6 +54,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
                 ?.use { it.readText() }
                 ?: run {
                     println("Warning: $MANIFEST_PATH not found in $pluginJarPath")
+                    classLoader.close()
                     mutableFailedJarPathsFlow.update { it + pluginJarPath }
                     return
                 }
@@ -52,7 +64,15 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             val factory = ServiceLoader.load(JetWhaleHostPluginFactory::class.java, classLoader)
                 .toList()
                 .singleOrNull()
-                ?: error("Expected exactly one ${JetWhaleHostPluginFactory::class.java.simpleName} in $pluginJarPath")
+                ?: run {
+                    classLoader.close()
+                    error("Expected exactly one ${JetWhaleHostPluginFactory::class.java.simpleName} in $pluginJarPath")
+                }
+
+            // Discard a previously loaded classloader for the same plugin id (e.g. a reload) so that
+            // no stale classloader (and its classes) leaks.
+            classLoaders.put(manifest.pluginId, classLoader)?.close()
+            jarPathToPluginId[pluginJarPath] = manifest.pluginId
 
             mutablePluginsFlow.update { current ->
                 current.toMutableMap().apply {
@@ -60,6 +80,8 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
                     println("Loaded plugin: ${manifest.pluginId} v${manifest.version}")
                 }.toPersistentMap()
             }
+            // A previously failed jar may now succeed (e.g. after a rebuild); clear it from failures.
+            mutableFailedJarPathsFlow.update { it.filterNot { path -> path == pluginJarPath } }
         } catch (e: Throwable) {
             if (e is CancellationException) throw e
             println("Failed to load plugin from $pluginJarPath: ${e.message}")
@@ -71,7 +93,18 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
         mutablePluginsFlow.update { current ->
             current.toMutableMap().apply { remove(pluginId) }.toPersistentMap()
         }
+        classLoaders.remove(pluginId)?.close()
+        jarPathToPluginId.entries.removeIf { it.value == pluginId }
         println("Unloaded plugin: $pluginId")
+    }
+
+    override fun findPluginIdByJarPath(pluginJarPath: String): String? = jarPathToPluginId[pluginJarPath]
+
+    override suspend fun reloadPlugin(pluginJarPath: String): String? {
+        // loadPlugin already closes and replaces the previous classloader for the same plugin id,
+        // dropping the stale classes. We simply re-run it and report the resulting plugin id.
+        loadPlugin(pluginJarPath)
+        return jarPathToPluginId[pluginJarPath]
     }
 
     companion object {

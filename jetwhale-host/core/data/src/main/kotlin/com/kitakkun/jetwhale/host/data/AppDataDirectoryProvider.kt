@@ -43,4 +43,25 @@ class AppDataDirectoryProvider {
         val pluginDirectory = File(pluginDir)
         return pluginDirectory.listFiles { file -> file.extension == "jar" }?.map { it.absolutePath } ?: emptyList()
     }
+
+    /**
+     * The development-only "dev plugins directory" supplied by a plugin developer via the
+     * `jetwhale.devPluginsDir` JVM system property (set by the `runJetWhale` Gradle task).
+     *
+     * Returns `null` in normal usage so production behaviour is unchanged. When present, the host
+     * additionally loads and hot-reloads plugins from this directory, on top of the regular
+     * `~/.jetwhale/plugins` directory.
+     */
+    fun getDevPluginsDir(): String? = System.getProperty(DEV_PLUGINS_DIR_PROPERTY)?.takeIf { it.isNotBlank() }
+
+    /** Returns the absolute paths of every jar currently in the dev plugins directory, if configured. */
+    fun getDevPluginJarFilePaths(): List<String> {
+        val devDir = getDevPluginsDir() ?: return emptyList()
+        val devDirectory = File(devDir)
+        return devDirectory.listFiles { file -> file.extension == "jar" }?.map { it.absolutePath } ?: emptyList()
+    }
+
+    companion object {
+        const val DEV_PLUGINS_DIR_PROPERTY = "jetwhale.devPluginsDir"
+    }
 }

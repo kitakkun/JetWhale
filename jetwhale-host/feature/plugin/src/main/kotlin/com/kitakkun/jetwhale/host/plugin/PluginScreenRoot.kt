@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.plugin
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -16,6 +17,14 @@ import soil.query.compose.rememberQuery
 context(screenContext: PluginScreenContext)
 fun PluginScreenRoot() {
     var reset by remember { mutableStateOf(false) }
+
+    // On hot reload, toggling `reset` re-creates the query so a fresh compose scene is built from the
+    // freshly loaded plugin code. Inert in production (the flow never emits without a dev directory).
+    LaunchedEffect(screenContext) {
+        screenContext.pluginReloadedFlow.collect {
+            reset = !reset
+        }
+    }
 
     key(reset) {
         SoilDataBoundary(
