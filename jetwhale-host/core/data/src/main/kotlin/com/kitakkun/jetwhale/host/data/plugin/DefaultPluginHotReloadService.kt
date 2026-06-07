@@ -146,6 +146,22 @@ class DefaultPluginHotReloadService(
     private suspend fun reloadJar(jarPath: String) {
         if (!File(jarPath).exists()) return
 
+        // Try an in-place class redefinition first. On success the plugin's classloader and instance
+        // are kept (so the plugin instance's state survives), and we recreate only its compose scenes
+        // so the redefined Content runs against that preserved state. Composable-local `remember` is
+        // reset (the scene is rebuilt); state that must survive a reload should live in the plugin
+        // instance. Reaches the plugin's child-classloader classes, which Compose Hot Reload cannot.
+        val redefinedPluginId = pluginFactoryRepository.tryRedefinePlugin(jarPath)
+        if (redefinedPluginId != null) {
+            withContext(Dispatchers.Main) {
+                pluginComposeSceneService.disposePluginScenesForPlugin(redefinedPluginId)
+            }
+            logger.info("Hot reloaded plugin in place (instance state preserved): $redefinedPluginId")
+            mutablePluginReloadedFlow.emit(redefinedPluginId)
+            return
+        }
+
+        // Fallback: full reload via a fresh classloader (plugin instance state is lost).
         // Capture the plugin id currently served by this jar (if any) so that we can dispose its
         // running instances and scenes before swapping in the new code.
         val previousPluginId = pluginFactoryRepository.findPluginIdByJarPath(jarPath)

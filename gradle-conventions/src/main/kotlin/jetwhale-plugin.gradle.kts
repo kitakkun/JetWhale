@@ -106,7 +106,12 @@ tasks.register<JavaExec>("runJetWhale") {
     val devDirProvider = devPluginsDir.map { it.asFile.absolutePath }
     jvmArgumentProviders.add(
         CommandLineArgumentProvider {
-            listOf("-Djetwhale.devPluginsDir=${devDirProvider.get()}")
+            listOf(
+                "-Djetwhale.devPluginsDir=${devDirProvider.get()}",
+                // Allow the dev hot-reload to self-attach a JVM agent (byte-buddy-agent) for in-place
+                // class redefinition; self-attach is disabled by default on JDK 9+.
+                "-Djdk.attach.allowAttachSelf=true",
+            )
         },
     )
 }
