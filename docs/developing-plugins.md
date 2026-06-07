@@ -12,7 +12,8 @@ The `com.kitakkun.jetwhale.host` plugin gives your plugin's module these tasks:
 | `packagePlugin`          | Builds the distributable plugin fat-jar (the artifact you drop into `~/.jetwhale/plugins/`).          |
 | `installPlugin`          | Copies the packaged fat-jar into `~/.jetwhale/plugins/`.                                              |
 | `stageDevPlugin`         | Stages the packaged fat-jar into a private dev directory the host watches for hot reload.             |
-| `runJetWhaleFromRelease` | Downloads a released JetWhale host for your OS and launches it with your plugin loaded.|
+| `runJetWhale`            | Downloads a released JetWhale host for your OS and launches it with your plugin loaded.|
+| `runJetWhaleHot`         | Like `runJetWhale`, but runs the host on the JetBrains Runtime so structural changes hot-reload in place (see [Limitations](#limitations)).|
 
 ## Set up
 
@@ -79,7 +80,7 @@ manifest. See `jetwhale-plugins/example/host` for a complete, working example:
 
 ## Hot reload (the live dev loop)
 
-`runJetWhaleFromRelease` starts the host with `-Djetwhale.devPluginsDir=<dir>` pointing at a dev
+`runJetWhale` starts the host with `-Djetwhale.devPluginsDir=<dir>` pointing at a dev
 directory under your module's `build` folder. The host loads plugins from that directory **in addition
 to** `~/.jetwhale/plugins/` and watches it: whenever the plugin jar is re-staged, the host reloads it
 and refreshes the open plugin screen — **no host restart needed**. For simple edits it redefines your
@@ -90,17 +91,17 @@ Run the host in one terminal and continuous re-staging in another:
 
 ```shell
 # Terminal 1 — download + launch the host (stays running)
-./gradlew :myPlugin:runJetWhaleFromRelease
+./gradlew :myPlugin:runJetWhale
 
 # Terminal 2 — rebuild & re-stage the plugin jar on every source change
 ./gradlew :myPlugin:stageDevPlugin -t
 ```
 
-> Do **not** add `-t` to `runJetWhaleFromRelease`: it is a long-running process (it blocks until you
+> Do **not** add `-t` to `runJetWhale`: it is a long-running process (it blocks until you
 > close the host), and Gradle continuous mode only starts a new build once the current task graph
 > finishes. Keep the host in one terminal and `stageDevPlugin -t` in another.
 
-`runJetWhaleFromRelease` downloads the runnable host uber jar for `hostVersion` and the current
+`runJetWhale` downloads the runnable host uber jar for `hostVersion` and the current
 OS/architecture from the GitHub release (cached under `~/.jetwhale/dev-host/`) — no manual install of
 JetWhale needed. Pass `-PjetwhaleHostJar=<path>` to launch a locally built host uber jar instead.
 
@@ -120,8 +121,15 @@ Compose-specific: restructuring a `@Composable` (changing its group structure) c
 held by that part of the UI even when the rest of the plugin is preserved.
 
 On a **stock JDK**, only method-body edits are redefined in place; everything else falls back to a
-full reload. Preserving state across **structural** changes too would require running the host on the
-**JetBrains Runtime (JBR)**.
+full reload. To preserve state across **structural** changes too, launch with **`runJetWhaleHot`**,
+which runs the host on the **JetBrains Runtime (JBR)** with enhanced class redefinition. JBR is
+provisioned via Gradle toolchains — add the
+[foojay resolver](https://github.com/gradle/foojay-toolchains) to your `settings.gradle.kts` so it
+can be downloaded automatically:
+
+```kotlin
+plugins { id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0" }
+```
 
 So: a change that can't be redefined in place costs you the plugin's in-memory state — never a host
 restart.
@@ -139,11 +147,11 @@ maven("https://central.sonatype.com/repository/maven-snapshots/")
 ## Developing inside this repository
 
 In-repo plugin modules (e.g. `jetwhale-plugins/example/host`) don't download a host — they launch the
-local `:jetwhale-host:app` project directly via `runJetWhale`, which is added by the internal,
+local `:jetwhale-host:app` project directly via `runJetWhaleLocal`, which is added by the internal,
 non-published `jetwhale-host-launch` convention applied alongside `com.kitakkun.jetwhale.host`:
 
 ```shell
-./gradlew :jetwhale-plugins:example:host:runJetWhale      # builds + launches the local host
+./gradlew :jetwhale-plugins:example:host:runJetWhaleLocal   # builds + launches the local host
 ./gradlew :jetwhale-plugins:example:host:stageDevPlugin -t
 ```
 

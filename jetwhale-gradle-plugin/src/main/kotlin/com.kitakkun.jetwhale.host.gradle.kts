@@ -1,4 +1,7 @@
 import org.gradle.api.tasks.bundling.Jar
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JavaToolchainService
+import org.gradle.jvm.toolchain.JvmVendorSpec
 import org.gradle.process.CommandLineArgumentProvider
 import util.JetWhalePluginExtension
 
@@ -181,27 +184,27 @@ val downloadJetWhaleHost = tasks.register("downloadJetWhaleHost") {
     }
 }
 
-tasks.register<JavaExec>("runJetWhaleFromRelease") {
+// `runJetWhale` and `runJetWhaleHot` share the same launch config. `hot` runs the host on the
+// JetBrains Runtime with enhanced class redefinition, so structural code changes (added/removed
+// members, etc.) are redefined in place instead of triggering a full, state-resetting reload.
+fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks.register<JavaExec>(name) {
     group = "jetwhale"
-    description = "Downloads the released JetWhale host (jetwhalePlugin.hostVersion) and launches it with this plugin."
-
-    val hostVersionProvider = pluginExtension.hostVersion
-    val releaseJarProvider = hostReleaseJar
-    val localJarProvider = localHostJar
+    description = taskDescription
     dependsOn(stageDevPlugin, downloadJetWhaleHost)
 
     // Resolve the host jar lazily so JavaExec reads it at execution (after downloadJetWhaleHost has
-    // run). A provider is required: reassigning `classpath` in doFirst is lost under the configuration
-    // cache, leaving an empty classpath and a cryptic "could not find main class" failure.
+    // run). A provider is required: reassigning `classpath` in doFirst is lost under the
+    // configuration cache, leaving an empty classpath and a cryptic "could not find main class".
     val hostJarProvider = providers.provider {
         val hostJar = when {
-            localJarProvider.isPresent -> File(localJarProvider.get())
+            localHostJar.isPresent -> File(localHostJar.get())
 
-            hostVersionProvider.isPresent -> releaseJarProvider.get()
+            pluginExtension.hostVersion.isPresent -> hostReleaseJar.get()
 
             else -> error(
                 "Set jetwhalePlugin.hostVersion to the released JetWhale host version, or pass " +
-                    "-PjetwhaleHostJar=<path> to launch a local host jar (or use the in-repo `runJetWhale`).",
+                    "-PjetwhaleHostJar=<path> to launch a local host jar (or use the in-repo " +
+                    "`runJetWhaleLocal`).",
             )
         }
         check(hostJar.exists()) { "JetWhale host jar not found: $hostJar" }
@@ -210,18 +213,42 @@ tasks.register<JavaExec>("runJetWhaleFromRelease") {
     classpath = files(hostJarProvider)
     mainClass.set("com.kitakkun.jetwhale.host.MainKt")
 
+    // Run the host on the JetBrains Runtime (provisioned via Gradle toolchains; add the foojay
+    // resolver to settings to auto-download it) so it can redefine structural changes in place.
+    if (hot) {
+        javaLauncher.set(
+            project.extensions.getByType(JavaToolchainService::class.java).launcherFor {
+                languageVersion.set(JavaLanguageVersion.of(21))
+                vendor.set(JvmVendorSpec.JETBRAINS)
+            },
+        )
+    }
+
     val devDirProvider = devPluginsDir.map { it.asFile.absolutePath }
     jvmArgumentProviders.add(
         CommandLineArgumentProvider {
-            listOf(
-                "-Djetwhale.devPluginsDir=${devDirProvider.get()}",
-                // Self-attach for the dev hot-reload's in-place class redefinition (disabled by
-                // default on JDK 9+). Structural changes still need the JetBrains Runtime.
-                "-Djdk.attach.allowAttachSelf=true",
-            )
+            buildList {
+                add("-Djetwhale.devPluginsDir=${devDirProvider.get()}")
+                // Self-attach for the dev hot-reload's in-place class redefinition (off by default
+                // on JDK 9+).
+                add("-Djdk.attach.allowAttachSelf=true")
+                // On the JetBrains Runtime, allow redefining structural changes in place too.
+                if (hot) add("-XX:+AllowEnhancedClassRedefinition")
+            }
         },
     )
 }
+
+registerRunTask(
+    name = "runJetWhale",
+    taskDescription = "Downloads the released JetWhale host (jetwhalePlugin.hostVersion) and launches it with this plugin.",
+    hot = false,
+)
+registerRunTask(
+    name = "runJetWhaleHot",
+    taskDescription = "Like runJetWhale, but runs the host on the JetBrains Runtime so structural code changes hot-reload in place (requires a JBR toolchain).",
+    hot = true,
+)
 
 // Make sure `packagePlugin` participates in the standard `assemble`/`build` lifecycle so authors get
 // the distributable artifact without invoking the task by name.
