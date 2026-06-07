@@ -25,4 +25,15 @@ interface JetWhalePluginExtension {
      * distribution of the host (so external builds can resolve it) is out of scope for now.
      */
     val hostApplicationProject: Property<String>
+
+    /**
+     * Version of the released JetWhale host to download and launch with `runJetWhaleFromRelease`,
+     * for plugin authors developing **outside** this repository.
+     *
+     * When set, `runJetWhaleFromRelease` fetches the matching host application (a runnable uber jar)
+     * for the current OS/architecture from the GitHub release of that version, instead of building
+     * it from [hostApplicationProject]. Leave unset for in-repo development (use `runJetWhale`, which
+     * builds the host from the local project).
+     */
+    val hostVersion: Property<String>
 }

@@ -13,29 +13,45 @@ jobs:
       matrix:
         include:
           - os: macOS-latest
-            gradleTask: packageDmg
-            artifactGlob: jetwhale-host/app/build/compose/binaries/main/dmg/*.dmg
-            artifactName: macos-dmg
+            osArch: macos-arm64
+            installerTask: packageDmg
+            installerGlob: jetwhale-host/app/build/compose/binaries/main/dmg/*.dmg
+            installerExt: dmg
           - os: ubuntu-latest
-            gradleTask: packageDeb
-            artifactGlob: jetwhale-host/app/build/compose/binaries/main/deb/*.deb
-            artifactName: linux-deb
+            osArch: linux-x64
+            installerTask: packageDeb
+            installerGlob: jetwhale-host/app/build/compose/binaries/main/deb/*.deb
+            installerExt: deb
           - os: windows-latest
-            gradleTask: packageMsi
-            artifactGlob: jetwhale-host/app/build/compose/binaries/main/msi/*.msi
-            artifactName: windows-msi
+            osArch: windows-x64
+            installerTask: packageMsi
+            installerGlob: jetwhale-host/app/build/compose/binaries/main/msi/*.msi
+            installerExt: msi
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
       - uses: ./.github/actions/setup-java
-      - name: Build Distributable
-        run: ./gradlew :jetwhale-host:app:${{ matrix.gradleTask }}
-      - name: Upload Distributable Artifact
+      - name: Build installer and runnable uber jar
+        run: ./gradlew :jetwhale-host:app:${{ matrix.installerTask }} :jetwhale-host:app:packageUberJarForCurrentOS
+      # Rename assets to a predictable scheme that includes the FULL tag version (e.g. -alpha04),
+      # which the installer's own packageVersion drops. No manual renaming needed afterwards, and the
+      # uber-jar name matches what the `downloadJetWhaleHost` Gradle task expects.
+      - name: Collect and rename release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          version="${GITHUB_REF_NAME}"
+          installer=$(ls ${{ matrix.installerGlob }} | head -n 1)
+          cp "$installer" "dist/jetwhale-debugger-${version}-${{ matrix.osArch }}.${{ matrix.installerExt }}"
+          uberjar=$(ls jetwhale-host/app/build/compose/jars/*.jar | head -n 1)
+          cp "$uberjar" "dist/jetwhale-host-${version}-${{ matrix.osArch }}.jar"
+      - name: Upload release assets
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifactName }}
-          path: ${{ matrix.artifactGlob }}
+          name: ${{ matrix.osArch }}
+          path: dist/*
           if-no-files-found: error
   release:
     name: Create Draft Release and Attach Artifacts
@@ -51,8 +67,5 @@ jobs:
         with:
           draft: true
           generate_release_notes: true
-          files: |
-            dist/**/*.dmg
-            dist/**/*.deb
-            dist/**/*.msi
+          files: dist/**/*
           fail_on_unmatched_files: true
