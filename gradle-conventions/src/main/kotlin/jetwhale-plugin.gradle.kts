@@ -116,6 +116,83 @@ tasks.register<JavaExec>("runJetWhale") {
     )
 }
 
+// ---------------------------------------------------------------------------
+// runJetWhaleFromRelease: download a released host and launch it with this plugin, for plugin
+// authors developing OUTSIDE this repository (the `:jetwhale-host:app` project is not available to
+// them). Set `jetwhalePlugin.hostVersion` to choose which released host to run against.
+// ---------------------------------------------------------------------------
+
+// "<os>-<arch>" of the current machine, matching the host uber-jar release asset names.
+val currentOsArch: String = run {
+    val osName = System.getProperty("os.name").lowercase()
+    val os = when {
+        osName.contains("mac") || osName.contains("darwin") -> "macos"
+        osName.contains("win") -> "windows"
+        else -> "linux"
+    }
+    val archName = System.getProperty("os.arch").lowercase()
+    val arch = if (archName.contains("aarch64") || archName.contains("arm")) "arm64" else "x64"
+    "$os-$arch"
+}
+
+// Downloaded host jars are cached here, shared across plugin projects and keyed by version + os/arch.
+val devHostCacheDir = File(System.getProperty("user.home"), ".jetwhale/dev-host")
+
+// Path of the cached host uber jar for the configured version (has a value only when hostVersion set).
+val hostReleaseJar = pluginExtension.hostVersion.map { version ->
+    File(devHostCacheDir, "$version/jetwhale-host-$version-$currentOsArch.jar")
+}
+
+val downloadJetWhaleHost = tasks.register("downloadJetWhaleHost") {
+    group = "jetwhale"
+    description = "Downloads the released JetWhale host uber jar (jetwhalePlugin.hostVersion) for the current OS."
+
+    val versionProvider = pluginExtension.hostVersion
+    val jarProvider = hostReleaseJar
+    val osArch = currentOsArch
+    onlyIf { versionProvider.isPresent }
+    doLast {
+        val version = versionProvider.get()
+        val jar = jarProvider.get()
+        if (jar.exists() && jar.length() > 0) return@doLast
+        jar.parentFile.mkdirs()
+        val url = "https://github.com/kitakkun/jetwhale/releases/download/$version/jetwhale-host-$version-$osArch.jar"
+        logger.lifecycle("Downloading JetWhale host $version ($osArch) from $url")
+        val tmp = File.createTempFile("jetwhale-host-", ".jar", jar.parentFile)
+        java.net.URI(url).toURL().openStream().use { input -> tmp.outputStream().use(input::copyTo) }
+        check(tmp.renameTo(jar)) { "Failed to move downloaded host jar into place: $jar" }
+    }
+}
+
+tasks.register<JavaExec>("runJetWhaleFromRelease") {
+    group = "jetwhale"
+    description = "Downloads the released JetWhale host (jetwhalePlugin.hostVersion) and launches it with this plugin."
+
+    val hostVersionProvider = pluginExtension.hostVersion
+    dependsOn(stageDevPlugin, downloadJetWhaleHost)
+    classpath = files(hostReleaseJar)
+    mainClass.set("com.kitakkun.jetwhale.host.MainKt")
+
+    doFirst {
+        require(hostVersionProvider.isPresent) {
+            "Set jetwhalePlugin.hostVersion to the released JetWhale host version to run against " +
+                "(or use the in-repo `runJetWhale` task)."
+        }
+    }
+
+    val devDirProvider = devPluginsDir.map { it.asFile.absolutePath }
+    jvmArgumentProviders.add(
+        CommandLineArgumentProvider {
+            listOf(
+                "-Djetwhale.devPluginsDir=${devDirProvider.get()}",
+                // Self-attach for the dev hot-reload's in-place class redefinition (disabled by
+                // default on JDK 9+). Structural changes still need the JetBrains Runtime.
+                "-Djdk.attach.allowAttachSelf=true",
+            )
+        },
+    )
+}
+
 // Make sure `packagePlugin` participates in the standard `assemble`/`build` lifecycle so authors get
 // the distributable artifact without invoking the task by name.
 tasks.named("assemble") {
