@@ -17,13 +17,15 @@ import util.JetWhalePluginExtension
  * - `installPlugin` — copies the packaged fat-jar into `~/.jetwhale/plugins/`.
  * - `stageDevPlugin` — copies the packaged fat-jar into a private dev directory the host watches for
  *   hot reload.
- * - `runJetWhaleFromRelease` — downloads the released JetWhale host (see `jetwhalePlugin.hostVersion`)
- *   for the current OS/architecture and launches it with this plugin staged for development. For live
- *   reload, run it in one terminal and `stageDevPlugin -t` in another — the host hot-reloads whenever
- *   the jar is re-staged.
+ * - `runJetWhale` — downloads the released JetWhale host (see `jetwhalePlugin.hostVersion`) for the
+ *   current OS/architecture and launches it with this plugin staged for development. For live reload,
+ *   run it in one terminal and `stageDevPlugin -t` in another — the host hot-reloads whenever the jar
+ *   is re-staged.
+ * - `runJetWhaleHot` — the same, but runs the host on the JetBrains Runtime so structural code changes
+ *   hot-reload in place too (requires a JBR toolchain).
  *
- * The in-repo host launcher (`runJetWhale`, which runs the local `:jetwhale-host:app` project) lives
- * in the separate, non-published `jetwhale-host-launch` convention.
+ * The in-repo host launcher (`runJetWhaleLocal`, which runs the local `:jetwhale-host:app` project)
+ * lives in the separate, non-published `jetwhale-host-launch` convention.
  */
 
 val pluginExtension = extensions.create("jetwhalePlugin", JetWhalePluginExtension::class.java).apply {
@@ -85,7 +87,7 @@ val stageDevPlugin = tasks.register<Copy>("stageDevPlugin") {
 }
 
 // ---------------------------------------------------------------------------
-// runJetWhaleFromRelease: download a released host and launch it with this plugin, for plugin
+// runJetWhale: download a released host and launch it with this plugin, for plugin
 // authors developing OUTSIDE this repository (the `:jetwhale-host:app` project is not available to
 // them). Set `jetwhalePlugin.hostVersion` to choose which released host to run against, or pass
 // `-PjetwhaleHostJar=<path>` to launch a locally built host uber jar (useful before a release exists).
@@ -99,12 +101,12 @@ val currentOsArch: Provider<String> =
             osName.contains("mac", ignoreCase = true) || osName.contains("darwin", ignoreCase = true) -> "macos"
             osName.contains("win", ignoreCase = true) -> "windows"
             osName.contains("nux", ignoreCase = true) || osName.contains("nix", ignoreCase = true) -> "linux"
-            else -> error("Unsupported OS for runJetWhaleFromRelease: $osName")
+            else -> error("Unsupported OS for runJetWhale: $osName")
         }
         val arch = when (archName.lowercase()) {
             "aarch64", "arm64" -> "arm64"
             "x86_64", "amd64", "x64" -> "x64"
-            else -> error("Unsupported architecture for runJetWhaleFromRelease: $archName")
+            else -> error("Unsupported architecture for runJetWhale: $archName")
         }
         "$os-$arch"
     }
