@@ -11,7 +11,8 @@ plugins {
 }
 
 group = "com.kitakkun.jetwhale"
-version = libs.versions.jetwhale.get()
+// Pass -PjetwhaleSnapshot to publish a SNAPSHOT of the current version instead of a release.
+version = libs.versions.jetwhale.get() + if (hasProperty("jetwhaleSnapshot")) "-SNAPSHOT" else ""
 
 jetwhalePublish {
     artifactId = "jetwhale-gradle-plugin"

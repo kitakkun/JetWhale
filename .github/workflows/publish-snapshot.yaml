@@ -1,0 +1,90 @@
+name: Publish Snapshot
+# Manually publish a development SNAPSHOT: the SDK and Gradle plugin go to the Central snapshots
+# repository (overwritable), and the host uber jars are attached to a `<version>-SNAPSHOT` GitHub
+# pre-release so `runJetWhaleFromRelease` (hostVersion = "<version>-SNAPSHOT") can download them.
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  host-uberjar:
+    name: Build host uber jar (${{ matrix.osArch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macOS-latest
+            osArch: macos-arm64
+          - os: ubuntu-latest
+            osArch: linux-x64
+          - os: windows-latest
+            osArch: windows-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-java
+      - name: Build host uber jar
+        # Force bash so the POSIX `./gradlew` runs identically on the Windows matrix entry
+        # (the default Windows shell is PowerShell), matching the Rename step below.
+        shell: bash
+        run: ./gradlew :jetwhale-host:app:packageUberJarForCurrentOS -PjetwhaleSnapshot
+      - name: Rename uber jar with the snapshot version
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          version="$(grep -m1 '^jetwhale = ' gradle/libs.versions.toml | cut -d'"' -f2)-SNAPSHOT"
+          uberjar=$(ls jetwhale-host/app/build/compose/jars/*.jar | head -n 1)
+          cp "$uberjar" "dist/jetwhale-host-${version}-${{ matrix.osArch }}.jar"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: host-${{ matrix.osArch }}
+          path: dist/*
+          if-no-files-found: error
+  publish:
+    name: Publish snapshots
+    needs: host-uberjar
+    runs-on: macOS-latest
+    environment: Publish
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-java
+      - id: ver
+        run: |
+          echo "version=$(grep -m1 '^jetwhale = ' gradle/libs.versions.toml | cut -d'"' -f2)-SNAPSHOT" >> "$GITHUB_OUTPUT"
+          echo "built=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+      - name: Publish SDK snapshot to Maven Central
+        run: ./gradlew publishToMavenCentral -PjetwhaleSnapshot --no-configuration-cache
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
+      - name: Publish Gradle plugin snapshot to Maven Central
+        run: ./gradlew -p jetwhale-gradle-plugin publishToMavenCentral -PjetwhaleSnapshot --no-configuration-cache
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Attach host uber jars to a pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          # The tag stays `<version>-SNAPSHOT` so runJetWhaleFromRelease always resolves the latest
+          # snapshot; the build number / commit / timestamp below identify which build it currently is.
+          tag_name: ${{ steps.ver.outputs.version }}
+          name: ${{ steps.ver.outputs.version }} (build ${{ github.run_number }})
+          prerelease: true
+          body: |
+            Development snapshot — overwritten on each publish; `runJetWhaleFromRelease` resolves this latest build.
+
+            - Build: #${{ github.run_number }}
+            - Commit: ${{ github.sha }}
+            - Built (UTC): ${{ steps.ver.outputs.built }}
+          files: dist/**/*.jar
+          fail_on_unmatched_files: true
