@@ -1,17 +1,26 @@
 public abstract interface annotation class com/kitakkun/jetwhale/host/sdk/ExperimentalJetWhaleApi : java/lang/annotation/Annotation {
 }
 
+public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleConnection {
+	public abstract fun getCoroutineScope ()Lkotlinx/coroutines/CoroutineScope;
+	public abstract fun receive (Lkotlin/jvm/functions/Function1;)V
+	public abstract fun send (Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleDebugOperationContext {
 	public abstract fun dispatch (Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun getCoroutineScope ()Lkotlinx/coroutines/CoroutineScope;
 }
 
-public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin : com/kitakkun/jetwhale/host/sdk/JetWhaleRawHostPlugin {
+public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin : com/kitakkun/jetwhale/host/sdk/JetWhaleRawHostPlugin, com/kitakkun/jetwhale/host/sdk/JetWhaleMessagingCapablePlugin, com/kitakkun/jetwhale/host/sdk/JetWhaleRenderablePlugin {
 	public static final field $stable I
 	public fun <init> ()V
-	public abstract fun Content (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleDebugOperationContext;Landroidx/compose/runtime/Composer;I)V
+	public abstract fun Content (Landroidx/compose/runtime/Composer;I)V
 	public final fun ContentRaw (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleRawDebugOperationContext;Landroidx/compose/runtime/Composer;I)V
+	protected final fun getConnection ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleConnection;
 	protected abstract fun getProtocol ()Lcom/kitakkun/jetwhale/protocol/host/JetWhaleHostPluginProtocol;
+	public final fun onConnect (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleConnection;)V
+	public final fun onDisconnect ()V
 	public abstract fun onEvent (Ljava/lang/Object;)V
 	public final fun onRawEvent (Ljava/lang/String;)V
 }
@@ -163,6 +172,11 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor {
 	public fun toString ()Ljava/lang/String;
 }
 
+public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleMessagingCapablePlugin {
+	public abstract fun onConnect (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleConnection;)V
+	public abstract fun onDisconnect ()V
+}
+
 public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleRawDebugOperationContext {
 	public abstract fun dispatch (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun getCoroutineScope ()Lkotlinx/coroutines/CoroutineScope;
@@ -174,5 +188,9 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleRawHostPlugin {
 	public abstract fun ContentRaw (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleRawDebugOperationContext;Landroidx/compose/runtime/Composer;I)V
 	public fun onDispose ()V
 	public abstract fun onRawEvent (Ljava/lang/String;)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleRenderablePlugin {
+	public abstract fun Content (Landroidx/compose/runtime/Composer;I)V
 }
 
