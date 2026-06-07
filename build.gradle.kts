@@ -34,5 +34,8 @@ spotless {
 
 allprojects {
     group = "com.kitakkun.jetwhale"
-    version = rootProject.libs.versions.jetwhale.get()
+    // Pass -PjetwhaleSnapshot to publish a SNAPSHOT of the current version (overwritable, goes to the
+    // Central snapshots repo) instead of a release.
+    version = rootProject.libs.versions.jetwhale.get() +
+        if (rootProject.hasProperty("jetwhaleSnapshot")) "-SNAPSHOT" else ""
 }
