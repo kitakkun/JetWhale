@@ -167,24 +167,49 @@ val downloadJetWhaleHost = tasks.register("downloadJetWhaleHost") {
     doLast {
         val jar = jarProvider.get()
         val version = versionProvider.get()
-        // Releases are immutable, so a cached jar is reused. SNAPSHOTs are overwritten on each publish,
-        // so always re-download them to avoid running a stale host.
-        if (!version.endsWith("-SNAPSHOT") && jar.exists() && jar.length() > 0) return@doLast
+        val isSnapshot = version.endsWith("-SNAPSHOT")
+        val cached = jar.exists() && jar.length() > 0
+        // Immutable releases never change, so a present cache is always valid (no network needed).
+        if (!isSnapshot && cached) return@doLast
         jar.parentFile.mkdirs()
         val url = "https://github.com/kitakkun/jetwhale/releases/download/$version/jetwhale-host-$version-${osArchProvider.get()}.jar"
+        // Sidecar storing the downloaded asset's ETag, used to detect whether a SNAPSHOT changed.
+        val etagFile = File(jar.parentFile, "${jar.name}.etag")
+
+        fun open(method: String) = (java.net.URI(url).toURL().openConnection() as java.net.HttpURLConnection).apply {
+            requestMethod = method
+            connectTimeout = 30_000
+            readTimeout = 60_000
+        }
+
+        // SNAPSHOTs are overwritten on each publish; re-download only when the asset's ETag changed.
+        if (isSnapshot && cached && etagFile.exists()) {
+            val remoteETag = runCatching {
+                val head = open("HEAD")
+                try {
+                    head.getHeaderField("ETag")
+                } finally {
+                    head.disconnect()
+                }
+            }.getOrNull()
+            if (remoteETag != null && remoteETag == etagFile.readText()) {
+                logger.lifecycle("JetWhale host $version is up to date; using cached jar.")
+                return@doLast
+            }
+        }
+
         logger.lifecycle("Downloading JetWhale host $version from $url")
         val tmp = File.createTempFile("jetwhale-host-", ".jar", jar.parentFile)
         try {
-            val connection = java.net.URI(url).toURL().openConnection().apply {
-                connectTimeout = 30_000
-                readTimeout = 60_000
-            }
+            val connection = open("GET")
             connection.getInputStream().use { input -> tmp.outputStream().use(input::copyTo) }
             java.nio.file.Files.move(
                 tmp.toPath(),
                 jar.toPath(),
                 java.nio.file.StandardCopyOption.REPLACE_EXISTING,
             )
+            // Record the new ETag so the next run can skip an unchanged download.
+            connection.getHeaderField("ETag")?.let { etagFile.writeText(it) }
         } finally {
             tmp.delete()
         }

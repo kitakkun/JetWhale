@@ -47,7 +47,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-java
       - id: ver
-        run: echo "version=$(grep -m1 '^jetwhale = ' gradle/libs.versions.toml | cut -d'"' -f2)-SNAPSHOT" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "version=$(grep -m1 '^jetwhale = ' gradle/libs.versions.toml | cut -d'"' -f2)-SNAPSHOT" >> "$GITHUB_OUTPUT"
+          echo "built=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
       - name: Publish SDK snapshot to Maven Central
         run: ./gradlew publishToMavenCentral -PjetwhaleSnapshot --no-configuration-cache
         env:
@@ -70,8 +72,16 @@ jobs:
       - name: Attach host uber jars to a pre-release
         uses: softprops/action-gh-release@v2
         with:
+          # The tag stays `<version>-SNAPSHOT` so runJetWhaleFromRelease always resolves the latest
+          # snapshot; the build number / commit / timestamp below identify which build it currently is.
           tag_name: ${{ steps.ver.outputs.version }}
-          name: ${{ steps.ver.outputs.version }}
+          name: ${{ steps.ver.outputs.version }} (build ${{ github.run_number }})
           prerelease: true
+          body: |
+            Development snapshot — overwritten on each publish; `runJetWhaleFromRelease` resolves this latest build.
+
+            - Build: #${{ github.run_number }}
+            - Commit: ${{ github.sha }}
+            - Built (UTC): ${{ steps.ver.outputs.built }}
           files: dist/**/*.jar
           fail_on_unmatched_files: true
