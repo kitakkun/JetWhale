@@ -172,3 +172,5 @@ serialization = { id = "serialization" }
 debuggerComposeFeature = { id = "debugger-compose-feature" }
 publish = { id = "publish" }
 jetwhalePlugin = { id = "com.kitakkun.jetwhale" }
+# In-repo only: adds `runJetWhale` (launches the local :jetwhale-host:app). Not published.
+jetwhaleHostLaunch = { id = "jetwhale-host-launch" }

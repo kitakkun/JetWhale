@@ -2,8 +2,10 @@ plugins {
     alias(libs.plugins.jvm)
     alias(libs.plugins.compose)
     alias(libs.plugins.ksp)
-    // Provides packagePlugin / installPlugin / runJetWhale tasks (see the jetwhale-plugin convention).
+    // Provides packagePlugin / installPlugin / stageDevPlugin / runJetWhaleFromRelease (published).
     alias(libs.plugins.jetwhalePlugin)
+    // In-repo only: adds runJetWhale, which launches the local :jetwhale-host:app project.
+    alias(libs.plugins.jetwhaleHostLaunch)
 }
 
 dependencies {

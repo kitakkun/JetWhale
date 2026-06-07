@@ -12,17 +12,19 @@ import util.JetWhalePluginExtension
  *   the hand-written `tasks.jar { from(configurations.runtimeClasspath.map(::zipTree)) ... }` that
  *   each plugin used to repeat.
  * - `installPlugin` — copies the packaged fat-jar into `~/.jetwhale/plugins/`.
- * - `runJetWhale` — the IntelliJ-`runIde`-equivalent: packages the plugin, places it in a private
- *   dev directory and launches the JetWhale host with `-Djetwhale.devPluginsDir=<dir>` so the host
- *   loads and hot-reloads the plugin under development. For live reload, run `runJetWhale` (which
- *   blocks while the host is open) in one terminal and `stageDevPlugin -t` in another — the host
- *   hot-reloads whenever the jar is re-staged. (Do not use `runJetWhale -t`: a blocking JavaExec
- *   never lets Gradle continuous mode start the next build.)
+ * - `stageDevPlugin` — copies the packaged fat-jar into a private dev directory the host watches for
+ *   hot reload.
+ * - `runJetWhaleFromRelease` — downloads the released JetWhale host (see `jetwhalePlugin.hostVersion`)
+ *   for the current OS/architecture and launches it with this plugin staged for development. For live
+ *   reload, run it in one terminal and `stageDevPlugin -t` in another — the host hot-reloads whenever
+ *   the jar is re-staged.
+ *
+ * The in-repo host launcher (`runJetWhale`, which runs the local `:jetwhale-host:app` project) lives
+ * in the separate, non-published `jetwhale-host-launch` convention.
  */
 
 val pluginExtension = extensions.create("jetwhalePlugin", JetWhalePluginExtension::class.java).apply {
     pluginArchiveName.convention(project.name)
-    hostApplicationProject.convention(":jetwhale-host:app")
 }
 
 // ---------------------------------------------------------------------------
@@ -62,58 +64,21 @@ tasks.register<Copy>("installPlugin") {
 }
 
 // ---------------------------------------------------------------------------
-// runJetWhale: launch the host with this plugin loaded from a dev directory.
+// stageDevPlugin: stage the packaged plugin into a dev directory the host hot-reloads from.
 // ---------------------------------------------------------------------------
 
 // A private dev directory under the module's build folder. The host watches it and hot-reloads the
 // plugin jar whenever it is re-staged (e.g. by running `stageDevPlugin -t` in a separate terminal).
+// NOTE: the in-repo `jetwhale-host-launch` convention reuses this exact path, so keep them in sync.
 val devPluginsDir = layout.buildDirectory.dir("jetwhale/devPlugins")
 
-// Stage the freshly packaged plugin into the dev directory before launching the host.
+// Stage the freshly packaged plugin into the dev directory.
 val stageDevPlugin = tasks.register<Copy>("stageDevPlugin") {
     group = "jetwhale"
     description = "Copies the packaged plugin jar into the host dev plugins directory."
 
     from(packagePlugin)
     into(devPluginsDir)
-}
-
-// Resolve the host application (classes + runtime dependencies) from the configured host project so
-// we can launch its main class directly with the dev system property set.
-val jetwhaleHostRuntime = configurations.create("jetwhaleHostRuntime") {
-    isCanBeConsumed = false
-    isCanBeResolved = true
-}
-
-// Wire the host project dependency lazily (no afterEvaluate, so it stays configuration-cache safe)
-// while still honoring any override of `hostApplicationProject` set in the consumer's build script.
-dependencies.addProvider(
-    "jetwhaleHostRuntime",
-    pluginExtension.hostApplicationProject.map { projectPath -> dependencies.project(projectPath) },
-)
-
-tasks.register<JavaExec>("runJetWhale") {
-    group = "jetwhale"
-    description = "Launches the JetWhale host with this plugin loaded for development (hot reload)."
-
-    dependsOn(stageDevPlugin)
-
-    classpath = jetwhaleHostRuntime
-    mainClass.set("com.kitakkun.jetwhale.host.MainKt")
-
-    // Point the host at the dev plugins directory; this enables dev-mode loading + hot reload.
-    // Supplied lazily via a CommandLineArgumentProvider so the task stays configuration-cache safe.
-    val devDirProvider = devPluginsDir.map { it.asFile.absolutePath }
-    jvmArgumentProviders.add(
-        CommandLineArgumentProvider {
-            listOf(
-                "-Djetwhale.devPluginsDir=${devDirProvider.get()}",
-                // Allow the dev hot-reload to self-attach a JVM agent (byte-buddy-agent) for in-place
-                // class redefinition; self-attach is disabled by default on JDK 9+.
-                "-Djdk.attach.allowAttachSelf=true",
-            )
-        },
-    )
 }
 
 // ---------------------------------------------------------------------------
