@@ -85,12 +85,27 @@ val jetwhaleHostRuntime = configurations.create("jetwhaleHostRuntime") {
     isCanBeResolved = true
 }
 
-// Wire the host project dependency lazily (no afterEvaluate, so it stays configuration-cache safe)
-// while still honoring any override of `hostApplicationProject` set in the consumer's build script.
-dependencies.addProvider(
-    "jetwhaleHostRuntime",
-    pluginExtension.hostApplicationProject.map { projectPath -> dependencies.project(projectPath) },
-)
+// `runJetWhale` launches the in-repo `:jetwhale-host:app` project, so it only works inside the
+// JetWhale repository. Wire its host dependency only when that project actually exists: otherwise the
+// resolvable `jetwhaleHostRuntime` configuration would reference a missing project and break
+// configuration / IDE sync for external plugin authors (who use `runJetWhaleFromRelease` instead).
+afterEvaluate {
+    val projectPath = pluginExtension.hostApplicationProject.orNull
+    if (projectPath != null && rootProject.findProject(projectPath) != null) {
+        dependencies.add("jetwhaleHostRuntime", dependencies.project(projectPath))
+    } else {
+        // Keep the task present but fail with actionable guidance if it is actually invoked.
+        tasks.named("runJetWhale").configure {
+            doFirst {
+                error(
+                    "`runJetWhale` requires the in-repo host project '$projectPath', which does not " +
+                        "exist in this build. When developing a plugin OUTSIDE the JetWhale repository, " +
+                        "set `jetwhalePlugin.hostVersion` and run `runJetWhaleFromRelease` instead.",
+                )
+            }
+        }
+    }
+}
 
 tasks.register<JavaExec>("runJetWhale") {
     group = "jetwhale"
