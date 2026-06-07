@@ -48,9 +48,14 @@ it, via `runJetWhaleFromRelease` (the JetWhale equivalent of IntelliJ's `runIde`
    // agent module, in the app being debugged
    implementation("com.kitakkun.jetwhale:jetwhale-agent-sdk:<version>")
    ```
-2. Apply the convention and pin which released host to run against:
+2. Apply the published Gradle plugin (`com.kitakkun.jetwhale:jetwhale-gradle-plugin`, resolved via
+   Maven Central) and pin which released host to run against:
    ```kotlin
-   plugins { id("jetwhale-plugin") }
+   // settings.gradle.kts
+   pluginManagement { repositories { mavenCentral(); gradlePluginPortal() } }
+
+   // the plugin's host module build.gradle.kts
+   plugins { id("jetwhale-plugin") version "<version>" }
    jetwhalePlugin { hostVersion.set("<version>") }
    ```
 3. Run it (two terminals, same live-reload model as in-repo):
