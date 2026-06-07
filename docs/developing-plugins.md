@@ -1,6 +1,6 @@
 # Developing plugins
 
-A host plugin is a fat-jar that JetWhale loads at runtime. Apply the `jetwhale-plugin` Gradle
+A host plugin is a fat-jar that JetWhale loads at runtime. Apply the `com.kitakkun.jetwhale` Gradle
 convention to a plugin's host module to get the following tasks for free (see
 `jetwhale-plugins/example/host` for a working example):
 
@@ -55,7 +55,10 @@ it, via `runJetWhaleFromRelease` (the JetWhale equivalent of IntelliJ's `runIde`
    pluginManagement { repositories { mavenCentral(); gradlePluginPortal() } }
 
    // the plugin's host module build.gradle.kts
-   plugins { id("jetwhale-plugin") version "<version>" }
+   plugins {
+       kotlin("jvm") version "<kotlinVersion>" // JetWhale plugin modules are Kotlin/JVM modules
+       id("com.kitakkun.jetwhale") version "<version>"
+   }
    jetwhalePlugin { hostVersion.set("<version>") }
    ```
 3. Run it (two terminals, same live-reload model as in-repo):
