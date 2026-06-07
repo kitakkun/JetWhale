@@ -205,8 +205,7 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
 
             else -> error(
                 "Set jetwhalePlugin.hostVersion to the released JetWhale host version, or pass " +
-                    "-PjetwhaleHostJar=<path> to launch a local host jar (or use the in-repo " +
-                    "`runJetWhaleLocal`).",
+                    "-PjetwhaleHostJar=<path> to launch a locally built host uber jar.",
             )
         }
         check(hostJar.exists()) { "JetWhale host jar not found: $hostJar" }
