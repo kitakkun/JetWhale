@@ -197,12 +197,11 @@ tasks.register<JavaExec>("runJetWhaleFromRelease") {
     val releaseJarProvider = hostReleaseJar
     val localJarProvider = localHostJar
     dependsOn(stageDevPlugin, downloadJetWhaleHost)
-    // Resolved in doFirst (after validation) so an unset hostVersion gives a clear error instead of
-    // a "no value present" failure from resolving the classpath provider too early.
-    classpath = files()
-    mainClass.set("com.kitakkun.jetwhale.host.MainKt")
 
-    doFirst {
+    // Resolve the host jar lazily so JavaExec reads it at execution (after downloadJetWhaleHost has
+    // run). A provider is required: reassigning `classpath` in doFirst is lost under the configuration
+    // cache, leaving an empty classpath and a cryptic "could not find main class" failure.
+    val hostJarProvider = providers.provider {
         val hostJar = when {
             localJarProvider.isPresent -> File(localJarProvider.get())
 
@@ -213,9 +212,11 @@ tasks.register<JavaExec>("runJetWhaleFromRelease") {
                     "-PjetwhaleHostJar=<path> to launch a local host jar (or use the in-repo `runJetWhale`).",
             )
         }
-        require(hostJar.exists()) { "JetWhale host jar not found: $hostJar" }
-        classpath = files(hostJar)
+        check(hostJar.exists()) { "JetWhale host jar not found: $hostJar" }
+        hostJar
     }
+    classpath = files(hostJarProvider)
+    mainClass.set("com.kitakkun.jetwhale.host.MainKt")
 
     val devDirProvider = devPluginsDir.map { it.asFile.absolutePath }
     jvmArgumentProviders.add(
