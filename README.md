@@ -54,7 +54,8 @@ fast, **hot-reload** dev loop:
 - Apply the published `com.kitakkun.jetwhale.host` Gradle plugin and compile against the published SDK.
 - Run a real host with `./gradlew :myPlugin:runJetWhaleFromRelease` (it downloads the host for your
   OS — no manual install).
-- Re-stage on save with `./gradlew :myPlugin:stageDevPlugin -t`; the host reloads your plugin while
-  keeping its state, no restart needed.
+- Re-stage on save with `./gradlew :myPlugin:stageDevPlugin -t`; the host reloads your plugin without
+  a restart — keeping its state for simple (method-body) edits, and recreating it for structural
+  changes (see the [limitations](docs/developing-plugins.md#limitations)).
 
 See **[docs/developing-plugins.md](docs/developing-plugins.md)** for the full guide.

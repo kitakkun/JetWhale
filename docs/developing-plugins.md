@@ -12,7 +12,7 @@ The `com.kitakkun.jetwhale.host` plugin gives your plugin's module these tasks:
 | `packagePlugin`          | Builds the distributable plugin fat-jar (the artifact you drop into `~/.jetwhale/plugins/`).          |
 | `installPlugin`          | Copies the packaged fat-jar into `~/.jetwhale/plugins/`.                                              |
 | `stageDevPlugin`         | Stages the packaged fat-jar into a private dev directory the host watches for hot reload.             |
-| `runJetWhaleFromRelease` | Downloads a released JetWhale host for your OS and launches it with your plugin loaded (`runIde`-like).|
+| `runJetWhaleFromRelease` | Downloads a released JetWhale host for your OS and launches it with your plugin loaded.|
 
 ## Set up
 
@@ -81,9 +81,10 @@ manifest. See `jetwhale-plugins/example/host` for a complete, working example:
 
 `runJetWhaleFromRelease` starts the host with `-Djetwhale.devPluginsDir=<dir>` pointing at a dev
 directory under your module's `build` folder. The host loads plugins from that directory **in addition
-to** `~/.jetwhale/plugins/` and watches it: whenever the plugin jar is re-staged, the host disposes
-the plugin's running instances, drops its classloader, reloads the factory from a fresh classloader,
-and refreshes the open plugin screen — **no host restart needed**.
+to** `~/.jetwhale/plugins/` and watches it: whenever the plugin jar is re-staged, the host reloads it
+and refreshes the open plugin screen — **no host restart needed**. For simple edits it redefines your
+classes in place and keeps the plugin's state; for changes it can't apply that way it recreates the
+plugin from a fresh classloader (see [Limitations](#limitations) below).
 
 Run the host in one terminal and continuous re-staging in another:
 
@@ -103,10 +104,27 @@ Run the host in one terminal and continuous re-staging in another:
 OS/architecture from the GitHub release (cached under `~/.jetwhale/dev-host/`) — no manual install of
 JetWhale needed. Pass `-PjetwhaleHostJar=<path>` to launch a locally built host uber jar instead.
 
-**What survives a reload:** in-place redefinition of **method-body** changes preserves plugin state on
-a stock JDK. **Structural** changes (adding/removing methods or fields, changing types) fall back to a
-full reload — the plugin instance is recreated, so its in-memory state resets. (Redefining structural
-changes in place would require the JetBrains Runtime.)
+### Limitations
+
+Hot reload always keeps you working without a host restart, but **how much of your plugin's in-memory
+state survives** depends on the kind of change you made:
+
+| Change you made                                                            | What happens                                              |
+|----------------------------------------------------------------------------|-----------------------------------------------------------|
+| Edit a **method body**                                                      | Redefined in place — the plugin instance and its state are **kept**. |
+| **Structural** change: add/remove a method or field, change a signature or supertype | Can't be redefined in place → **full reload**; the plugin is recreated and its in-memory state **resets**. |
+| Add a **new class/file**, or change **dependencies** (new jars)            | **Full reload** — the plugin's classloader is dropped and rebuilt from the new jar. |
+| Change the **plugin manifest** (`pluginId`, icon, version)                 | Picked up on the next stage as a **full reload**.         |
+
+Compose-specific: restructuring a `@Composable` (changing its group structure) can reset the state
+held by that part of the UI even when the rest of the plugin is preserved.
+
+On a **stock JDK**, only method-body edits are redefined in place; everything else falls back to a
+full reload. Preserving state across **structural** changes too would require running the host on the
+**JetBrains Runtime (JBR)**.
+
+So: a change that can't be redefined in place costs you the plugin's in-memory state — never a host
+restart.
 
 ## Trying an unreleased (SNAPSHOT) build
 
