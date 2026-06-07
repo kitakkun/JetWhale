@@ -39,3 +39,22 @@ Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal lea
     - Built-in tools include `screenshot`, `click`, `type`, `scroll`, `drag`, and
       `getAccessibilityTree`
     - Plugins can expose their own custom MCP tools by implementing `JetWhaleMcpCapablePlugin`
+
+- 🔥 **Hot-Reloadable Plugin Development**
+    - Build your own plugins in your **own** repository against the published SDK — no fork needed
+    - `runJetWhaleFromRelease` downloads a real JetWhale host and launches it with your plugin loaded;
+      edit your plugin, re-stage, and the host **hot-reloads** it — no restart
+    - See [Developing plugins](docs/developing-plugins.md)
+
+## Developing plugins
+
+JetWhale's debugging tools are plugins, and you can build your own in your **own** repository with a
+fast, **hot-reload** dev loop:
+
+- Apply the published `com.kitakkun.jetwhale` Gradle plugin and compile against the published SDK.
+- Run a real host with `./gradlew :myPlugin:runJetWhaleFromRelease` (it downloads the host for your
+  OS — no manual install).
+- Re-stage on save with `./gradlew :myPlugin:stageDevPlugin -t`; the host reloads your plugin while
+  keeping its state, no restart needed.
+
+See **[docs/developing-plugins.md](docs/developing-plugins.md)** for the full guide.
