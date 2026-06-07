@@ -5,7 +5,7 @@ A JetWhale host plugin is a fat-jar that the JetWhale host loads at runtime. You
 Gradle plugin to package it and to run a real host with your plugin loaded — with **hot reload**, so
 you can edit your plugin and see it update without restarting the host.
 
-The `com.kitakkun.jetwhale` plugin gives your plugin's module these tasks:
+The `com.kitakkun.jetwhale.host` plugin gives your plugin's module these tasks:
 
 | Task                     | What it does                                                                                          |
 |--------------------------|------------------------------------------------------------------------------------------------------|
@@ -45,7 +45,7 @@ A JetWhale plugin module is a Kotlin/JVM module with Compose UI. Apply `com.kita
 plugins {
     kotlin("jvm") version "<kotlinVersion>"
     id("org.jetbrains.kotlin.plugin.compose") version "<kotlinVersion>"
-    id("com.kitakkun.jetwhale") version "<version>"
+    id("com.kitakkun.jetwhale.host") version "<version>"
 }
 
 dependencies {
@@ -112,7 +112,7 @@ changes in place would require the JetBrains Runtime.)
 
 Pre-release builds are published as `-SNAPSHOT`. To try one, add the Central snapshots repository to
 **both** repository blocks in `settings.gradle.kts` and use a `-SNAPSHOT` version everywhere
-(`id("com.kitakkun.jetwhale") version`, the SDK dependency, and `hostVersion`):
+(`id("com.kitakkun.jetwhale.host") version`, the SDK dependency, and `hostVersion`):
 
 ```kotlin
 maven("https://central.sonatype.com/repository/maven-snapshots/")
