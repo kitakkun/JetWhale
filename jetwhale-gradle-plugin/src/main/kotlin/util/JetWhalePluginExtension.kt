@@ -3,10 +3,10 @@ package util
 import org.gradle.api.provider.Property
 
 /**
- * Configuration for the `jetwhale-plugin` convention.
+ * Configuration for the `com.kitakkun.jetwhale` plugin.
  *
- * Plugin authors apply the `jetwhale-plugin` convention and (optionally) tweak these values to
- * control how the distributable plugin jar is packaged and how `runJetWhale` launches the host.
+ * Plugin authors apply the plugin and (optionally) tweak these values to control how the
+ * distributable plugin jar is packaged and which released host `runJetWhaleFromRelease` runs against.
  */
 interface JetWhalePluginExtension {
     /**
@@ -16,24 +16,11 @@ interface JetWhalePluginExtension {
     val pluginArchiveName: Property<String>
 
     /**
-     * Gradle project path of the JetWhale host application used by `runJetWhale`.
-     *
-     * Defaults to `:jetwhale-host:app`. The referenced project must apply the Compose Desktop
-     * application plugin and expose `com.kitakkun.jetwhale.host.MainKt` as its main class.
-     *
-     * Note: this assumes the host is available as a project in the same Gradle build. A full Maven
-     * distribution of the host (so external builds can resolve it) is out of scope for now.
-     */
-    val hostApplicationProject: Property<String>
-
-    /**
-     * Version of the released JetWhale host to download and launch with `runJetWhaleFromRelease`,
-     * for plugin authors developing **outside** this repository.
+     * Version of the released JetWhale host to download and launch with `runJetWhaleFromRelease`.
      *
      * When set, `runJetWhaleFromRelease` fetches the matching host application (a runnable uber jar)
-     * for the current OS/architecture from the GitHub release of that version, instead of building
-     * it from [hostApplicationProject]. Leave unset for in-repo development (use `runJetWhale`, which
-     * builds the host from the local project).
+     * for the current OS/architecture from the GitHub release of that version. Pass
+     * `-PjetwhaleHostJar=<path>` to launch a locally built host uber jar instead.
      */
     val hostVersion: Property<String>
 }
