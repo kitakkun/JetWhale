@@ -166,9 +166,11 @@ val downloadJetWhaleHost = tasks.register("downloadJetWhaleHost") {
     onlyIf { versionProvider.isPresent && !localJarProvider.isPresent }
     doLast {
         val jar = jarProvider.get()
-        if (jar.exists() && jar.length() > 0) return@doLast
-        jar.parentFile.mkdirs()
         val version = versionProvider.get()
+        // Releases are immutable, so a cached jar is reused. SNAPSHOTs are overwritten on each publish,
+        // so always re-download them to avoid running a stale host.
+        if (!version.endsWith("-SNAPSHOT") && jar.exists() && jar.length() > 0) return@doLast
+        jar.parentFile.mkdirs()
         val url = "https://github.com/kitakkun/jetwhale/releases/download/$version/jetwhale-host-$version-${osArchProvider.get()}.jar"
         logger.lifecycle("Downloading JetWhale host $version from $url")
         val tmp = File.createTempFile("jetwhale-host-", ".jar", jar.parentFile)
