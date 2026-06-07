@@ -42,7 +42,7 @@ Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal lea
 
 - 🔥 **Hot-Reloadable Plugin Development**
     - Build your own plugins in your **own** repository against the published SDK — no fork needed
-    - `runJetWhaleFromRelease` downloads a real JetWhale host and launches it with your plugin loaded;
+    - `runJetWhale` downloads a real JetWhale host and launches it with your plugin loaded;
       edit your plugin, re-stage, and the host **hot-reloads** it — no restart
     - See [Developing plugins](docs/developing-plugins.md)
 
@@ -52,7 +52,7 @@ JetWhale's debugging tools are plugins, and you can build your own in your **own
 fast, **hot-reload** dev loop:
 
 - Apply the published `com.kitakkun.jetwhale.host` Gradle plugin and compile against the published SDK.
-- Run a real host with `./gradlew :myPlugin:runJetWhaleFromRelease` (it downloads the host for your
+- Run a real host with `./gradlew :myPlugin:runJetWhale` (it downloads the host for your
   OS — no manual install).
 - Re-stage on save with `./gradlew :myPlugin:stageDevPlugin -t`; the host reloads your plugin without
   a restart — keeping its state for simple (method-body) edits, and recreating it for structural

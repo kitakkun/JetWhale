@@ -17,5 +17,5 @@ version = libs.versions.jetwhale.get() + if (hasProperty("jetwhaleSnapshot")) "-
 jetwhalePublish {
     artifactId = "jetwhale-gradle-plugin"
     name = "JetWhale Gradle Plugin"
-    description = "Gradle plugin for developing JetWhale host plugins (packagePlugin, runJetWhale, runJetWhaleFromRelease)."
+    description = "Gradle plugin for developing JetWhale host plugins (packagePlugin, runJetWhale, runJetWhaleHot)."
 }

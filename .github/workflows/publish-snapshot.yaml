@@ -1,7 +1,7 @@
 name: Publish Snapshot
 # Manually publish a development SNAPSHOT: the SDK and Gradle plugin go to the Central snapshots
 # repository (overwritable), and the host uber jars are attached to a `<version>-SNAPSHOT` GitHub
-# pre-release so `runJetWhaleFromRelease` (hostVersion = "<version>-SNAPSHOT") can download them.
+# pre-release so `runJetWhale` (hostVersion = "<version>-SNAPSHOT") can download them.
 on:
   workflow_dispatch:
 permissions:
@@ -75,13 +75,13 @@ jobs:
       - name: Attach host uber jars to a pre-release
         uses: softprops/action-gh-release@v2
         with:
-          # The tag stays `<version>-SNAPSHOT` so runJetWhaleFromRelease always resolves the latest
+          # The tag stays `<version>-SNAPSHOT` so runJetWhale always resolves the latest
           # snapshot; the build number / commit / timestamp below identify which build it currently is.
           tag_name: ${{ steps.ver.outputs.version }}
           name: ${{ steps.ver.outputs.version }} (build ${{ github.run_number }})
           prerelease: true
           body: |
-            Development snapshot — overwritten on each publish; `runJetWhaleFromRelease` resolves this latest build.
+            Development snapshot — overwritten on each publish; `runJetWhale` resolves this latest build.
 
             - Build: #${{ github.run_number }}
             - Commit: ${{ github.sha }}

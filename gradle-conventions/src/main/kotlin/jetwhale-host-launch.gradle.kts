@@ -3,10 +3,10 @@ import org.gradle.process.CommandLineArgumentProvider
 /**
  * In-repo-only companion to the published `com.kitakkun.jetwhale.host` plugin.
  *
- * Adds `runJetWhale`, the IntelliJ-`runIde`-equivalent that launches the locally built host project
- * (`:jetwhale-host:app`) with this plugin staged for hot reload. It lives here, and is NOT published,
- * because it depends on the JetWhale repository's own host project — which external plugin authors
- * don't have. They use `runJetWhaleFromRelease` from the published plugin instead.
+ * Adds `runJetWhaleLocal`, which launches the locally built host project (`:jetwhale-host:app`) with
+ * this plugin staged for hot reload. It lives here, and is NOT published, because it depends on the
+ * JetWhale repository's own host project — which external plugin authors don't have. They use
+ * `runJetWhale` from the published plugin instead.
  *
  * Apply this alongside `com.kitakkun.jetwhale.host`: it reuses that plugin's `stageDevPlugin` task and its
  * dev plugins directory.
@@ -23,7 +23,7 @@ val jetwhaleHostRuntime = configurations.create("jetwhaleHostRuntime") {
 }
 dependencies.add("jetwhaleHostRuntime", dependencies.project(":jetwhale-host:app"))
 
-tasks.register<JavaExec>("runJetWhale") {
+tasks.register<JavaExec>("runJetWhaleLocal") {
     group = "jetwhale"
     description = "Launches the local JetWhale host project with this plugin loaded for development (hot reload)."
 
