@@ -1,74 +1,136 @@
 # Developing plugins
 
-A host plugin is a fat-jar that JetWhale loads at runtime. Apply the `com.kitakkun.jetwhale` Gradle
-convention to a plugin's host module to get the following tasks for free (see
-`jetwhale-plugins/example/host` for a working example):
+A JetWhale host plugin is a fat-jar that the JetWhale host loads at runtime. You develop it in your
+**own** repository: compile against the published SDK, and use the published `com.kitakkun.jetwhale`
+Gradle plugin to package it and to run a real host with your plugin loaded — with **hot reload**, so
+you can edit your plugin and see it update without restarting the host.
 
-| Task            | What it does                                                                                   |
-|-----------------|------------------------------------------------------------------------------------------------|
-| `packagePlugin` | Builds the distributable plugin fat-jar (the artifact you drop into `~/.jetwhale/plugins/`).   |
-| `installPlugin` | Copies the packaged fat-jar into `~/.jetwhale/plugins/`.                                        |
-| `runJetWhale`   | Launches the JetWhale host with your plugin loaded from a private dev directory (`runIde`-like).|
+The `com.kitakkun.jetwhale` plugin gives your plugin's module these tasks:
 
-## Live reload (dev mode)
+| Task                     | What it does                                                                                          |
+|--------------------------|------------------------------------------------------------------------------------------------------|
+| `packagePlugin`          | Builds the distributable plugin fat-jar (the artifact you drop into `~/.jetwhale/plugins/`).          |
+| `installPlugin`          | Copies the packaged fat-jar into `~/.jetwhale/plugins/`.                                              |
+| `stageDevPlugin`         | Stages the packaged fat-jar into a private dev directory the host watches for hot reload.             |
+| `runJetWhaleFromRelease` | Downloads a released JetWhale host for your OS and launches it with your plugin loaded (`runIde`-like).|
 
-`runJetWhale` starts the host with `-Djetwhale.devPluginsDir=<dir>` pointing at a dev directory
-under the module's `build` folder. The host loads plugins from that directory **in addition to**
-`~/.jetwhale/plugins/` and watches it: whenever the plugin jar is rebuilt, the host disposes the
-plugin's running instances, drops its classloader, reloads the factory from a fresh classloader, and
-refreshes the open plugin screen — no host restart needed.
+## Set up
 
-`runJetWhale` is a long-running process (it blocks until you close the host), so do **not** add
-`-t` to it — Gradle continuous mode only starts a new build once the current task graph finishes.
-Instead, run the host in one terminal and continuous re-staging in another; the host watches the
-dev directory and hot-reloads whenever the jar is re-staged:
+### 1. Repositories
+
+```kotlin
+// settings.gradle.kts
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        google()
+    }
+}
+```
+
+### 2. Apply the plugin and pin a host version
+
+A JetWhale plugin module is a Kotlin/JVM module with Compose UI. Apply `com.kitakkun.jetwhale`, set
+`hostVersion` to the released host you want to run against, and depend on the SDK at compile time only
+(the host provides it at runtime):
+
+```kotlin
+// the plugin's host module — build.gradle.kts
+plugins {
+    kotlin("jvm") version "<kotlinVersion>"
+    id("org.jetbrains.kotlin.plugin.compose") version "<kotlinVersion>"
+    id("com.kitakkun.jetwhale") version "<version>"
+}
+
+dependencies {
+    // Provided by the host at runtime, so compileOnly — they must NOT be bundled into the plugin jar.
+    compileOnly("com.kitakkun.jetwhale:jetwhale-host-sdk:<version>")
+    compileOnly("org.jetbrains.compose.material3:material3:<composeMaterial3Version>")
+}
+
+jetwhalePlugin {
+    hostVersion.set("<version>")
+}
+```
+
+The agent SDK goes in the **app being debugged** (a normal runtime dependency, not in the plugin
+module):
+
+```kotlin
+implementation("com.kitakkun.jetwhale:jetwhale-agent-sdk:<version>")
+```
+
+### 3. Write the plugin
+
+Implement `JetWhaleHostPluginFactory` and register it for `ServiceLoader` discovery, and add a plugin
+manifest. See `jetwhale-plugins/example/host` for a complete, working example:
+
+- `src/main/kotlin/.../MyPluginFactory.kt` — a `JetWhaleHostPluginFactory` returning your
+  `JetWhaleRawHostPlugin` (or the typed `JetWhaleHostPlugin<Event, Method, MethodResult>`).
+- `src/main/resources/META-INF/services/com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory` —
+  one line with your factory's fully-qualified name (or use `@AutoService`).
+- `src/main/resources/META-INF/jetwhale/plugin-manifest.json` — `pluginId`, `pluginName`, `version`.
+
+## Hot reload (the live dev loop)
+
+`runJetWhaleFromRelease` starts the host with `-Djetwhale.devPluginsDir=<dir>` pointing at a dev
+directory under your module's `build` folder. The host loads plugins from that directory **in addition
+to** `~/.jetwhale/plugins/` and watches it: whenever the plugin jar is re-staged, the host disposes
+the plugin's running instances, drops its classloader, reloads the factory from a fresh classloader,
+and refreshes the open plugin screen — **no host restart needed**.
+
+Run the host in one terminal and continuous re-staging in another:
 
 ```shell
-# Terminal 1 — launch the host (stays running)
-./gradlew :jetwhale-plugins:example:host:runJetWhale
+# Terminal 1 — download + launch the host (stays running)
+./gradlew :myPlugin:runJetWhaleFromRelease
 
 # Terminal 2 — rebuild & re-stage the plugin jar on every source change
+./gradlew :myPlugin:stageDevPlugin -t
+```
+
+> Do **not** add `-t` to `runJetWhaleFromRelease`: it is a long-running process (it blocks until you
+> close the host), and Gradle continuous mode only starts a new build once the current task graph
+> finishes. Keep the host in one terminal and `stageDevPlugin -t` in another.
+
+`runJetWhaleFromRelease` downloads the runnable host uber jar for `hostVersion` and the current
+OS/architecture from the GitHub release (cached under `~/.jetwhale/dev-host/`) — no manual install of
+JetWhale needed. Pass `-PjetwhaleHostJar=<path>` to launch a locally built host uber jar instead.
+
+**What survives a reload:** in-place redefinition of **method-body** changes preserves plugin state on
+a stock JDK. **Structural** changes (adding/removing methods or fields, changing types) fall back to a
+full reload — the plugin instance is recreated, so its in-memory state resets. (Redefining structural
+changes in place would require the JetBrains Runtime.)
+
+## Trying an unreleased (SNAPSHOT) build
+
+Pre-release builds are published as `-SNAPSHOT`. To try one, add the Central snapshots repository to
+**both** repository blocks in `settings.gradle.kts` and use a `-SNAPSHOT` version everywhere
+(`id("com.kitakkun.jetwhale") version`, the SDK dependency, and `hostVersion`):
+
+```kotlin
+maven("https://central.sonatype.com/repository/maven-snapshots/")
+```
+
+## Developing inside this repository
+
+In-repo plugin modules (e.g. `jetwhale-plugins/example/host`) don't download a host — they launch the
+local `:jetwhale-host:app` project directly via `runJetWhale`, which is added by the internal,
+non-published `jetwhale-host-launch` convention applied alongside `com.kitakkun.jetwhale`:
+
+```shell
+./gradlew :jetwhale-plugins:example:host:runJetWhale      # builds + launches the local host
 ./gradlew :jetwhale-plugins:example:host:stageDevPlugin -t
 ```
 
+The hot-reload model is identical; only the source of the host differs (local project vs downloaded
+release).
+
 When the `jetwhale.devPluginsDir` system property is absent (i.e. a normal production launch), dev
 mode and hot reload are completely inert — behaviour is unchanged.
-
-## Developing a plugin outside this repository
-
-In-repo, `runJetWhale` builds the host from the local `:jetwhale-host:app` project. Plugin authors
-working in their **own** repository don't have that project, so they download a released host and run
-it, via `runJetWhaleFromRelease` (the JetWhale equivalent of IntelliJ's `runIde`):
-
-1. Depend on the published SDK to compile the plugin (compile-time only — the host itself is not a
-   library dependency):
-   ```kotlin
-   // host module
-   compileOnly("com.kitakkun.jetwhale:jetwhale-host-sdk:<version>")
-   // agent module, in the app being debugged
-   implementation("com.kitakkun.jetwhale:jetwhale-agent-sdk:<version>")
-   ```
-2. Apply the published Gradle plugin (`com.kitakkun.jetwhale:jetwhale-gradle-plugin`, resolved via
-   Maven Central) and pin which released host to run against:
-   ```kotlin
-   // settings.gradle.kts
-   pluginManagement { repositories { mavenCentral(); gradlePluginPortal() } }
-
-   // the plugin's host module build.gradle.kts
-   plugins {
-       kotlin("jvm") version "<kotlinVersion>" // JetWhale plugin modules are Kotlin/JVM modules
-       id("com.kitakkun.jetwhale") version "<version>"
-   }
-   jetwhalePlugin { hostVersion.set("<version>") }
-   ```
-3. Run it (two terminals, same live-reload model as in-repo):
-   ```shell
-   ./gradlew :myPlugin:runJetWhaleFromRelease   # downloads the host uber jar for your OS + launches it
-   ./gradlew :myPlugin:stageDevPlugin -t        # rebuild & re-stage on change
-   ```
-
-`runJetWhaleFromRelease` downloads the runnable host uber jar for `hostVersion` and the current
-OS/architecture from the GitHub release (cached under `~/.jetwhale/dev-host/`), stages your plugin,
-and launches it with hot reload — no manual install of JetWhale needed. State-preserving in-place
-reload of method-body changes works on a stock JDK; structural changes fall back to a full reload
-(the JetBrains Runtime is needed to redefine those in place).
