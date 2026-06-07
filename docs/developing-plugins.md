@@ -1,11 +1,11 @@
 # Developing plugins
 
 A JetWhale host plugin is a fat-jar that the JetWhale host loads at runtime. You develop it in your
-**own** repository: compile against the published SDK, and use the published `com.kitakkun.jetwhale`
+**own** repository: compile against the published SDK, and use the published `com.kitakkun.jetwhale.host`
 Gradle plugin to package it and to run a real host with your plugin loaded — with **hot reload**, so
 you can edit your plugin and see it update without restarting the host.
 
-The `com.kitakkun.jetwhale` plugin gives your plugin's module these tasks:
+The `com.kitakkun.jetwhale.host` plugin gives your plugin's module these tasks:
 
 | Task                     | What it does                                                                                          |
 |--------------------------|------------------------------------------------------------------------------------------------------|
@@ -36,7 +36,7 @@ dependencyResolutionManagement {
 
 ### 2. Apply the plugin and pin a host version
 
-A JetWhale plugin module is a Kotlin/JVM module with Compose UI. Apply `com.kitakkun.jetwhale`, set
+A JetWhale plugin module is a Kotlin/JVM module with Compose UI. Apply `com.kitakkun.jetwhale.host`, set
 `hostVersion` to the released host you want to run against, and depend on the SDK at compile time only
 (the host provides it at runtime):
 
@@ -45,7 +45,7 @@ A JetWhale plugin module is a Kotlin/JVM module with Compose UI. Apply `com.kita
 plugins {
     kotlin("jvm") version "<kotlinVersion>"
     id("org.jetbrains.kotlin.plugin.compose") version "<kotlinVersion>"
-    id("com.kitakkun.jetwhale") version "<version>"
+    id("com.kitakkun.jetwhale.host") version "<version>"
 }
 
 dependencies {
@@ -112,7 +112,7 @@ changes in place would require the JetBrains Runtime.)
 
 Pre-release builds are published as `-SNAPSHOT`. To try one, add the Central snapshots repository to
 **both** repository blocks in `settings.gradle.kts` and use a `-SNAPSHOT` version everywhere
-(`id("com.kitakkun.jetwhale") version`, the SDK dependency, and `hostVersion`):
+(`id("com.kitakkun.jetwhale.host") version`, the SDK dependency, and `hostVersion`):
 
 ```kotlin
 maven("https://central.sonatype.com/repository/maven-snapshots/")
@@ -122,7 +122,7 @@ maven("https://central.sonatype.com/repository/maven-snapshots/")
 
 In-repo plugin modules (e.g. `jetwhale-plugins/example/host`) don't download a host — they launch the
 local `:jetwhale-host:app` project directly via `runJetWhale`, which is added by the internal,
-non-published `jetwhale-host-launch` convention applied alongside `com.kitakkun.jetwhale`:
+non-published `jetwhale-host-launch` convention applied alongside `com.kitakkun.jetwhale.host`:
 
 ```shell
 ./gradlew :jetwhale-plugins:example:host:runJetWhale      # builds + launches the local host

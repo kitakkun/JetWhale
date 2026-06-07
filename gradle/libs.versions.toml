@@ -171,6 +171,6 @@ multiplatform = { id = "multiplatform" }
 serialization = { id = "serialization" }
 debuggerComposeFeature = { id = "debugger-compose-feature" }
 publish = { id = "publish" }
-jetwhalePlugin = { id = "com.kitakkun.jetwhale" }
+jetwhalePlugin = { id = "com.kitakkun.jetwhale.host" }
 # In-repo only: adds `runJetWhale` (launches the local :jetwhale-host:app). Not published.
 jetwhaleHostLaunch = { id = "jetwhale-host-launch" }

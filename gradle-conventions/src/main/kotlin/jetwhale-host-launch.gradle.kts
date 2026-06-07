@@ -1,18 +1,18 @@
 import org.gradle.process.CommandLineArgumentProvider
 
 /**
- * In-repo-only companion to the published `com.kitakkun.jetwhale` plugin.
+ * In-repo-only companion to the published `com.kitakkun.jetwhale.host` plugin.
  *
  * Adds `runJetWhale`, the IntelliJ-`runIde`-equivalent that launches the locally built host project
  * (`:jetwhale-host:app`) with this plugin staged for hot reload. It lives here, and is NOT published,
  * because it depends on the JetWhale repository's own host project — which external plugin authors
  * don't have. They use `runJetWhaleFromRelease` from the published plugin instead.
  *
- * Apply this alongside `com.kitakkun.jetwhale`: it reuses that plugin's `stageDevPlugin` task and its
+ * Apply this alongside `com.kitakkun.jetwhale.host`: it reuses that plugin's `stageDevPlugin` task and its
  * dev plugins directory.
  */
 
-// Must match the dev directory used by the `com.kitakkun.jetwhale` plugin's `stageDevPlugin` task.
+// Must match the dev directory used by the `com.kitakkun.jetwhale.host` plugin's `stageDevPlugin` task.
 val devPluginsDir = layout.buildDirectory.dir("jetwhale/devPlugins")
 
 // Resolve the host application (classes + runtime dependencies) so we can launch its main class
@@ -27,7 +27,7 @@ tasks.register<JavaExec>("runJetWhale") {
     group = "jetwhale"
     description = "Launches the local JetWhale host project with this plugin loaded for development (hot reload)."
 
-    // `stageDevPlugin` is contributed by the `com.kitakkun.jetwhale` plugin applied to the same module.
+    // `stageDevPlugin` is contributed by the `com.kitakkun.jetwhale.host` plugin applied to the same module.
     // Referenced by name (not tasks.named) so plugin application order doesn't matter.
     dependsOn("stageDevPlugin")
 
