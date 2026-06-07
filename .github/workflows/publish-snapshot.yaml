@@ -24,6 +24,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-java
       - name: Build host uber jar
+        # Force bash so the POSIX `./gradlew` runs identically on the Windows matrix entry
+        # (the default Windows shell is PowerShell), matching the Rename step below.
+        shell: bash
         run: ./gradlew :jetwhale-host:app:packageUberJarForCurrentOS -PjetwhaleSnapshot
       - name: Rename uber jar with the snapshot version
         shell: bash
