@@ -28,6 +28,9 @@ dependencies {
     implementation(libs.androidxDatastorePreferences)
 
     implementation(libs.kotlinxSerializationJson)
+    // Used in dev hot-reload to obtain a JVM Instrumentation handle (self-attach) for in-place class
+    // redefinition. Dormant in production: only touched when the dev plugins directory is configured.
+    implementation(libs.byteBuddyAgent)
     implementation(libs.bundles.ktorServer)
     implementation(libs.logbackClassic)
     implementation(libs.kotlinTest)
