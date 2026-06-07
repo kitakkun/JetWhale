@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
@@ -27,10 +28,11 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.jar.JarFile
 import kotlin.io.path.Path
 
-@Inject
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
-class DefaultPluginFactoryRepository : PluginFactoryRepository {
+class DefaultPluginFactoryRepository @Inject constructor(
+    private val appDataDirectoryProvider: AppDataDirectoryProvider,
+) : PluginFactoryRepository {
     private val mutablePluginsFlow: MutableStateFlow<ImmutableMap<String, LoadedHostPlugin>> =
         MutableStateFlow(persistentMapOf())
     override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = mutablePluginsFlow
@@ -63,9 +65,8 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             // Open the classloader on a private copy of the jar so the source jar can be overwritten
             // (e.g. by dev hot-reload restaging) without corrupting this classloader's open zip
             // handle — which otherwise throws ZipException on later resource/class reads.
-            val runtimeJar = File.createTempFile("jetwhale-plugin-", ".jar").also { it.deleteOnExit() }
-            File(pluginJarPath).copyTo(runtimeJar, overwrite = true)
-            val classLoader = URLClassLoader(arrayOf(runtimeJar.toURI().toURL()))
+            val runtimeJar: File? = createRuntimeCopyIfDevJar(pluginJarPath)
+            val classLoader = URLClassLoader(arrayOf((runtimeJar ?: File(pluginJarPath)).toURI().toURL()))
 
             val manifestJson = classLoader
                 .getResourceAsStream(MANIFEST_PATH)
@@ -74,7 +75,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
                 ?: run {
                     println("Warning: $MANIFEST_PATH not found in $pluginJarPath")
                     classLoader.close()
-                    runtimeJar.delete()
+                    runtimeJar?.delete()
                     mutableFailedJarPathsFlow.update { it + pluginJarPath }
                     return
                 }
@@ -86,7 +87,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
                 .singleOrNull()
                 ?: run {
                     classLoader.close()
-                    runtimeJar.delete()
+                    runtimeJar?.delete()
                     error("Expected exactly one ${JetWhaleHostPluginFactory::class.java.simpleName} in $pluginJarPath")
                 }
 
@@ -103,7 +104,7 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             // Discard a previously loaded classloader for the same plugin id (e.g. a reload) so that
             // no stale classloader (and its classes) leaks.
             classLoaders.put(manifest.pluginId, classLoader)?.close()
-            runtimeJars.put(manifest.pluginId, runtimeJar)
+            runtimeJar?.let { runtimeJars[manifest.pluginId] = it }
             // Remove any other jar-path entries that pointed at this plugin id (e.g. the jar was
             // renamed/moved or duplicated) so findPluginIdByJarPath never returns a stale path's id.
             jarPathToPluginId.entries.removeIf { it.value == manifest.pluginId && it.key != pluginJarPath }
@@ -121,6 +122,23 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             if (e is CancellationException) throw e
             println("Failed to load plugin from $pluginJarPath: ${e.message}")
             mutableFailedJarPathsFlow.update { it + pluginJarPath }
+        }
+    }
+
+    /**
+     * Returns a private temp copy of [pluginJarPath] when it lives under the dev plugins directory
+     * (so the dev jar can be restaged without corrupting the running classloader's open zip handle),
+     * or `null` for stable installed jars, which are loaded directly without an extra copy.
+     */
+    private fun createRuntimeCopyIfDevJar(pluginJarPath: String): File? {
+        val devDir = appDataDirectoryProvider.getDevPluginsDir() ?: return null
+        val underDevDir = runCatching {
+            File(pluginJarPath).canonicalFile.toPath().startsWith(File(devDir).canonicalFile.toPath())
+        }.getOrDefault(false)
+        if (!underDevDir) return null
+        return File.createTempFile("jetwhale-plugin-", ".jar").also {
+            it.deleteOnExit()
+            File(pluginJarPath).copyTo(it, overwrite = true)
         }
     }
 
@@ -155,17 +173,22 @@ class DefaultPluginFactoryRepository : PluginFactoryRepository {
             // Redefine every class this plugin's classloader has already loaded, using the rebuilt
             // jar's bytecode. redefineClasses works on the loaded Class regardless of classloader, so
             // this reaches the plugin's child-classloader classes (which Compose Hot Reload cannot).
-            val loadedClasses = instrumentation.allLoadedClasses.filter { it.classLoader === classLoader }
+            // Array and hidden classes (e.g. invokedynamic lambdas) have no class file and are not
+            // redefinable, so they are skipped.
+            val loadedClasses = instrumentation.allLoadedClasses
+                .filter { it.classLoader === classLoader && !it.isArray && !it.isHidden }
             if (loadedClasses.isEmpty()) return null
 
-            val definitions = JarFile(pluginJarPath).use { jar ->
-                loadedClasses.mapNotNull { clazz ->
-                    val entry = jar.getJarEntry(clazz.name.replace('.', '/') + ".class") ?: return@mapNotNull null
-                    val bytes = jar.getInputStream(entry).use { it.readBytes() }
-                    ClassDefinition(clazz, bytes)
+            val definitions = ArrayList<ClassDefinition>(loadedClasses.size)
+            JarFile(pluginJarPath).use { jar ->
+                for (clazz in loadedClasses) {
+                    // A loaded (non-hidden, non-array) class with no class file in the rebuilt jar
+                    // would leave stale bytecode behind — a partial redefine. Bail out so the caller
+                    // does a full reload instead of reporting a misleading success.
+                    val entry = jar.getJarEntry(clazz.name.replace('.', '/') + ".class") ?: return null
+                    definitions += ClassDefinition(clazz, jar.getInputStream(entry).use { it.readBytes() })
                 }
             }
-            if (definitions.isEmpty()) return null
 
             instrumentation.redefineClasses(*definitions.toTypedArray())
             pluginId
