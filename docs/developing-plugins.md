@@ -70,8 +70,8 @@ implementation("com.kitakkun.jetwhale:jetwhale-agent-sdk:<version>")
 ### 3. Write the plugin
 
 Implement `JetWhaleHostPluginFactory` and declare it in a plugin manifest. The host loads each plugin
-by the `factoryClass` you list in the manifest, so **no `ServiceLoader`/`@AutoService` registration is
-needed**. See `jetwhale-plugins/example/host` for a complete, working example:
+by instantiating the `factoryClass` named in the manifest. See `jetwhale-plugins/example/host` for a
+complete, working example:
 
 - `src/main/kotlin/.../MyPluginFactory.kt` — a `JetWhaleHostPluginFactory` returning your
   `JetWhaleRawHostPlugin` (or the typed `JetWhaleHostPlugin<Event, Method, MethodResult>`). It needs a
