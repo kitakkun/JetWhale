@@ -105,10 +105,22 @@ val stopHotStaging = tasks.register("stopHotStaging") {
         val pidFile = pidFileProvider.get().asFile
         if (!pidFile.exists()) return@doLast
         pidFile.readText().trim().toLongOrNull()?.let { pid ->
-            ProcessHandle.of(pid).ifPresent { handle ->
-                handle.descendants().forEach { it.destroy() }
-                handle.destroy()
-            }
+            ProcessHandle.of(pid)
+                // Guard against PID reuse: a stale pid file left by a crashed run could otherwise point
+                // at an unrelated process that inherited the id. The watcher was started by this same
+                // Gradle daemon (doFirst runs in it), so only act when the process is still our child.
+                .filter { handle -> handle.parent().map { it.pid() == ProcessHandle.current().pid() }.orElse(false) }
+                .ifPresent { handle ->
+                    // Stop it gracefully first, then — if it has not exited shortly — force it so the
+                    // watcher is never left running.
+                    handle.descendants().forEach { it.destroy() }
+                    handle.destroy()
+                    runCatching { handle.onExit().get(3, java.util.concurrent.TimeUnit.SECONDS) }
+                    if (handle.isAlive) {
+                        handle.descendants().forEach { it.destroyForcibly() }
+                        handle.destroyForcibly()
+                    }
+                }
         }
         pidFile.delete()
     }
