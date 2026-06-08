@@ -21,8 +21,9 @@ import util.JetWhalePluginExtension
  *   current OS/architecture and launches it with this plugin staged for development. For live reload,
  *   run it in one terminal and `stageDevPlugin -t` in another — the host hot-reloads whenever the jar
  *   is re-staged.
- * - `runJetWhaleHot` — the same, but runs the host on the JetBrains Runtime so structural code changes
- *   hot-reload in place too (requires a JBR toolchain).
+ * - `runJetWhaleHot` — the same, but runs the host on the JetBrains Runtime (so structural code changes
+ *   hot-reload in place too; requires a JBR toolchain) AND keeps the plugin re-staged in the background,
+ *   so a single command is the whole hot-reload loop — no separate `stageDevPlugin -t` terminal needed.
  *
  * The in-repo host launcher (`runJetWhaleLocal`, which runs the local `:jetwhale-host:app` project)
  * lives in the separate, non-published `jetwhale-host-launch` convention.
@@ -84,6 +85,33 @@ val stageDevPlugin = tasks.register<Copy>("stageDevPlugin") {
 
     from(packagePlugin)
     into(devPluginsDir)
+}
+
+// ---------------------------------------------------------------------------
+// Continuous re-staging for runJetWhaleHot.
+// ---------------------------------------------------------------------------
+
+// runJetWhaleHot starts a background `stageDevPlugin -t` so a single command is the whole hot-reload
+// loop (see registerRunTask). The watcher's PID is handed from the run task's doFirst to the finalizer
+// below through this file: the configuration cache does not preserve a shared field across task actions,
+// and a finalizer (unlike doLast) also runs when the host exits with a non-zero status.
+val hotStagingPidFile = layout.buildDirectory.file("jetwhale/hot-staging.pid")
+
+val stopHotStaging = tasks.register("stopHotStaging") {
+    description = "Stops the background continuous-staging watcher started by runJetWhaleHot."
+
+    val pidFileProvider = hotStagingPidFile
+    doLast {
+        val pidFile = pidFileProvider.get().asFile
+        if (!pidFile.exists()) return@doLast
+        pidFile.readText().trim().toLongOrNull()?.let { pid ->
+            ProcessHandle.of(pid).ifPresent { handle ->
+                handle.descendants().forEach { it.destroy() }
+                handle.destroy()
+            }
+        }
+        pidFile.delete()
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -238,6 +266,61 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
             }
         },
     )
+
+    // Make `runJetWhaleHot` the whole hot-reload loop in one command: while the host runs in the
+    // foreground (and hot-reloads from the dev directory), a background `stageDevPlugin -t` re-packages
+    // and re-stages the plugin on every source change — so authors no longer need a second terminal.
+    // The host is launched in the foreground here; `dependsOn(stageDevPlugin)` already staged it once
+    // before this watcher takes over re-staging on change.
+    if (hot) {
+        // stopHotStaging is a finalizer (not doLast) so the watcher is also stopped when the host exits
+        // non-zero; on an interactive Ctrl+C the watcher additionally receives the terminal's SIGINT
+        // because it shares this command's process group.
+        finalizedBy(stopHotStaging)
+
+        val rootProjectDir = project.rootDir
+        val stageTaskPath = if (project.path == ":") ":stageDevPlugin" else "${project.path}:stageDevPlugin"
+        val osNameProvider = providers.systemProperty("os.name")
+        val pidFileProvider = hotStagingPidFile
+
+        doFirst {
+            val isWindows = osNameProvider.getOrElse("").startsWith("Windows", ignoreCase = true)
+            val gradlew = File(rootProjectDir, if (isWindows) "gradlew.bat" else "gradlew")
+            if (!gradlew.exists()) {
+                logger.warn(
+                    "JetWhale: Gradle wrapper not found at $gradlew; not auto-re-staging. " +
+                        "Run `./gradlew $stageTaskPath -t` in another terminal to hot-reload code changes.",
+                )
+                return@doFirst
+            }
+            // On Windows a .bat must be launched through cmd; elsewhere the wrapper is executed directly.
+            val command = buildList {
+                if (isWindows) addAll(listOf("cmd", "/c"))
+                add(gradlew.absolutePath)
+                addAll(listOf(stageTaskPath, "-t", "--console=plain"))
+            }
+            logger.lifecycle("JetWhale: continuously re-staging the plugin on source changes (${command.joinToString(" ")}).")
+            val process = ProcessBuilder(command)
+                .directory(rootProjectDir)
+                .redirectErrorStream(true)
+                .start()
+            val pidFile = pidFileProvider.get().asFile
+            pidFile.parentFile.mkdirs()
+            pidFile.writeText(process.pid().toString())
+            // The task action runs inside the Gradle daemon, whose streams are not the user's console,
+            // so a raw INHERIT would hide re-staging progress and (critically) any compile errors.
+            // Pump the watcher's output through this task's logger so it surfaces on the console.
+            val watcherLogger = logger
+            Thread(
+                {
+                    process.inputStream.bufferedReader().useLines { lines ->
+                        lines.forEach { watcherLogger.lifecycle("[stageDevPlugin] $it") }
+                    }
+                },
+                "jetwhale-hot-staging-watcher",
+            ).also { it.isDaemon = true }.start()
+        }
+    }
 }
 
 registerRunTask(
@@ -247,7 +330,8 @@ registerRunTask(
 )
 registerRunTask(
     name = "runJetWhaleHot",
-    taskDescription = "Like runJetWhale, but runs the host on the JetBrains Runtime so structural code changes hot-reload in place (requires a JBR toolchain).",
+    taskDescription = "Like runJetWhale, but runs the host on the JetBrains Runtime (structural changes hot-reload in " +
+        "place; requires a JBR toolchain) and auto re-stages the plugin in the background — the whole hot-reload loop in one command.",
     hot = true,
 )
 
