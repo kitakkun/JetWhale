@@ -1,14 +1,19 @@
 {
   "$schema": "../../../../../../../../../../schemas/plugin-manifest.schema.json",
-  "pluginId": "com.kitakkun.jetwhale.network",
-  "pluginName": "Network Inspector",
-  "version": "1.0.0",
-  "agentVersionRange": {
-    "min": "1.0.0",
-    "max": "1.0.0"
-  },
-  "icon": {
-    "activePath": "icons/network_filled.svg",
-    "inactivePath": "icons/network_outlined.svg"
-  }
+  "plugins": [
+    {
+      "pluginId": "com.kitakkun.jetwhale.network",
+      "pluginName": "Network Inspector",
+      "version": "1.0.0",
+      "factoryClass": "com.kitakkun.jetwhale.plugins.network.host.NetworkHostPluginFactory",
+      "agentVersionRange": {
+        "min": "1.0.0",
+        "max": "1.0.0"
+      },
+      "icon": {
+        "activePath": "icons/network_filled.svg",
+        "inactivePath": "icons/network_outlined.svg"
+      }
+    }
+  ]
 }

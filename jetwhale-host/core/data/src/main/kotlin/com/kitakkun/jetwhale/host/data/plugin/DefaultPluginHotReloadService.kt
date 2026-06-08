@@ -146,43 +146,42 @@ class DefaultPluginHotReloadService(
     private suspend fun reloadJar(jarPath: String) {
         if (!File(jarPath).exists()) return
 
-        // Try an in-place class redefinition first. On success the plugin's classloader and instance
-        // are kept (so the plugin instance's state survives), and we recreate only its compose scenes
-        // so the redefined Content runs against that preserved state. Composable-local `remember` is
+        // Try an in-place class redefinition first. On success the plugins' classloader and instances
+        // are kept (so plugin instance state survives), and we recreate only their compose scenes so
+        // the redefined Content runs against that preserved state. Composable-local `remember` is
         // reset (the scene is rebuilt); state that must survive a reload should live in the plugin
-        // instance. Reaches the plugin's child-classloader classes, which Compose Hot Reload cannot.
-        val redefinedPluginId = pluginFactoryRepository.tryRedefinePlugin(jarPath)
-        if (redefinedPluginId != null) {
+        // instance. Reaches the plugins' child-classloader classes, which Compose Hot Reload cannot.
+        // One jar may provide several plugins, so this works on the full set the jar redefined.
+        val redefinedPluginIds = pluginFactoryRepository.tryRedefinePlugin(jarPath)
+        if (redefinedPluginIds.isNotEmpty()) {
             withContext(Dispatchers.Main) {
-                pluginComposeSceneService.disposePluginScenesForPlugin(redefinedPluginId)
+                redefinedPluginIds.forEach { pluginComposeSceneService.disposePluginScenesForPlugin(it) }
             }
-            logger.info("Hot reloaded plugin in place (instance state preserved): $redefinedPluginId")
-            mutablePluginReloadedFlow.emit(redefinedPluginId)
+            logger.info("Hot reloaded plugin(s) in place (instance state preserved): ${redefinedPluginIds.joinToString()}")
+            redefinedPluginIds.forEach { mutablePluginReloadedFlow.emit(it) }
             return
         }
 
         // Fallback: full reload via a fresh classloader (plugin instance state is lost).
-        // Capture the plugin id currently served by this jar (if any) so that we can dispose its
-        // running instances and scenes before swapping in the new code.
-        val previousPluginId = pluginFactoryRepository.findPluginIdByJarPath(jarPath)
-        previousPluginId?.let { disposePlugin(it) }
+        // Capture the plugin ids currently served by this jar so that we can dispose their running
+        // instances and scenes before swapping in the new code.
+        val previousPluginIds = pluginFactoryRepository.findPluginIdsByJarPath(jarPath)
+        previousPluginIds.forEach { disposePlugin(it) }
 
-        val reloadedPluginId = pluginFactoryRepository.reloadPlugin(jarPath)
-        if (reloadedPluginId == null) {
+        val reloadedPluginIds = pluginFactoryRepository.reloadPlugin(jarPath)
+        if (reloadedPluginIds.isEmpty()) {
             logger.warning("Failed to reload plugin from $jarPath")
             return
         }
 
-        // The plugin id may have changed if its manifest id changed across the rebuild; make sure the
-        // previously loaded instances are gone in that case too.
-        if (previousPluginId != null && previousPluginId != reloadedPluginId) {
-            disposePlugin(previousPluginId)
-        }
+        // Some plugin ids may have disappeared if the jar's manifest changed across the rebuild
+        // (a plugin removed/renamed); make sure their previously loaded instances are gone too.
+        (previousPluginIds - reloadedPluginIds.toSet()).forEach { disposePlugin(it) }
 
-        reinitializeInstances(reloadedPluginId)
+        reloadedPluginIds.forEach { reinitializeInstances(it) }
 
-        logger.info("Hot reloaded plugin: $reloadedPluginId")
-        mutablePluginReloadedFlow.emit(reloadedPluginId)
+        logger.info("Hot reloaded plugin(s): ${reloadedPluginIds.joinToString()}")
+        reloadedPluginIds.forEach { mutablePluginReloadedFlow.emit(it) }
     }
 
     private fun disposePlugin(pluginId: String) {

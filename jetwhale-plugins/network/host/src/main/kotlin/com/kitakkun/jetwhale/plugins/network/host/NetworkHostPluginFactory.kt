@@ -6,7 +6,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import com.google.auto.service.AutoService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
@@ -19,8 +18,8 @@ import com.kitakkun.jetwhale.protocol.host.JetWhaleHostPluginProtocol
 import com.kitakkun.jetwhale.protocol.host.kotlinxSerializationJetWhaleHostPluginProtocol
 import kotlinx.coroutines.launch
 
+// Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
-@AutoService(JetWhaleHostPluginFactory::class)
 class NetworkHostPluginFactory : JetWhaleHostPluginFactory {
     override fun createPlugin(): JetWhaleRawHostPlugin = NetworkHostPlugin()
 }

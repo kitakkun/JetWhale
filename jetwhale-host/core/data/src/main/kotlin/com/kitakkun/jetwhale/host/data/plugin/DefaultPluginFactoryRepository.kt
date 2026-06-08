@@ -4,7 +4,7 @@ import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
-import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifestFile
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -23,7 +23,6 @@ import java.io.File
 import java.lang.instrument.ClassDefinition
 import java.lang.instrument.Instrumentation
 import java.net.URLClassLoader
-import java.util.ServiceLoader
 import java.util.concurrent.ConcurrentHashMap
 import java.util.jar.JarFile
 import kotlin.io.path.Path
@@ -42,17 +41,17 @@ class DefaultPluginFactoryRepository @Inject constructor(
     override val failedJarPathsFlow: Flow<List<String>> = mutableFailedJarPathsFlow.asStateFlow()
 
     /**
-     * The classloader that owns each loaded plugin, keyed by `pluginId`. Each plugin gets its own
-     * [URLClassLoader] so that, on reload, the previous loader can be closed and discarded together
-     * with all of the plugin's stale classes.
+     * The classloader that owns each loaded jar, keyed by absolute jar path. A single jar may declare
+     * several plugins; they all share this one classloader, so that on reload the previous loader can
+     * be closed and discarded together with all of the jar's stale classes.
      */
     private val classLoaders: ConcurrentHashMap<String, URLClassLoader> = ConcurrentHashMap()
 
-    /** Maps the absolute jar path a plugin was loaded from to its `pluginId`. */
-    private val jarPathToPluginId: ConcurrentHashMap<String, String> = ConcurrentHashMap()
+    /** Maps the absolute jar path a plugin was loaded from to the `pluginId`s it provides. */
+    private val jarPathToPluginIds: ConcurrentHashMap<String, List<String>> = ConcurrentHashMap()
 
     /**
-     * Private per-plugin copy of the jar that each classloader actually opens, keyed by `pluginId`.
+     * Private per-jar copy of the jar that each classloader actually opens, keyed by absolute jar path.
      * Loading from a copy lets the source (dev) jar be overwritten without corrupting the running
      * classloader's open zip handle. Replaced copies are NOT deleted eagerly (cached resource URLs
      * such as plugin icons may still point at them — deleting would throw NoSuchFileException); they
@@ -61,12 +60,15 @@ class DefaultPluginFactoryRepository @Inject constructor(
     private val runtimeJars: ConcurrentHashMap<String, File> = ConcurrentHashMap()
 
     override suspend fun loadPlugin(pluginJarPath: String) {
+        var classLoader: URLClassLoader? = null
+        var runtimeJar: File? = null
         try {
             // Open the classloader on a private copy of the jar so the source jar can be overwritten
             // (e.g. by dev hot-reload restaging) without corrupting this classloader's open zip
-            // handle — which otherwise throws ZipException on later resource/class reads.
-            val runtimeJar: File? = createRuntimeCopyIfDevJar(pluginJarPath)
-            val classLoader = URLClassLoader(arrayOf((runtimeJar ?: File(pluginJarPath)).toURI().toURL()))
+            // handle — which otherwise throws ZipException on later resource/class reads. Every plugin
+            // declared by the jar shares this single classloader.
+            runtimeJar = createRuntimeCopyIfDevJar(pluginJarPath)
+            classLoader = URLClassLoader(arrayOf((runtimeJar ?: File(pluginJarPath)).toURI().toURL()))
 
             val manifestJson = classLoader
                 .getResourceAsStream(MANIFEST_PATH)
@@ -74,54 +76,101 @@ class DefaultPluginFactoryRepository @Inject constructor(
                 ?.use { it.readText() }
                 ?: run {
                     println("Warning: $MANIFEST_PATH not found in $pluginJarPath")
-                    classLoader.close()
-                    runtimeJar?.delete()
-                    mutableFailedJarPathsFlow.update { it + pluginJarPath }
-                    return
+                    return failJar(pluginJarPath, classLoader, runtimeJar)
                 }
 
-            val manifest = pluginManifestJson.decodeFromString<JetWhaleHostPluginManifest>(manifestJson)
-
-            val factory = ServiceLoader.load(JetWhaleHostPluginFactory::class.java, classLoader)
-                .toList()
-                .singleOrNull()
-                ?: run {
-                    classLoader.close()
-                    runtimeJar?.delete()
-                    error("Expected exactly one ${JetWhaleHostPluginFactory::class.java.simpleName} in $pluginJarPath")
+            val manifests = pluginManifestJson.decodeFromString<JetWhaleHostPluginManifestFile>(manifestJson).plugins
+            if (manifests.isEmpty()) {
+                println("Warning: $MANIFEST_PATH in $pluginJarPath declares no plugins")
+                return failJar(pluginJarPath, classLoader, runtimeJar)
+            }
+            manifests.groupingBy { it.pluginId }.eachCount().filterValues { it > 1 }.keys.takeIf { it.isNotEmpty() }
+                ?.let { duplicates ->
+                    println("Warning: $MANIFEST_PATH in $pluginJarPath declares duplicate pluginId(s): ${duplicates.joinToString()}")
+                    return failJar(pluginJarPath, classLoader, runtimeJar)
                 }
 
-            // If this jar previously loaded under a *different* plugin id, drop that stale entry so
-            // we neither leak its classloader nor show a duplicate plugin.
-            jarPathToPluginId[pluginJarPath]?.takeIf { it != manifest.pluginId }?.let { stalePluginId ->
-                classLoaders.remove(stalePluginId)?.close()
-                runtimeJars.remove(stalePluginId)
-                mutablePluginsFlow.update { current ->
-                    current.toMutableMap().apply { remove(stalePluginId) }.toPersistentMap()
+            // Instantiate each plugin's factory by the fully-qualified class name it declares in the
+            // manifest (no ServiceLoader): this is what pairs every manifest entry with its factory and
+            // lets a single jar provide several plugins.
+            val loaded = ArrayList<LoadedHostPlugin>(manifests.size)
+            for (manifest in manifests) {
+                val factory = try {
+                    classLoader.loadClass(manifest.factoryClass).getDeclaredConstructor().newInstance()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    println(
+                        "Failed to instantiate factory '${manifest.factoryClass}' for plugin " +
+                            "'${manifest.pluginId}' in $pluginJarPath: ${e.message}",
+                    )
+                    return failJar(pluginJarPath, classLoader, runtimeJar)
                 }
+                if (factory !is JetWhaleHostPluginFactory) {
+                    println(
+                        "Factory '${manifest.factoryClass}' for plugin '${manifest.pluginId}' in " +
+                            "$pluginJarPath is not a ${JetWhaleHostPluginFactory::class.java.simpleName}",
+                    )
+                    return failJar(pluginJarPath, classLoader, runtimeJar)
+                }
+                loaded += LoadedHostPlugin(manifest = manifest, factory = factory)
             }
 
-            // Discard a previously loaded classloader for the same plugin id (e.g. a reload) so that
-            // no stale classloader (and its classes) leaks.
-            classLoaders.put(manifest.pluginId, classLoader)?.close()
-            runtimeJar?.let { runtimeJars[manifest.pluginId] = it }
-            // Remove any other jar-path entries that pointed at this plugin id (e.g. the jar was
-            // renamed/moved or duplicated) so findPluginIdByJarPath never returns a stale path's id.
-            jarPathToPluginId.entries.removeIf { it.value == manifest.pluginId && it.key != pluginJarPath }
-            jarPathToPluginId[pluginJarPath] = manifest.pluginId
+            val newPluginIds = manifests.map { it.pluginId }
+
+            // Detach any of these plugin ids that another jar currently provides, so we neither leak
+            // that jar's classloader nor show a duplicate plugin (e.g. a plugin moved between jars).
+            detachPluginIdsFromOtherJars(newPluginIds.toSet(), keepJarPath = pluginJarPath)
+
+            // Discard the previously loaded classloader for this jar (e.g. a reload) so that no stale
+            // classloader (and its classes) leaks; record this load's runtime copy.
+            classLoaders.put(pluginJarPath, classLoader)?.close()
+            if (runtimeJar != null) runtimeJars[pluginJarPath] = runtimeJar else runtimeJars.remove(pluginJarPath)
+
+            // Plugin ids this jar provided before but no longer does (removed/renamed across a rebuild).
+            val removedPluginIds = jarPathToPluginIds[pluginJarPath].orEmpty() - newPluginIds.toSet()
+            jarPathToPluginIds[pluginJarPath] = newPluginIds
 
             mutablePluginsFlow.update { current ->
                 current.toMutableMap().apply {
-                    put(manifest.pluginId, LoadedHostPlugin(manifest = manifest, factory = factory))
-                    println("Loaded plugin: ${manifest.pluginId} v${manifest.version}")
+                    removedPluginIds.forEach { remove(it) }
+                    loaded.forEach { put(it.manifest.pluginId, it) }
                 }.toPersistentMap()
             }
+            loaded.forEach { println("Loaded plugin: ${it.manifest.pluginId} v${it.manifest.version}") }
             // A previously failed jar may now succeed (e.g. after a rebuild); clear it from failures.
             mutableFailedJarPathsFlow.update { it.filterNot { path -> path == pluginJarPath } }
         } catch (e: Throwable) {
             if (e is CancellationException) throw e
             println("Failed to load plugin from $pluginJarPath: ${e.message}")
-            mutableFailedJarPathsFlow.update { it + pluginJarPath }
+            failJar(pluginJarPath, classLoader, runtimeJar)
+        }
+    }
+
+    /** Closes the freshly opened [classLoader]/[runtimeJar] and records [pluginJarPath] as failed. */
+    private fun failJar(pluginJarPath: String, classLoader: URLClassLoader?, runtimeJar: File?) {
+        classLoader?.close()
+        runtimeJar?.delete()
+        mutableFailedJarPathsFlow.update { it + pluginJarPath }
+    }
+
+    /**
+     * Removes [pluginIds] from every jar other than [keepJarPath] that currently provides them; a jar
+     * left with no plugins has its classloader closed and dropped. Their `loadedPlugins` entries are
+     * left for the caller to overwrite with the new jar's plugins.
+     */
+    private fun detachPluginIdsFromOtherJars(pluginIds: Set<String>, keepJarPath: String) {
+        for ((jarPath, ids) in jarPathToPluginIds) {
+            if (jarPath == keepJarPath) continue
+            val remaining = ids.filterNot { it in pluginIds }
+            if (remaining.size == ids.size) continue
+            if (remaining.isEmpty()) {
+                jarPathToPluginIds.remove(jarPath)
+                classLoaders.remove(jarPath)?.close()
+                runtimeJars.remove(jarPath)
+            } else {
+                jarPathToPluginIds[jarPath] = remaining
+            }
         }
     }
 
@@ -146,38 +195,49 @@ class DefaultPluginFactoryRepository @Inject constructor(
         mutablePluginsFlow.update { current ->
             current.toMutableMap().apply { remove(pluginId) }.toPersistentMap()
         }
-        classLoaders.remove(pluginId)?.close()
-        runtimeJars.remove(pluginId)
-        jarPathToPluginId.entries.removeIf { it.value == pluginId }
+        // Drop the plugin from its jar; close the jar's shared classloader only once its last plugin
+        // is gone (other plugins from the same jar must keep working).
+        val jarPath = jarPathToPluginIds.entries.firstOrNull { pluginId in it.value }?.key
+        if (jarPath != null) {
+            val remaining = jarPathToPluginIds.getValue(jarPath).filterNot { it == pluginId }
+            if (remaining.isEmpty()) {
+                jarPathToPluginIds.remove(jarPath)
+                classLoaders.remove(jarPath)?.close()
+                runtimeJars.remove(jarPath)
+            } else {
+                jarPathToPluginIds[jarPath] = remaining
+            }
+        }
         println("Unloaded plugin: $pluginId")
     }
 
-    override fun findPluginIdByJarPath(pluginJarPath: String): String? = jarPathToPluginId[pluginJarPath]
+    override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> =
+        jarPathToPluginIds[pluginJarPath].orEmpty()
 
-    override suspend fun reloadPlugin(pluginJarPath: String): String? {
-        // loadPlugin already closes and replaces the previous classloader for the same plugin id,
-        // dropping the stale classes. We simply re-run it and report the resulting plugin id.
+    override suspend fun reloadPlugin(pluginJarPath: String): List<String> {
+        // loadPlugin already closes and replaces the previous classloader for this jar, dropping the
+        // stale classes. We simply re-run it and report the resulting plugin ids.
         loadPlugin(pluginJarPath)
         // loadPlugin records the path in failedJarPaths on failure; treat that as an unsuccessful
-        // reload (don't report stale success from a leftover jarPathToPluginId mapping).
-        if (pluginJarPath in mutableFailedJarPathsFlow.value) return null
-        return jarPathToPluginId[pluginJarPath]
+        // reload (don't report stale success from a leftover jarPathToPluginIds mapping).
+        if (pluginJarPath in mutableFailedJarPathsFlow.value) return emptyList()
+        return jarPathToPluginIds[pluginJarPath].orEmpty()
     }
 
-    override fun tryRedefinePlugin(pluginJarPath: String): String? {
-        val instrumentation = instrumentation ?: return null
-        val pluginId = jarPathToPluginId[pluginJarPath] ?: return null
-        val classLoader = classLoaders[pluginId] ?: return null
+    override fun tryRedefinePlugin(pluginJarPath: String): List<String> {
+        val instrumentation = instrumentation ?: return emptyList()
+        val pluginIds = jarPathToPluginIds[pluginJarPath]?.takeIf { it.isNotEmpty() } ?: return emptyList()
+        val classLoader = classLoaders[pluginJarPath] ?: return emptyList()
 
         return try {
-            // Redefine every class this plugin's classloader has already loaded, using the rebuilt
-            // jar's bytecode. redefineClasses works on the loaded Class regardless of classloader, so
-            // this reaches the plugin's child-classloader classes (which Compose Hot Reload cannot).
-            // Array and hidden classes (e.g. invokedynamic lambdas) have no class file and are not
-            // redefinable, so they are skipped.
+            // Redefine every class this jar's classloader has already loaded, using the rebuilt jar's
+            // bytecode. redefineClasses works on the loaded Class regardless of classloader, so this
+            // reaches the plugin's child-classloader classes (which Compose Hot Reload cannot). Because
+            // all plugins in the jar share this classloader, one redefine covers every plugin. Array
+            // and hidden classes (e.g. invokedynamic lambdas) have no class file and are skipped.
             val loadedClasses = instrumentation.allLoadedClasses
                 .filter { it.classLoader === classLoader && !it.isArray && !it.isHidden }
-            if (loadedClasses.isEmpty()) return null
+            if (loadedClasses.isEmpty()) return emptyList()
 
             val definitions = ArrayList<ClassDefinition>(loadedClasses.size)
             JarFile(pluginJarPath).use { jar ->
@@ -185,20 +245,20 @@ class DefaultPluginFactoryRepository @Inject constructor(
                     // A loaded (non-hidden, non-array) class with no class file in the rebuilt jar
                     // would leave stale bytecode behind — a partial redefine. Bail out so the caller
                     // does a full reload instead of reporting a misleading success.
-                    val entry = jar.getJarEntry(clazz.name.replace('.', '/') + ".class") ?: return null
+                    val entry = jar.getJarEntry(clazz.name.replace('.', '/') + ".class") ?: return emptyList()
                     definitions += ClassDefinition(clazz, jar.getInputStream(entry).use { it.readBytes() })
                 }
             }
 
             instrumentation.redefineClasses(*definitions.toTypedArray())
-            pluginId
+            pluginIds
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
             // UnsupportedOperationException (structural change without an enhanced runtime),
             // LinkageError, etc. The caller falls back to a full reload.
-            println("In-place redefine failed for $pluginId: ${e.message}; falling back to full reload")
-            null
+            println("In-place redefine failed for ${pluginIds.joinToString()}: ${e.message}; falling back to full reload")
+            emptyList()
         }
     }
 

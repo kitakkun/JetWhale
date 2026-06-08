@@ -69,14 +69,35 @@ implementation("com.kitakkun.jetwhale:jetwhale-agent-sdk:<version>")
 
 ### 3. Write the plugin
 
-Implement `JetWhaleHostPluginFactory` and register it for `ServiceLoader` discovery, and add a plugin
-manifest. See `jetwhale-plugins/example/host` for a complete, working example:
+Implement `JetWhaleHostPluginFactory` and declare it in a plugin manifest. The host loads each plugin
+by the `factoryClass` you list in the manifest, so **no `ServiceLoader`/`@AutoService` registration is
+needed**. See `jetwhale-plugins/example/host` for a complete, working example:
 
 - `src/main/kotlin/.../MyPluginFactory.kt` — a `JetWhaleHostPluginFactory` returning your
-  `JetWhaleRawHostPlugin` (or the typed `JetWhaleHostPlugin<Event, Method, MethodResult>`).
-- `src/main/resources/META-INF/services/com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory` —
-  one line with your factory's fully-qualified name (or use `@AutoService`).
-- `src/main/resources/META-INF/jetwhale/plugin-manifest.json` — `pluginId`, `pluginName`, `version`.
+  `JetWhaleRawHostPlugin` (or the typed `JetWhaleHostPlugin<Event, Method, MethodResult>`). It needs a
+  public no-arg constructor so the host can instantiate it.
+- `src/main/resources/META-INF/jetwhale/plugin-manifest.json` — one entry per plugin under `plugins`,
+  each with `pluginId`, `pluginName`, `version`, and `factoryClass` (the fully-qualified name of the
+  factory above):
+
+  ```json
+  {
+    "plugins": [
+      {
+        "pluginId": "com.example.myplugin",
+        "pluginName": "My Plugin",
+        "version": "1.0.0",
+        "factoryClass": "com.example.MyPluginFactory"
+      }
+    ]
+  }
+  ```
+
+#### Multiple plugins in one module
+
+A single module's jar can ship several plugins: add one entry per plugin to the `plugins` array, each
+pointing at its own `factoryClass`. The plugins share the jar (and its classloader), and are loaded,
+reloaded, and hot-redefined together.
 
 ## Hot reload (the live dev loop)
 
