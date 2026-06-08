@@ -74,74 +74,29 @@ class DefaultPluginFactoryRepository @Inject constructor(
     }
 
     private fun loadPluginUnderLock(pluginJarPath: String) {
-        var classLoader: URLClassLoader? = null
-        var runtimeJar: File? = null
+        // Open the classloader on a private copy of the jar so the source jar can be overwritten
+        // (e.g. by dev hot-reload restaging) without corrupting this classloader's open zip handle —
+        // which otherwise throws ZipException on later resource/class reads. Every plugin declared by
+        // the jar shares this single classloader.
+        val runtimeJar = createRuntimeCopyIfDevJar(pluginJarPath)
+        val classLoader = URLClassLoader(arrayOf((runtimeJar ?: File(pluginJarPath)).toURI().toURL()))
+
+        // Once the classloader is handed to `classLoaders`, the map owns it and the `finally` below
+        // must not close it; until then it (and its temp copy) is ours to discard on any failure.
+        var committed = false
         try {
-            // Open the classloader on a private copy of the jar so the source jar can be overwritten
-            // (e.g. by dev hot-reload restaging) without corrupting this classloader's open zip
-            // handle — which otherwise throws ZipException on later resource/class reads. Every plugin
-            // declared by the jar shares this single classloader.
-            runtimeJar = createRuntimeCopyIfDevJar(pluginJarPath)
-            classLoader = URLClassLoader(arrayOf((runtimeJar ?: File(pluginJarPath)).toURI().toURL()))
-
-            val manifestJson = classLoader
-                .getResourceAsStream(MANIFEST_PATH)
-                ?.bufferedReader()
-                ?.use { it.readText() }
-                ?: run {
-                    println("Warning: $MANIFEST_PATH not found in $pluginJarPath")
-                    return failJar(pluginJarPath, classLoader, runtimeJar)
-                }
-
-            val manifests = pluginManifestJson.decodeFromString<JetWhaleHostPluginManifestFile>(manifestJson).plugins
-            if (manifests.isEmpty()) {
-                println("Warning: $MANIFEST_PATH in $pluginJarPath declares no plugins")
-                return failJar(pluginJarPath, classLoader, runtimeJar)
-            }
-            manifests.groupingBy { it.pluginId }.eachCount().filterValues { it > 1 }.keys.takeIf { it.isNotEmpty() }
-                ?.let { duplicates ->
-                    println("Warning: $MANIFEST_PATH in $pluginJarPath declares duplicate pluginId(s): ${duplicates.joinToString()}")
-                    return failJar(pluginJarPath, classLoader, runtimeJar)
-                }
-
-            // Instantiate each plugin's factory by the fully-qualified class name it declares in the
-            // manifest (no ServiceLoader): this is what pairs every manifest entry with its factory and
-            // lets a single jar provide several plugins.
-            val loaded = ArrayList<LoadedHostPlugin>(manifests.size)
-            for (manifest in manifests) {
-                val factory = try {
-                    // getConstructor (not getDeclaredConstructor): the contract is a *public* no-arg
-                    // constructor, so a non-public one fails clearly with NoSuchMethodException rather
-                    // than an IllegalAccessException at newInstance().
-                    classLoader.loadClass(manifest.factoryClass).getConstructor().newInstance()
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Throwable) {
-                    println(
-                        "Failed to instantiate factory '${manifest.factoryClass}' for plugin " +
-                            "'${manifest.pluginId}' in $pluginJarPath: ${e.message}",
-                    )
-                    return failJar(pluginJarPath, classLoader, runtimeJar)
-                }
-                if (factory !is JetWhaleHostPluginFactory) {
-                    println(
-                        "Factory '${manifest.factoryClass}' for plugin '${manifest.pluginId}' in " +
-                            "$pluginJarPath is not a ${JetWhaleHostPluginFactory::class.java.simpleName}",
-                    )
-                    return failJar(pluginJarPath, classLoader, runtimeJar)
-                }
-                loaded += LoadedHostPlugin(manifest = manifest, factory = factory)
-            }
-
-            val newPluginIds = manifests.map { it.pluginId }
+            val loaded = loadDeclaredPlugins(pluginJarPath, classLoader)
+            val newPluginIds = loaded.map { it.manifest.pluginId }
 
             // Detach any of these plugin ids that another jar currently provides, so we neither leak
             // that jar's classloader nor show a duplicate plugin (e.g. a plugin moved between jars).
             detachPluginIdsFromOtherJars(newPluginIds.toSet(), keepJarPath = pluginJarPath)
 
-            // Discard the previously loaded classloader for this jar (e.g. a reload) so that no stale
-            // classloader (and its classes) leaks; record this load's runtime copy.
-            classLoaders.put(pluginJarPath, classLoader)?.close()
+            // Hand the new classloader to the map (discarding the previous one for this jar, e.g. a
+            // reload, so no stale classloader and its classes leak) and record this load's runtime copy.
+            val previousClassLoader = classLoaders.put(pluginJarPath, classLoader)
+            committed = true
+            previousClassLoader?.close()
             if (runtimeJar != null) runtimeJars[pluginJarPath] = runtimeJar else runtimeJars.remove(pluginJarPath)
 
             // Plugin ids this jar provided before but no longer does (removed/renamed across a rebuild).
@@ -157,19 +112,56 @@ class DefaultPluginFactoryRepository @Inject constructor(
             loaded.forEach { println("Loaded plugin: ${it.manifest.pluginId} v${it.manifest.version}") }
             // A previously failed jar may now succeed (e.g. after a rebuild); clear it from failures.
             mutableFailedJarPathsFlow.update { it.filterNot { path -> path == pluginJarPath } }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Throwable) {
-            if (e is CancellationException) throw e
             println("Failed to load plugin from $pluginJarPath: ${e.message}")
-            failJar(pluginJarPath, classLoader, runtimeJar)
+            // Avoid accumulating duplicates across repeated failed loads (e.g. a hot-reload rebuild loop).
+            mutableFailedJarPathsFlow.update { if (pluginJarPath in it) it else it + pluginJarPath }
+        } finally {
+            if (!committed) {
+                classLoader.close()
+                runtimeJar?.delete()
+            }
         }
     }
 
-    /** Closes the freshly opened [classLoader]/[runtimeJar] and records [pluginJarPath] as failed. */
-    private fun failJar(pluginJarPath: String, classLoader: URLClassLoader?, runtimeJar: File?) {
-        classLoader?.close()
-        runtimeJar?.delete()
-        // Avoid accumulating duplicates across repeated failed loads (e.g. a hot-reload rebuild loop).
-        mutableFailedJarPathsFlow.update { if (pluginJarPath in it) it else it + pluginJarPath }
+    /**
+     * Reads the manifest from [classLoader] and instantiates every plugin the jar declares, pairing
+     * each manifest entry with the factory class it names (no ServiceLoader) — which is what lets a
+     * single jar provide several plugins. Throws on any problem (manifest missing, empty, or with
+     * duplicate ids; a factory class that is missing, lacks a public no-arg constructor, or is not a
+     * [JetWhaleHostPluginFactory]). The caller owns [classLoader]'s lifecycle.
+     */
+    private fun loadDeclaredPlugins(pluginJarPath: String, classLoader: ClassLoader): List<LoadedHostPlugin> {
+        val manifestJson = classLoader.getResourceAsStream(MANIFEST_PATH)?.bufferedReader()?.use { it.readText() }
+            ?: error("$MANIFEST_PATH not found in $pluginJarPath")
+
+        val manifests = pluginManifestJson.decodeFromString<JetWhaleHostPluginManifestFile>(manifestJson).plugins
+        require(manifests.isNotEmpty()) { "$MANIFEST_PATH in $pluginJarPath declares no plugins" }
+        val duplicateIds = manifests.groupingBy { it.pluginId }.eachCount().filterValues { it > 1 }.keys
+        require(duplicateIds.isEmpty()) {
+            "$MANIFEST_PATH in $pluginJarPath declares duplicate pluginId(s): ${duplicateIds.joinToString()}"
+        }
+
+        return manifests.map { manifest ->
+            val factory = try {
+                // getConstructor (not getDeclaredConstructor): the contract is a *public* no-arg
+                // constructor, so a non-public/missing one fails clearly with NoSuchMethodException.
+                classLoader.loadClass(manifest.factoryClass).getConstructor().newInstance()
+            } catch (e: ReflectiveOperationException) {
+                throw IllegalStateException(
+                    "Could not load factory '${manifest.factoryClass}' for plugin '${manifest.pluginId}' " +
+                        "in $pluginJarPath: ${e.message}",
+                    e,
+                )
+            }
+            require(factory is JetWhaleHostPluginFactory) {
+                "Factory '${manifest.factoryClass}' for plugin '${manifest.pluginId}' in $pluginJarPath " +
+                    "is not a ${JetWhaleHostPluginFactory::class.java.simpleName}"
+            }
+            LoadedHostPlugin(manifest = manifest, factory = factory)
+        }
     }
 
     /**
