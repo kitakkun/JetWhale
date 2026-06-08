@@ -3,7 +3,6 @@ package com.kitakkun.jetwhale.plugins.example.host
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import com.google.auto.service.AutoService
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
@@ -22,8 +21,8 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.put
 
+// Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
-@AutoService(JetWhaleHostPluginFactory::class)
 class ExampleHostPluginFactory : JetWhaleHostPluginFactory {
     override fun createPlugin(): JetWhaleRawHostPlugin = ExampleHostPlugin()
 }

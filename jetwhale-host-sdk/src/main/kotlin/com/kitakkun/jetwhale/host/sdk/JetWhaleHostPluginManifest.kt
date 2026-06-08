@@ -2,11 +2,28 @@ package com.kitakkun.jetwhale.host.sdk
 
 import kotlinx.serialization.Serializable
 
+/**
+ * Top-level shape of `META-INF/jetwhale/plugin-manifest.json`. A single plugin JAR may declare
+ * several plugins, so the manifest is a list — one [JetWhaleHostPluginManifest] entry per plugin.
+ * Each entry names its own [JetWhaleHostPluginFactory] implementation via
+ * [JetWhaleHostPluginManifest.factoryClass], which is how a single JAR can ship several plugins.
+ */
+@Serializable
+public data class JetWhaleHostPluginManifestFile(
+    public val plugins: List<JetWhaleHostPluginManifest>,
+)
+
 @Serializable
 public data class JetWhaleHostPluginManifest(
     public val pluginId: String,
     public val pluginName: String,
     public val version: String,
+    /**
+     * Fully-qualified name of this plugin's [JetWhaleHostPluginFactory] implementation. The host loads
+     * this class from the plugin JAR and instantiates it (via its no-arg constructor) to obtain the
+     * plugin. Each entry pointing at its own factory is what lets one JAR provide multiple plugins.
+     */
+    public val factoryClass: String,
     public val agentVersionRange: AgentVersionRange? = null,
     public val icon: Icon? = null,
 ) {
