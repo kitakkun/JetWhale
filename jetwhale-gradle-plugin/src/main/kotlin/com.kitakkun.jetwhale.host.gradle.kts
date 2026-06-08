@@ -115,14 +115,17 @@ val currentOsArch: Provider<String> =
 // `:jetwhale-host:app:packageUberJarForCurrentOS`). When set it overrides hostVersion.
 val localHostJar: Provider<String> = providers.gradleProperty("jetwhaleHostJar")
 
+// Resolve user.home as a provider OUTSIDE the combiner below. Reading it via `providers` inside the
+// zip lambda would make the lambda capture the enclosing script object (its `this$0`), which the
+// configuration cache cannot serialize ("cannot serialize Gradle script object references").
+val userHome: Provider<String> = providers.systemProperty("user.home")
+
 // Path of the cached host uber jar for the configured version (resolved lazily, value only when set).
 val hostReleaseJar: Provider<File> =
-    pluginExtension.hostVersion.zip(currentOsArch) { version, osArch ->
-        File(
-            providers.systemProperty("user.home").get(),
-            ".jetwhale/dev-host/$version/jetwhale-host-$version-$osArch.jar",
-        )
-    }
+    pluginExtension.hostVersion.zip(currentOsArch) { version, osArch -> version to osArch }
+        .zip(userHome) { (version, osArch), home ->
+            File(home, ".jetwhale/dev-host/$version/jetwhale-host-$version-$osArch.jar")
+        }
 
 val downloadJetWhaleHost = tasks.register("downloadJetWhaleHost") {
     group = "jetwhale"
