@@ -13,7 +13,7 @@ The `com.kitakkun.jetwhale.host` plugin gives your plugin's module these tasks:
 | `installPlugin`          | Copies the packaged fat-jar into `~/.jetwhale/plugins/`.                                              |
 | `stageDevPlugin`         | Stages the packaged fat-jar into a private dev directory the host watches for hot reload.             |
 | `runJetWhale`            | Downloads a released JetWhale host for your OS and launches it with your plugin loaded.|
-| `runJetWhaleHot`         | Like `runJetWhale`, but runs the host on the JetBrains Runtime so structural changes hot-reload in place (see [Limitations](#limitations)).|
+| `runJetWhaleHot`         | Like `runJetWhale`, but runs the host on the JetBrains Runtime so structural changes hot-reload in place (see [Limitations](#limitations)), and auto re-stages your plugin in the background — the whole hot-reload loop in one command. |
 
 ## Set up
 
@@ -87,7 +87,22 @@ and refreshes the open plugin screen — **no host restart needed**. For simple 
 classes in place and keeps the plugin's state; for changes it can't apply that way it recreates the
 plugin from a fresh classloader (see [Limitations](#limitations) below).
 
-Run the host in one terminal and continuous re-staging in another:
+The simplest loop is a single command — `runJetWhaleHot` launches the host **and** keeps re-staging
+your plugin for you:
+
+```shell
+# Launches the host and re-stages on every source change, all in one terminal.
+./gradlew :myPlugin:runJetWhaleHot
+```
+
+It runs the host in the foreground and, in the background, a `stageDevPlugin -t` that re-packages and
+re-stages the jar whenever you edit a source file; the host then hot-reloads it. The background
+re-staging stops automatically when you stop the host (close it, or press Ctrl+C). `runJetWhaleHot`
+also runs the host on the JetBrains Runtime so structural changes hot-reload in place — see
+[Limitations](#limitations).
+
+If you prefer a plain JDK (no JBR toolchain), use `runJetWhale` instead and drive the re-staging
+yourself from a second terminal:
 
 ```shell
 # Terminal 1 — download + launch the host (stays running)
@@ -97,9 +112,10 @@ Run the host in one terminal and continuous re-staging in another:
 ./gradlew :myPlugin:stageDevPlugin -t
 ```
 
-> Do **not** add `-t` to `runJetWhale`: it is a long-running process (it blocks until you
-> close the host), and Gradle continuous mode only starts a new build once the current task graph
-> finishes. Keep the host in one terminal and `stageDevPlugin -t` in another.
+> Do **not** add `-t` to `runJetWhale`/`runJetWhaleHot`: they are long-running processes (they block
+> until you close the host), and Gradle continuous mode only starts a new build once the current task
+> graph finishes. `runJetWhaleHot` already runs the watcher for you; for `runJetWhale`, keep the host
+> in one terminal and `stageDevPlugin -t` in another.
 
 `runJetWhale` downloads the runnable host uber jar for `hostVersion` and the current
 OS/architecture from the GitHub release (cached under `~/.jetwhale/dev-host/`) — no manual install of
