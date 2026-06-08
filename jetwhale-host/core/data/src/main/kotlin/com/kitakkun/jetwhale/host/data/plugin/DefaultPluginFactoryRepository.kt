@@ -233,8 +233,7 @@ class DefaultPluginFactoryRepository @Inject constructor(
         println("Unloaded plugin: $pluginId")
     }
 
-    override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> =
-        jarPathToPluginIds[pluginJarPath].orEmpty()
+    override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = jarPathToPluginIds[pluginJarPath].orEmpty()
 
     override suspend fun reloadPlugin(pluginJarPath: String): List<String> = loadMutex.withLock {
         // loadPlugin already closes and replaces the previous classloader for this jar, dropping the
