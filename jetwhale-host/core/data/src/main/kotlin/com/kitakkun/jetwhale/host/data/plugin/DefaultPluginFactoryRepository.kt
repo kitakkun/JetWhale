@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import net.bytebuddy.agent.ByteBuddyAgent
 import java.io.File
@@ -59,7 +61,19 @@ class DefaultPluginFactoryRepository @Inject constructor(
      */
     private val runtimeJars: ConcurrentHashMap<String, File> = ConcurrentHashMap()
 
-    override suspend fun loadPlugin(pluginJarPath: String) {
+    /**
+     * Serializes load/unload/reload: each performs compound read-modify-write across several maps
+     * ([classLoaders], [jarPathToPluginIds], [runtimeJars], [mutablePluginsFlow]), which per-map
+     * atomicity alone does not make safe. `loadPlugin` is invoked from the initial load, the install
+     * flow, and the hot-reload watcher, so these can overlap.
+     */
+    private val loadMutex = Mutex()
+
+    override suspend fun loadPlugin(pluginJarPath: String): Unit = loadMutex.withLock {
+        loadPluginUnderLock(pluginJarPath)
+    }
+
+    private fun loadPluginUnderLock(pluginJarPath: String) {
         var classLoader: URLClassLoader? = null
         var runtimeJar: File? = null
         try {
@@ -191,7 +205,11 @@ class DefaultPluginFactoryRepository @Inject constructor(
         }
     }
 
-    override suspend fun unloadPlugin(pluginId: String) {
+    override suspend fun unloadPlugin(pluginId: String): Unit = loadMutex.withLock {
+        unloadPluginUnderLock(pluginId)
+    }
+
+    private fun unloadPluginUnderLock(pluginId: String) {
         mutablePluginsFlow.update { current ->
             current.toMutableMap().apply { remove(pluginId) }.toPersistentMap()
         }
@@ -214,14 +232,18 @@ class DefaultPluginFactoryRepository @Inject constructor(
     override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> =
         jarPathToPluginIds[pluginJarPath].orEmpty()
 
-    override suspend fun reloadPlugin(pluginJarPath: String): List<String> {
+    override suspend fun reloadPlugin(pluginJarPath: String): List<String> = loadMutex.withLock {
         // loadPlugin already closes and replaces the previous classloader for this jar, dropping the
-        // stale classes. We simply re-run it and report the resulting plugin ids.
-        loadPlugin(pluginJarPath)
+        // stale classes. We simply re-run it (under the same lock, so the result read below is
+        // consistent with it) and report the resulting plugin ids.
+        loadPluginUnderLock(pluginJarPath)
         // loadPlugin records the path in failedJarPaths on failure; treat that as an unsuccessful
         // reload (don't report stale success from a leftover jarPathToPluginIds mapping).
-        if (pluginJarPath in mutableFailedJarPathsFlow.value) return emptyList()
-        return jarPathToPluginIds[pluginJarPath].orEmpty()
+        if (pluginJarPath in mutableFailedJarPathsFlow.value) {
+            emptyList()
+        } else {
+            jarPathToPluginIds[pluginJarPath].orEmpty()
+        }
     }
 
     override fun tryRedefinePlugin(pluginJarPath: String): List<String> {
