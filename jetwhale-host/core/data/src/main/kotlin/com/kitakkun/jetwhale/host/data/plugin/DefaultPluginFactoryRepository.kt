@@ -110,7 +110,10 @@ class DefaultPluginFactoryRepository @Inject constructor(
             val loaded = ArrayList<LoadedHostPlugin>(manifests.size)
             for (manifest in manifests) {
                 val factory = try {
-                    classLoader.loadClass(manifest.factoryClass).getDeclaredConstructor().newInstance()
+                    // getConstructor (not getDeclaredConstructor): the contract is a *public* no-arg
+                    // constructor, so a non-public one fails clearly with NoSuchMethodException rather
+                    // than an IllegalAccessException at newInstance().
+                    classLoader.loadClass(manifest.factoryClass).getConstructor().newInstance()
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {
@@ -165,7 +168,8 @@ class DefaultPluginFactoryRepository @Inject constructor(
     private fun failJar(pluginJarPath: String, classLoader: URLClassLoader?, runtimeJar: File?) {
         classLoader?.close()
         runtimeJar?.delete()
-        mutableFailedJarPathsFlow.update { it + pluginJarPath }
+        // Avoid accumulating duplicates across repeated failed loads (e.g. a hot-reload rebuild loop).
+        mutableFailedJarPathsFlow.update { if (pluginJarPath in it) it else it + pluginJarPath }
     }
 
     /**

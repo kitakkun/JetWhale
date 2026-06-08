@@ -171,6 +171,13 @@ class DefaultPluginHotReloadService(
         val reloadedPluginIds = pluginFactoryRepository.reloadPlugin(jarPath)
         if (reloadedPluginIds.isEmpty()) {
             logger.warning("Failed to reload plugin from $jarPath")
+            // A failed reload (e.g. a compile error in the rebuilt jar) leaves the previously loaded
+            // code intact in the repository, so restore the instances/scenes we disposed above instead
+            // of leaving active sessions without the plugin until the next successful build.
+            previousPluginIds.forEach {
+                reinitializeInstances(it)
+                mutablePluginReloadedFlow.emit(it)
+            }
             return
         }
 
