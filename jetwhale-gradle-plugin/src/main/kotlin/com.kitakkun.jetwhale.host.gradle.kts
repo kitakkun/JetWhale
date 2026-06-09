@@ -241,7 +241,7 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
     // run). A provider is required: reassigning `classpath` in doFirst is lost under the
     // configuration cache, leaving an empty classpath and a cryptic "could not find main class".
     val hostJarProvider = providers.provider {
-        val hostJar = when {
+        when {
             localHostJar.isPresent -> File(localHostJar.get())
 
             pluginExtension.hostVersion.isPresent -> hostReleaseJar.get()
@@ -251,8 +251,6 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
                     "-PjetwhaleHostJar=<path> to launch a locally built host uber jar.",
             )
         }
-        check(hostJar.exists()) { "JetWhale host jar not found: $hostJar" }
-        hostJar
     }
     classpath = files(hostJarProvider)
     mainClass.set("com.kitakkun.jetwhale.host.MainKt")
@@ -334,6 +332,20 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
                 },
                 "jetwhale-hot-staging-watcher",
             ).also { it.isDaemon = true }.start()
+        }
+    }
+
+    // Verify the resolved host jar exists at EXECUTION time — after downloadJetWhaleHost (a dependency)
+    // has had a chance to download it. Checking this inside hostJarProvider instead would evaluate it
+    // while Gradle resolves the classpath's dependencies during task-graph configuration, before the
+    // jar is downloaded, failing with the cryptic "Could not determine the dependencies of task".
+    // Registered last so that, with doFirst's LIFO ordering, it runs before the hot-staging watcher above.
+    doFirst {
+        val hostJar = hostJarProvider.get()
+        // Require a real, non-empty file: a directory (e.g. a misconfigured -PjetwhaleHostJar) or an
+        // empty file would otherwise pass and fail later with a cryptic JVM "could not find main class".
+        check(hostJar.isFile && hostJar.length() > 0) {
+            "JetWhale host jar is missing, empty, or not a regular file: $hostJar"
         }
     }
 }
