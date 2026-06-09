@@ -342,7 +342,11 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
     // Registered last so that, with doFirst's LIFO ordering, it runs before the hot-staging watcher above.
     doFirst {
         val hostJar = hostJarProvider.get()
-        check(hostJar.exists()) { "JetWhale host jar not found: $hostJar" }
+        // Require a real, non-empty file: a directory (e.g. a misconfigured -PjetwhaleHostJar) or an
+        // empty file would otherwise pass and fail later with a cryptic JVM "could not find main class".
+        check(hostJar.isFile && hostJar.length() > 0) {
+            "JetWhale host jar is missing, empty, or not a regular file: $hostJar"
+        }
     }
 }
 
