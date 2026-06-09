@@ -11,9 +11,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.milliseconds
+
+// How long to wait before re-attaching `adb track-devices` after the tracking stream ends or errors
+// (e.g. another tool ran `adb kill-server`, or adb restarted because of a client/server version mismatch).
+private const val RECONNECT_DELAY_MS = 2_000L
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
@@ -28,16 +36,24 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
         if (wiringJob != null) return
 
         wiringJob = coroutineScope.launch {
-            deviceEventFlow().collect { event ->
-                when (event) {
-                    is DeviceEvent.Connected -> {
-                        wire(event.serial, port)
+            // `adb track-devices` can end at any time (adb server restart/crash, USB hiccup, version
+            // mismatch). When it does, the flow completes; without this loop the service would silently
+            // stop wiring until the host is restarted. Re-attach with a small backoff instead.
+            while (isActive) {
+                try {
+                    deviceEventFlow().collect { event ->
+                        when (event) {
+                            is DeviceEvent.Connected -> wire(event.serial, port)
+                            is DeviceEvent.Disconnected -> unwire(event.serial, port)
+                        }
                     }
-
-                    is DeviceEvent.Disconnected -> {
-                        unwire(event.serial, port)
-                    }
+                    System.err.println("ADB device tracking ended; re-attaching in ${RECONNECT_DELAY_MS}ms")
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    System.err.println("ADB device tracking failed; re-attaching in ${RECONNECT_DELAY_MS}ms: ${e.message}")
                 }
+                delay(RECONNECT_DELAY_MS.milliseconds)
             }
         }
     }
@@ -58,16 +74,13 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
                         val event = line.substringAfter("\t")
 
                         when (event) {
-                            "device" -> {
-                                trySend(DeviceEvent.Connected(serial))
-                            }
-
-                            "offline" -> {
-                                trySend(DeviceEvent.Disconnected(serial))
-                            }
+                            "device" -> trySend(DeviceEvent.Connected(serial))
+                            "offline" -> trySend(DeviceEvent.Disconnected(serial))
                         }
                     }
                 }
+            // track-devices reached EOF (the process exited): complete the flow so startAutoWiring re-attaches.
+            close()
         }
 
         awaitClose {
@@ -77,17 +90,22 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
 
     private fun wire(serial: String, port: Int) {
         println("Wiring ADB reverse for device $serial on port $port")
-        ProcessBuilder(adbPath, "-s", serial, "reverse", "tcp:$port", "tcp:$port")
-            .start()
-            .waitFor()
-        wiredDevices.add(serial)
+        val (exitCode, output) = runAdb("-s", serial, "reverse", "tcp:$port", "tcp:$port")
+        if (exitCode == 0) {
+            wiredDevices.add(serial)
+        } else {
+            // e.g. "device offline" right after it turns ready, or an adb server version mismatch.
+            // Surface it instead of recording a false success.
+            System.err.println("Failed to wire ADB reverse for device $serial on port $port (exit=$exitCode): $output")
+        }
     }
 
     private fun unwire(serial: String, port: Int) {
         println("Unwiring ADB reverse for device $serial on port $port")
-        ProcessBuilder(adbPath, "-s", serial, "reverse", "--remove", "tcp:$port")
-            .start()
-            .waitFor()
+        val (exitCode, output) = runAdb("-s", serial, "reverse", "--remove", "tcp:$port")
+        if (exitCode != 0) {
+            System.err.println("Failed to unwire ADB reverse for device $serial on port $port (exit=$exitCode): $output")
+        }
         wiredDevices.remove(serial)
     }
 
@@ -95,11 +113,19 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
         wiringJob?.cancel()
         wiringJob = null
         wiredDevices.forEach { serial ->
-            ProcessBuilder(adbPath, "-s", serial, "reverse", "--remove", "tcp:$port")
-                .start()
-                .waitFor()
+            runAdb("-s", serial, "reverse", "--remove", "tcp:$port")
         }
         wiredDevices.clear()
+    }
+
+    /** Runs an adb command to completion and returns its exit code together with its merged output. */
+    private fun runAdb(vararg args: String): Pair<Int, String> {
+        val process = ProcessBuilder(adbPath, *args)
+            .redirectErrorStream(true)
+            .start()
+        val output = process.inputStream.bufferedReader().readText().trim()
+        val exitCode = process.waitFor()
+        return exitCode to output
     }
 }
 
