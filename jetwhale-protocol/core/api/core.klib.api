@@ -21,100 +21,31 @@ abstract interface com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger { 
 }
 
 sealed interface com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent|null[0]
-    sealed interface MethodResultResponse : com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse|null[0]
-        abstract val requestId // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.requestId|{}requestId[0]
-            abstract fun <get-requestId>(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.requestId.<get-requestId>|<get-requestId>(){}[0]
+    final class PluginFrameMessage : com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage|null[0]
+        constructor <init>(com.kitakkun.jetwhale.protocol.messaging/PluginFrame) // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.<init>|<init>(com.kitakkun.jetwhale.protocol.messaging.PluginFrame){}[0]
 
-        final class Failure : com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure|null[0]
-            constructor <init>(kotlin/String, kotlin/String) // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.<init>|<init>(kotlin.String;kotlin.String){}[0]
+        final val frame // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.frame|{}frame[0]
+            final fun <get-frame>(): com.kitakkun.jetwhale.protocol.messaging/PluginFrame // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.frame.<get-frame>|<get-frame>(){}[0]
 
-            final val errorMessage // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.errorMessage|{}errorMessage[0]
-                final fun <get-errorMessage>(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.errorMessage.<get-errorMessage>|<get-errorMessage>(){}[0]
-            final val requestId // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.requestId|{}requestId[0]
-                final fun <get-requestId>(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.requestId.<get-requestId>|<get-requestId>(){}[0]
+        final fun component1(): com.kitakkun.jetwhale.protocol.messaging/PluginFrame // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.component1|component1(){}[0]
+        final fun copy(com.kitakkun.jetwhale.protocol.messaging/PluginFrame = ...): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.copy|copy(com.kitakkun.jetwhale.protocol.messaging.PluginFrame){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.toString|toString(){}[0]
 
-            final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.component1|component1(){}[0]
-            final fun component2(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.component2|component2(){}[0]
-            final fun copy(kotlin/String = ..., kotlin/String = ...): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.copy|copy(kotlin.String;kotlin.String){}[0]
-            final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.equals|equals(kotlin.Any?){}[0]
-            final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.hashCode|hashCode(){}[0]
-            final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.toString|toString(){}[0]
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage> { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
 
-            final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure> { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.$serializer|null[0]
-                final val descriptor // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.$serializer.descriptor|{}descriptor[0]
-                    final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
-
-                final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.$serializer.childSerializers|childSerializers(){}[0]
-                final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
-                final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure) // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent.MethodResultResponse.Failure){}[0]
-            }
-
-            final object Companion { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.Companion|null[0]
-                final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Failure.Companion.serializer|serializer(){}[0]
-            }
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage) // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent.PluginFrameMessage){}[0]
         }
 
-        final class Success : com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success|null[0]
-            constructor <init>(kotlin/String, kotlin/String?) // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.<init>|<init>(kotlin.String;kotlin.String?){}[0]
+        final object Companion { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.Companion|null[0]
+            final val $childSerializers // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.Companion.$childSerializers|{}$childSerializers[0]
 
-            final val payload // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.payload|{}payload[0]
-                final fun <get-payload>(): kotlin/String? // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.payload.<get-payload>|<get-payload>(){}[0]
-            final val requestId // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.requestId|{}requestId[0]
-                final fun <get-requestId>(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.requestId.<get-requestId>|<get-requestId>(){}[0]
-
-            final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.component1|component1(){}[0]
-            final fun component2(): kotlin/String? // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.component2|component2(){}[0]
-            final fun copy(kotlin/String = ..., kotlin/String? = ...): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.copy|copy(kotlin.String;kotlin.String?){}[0]
-            final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.equals|equals(kotlin.Any?){}[0]
-            final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.hashCode|hashCode(){}[0]
-            final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.toString|toString(){}[0]
-
-            final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success> { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.$serializer|null[0]
-                final val descriptor // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.$serializer.descriptor|{}descriptor[0]
-                    final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
-
-                final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.$serializer.childSerializers|childSerializers(){}[0]
-                final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
-                final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success) // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent.MethodResultResponse.Success){}[0]
-            }
-
-            final object Companion { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.Companion|null[0]
-                final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Success.Companion.serializer|serializer(){}[0]
-            }
-        }
-
-        final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Companion|null[0]
-            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Companion.serializer|serializer(){}[0]
-            final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.MethodResultResponse.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
-        }
-    }
-
-    final class PluginMessage : com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage|null[0]
-        constructor <init>(kotlin/String, kotlin/String) // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.<init>|<init>(kotlin.String;kotlin.String){}[0]
-
-        final val payload // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.payload|{}payload[0]
-            final fun <get-payload>(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.payload.<get-payload>|<get-payload>(){}[0]
-        final val pluginId // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.pluginId|{}pluginId[0]
-            final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
-
-        final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.component1|component1(){}[0]
-        final fun component2(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.component2|component2(){}[0]
-        final fun copy(kotlin/String = ..., kotlin/String = ...): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.copy|copy(kotlin.String;kotlin.String){}[0]
-        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.equals|equals(kotlin.Any?){}[0]
-        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.hashCode|hashCode(){}[0]
-        final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.toString|toString(){}[0]
-
-        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage> { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.$serializer|null[0]
-            final val descriptor // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.$serializer.descriptor|{}descriptor[0]
-                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
-
-            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.$serializer.childSerializers|childSerializers(){}[0]
-            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
-            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage) // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent.PluginMessage){}[0]
-        }
-
-        final object Companion { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.Companion|null[0]
-            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginMessage.Companion.serializer|serializer(){}[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.Companion.serializer|serializer(){}[0]
         }
     }
 
@@ -125,38 +56,6 @@ sealed interface com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent { // 
 }
 
 sealed interface com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent|null[0]
-    final class MethodRequest : com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest|null[0]
-        constructor <init>(kotlin/String, kotlin/String, kotlin/String) // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.<init>|<init>(kotlin.String;kotlin.String;kotlin.String){}[0]
-
-        final val payload // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.payload|{}payload[0]
-            final fun <get-payload>(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.payload.<get-payload>|<get-payload>(){}[0]
-        final val pluginId // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.pluginId|{}pluginId[0]
-            final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
-        final val requestId // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.requestId|{}requestId[0]
-            final fun <get-requestId>(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.requestId.<get-requestId>|<get-requestId>(){}[0]
-
-        final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.component1|component1(){}[0]
-        final fun component2(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.component2|component2(){}[0]
-        final fun component3(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.component3|component3(){}[0]
-        final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/String = ...): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.copy|copy(kotlin.String;kotlin.String;kotlin.String){}[0]
-        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.equals|equals(kotlin.Any?){}[0]
-        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.hashCode|hashCode(){}[0]
-        final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.toString|toString(){}[0]
-
-        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest> { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.$serializer|null[0]
-            final val descriptor // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.$serializer.descriptor|{}descriptor[0]
-                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
-
-            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.$serializer.childSerializers|childSerializers(){}[0]
-            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
-            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest) // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent.MethodRequest){}[0]
-        }
-
-        final object Companion { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.Companion|null[0]
-            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.MethodRequest.Companion.serializer|serializer(){}[0]
-        }
-    }
-
     final class PluginActivated : com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginActivated|null[0]
         constructor <init>(kotlin/String) // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginActivated.<init>|<init>(kotlin.String){}[0]
 
@@ -206,6 +105,34 @@ sealed interface com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent { // 
 
         final object Companion { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginDeactivated.Companion|null[0]
             final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginDeactivated> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginDeactivated.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class PluginFrameMessage : com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage|null[0]
+        constructor <init>(com.kitakkun.jetwhale.protocol.messaging/PluginFrame) // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.<init>|<init>(com.kitakkun.jetwhale.protocol.messaging.PluginFrame){}[0]
+
+        final val frame // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.frame|{}frame[0]
+            final fun <get-frame>(): com.kitakkun.jetwhale.protocol.messaging/PluginFrame // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.frame.<get-frame>|<get-frame>(){}[0]
+
+        final fun component1(): com.kitakkun.jetwhale.protocol.messaging/PluginFrame // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.component1|component1(){}[0]
+        final fun copy(com.kitakkun.jetwhale.protocol.messaging/PluginFrame = ...): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.copy|copy(com.kitakkun.jetwhale.protocol.messaging.PluginFrame){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage> { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage) // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent.PluginFrameMessage){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.Companion|null[0]
+            final val $childSerializers // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.Companion.$childSerializers|{}$childSerializers[0]
+
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage> // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.Companion.serializer|serializer(){}[0]
         }
     }
 

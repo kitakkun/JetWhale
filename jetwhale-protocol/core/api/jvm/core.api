@@ -6,99 +6,30 @@ public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$Com
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public abstract interface class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse : com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent {
-	public static final field Companion Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Companion;
-	public abstract fun getRequestId ()Ljava/lang/String;
-}
-
-public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Companion {
-	public final fun serializer ()Lkotlinx/serialization/KSerializer;
-}
-
-public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Failure : com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse {
-	public static final field Companion Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Failure$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Failure;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Failure;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Failure;
+public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage : com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent {
+	public static final field Companion Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage$Companion;
+	public fun <init> (Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;
+	public final fun copy (Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage;Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getErrorMessage ()Ljava/lang/String;
-	public fun getRequestId ()Ljava/lang/String;
+	public final fun getFrame ()Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
 
-public final synthetic class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Failure$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field INSTANCE Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Failure$$serializer;
+public final synthetic class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage$$serializer;
 	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Failure;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage;
 	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Failure;)V
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
 	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Failure$Companion {
-	public final fun serializer ()Lkotlinx/serialization/KSerializer;
-}
-
-public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Success : com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse {
-	public static final field Companion Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Success$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Success;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Success;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Success;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getPayload ()Ljava/lang/String;
-	public fun getRequestId ()Ljava/lang/String;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final synthetic class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Success$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field INSTANCE Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Success$$serializer;
-	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Success;
-	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
-	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Success;)V
-	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
-	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
-}
-
-public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$MethodResultResponse$Success$Companion {
-	public final fun serializer ()Lkotlinx/serialization/KSerializer;
-}
-
-public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginMessage : com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent {
-	public static final field Companion Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginMessage$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginMessage;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginMessage;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginMessage;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getPayload ()Ljava/lang/String;
-	public final fun getPluginId ()Ljava/lang/String;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final synthetic class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginMessage$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field INSTANCE Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginMessage$$serializer;
-	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginMessage;
-	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
-	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginMessage;)V
-	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
-	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
-}
-
-public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginMessage$Companion {
+public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
@@ -107,37 +38,6 @@ public abstract interface class com/kitakkun/jetwhale/protocol/core/JetWhaleDebu
 }
 
 public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$Companion {
-	public final fun serializer ()Lkotlinx/serialization/KSerializer;
-}
-
-public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$MethodRequest : com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent {
-	public static final field Companion Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$MethodRequest$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$MethodRequest;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$MethodRequest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$MethodRequest;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getPayload ()Ljava/lang/String;
-	public final fun getPluginId ()Ljava/lang/String;
-	public final fun getRequestId ()Ljava/lang/String;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final synthetic class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$MethodRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field INSTANCE Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$MethodRequest$$serializer;
-	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$MethodRequest;
-	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
-	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$MethodRequest;)V
-	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
-	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
-}
-
-public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$MethodRequest$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
@@ -192,6 +92,33 @@ public final synthetic class com/kitakkun/jetwhale/protocol/core/JetWhaleDebugge
 }
 
 public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginDeactivated$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage : com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent {
+	public static final field Companion Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage$Companion;
+	public fun <init> (Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;
+	public final fun copy (Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage;Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFrame ()Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 

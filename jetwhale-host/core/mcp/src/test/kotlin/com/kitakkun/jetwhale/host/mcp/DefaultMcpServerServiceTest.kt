@@ -4,10 +4,10 @@ import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
-import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock
@@ -216,9 +216,8 @@ private class FakeMcpTool(
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private class FakeMcpCapablePlugin :
-    JetWhaleRawHostPlugin(),
+    JetWhaleHostPlugin(),
     JetWhaleMcpCapablePlugin {
-    override fun onRawEvent(event: String) = Unit
 
     override fun mcpTools() = listOf(
         JetWhaleMcpToolDescriptor(

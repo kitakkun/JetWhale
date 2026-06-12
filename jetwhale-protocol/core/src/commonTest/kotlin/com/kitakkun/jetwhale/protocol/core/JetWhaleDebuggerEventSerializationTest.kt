@@ -1,9 +1,11 @@
 package com.kitakkun.jetwhale.protocol.core
 
 import com.kitakkun.jetwhale.protocol.JetWhaleSerializationTest
+import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 /**
  * Tests for ensuring stable serialization of [JetWhaleDebuggerEvent].
@@ -11,32 +13,21 @@ import kotlin.test.assertIs
 class JetWhaleDebuggerEventSerializationTest : JetWhaleSerializationTest() {
 
     @Test
-    fun `method request event should be serialized stably`() {
-        val event = JetWhaleDebuggerEvent.MethodRequest(
-            pluginId = "example-plugin",
-            requestId = "req-1",
-            payload = "doSomething",
+    fun `plugin frame message round-trips and carries the host frame discriminator`() {
+        val event = JetWhaleDebuggerEvent.PluginFrameMessage(
+            frame = PluginFrame.Request(
+                pluginId = "example-plugin",
+                correlationId = "corr-1",
+                messageType = "example/ping",
+                payload = "{}",
+            ),
         )
 
         val encoded = json.encodeToString(event)
+        assertTrue(encoded.contains(""""type":"event/host/plugin_frame""""), "missing discriminator: $encoded")
 
-        assertEquals(
-            expected = """{"type":"event/host/plugin_method_request","pluginId":"example-plugin","requestId":"req-1","payload":"doSomething"}""",
-            actual = encoded,
-        )
-    }
-
-    @Test
-    fun `method request event should be deserializable`() {
-        val jsonString =
-            """{"type":"event/host/plugin_method_request","pluginId":"example-plugin","requestId":"req-2","payload":"doSomethingElse"}"""
-
-        val decoded = json.decodeFromString<JetWhaleDebuggerEvent>(jsonString)
-
-        val request = assertIs<JetWhaleDebuggerEvent.MethodRequest>(decoded)
-        assertEquals("example-plugin", request.pluginId)
-        assertEquals("req-2", request.requestId)
-        assertEquals("doSomethingElse", request.payload)
+        val decoded = json.decodeFromString<JetWhaleDebuggerEvent>(encoded)
+        assertEquals(event, assertIs<JetWhaleDebuggerEvent.PluginFrameMessage>(decoded))
     }
 
     @Test

@@ -1,24 +1,14 @@
-public abstract class com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin : com/kitakkun/jetwhale/agent/sdk/JetWhaleRawAgentPlugin {
+public abstract class com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
 	public fun <init> ()V
-	public final fun enqueueEvent (Ljava/lang/Object;)V
-	protected abstract fun getProtocol ()Lcom/kitakkun/jetwhale/protocol/agent/JetWhaleAgentPluginProtocol;
-	public fun onEnqueueEvent (Ljava/lang/Object;)V
-	public final fun onRawMethod (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun onReceiveMethod (Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-}
-
-public abstract interface class com/kitakkun/jetwhale/agent/sdk/JetWhaleMessageSender {
-	public abstract fun send ([Ljava/lang/String;)V
-}
-
-public abstract class com/kitakkun/jetwhale/agent/sdk/JetWhaleRawAgentPlugin {
-	public fun <init> ()V
-	public final fun activate (Lcom/kitakkun/jetwhale/agent/sdk/JetWhaleMessageSender;)V
-	public final fun deactivate ()V
-	public final fun enqueueRawEvent (Ljava/lang/String;)V
+	protected fun configure (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessagingHandlers;)V
+	public final fun create (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;)V
+	public final fun dispose ()V
+	protected final fun getMessenger ()Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;
+	protected final fun getMessengerOrNull ()Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;
 	public abstract fun getPluginId ()Ljava/lang/String;
 	public abstract fun getPluginVersion ()Ljava/lang/String;
-	public abstract fun onRawMethod (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	protected fun queueBufferSize ()I
+	protected fun onCreate ()V
+	protected fun onDispose ()V
+	public final fun registerHandlers (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessagingHandlers;)V
 }
 

@@ -73,22 +73,20 @@ private class ExampleHostPlugin :
         ),
     )
 
-    override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? {
-        return when (toolName) {
-            "com.kitakkun.jetwhale.example.sendPing" -> {
-                val pongReceived = runCatching { messenger.execute(Ping) }.isSuccess
-                buildJsonObject {
-                    put("pongReceived", pongReceived)
-                }.toString()
-            }
-
-            "com.kitakkun.jetwhale.example.getEventLogs" -> {
-                val limit = arguments["limit"]?.toIntOrNull()
-                val logs = if (limit != null) eventLogs.takeLast(limit) else eventLogs.toList()
-                Json.encodeToJsonElement(logs).toString()
-            }
-
-            else -> null
+    override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? = when (toolName) {
+        "com.kitakkun.jetwhale.example.sendPing" -> {
+            val pongReceived = runCatching { messenger.execute(Ping) }.isSuccess
+            buildJsonObject {
+                put("pongReceived", pongReceived)
+            }.toString()
         }
+
+        "com.kitakkun.jetwhale.example.getEventLogs" -> {
+            val limit = arguments["limit"]?.toIntOrNull()
+            val logs = if (limit != null) eventLogs.takeLast(limit) else eventLogs.toList()
+            Json.encodeToJsonElement(logs).toString()
+        }
+
+        else -> null
     }
 }

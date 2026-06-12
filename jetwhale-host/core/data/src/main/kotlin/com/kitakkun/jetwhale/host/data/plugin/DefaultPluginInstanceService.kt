@@ -56,8 +56,7 @@ class DefaultPluginInstanceService(
         LoadedPluginInstance(pluginId = key.pluginId, sessionId = key.sessionId, plugin = instance.plugin)
     }
 
-    override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? =
-        loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.plugin
+    override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.plugin
 
     override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
         val loaded = pluginFactoryRepository.loadedPlugins[pluginId] ?: return emptySet()
