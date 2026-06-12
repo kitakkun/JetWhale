@@ -28,17 +28,12 @@ internal object JetWhaleSerialNames {
     const val EVENT_HOST = "event/host"
 
     // event/agent/*
-    const val EVENT_AGENT_PLUGIN_MESSAGE = "event/agent/plugin_message"
-    const val EVENT_AGENT_METHOD_RESULT_RESPONSE = "event/agent/method_result_response"
+    const val EVENT_AGENT_PLUGIN_FRAME = "event/agent/plugin_frame"
 
     // event/host/*
-    const val EVENT_HOST_PLUGIN_METHOD_REQUEST = "event/host/plugin_method_request"
+    const val EVENT_HOST_PLUGIN_FRAME = "event/host/plugin_frame"
     const val EVENT_HOST_PLUGIN_ACTIVATED = "event/host/plugin_activated"
     const val EVENT_HOST_PLUGIN_DEACTIVATED = "event/host/plugin_deactivated"
-
-    // event/agent/method_result_response/*
-    const val EVENT_AGENT_METHOD_RESULT_RESPONSE_SUCCESS = "event/agent/method_result_response/success"
-    const val EVENT_AGENT_METHOD_RESULT_RESPONSE_FAILURE = "event/agent/method_result_response/failure"
 
     // model/*
     const val MODEL_PLUGIN_INFO = "model/plugin_info"

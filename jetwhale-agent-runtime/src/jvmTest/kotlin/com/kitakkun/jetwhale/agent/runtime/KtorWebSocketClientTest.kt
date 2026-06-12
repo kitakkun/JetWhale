@@ -73,9 +73,12 @@ class KtorWebSocketClientTest {
         )
 
         webSocketClient.sendDebuggeeEvent(
-            event = JetWhaleDebuggeeEvent.PluginMessage(
-                pluginId = "pluginId",
-                payload = "message",
+            event = JetWhaleDebuggeeEvent.PluginFrameMessage(
+                frame = com.kitakkun.jetwhale.protocol.messaging.PluginFrame.Notification(
+                    pluginId = "pluginId",
+                    messageType = "test/message",
+                    payload = "message",
+                ),
             ),
         )
     }

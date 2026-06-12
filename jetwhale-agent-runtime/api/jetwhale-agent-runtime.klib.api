@@ -62,7 +62,7 @@ abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurat
 }
 
 abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhalePluginConfigurationScope { // com.kitakkun.jetwhale.agent.runtime/JetWhalePluginConfigurationScope|null[0]
-    abstract fun register(com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin<*, *, *>) // com.kitakkun.jetwhale.agent.runtime/JetWhalePluginConfigurationScope.register|register(com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin<*,*,*>){}[0]
+    abstract fun register(com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin) // com.kitakkun.jetwhale.agent.runtime/JetWhalePluginConfigurationScope.register|register(com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin){}[0]
 }
 
 final fun com.kitakkun.jetwhale.agent.runtime/startJetWhale(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/startJetWhale|startJetWhale(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleConfigurationScope,kotlin.Unit>){}[0]

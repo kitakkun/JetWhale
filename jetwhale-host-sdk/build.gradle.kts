@@ -22,7 +22,6 @@ dependencies {
     implementation(libs.jetbrainsComposeRuntime)
     implementation(libs.kotlinxSerializationJson)
     api(projects.jetwhaleProtocol.core)
-    api(projects.jetwhaleProtocol.host)
 }
 
 jetwhalePublish {

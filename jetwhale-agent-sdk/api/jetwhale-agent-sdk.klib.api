@@ -6,33 +6,22 @@
 // - Show declarations: true
 
 // Library unique name: <com.kitakkun.jetwhale:jetwhale-agent-sdk>
-abstract fun interface com.kitakkun.jetwhale.agent.sdk/JetWhaleMessageSender { // com.kitakkun.jetwhale.agent.sdk/JetWhaleMessageSender|null[0]
-    abstract fun send(kotlin/Array<out kotlin/String>...) // com.kitakkun.jetwhale.agent.sdk/JetWhaleMessageSender.send|send(kotlin.Array<out|kotlin.String>...){}[0]
-}
-
-abstract class <#A: kotlin/Any?, #B: kotlin/Any?, #C: kotlin/Any?> com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin { // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin|null[0]
+abstract class com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin|null[0]
     constructor <init>() // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.<init>|<init>(){}[0]
 
-    abstract val protocol // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.protocol|{}protocol[0]
-        abstract fun <get-protocol>(): com.kitakkun.jetwhale.protocol.agent/JetWhaleAgentPluginProtocol<#A, #B, #C> // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.protocol.<get-protocol>|<get-protocol>(){}[0]
+    abstract val pluginId // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginId|{}pluginId[0]
+        abstract fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    abstract val pluginVersion // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginVersion|{}pluginVersion[0]
+        abstract fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+    final val messenger // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.messenger|{}messenger[0]
+        final fun <get-messenger>(): com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.messenger.<get-messenger>|<get-messenger>(){}[0]
+    final val messengerOrNull // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.messengerOrNull|{}messengerOrNull[0]
+        final fun <get-messengerOrNull>(): com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger? // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.messengerOrNull.<get-messengerOrNull>|<get-messengerOrNull>(){}[0]
 
-    abstract suspend fun onReceiveMethod(#B): #C? // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.onReceiveMethod|onReceiveMethod(1:1){}[0]
-    final fun enqueueEvent(#A) // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.enqueueEvent|enqueueEvent(1:0){}[0]
-    final suspend fun onRawMethod(kotlin/String): kotlin/String? // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.onRawMethod|onRawMethod(kotlin.String){}[0]
-    open fun onEnqueueEvent(#A) // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.onEnqueueEvent|onEnqueueEvent(1:0){}[0]
-}
-
-abstract class com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin { // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin|null[0]
-    constructor <init>() // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.<init>|<init>(){}[0]
-
-    abstract val pluginId // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.pluginId|{}pluginId[0]
-        abstract fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
-    abstract val pluginVersion // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.pluginVersion|{}pluginVersion[0]
-        abstract fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
-
-    abstract suspend fun onRawMethod(kotlin/String): kotlin/String? // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.onRawMethod|onRawMethod(kotlin.String){}[0]
-    final fun activate(com.kitakkun.jetwhale.agent.sdk/JetWhaleMessageSender) // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.activate|activate(com.kitakkun.jetwhale.agent.sdk.JetWhaleMessageSender){}[0]
-    final fun deactivate() // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.deactivate|deactivate(){}[0]
-    final fun enqueueRawEvent(kotlin/String) // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.enqueueRawEvent|enqueueRawEvent(kotlin.String){}[0]
-    open fun queueBufferSize(): kotlin/Int // com.kitakkun.jetwhale.agent.sdk/JetWhaleRawAgentPlugin.queueBufferSize|queueBufferSize(){}[0]
+    final fun create(com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger) // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.create|create(com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger){}[0]
+    final fun dispose() // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.dispose|dispose(){}[0]
+    final fun registerHandlers(com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessagingHandlers) // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.registerHandlers|registerHandlers(com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers){}[0]
+    open fun (com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessagingHandlers).configure() // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.configure|configure@com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers(){}[0]
+    open fun onCreate() // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.onCreate|onCreate(){}[0]
+    open fun onDispose() // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.onDispose|onDispose(){}[0]
 }
