@@ -7,6 +7,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -40,6 +41,10 @@ public val DefaultJetWhaleMessagingFormat: StringFormat = Json {
  *
  * The transport is abstract: feed inbound frames to [onFrame], and deliver outbound frames in
  * [sendFrame] (e.g. over a WebSocket).
+ *
+ * The inbound/outbound queues are bounded to [bufferCapacity] to avoid unbounded growth under load;
+ * a frame that cannot be enqueued is dropped (notifications) or fails its request fast, reported via
+ * [logger] (a no-op by default).
  */
 public class JetWhalePluginPeer(
     public val pluginId: String,
@@ -47,14 +52,16 @@ public class JetWhalePluginPeer(
     private val sendFrame: suspend (PluginFrame) -> Unit,
     private val requestTimeout: Duration = 5.seconds,
     private val payloadFormat: StringFormat = DefaultJetWhaleMessagingFormat,
+    private val bufferCapacity: Int = DEFAULT_BUFFER_CAPACITY,
+    private val logger: (String) -> Unit = {},
 ) {
     private val scope: CoroutineScope =
         CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
 
     private val handlers = JetWhaleMessagingHandlers()
 
-    private val outgoingQueue = Channel<PluginFrame>(Channel.UNLIMITED)
-    private val notificationQueue = Channel<PluginFrame.Notification>(Channel.UNLIMITED)
+    private val outgoingQueue = Channel<PluginFrame>(capacity = bufferCapacity, onBufferOverflow = BufferOverflow.SUSPEND)
+    private val notificationQueue = Channel<PluginFrame.Notification>(capacity = bufferCapacity, onBufferOverflow = BufferOverflow.SUSPEND)
 
     private val pendingMutex = Mutex()
     private val pendingReplies = mutableMapOf<String, CompletableDeferred<PluginFrame.Reply>>()
@@ -85,7 +92,10 @@ public class JetWhalePluginPeer(
         override val payloadFormat: StringFormat get() = this@JetWhalePluginPeer.payloadFormat
 
         override fun sendRaw(messageType: String, payload: String) {
-            outgoingQueue.trySend(PluginFrame.Notification(pluginId, messageType, payload))
+            val result = outgoingQueue.trySend(PluginFrame.Notification(pluginId, messageType, payload))
+            if (!result.isSuccess) {
+                logger("JetWhale: dropped outbound notification '$messageType' for plugin '$pluginId' (${queueState(result.isClosed)}).")
+            }
         }
 
         override suspend fun requestRaw(messageType: String, payload: String): String = this@JetWhalePluginPeer.requestRaw(messageType, payload)
@@ -97,7 +107,14 @@ public class JetWhalePluginPeer(
             "Frame for plugin '${frame.pluginId}' was routed to the peer of plugin '$pluginId'."
         }
         when (frame) {
-            is PluginFrame.Notification -> notificationQueue.send(frame)
+            // trySend, not send: the host routes every session/plugin's frames from one collector, so
+            // suspending here would stall delivery for all of them. A full/closed queue drops instead.
+            is PluginFrame.Notification -> {
+                val result = notificationQueue.trySend(frame)
+                if (!result.isSuccess) {
+                    logger("JetWhale: dropped inbound notification '${frame.messageType}' for plugin '$pluginId' (${queueState(result.isClosed)}).")
+                }
+            }
 
             // One coroutine per request: a handler may request() in the opposite direction without
             // blocking this receive path.
@@ -109,6 +126,9 @@ public class JetWhalePluginPeer(
 
     /** Fails every pending request and stops this peer. Call when the connection closes. */
     public suspend fun close() {
+        // Close the queues first so further sends fail fast instead of enqueueing with no consumer.
+        outgoingQueue.close()
+        notificationQueue.close()
         pendingMutex.withLock {
             pendingReplies.values.forEach { it.completeExceptionally(JetWhaleConnectionClosedException()) }
             pendingReplies.clear()
@@ -120,8 +140,18 @@ public class JetWhalePluginPeer(
         val correlationId = generateCorrelationId()
         val deferred = CompletableDeferred<PluginFrame.Reply>()
         pendingMutex.withLock { pendingReplies[correlationId] = deferred }
+
+        val sendResult = outgoingQueue.trySend(PluginFrame.Request(pluginId, correlationId, messageType, payload))
+        if (!sendResult.isSuccess) {
+            pendingMutex.withLock { pendingReplies.remove(correlationId) }
+            throw if (sendResult.isClosed) {
+                JetWhaleConnectionClosedException()
+            } else {
+                JetWhaleRequestException("Request '$messageType' could not be sent: outgoing buffer is full.")
+            }
+        }
+
         try {
-            outgoingQueue.trySend(PluginFrame.Request(pluginId, correlationId, messageType, payload))
             val reply = try {
                 withTimeout(requestTimeout) { deferred.await() }
             } catch (e: TimeoutCancellationException) {
@@ -142,8 +172,8 @@ public class JetWhalePluginPeer(
     private suspend fun completePending(reply: PluginFrame.Reply) {
         val deferred = pendingMutex.withLock { pendingReplies.remove(reply.inReplyTo) }
         if (deferred == null) {
-            // Late reply after timeout/close, or a correlation bug on the other side. Drop loudly.
-            println("JetWhale: dropping reply with unknown correlation id '${reply.inReplyTo}' for plugin '$pluginId'")
+            // Late reply after timeout/close, or a correlation bug on the other side.
+            logger("JetWhale: dropping reply with unknown correlation id '${reply.inReplyTo}' for plugin '$pluginId'.")
             return
         }
         deferred.complete(reply)
@@ -176,14 +206,17 @@ public class JetWhalePluginPeer(
                 )
             }
         }
-        outgoingQueue.send(reply)
+        val result = outgoingQueue.trySend(reply)
+        if (!result.isSuccess) {
+            logger("JetWhale: dropped reply to '${frame.messageType}' for plugin '$pluginId' (${queueState(result.isClosed)}).")
+        }
     }
 
     private suspend fun dispatchNotification(frame: PluginFrame.Notification) {
         val entry = handlers.eventEntryFor(frame.messageType)
         if (entry == null) {
             // Forward-compatibility: an unknown event (e.g. version skew) is skipped, not fatal.
-            println("JetWhale: no event handler registered for '${frame.messageType}' (plugin '$pluginId'); skipping")
+            logger("JetWhale: no event handler registered for '${frame.messageType}' (plugin '$pluginId'); skipping.")
             return
         }
         try {
@@ -192,14 +225,21 @@ public class JetWhalePluginPeer(
         } catch (e: CancellationException) {
             throw e
         } catch (e: SerializationException) {
-            println("JetWhale: failed to decode event '${frame.messageType}' (plugin '$pluginId'): ${e.message}")
+            logger("JetWhale: failed to decode event '${frame.messageType}' (plugin '$pluginId'): ${e.message}")
         } catch (e: Throwable) {
-            println("JetWhale: event handler for '${frame.messageType}' (plugin '$pluginId') failed: ${e.message}")
+            logger("JetWhale: event handler for '${frame.messageType}' (plugin '$pluginId') failed: ${e.message}")
         }
     }
 
+    private fun queueState(closed: Boolean): String = if (closed) "peer closed" else "buffer full"
+
     private fun generateCorrelationId(): String = Random.nextLong().toULong().toString(16).padStart(16, '0') +
         Random.nextLong().toULong().toString(16).padStart(16, '0')
+
+    public companion object {
+        /** Default bound for the inbound/outbound frame queues. */
+        public const val DEFAULT_BUFFER_CAPACITY: Int = 1024
+    }
 }
 
 @Suppress("UNCHECKED_CAST")

@@ -579,7 +579,7 @@ final class com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessagingHandlers {
 }
 
 final class com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer { // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer|null[0]
-    constructor <init>(kotlin/String, kotlinx.coroutines/CoroutineScope, kotlin.coroutines/SuspendFunction1<com.kitakkun.jetwhale.protocol.messaging/PluginFrame, kotlin/Unit>, kotlin.time/Duration = ..., kotlinx.serialization/StringFormat = ...) // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.<init>|<init>(kotlin.String;kotlinx.coroutines.CoroutineScope;kotlin.coroutines.SuspendFunction1<com.kitakkun.jetwhale.protocol.messaging.PluginFrame,kotlin.Unit>;kotlin.time.Duration;kotlinx.serialization.StringFormat){}[0]
+    constructor <init>(kotlin/String, kotlinx.coroutines/CoroutineScope, kotlin.coroutines/SuspendFunction1<com.kitakkun.jetwhale.protocol.messaging/PluginFrame, kotlin/Unit>, kotlin.time/Duration = ..., kotlinx.serialization/StringFormat = ..., kotlin/Int = ..., kotlin/Function1<kotlin/String, kotlin/Unit> = ...) // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.<init>|<init>(kotlin.String;kotlinx.coroutines.CoroutineScope;kotlin.coroutines.SuspendFunction1<com.kitakkun.jetwhale.protocol.messaging.PluginFrame,kotlin.Unit>;kotlin.time.Duration;kotlinx.serialization.StringFormat;kotlin.Int;kotlin.Function1<kotlin.String,kotlin.Unit>){}[0]
 
     final val messenger // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.messenger|{}messenger[0]
         final fun <get-messenger>(): com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.messenger.<get-messenger>|<get-messenger>(){}[0]
@@ -589,6 +589,11 @@ final class com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer { // com
     final fun configure(kotlin/Function1<com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessagingHandlers, kotlin/Unit>) // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.configure|configure(kotlin.Function1<com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers,kotlin.Unit>){}[0]
     final suspend fun close() // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.close|close(){}[0]
     final suspend fun onFrame(com.kitakkun.jetwhale.protocol.messaging/PluginFrame) // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.onFrame|onFrame(com.kitakkun.jetwhale.protocol.messaging.PluginFrame){}[0]
+
+    final object Companion { // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.Companion|null[0]
+        final const val DEFAULT_BUFFER_CAPACITY // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.Companion.DEFAULT_BUFFER_CAPACITY|{}DEFAULT_BUFFER_CAPACITY[0]
+            final fun <get-DEFAULT_BUFFER_CAPACITY>(): kotlin/Int // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.Companion.DEFAULT_BUFFER_CAPACITY.<get-DEFAULT_BUFFER_CAPACITY>|<get-DEFAULT_BUFFER_CAPACITY>(){}[0]
+    }
 }
 
 final class com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequestException : com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessagingException { // com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequestException|null[0]
