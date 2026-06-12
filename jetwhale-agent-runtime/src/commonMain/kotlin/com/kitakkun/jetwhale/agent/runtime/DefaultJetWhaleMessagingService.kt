@@ -55,9 +55,7 @@ internal class DefaultJetWhaleMessagingService(
             connection.debuggerEventFlow.collect { event ->
                 when (event) {
                     is JetWhaleDebuggerEvent.PluginActivated -> pluginService.activatePlugins(event.pluginId)
-
                     is JetWhaleDebuggerEvent.PluginDeactivated -> pluginService.deactivatePlugins(event.pluginId)
-
                     is JetWhaleDebuggerEvent.PluginFrameMessage -> pluginService.onFrame(event.frame)
                 }
             }
