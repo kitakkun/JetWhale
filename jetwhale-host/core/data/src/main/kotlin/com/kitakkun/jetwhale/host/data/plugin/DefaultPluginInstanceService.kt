@@ -88,7 +88,23 @@ class DefaultPluginInstanceService(
     }
 
     override suspend fun routeFrame(sessionId: String, frame: PluginFrame) {
-        loadedPlugins[PluginInstanceKey(frame.pluginId, sessionId)]?.peer?.onFrame(frame)
+        val peer = loadedPlugins[PluginInstanceKey(frame.pluginId, sessionId)]?.peer
+        if (peer != null) {
+            peer.onFrame(frame)
+            return
+        }
+        // No instance for this frame in this session. If it expects a reply, fail it fast so the
+        // agent-side requester does not wait for the timeout instead of silently dropping it.
+        if (frame is PluginFrame.Request) {
+            frameSender.sendFrame(
+                sessionId = sessionId,
+                frame = PluginFrame.Reply.Failure(
+                    pluginId = frame.pluginId,
+                    inReplyTo = frame.correlationId,
+                    errorMessage = "Plugin '${frame.pluginId}' is not loaded in session '$sessionId'.",
+                ),
+            )
+        }
     }
 
     override fun unloadPluginInstanceForSession(sessionId: String) {

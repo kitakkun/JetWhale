@@ -84,8 +84,7 @@ by instantiating the `factoryClass` named in the manifest. See `jetwhale-plugins
 complete, working example:
 
 - `src/main/kotlin/.../MyPluginFactory.kt` — a `JetWhaleHostPluginFactory` returning your
-  `JetWhaleRawHostPlugin` (or the typed `JetWhaleHostPlugin<Event, Method, MethodResult>`). It needs a
-  public no-arg constructor so the host can instantiate it.
+  `JetWhaleHostPlugin`. It needs a public no-arg constructor so the host can instantiate it.
 - `src/main/resources/META-INF/jetwhale/plugin-manifest.json` — one entry per plugin under `plugins`,
   each with `pluginId`, `pluginName`, `version`, and `factoryClass` (the fully-qualified name of the
   factory above):
@@ -108,6 +107,45 @@ complete, working example:
 A single module's jar can ship several plugins: add one entry per plugin to the `plugins` array, each
 pointing at its own `factoryClass`. The plugins share the jar (and its classloader), and are loaded,
 reloaded, and hot-redefined together.
+
+### 4. Talk to the app (messaging)
+
+A host plugin and its agent counterpart (a `JetWhaleAgentPlugin` with the **same `pluginId`**) exchange
+messages over one **symmetric** channel. You define your messages as plain `@Serializable` classes in a
+shared module and tag them by role:
+
+- `JetWhaleEvent` — a fire-and-forget notification.
+- `JetWhaleRequest<R>` — a request that expects a reply of type `R` (also a plain `@Serializable` class).
+
+```kotlin
+@Serializable data class ButtonClicked(val count: Int) : JetWhaleEvent          // either side -> the other
+@Serializable data object Ping : JetWhaleRequest<Pong>                           // request, reply is Pong
+@Serializable data object Pong                                                   // a reply: no marker
+```
+
+Both the host (`JetWhaleHostPlugin`) and agent (`JetWhaleAgentPlugin`) use the same two members:
+
+- `configure { … }` to register handlers — `onEvent<E> { e -> … }` and `onRequest { req -> reply }`
+  (the handler's return type must match the request's declared reply type).
+- `messenger` to send — `send(event)`, `request(req): R` (when you use the reply), and `execute(req)`
+  (when you only need it to succeed and ignore the reply value).
+
+```kotlin
+class MyHostPlugin : JetWhaleHostPlugin(), JetWhaleHostPluginUi {
+    override fun JetWhaleMessagingHandlers.configure() {
+        onEvent<ButtonClicked> { e -> /* update UI state */ }
+    }
+    @Composable override fun Content() {
+        Button(onClick = { messenger.coroutineScope.launch { messenger.execute(Ping) } }) { Text("Ping") }
+    }
+}
+```
+
+Requests work in **both directions** — the agent can `request` the host just as the host can `request`
+the agent. A failed/timed-out request throws `JetWhaleRequestException`. Implement `JetWhaleHostPluginUi`
+(`@Composable Content()`) to render a UI; plugins that don't are **headless** (e.g. MCP-only). The
+`messenger` is available from `onCreate()` onward; on the agent, use `messengerOrNull` for events fired
+by app code that may run while disconnected (they are dropped rather than throwing).
 
 ## Hot reload (the live dev loop)
 

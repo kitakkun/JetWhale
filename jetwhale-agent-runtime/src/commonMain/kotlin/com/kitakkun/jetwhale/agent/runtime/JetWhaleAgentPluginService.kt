@@ -63,6 +63,21 @@ internal class JetWhaleAgentPluginService(
     }
 
     suspend fun onFrame(frame: PluginFrame) {
-        activePlugins[frame.pluginId]?.peer?.onFrame(frame)
+        val peer = activePlugins[frame.pluginId]?.peer
+        if (peer != null) {
+            peer.onFrame(frame)
+            return
+        }
+        // No active plugin for this frame. If it expects a reply, fail it fast so the requester does
+        // not wait for the timeout (e.g. a host request that races ahead of this plugin's activation).
+        if (frame is PluginFrame.Request) {
+            sendFrame?.invoke(
+                PluginFrame.Reply.Failure(
+                    pluginId = frame.pluginId,
+                    inReplyTo = frame.correlationId,
+                    errorMessage = "Plugin '${frame.pluginId}' is not active in the agent.",
+                ),
+            )
+        }
     }
 }
