@@ -14,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.kitakkun.jetwhale.plugins.example.protocol.ExampleEvent
 
 @Composable
 internal fun ExampleTestScreen() {
@@ -28,9 +27,9 @@ internal fun ExampleTestScreen() {
     ) {
         item {
             Button(
-                onClick = { plugin.enqueueEvent(ExampleEvent.ButtonClicked(++counter)) },
+                onClick = { plugin.reportButtonClicked(++counter) },
             ) {
-                Text("Send ExampleEvent.ButtonClicked(${counter + 1})")
+                Text("Send ButtonClicked(${counter + 1})")
             }
         }
         items(eventLogs) {
