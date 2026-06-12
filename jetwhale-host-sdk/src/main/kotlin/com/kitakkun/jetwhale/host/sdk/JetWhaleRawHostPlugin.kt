@@ -1,9 +1,11 @@
 package com.kitakkun.jetwhale.host.sdk
 
-import androidx.compose.runtime.Composable
-
 /**
  * Base class for JetWhale Host Plugins that handle raw events from the debuggee.
+ *
+ * This base is **headless**: it carries no UI. A plugin that renders a UI additionally implements
+ * [JetWhaleRawUiHostPlugin] (or, for the typed variant, extends [JetWhaleUiHostPlugin] instead of
+ * [JetWhaleHostPlugin]).
  */
 public abstract class JetWhaleRawHostPlugin {
     /**
@@ -16,14 +18,4 @@ public abstract class JetWhaleRawHostPlugin {
      * Called when the plugin instance is disposed
      */
     public open fun onDispose() {}
-
-    /**
-     * Composable content for the plugin UI with raw String operations context
-     * This function is internally used by the JetWhale Host Application.
-     * Do not call this function directly.
-     *
-     * @param context The context for dispatching debug operations
-     */
-    @Composable
-    public abstract fun ContentRaw(context: JetWhaleRawDebugOperationContext)
 }

@@ -5,12 +5,12 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
-import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleUiHostPlugin
 import com.kitakkun.jetwhale.plugins.example.protocol.ExampleEvent
 import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethod
 import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethodResult
@@ -29,7 +29,7 @@ class ExampleHostPluginFactory : JetWhaleHostPluginFactory {
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private class ExampleHostPlugin :
-    JetWhaleHostPlugin<ExampleEvent, ExampleMethod, ExampleMethodResult>(),
+    JetWhaleUiHostPlugin<ExampleEvent, ExampleMethod, ExampleMethodResult>(),
     JetWhaleMcpCapablePlugin {
 
     override val protocol: JetWhaleHostPluginProtocol<ExampleEvent, ExampleMethod, ExampleMethodResult> = kotlinxSerializationJetWhaleHostPluginProtocol()
