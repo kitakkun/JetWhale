@@ -17,6 +17,7 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
 import com.kitakkun.jetwhale.host.sdk.JetWhaleRawDebugOperationContext
+import com.kitakkun.jetwhale.host.sdk.JetWhaleRawUiHostPlugin
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -64,7 +65,8 @@ class DefaultPluginComposeSceneService(
 
                 composeScene.setContent {
                     pluginBridgeProvider.PluginEntryPoint {
-                        pluginInstance.ContentRaw(context = debugOperationContext)
+                        // Headless plugins (not a JetWhaleRawUiHostPlugin) render no content.
+                        (pluginInstance as? JetWhaleRawUiHostPlugin)?.ContentRaw(context = debugOperationContext)
                     }
                 }
 

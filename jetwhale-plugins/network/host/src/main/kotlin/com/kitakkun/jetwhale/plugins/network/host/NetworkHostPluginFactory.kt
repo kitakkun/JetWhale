@@ -7,9 +7,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
-import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleUiHostPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import com.kitakkun.jetwhale.plugins.network.protocol.NetworkEvent
 import com.kitakkun.jetwhale.plugins.network.protocol.NetworkMethod
@@ -26,7 +26,7 @@ class NetworkHostPluginFactory : JetWhaleHostPluginFactory {
 
 private const val MAX_TRANSACTIONS = 500
 
-private class NetworkHostPlugin : JetWhaleHostPlugin<NetworkEvent, NetworkMethod, NetworkMethodResult>() {
+private class NetworkHostPlugin : JetWhaleUiHostPlugin<NetworkEvent, NetworkMethod, NetworkMethodResult>() {
 
     override val protocol: JetWhaleHostPluginProtocol<NetworkEvent, NetworkMethod, NetworkMethodResult> =
         kotlinxSerializationJetWhaleHostPluginProtocol()

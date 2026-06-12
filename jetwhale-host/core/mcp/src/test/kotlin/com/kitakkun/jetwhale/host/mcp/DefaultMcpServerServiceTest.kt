@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.host.mcp
 
-import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
@@ -8,7 +7,6 @@ import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
-import com.kitakkun.jetwhale.host.sdk.JetWhaleRawDebugOperationContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
 import dev.mokkery.answering.returns
 import dev.mokkery.every
@@ -221,9 +219,6 @@ private class FakeMcpCapablePlugin :
     JetWhaleRawHostPlugin(),
     JetWhaleMcpCapablePlugin {
     override fun onRawEvent(event: String) = Unit
-
-    @Composable
-    override fun ContentRaw(context: JetWhaleRawDebugOperationContext) = Unit
 
     override fun mcpTools() = listOf(
         JetWhaleMcpToolDescriptor(
