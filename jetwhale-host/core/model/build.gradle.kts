@@ -13,4 +13,5 @@ dependencies {
     implementation(libs.jetbrainsComposeRuntime)
     implementation(compose.desktop.currentOs)
     implementation(libs.aboutLibrariesCore)
+    testImplementation(libs.kotlinTest)
 }
