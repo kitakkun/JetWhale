@@ -25,8 +25,6 @@ plugins {
 
 include(":jetwhale-annotations")
 include(":jetwhale-protocol:core")
-include(":jetwhale-protocol:host")
-include(":jetwhale-protocol:agent")
 
 include(":jetwhale-agent-sdk")
 include(":jetwhale-agent-runtime")

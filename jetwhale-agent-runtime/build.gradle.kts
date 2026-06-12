@@ -23,7 +23,6 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(projects.jetwhaleProtocol.core)
-            api(projects.jetwhaleProtocol.agent)
             api(projects.jetwhaleAgentSdk)
 
             implementation(libs.bundles.ktorClient)

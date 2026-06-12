@@ -26,8 +26,8 @@ public abstract class JetWhaleAgentPlugin {
 
     /**
      * Sends messages to the host counterpart. Available from [onCreate] onwards (and inside handlers
-     * and any code reached after `onCreate`). Notifications sent while disconnected are buffered and
-     * flushed on reconnect.
+     * and any code reached after `onCreate`). Accessing it while the plugin is not connected throws;
+     * use [messengerOrNull] for events fired by app code that may run while disconnected.
      */
     protected val messenger: JetWhaleMessenger
         get() = checkNotNull(boundMessenger) {
