@@ -3,7 +3,7 @@ package com.kitakkun.jetwhale.host.sdk
 public interface JetWhaleHostPluginFactory {
     /**
      * Creates an instance of the plugin.
-     * @return An instance of [JetWhaleRawHostPlugin].
+     * @return An instance of [JetWhaleHostPlugin].
      */
-    public fun createPlugin(): JetWhaleRawHostPlugin
+    public fun createPlugin(): JetWhaleHostPlugin
 }
