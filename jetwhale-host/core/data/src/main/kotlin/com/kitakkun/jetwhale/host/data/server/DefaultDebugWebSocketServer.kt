@@ -21,12 +21,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
-import java.util.UUID
 
 @Inject
 @SingleIn(AppScope::class)
@@ -63,38 +59,6 @@ class DefaultDebugWebSocketServer(
         mutableServerStoppedFlow.emit(Unit)
     }
 
-    override suspend fun sendMethod(
-        pluginId: String,
-        sessionId: String,
-        payload: String,
-    ): String? {
-        val requestId = UUID.randomUUID().toString()
-
-        ktorWebSocketServer.sendToSession(
-            sessionId = sessionId,
-            event = JetWhaleDebuggerEvent.MethodRequest(
-                pluginId = pluginId,
-                requestId = requestId,
-                payload = payload,
-            ),
-        )
-
-        return withTimeoutOrNull(METHOD_RESULT_WAIT_TIMEOUT) {
-            val response = ktorWebSocketServer.debuggeeEventFlow
-                .filter { it.first == sessionId }
-                .filter { it.second is JetWhaleDebuggeeEvent.MethodResultResponse }
-                .first { (it.second as JetWhaleDebuggeeEvent.MethodResultResponse).requestId == requestId }
-                .second as JetWhaleDebuggeeEvent.MethodResultResponse
-
-            when (response) {
-                is JetWhaleDebuggeeEvent.MethodResultResponse.Failure -> null
-                is JetWhaleDebuggeeEvent.MethodResultResponse.Success -> response.payload
-            }
-        }
-    }
-
-    override fun getCoroutineScopeForSession(sessionId: String): CoroutineScope = CoroutineScope(ktorWebSocketServer.getSessionCoroutineContext(sessionId))
-
     private fun subscribeServerEvents() {
         serverMonitoringJob?.cancel()
 
@@ -103,7 +67,7 @@ class DefaultDebugWebSocketServer(
             launch { monitorNegotiationCompleted() }
             launch { monitorSessionClosed() }
             launch { monitorEnabledPluginChanges() }
-            launch { monitorPluginMessages() }
+            launch { monitorPluginFrames() }
         }
     }
 
@@ -191,32 +155,10 @@ class DefaultDebugWebSocketServer(
         }
     }
 
-    private suspend fun monitorPluginMessages() {
+    private suspend fun monitorPluginFrames() {
         ktorWebSocketServer.debuggeeEventFlow.collect { (sessionId, event) ->
-            if (event !is JetWhaleDebuggeeEvent.PluginMessage) return@collect
-
-            val pluginId = event.pluginId
-
-            val pluginInstance = pluginInstanceService.getPluginInstanceForSession(
-                pluginId = pluginId,
-                sessionId = sessionId,
-            )
-
-            if (pluginInstance == null) {
-                println(
-                    """
-                        Received message for pluginId=$pluginId in sessionId=$sessionId, but plugin instance is not found. Skipping message processing.
-                        This may happen when the message is received before the plugin instance is initialized, or when the plugin is disabled after the message is sent.
-                    """.trimIndent(),
-                )
-                return@collect
-            }
-
-            pluginInstance.onRawEvent(event.payload)
+            if (event !is JetWhaleDebuggeeEvent.PluginFrameMessage) return@collect
+            pluginInstanceService.routeFrame(sessionId = sessionId, frame = event.frame)
         }
-    }
-
-    companion object {
-        private const val METHOD_RESULT_WAIT_TIMEOUT = 5000L
     }
 }
