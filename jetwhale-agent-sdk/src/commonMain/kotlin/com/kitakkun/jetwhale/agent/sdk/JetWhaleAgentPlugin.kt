@@ -34,6 +34,14 @@ public abstract class JetWhaleAgentPlugin {
             "messenger is only available after the plugin has been created (in or after onCreate())."
         }
 
+    /**
+     * The messenger if the plugin is currently connected, or null otherwise. Use this for events
+     * fired by app code that may run while disconnected (e.g. captured network traffic); such
+     * notifications are dropped while there is no connection rather than throwing.
+     */
+    protected val messengerOrNull: JetWhaleMessenger?
+        get() = boundMessenger
+
     /** Registers handlers for messages from the host (`onEvent<E> { }` / `onRequest { req -> reply }`). */
     protected open fun JetWhaleMessagingHandlers.configure() {}
 

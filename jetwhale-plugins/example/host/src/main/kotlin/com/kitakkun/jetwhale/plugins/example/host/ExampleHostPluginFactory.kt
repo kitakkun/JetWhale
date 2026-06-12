@@ -4,18 +4,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
-import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
-import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
-import com.kitakkun.jetwhale.host.sdk.JetWhaleUiHostPlugin
-import com.kitakkun.jetwhale.plugins.example.protocol.ExampleEvent
-import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethod
-import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethodResult
-import com.kitakkun.jetwhale.protocol.host.JetWhaleHostPluginProtocol
-import com.kitakkun.jetwhale.protocol.host.kotlinxSerializationJetWhaleHostPluginProtocol
+import com.kitakkun.jetwhale.plugins.example.protocol.ButtonClicked
+import com.kitakkun.jetwhale.plugins.example.protocol.Ping
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers
+import com.kitakkun.jetwhale.protocol.messaging.execute
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
@@ -24,40 +23,31 @@ import kotlinx.serialization.json.put
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class ExampleHostPluginFactory : JetWhaleHostPluginFactory {
-    override fun createPlugin(): JetWhaleRawHostPlugin = ExampleHostPlugin()
+    override fun createPlugin(): JetWhaleHostPlugin = ExampleHostPlugin()
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private class ExampleHostPlugin :
-    JetWhaleUiHostPlugin<ExampleEvent, ExampleMethod, ExampleMethodResult>(),
+    JetWhaleHostPlugin(),
+    JetWhaleHostPluginUi,
     JetWhaleMcpCapablePlugin {
-
-    override val protocol: JetWhaleHostPluginProtocol<ExampleEvent, ExampleMethod, ExampleMethodResult> = kotlinxSerializationJetWhaleHostPluginProtocol()
 
     private val eventLogs: SnapshotStateList<String> = mutableStateListOf()
 
-    // Stored so that MCP tool handlers can dispatch methods to the debuggee.
-    private var debugContext: JetWhaleDebugOperationContext<ExampleMethod, ExampleMethodResult>? = null
-
-    override fun onEvent(event: ExampleEvent) {
-        when (event) {
-            is ExampleEvent.ButtonClicked -> eventLogs.add("Event: $event")
-        }
-    }
-
-    override fun onDispose() {
-        debugContext = null
+    override fun JetWhaleMessagingHandlers.configure() {
+        onEvent<ButtonClicked> { event -> eventLogs.add("Event: $event") }
     }
 
     @Composable
-    override fun Content(context: JetWhaleDebugOperationContext<ExampleMethod, ExampleMethodResult>) {
-        // FIXME: `context` should ideally be provided to MCP tool handlers via a safer API rather than relying on Composable function execution.
-        //   This is just for demonstration purposes to show that method dispatch from MCP tools is possible.
-        //   We should consider alternative ways to provide context to tools.
-        debugContext = context
+    override fun Content() {
         ExamplePluginContent(
             eventLogs = eventLogs,
-            context = context,
+            onClickSendPing = {
+                messenger.coroutineScope.launch {
+                    eventLogs.add("Request: Ping")
+                    eventLogs.add(runCatching { messenger.execute(Ping) }.fold({ "Reply: Pong" }, { "Error: ${it.message}" }))
+                }
+            },
         )
     }
 
@@ -68,7 +58,7 @@ private class ExampleHostPlugin :
     override fun mcpTools(): List<JetWhaleMcpToolDescriptor> = listOf(
         JetWhaleMcpToolDescriptor(
             name = "com.kitakkun.jetwhale.example.sendPing",
-            description = "Sends a Ping method to the debuggee and returns whether a Pong response was received.",
+            description = "Sends a Ping request to the debuggee and returns whether a Pong reply was received.",
         ),
         JetWhaleMcpToolDescriptor(
             name = "com.kitakkun.jetwhale.example.getEventLogs",
@@ -86,11 +76,9 @@ private class ExampleHostPlugin :
     override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? {
         return when (toolName) {
             "com.kitakkun.jetwhale.example.sendPing" -> {
-                val context = debugContext
-                    ?: return buildJsonObject { put("error", "Plugin UI is not active") }.toString()
-                val result: ExampleMethodResult? = context.dispatch(ExampleMethod.Ping)
+                val pongReceived = runCatching { messenger.execute(Ping) }.isSuccess
                 buildJsonObject {
-                    put("pongReceived", result is ExampleMethodResult.Pong)
+                    put("pongReceived", pongReceived)
                 }.toString()
             }
 
