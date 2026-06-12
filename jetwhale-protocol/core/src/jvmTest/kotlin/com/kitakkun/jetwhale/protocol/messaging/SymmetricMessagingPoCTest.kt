@@ -71,8 +71,7 @@ class SymmetricMessagingPoCTest {
         right = JetWhalePluginPeer(PLUGIN_ID, scope, sendFrame = { left.onFrame(roundTrip(it)) })
     }
 
-    private fun roundTrip(frame: PluginFrame): PluginFrame =
-        wireJson.decodeFromString<PluginFrame>(wireJson.encodeToString(frame))
+    private fun roundTrip(frame: PluginFrame): PluginFrame = wireJson.decodeFromString<PluginFrame>(wireJson.encodeToString(frame))
 
     @AfterTest
     fun tearDown() {

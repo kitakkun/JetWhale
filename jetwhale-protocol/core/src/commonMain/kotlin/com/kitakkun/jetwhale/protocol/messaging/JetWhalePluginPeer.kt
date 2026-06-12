@@ -88,8 +88,7 @@ public class JetWhalePluginPeer(
             outgoingQueue.trySend(PluginFrame.Notification(pluginId, messageType, payload))
         }
 
-        override suspend fun requestRaw(messageType: String, payload: String): String =
-            this@JetWhalePluginPeer.requestRaw(messageType, payload)
+        override suspend fun requestRaw(messageType: String, payload: String): String = this@JetWhalePluginPeer.requestRaw(messageType, payload)
     }
 
     /** Feed every inbound frame addressed to [pluginId] here. */
@@ -99,9 +98,11 @@ public class JetWhalePluginPeer(
         }
         when (frame) {
             is PluginFrame.Notification -> notificationQueue.send(frame)
+
             // One coroutine per request: a handler may request() in the opposite direction without
             // blocking this receive path.
             is PluginFrame.Request -> scope.launch { handleRequest(frame) }
+
             is PluginFrame.Reply -> completePending(frame)
         }
     }
@@ -128,6 +129,7 @@ public class JetWhalePluginPeer(
             }
             return when (reply) {
                 is PluginFrame.Reply.Success -> reply.payload
+
                 is PluginFrame.Reply.Failure -> throw JetWhaleRequestException(
                     "Request '$messageType' failed on the remote side: ${reply.errorMessage}",
                 )
@@ -196,9 +198,8 @@ public class JetWhalePluginPeer(
         }
     }
 
-    private fun generateCorrelationId(): String =
-        Random.nextLong().toULong().toString(16).padStart(16, '0') +
-            Random.nextLong().toULong().toString(16).padStart(16, '0')
+    private fun generateCorrelationId(): String = Random.nextLong().toULong().toString(16).padStart(16, '0') +
+        Random.nextLong().toULong().toString(16).padStart(16, '0')
 }
 
 @Suppress("UNCHECKED_CAST")
