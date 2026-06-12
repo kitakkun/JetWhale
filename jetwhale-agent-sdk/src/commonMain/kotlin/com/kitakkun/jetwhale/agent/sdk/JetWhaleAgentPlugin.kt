@@ -1,49 +1,64 @@
 package com.kitakkun.jetwhale.agent.sdk
 
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
-import com.kitakkun.jetwhale.protocol.agent.JetWhaleAgentPluginProtocol
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
 
 /**
- * Plugin client which runs on the debug-target app.
+ * Base class for a JetWhale plugin running inside the debug-target app (the agent).
+ *
+ * A plugin exchanges messages with its host counterpart through the symmetric [messenger]
+ * (`send` / `request` / `execute`) and handles incoming messages registered in [configure]
+ * (`onEvent<E>` / `onRequest`). Both ends use the same vocabulary; the agent can `request` the host
+ * just as the host can `request` the agent.
  */
-@OptIn(InternalJetWhaleApi::class)
-public abstract class JetWhaleAgentPlugin<Event, Method, MethodResult> : JetWhaleRawAgentPlugin() {
+public abstract class JetWhaleAgentPlugin {
     /**
-     * The protocol used for encoding and decoding messages.
+     * Unique id to distinguish plugins, e.g. "com.kitakkun.jetwhale.example".
+     * Must match the host plugin's id so the two are paired.
      */
-    protected abstract val protocol: JetWhaleAgentPluginProtocol<Event, Method, MethodResult>
+    public abstract val pluginId: String
+
+    /** Version of this plugin, e.g. "1.0.0". */
+    public abstract val pluginVersion: String
+
+    private var boundMessenger: JetWhaleMessenger? = null
 
     /**
-     * Handles a typed method message received from the debugger.
-     * @param method The decoded method message.
-     * @return The result of the method, or null if no response is needed.
+     * Sends messages to the host counterpart. Available from [onCreate] onwards (and inside handlers
+     * and any code reached after `onCreate`). Notifications sent while disconnected are buffered and
+     * flushed on reconnect.
      */
-    public abstract suspend fun onReceiveMethod(method: Method): MethodResult?
+    protected val messenger: JetWhaleMessenger
+        get() = checkNotNull(boundMessenger) {
+            "messenger is only available after the plugin has been created (in or after onCreate())."
+        }
 
-    /**
-     * Called when an event is enqueued.
-     * Mainly for logging or debugging purposes.
-     * @param event The event message that was enqueued.
-     */
-    public open fun onEnqueueEvent(event: Event) {}
+    /** Registers handlers for messages from the host (`onEvent<E> { }` / `onRequest { req -> reply }`). */
+    protected open fun JetWhaleMessagingHandlers.configure() {}
 
-    /**
-     * Enqueues a typed event message to be sent to the debugger.
-     * @param event The event message to be sent.
-     */
-    public fun enqueueEvent(event: Event) {
-        val rawPayload = protocol.encodeEvent(event)
-        enqueueRawEvent(rawPayload)
-        onEnqueueEvent(event)
+    /** Called once after [messenger] is bound and handlers are registered, before any message flows. */
+    protected open fun onCreate() {}
+
+    /** Called when the plugin is torn down (the agent runtime stops). */
+    protected open fun onDispose() {}
+
+    // -- runtime hooks (not for plugin authors) -------------------------------
+
+    @InternalJetWhaleApi
+    public fun registerHandlers(handlers: JetWhaleMessagingHandlers) {
+        handlers.configure()
     }
 
-    /**
-     * Handles a raw method message received from the debugger.
-     * Decodes the message, processes it, and encodes the result.
-     */
-    final override suspend fun onRawMethod(message: String): String? {
-        val method = protocol.decodeMethod(message)
-        val result = onReceiveMethod(method) ?: return null
-        return protocol.encodeMethodResult(result)
+    @InternalJetWhaleApi
+    public fun create(messenger: JetWhaleMessenger) {
+        boundMessenger = messenger
+        onCreate()
+    }
+
+    @InternalJetWhaleApi
+    public fun dispose() {
+        onDispose()
+        boundMessenger = null
     }
 }
