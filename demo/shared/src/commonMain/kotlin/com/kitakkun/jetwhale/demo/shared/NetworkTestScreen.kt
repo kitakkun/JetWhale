@@ -27,6 +27,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Lets the user point the monitored Ktor client at any server and fire sample requests.
@@ -44,10 +45,14 @@ internal fun NetworkTestScreen() {
     fun fire(label: String, block: suspend (baseUrl: String) -> String) {
         val target = baseUrl.trimEnd('/')
         scope.launch {
-            val line = runCatching { block(target) }.fold(
-                onSuccess = { "$label → $it" },
-                onFailure = { "$label → error: ${it.message}" },
-            )
+            val line = try {
+                "$label → ${block(target)}"
+            } catch (e: CancellationException) {
+                // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
+                throw e
+            } catch (e: Throwable) {
+                "$label → error: ${e.message}"
+            }
             log.add(0, line)
         }
     }
