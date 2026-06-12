@@ -35,6 +35,44 @@ data class MavenCoordinates(
                 repositoryUrl = repoUrl,
             )
         }
+
+        private val GAV_REGEX = Regex("""([\w.\-]+):([\w.\-]+):([\w.\-+]+)""")
+
+        /**
+         * Leniently extracts coordinates from text pasted from a build script.
+         * Supported formats:
+         * - Plain coordinates: `com.example:my-plugin:1.0.0` (optionally with `@repositoryUrl`)
+         * - Gradle Kotlin DSL: `implementation("com.example:my-plugin:1.0.0")`
+         * - Gradle Groovy DSL: `implementation 'com.example:my-plugin:1.0.0'`
+         * - Maven XML: a `<dependency>` block containing groupId/artifactId/version tags
+         *
+         * Returns null when no coordinates can be extracted.
+         */
+        fun parseLenient(input: String): MavenCoordinates? {
+            val text = input.trim()
+            if (text.isEmpty()) return null
+
+            if (text.contains("<groupId>")) {
+                return MavenCoordinates(
+                    groupId = extractXmlTagValue(text, "groupId") ?: return null,
+                    artifactId = extractXmlTagValue(text, "artifactId") ?: return null,
+                    version = extractXmlTagValue(text, "version") ?: return null,
+                )
+            }
+
+            val match = GAV_REGEX.find(text) ?: return null
+            val (groupId, artifactId, version) = match.destructured
+            val repositoryUrl = text.substringAfter('@', "").trim()
+                .takeIf { it.startsWith("http") }
+            return MavenCoordinates(
+                groupId = groupId,
+                artifactId = artifactId,
+                version = version,
+                repositoryUrl = repositoryUrl ?: MAVEN_CENTRAL_URL,
+            )
+        }
+
+        private fun extractXmlTagValue(text: String, tag: String): String? = Regex("<$tag>\\s*([^<]+?)\\s*</$tag>").find(text)?.groupValues?.get(1)
     }
 
     /**

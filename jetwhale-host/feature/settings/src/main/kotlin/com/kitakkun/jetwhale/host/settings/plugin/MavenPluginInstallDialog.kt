@@ -28,6 +28,7 @@ fun MavenPluginInstallDialog(
     onDismissRequest: () -> Unit,
     onInstall: (MavenCoordinates) -> Unit,
 ) {
+    var pastedNotation by remember { mutableStateOf("") }
     var groupId by remember { mutableStateOf("") }
     var artifactId by remember { mutableStateOf("") }
     var version by remember { mutableStateOf("") }
@@ -50,6 +51,27 @@ fun MavenPluginInstallDialog(
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = pastedNotation,
+                    onValueChange = { input ->
+                        pastedNotation = input
+                        MavenCoordinates.parseLenient(input)?.let { parsed ->
+                            groupId = parsed.groupId
+                            artifactId = parsed.artifactId
+                            version = parsed.version
+                            repositoryUrl = parsed.repositoryUrl
+                        }
+                        errorMessage = null
+                    },
+                    label = { Text("Paste coordinates") },
+                    placeholder = { Text("com.example:my-plugin:1.0.0") },
+                    supportingText = {
+                        Text("Accepts group:artifact:version, Gradle dependency lines, or a Maven <dependency> block. Fields below are filled automatically.")
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
                 OutlinedTextField(
                     value = groupId,
