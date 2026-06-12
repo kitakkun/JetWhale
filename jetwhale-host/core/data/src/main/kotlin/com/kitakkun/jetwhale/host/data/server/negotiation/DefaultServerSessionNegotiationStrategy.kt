@@ -5,6 +5,7 @@ import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.util.logging.Logger
+import kotlin.coroutines.cancellation.CancellationException
 
 @Inject
 @ContributesBinding(AppScope::class)
@@ -29,6 +30,9 @@ class DefaultServerSessionNegotiationStrategy(
                 session = session,
                 plugin = plugin,
             )
+        } catch (e: CancellationException) {
+            // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
+            throw e
         } catch (e: Throwable) {
             return ServerSessionNegotiationResult.Failure(e)
         }

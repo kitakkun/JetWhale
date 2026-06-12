@@ -40,6 +40,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * A Ktor-based WebSocket server for handling debug sessions.
@@ -78,6 +79,9 @@ class KtorWebSocketServer(
                 it.startSuspend()
                 embeddedServer = it
             }
+        } catch (e: CancellationException) {
+            // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
+            throw e
         } catch (e: Throwable) {
             mutableStatusFlow.update { DebugWebSocketServerStatus.Error(e.message ?: "Unknown error") }
         }

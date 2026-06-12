@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleProtocolVersion
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.sendSerialized
+import kotlin.coroutines.cancellation.CancellationException
 
 internal class DefaultClientSessionNegotiationStrategy(private val plugins: List<AgentPlugin>) : ClientSessionNegotiationStrategy {
     private var sessionId: String? = null
@@ -22,6 +23,9 @@ internal class DefaultClientSessionNegotiationStrategy(private val plugins: List
         val response = negotiatePlugins(plugins)
 
         ClientSessionNegotiationResult.Success(availablePluginIds = response.availablePlugins.map { it.pluginId })
+    } catch (e: CancellationException) {
+        // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
+        throw e
     } catch (e: Throwable) {
         ClientSessionNegotiationResult.Failure(reason = e.message ?: "Unknown error during negotiation")
     }
