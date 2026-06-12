@@ -26,7 +26,7 @@ fun pluginSettingsScreenPresenter(
                 pluginInstallMutation.mutateAsync(action.path)
             }
             is PluginSettingsScreenAction.InstallFromMaven -> {
-                pluginInstallFromMavenMutation.mutate(action.coordinates)
+                pluginInstallFromMavenMutation.mutateAsync(action.coordinates)
             }
         }
     }
