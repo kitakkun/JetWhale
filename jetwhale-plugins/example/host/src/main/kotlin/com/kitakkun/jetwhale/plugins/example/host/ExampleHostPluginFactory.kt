@@ -10,6 +10,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.example.protocol.ButtonClicked
 import com.kitakkun.jetwhale.plugins.example.protocol.Ping
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers
@@ -28,7 +29,7 @@ class ExampleHostPluginFactory : JetWhaleHostPluginFactory {
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private class ExampleHostPlugin :
-    JetWhaleHostPlugin(),
+    JetWhaleMessagingHostPlugin(),
     JetWhaleHostPluginUi,
     JetWhaleMcpCapablePlugin {
 

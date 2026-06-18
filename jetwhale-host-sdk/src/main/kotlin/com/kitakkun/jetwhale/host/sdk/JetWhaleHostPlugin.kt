@@ -1,34 +1,16 @@
 package com.kitakkun.jetwhale.host.sdk
 
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
-
 /**
- * Base class for a JetWhale host plugin (the debugger-side counterpart of a `JetWhaleAgentPlugin`).
+ * Base class for a JetWhale host plugin. This base is **pure**: it has only a lifecycle and no
+ * messaging — use it for plugins that don't talk to an agent (e.g. a host-only tool, declared with
+ * `"requiresAgent": false` in the manifest).
  *
- * A plugin exchanges messages with its agent counterpart through the symmetric [messenger]
- * (`send` / `request` / `execute`) and handles incoming messages registered in [configure]
- * (`onEvent<E>` / `onRequest`). The same vocabulary works in both directions.
- *
- * This base is **headless** (no UI). A plugin that renders a UI additionally implements
- * [JetWhaleHostPluginUi].
+ * Add capabilities by combining types:
+ * - [JetWhaleMessagingHostPlugin] (extend it instead) — to exchange messages with an agent counterpart.
+ * - [JetWhaleHostPluginUi] (implement it) — to render a Compose UI.
  */
 public abstract class JetWhaleHostPlugin {
-    private var boundMessenger: JetWhaleMessenger? = null
-
-    /**
-     * Sends messages to the agent counterpart. Available from [onCreate] onwards (and inside handlers
-     * and the UI), for the lifetime of this plugin instance.
-     */
-    protected val messenger: JetWhaleMessenger
-        get() = checkNotNull(boundMessenger) {
-            "messenger is only available after the plugin instance has been created (in or after onCreate())."
-        }
-
-    /** Registers handlers for messages from the agent (`onEvent<E> { }` / `onRequest { req -> reply }`). */
-    protected open fun JetWhaleMessagingHandlers.configure() {}
-
-    /** Called once after [messenger] is bound and handlers are registered, before any message flows. */
+    /** Called once when this plugin instance is created, before it is shown or used. */
     protected open fun onCreate() {}
 
     /** Called when this plugin instance is disposed (session closed, plugin disabled, or reloaded). */
@@ -37,20 +19,13 @@ public abstract class JetWhaleHostPlugin {
     // -- runtime hooks (not for plugin authors) -------------------------------
 
     @InternalJetWhaleHostApi
-    public fun registerHandlers(handlers: JetWhaleMessagingHandlers) {
-        handlers.configure()
-    }
-
-    @InternalJetWhaleHostApi
-    public fun create(messenger: JetWhaleMessenger) {
-        boundMessenger = messenger
+    public fun dispatchCreate() {
         onCreate()
     }
 
     @InternalJetWhaleHostApi
-    public fun dispose() {
+    public fun dispatchDispose() {
         onDispose()
-        boundMessenger = null
     }
 }
 

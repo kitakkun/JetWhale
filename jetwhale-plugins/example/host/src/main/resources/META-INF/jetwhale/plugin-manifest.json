@@ -14,6 +14,17 @@
         "activePath": "icons/window_filled.svg",
         "inactivePath": "icons/window_outlined.svg"
       }
+    },
+    {
+      "pluginId": "com.kitakkun.jetwhale.example.hostonly",
+      "pluginName": "Example Host-only Plugin",
+      "version": "1.0.0",
+      "factoryClass": "com.kitakkun.jetwhale.plugins.example.host.ExampleHostOnlyPluginFactory",
+      "requiresAgent": false,
+      "icon": {
+        "activePath": "icons/window_filled.svg",
+        "inactivePath": "icons/window_outlined.svg"
+      }
     }
   ]
 }

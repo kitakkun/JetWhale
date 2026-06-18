@@ -24,6 +24,14 @@ public data class JetWhaleHostPluginManifest(
      * plugin. Each entry pointing at its own factory is what lets one JAR provide multiple plugins.
      */
     public val factoryClass: String,
+    /**
+     * Whether this plugin needs an agent counterpart. When `true` (default) the plugin is only
+     * available for a session whose agent advertised this `pluginId` during negotiation. When
+     * `false` the plugin is **host-only** (no agent, no messaging): it is instantiated for every
+     * active session regardless of negotiation — its factory must return a plain [JetWhaleHostPlugin]
+     * (not a [JetWhaleMessagingHostPlugin]).
+     */
+    public val requiresAgent: Boolean = true,
     public val agentVersionRange: AgentVersionRange? = null,
     public val icon: Icon? = null,
 ) {

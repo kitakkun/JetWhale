@@ -32,6 +32,10 @@
             "type": "string",
             "description": "Fully-qualified name of this plugin's JetWhaleHostPluginFactory implementation (e.g. com.example.MyPluginFactory). The host loads and instantiates it from the JAR."
           },
+          "requiresAgent": {
+            "type": "boolean",
+            "description": "Whether this plugin needs an agent counterpart. true (default): available only for sessions whose agent advertised this pluginId. false: host-only (no agent, no messaging), instantiated for every active session."
+          },
           "agentVersionRange": {
             "type": "object",
             "description": "Specifies the range of agent plugin versions this host plugin is compatible with. Omit to allow all agent versions.",

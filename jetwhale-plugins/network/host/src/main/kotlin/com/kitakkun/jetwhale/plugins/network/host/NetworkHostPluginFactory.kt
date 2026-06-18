@@ -9,6 +9,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.GetMockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
@@ -30,7 +31,7 @@ class NetworkHostPluginFactory : JetWhaleHostPluginFactory {
 private const val MAX_TRANSACTIONS = 500
 
 private class NetworkHostPlugin :
-    JetWhaleHostPlugin(),
+    JetWhaleMessagingHostPlugin(),
     JetWhaleHostPluginUi {
 
     private val transactions: SnapshotStateList<HttpTransaction> = mutableStateListOf()

@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
+import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
@@ -33,6 +34,7 @@ class DefaultDebugWebSocketServer(
     private val pluginInstanceService: PluginInstanceService,
     private val settingsRepository: DebuggerSettingsRepository,
     private val enabledPluginsRepository: EnabledPluginsRepository,
+    private val pluginFactoryRepository: PluginFactoryRepository,
     private val ktorWebSocketServer: KtorWebSocketServer,
 ) : DebugWebSocketServer {
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
@@ -120,26 +122,35 @@ class DefaultDebugWebSocketServer(
                     enabledPluginIds to activeSessions
                 }.collect { (enabledPluginIds, activeSessions) ->
                     enabledPluginIds.forEach { pluginId ->
-                        // Filter sessions that have the plugin installed (negotiated)
-                        val sessionIdsWithPlugin = activeSessions
-                            .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
-                            .fastMap { it.id }
-                            .toSet()
-                        // Initialize plugin instances for sessions that have the plugin installed
-                        // to ensure that the plugin is activated immediately after being enabled.
+                        // A host-only plugin (requiresAgent = false) has no agent counterpart, so it is
+                        // available for every active session regardless of negotiation; an agent-backed
+                        // plugin is only for sessions whose agent advertised it.
+                        val requiresAgent = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
+                        val targetSessionIds = if (requiresAgent) {
+                            activeSessions
+                                .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
+                                .fastMap { it.id }
+                                .toSet()
+                        } else {
+                            activeSessions.fastMap { it.id }.toSet()
+                        }
+                        // Initialize plugin instances for the target sessions so the plugin is activated
+                        // immediately after being enabled.
                         val pluginActivatedSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
                             pluginId = pluginId,
-                            sessionIds = sessionIdsWithPlugin,
+                            sessionIds = targetSessionIds,
                         )
-                        // Plugin instances are also initialized when a new session is created,
-                        // so it's possible that some sessions already have the plugin instance initialized when the plugin is enabled.
-                        // Only send the activation event to sessions for which the plugin instance is initialized
-                        // in this step to avoid sending duplicate activation events to sessions that already have the plugin instance initialized.
-                        pluginActivatedSessionIds.forEach { sessionId ->
-                            ktorWebSocketServer.sendToSession(
-                                sessionId = sessionId,
-                                event = JetWhaleDebuggerEvent.PluginActivated(pluginId = pluginId),
-                            )
+                        // Plugin instances are also initialized when a new session is created, so some
+                        // sessions may already have the instance. Only notify the agent for the sessions
+                        // initialized in this step, and only for agent-backed plugins (host-only plugins
+                        // have no agent to activate).
+                        if (requiresAgent) {
+                            pluginActivatedSessionIds.forEach { sessionId ->
+                                ktorWebSocketServer.sendToSession(
+                                    sessionId = sessionId,
+                                    event = JetWhaleDebuggerEvent.PluginActivated(pluginId = pluginId),
+                                )
+                            }
                         }
                     }
                 }
@@ -147,7 +158,11 @@ class DefaultDebugWebSocketServer(
 
             launch {
                 enabledPluginsRepository.disabledPluginIdFlow.collect { pluginId ->
-                    ktorWebSocketServer.broadcastToSessions(JetWhaleDebuggerEvent.PluginDeactivated(pluginId = pluginId))
+                    // Host-only plugins have no agent to deactivate.
+                    val requiresAgent = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
+                    if (requiresAgent) {
+                        ktorWebSocketServer.broadcastToSessions(JetWhaleDebuggerEvent.PluginDeactivated(pluginId = pluginId))
+                    }
                     // Unload plugin instances for all sessions to ensure that the plugin is deactivated in all sessions immediately after being disabled.
                     pluginInstanceService.unloadPluginInstancesForPlugin(pluginId)
                 }

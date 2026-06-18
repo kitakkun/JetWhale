@@ -60,8 +60,13 @@ fun toolingScaffoldPresenter(
                     inactiveIconResource = metaData.inactiveIconResource,
                     pluginAvailability = when {
                         selectedSession == null -> PluginAvailability.Unavailable
-                        !isInstalledOnAgent -> PluginAvailability.Unavailable
+
+                        // Host-only plugins (no agent) are available for any active session; agent-backed
+                        // plugins are only available where the session's agent advertised them.
+                        metaData.requiresAgent && !isInstalledOnAgent -> PluginAvailability.Unavailable
+
                         isEnabledInSettings -> PluginAvailability.Enabled
+
                         else -> PluginAvailability.Disabled
                     },
                 )

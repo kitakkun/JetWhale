@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import dev.zacsweers.metro.AppScope
@@ -31,7 +32,8 @@ private data class PluginInstanceKey(val pluginId: String, val sessionId: String
  */
 private class LoadedInstance(
     val plugin: JetWhaleHostPlugin,
-    val peer: JetWhalePluginPeer,
+    // null for a pure (non-messaging) plugin: no peer is created for it.
+    val peer: JetWhalePluginPeer?,
 )
 
 @OptIn(InternalJetWhaleHostApi::class)
@@ -77,13 +79,20 @@ class DefaultPluginInstanceService(
     }
 
     private fun createInstance(pluginId: String, sessionId: String, plugin: JetWhaleHostPlugin): LoadedInstance {
-        val peer = JetWhalePluginPeer(
-            pluginId = pluginId,
-            parentScope = scope,
-            sendFrame = { frame -> frameSender.sendFrame(sessionId, frame) },
-        )
-        peer.configure { plugin.registerHandlers(this) }
-        plugin.create(peer.messenger)
+        // Only messaging plugins get a peer; a pure plugin pays none of the messaging cost.
+        val peer = if (plugin is JetWhaleMessagingHostPlugin) {
+            JetWhalePluginPeer(
+                pluginId = pluginId,
+                parentScope = scope,
+                sendFrame = { frame -> frameSender.sendFrame(sessionId, frame) },
+            ).also { peer ->
+                peer.configure { plugin.registerHandlers(this) }
+                plugin.bindMessenger(peer.messenger)
+            }
+        } else {
+            null
+        }
+        plugin.dispatchCreate()
         return LoadedInstance(plugin, peer)
     }
 
@@ -121,9 +130,9 @@ class DefaultPluginInstanceService(
 
     private fun disposeInstance(key: PluginInstanceKey, emitEvent: Boolean = true) {
         val removed = loadedPlugins.remove(key) ?: return
-        removed.plugin.dispose()
+        removed.plugin.dispatchDispose()
         // close() suspends (it fails pending requests under a mutex), so run it off the caller.
-        scope.launch { removed.peer.close() }
+        removed.peer?.let { peer -> scope.launch { peer.close() } }
         if (emitEvent) emitEvent(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
     }
 
