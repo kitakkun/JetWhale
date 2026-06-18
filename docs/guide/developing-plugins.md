@@ -123,7 +123,8 @@ shared module and tag them by role:
 @Serializable data object Pong                                                   // a reply: no marker
 ```
 
-Both the host (`JetWhaleHostPlugin`) and agent (`JetWhaleAgentPlugin`) use the same two members:
+A messaging plugin extends `JetWhaleMessagingHostPlugin` on the host (and `JetWhaleAgentPlugin` on the
+agent). Both use the same two members:
 
 - `configure { … }` to register handlers — `onEvent<E> { e -> … }` and `onRequest { req -> reply }`
   (the handler's return type must match the request's declared reply type).
@@ -131,7 +132,7 @@ Both the host (`JetWhaleHostPlugin`) and agent (`JetWhaleAgentPlugin`) use the s
   (when you only need it to succeed and ignore the reply value).
 
 ```kotlin
-class MyHostPlugin : JetWhaleHostPlugin(), JetWhaleHostPluginUi {
+class MyHostPlugin : JetWhaleMessagingHostPlugin(), JetWhaleHostPluginUi {
     override fun JetWhaleMessagingHandlers.configure() {
         onEvent<ButtonClicked> { e -> /* update UI state */ }
     }
@@ -146,6 +147,14 @@ the agent. A failed/timed-out request throws `JetWhaleRequestException`. Impleme
 (`@Composable Content()`) to render a UI; plugins that don't are **headless** (e.g. MCP-only). The
 `messenger` is available from `onCreate()` onward; on the agent, use `messengerOrNull` for events fired
 by app code that may run while disconnected (they are dropped rather than throwing).
+
+#### Host-only plugins (no agent, no messaging)
+
+If a plugin doesn't talk to the app at all — a host-side tool that just renders UI or uses the host's
+own capabilities — extend the plain `JetWhaleHostPlugin` (not `JetWhaleMessagingHostPlugin`) and set
+`"requiresAgent": false` in its manifest entry. Such a plugin has no agent counterpart and no
+`messenger`; it is made available for every active session regardless of negotiation. See
+`ExampleHostOnlyPlugin` in `jetwhale-plugins/example/host`.
 
 ## Hot reload (the live dev loop)
 
