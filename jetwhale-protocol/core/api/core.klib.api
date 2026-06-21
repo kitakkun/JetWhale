@@ -6,6 +6,18 @@
 // - Show declarations: true
 
 // Library unique name: <com.kitakkun.jetwhale.protocol:core>
+final enum class com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy : kotlin/Enum<com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy> { // com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy|null[0]
+    enum entry DROP // com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy.DROP|null[0]
+    enum entry FAIL // com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy.FAIL|null[0]
+    enum entry QUEUE // com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy.QUEUE|null[0]
+
+    final val entries // com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy> // com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy // com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy> // com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy.values|values#static(){}[0]
+}
+
 abstract interface <#A: kotlin/Any> com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest // com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest|null[0]
 
 abstract interface com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent // com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent|null[0]
@@ -16,8 +28,16 @@ abstract interface com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger { 
     abstract val payloadFormat // com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger.payloadFormat|{}payloadFormat[0]
         abstract fun <get-payloadFormat>(): kotlinx.serialization/StringFormat // com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger.payloadFormat.<get-payloadFormat>|<get-payloadFormat>(){}[0]
 
-    abstract fun sendRaw(kotlin/String, kotlin/String) // com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger.sendRaw|sendRaw(kotlin.String;kotlin.String){}[0]
-    abstract suspend fun requestRaw(kotlin/String, kotlin/String): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger.requestRaw|requestRaw(kotlin.String;kotlin.String){}[0]
+    abstract fun sendRaw(kotlin/String, kotlin/String, com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy): kotlin/Boolean // com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger.sendRaw|sendRaw(kotlin.String;kotlin.String;com.kitakkun.jetwhale.protocol.messaging.OfflineSendPolicy){}[0]
+    abstract suspend fun requestRaw(kotlin/String, kotlin/String, kotlin.time/Duration?): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger.requestRaw|requestRaw(kotlin.String;kotlin.String;kotlin.time.Duration?){}[0]
+}
+
+abstract interface com.kitakkun.jetwhale.protocol.messaging/SessionNegotiationScope { // com.kitakkun.jetwhale.protocol.messaging/SessionNegotiationScope|null[0]
+    abstract val payloadFormat // com.kitakkun.jetwhale.protocol.messaging/SessionNegotiationScope.payloadFormat|{}payloadFormat[0]
+        abstract fun <get-payloadFormat>(): kotlinx.serialization/StringFormat // com.kitakkun.jetwhale.protocol.messaging/SessionNegotiationScope.payloadFormat.<get-payloadFormat>|<get-payloadFormat>(){}[0]
+
+    abstract suspend fun receiveRaw(): com.kitakkun.jetwhale.protocol.messaging/RawNegotiationMessage // com.kitakkun.jetwhale.protocol.messaging/SessionNegotiationScope.receiveRaw|receiveRaw(){}[0]
+    abstract suspend fun sendRaw(kotlin/String, kotlin/String) // com.kitakkun.jetwhale.protocol.messaging/SessionNegotiationScope.sendRaw|sendRaw(kotlin.String;kotlin.String){}[0]
 }
 
 sealed interface com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent { // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent|null[0]
@@ -217,6 +237,38 @@ sealed interface com.kitakkun.jetwhale.protocol.messaging/PluginFrame { // com.k
         final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Companion|null[0]
             final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply> // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Companion.serializer|serializer(){}[0]
             final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+        }
+    }
+
+    final class Negotiation : com.kitakkun.jetwhale.protocol.messaging/PluginFrame { // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation|null[0]
+        constructor <init>(kotlin/String, kotlin/String, kotlin/String) // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.<init>|<init>(kotlin.String;kotlin.String;kotlin.String){}[0]
+
+        final val messageType // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.messageType|{}messageType[0]
+            final fun <get-messageType>(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.messageType.<get-messageType>|<get-messageType>(){}[0]
+        final val payload // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.payload|{}payload[0]
+            final fun <get-payload>(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.payload.<get-payload>|<get-payload>(){}[0]
+        final val pluginId // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.pluginId|{}pluginId[0]
+            final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+
+        final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.component1|component1(){}[0]
+        final fun component2(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.component2|component2(){}[0]
+        final fun component3(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.component3|component3(){}[0]
+        final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/String = ...): com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.copy|copy(kotlin.String;kotlin.String;kotlin.String){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation> { // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation) // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.protocol.messaging.PluginFrame.Negotiation){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation> // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Negotiation.Companion.serializer|serializer(){}[0]
         }
     }
 
@@ -567,6 +619,22 @@ sealed interface com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiat
     }
 }
 
+final class com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger : com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger { // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger|null[0]
+    constructor <init>(kotlinx.coroutines/CoroutineScope, kotlinx.serialization/StringFormat, kotlin/Int, kotlin/Function1<kotlin/String, kotlin/Unit> = ...) // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.<init>|<init>(kotlinx.coroutines.CoroutineScope;kotlinx.serialization.StringFormat;kotlin.Int;kotlin.Function1<kotlin.String,kotlin.Unit>){}[0]
+
+    final val coroutineScope // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.coroutineScope|{}coroutineScope[0]
+        final fun <get-coroutineScope>(): kotlinx.coroutines/CoroutineScope // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.coroutineScope.<get-coroutineScope>|<get-coroutineScope>(){}[0]
+    final val payloadFormat // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.payloadFormat|{}payloadFormat[0]
+        final fun <get-payloadFormat>(): kotlinx.serialization/StringFormat // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.payloadFormat.<get-payloadFormat>|<get-payloadFormat>(){}[0]
+
+    final fun bind(com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger) // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.bind|bind(com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger){}[0]
+    final fun close() // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.close|close(){}[0]
+    final fun sendRaw(kotlin/String, kotlin/String, com.kitakkun.jetwhale.protocol.messaging/OfflineSendPolicy): kotlin/Boolean // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.sendRaw|sendRaw(kotlin.String;kotlin.String;com.kitakkun.jetwhale.protocol.messaging.OfflineSendPolicy){}[0]
+    final fun startFlush() // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.startFlush|startFlush(){}[0]
+    final fun unbind() // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.unbind|unbind(){}[0]
+    final suspend fun requestRaw(kotlin/String, kotlin/String, kotlin.time/Duration?): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.requestRaw|requestRaw(kotlin.String;kotlin.String;kotlin.time.Duration?){}[0]
+}
+
 final class com.kitakkun.jetwhale.protocol.messaging/JetWhaleConnectionClosedException : com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessagingException { // com.kitakkun.jetwhale.protocol.messaging/JetWhaleConnectionClosedException|null[0]
     constructor <init>(kotlin/String = ...) // com.kitakkun.jetwhale.protocol.messaging/JetWhaleConnectionClosedException.<init>|<init>(kotlin.String){}[0]
 }
@@ -578,11 +646,17 @@ final class com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessagingHandlers {
     final inline fun <#A1: reified com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<#B1>, #B1: reified kotlin/Any> onRequest(noinline kotlin.coroutines/SuspendFunction1<#A1, #B1>) // com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessagingHandlers.onRequest|onRequest(kotlin.coroutines.SuspendFunction1<0:0,0:1>){0§<com.kitakkun.jetwhale.protocol.messaging.JetWhaleRequest<0:1>>;1§<kotlin.Any>}[0]
 }
 
+final class com.kitakkun.jetwhale.protocol.messaging/JetWhaleNegotiationException : com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessagingException { // com.kitakkun.jetwhale.protocol.messaging/JetWhaleNegotiationException|null[0]
+    constructor <init>(kotlin/String, kotlin/Throwable? = ...) // com.kitakkun.jetwhale.protocol.messaging/JetWhaleNegotiationException.<init>|<init>(kotlin.String;kotlin.Throwable?){}[0]
+}
+
 final class com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer { // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer|null[0]
-    constructor <init>(kotlin/String, kotlinx.coroutines/CoroutineScope, kotlin.coroutines/SuspendFunction1<com.kitakkun.jetwhale.protocol.messaging/PluginFrame, kotlin/Unit>, kotlin.time/Duration = ..., kotlinx.serialization/StringFormat = ..., kotlin/Int = ..., kotlin/Function1<kotlin/String, kotlin/Unit> = ...) // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.<init>|<init>(kotlin.String;kotlinx.coroutines.CoroutineScope;kotlin.coroutines.SuspendFunction1<com.kitakkun.jetwhale.protocol.messaging.PluginFrame,kotlin.Unit>;kotlin.time.Duration;kotlinx.serialization.StringFormat;kotlin.Int;kotlin.Function1<kotlin.String,kotlin.Unit>){}[0]
+    constructor <init>(kotlin/String, kotlinx.coroutines/CoroutineScope, kotlin.coroutines/SuspendFunction1<com.kitakkun.jetwhale.protocol.messaging/PluginFrame, kotlin/Unit>, kotlin.time/Duration = ..., kotlinx.serialization/StringFormat = ..., kotlin/Int = ..., kotlin/Int = ..., kotlin/Function1<kotlin/String, kotlin/Unit> = ...) // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.<init>|<init>(kotlin.String;kotlinx.coroutines.CoroutineScope;kotlin.coroutines.SuspendFunction1<com.kitakkun.jetwhale.protocol.messaging.PluginFrame,kotlin.Unit>;kotlin.time.Duration;kotlinx.serialization.StringFormat;kotlin.Int;kotlin.Int;kotlin.Function1<kotlin.String,kotlin.Unit>){}[0]
 
     final val messenger // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.messenger|{}messenger[0]
         final fun <get-messenger>(): com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.messenger.<get-messenger>|<get-messenger>(){}[0]
+    final val negotiationScope // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.negotiationScope|{}negotiationScope[0]
+        final fun <get-negotiationScope>(): com.kitakkun.jetwhale.protocol.messaging/SessionNegotiationScope // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.negotiationScope.<get-negotiationScope>|<get-negotiationScope>(){}[0]
     final val pluginId // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.pluginId|{}pluginId[0]
         final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
 
@@ -593,11 +667,22 @@ final class com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer { // com
     final object Companion { // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.Companion|null[0]
         final const val DEFAULT_BUFFER_CAPACITY // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.Companion.DEFAULT_BUFFER_CAPACITY|{}DEFAULT_BUFFER_CAPACITY[0]
             final fun <get-DEFAULT_BUFFER_CAPACITY>(): kotlin/Int // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.Companion.DEFAULT_BUFFER_CAPACITY.<get-DEFAULT_BUFFER_CAPACITY>|<get-DEFAULT_BUFFER_CAPACITY>(){}[0]
+        final const val DEFAULT_MAX_CONCURRENT_REQUESTS // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.Companion.DEFAULT_MAX_CONCURRENT_REQUESTS|{}DEFAULT_MAX_CONCURRENT_REQUESTS[0]
+            final fun <get-DEFAULT_MAX_CONCURRENT_REQUESTS>(): kotlin/Int // com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer.Companion.DEFAULT_MAX_CONCURRENT_REQUESTS.<get-DEFAULT_MAX_CONCURRENT_REQUESTS>|<get-DEFAULT_MAX_CONCURRENT_REQUESTS>(){}[0]
     }
 }
 
 final class com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequestException : com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessagingException { // com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequestException|null[0]
     constructor <init>(kotlin/String, kotlin/Throwable? = ...) // com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequestException.<init>|<init>(kotlin.String;kotlin.Throwable?){}[0]
+}
+
+final class com.kitakkun.jetwhale.protocol.messaging/RawNegotiationMessage { // com.kitakkun.jetwhale.protocol.messaging/RawNegotiationMessage|null[0]
+    constructor <init>(kotlin/String, kotlin/String) // com.kitakkun.jetwhale.protocol.messaging/RawNegotiationMessage.<init>|<init>(kotlin.String;kotlin.String){}[0]
+
+    final val messageType // com.kitakkun.jetwhale.protocol.messaging/RawNegotiationMessage.messageType|{}messageType[0]
+        final fun <get-messageType>(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/RawNegotiationMessage.messageType.<get-messageType>|<get-messageType>(){}[0]
+    final val payload // com.kitakkun.jetwhale.protocol.messaging/RawNegotiationMessage.payload|{}payload[0]
+        final fun <get-payload>(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/RawNegotiationMessage.payload.<get-payload>|<get-payload>(){}[0]
 }
 
 final class com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo { // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo|null[0]
@@ -666,9 +751,12 @@ final val com.kitakkun.jetwhale.protocol.serialization/JetWhaleJson // com.kitak
     final fun <get-JetWhaleJson>(): kotlinx.serialization.json/Json // com.kitakkun.jetwhale.protocol.serialization/JetWhaleJson.<get-JetWhaleJson>|<get-JetWhaleJson>(){}[0]
 
 final fun <#A: kotlin/Any?> (kotlinx.serialization.json/Json).com.kitakkun.jetwhale.protocol.serialization/decodeFromStringOrNull(kotlinx.serialization/DeserializationStrategy<#A>, kotlin/String): #A? // com.kitakkun.jetwhale.protocol.serialization/decodeFromStringOrNull|decodeFromStringOrNull@kotlinx.serialization.json.Json(kotlinx.serialization.DeserializationStrategy<0:0>;kotlin.String){0§<kotlin.Any?>}[0]
-final inline fun <#A: reified com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent> (com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger).com.kitakkun.jetwhale.protocol.messaging/send(#A) // com.kitakkun.jetwhale.protocol.messaging/send|send@com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger(0:0){0§<com.kitakkun.jetwhale.protocol.messaging.JetWhaleEvent>}[0]
+final inline fun <#A: reified com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent> (com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger).com.kitakkun.jetwhale.protocol.messaging/sendOrFail(#A) // com.kitakkun.jetwhale.protocol.messaging/sendOrFail|sendOrFail@com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger(0:0){0§<com.kitakkun.jetwhale.protocol.messaging.JetWhaleEvent>}[0]
+final inline fun <#A: reified com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent> (com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger).com.kitakkun.jetwhale.protocol.messaging/sendOrQueue(#A) // com.kitakkun.jetwhale.protocol.messaging/sendOrQueue|sendOrQueue@com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger(0:0){0§<com.kitakkun.jetwhale.protocol.messaging.JetWhaleEvent>}[0]
+final inline fun <#A: reified com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent> (com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger).com.kitakkun.jetwhale.protocol.messaging/trySend(#A): kotlin/Boolean // com.kitakkun.jetwhale.protocol.messaging/trySend|trySend@com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger(0:0){0§<com.kitakkun.jetwhale.protocol.messaging.JetWhaleEvent>}[0]
 final inline fun <#A: reified kotlin/Any?> (kotlinx.serialization.json/Json).com.kitakkun.jetwhale.protocol.serialization/decodeFromStringOrNull(kotlin/String): #A? // com.kitakkun.jetwhale.protocol.serialization/decodeFromStringOrNull|decodeFromStringOrNull@kotlinx.serialization.json.Json(kotlin.String){0§<kotlin.Any?>}[0]
 final inline fun <#A: reified kotlin/Any?> (kotlinx.serialization.json/Json).com.kitakkun.jetwhale.protocol.serialization/encodeToStringOrNull(#A): kotlin/String? // com.kitakkun.jetwhale.protocol.serialization/encodeToStringOrNull|encodeToStringOrNull@kotlinx.serialization.json.Json(0:0){0§<kotlin.Any?>}[0]
 final inline fun <#A: reified kotlin/Any?> (kotlinx.serialization.json/Json).com.kitakkun.jetwhale.protocol.serialization/encodeToStringOrNull(kotlinx.serialization/SerializationStrategy<#A>, #A): kotlin/String? // com.kitakkun.jetwhale.protocol.serialization/encodeToStringOrNull|encodeToStringOrNull@kotlinx.serialization.json.Json(kotlinx.serialization.SerializationStrategy<0:0>;0:0){0§<kotlin.Any?>}[0]
-final suspend inline fun <#A: reified com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<#B>, #B: reified kotlin/Any> (com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger).com.kitakkun.jetwhale.protocol.messaging/request(#A): #B // com.kitakkun.jetwhale.protocol.messaging/request|request@com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger(0:0){0§<com.kitakkun.jetwhale.protocol.messaging.JetWhaleRequest<0:1>>;1§<kotlin.Any>}[0]
-final suspend inline fun <#A: reified com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<*>> (com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger).com.kitakkun.jetwhale.protocol.messaging/execute(#A) // com.kitakkun.jetwhale.protocol.messaging/execute|execute@com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger(0:0){0§<com.kitakkun.jetwhale.protocol.messaging.JetWhaleRequest<*>>}[0]
+final suspend inline fun <#A: reified com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<#B>, #B: reified kotlin/Any> (com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger).com.kitakkun.jetwhale.protocol.messaging/request(#A, kotlin.time/Duration? = ...): #B // com.kitakkun.jetwhale.protocol.messaging/request|request@com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger(0:0;kotlin.time.Duration?){0§<com.kitakkun.jetwhale.protocol.messaging.JetWhaleRequest<0:1>>;1§<kotlin.Any>}[0]
+final suspend inline fun <#A: reified kotlin/Any> (com.kitakkun.jetwhale.protocol.messaging/SessionNegotiationScope).com.kitakkun.jetwhale.protocol.messaging/receive(): #A // com.kitakkun.jetwhale.protocol.messaging/receive|receive@com.kitakkun.jetwhale.protocol.messaging.SessionNegotiationScope(){0§<kotlin.Any>}[0]
+final suspend inline fun <#A: reified kotlin/Any> (com.kitakkun.jetwhale.protocol.messaging/SessionNegotiationScope).com.kitakkun.jetwhale.protocol.messaging/send(#A) // com.kitakkun.jetwhale.protocol.messaging/send|send@com.kitakkun.jetwhale.protocol.messaging.SessionNegotiationScope(0:0){0§<kotlin.Any>}[0]

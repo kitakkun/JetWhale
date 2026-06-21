@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.protocol.messaging
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,7 +27,7 @@ import kotlin.time.Duration.Companion.milliseconds
 // ---------------------------------------------------------------------------
 // PoC message set: plain @Serializable classes, roles declared by markers only.
 // The reply types (Pong, Identity) implement NO marker: they cannot be sent
-// standalone — `messenger.send(Pong("x"))` does not compile.
+// standalone — `messenger.trySend(Pong("x"))` does not compile.
 // ---------------------------------------------------------------------------
 
 @Serializable
@@ -54,6 +55,16 @@ private data class Identity(val name: String)
 private data class Explode(val reason: String) : JetWhaleRequest<Pong>
 
 private const val PLUGIN_ID = "com.kitakkun.jetwhale.poc"
+
+/**
+ * Like `runCatching`, but only captures [JetWhaleMessagingException] — so a [CancellationException]
+ * keeps propagating instead of being swallowed (which would break structured concurrency).
+ */
+private inline fun <T> messagingResult(block: () -> T): Result<T> = try {
+    Result.success(block())
+} catch (e: JetWhaleMessagingException) {
+    Result.failure(e)
+}
 
 class SymmetricMessagingPoCTest {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -87,7 +98,7 @@ class SymmetricMessagingPoCTest {
             onEvent { event: CounterEvent -> received += event.value }
         }
 
-        repeat(100) { left.messenger.send(CounterEvent(it)) }
+        repeat(100) { left.messenger.sendOrFail(CounterEvent(it)) }
 
         withTimeout(5_000) {
             while (received.size < 100) delay(10)
@@ -102,9 +113,32 @@ class SymmetricMessagingPoCTest {
             onRequest { ping: Ping -> Pong(ping.tag) }
         }
 
-        left.messenger.send(CounterEvent(42)) // skipped on the right, must not break anything
+        left.messenger.sendOrFail(CounterEvent(42)) // skipped on the right, must not break anything
         val pong: Pong = left.messenger.request(Ping("still-alive"))
         assertEquals(Pong("still-alive"), pong)
+    }
+
+    @Test
+    fun `a request sent after a notification is dispatched after that notification is handled`() = runBlocking {
+        val order = java.util.concurrent.CopyOnWriteArrayList<String>()
+        right.configure {
+            // A deliberately slow notification handler: a request that ignores arrival order would
+            // overtake it. The shared inbound queue guarantees the request waits until this returns.
+            onEvent { _: CounterEvent ->
+                delay(100)
+                order += "event"
+            }
+            onRequest { ping: Ping ->
+                order += "request"
+                Pong(ping.tag)
+            }
+        }
+
+        left.messenger.sendOrFail(CounterEvent(1))
+        val pong: Pong = left.messenger.request(Ping("after-event"))
+
+        assertEquals(Pong("after-event"), pong)
+        assertEquals(listOf("event", "request"), order.toList())
     }
 
     // -- request/response -----------------------------------------------------
@@ -169,12 +203,52 @@ class SymmetricMessagingPoCTest {
         assertEquals(Pong("nested-handled-for-left"), pong)
     }
 
+    @Test
+    fun `inbound requests beyond the concurrency bound are rejected fast`(): Unit = runBlocking {
+        val maxConcurrent = 3
+        val total = 8
+        val gate = CompletableDeferred<Unit>() // holds every handler in-flight until released
+
+        // A responder bounded to `maxConcurrent` in-flight requests, wired back-to-back to a caller.
+        lateinit var responder: JetWhalePluginPeer
+        val caller = JetWhalePluginPeer(PLUGIN_ID, scope, sendFrame = { responder.onFrame(roundTrip(it)) })
+        responder = JetWhalePluginPeer(
+            pluginId = PLUGIN_ID,
+            parentScope = scope,
+            sendFrame = { caller.onFrame(roundTrip(it)) },
+            maxConcurrentRequests = maxConcurrent,
+        )
+        responder.configure {
+            onRequest { ping: Ping ->
+                gate.await()
+                Pong(ping.tag)
+            }
+        }
+
+        coroutineScope {
+            val pending = (0 until total).map { i ->
+                // Capture the messaging outcome without runCatching, which would also swallow cancellation.
+                async { messagingResult { caller.messenger.request(Ping("t$i")) } }
+            }
+            delay(300) // let all requests reach the responder and acquire/reject a slot
+            gate.complete(Unit) // release the handlers that did get a slot
+            val outcomes = pending.map { it.await() }
+
+            val succeeded = outcomes.count { it.isSuccess }
+            val rejected = outcomes.count {
+                (it.exceptionOrNull() as? JetWhaleRequestException)?.message?.contains("Too many concurrent requests") == true
+            }
+            assertEquals(maxConcurrent, succeeded, "only the bounded number of handlers should run")
+            assertEquals(total - maxConcurrent, rejected, "the rest should be rejected fast")
+        }
+    }
+
     // -- failure paths ---------------------------------------------------------
 
     @Test
     fun `request without a registered handler fails loudly`() = runBlocking {
         val e = assertFailsWith<JetWhaleRequestException> {
-            left.messenger.execute(Ping("nobody-home"))
+            left.messenger.request(Ping("nobody-home"))
         }
         assertTrue("No request handler registered" in (e.message ?: ""), "unexpected message: ${e.message}")
     }
@@ -191,9 +265,27 @@ class SymmetricMessagingPoCTest {
         }
 
         val e = assertFailsWith<JetWhaleRequestException> {
-            left.messenger.execute(Explode("test"))
+            left.messenger.request(Explode("test"))
         }
         assertTrue("boom: test" in (e.message ?: ""), "unexpected message: ${e.message}")
+    }
+
+    @Test
+    fun `a per-call timeout overrides the peer default`() = runBlocking {
+        right.configure {
+            // Replies after 2s: longer than our 200ms per-call timeout, but shorter than the 5s peer
+            // default. So the request can only fail if the per-call timeout is actually applied — if
+            // it fell back to the default, the reply would arrive first and the request would succeed.
+            onRequest { ping: Ping ->
+                delay(2_000)
+                Pong(ping.tag)
+            }
+        }
+
+        val e = assertFailsWith<JetWhaleRequestException> {
+            left.messenger.request(Ping("slow"), timeout = 200.milliseconds)
+        }
+        assertTrue("timed out" in (e.message ?: ""), "unexpected message: ${e.message}")
     }
 
     @Test
@@ -206,7 +298,7 @@ class SymmetricMessagingPoCTest {
         )
 
         val e = assertFailsWith<JetWhaleRequestException> {
-            mute.messenger.execute(Ping("lost"))
+            mute.messenger.request(Ping("lost"))
         }
         assertTrue("timed out" in (e.message ?: ""), "unexpected message: ${e.message}")
     }
@@ -220,7 +312,7 @@ class SymmetricMessagingPoCTest {
         )
 
         coroutineScope {
-            val pending = async { runCatching { silent.messenger.execute(Ping("doomed")) } }
+            val pending = async { messagingResult { silent.messenger.request(Ping("doomed")) } }
             delay(100) // let the request register itself as pending
             silent.close()
             val result = pending.await()

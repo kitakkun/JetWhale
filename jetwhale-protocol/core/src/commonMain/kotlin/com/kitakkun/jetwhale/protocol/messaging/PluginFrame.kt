@@ -16,9 +16,16 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 public sealed interface PluginFrame {
+    /** Id of the plugin this frame belongs to; used to route the frame to that plugin's peer. */
     public val pluginId: String
 
-    /** Fire-and-forget message. Carries no correlation information by construction. */
+    /**
+     * Fire-and-forget message. Carries no correlation information by construction.
+     *
+     * @property pluginId Id of the plugin this notification is addressed to.
+     * @property messageType Serial name of the concrete event type, used to pick its handler/serializer.
+     * @property payload The event, serialized with the payload format.
+     */
     @SerialName("frame/notification")
     @Serializable
     public data class Notification(
@@ -27,7 +34,31 @@ public sealed interface PluginFrame {
         val payload: String,
     ) : PluginFrame
 
-    /** A message that expects exactly one [Reply] correlated via [correlationId]. */
+    /**
+     * A message exchanged during the connection-time negotiation phase, delivered to the plugin's
+     * `negotiate` script via [SessionNegotiationScope.receive]. Separate from [Notification] so the
+     * peer routes it to the negotiation inbox rather than the normal event lane.
+     *
+     * @property pluginId Id of the plugin this negotiation message is addressed to.
+     * @property messageType Serial name of the concrete message type.
+     * @property payload The message, serialized with the payload format.
+     */
+    @SerialName("frame/negotiation")
+    @Serializable
+    public data class Negotiation(
+        override val pluginId: String,
+        val messageType: String,
+        val payload: String,
+    ) : PluginFrame
+
+    /**
+     * A message that expects exactly one [Reply] correlated via [correlationId].
+     *
+     * @property pluginId Id of the plugin this request is addressed to.
+     * @property correlationId Unique id the matching [Reply] echoes back in [Reply.inReplyTo].
+     * @property messageType Serial name of the concrete request type, used to pick its handler/serializer.
+     * @property payload The request, serialized with the payload format.
+     */
     @SerialName("frame/request")
     @Serializable
     public data class Request(
@@ -40,8 +71,17 @@ public sealed interface PluginFrame {
     /** The answer to a [Request], correlated via [inReplyTo]. Exactly success or failure. */
     @Serializable
     public sealed interface Reply : PluginFrame {
+        /** [Request.correlationId] of the request this reply answers. */
         public val inReplyTo: String
 
+        /**
+         * A request handled successfully; [payload] carries the serialized reply value.
+         *
+         * @property pluginId Id of the plugin that produced this reply.
+         * @property inReplyTo [Request.correlationId] of the request being answered.
+         * @property payload The reply value, serialized with the payload format. Its type is the one
+         *   declared by the request's [JetWhaleRequest], so no message type is needed.
+         */
         @SerialName("frame/reply/success")
         @Serializable
         public data class Success(
@@ -50,6 +90,14 @@ public sealed interface PluginFrame {
             val payload: String,
         ) : Reply
 
+        /**
+         * A request that could not be handled (no handler, handler threw, undispatchable, ...).
+         *
+         * @property pluginId Id of the plugin that produced this reply.
+         * @property inReplyTo [Request.correlationId] of the request being answered.
+         * @property errorMessage Human-readable reason; surfaced to the requester as a
+         *   [JetWhaleRequestException].
+         */
         @SerialName("frame/reply/failure")
         @Serializable
         public data class Failure(
