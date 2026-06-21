@@ -203,6 +203,10 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMessagingHostPlugin
 	public final fun bindMessenger (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;)V
 	protected fun configure (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessagingHandlers;)V
 	protected final fun getMessenger ()Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;
+	protected fun getNegotiationTimeoutMillis ()J
+	protected fun negotiate (Lcom/kitakkun/jetwhale/protocol/messaging/SessionNegotiationScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun negotiationTimeoutMillis ()J
 	public final fun registerHandlers (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessagingHandlers;)V
+	public final fun runNegotiation (Lcom/kitakkun/jetwhale/protocol/messaging/SessionNegotiationScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 

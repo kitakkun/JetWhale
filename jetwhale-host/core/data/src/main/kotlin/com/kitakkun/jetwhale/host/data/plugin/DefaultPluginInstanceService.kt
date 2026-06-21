@@ -14,13 +14,16 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Logger
 
@@ -88,6 +91,22 @@ class DefaultPluginInstanceService(
             ).also { peer ->
                 peer.configure { plugin.registerHandlers(this) }
                 plugin.bindMessenger(peer.messenger)
+                // Run the host's half of the negotiation (the agent initiates). Bounded by a timeout:
+                // a hung negotiation is warned about (visible in the host log) rather than left to
+                // freeze. A closed inbox (the session ended mid-negotiation) just ends it quietly.
+                scope.launch {
+                    try {
+                        withTimeout(plugin.negotiationTimeoutMillis()) {
+                            plugin.runNegotiation(peer.negotiationScope)
+                        }
+                    } catch (e: TimeoutCancellationException) {
+                        logger.warning("Negotiation for plugin '$pluginId' in session '$sessionId' did not complete in time; proceeding.")
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Throwable) {
+                        logger.fine("Negotiation for plugin '$pluginId' in session '$sessionId' ended early: ${e.message}")
+                    }
+                }
             }
         } else {
             null
@@ -104,15 +123,20 @@ class DefaultPluginInstanceService(
         }
         // No instance for this frame in this session. If it expects a reply, fail it fast so the
         // agent-side requester does not wait for the timeout instead of silently dropping it.
+        // Launch, don't await: sendFrame is a suspending socket write and routeFrame runs on the
+        // server's single frame collector, so awaiting here would stall delivery for every other
+        // session while this one failure reply is in flight.
         if (frame is PluginFrame.Request) {
-            frameSender.sendFrame(
-                sessionId = sessionId,
-                frame = PluginFrame.Reply.Failure(
-                    pluginId = frame.pluginId,
-                    inReplyTo = frame.correlationId,
-                    errorMessage = "Plugin '${frame.pluginId}' is not loaded in session '$sessionId'.",
-                ),
-            )
+            scope.launch {
+                frameSender.sendFrame(
+                    sessionId = sessionId,
+                    frame = PluginFrame.Reply.Failure(
+                        pluginId = frame.pluginId,
+                        inReplyTo = frame.correlationId,
+                        errorMessage = "Plugin '${frame.pluginId}' is not loaded in session '$sessionId'.",
+                    ),
+                )
+            }
         }
     }
 
