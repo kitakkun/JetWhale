@@ -16,6 +16,8 @@ import com.kitakkun.jetwhale.host.model.PluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.ServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.TrustPluginMutationKey
+import com.kitakkun.jetwhale.host.model.UntrustedPluginJarPathsSubscriptionKey
 import dev.zacsweers.metro.Inject
 
 /**
@@ -31,6 +33,7 @@ class SettingsPresenterContext(
     val serverPortMutationKey: ServerPortMutationKey,
     val mcpServerPortMutationKey: McpServerPortMutationKey,
     val pluginInstallMutationKey: PluginInstallMutationKey,
+    val trustPluginMutationKey: TrustPluginMutationKey,
     val logCaptureService: LogCaptureService,
 ) : PresenterContext
 
@@ -45,6 +48,7 @@ class SettingsScreenContext(
     val diagnosticsQueryKey: DiagnosticsQueryKey,
     val loadedPluginsMetaDataSubscriptionKey: LoadedPluginsMetaDataSubscriptionKey,
     val failedPluginJarPathsSubscriptionKey: FailedPluginJarPathsSubscriptionKey,
+    val untrustedPluginJarPathsSubscriptionKey: UntrustedPluginJarPathsSubscriptionKey,
     val serverStatusSubscriptionKey: ServerStatusSubscriptionKey,
     val mcpServerStatusSubscriptionKey: McpServerStatusSubscriptionKey,
     val presenterContext: SettingsPresenterContext,

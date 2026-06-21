@@ -19,6 +19,13 @@ class AppDataDirectoryProvider {
 
     fun getAppDataPath(): String = "~/.jetwhale"
 
+    /**
+     * The file backing the plugin trust registry (the list of jars the user has explicitly approved,
+     * each pinned to the content hash it had at approval time). Lives directly under the app data
+     * directory so it is created and read before any plugin jar is touched.
+     */
+    fun getTrustRegistryFile(): File = File(appDataDir, "trusted-plugins.json")
+
     fun createAppDataDirectoriesIfNeeded() {
         val appDataDirectory = File(appDataDir)
         if (!appDataDirectory.exists()) {

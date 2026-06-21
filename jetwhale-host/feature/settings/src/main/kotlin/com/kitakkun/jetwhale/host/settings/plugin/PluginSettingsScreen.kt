@@ -30,16 +30,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
+import com.kitakkun.jetwhale.host.settings.approve_untrusted_plugin
 import com.kitakkun.jetwhale.host.settings.dialog_ok
 import com.kitakkun.jetwhale.host.settings.failed_jar_path_hint
 import com.kitakkun.jetwhale.host.settings.failed_to_load_plugins
 import com.kitakkun.jetwhale.host.settings.installed_plugins
+import com.kitakkun.jetwhale.host.settings.untrusted_jar_hint
+import com.kitakkun.jetwhale.host.settings.untrusted_plugins
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun PluginSettingsScreen(
     uiState: PluginSettingsScreenUiState,
     onClickAddPlugin: () -> Unit,
+    onApproveUntrustedJar: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showFailedJarsDialog by remember { mutableStateOf(false) }
@@ -149,8 +153,69 @@ fun PluginSettingsScreen(
                 )
             }
         }
+        if (uiState.untrustedJarPaths.isNotEmpty()) {
+            UntrustedPluginsSection(
+                untrustedJarPaths = uiState.untrustedJarPaths,
+                onApprove = onApproveUntrustedJar,
+            )
+        }
         Button(onClickAddPlugin) {
             Text("Add Plugin")
+        }
+    }
+}
+
+@Composable
+private fun UntrustedPluginsSection(
+    untrustedJarPaths: List<String>,
+    onApprove: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = MaterialTheme.shapes.small,
+            )
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+            )
+            Text(
+                text = stringResource(Res.string.untrusted_plugins) + " (${untrustedJarPaths.size})",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+        }
+        Text(
+            text = stringResource(Res.string.untrusted_jar_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+        )
+        untrustedJarPaths.forEach { path ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = path,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(onClick = { onApprove(path) }) {
+                    Text(stringResource(Res.string.approve_untrusted_plugin))
+                }
+            }
         }
     }
 }
