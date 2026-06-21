@@ -4,7 +4,6 @@ import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.Ack
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
-import com.kitakkun.jetwhale.plugins.network.protocol.GetMockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.MockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
@@ -14,9 +13,13 @@ import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockRules
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockingEnabled
+import com.kitakkun.jetwhale.plugins.network.protocol.SyncMockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.findMatching
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers
+import com.kitakkun.jetwhale.protocol.messaging.SessionNegotiationScope
+import com.kitakkun.jetwhale.protocol.messaging.receive
 import com.kitakkun.jetwhale.protocol.messaging.send
+import com.kitakkun.jetwhale.protocol.messaging.sendOrQueue
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -33,6 +36,10 @@ class JetWhaleNetworkAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginId: String get() = PLUGIN_ID
     override val pluginVersion: String get() = "1.0.0"
 
+    // Captured traffic must survive a disconnect: buffer it while the host is away and flush on
+    // reconnect (oldest dropped past this bound). recordRequest/Response/Failure use sendOrQueue.
+    override val offlineEventBufferCapacity: Int get() = OFFLINE_CAPTURE_BUFFER_CAPACITY
+
     // StateFlow gives thread-safe reads (adapter thread) / writes (messaging thread) without
     // a platform-specific lock.
     private val mockingEnabled = MutableStateFlow(true)
@@ -47,9 +54,15 @@ class JetWhaleNetworkAgentPlugin : JetWhaleAgentPlugin() {
             mockingEnabled.value = request.enabled
             Ack
         }
-        onRequest { _: GetMockConfig ->
-            MockConfig(enabled = mockingEnabled.value, rules = mockRules.value)
-        }
+    }
+
+    // On connect we propose the config we hold (we are its source of truth, it survives host restarts);
+    // the host resolves it and returns the effective config, which we adopt. Agent initiates (send first).
+    override suspend fun SessionNegotiationScope.negotiate() {
+        send(SyncMockConfig(MockConfig(enabled = mockingEnabled.value, rules = mockRules.value)))
+        val resolved = receive<MockConfig>()
+        mockingEnabled.value = resolved.enabled
+        mockRules.value = resolved.rules
     }
 
     // ---------------------------------------------------------------------------------------
@@ -61,15 +74,15 @@ class JetWhaleNetworkAgentPlugin : JetWhaleAgentPlugin() {
     fun newTransactionId(): String = Uuid.random().toString()
 
     fun recordRequest(request: CapturedHttpRequest) {
-        messengerOrNull?.send(RequestSent(request))
+        messenger.sendOrQueue(RequestSent(request))
     }
 
     fun recordResponse(response: CapturedHttpResponse) {
-        messengerOrNull?.send(ResponseReceived(response))
+        messenger.sendOrQueue(ResponseReceived(response))
     }
 
     fun recordFailure(failure: HttpRequestFailure) {
-        messengerOrNull?.send(RequestFailed(failure))
+        messenger.sendOrQueue(RequestFailed(failure))
     }
 
     /** Returns the mock response to serve for [method] [url], or null to perform the real call. */
@@ -77,5 +90,8 @@ class JetWhaleNetworkAgentPlugin : JetWhaleAgentPlugin() {
 
     companion object {
         const val PLUGIN_ID: String = "com.kitakkun.jetwhale.network"
+
+        /** How many captured events to retain across a host disconnect before dropping the oldest. */
+        private const val OFFLINE_CAPTURE_BUFFER_CAPACITY: Int = 256
     }
 }

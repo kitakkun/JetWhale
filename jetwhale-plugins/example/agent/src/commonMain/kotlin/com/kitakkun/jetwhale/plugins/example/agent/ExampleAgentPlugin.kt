@@ -5,7 +5,7 @@ import com.kitakkun.jetwhale.plugins.example.protocol.ButtonClicked
 import com.kitakkun.jetwhale.plugins.example.protocol.Ping
 import com.kitakkun.jetwhale.plugins.example.protocol.Pong
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers
-import com.kitakkun.jetwhale.protocol.messaging.send
+import com.kitakkun.jetwhale.protocol.messaging.trySend
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -28,10 +28,11 @@ class ExampleAgentPlugin : JetWhaleAgentPlugin() {
         }
     }
 
-    /** Sends a button-clicked event to the host (and logs it locally). */
+    /** Sends a button-clicked event to the host (and logs it locally). A click is only meaningful
+     *  live, so it is dropped if the host is not connected. */
     fun reportButtonClicked(count: Int) {
         val event = ButtonClicked(count)
         mutableEventLogsFlow.update { it + "Event: $event" }
-        messengerOrNull?.send(event)
+        messenger.trySend(event)
     }
 }

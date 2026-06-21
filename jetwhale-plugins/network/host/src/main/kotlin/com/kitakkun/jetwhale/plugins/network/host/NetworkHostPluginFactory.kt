@@ -10,16 +10,19 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
-import com.kitakkun.jetwhale.plugins.network.protocol.GetMockConfig
+import com.kitakkun.jetwhale.plugins.network.protocol.MockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockRules
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockingEnabled
+import com.kitakkun.jetwhale.plugins.network.protocol.SyncMockConfig
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers
-import com.kitakkun.jetwhale.protocol.messaging.execute
+import com.kitakkun.jetwhale.protocol.messaging.SessionNegotiationScope
+import com.kitakkun.jetwhale.protocol.messaging.receive
 import com.kitakkun.jetwhale.protocol.messaging.request
+import com.kitakkun.jetwhale.protocol.messaging.send
 import kotlinx.coroutines.launch
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
@@ -51,17 +54,17 @@ private class NetworkHostPlugin :
         }
     }
 
-    override fun onCreate() {
-        // Re-sync the mock configuration the agent currently holds (it survives host restarts).
-        messenger.coroutineScope.launch {
-            runCatching { messenger.request(GetMockConfig) }.getOrNull()?.let { config ->
-                mockingEnabled = config.enabled
-                mockRules.apply {
-                    clear()
-                    addAll(config.rules)
-                }
-            }
+    // The agent proposes the config it holds (it survives host restarts). Adopt it, show it, and
+    // return the effective config for the agent to apply (a host-authoritative merge, if this plugin
+    // ever needed one, would go here). The agent initiates, so we receive first.
+    override suspend fun SessionNegotiationScope.negotiate() {
+        val proposal = receive<SyncMockConfig>()
+        mockingEnabled = proposal.config.enabled
+        mockRules.apply {
+            clear()
+            addAll(proposal.config.rules)
         }
+        send(MockConfig(enabled = mockingEnabled, rules = mockRules.toList()))
     }
 
     private inline fun updateTransaction(txId: String, transform: (HttpTransaction) -> HttpTransaction) {
@@ -79,7 +82,7 @@ private class NetworkHostPlugin :
             onToggleMocking = { enabled ->
                 mockingEnabled = enabled
                 messenger.coroutineScope.launch {
-                    messenger.execute(SetMockingEnabled(enabled))
+                    messenger.request(SetMockingEnabled(enabled))
                 }
             },
             onMockRulesChanged = { rules ->
@@ -88,7 +91,7 @@ private class NetworkHostPlugin :
                     addAll(rules)
                 }
                 messenger.coroutineScope.launch {
-                    messenger.execute(SetMockRules(rules))
+                    messenger.request(SetMockRules(rules))
                 }
             },
         )

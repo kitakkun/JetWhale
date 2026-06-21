@@ -13,8 +13,9 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.example.protocol.ButtonClicked
 import com.kitakkun.jetwhale.plugins.example.protocol.Ping
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers
-import com.kitakkun.jetwhale.protocol.messaging.execute
+import com.kitakkun.jetwhale.protocol.messaging.request
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -46,7 +47,15 @@ private class ExampleHostPlugin :
             onClickSendPing = {
                 messenger.coroutineScope.launch {
                     eventLogs.add("Request: Ping")
-                    eventLogs.add(runCatching { messenger.execute(Ping) }.fold({ "Reply: Pong" }, { "Error: ${it.message}" }))
+                    // Catch the messaging failure specifically — runCatching would also swallow the
+                    // CancellationException that cancels this coroutine.
+                    val reply = try {
+                        messenger.request(Ping)
+                        "Reply: Pong"
+                    } catch (e: JetWhaleMessagingException) {
+                        "Error: ${e.message}"
+                    }
+                    eventLogs.add(reply)
                 }
             },
         )
@@ -76,7 +85,12 @@ private class ExampleHostPlugin :
 
     override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? = when (toolName) {
         "com.kitakkun.jetwhale.example.sendPing" -> {
-            val pongReceived = runCatching { messenger.execute(Ping) }.isSuccess
+            val pongReceived = try {
+                messenger.request(Ping)
+                true
+            } catch (e: JetWhaleMessagingException) {
+                false
+            }
             buildJsonObject {
                 put("pongReceived", pongReceived)
             }.toString()

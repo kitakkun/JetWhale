@@ -1,7 +1,9 @@
 plugins {
     alias(libs.plugins.jvm)
     alias(libs.plugins.compose)
+    // Provides packagePlugin / installPlugin / stageDevPlugin / runJetWhale / runJetWhaleHot (published).
     alias(libs.plugins.jetwhalePlugin)
+    // In-repo only: adds runJetWhaleLocal, which launches the local :jetwhale-host:app project.
     alias(libs.plugins.jetwhaleHostLaunch)
 }
 
@@ -9,6 +11,8 @@ plugins {
 group = "com.kitakkun.jetwhale.plugins.network"
 
 jetwhalePlugin {
+    // Unique name so the packaged plugin jar doesn't collide with `example:host` (also project name
+    // "host") in ~/.jetwhale/plugins/ or the dev staging directory.
     pluginArchiveName.set("jetwhale-network-inspector")
 }
 
