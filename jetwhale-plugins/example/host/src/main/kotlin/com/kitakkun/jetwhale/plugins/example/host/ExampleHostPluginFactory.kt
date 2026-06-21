@@ -16,6 +16,7 @@ import com.kitakkun.jetwhale.plugins.example.protocol.ButtonClicked
 import com.kitakkun.jetwhale.plugins.example.protocol.Ping
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
 import com.kitakkun.jetwhale.protocol.messaging.request
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -85,13 +86,17 @@ private class ExampleHostPlugin :
         ),
     )
 
-    override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? = when (toolName) {
+    override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>, messenger: JetWhaleMessenger?): String? = when (toolName) {
         "com.kitakkun.jetwhale.example.sendPing" -> {
-            val pongReceived = try {
-                messenger.request(Ping)
-                true
-            } catch (e: JetWhaleMessagingException) {
+            val pongReceived = if (messenger == null) {
                 false
+            } else {
+                try {
+                    messenger.request(Ping)
+                    true
+                } catch (e: JetWhaleMessagingException) {
+                    false
+                }
             }
             buildJsonObject {
                 put("pongReceived", pongReceived)

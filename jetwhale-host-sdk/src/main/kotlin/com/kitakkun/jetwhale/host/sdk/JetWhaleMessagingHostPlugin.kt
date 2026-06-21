@@ -1,32 +1,22 @@
 package com.kitakkun.jetwhale.host.sdk
 
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
 import com.kitakkun.jetwhale.protocol.messaging.SessionNegotiationScope
 
 /**
  * Base class for a host plugin that exchanges messages with its agent counterpart (a
  * `JetWhaleAgentPlugin` with the **same `pluginId`**).
  *
- * It adds, on top of [JetWhaleHostPlugin]'s lifecycle, the symmetric [messenger]
- * (`trySend` / `sendOrFail` / `request`) and handler registration via [configure]
- * (`onEvent<E>` / `onRequest`), plus [negotiate] — the host's half of the connection-time
- * negotiation. The same vocabulary works in both directions. Combine with [JetWhaleHostPluginUi] to
- * also render a UI. (The host messenger is bound to a live session, so it has no offline buffer:
- * `sendOrQueue` degrades to a best-effort send here.)
+ * It adds, on top of [JetWhaleHostPlugin]'s lifecycle, handler registration via [configure]
+ * (`onEvent<E>` / `onRequest`) and [negotiate] — the host's half of the connection-time negotiation.
+ * Combine with [JetWhaleHostPluginUi] to also render a UI.
+ *
+ * The host plugin does **not** hold a messenger: its lifetime is the session, so a stashed reference
+ * would outlive the connection. Talk to the agent where the host hands you a session-scoped messenger
+ * instead — [LocalJetWhaleMessenger] inside `Content()`, the `messenger` argument of an MCP tool, or
+ * by replying from a handler / `negotiate`.
  */
 public abstract class JetWhaleMessagingHostPlugin : JetWhaleHostPlugin() {
-    private var boundMessenger: JetWhaleMessenger? = null
-
-    /**
-     * Sends messages to the agent counterpart. Available from [onCreate] onwards (and inside handlers
-     * and the UI), for the lifetime of this plugin instance.
-     */
-    protected val messenger: JetWhaleMessenger
-        get() = checkNotNull(boundMessenger) {
-            "messenger is only available after the plugin instance has been created (in or after onCreate())."
-        }
-
     /** Registers handlers for messages from the agent (`onEvent<E> { }` / `onRequest { req -> reply }`). */
     protected open fun JetWhaleMessagingHandlers.configure() {}
 
@@ -46,11 +36,6 @@ public abstract class JetWhaleMessagingHostPlugin : JetWhaleHostPlugin() {
     @InternalJetWhaleHostApi
     public fun registerHandlers(handlers: JetWhaleMessagingHandlers) {
         handlers.configure()
-    }
-
-    @InternalJetWhaleHostApi
-    public fun bindMessenger(messenger: JetWhaleMessenger) {
-        boundMessenger = messenger
     }
 
     @InternalJetWhaleHostApi

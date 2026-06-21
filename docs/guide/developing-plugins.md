@@ -132,14 +132,15 @@ data object Pong
 ```
 
 A messaging plugin extends `JetWhaleMessagingHostPlugin` on the host (and `JetWhaleAgentPlugin` on the
-agent). Both use the same two members:
+agent). Both register handlers and send through a **messenger**:
 
 - `configure { … }` to register handlers — `onEvent<E> { e -> … }` and `onRequest { req -> reply }`
   (the handler's return type must match the request's declared reply type).
-- `messenger` to send — events with `trySend(event)` (drop if offline, returns `Boolean`),
+- a messenger to send — events with `trySend(event)` (drop if offline, returns `Boolean`),
   `sendOrQueue(event)` (buffer while offline and flush on reconnect), or `sendOrFail(event)` (throw if
   offline); plus `request(req): R` for request-response (discard the result if you only need the call
-  to succeed — e.g. a command whose reply is just an `Ack`).
+  to succeed — e.g. a command whose reply is just an `Ack`). How you obtain the messenger differs by
+  side — see below.
 
 ```kotlin
 class MyHostPlugin : JetWhaleMessagingHostPlugin(), JetWhaleHostPluginUi {
@@ -149,6 +150,7 @@ class MyHostPlugin : JetWhaleMessagingHostPlugin(), JetWhaleHostPluginUi {
 
     @Composable
     override fun Content() {
+        val messenger = LocalJetWhaleMessenger.current
         Button(
             onClick = {
                 messenger.coroutineScope.launch {
@@ -165,11 +167,15 @@ class MyHostPlugin : JetWhaleMessagingHostPlugin(), JetWhaleHostPluginUi {
 Requests work in **both directions** — the agent can `request` the host just as the host can `request`
 the agent. A failed/timed-out request throws `JetWhaleRequestException`; pass `timeout` to `request`
 to override the default per call (e.g. `request(SlowOp, timeout = 30.seconds)`). Implement `JetWhaleHostPluginUi`
-(`@Composable Content()`) to render a UI; plugins that don't are **headless** (e.g. MCP-only). The
-`messenger` is available from `onCreate()` onward. On the agent it is **connection-independent** (it
-outlives any single connection), so app code may send at any time and choose the offline behavior per
-call: `trySend` drops, `sendOrQueue` buffers, `sendOrFail` throws. Buffering is opt-in — override
-`offlineEventBufferCapacity` (bounded, drops oldest when full) to size the `sendOrQueue` buffer.
+(`@Composable Content()`) to render a UI; plugins that don't are **headless** (e.g. MCP-only).
+
+**Obtaining the messenger differs by side.** On the **agent** it is a `messenger` property, available
+from `onActivate()` onward and **connection-independent** (it outlives any single connection), so app
+code may send at any time and choose the offline behavior per call: `trySend` drops, `sendOrQueue`
+buffers, `sendOrFail` throws. Buffering is opt-in — override `offlineEventBufferCapacity` (bounded,
+drops oldest when full). On the **host** the plugin holds **no** messenger property (its lifetime is
+the session, so a stashed reference would outlive the connection): read `LocalJetWhaleMessenger`
+inside `Content()`, take the `messenger` argument of an MCP tool, or reply from a handler / `negotiate`.
 
 **Commands vs queries.** `request` returns the reply value (`val r: Pong = request(Ping)`); when you
 issue a command and only need it to succeed, just discard the result (`request(SetMockRules(rules))`).

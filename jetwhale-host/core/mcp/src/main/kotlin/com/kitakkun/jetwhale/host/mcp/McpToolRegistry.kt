@@ -65,7 +65,8 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
             pluginId = pluginId,
             sessionId = sessionId,
         ) as? JetWhaleMcpCapablePlugin ?: return null
-        return plugin.handleMcpTool(toolName, arguments - "sessionId")
+        val messenger = pluginInstanceService.getMessengerForSession(pluginId = pluginId, sessionId = sessionId)
+        return plugin.handleMcpTool(toolName, arguments - "sessionId", messenger)
     }
 
     /** Removes all registered plugin tools. Call on server stop to avoid stale entries on restart. */

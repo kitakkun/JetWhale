@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.host.sdk
 
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
+
 /**
  * Optional interface that a [JetWhaleHostPlugin] can implement to
  * advertise plugin-specific MCP tools to the MCP server.
@@ -52,11 +54,14 @@ public interface JetWhaleMcpCapablePlugin {
      *
      * @param toolName  The exact name returned in [mcpTools].
      * @param arguments Map of argument name to JSON value string.
+     * @param messenger The messenger of the target session's plugin instance, for tools that talk to
+     *   the agent; `null` for a host-only plugin. Provided here so the plugin need not hold it.
      * @return A result string (plain text or JSON); null means no result.
      */
     public suspend fun handleMcpTool(
         toolName: String,
         arguments: Map<String, String>,
+        messenger: JetWhaleMessenger?,
     ): String?
 }
 

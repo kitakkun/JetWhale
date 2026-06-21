@@ -93,7 +93,6 @@ class DefaultPluginInstanceService(
                 sendFrame = { frame -> frameSender.sendFrame(sessionId, frame) },
             ).also { peer ->
                 peer.configure { plugin.registerHandlers(this) }
-                plugin.bindMessenger(peer.messenger)
                 // Run the host's half of the negotiation (the agent initiates). Bounded by a timeout:
                 // a hung negotiation is warned about (visible in the host log) rather than left to
                 // freeze. A closed inbox (the session ended mid-negotiation) just ends it quietly.

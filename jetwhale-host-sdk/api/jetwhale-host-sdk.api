@@ -159,7 +159,7 @@ public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugi
 }
 
 public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCapablePlugin {
-	public abstract fun handleMcpTool (Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun handleMcpTool (Ljava/lang/String;Ljava/util/Map;Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun mcpTools ()Ljava/util/List;
 }
 
@@ -200,9 +200,7 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor {
 public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMessagingHostPlugin : com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin {
 	public static final field $stable I
 	public fun <init> ()V
-	public final fun bindMessenger (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;)V
 	protected fun configure (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessagingHandlers;)V
-	protected final fun getMessenger ()Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;
 	protected fun getNegotiationTimeoutMillis ()J
 	protected fun negotiate (Lcom/kitakkun/jetwhale/protocol/messaging/SessionNegotiationScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun negotiationTimeoutMillis ()J
