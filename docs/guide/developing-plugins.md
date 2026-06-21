@@ -118,9 +118,17 @@ shared module and tag them by role:
 - `JetWhaleRequest<R>` — a request that expects a reply of type `R` (also a plain `@Serializable` class).
 
 ```kotlin
-@Serializable data class ButtonClicked(val count: Int) : JetWhaleEvent          // either side -> the other
-@Serializable data object Ping : JetWhaleRequest<Pong>                           // request, reply is Pong
-@Serializable data object Pong                                                   // a reply: no marker
+// either side -> the other
+@Serializable
+data class ButtonClicked(val count: Int) : JetWhaleEvent
+
+// a request, with its reply declared as Pong
+@Serializable
+data object Ping : JetWhaleRequest<Pong>
+
+// a reply: no marker, so it can't be sent on its own
+@Serializable
+data object Pong
 ```
 
 A messaging plugin extends `JetWhaleMessagingHostPlugin` on the host (and `JetWhaleAgentPlugin` on the
@@ -128,25 +136,83 @@ agent). Both use the same two members:
 
 - `configure { … }` to register handlers — `onEvent<E> { e -> … }` and `onRequest { req -> reply }`
   (the handler's return type must match the request's declared reply type).
-- `messenger` to send — `send(event)`, `request(req): R` (when you use the reply), and `execute(req)`
-  (when you only need it to succeed and ignore the reply value).
+- `messenger` to send — events with `trySend(event)` (drop if offline, returns `Boolean`),
+  `sendOrQueue(event)` (buffer while offline and flush on reconnect), or `sendOrFail(event)` (throw if
+  offline); plus `request(req): R` for request-response (discard the result if you only need the call
+  to succeed — e.g. a command whose reply is just an `Ack`).
 
 ```kotlin
 class MyHostPlugin : JetWhaleMessagingHostPlugin(), JetWhaleHostPluginUi {
     override fun JetWhaleMessagingHandlers.configure() {
         onEvent<ButtonClicked> { e -> /* update UI state */ }
     }
-    @Composable override fun Content() {
-        Button(onClick = { messenger.coroutineScope.launch { messenger.execute(Ping) } }) { Text("Ping") }
+
+    @Composable
+    override fun Content() {
+        Button(
+            onClick = {
+                messenger.coroutineScope.launch {
+                    messenger.request(Ping)
+                }
+            },
+        ) {
+            Text("Ping")
+        }
     }
 }
 ```
 
 Requests work in **both directions** — the agent can `request` the host just as the host can `request`
-the agent. A failed/timed-out request throws `JetWhaleRequestException`. Implement `JetWhaleHostPluginUi`
+the agent. A failed/timed-out request throws `JetWhaleRequestException`; pass `timeout` to `request`
+to override the default per call (e.g. `request(SlowOp, timeout = 30.seconds)`). Implement `JetWhaleHostPluginUi`
 (`@Composable Content()`) to render a UI; plugins that don't are **headless** (e.g. MCP-only). The
-`messenger` is available from `onCreate()` onward; on the agent, use `messengerOrNull` for events fired
-by app code that may run while disconnected (they are dropped rather than throwing).
+`messenger` is available from `onCreate()` onward. On the agent it is **connection-independent** (it
+outlives any single connection), so app code may send at any time and choose the offline behavior per
+call: `trySend` drops, `sendOrQueue` buffers, `sendOrFail` throws. Buffering is opt-in — override
+`offlineEventBufferCapacity` (bounded, drops oldest when full) to size the `sendOrQueue` buffer.
+
+**Commands vs queries.** `request` returns the reply value (`val r: Pong = request(Ping)`); when you
+issue a command and only need it to succeed, just discard the result (`request(SetMockRules(rules))`).
+The reply type is still inferred from the request's declaration, so the call is well-formed either way.
+
+**Agent lifecycle and negotiation.** The **app** owns an agent plugin instance, so the runtime does
+not create or dispose it — it **activates** and **deactivates** it: `onActivate()` (the host enabled
+the plugin) → `negotiate` / `onDisconnected()` (each (re)connection within the activation) →
+`onDeactivate()` (the host disabled it). A disconnect is **not** a deactivation: the plugin stays
+activated and keeps buffering for the next connection. The runtime does **not** cancel the plugin's
+own coroutines, so stop anything you started in `onActivate()` from `onDeactivate()`.
+
+To exchange initial state on connect, override the suspend `negotiate()` — a script over a
+`SessionNegotiationScope` with typed `send` / `receive`. Both ends write a matching script; by
+convention the **agent initiates** (sends first), the **host receives first**:
+
+```kotlin
+// agent
+override suspend fun SessionNegotiationScope.negotiate() {
+    send(SyncMockConfig(currentConfig))
+    val resolved = receive<MockConfig>()
+    apply(resolved)
+}
+// host
+override suspend fun SessionNegotiationScope.negotiate() {
+    val proposal = receive<SyncMockConfig>()
+    send(resolve(proposal))
+}
+```
+
+The plugin operates only once `negotiate()` returns — buffered `sendOrQueue` events are held until
+then. A mismatched script (both sides `receive`, or an unexpected message) is the author's
+responsibility, but never silent: `receive` of the wrong type throws, and the whole negotiation is
+bounded by `negotiationTimeoutMillis` — on timeout the runtime logs a warning (visible in the host
+log) and lets the plugin proceed, degraded, rather than hang. App-driven work the framework can't see
+(e.g. intercepting traffic) should gate itself on your own
+"initialized" flag.
+
+**Treat the other side's input as untrusted.** Because messaging is symmetric, a host `onRequest` /
+`onEvent` handler runs on input the **agent** (the app being debugged) chose to send — and vice
+versa. Validate payloads, and keep handlers cheap and non-blocking: the peer caps how many requests
+run concurrently and rejects a flood with a failure reply, but a handler that blocks still holds its
+slot, so offload slow work rather than stalling inside the handler.
 
 #### Host-only plugins (no agent, no messaging)
 
