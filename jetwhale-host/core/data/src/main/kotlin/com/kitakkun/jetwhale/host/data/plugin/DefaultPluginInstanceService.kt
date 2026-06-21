@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
 import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import dev.zacsweers.metro.AppScope
@@ -62,6 +63,8 @@ class DefaultPluginInstanceService(
     }
 
     override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.plugin
+
+    override fun getMessengerForSession(pluginId: String, sessionId: String): JetWhaleMessenger? = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.peer?.messenger
 
     override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
         val loaded = pluginFactoryRepository.loadedPlugins[pluginId] ?: return emptySet()

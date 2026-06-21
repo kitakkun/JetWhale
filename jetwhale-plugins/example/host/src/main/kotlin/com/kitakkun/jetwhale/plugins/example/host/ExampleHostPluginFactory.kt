@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
+import com.kitakkun.jetwhale.host.sdk.LocalJetWhaleMessenger
 import com.kitakkun.jetwhale.plugins.example.protocol.ButtonClicked
 import com.kitakkun.jetwhale.plugins.example.protocol.Ping
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
@@ -42,6 +43,7 @@ private class ExampleHostPlugin :
 
     @Composable
     override fun Content() {
+        val messenger = LocalJetWhaleMessenger.current
         ExamplePluginContent(
             eventLogs = eventLogs,
             onClickSendPing = {

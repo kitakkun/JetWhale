@@ -210,3 +210,7 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMessagingHostPlugin
 	public final fun runNegotiation (Lcom/kitakkun/jetwhale/protocol/messaging/SessionNegotiationScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/kitakkun/jetwhale/host/sdk/LocalJetWhaleMessengerKt {
+	public static final fun getLocalJetWhaleMessenger ()Landroidx/compose/runtime/ProvidableCompositionLocal;
+}
+

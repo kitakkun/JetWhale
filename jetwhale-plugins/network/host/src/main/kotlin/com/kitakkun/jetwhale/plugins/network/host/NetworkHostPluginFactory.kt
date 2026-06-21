@@ -10,6 +10,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
+import com.kitakkun.jetwhale.host.sdk.LocalJetWhaleMessenger
 import com.kitakkun.jetwhale.plugins.network.protocol.MockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
@@ -74,6 +75,7 @@ private class NetworkHostPlugin :
 
     @Composable
     override fun Content() {
+        val messenger = LocalJetWhaleMessenger.current
         NetworkInspectorScreen(
             transactions = transactions,
             mockRules = mockRules,
