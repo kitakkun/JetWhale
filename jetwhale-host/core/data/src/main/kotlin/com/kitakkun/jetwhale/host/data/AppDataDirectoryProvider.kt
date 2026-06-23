@@ -15,8 +15,31 @@ class AppDataDirectoryProvider {
     private val pluginDir = "$appDataDir/plugins"
     private val pluginLibsDir = "$pluginDir/libs"
     private val dataStoreFilesDir = "$appDataDir/dataStorePreferences"
+    private val pluginDataDir = "$appDataDir/plugin-data"
 
     fun resolveDataStoreFilePath(fileName: String): Path = "$dataStoreFilesDir/$fileName".toPath()
+
+    /**
+     * Resolves the persistent store file for a single plugin. Each plugin gets its own directory so
+     * plugins cannot reach each other's data. [pluginId] is sanitized first so a crafted id (e.g.
+     * one containing path separators or `..`) cannot escape [pluginDataDir].
+     */
+    fun resolvePluginDataFilePath(pluginId: String): Path = "$pluginDataDir/${sanitizePluginId(pluginId)}/store.json".toPath()
+
+    private fun sanitizePluginId(pluginId: String): String {
+        val sanitized = buildString {
+            for (c in pluginId) {
+                append(if (c.isLetterOrDigit() || c == '.' || c == '-' || c == '_') c else '_')
+            }
+        }
+        // After replacing separators, the only remaining traversal risk is the id being exactly "."
+        // or ".." (a single dot-segment); fall back to a stable hashed name in that case.
+        return if (sanitized.isEmpty() || sanitized == "." || sanitized == "..") {
+            "plugin_" + pluginId.hashCode().toUInt().toString(16)
+        } else {
+            sanitized
+        }
+    }
 
     fun getAppDataPath(): String = "~/.jetwhale"
 

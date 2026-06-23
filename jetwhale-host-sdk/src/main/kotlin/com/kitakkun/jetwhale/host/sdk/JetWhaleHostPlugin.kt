@@ -24,6 +24,17 @@ public abstract class JetWhaleHostPlugin {
             "pluginScope is only available after the plugin instance has been bound (in or after onCreate())."
         }
 
+    /**
+     * Called once, right after the plugin instance is created and before [onCreate].
+     *
+     * Provides the [JetWhaleHostContext], which exposes host capabilities such as the plugin's
+     * own persistent [JetWhalePluginStorage]. The default is a no-op, so plugins that don't need
+     * the context keep working unchanged.
+     *
+     * @param host The host context scoped to this plugin instance
+     */
+    protected open fun onAttach(host: JetWhaleHostContext) {}
+
     /** Called once when this plugin instance is created, before it is shown or used. */
     protected open fun onCreate() {}
 
@@ -36,6 +47,11 @@ public abstract class JetWhaleHostPlugin {
     @InternalJetWhaleHostApi
     public fun bindPluginScope(scope: CoroutineScope) {
         boundPluginScope = scope
+    }
+
+    @InternalJetWhaleHostApi
+    public fun dispatchAttach(host: JetWhaleHostContext) {
+        onAttach(host)
     }
 
     @InternalJetWhaleHostApi

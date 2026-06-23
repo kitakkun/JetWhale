@@ -2,12 +2,15 @@ package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
+import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
 import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import dev.zacsweers.metro.AppScope
@@ -43,6 +46,10 @@ private class LoadedInstance(
     val instanceScope: CoroutineScope,
 )
 
+private class PluginHostContext(
+    override val storage: JetWhalePluginStorage,
+) : JetWhaleHostContext
+
 @OptIn(InternalJetWhaleHostApi::class)
 @Inject
 @SingleIn(AppScope::class)
@@ -50,6 +57,7 @@ private class LoadedInstance(
 class DefaultPluginInstanceService(
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val frameSender: HostPluginFrameSender,
+    private val pluginDataStoreRepository: PluginDataStoreRepository,
 ) : PluginInstanceService {
     private val logger = Logger.getLogger(DefaultPluginInstanceService::class.java.name)
 
@@ -97,6 +105,14 @@ class DefaultPluginInstanceService(
         }
         val instanceScope = CoroutineScope(scope.coroutineContext + SupervisorJob(scope.coroutineContext[Job]))
         plugin.bindPluginScope(instanceScope)
+
+        // Hand the plugin a host context whose storage is already scoped to its own
+        // pluginId, so it can never name or reach another plugin's data.
+        try {
+            plugin.dispatchAttach(PluginHostContext(pluginDataStoreRepository.storageFor(pluginId)))
+        } catch (e: Throwable) {
+            logger.warning("onAttach for plugin '$pluginId' in session '$sessionId' failed: ${e.message}")
+        }
 
         // User code below (registerHandlers, onCreate) is guarded: this runs inside the map's
         // computeIfAbsent, and a throwing plugin must neither leak the just-created peer/scope nor

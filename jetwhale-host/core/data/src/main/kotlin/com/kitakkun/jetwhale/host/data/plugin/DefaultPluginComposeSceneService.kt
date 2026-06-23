@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,9 +14,11 @@ import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
+import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
+import com.kitakkun.jetwhale.host.sdk.LocalJetWhalePluginStorage
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -30,6 +33,7 @@ import kotlinx.coroutines.withContext
 class DefaultPluginComposeSceneService(
     private val pluginBridgeProvider: DynamicPluginBridgeProvider,
     private val pluginInstanceService: PluginInstanceService,
+    private val pluginDataStoreRepository: PluginDataStoreRepository,
 ) : PluginComposeSceneService {
     private val pluginScenes = mutableMapOf<String, PluginComposeScene>()
 
@@ -49,10 +53,15 @@ class DefaultPluginComposeSceneService(
                 val composeScene = CanvasLayersComposeScene(platformContext = windowUpdatableContext)
 
                 composeScene.setContent {
-                    pluginBridgeProvider.PluginEntryPoint {
-                        // Headless plugins (not a JetWhaleHostPluginUi) render no content.
-                        val ui = pluginInstance as? JetWhaleHostPluginUi ?: return@PluginEntryPoint
-                        ui.Content()
+                    // Expose the plugin's own pluginId-scoped storage so rememberPersistent can reach it.
+                    CompositionLocalProvider(
+                        LocalJetWhalePluginStorage provides pluginDataStoreRepository.storageFor(pluginId),
+                    ) {
+                        pluginBridgeProvider.PluginEntryPoint {
+                            // Headless plugins (not a JetWhaleHostPluginUi) render no content.
+                            val ui = pluginInstance as? JetWhaleHostPluginUi ?: return@PluginEntryPoint
+                            ui.Content()
+                        }
                     }
                 }
 
