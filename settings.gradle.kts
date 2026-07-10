@@ -50,6 +50,7 @@ include(":jetwhale-plugins:example:agent")
 include(":jetwhale-plugins:network:protocol")
 include(":jetwhale-plugins:network:agent")
 include(":jetwhale-plugins:network:agent-ktor")
+include(":jetwhale-plugins:network:agent-okhttp")
 include(":jetwhale-plugins:network:host")
 
 include(":test-annotations")

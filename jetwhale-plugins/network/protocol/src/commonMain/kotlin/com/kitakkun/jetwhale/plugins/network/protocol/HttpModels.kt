@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 /**
  * Transport-agnostic representation of an outgoing HTTP request captured by an adapter
- * (Ktor today, OkHttp/Retrofit later).
+ * (Ktor, OkHttp).
  */
 @Serializable
 data class CapturedHttpRequest(
