@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -32,14 +33,14 @@ import kotlin.coroutines.cancellation.CancellationException
 /**
  * Lets the user point the monitored Ktor client at any server and fire sample requests.
  *
- * On the JVM/desktop app a local demo server is started automatically, so the default URL works
- * out of the box; on other platforms (Android/iOS/web) there is no in-process server, so enter a
- * reachable server address (e.g. the desktop app's host, or your own backend).
+ * Defaults to the public JSONPlaceholder API (https://jsonplaceholder.typicode.com) — a free,
+ * real HTTPS test API — so this works out of the box on every platform with no local server or
+ * cleartext-traffic setup needed. Change the base URL to point at your own backend instead.
  */
 @Composable
 internal fun NetworkTestScreen() {
     val scope = rememberCoroutineScope()
-    var baseUrl by remember { mutableStateOf("http://127.0.0.1:8080") }
+    var baseUrl by remember { mutableStateOf("https://jsonplaceholder.typicode.com") }
     val log = remember { mutableStateListOf<String>() }
 
     fun fire(label: String, block: suspend (baseUrl: String) -> String) {
@@ -77,20 +78,20 @@ internal fun NetworkTestScreen() {
         item {
             Button(
                 onClick = {
-                    fire("GET /api/todos/1") { base ->
-                        val response = DIModule.httpClient.get("$base/api/todos/1")
+                    fire("GET /todos/1") { base ->
+                        val response = DIModule.httpClient.get("$base/todos/1")
                         "${response.status.value} ${response.bodyAsText()}"
                     }
                 },
             ) {
-                Text("GET /api/todos/1")
+                Text("GET /todos/1")
             }
         }
         item {
             Button(
                 onClick = {
-                    fire("POST /api/todos") { base ->
-                        val response = DIModule.httpClient.post("$base/api/todos") {
+                    fire("POST /todos") { base ->
+                        val response = DIModule.httpClient.post("$base/todos") {
                             contentType(ContentType.Application.Json)
                             setBody("""{"title":"New todo"}""")
                         }
@@ -98,19 +99,31 @@ internal fun NetworkTestScreen() {
                     }
                 },
             ) {
-                Text("POST /api/todos")
+                Text("POST /todos")
             }
         }
         item {
             Button(
                 onClick = {
-                    fire("GET /api/missing") { base ->
-                        val response = DIModule.httpClient.get("$base/api/missing")
+                    fire("DELETE /todos/1") { base ->
+                        val response = DIModule.httpClient.delete("$base/todos/1")
                         "${response.status.value} ${response.bodyAsText()}"
                     }
                 },
             ) {
-                Text("GET /api/missing (404)")
+                Text("DELETE /todos/1")
+            }
+        }
+        item {
+            Button(
+                onClick = {
+                    fire("GET /nonexistent-path") { base ->
+                        val response = DIModule.httpClient.get("$base/nonexistent-path")
+                        "${response.status.value} ${response.bodyAsText()}"
+                    }
+                },
+            ) {
+                Text("GET /nonexistent-path (404)")
             }
         }
         items(log) { line ->
