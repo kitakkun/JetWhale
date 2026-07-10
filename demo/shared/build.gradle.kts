@@ -49,6 +49,12 @@ kotlin {
             implementation(projects.jetwhalePlugins.network.agentKtor)
             implementation(libs.ktorClientCio)
         }
+
+        androidMain.dependencies {
+            // OkHttp demo tab: OkHttp only targets JVM/Android, so this is androidMain-only.
+            implementation(projects.jetwhalePlugins.network.agentOkhttp)
+            implementation(libs.okhttp)
+        }
     }
 
     val xcFrameworkName = "shared"
