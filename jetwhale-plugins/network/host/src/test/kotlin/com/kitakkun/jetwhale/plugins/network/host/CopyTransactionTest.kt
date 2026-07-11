@@ -70,6 +70,29 @@ class CopyTransactionTest {
     }
 
     @Test
+    fun placeholderBodyIsOmittedAndFlagged() {
+        val command = buildCurlCommand(request(method = "POST", body = "<streaming request body>"))
+        assertFalse("--data-raw" in command)
+        assertTrue("-X POST" in command)
+        assertTrue(command.startsWith("# NOTE: request body was not captured (<streaming request body>); the command omits it\n"))
+    }
+
+    @Test
+    fun contentTypePlaceholderBodyIsOmitted() {
+        val command = buildCurlCommand(request(method = "GET", body = "<application/json>"))
+        assertFalse("--data-raw" in command)
+        assertFalse("-X" in command)
+        assertTrue(command.startsWith("# NOTE: request body was not captured"))
+    }
+
+    @Test
+    fun xmlBodyIsNotMistakenForPlaceholder() {
+        val command = buildCurlCommand(request(method = "POST", body = "<a><b/></a>"))
+        assertTrue("--data-raw '<a><b/></a>'" in command)
+        assertFalse("# NOTE" in command)
+    }
+
+    @Test
     fun truncatedBodyIsFlaggedWithLeadingComment() {
         val command = buildCurlCommand(request(method = "POST", body = "partial", bodyTruncated = true))
         assertTrue(command.startsWith("# NOTE: request body was truncated at capture time\n"))
