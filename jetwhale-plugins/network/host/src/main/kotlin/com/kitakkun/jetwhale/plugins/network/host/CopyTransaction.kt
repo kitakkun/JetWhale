@@ -16,8 +16,10 @@ internal fun copyToClipboard(text: String) {
  * a partial body.
  */
 internal fun buildCurlCommand(request: CapturedHttpRequest): String {
-    val lines = mutableListOf("curl")
-    if (!request.method.equals("GET", ignoreCase = true)) {
+    // --globoff: curl expands [] and {} in URLs itself, even inside shell quotes.
+    val lines = mutableListOf("curl --globoff")
+    // -X GET must be explicit when a body is present, or --data-raw switches the method to POST.
+    if (!request.method.equals("GET", ignoreCase = true) || request.body != null) {
         lines += "-X ${request.method.uppercase()}"
     }
     lines += "'${request.url.escapeSingleQuotes()}'"
@@ -28,7 +30,8 @@ internal fun buildCurlCommand(request: CapturedHttpRequest): String {
         }
     }
     request.body?.let { body ->
-        lines += "--data '${body.escapeSingleQuotes()}'"
+        // --data-raw, not --data: a body starting with @ must not be read as a file reference.
+        lines += "--data-raw '${body.escapeSingleQuotes()}'"
     }
     val command = lines.joinToString(" \\\n  ")
     return if (request.bodyTruncated) "# NOTE: request body was truncated at capture time\n$command" else command

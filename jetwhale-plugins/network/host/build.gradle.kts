@@ -11,6 +11,7 @@ dependencies {
     compileOnly(libs.material3)
     compileOnly(libs.kotlinxSerializationJson)
     api(projects.jetwhalePlugins.network.protocol)
+    testImplementation(libs.kotlinTest)
 }
 
 tasks.jar {
