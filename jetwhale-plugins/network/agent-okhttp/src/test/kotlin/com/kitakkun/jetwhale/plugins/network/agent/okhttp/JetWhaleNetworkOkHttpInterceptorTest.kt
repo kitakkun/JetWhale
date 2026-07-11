@@ -19,6 +19,7 @@ import okhttp3.WebSocketListener
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import java.io.IOException
+import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
@@ -31,7 +32,8 @@ class JetWhaleNetworkOkHttpInterceptorTest {
     @OptIn(InternalJetWhaleApi::class)
     private fun agentWithEvents(): Pair<JetWhaleNetworkAgentPlugin, MutableList<NetworkEvent>> {
         val agent = JetWhaleNetworkAgentPlugin()
-        val events = mutableListOf<NetworkEvent>()
+        // The interceptor also runs on OkHttp's WebSocket threads, not just the test thread.
+        val events = Collections.synchronizedList(mutableListOf<NetworkEvent>())
         agent.activate { messages -> messages.forEach { events += JetWhaleJson.decodeFromString<NetworkEvent>(it) } }
         return agent to events
     }
@@ -178,13 +180,14 @@ class JetWhaleNetworkOkHttpInterceptorTest {
             ),
         )
         server.start()
+        var webSocket: WebSocket? = null
         try {
             val (agent, events) = agentWithEvents()
             val client = OkHttpClient.Builder().addInterceptor(agent.okHttpInterceptor()).build()
             val clientReceived = CountDownLatch(1)
             var receivedText: String? = null
             val request = Request.Builder().url(server.url("/ws")).build()
-            client.newWebSocket(
+            webSocket = client.newWebSocket(
                 request,
                 object : WebSocketListener() {
                     override fun onMessage(webSocket: WebSocket, text: String) {
@@ -203,6 +206,27 @@ class JetWhaleNetworkOkHttpInterceptorTest {
             assertEquals(101, received.response.statusCode)
             assertEquals("<websocket upgrade>", received.response.body)
             assertEquals(false, received.response.bodyTruncated)
+        } finally {
+            webSocket?.cancel()
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun truncatesLongRequestBodies() {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setResponseCode(200))
+        server.start()
+        try {
+            val (agent, events) = agentWithEvents()
+            val client = OkHttpClient.Builder().addInterceptor(agent.okHttpInterceptor(maxBodyChars = 100)).build()
+            val longBody = "y".repeat(1_000_000)
+            val request = Request.Builder().url(server.url("/upload")).post(longBody.toRequestBody("text/plain".toMediaType())).build()
+            client.newCall(request).execute().close()
+
+            val sent = events[0] as NetworkEvent.RequestSent
+            assertEquals(true, sent.request.bodyTruncated)
+            assertEquals("y".repeat(100), sent.request.body)
         } finally {
             server.shutdown()
         }

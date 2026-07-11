@@ -14,6 +14,9 @@ import okhttp3.RequestBody
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import okio.Buffer
+import okio.Sink
+import okio.Timeout
+import okio.buffer
 import kotlin.time.TimeSource
 
 /**
@@ -32,6 +35,10 @@ import kotlin.time.TimeSource
  * Engine-added headers (`Accept-Encoding`, `Host`, `User-Agent`, ...) and intermediate redirect
  * hops are not visible to an application interceptor and are omitted; only the final response is
  * captured.
+ *
+ * Known limitation: response bodies are captured by peeking up to [maxBodyChars] before the
+ * response is returned, so a long-lived streaming response that isn't `text/event-stream` (which
+ * is skipped) delays the caller until that many bytes have arrived or the stream ends.
  *
  * @param maxBodyChars request/response bodies longer than this are truncated for transport.
  */
@@ -116,13 +123,36 @@ private fun captureRequestBody(body: RequestBody?, maxChars: Int): BodyCapture {
     // One-shot bodies can't be read twice; duplex bodies can't be materialized up front.
     if (body.isOneShot() || body.isDuplex()) return BodyCapture("<streaming request body>", false)
     return try {
-        val buffer = Buffer()
-        body.writeTo(buffer)
+        // Keep at most maxChars * 4 bytes (the widest UTF encoding of one char) so large uploads
+        // (files, multipart) are streamed through instead of fully materialized in memory.
+        val sink = TruncatingSink(maxBytes = maxChars * 4L)
+        sink.buffer().use { body.writeTo(it) }
         val charset = body.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8
-        buffer.readString(charset).truncate(maxChars)
+        val capture = sink.captured.readString(charset).truncate(maxChars)
+        if (sink.overflowed && !capture.truncated) capture.copy(truncated = true) else capture
     } catch (e: Exception) {
         BodyCapture(null, false)
     }
+}
+
+/** Retains the first [maxBytes] written and discards the rest, flagging [overflowed]. */
+private class TruncatingSink(private val maxBytes: Long) : Sink {
+    val captured = Buffer()
+    var overflowed = false
+        private set
+
+    override fun write(source: Buffer, byteCount: Long) {
+        val keep = minOf(byteCount, maxBytes - captured.size)
+        if (keep > 0) captured.write(source, keep)
+        if (byteCount > keep) {
+            overflowed = true
+            source.skip(byteCount - keep)
+        }
+    }
+
+    override fun flush() {}
+    override fun timeout(): Timeout = Timeout.NONE
+    override fun close() {}
 }
 
 private fun captureResponseBody(response: Response, maxChars: Int): BodyCapture {
