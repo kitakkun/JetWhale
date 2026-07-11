@@ -175,7 +175,11 @@ private fun captureResponseBody(response: Response, maxChars: Int): BodyCapture 
         return BodyCapture("<streaming response body>", false)
     }
     return try {
-        response.peekBody(maxChars + 1L).string().truncate(maxChars)
+        val peeked = response.peekBody(maxChars + 1L)
+        val capture = peeked.string().truncate(maxChars)
+        // The peek limit is in bytes but truncate() counts chars, so a multi-byte body can hit the
+        // byte cap while still decoding to fewer than maxChars chars — flag it truncated anyway.
+        if (peeked.contentLength() > maxChars && !capture.truncated) capture.copy(truncated = true) else capture
     } catch (e: Exception) {
         BodyCapture(null, false)
     }

@@ -213,6 +213,27 @@ class JetWhaleNetworkOkHttpInterceptorTest {
     }
 
     @Test
+    fun flagsMultiByteResponseBodyHittingByteCapAsTruncated() {
+        // 200 chars × 3 bytes (UTF-8) = 600 bytes. The 100-byte peek cap yields ~33 decoded chars,
+        // under the 100-char limit — a char-only check would report this cut body as not truncated.
+        val longBody = "あ".repeat(200)
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setResponseCode(200).setBody(longBody))
+        server.start()
+        try {
+            val (agent, events) = agentWithEvents()
+            val client = OkHttpClient.Builder().addInterceptor(agent.okHttpInterceptor(maxBodyChars = 100)).build()
+            val request = Request.Builder().url(server.url("/jp")).build()
+            client.newCall(request).execute().close()
+
+            val received = events.last() as NetworkEvent.ResponseReceived
+            assertEquals(true, received.response.bodyTruncated)
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
     fun truncatesLongRequestBodies() {
         val server = MockWebServer()
         server.enqueue(MockResponse().setResponseCode(200))
