@@ -17,6 +17,9 @@ dependencies {
     commonMainApi(projects.jetwhalePlugins.network.agent)
     commonMainApi(libs.ktorClientCore)
     commonMainImplementation(libs.kotlinxCoroutinesCore)
+    jvmTestImplementation(libs.kotlinTest)
+    jvmTestImplementation(libs.ktorClientMock)
+    jvmTestImplementation(libs.kotlinxSerializationJson)
 }
 
 jetwhalePublish {

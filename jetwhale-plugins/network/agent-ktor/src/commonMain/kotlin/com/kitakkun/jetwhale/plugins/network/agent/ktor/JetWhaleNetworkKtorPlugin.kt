@@ -36,6 +36,10 @@ import kotlin.time.TimeSource
  * startJetWhale { plugins { register(agent) } }
  * ```
  *
+ * Known limitation: response bodies are buffered with `save()` before the caller sees them, so a
+ * long-lived streaming response that isn't `text/event-stream` (which is skipped) is fully
+ * buffered and delays the caller until the stream ends.
+ *
  * @param maxBodyChars request/response bodies longer than this are truncated for transport.
  */
 @OptIn(InternalAPI::class) // HttpClientCall's constructor is needed to synthesize mock responses.
@@ -105,6 +109,27 @@ fun JetWhaleNetworkAgentPlugin.ktorClientPlugin(maxBodyChars: Int = 100_000): Cl
                             statusDescription = rawResponse.status.description,
                             headers = rawResponse.headers.toCapturedMap(),
                             body = "<websocket upgrade>",
+                            bodyTruncated = false,
+                            durationMs = started.elapsedNow().inWholeMilliseconds,
+                            fromMock = false,
+                        ),
+                    )
+                    return@on rawCall
+                }
+
+                // save() buffers the entire body before returning, so on a never-ending stream
+                // (SSE) the caller would wait forever for a response that has already started
+                // arriving. Record a placeholder and hand back the untouched call, mirroring the
+                // OkHttp adapter.
+                val contentType = rawResponse.headers[HttpHeaders.ContentType]
+                if (contentType?.startsWith("text/event-stream", ignoreCase = true) == true) {
+                    agent.recordResponse(
+                        CapturedHttpResponse(
+                            txId = txId,
+                            statusCode = rawResponse.status.value,
+                            statusDescription = rawResponse.status.description,
+                            headers = rawResponse.headers.toCapturedMap(),
+                            body = "<streaming response body>",
                             bodyTruncated = false,
                             durationMs = started.elapsedNow().inWholeMilliseconds,
                             fromMock = false,
