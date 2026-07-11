@@ -21,6 +21,9 @@ dependencies {
     commonMainApi(projects.jetwhaleProtocol.core)
     commonMainApi(projects.jetwhaleProtocol.agent)
     commonMainImplementation(libs.kotlinxCoroutinesCore)
+    commonMainImplementation(libs.kotlinxAtomicfu)
+    jvmTestImplementation(libs.kotlinTest)
+    jvmTestImplementation(libs.kotlinxCoroutinesCore)
 }
 
 jetwhalePublish {

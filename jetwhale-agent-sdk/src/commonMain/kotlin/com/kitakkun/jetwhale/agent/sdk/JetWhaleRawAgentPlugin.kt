@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.agent.sdk
 
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 
 /**
  * An abstract class representing a raw agent plugin for JetWhale.
@@ -35,6 +37,12 @@ public abstract class JetWhaleRawAgentPlugin {
     private val queue: JetWhaleAgentMessageQueue = JetWhaleAgentMessageQueue(bufferSize = queueBufferSize())
 
     /**
+     * Guards [sender] and [queue]: events can be enqueued from any thread (e.g. interceptors on
+     * OkHttp/Ktor worker threads) while the messaging service attaches or detaches the sender.
+     */
+    private val lock = SynchronizedObject()
+
+    /**
      * The size of the message queue buffer.
      * When the buffer is full, the oldest messages will be discarded.
      */
@@ -52,11 +60,10 @@ public abstract class JetWhaleRawAgentPlugin {
      */
     @InternalJetWhaleApi
     public fun enqueueRawEvent(message: String) {
-        if (sender != null) {
-            sender?.send(message)
-            return
+        synchronized(lock) {
+            val sender = sender
+            if (sender != null) sender.send(message) else queue.enqueue(message)
         }
-        queue.enqueue(message)
     }
 
     /**
@@ -65,10 +72,12 @@ public abstract class JetWhaleRawAgentPlugin {
      */
     @InternalJetWhaleApi
     public fun activate(sender: JetWhaleMessageSender) {
-        // Flush before setting sender to ensure queued messages are sent
-        // before any new messages from concurrent enqueueRawEvent calls.
-        flushQueue(sender)
-        this.sender = sender
+        synchronized(lock) {
+            // Flush before setting sender to ensure queued messages are sent
+            // before any new messages from concurrent enqueueRawEvent calls.
+            flushQueue(sender)
+            this.sender = sender
+        }
     }
 
     /**
@@ -76,7 +85,9 @@ public abstract class JetWhaleRawAgentPlugin {
      */
     @InternalJetWhaleApi
     public fun deactivate() {
-        this.sender = null
+        synchronized(lock) {
+            this.sender = null
+        }
     }
 
     /**
