@@ -89,6 +89,7 @@ ktorServerNetty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
 ktorServerTestHost = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 ktorClientCore = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktorClientCio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktorClientMock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 ktorClientJs = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 ktorClientDarwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktorClientWinHttp = { module = "io.ktor:ktor-client-winhttp", version.ref = "ktor" }

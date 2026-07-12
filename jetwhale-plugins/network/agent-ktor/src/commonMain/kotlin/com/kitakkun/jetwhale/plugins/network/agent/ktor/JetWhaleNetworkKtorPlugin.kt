@@ -11,8 +11,10 @@ import io.ktor.client.plugins.api.Send
 import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.HttpResponseData
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HeadersBuilder
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpProtocolVersion
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.OutgoingContent
@@ -33,6 +35,10 @@ import kotlin.time.TimeSource
  * val client = HttpClient { install(agent.ktorClientPlugin()) }
  * startJetWhale { plugins { register(agent) } }
  * ```
+ *
+ * Known limitation: response bodies are buffered with `save()` before the caller sees them, so a
+ * long-lived streaming response that isn't `text/event-stream` (which is skipped) is fully
+ * buffered and delays the caller until the stream ends.
  *
  * @param maxBodyChars request/response bodies longer than this are truncated for transport.
  */
@@ -87,9 +93,54 @@ fun JetWhaleNetworkAgentPlugin.ktorClientPlugin(maxBodyChars: Int = 100_000): Cl
             }
 
             try {
+                val rawCall = proceed(request)
+                val rawResponse = rawCall.response
+
+                // A WebSocket upgrade response (101) has no conventional body — by the time this
+                // plugin sees it, the connection has already switched to the raw frame stream, so
+                // save()/bodyAsText() would read live WebSocket frames as if they were an HTTP
+                // body, corrupting the frame stream for the caller. Record a placeholder instead
+                // of touching the body, and return the untouched call.
+                if (rawResponse.isWebSocketUpgrade()) {
+                    agent.recordResponse(
+                        CapturedHttpResponse(
+                            txId = txId,
+                            statusCode = rawResponse.status.value,
+                            statusDescription = rawResponse.status.description,
+                            headers = rawResponse.headers.toCapturedMap(),
+                            body = "<websocket upgrade>",
+                            bodyTruncated = false,
+                            durationMs = started.elapsedNow().inWholeMilliseconds,
+                            fromMock = false,
+                        ),
+                    )
+                    return@on rawCall
+                }
+
+                // save() buffers the entire body before returning, so on a never-ending stream
+                // (SSE) the caller would wait forever for a response that has already started
+                // arriving. Record a placeholder and hand back the untouched call, mirroring the
+                // OkHttp adapter.
+                val contentType = rawResponse.headers[HttpHeaders.ContentType]
+                if (contentType?.startsWith("text/event-stream", ignoreCase = true) == true) {
+                    agent.recordResponse(
+                        CapturedHttpResponse(
+                            txId = txId,
+                            statusCode = rawResponse.status.value,
+                            statusDescription = rawResponse.status.description,
+                            headers = rawResponse.headers.toCapturedMap(),
+                            body = "<streaming response body>",
+                            bodyTruncated = false,
+                            durationMs = started.elapsedNow().inWholeMilliseconds,
+                            fromMock = false,
+                        ),
+                    )
+                    return@on rawCall
+                }
+
                 // save() buffers the body so we can read it for inspection and still hand a
                 // fresh, readable response to the caller.
-                val call = proceed(request).save()
+                val call = rawCall.save()
                 val response = call.response
                 val responseBody = response.bodyAsText().truncate(maxBodyChars)
                 agent.recordResponse(
@@ -133,6 +184,9 @@ private fun captureOutgoingBody(content: Any?, maxChars: Int): BodyCapture = whe
 }
 
 private fun StringValues.toCapturedMap(): Map<String, List<String>> = entries().associate { it.key to it.value }
+
+/** True for a successful WebSocket upgrade response (101 Switching Protocols + `Upgrade: websocket`). */
+private fun HttpResponse.isWebSocketUpgrade(): Boolean = status == HttpStatusCode.SwitchingProtocols && headers[HttpHeaders.Upgrade]?.equals("websocket", ignoreCase = true) == true
 
 /**
  * Captures the request headers visible at the [Send] phase, enriched with the body's
