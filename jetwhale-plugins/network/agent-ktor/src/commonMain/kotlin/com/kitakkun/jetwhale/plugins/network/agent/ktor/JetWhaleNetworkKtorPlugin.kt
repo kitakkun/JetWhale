@@ -186,8 +186,7 @@ private fun captureOutgoingBody(content: Any?, maxChars: Int): BodyCapture = whe
 private fun StringValues.toCapturedMap(): Map<String, List<String>> = entries().associate { it.key to it.value }
 
 /** True for a successful WebSocket upgrade response (101 Switching Protocols + `Upgrade: websocket`). */
-private fun HttpResponse.isWebSocketUpgrade(): Boolean =
-    status == HttpStatusCode.SwitchingProtocols && headers[HttpHeaders.Upgrade]?.equals("websocket", ignoreCase = true) == true
+private fun HttpResponse.isWebSocketUpgrade(): Boolean = status == HttpStatusCode.SwitchingProtocols && headers[HttpHeaders.Upgrade]?.equals("websocket", ignoreCase = true) == true
 
 /**
  * Captures the request headers visible at the [Send] phase, enriched with the body's
