@@ -20,8 +20,8 @@ import kotlin.uuid.Uuid
  *
  * It owns the mock configuration (pushed from the host) and exposes a small capture API
  * ([recordRequest]/[recordResponse]/[recordFailure]/[findMock]) that transport adapters call.
- * Today the only adapter is Ktor (`network:agent-ktor`); an OkHttp/Retrofit adapter could reuse
- * the exact same API without touching this class.
+ * Adapters exist for Ktor (`network:agent-ktor`) and OkHttp (`network:agent-okhttp`); a
+ * Retrofit adapter could reuse the exact same API without touching this class.
  */
 class JetWhaleNetworkAgentPlugin : JetWhaleAgentPlugin<NetworkEvent, NetworkMethod, NetworkMethodResult>() {
     override val pluginId: String get() = PLUGIN_ID

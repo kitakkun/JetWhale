@@ -20,36 +20,43 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import io.ktor.client.request.delete
-import io.ktor.client.request.get
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
-import io.ktor.http.contentType
+import com.kitakkun.jetwhale.plugins.network.agent.okhttp.okHttpInterceptor
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
 
+actual val platformExtraTabLabel: String? = "Network (OkHttp)"
+
 /**
- * Lets the user point the monitored Ktor client at any server and fire sample requests.
- *
- * Defaults to the public JSONPlaceholder API (https://jsonplaceholder.typicode.com) — a free,
- * real HTTPS test API — so this works out of the box on every platform with no local server or
- * cleartext-traffic setup needed. Change the base URL to point at your own backend instead.
+ * OkHttp-based mirror of [NetworkTestScreen] — shares the same [DIModule.networkAgentPlugin], so
+ * both tabs' traffic shows up side by side in the same Network Inspector session. Android-only
+ * since OkHttp only targets JVM/Android.
  */
+private val okHttpClient: OkHttpClient by lazy {
+    OkHttpClient.Builder()
+        .callTimeout(10, TimeUnit.SECONDS)
+        .addInterceptor(DIModule.networkAgentPlugin.okHttpInterceptor())
+        .build()
+}
+
 @Composable
-internal fun NetworkTestScreen() {
+actual fun PlatformExtraTabScreen() {
     val scope = rememberCoroutineScope()
     var baseUrl by remember { mutableStateOf("https://jsonplaceholder.typicode.com") }
     val log = remember { mutableStateListOf<String>() }
 
-    fun fire(label: String, block: suspend (baseUrl: String) -> String) {
+    fun fire(label: String, block: (baseUrl: String) -> String) {
         val target = baseUrl.trimEnd('/')
         scope.launch {
             val line = try {
-                "$label → ${block(target)}"
+                "$label → ${withContext(Dispatchers.IO) { block(target) }}"
             } catch (e: CancellationException) {
-                // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
                 throw e
             } catch (e: Throwable) {
                 "$label → error: ${e.message}"
@@ -73,14 +80,16 @@ internal fun NetworkTestScreen() {
             )
         }
         item {
-            Text("Requests go through the monitored Ktor client; watch them in the Network Inspector.")
+            Text("Requests go through the monitored OkHttp client; watch them in the Network Inspector.")
         }
         item {
             Button(
                 onClick = {
                     fire("GET /todos/1") { base ->
-                        val response = DIModule.httpClient.get("$base/todos/1")
-                        "${response.status.value} ${response.bodyAsText()}"
+                        val request = Request.Builder().url("$base/todos/1").build()
+                        okHttpClient.newCall(request).execute().use { response ->
+                            "${response.code} ${response.body?.string()}"
+                        }
                     }
                 },
             ) {
@@ -91,11 +100,11 @@ internal fun NetworkTestScreen() {
             Button(
                 onClick = {
                     fire("POST /todos") { base ->
-                        val response = DIModule.httpClient.post("$base/todos") {
-                            contentType(ContentType.Application.Json)
-                            setBody("""{"title":"New todo"}""")
+                        val body = """{"title":"New todo"}""".toRequestBody("application/json".toMediaType())
+                        val request = Request.Builder().url("$base/todos").post(body).build()
+                        okHttpClient.newCall(request).execute().use { response ->
+                            "${response.code} ${response.body?.string()}"
                         }
-                        "${response.status.value} ${response.bodyAsText()}"
                     }
                 },
             ) {
@@ -106,8 +115,10 @@ internal fun NetworkTestScreen() {
             Button(
                 onClick = {
                     fire("DELETE /todos/1") { base ->
-                        val response = DIModule.httpClient.delete("$base/todos/1")
-                        "${response.status.value} ${response.bodyAsText()}"
+                        val request = Request.Builder().url("$base/todos/1").delete().build()
+                        okHttpClient.newCall(request).execute().use { response ->
+                            "${response.code} ${response.body?.string()}"
+                        }
                     }
                 },
             ) {
@@ -118,8 +129,10 @@ internal fun NetworkTestScreen() {
             Button(
                 onClick = {
                     fire("GET /nonexistent-path") { base ->
-                        val response = DIModule.httpClient.get("$base/nonexistent-path")
-                        "${response.status.value} ${response.bodyAsText()}"
+                        val request = Request.Builder().url("$base/nonexistent-path").build()
+                        okHttpClient.newCall(request).execute().use { response ->
+                            "${response.code} ${response.body?.string()}"
+                        }
                     }
                 },
             ) {

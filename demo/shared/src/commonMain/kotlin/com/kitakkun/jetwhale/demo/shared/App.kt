@@ -43,10 +43,18 @@ fun App() {
                             onClick = { selectedTab = 1 },
                             text = { Text("Network plugin") },
                         )
+                        platformExtraTabLabel?.let { label ->
+                            Tab(
+                                selected = selectedTab == 2,
+                                onClick = { selectedTab = 2 },
+                                text = { Text(label) },
+                            )
+                        }
                     }
                     when (selectedTab) {
                         0 -> ExampleTestScreen()
-                        else -> NetworkTestScreen()
+                        1 -> NetworkTestScreen()
+                        else -> PlatformExtraTabScreen()
                     }
                 }
             }
