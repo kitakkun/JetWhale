@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import okhttp3.Headers
+import okhttp3.Headers.Companion.toHeaders
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.Protocol
@@ -52,65 +53,66 @@ private class JetWhaleNetworkOkHttpInterceptor(
         val request = chain.request()
         val txId = agent.newTransactionId()
         val started = TimeSource.Monotonic.markNow()
-        val method = request.method
-        val url = request.url.toString()
 
-        val requestBody = captureRequestBody(request.body, maxBodyChars)
+        recordRequest(request, txId)
+        val mock = agent.findMock(request.method, request.url.toString())
+
+        val response = if (mock != null) {
+            serveMock(request, mock)
+        } else {
+            sendRequest(chain, request, txId, started)
+        }
+        recordResponse(response, fromMock = mock != null, txId = txId, started = started)
+        return response
+    }
+
+    private fun recordRequest(request: Request, txId: String) {
+        val body = captureRequestBodySafely(request.body, maxBodyChars)
         agent.recordRequest(
             CapturedHttpRequest(
                 txId = txId,
-                method = method,
-                url = url,
-                headers = request.capturedHeaders(),
-                body = requestBody.text,
-                bodyTruncated = requestBody.truncated,
+                method = request.method,
+                url = request.url.toString(),
+                headers = request.headersWithBodyDefaults(),
+                body = body.text,
+                bodyTruncated = body.truncated,
                 timestampMs = System.currentTimeMillis(),
             ),
         )
+    }
 
-        agent.findMock(method, url)?.let { mock ->
-            if (mock.delayMs > 0) Thread.sleep(mock.delayMs)
-            agent.recordResponse(
-                CapturedHttpResponse(
-                    txId = txId,
-                    statusCode = mock.statusCode,
-                    statusDescription = httpStatusDescription(mock.statusCode),
-                    headers = mock.headers.mapValues { listOf(it.value) },
-                    body = mock.body,
-                    durationMs = started.elapsedNow().inWholeMilliseconds,
-                    fromMock = true,
-                ),
-            )
-            return buildMockResponse(request, mock)
-        }
+    private fun serveMock(request: Request, mock: MockResponseSpec): Response {
+        if (mock.delayMs > 0) Thread.sleep(mock.delayMs)
+        return buildMockResponse(request, mock)
+    }
 
-        val response = try {
-            chain.proceed(request)
-        } catch (cause: Throwable) {
-            agent.recordFailure(
-                HttpRequestFailure(
-                    txId = txId,
-                    message = cause.message ?: cause.toString(),
-                    durationMs = started.elapsedNow().inWholeMilliseconds,
-                ),
-            )
-            throw cause
-        }
+    private fun sendRequest(chain: Interceptor.Chain, request: Request, txId: String, started: TimeSource.Monotonic.ValueTimeMark): Response = try {
+        chain.proceed(request)
+    } catch (e: Throwable) {
+        agent.recordFailure(
+            HttpRequestFailure(
+                txId = txId,
+                message = e.message ?: e.toString(),
+                durationMs = started.elapsedNow().inWholeMilliseconds,
+            ),
+        )
+        throw e
+    }
 
-        val responseBody = captureResponseBody(response, maxBodyChars)
+    private fun recordResponse(response: Response, fromMock: Boolean, txId: String, started: TimeSource.Monotonic.ValueTimeMark) {
+        val body = captureResponseBodySafely(response, maxBodyChars)
         agent.recordResponse(
             CapturedHttpResponse(
                 txId = txId,
                 statusCode = response.code,
                 statusDescription = response.message,
                 headers = response.headers.toCapturedMap(),
-                body = responseBody.text,
-                bodyTruncated = responseBody.truncated,
+                body = body.text,
+                bodyTruncated = body.truncated,
                 durationMs = started.elapsedNow().inWholeMilliseconds,
-                fromMock = false,
+                fromMock = fromMock,
             ),
         )
-        return response
     }
 }
 
@@ -118,7 +120,12 @@ private data class BodyCapture(val text: String?, val truncated: Boolean)
 
 private fun String.truncate(max: Int): BodyCapture = if (length <= max) BodyCapture(this, false) else BodyCapture(substring(0, max), true)
 
-private fun captureRequestBody(body: RequestBody?, maxChars: Int): BodyCapture {
+/**
+ * Reads the request body for capture without breaking the actual send: bodies that can't be
+ * materialized up front (one-shot, duplex) are replaced with a placeholder, and reads are
+ * byte-capped so large uploads aren't held in memory.
+ */
+private fun captureRequestBodySafely(body: RequestBody?, maxChars: Int): BodyCapture {
     if (body == null) return BodyCapture(null, false)
     // One-shot bodies can't be read twice; duplex bodies can't be materialized up front.
     if (body.isOneShot() || body.isDuplex()) return BodyCapture("<streaming request body>", false)
@@ -130,7 +137,7 @@ private fun captureRequestBody(body: RequestBody?, maxChars: Int): BodyCapture {
         val charset = body.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8
         val capture = sink.captured.readString(charset).truncate(maxChars)
         if (sink.overflowed && !capture.truncated) capture.copy(truncated = true) else capture
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         BodyCapture(null, false)
     }
 }
@@ -155,7 +162,12 @@ private class TruncatingSink(private val maxBytes: Long) : Sink {
     override fun close() {}
 }
 
-private fun captureResponseBody(response: Response, maxChars: Int): BodyCapture {
+/**
+ * Reads the response body for capture without consuming or blocking the caller's response:
+ * bodies that can't be peeked safely (WebSocket upgrades, encoded bodies, endless streams)
+ * are replaced with a placeholder instead.
+ */
+private fun captureResponseBodySafely(response: Response, maxChars: Int): BodyCapture {
     if (response.isWebSocketUpgrade()) {
         // A WebSocket upgrade response (101) has no conventional body — the connection has
         // already switched to the raw frame stream by the time this interceptor sees it, so
@@ -180,24 +192,21 @@ private fun captureResponseBody(response: Response, maxChars: Int): BodyCapture 
         // The peek limit is in bytes but truncate() counts chars, so a multi-byte body can hit the
         // byte cap while still decoding to fewer than maxChars chars — flag it truncated anyway.
         if (peeked.contentLength() > maxChars && !capture.truncated) capture.copy(truncated = true) else capture
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         BodyCapture(null, false)
     }
 }
 
 private fun buildMockResponse(request: Request, mock: MockResponseSpec): Response {
-    val mediaType = mock.headers.entries
-        .firstOrNull { it.key.equals("Content-Type", ignoreCase = true) }
-        ?.value
-        ?.toMediaTypeOrNull()
-    val builder = Response.Builder()
+    val headers = mock.headers.toHeaders()
+    return Response.Builder()
         .request(request)
         .protocol(Protocol.HTTP_1_1)
         .code(mock.statusCode)
         .message(httpStatusDescription(mock.statusCode))
-        .body(mock.body.toResponseBody(mediaType))
-    mock.headers.forEach { (key, value) -> builder.addHeader(key, value) }
-    return builder.build()
+        .headers(headers)
+        .body(mock.body.toResponseBody(headers["Content-Type"]?.toMediaTypeOrNull()))
+        .build()
 }
 
 /** True for a successful WebSocket upgrade response (101 Switching Protocols + `Upgrade: websocket`). */
@@ -205,27 +214,22 @@ private fun Response.isWebSocketUpgrade(): Boolean =
     code == 101 && header("Upgrade")?.equals("websocket", ignoreCase = true) == true
 
 /** Preserves original header-name case, unlike [Headers.toMultimap] which lowercases keys. */
-private fun Headers.toCapturedMap(): Map<String, List<String>> {
-    val result = LinkedHashMap<String, MutableList<String>>()
-    forEach { (name, value) -> result.getOrPut(name) { mutableListOf() }.add(value) }
-    return result
-}
+private fun Headers.toCapturedMap(): Map<String, List<String>> = groupBy({ it.first }, { it.second })
 
 /**
  * [Request.headers] doesn't include Content-Type/Content-Length when they were derived from the
  * [RequestBody] rather than set explicitly, so backfill them from the body when absent.
  */
-private fun Request.capturedHeaders(): Map<String, List<String>> {
-    val result = headers.toCapturedMap().toMutableMap<String, List<String>>()
-    val body = body ?: return result
-    if (result.keys.none { it.equals("Content-Type", ignoreCase = true) }) {
-        body.contentType()?.let { result["Content-Type"] = listOf(it.toString()) }
+private fun Request.headersWithBodyDefaults(): Map<String, List<String>> = buildMap {
+    putAll(headers.toCapturedMap())
+    val body = body ?: return@buildMap
+    if (keys.none { it.equals("Content-Type", ignoreCase = true) }) {
+        body.contentType()?.let { put("Content-Type", listOf(it.toString())) }
     }
-    if (result.keys.none { it.equals("Content-Length", ignoreCase = true) }) {
+    if (keys.none { it.equals("Content-Length", ignoreCase = true) }) {
         val length = runCatching { body.contentLength() }.getOrDefault(-1L)
-        if (length >= 0) result["Content-Length"] = listOf(length.toString())
+        if (length >= 0) put("Content-Length", listOf(length.toString()))
     }
-    return result
 }
 
 private fun httpStatusDescription(code: Int): String = when (code) {
