@@ -63,15 +63,15 @@ fun JetWhaleNetworkAgentPlugin.ktorClientPlugin(maxBodyChars: Int = 100_000): Cl
             } else {
                 try {
                     proceed(request)
-                } catch (cause: Throwable) {
+                } catch (e: Throwable) {
                     agent.recordFailure(
                         HttpRequestFailure(
                             txId = txId,
-                            message = cause.message ?: cause.toString(),
+                            message = e.message ?: e.toString(),
                             durationMs = started.elapsedNow().inWholeMilliseconds,
                         ),
                     )
-                    throw cause
+                    throw e
                 }
             }
 
