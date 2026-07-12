@@ -4,6 +4,8 @@ import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
+import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
+import io.ktor.client.HttpClient
 import io.ktor.client.call.HttpClientCall
 import io.ktor.client.call.save
 import io.ktor.client.plugins.api.ClientPlugin
@@ -22,7 +24,9 @@ import io.ktor.util.StringValues
 import io.ktor.util.date.GMTDate
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.InternalAPI
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
 /**
@@ -42,7 +46,6 @@ import kotlin.time.TimeSource
  *
  * @param maxBodyChars request/response bodies longer than this are truncated for transport.
  */
-@OptIn(InternalAPI::class) // HttpClientCall's constructor is needed to synthesize mock responses.
 fun JetWhaleNetworkAgentPlugin.ktorClientPlugin(maxBodyChars: Int = 100_000): ClientPlugin<Unit> {
     val agent = this
     return createClientPlugin("JetWhaleNetworkMonitor") {
@@ -52,135 +55,117 @@ fun JetWhaleNetworkAgentPlugin.ktorClientPlugin(maxBodyChars: Int = 100_000): Cl
             val method = request.method.value
             val url = request.url.buildString()
 
-            val requestBody = captureOutgoingBody(request.body, maxBodyChars)
-            agent.recordRequest(
-                CapturedHttpRequest(
+            agent.recordRequest(request, txId, method, url, maxBodyChars)
+            val mock = agent.findMock(method, url)
+
+            val call = if (mock != null) {
+                serveMock(client, request, mock)
+            } else {
+                try {
+                    proceed(request)
+                } catch (e: Throwable) {
+                    agent.recordFailure(
+                        HttpRequestFailure(
+                            txId = txId,
+                            message = e.message ?: e.toString(),
+                            durationMs = started.elapsedNow().inWholeMilliseconds,
+                        ),
+                    )
+                    throw e
+                }
+            }
+
+            val (callToReturn, body) = captureResponseBodySafely(call, maxBodyChars)
+            agent.recordResponse(
+                CapturedHttpResponse(
                     txId = txId,
-                    method = method,
-                    url = url,
-                    headers = request.capturedRequestHeaders(),
-                    body = requestBody.text,
-                    bodyTruncated = requestBody.truncated,
-                    timestampMs = GMTDate().timestamp,
+                    statusCode = callToReturn.response.status.value,
+                    statusDescription = callToReturn.response.status.description,
+                    headers = callToReturn.response.headers.toCapturedMap(),
+                    body = body.text,
+                    bodyTruncated = body.truncated,
+                    durationMs = started.elapsedNow().inWholeMilliseconds,
+                    fromMock = mock != null,
                 ),
             )
-
-            agent.findMock(method, url)?.let { mock ->
-                if (mock.delayMs > 0) delay(mock.delayMs)
-                val status = HttpStatusCode.fromValue(mock.statusCode)
-                agent.recordResponse(
-                    CapturedHttpResponse(
-                        txId = txId,
-                        statusCode = mock.statusCode,
-                        statusDescription = status.description,
-                        headers = mock.headers.mapValues { listOf(it.value) },
-                        body = mock.body,
-                        durationMs = started.elapsedNow().inWholeMilliseconds,
-                        fromMock = true,
-                    ),
-                )
-                val responseData = HttpResponseData(
-                    statusCode = status,
-                    requestTime = GMTDate(),
-                    headers = HeadersBuilder().apply {
-                        mock.headers.forEach { (key, value) -> append(key, value) }
-                    }.build(),
-                    version = HttpProtocolVersion.HTTP_1_1,
-                    body = ByteReadChannel(mock.body.encodeToByteArray()),
-                    callContext = this.coroutineContext,
-                )
-                return@on HttpClientCall(client, request.build(), responseData)
-            }
-
-            try {
-                val rawCall = proceed(request)
-                val rawResponse = rawCall.response
-
-                // A WebSocket upgrade response (101) has no conventional body — by the time this
-                // plugin sees it, the connection has already switched to the raw frame stream, so
-                // save()/bodyAsText() would read live WebSocket frames as if they were an HTTP
-                // body, corrupting the frame stream for the caller. Record a placeholder instead
-                // of touching the body, and return the untouched call.
-                if (rawResponse.isWebSocketUpgrade()) {
-                    agent.recordResponse(
-                        CapturedHttpResponse(
-                            txId = txId,
-                            statusCode = rawResponse.status.value,
-                            statusDescription = rawResponse.status.description,
-                            headers = rawResponse.headers.toCapturedMap(),
-                            body = "<websocket upgrade>",
-                            bodyTruncated = false,
-                            durationMs = started.elapsedNow().inWholeMilliseconds,
-                            fromMock = false,
-                        ),
-                    )
-                    return@on rawCall
-                }
-
-                // save() buffers the entire body before returning, so on a never-ending stream
-                // (SSE) the caller would wait forever for a response that has already started
-                // arriving. Record a placeholder and hand back the untouched call, mirroring the
-                // OkHttp adapter.
-                val contentType = rawResponse.headers[HttpHeaders.ContentType]
-                if (contentType?.startsWith("text/event-stream", ignoreCase = true) == true) {
-                    agent.recordResponse(
-                        CapturedHttpResponse(
-                            txId = txId,
-                            statusCode = rawResponse.status.value,
-                            statusDescription = rawResponse.status.description,
-                            headers = rawResponse.headers.toCapturedMap(),
-                            body = "<streaming response body>",
-                            bodyTruncated = false,
-                            durationMs = started.elapsedNow().inWholeMilliseconds,
-                            fromMock = false,
-                        ),
-                    )
-                    return@on rawCall
-                }
-
-                // save() buffers the body so we can read it for inspection and still hand a
-                // fresh, readable response to the caller.
-                val call = rawCall.save()
-                val response = call.response
-                val responseBody = response.bodyAsText().truncate(maxBodyChars)
-                agent.recordResponse(
-                    CapturedHttpResponse(
-                        txId = txId,
-                        statusCode = response.status.value,
-                        statusDescription = response.status.description,
-                        headers = response.headers.toCapturedMap(),
-                        body = responseBody.text,
-                        bodyTruncated = responseBody.truncated,
-                        durationMs = started.elapsedNow().inWholeMilliseconds,
-                        fromMock = false,
-                    ),
-                )
-                call
-            } catch (cause: Throwable) {
-                agent.recordFailure(
-                    HttpRequestFailure(
-                        txId = txId,
-                        message = cause.message ?: cause.toString(),
-                        durationMs = started.elapsedNow().inWholeMilliseconds,
-                    ),
-                )
-                throw cause
-            }
+            callToReturn
         }
     }
+}
+
+private fun JetWhaleNetworkAgentPlugin.recordRequest(request: HttpRequestBuilder, txId: String, method: String, url: String, maxBodyChars: Int) {
+    val body = captureRequestBodySafely(request.body, maxBodyChars)
+    recordRequest(
+        CapturedHttpRequest(
+            txId = txId,
+            method = method,
+            url = url,
+            headers = request.capturedRequestHeaders(),
+            body = body.text,
+            bodyTruncated = body.truncated,
+            timestampMs = GMTDate().timestamp,
+        ),
+    )
+}
+
+@OptIn(InternalAPI::class) // HttpClientCall's constructor is needed to synthesize mock responses.
+private suspend fun serveMock(client: HttpClient, request: HttpRequestBuilder, mock: MockResponseSpec): HttpClientCall {
+    if (mock.delayMs > 0) delay(mock.delayMs.milliseconds)
+    val responseData = HttpResponseData(
+        statusCode = HttpStatusCode.fromValue(mock.statusCode),
+        requestTime = GMTDate(),
+        headers = HeadersBuilder().apply {
+            mock.headers.forEach { (key, value) -> append(key, value) }
+        }.build(),
+        version = HttpProtocolVersion.HTTP_1_1,
+        body = ByteReadChannel(mock.body.encodeToByteArray()),
+        callContext = currentCoroutineContext(),
+    )
+    return HttpClientCall(client, request.build(), responseData)
 }
 
 private data class BodyCapture(val text: String?, val truncated: Boolean)
 
 private fun String.truncate(max: Int): BodyCapture = if (length <= max) BodyCapture(this, false) else BodyCapture(substring(0, max), true)
 
-private fun captureOutgoingBody(content: Any?, maxChars: Int): BodyCapture = when (content) {
+/**
+ * Reads the request body for capture without breaking the actual send: channel/stream bodies
+ * that can't be read without consuming them are replaced with a placeholder instead.
+ */
+private fun captureRequestBodySafely(content: Any?, maxChars: Int): BodyCapture = when (content) {
     is OutgoingContent.ByteArrayContent -> content.bytes().decodeToString().truncate(maxChars)
-
-    // Channel/stream bodies cannot be read here without consuming them; describe them instead.
     is OutgoingContent -> BodyCapture(content.contentType?.let { "<$it>" }, false)
-
     else -> BodyCapture(null, false)
+}
+
+/**
+ * Reads the response body for capture without consuming or blocking the caller's response:
+ * bodies that can't be buffered safely (WebSocket upgrades, endless streams) are replaced with a
+ * placeholder instead. Returns the call the caller should receive — the original one when the
+ * body was left untouched, or a saved copy whose body is still readable.
+ */
+private suspend fun captureResponseBodySafely(call: HttpClientCall, maxChars: Int): Pair<HttpClientCall, BodyCapture> {
+    val response = call.response
+
+    // A WebSocket upgrade response (101) has no conventional body — by the time this plugin sees
+    // it, the connection has already switched to the raw frame stream, so save()/bodyAsText()
+    // would read live WebSocket frames as if they were an HTTP body, corrupting the frame stream
+    // for the caller.
+    if (response.isWebSocketUpgrade()) {
+        return call to BodyCapture("<websocket upgrade>", false)
+    }
+
+    // save() buffers the entire body before returning, so on a never-ending stream (SSE) the
+    // caller would wait forever for a response that has already started arriving.
+    val contentType = response.headers[HttpHeaders.ContentType]
+    if (contentType?.startsWith("text/event-stream", ignoreCase = true) == true) {
+        return call to BodyCapture("<streaming response body>", false)
+    }
+
+    // save() buffers the body so we can read it for inspection and still hand a fresh, readable
+    // response to the caller.
+    val saved = call.save()
+    return saved to saved.response.bodyAsText().truncate(maxChars)
 }
 
 private fun StringValues.toCapturedMap(): Map<String, List<String>> = entries().associate { it.key to it.value }
@@ -193,20 +178,16 @@ private fun HttpResponse.isWebSocketUpgrade(): Boolean = status == HttpStatusCod
  * Content-Type / Content-Length and any body-level headers. Headers injected later by the engine
  * (e.g. User-Agent, Accept-Encoding, Host) are not visible to a client plugin and are omitted.
  */
-private fun HttpRequestBuilder.capturedRequestHeaders(): Map<String, List<String>> {
-    val result = LinkedHashMap<String, List<String>>()
-    headers.build().entries().forEach { (key, value) -> result[key] = value }
-    val content = body
-    if (content is OutgoingContent) {
-        content.contentType?.let { type ->
-            if ("Content-Type" !in result) result["Content-Type"] = listOf(type.toString())
-        }
-        content.contentLength?.let { length ->
-            if ("Content-Length" !in result) result["Content-Length"] = listOf(length.toString())
-        }
-        content.headers.entries().forEach { (key, value) ->
-            if (key !in result) result[key] = value
-        }
+private fun HttpRequestBuilder.capturedRequestHeaders(): Map<String, List<String>> = buildMap {
+    putAll(headers.build().toCapturedMap())
+    val content = body as? OutgoingContent ?: return@buildMap
+    content.contentType?.let { type ->
+        if (!containsKey("Content-Type")) put("Content-Type", listOf(type.toString()))
     }
-    return result
+    content.contentLength?.let { length ->
+        if (!containsKey("Content-Length")) put("Content-Length", listOf(length.toString()))
+    }
+    content.headers.entries().forEach { (key, value) ->
+        if (!containsKey(key)) put(key, value)
+    }
 }

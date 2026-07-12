@@ -31,6 +31,7 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.decodeFromString
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.milliseconds
 
 class JetWhaleNetworkKtorPluginTest {
 
@@ -43,7 +44,7 @@ class JetWhaleNetworkKtorPluginTest {
     }
 
     @Test
-    fun sseResponse_returnsWithoutBufferingBody() = runBlocking {
+    fun `returns an SSE response without buffering its body`() = runBlocking {
         val (agent, events) = agentWithEvents()
         // A channel that receives data but is never closed — save() would suspend on it forever.
         val stream = ByteChannel(autoFlush = true)
@@ -62,7 +63,7 @@ class JetWhaleNetworkKtorPluginTest {
 
         // Streaming execution (as the SSE plugin does) skips Ktor's own SaveBody plugin; without
         // the guard, the JetWhale plugin's save() would suspend on the endless channel forever.
-        val statusCode = withTimeout(5_000) {
+        val statusCode = withTimeout(5_000.milliseconds) {
             client.prepareGet("http://example/sse").execute { response -> response.status.value }
         }
 
@@ -73,7 +74,7 @@ class JetWhaleNetworkKtorPluginTest {
     }
 
     @Test
-    fun regularResponse_isStillCaptured() = runBlocking {
+    fun `captures a regular response body without breaking the caller's read`() = runBlocking {
         val (agent, events) = agentWithEvents()
         val client = HttpClient(
             MockEngine {
