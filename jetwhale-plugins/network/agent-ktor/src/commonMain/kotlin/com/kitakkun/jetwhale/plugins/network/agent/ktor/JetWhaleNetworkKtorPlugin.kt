@@ -75,20 +75,20 @@ fun JetWhaleNetworkAgentPlugin.ktorClientPlugin(maxBodyChars: Int = 100_000): Cl
                 }
             }
 
-            val (readableCall, body) = captureResponseBodySafely(call, maxBodyChars)
+            val (callToReturn, body) = captureResponseBodySafely(call, maxBodyChars)
             agent.recordResponse(
                 CapturedHttpResponse(
                     txId = txId,
-                    statusCode = readableCall.response.status.value,
-                    statusDescription = readableCall.response.status.description,
-                    headers = readableCall.response.headers.toCapturedMap(),
+                    statusCode = callToReturn.response.status.value,
+                    statusDescription = callToReturn.response.status.description,
+                    headers = callToReturn.response.headers.toCapturedMap(),
                     body = body.text,
                     bodyTruncated = body.truncated,
                     durationMs = started.elapsedNow().inWholeMilliseconds,
                     fromMock = mock != null,
                 ),
             )
-            readableCall
+            callToReturn
         }
     }
 }
