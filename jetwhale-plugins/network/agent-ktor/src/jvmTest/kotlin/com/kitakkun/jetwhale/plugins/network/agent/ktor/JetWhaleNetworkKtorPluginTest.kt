@@ -118,7 +118,7 @@ class JetWhaleNetworkKtorPluginTest {
         try {
             // Without the upgrade guard, save() would read live WebSocket frames as the HTTP
             // body, so the echo below would never arrive.
-            val echoed = withTimeout(5_000.milliseconds) {
+            val echoed = withTimeout(5_000) {
                 client.webSocketSession("ws://127.0.0.1:$port/ws").run {
                     send(Frame.Text("hello"))
                     val reply = (incoming.receive() as Frame.Text).readText()
