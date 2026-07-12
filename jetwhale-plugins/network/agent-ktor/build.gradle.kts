@@ -19,6 +19,10 @@ dependencies {
     commonMainImplementation(libs.kotlinxCoroutinesCore)
     jvmTestImplementation(libs.kotlinTest)
     jvmTestImplementation(libs.ktorClientMock)
+    jvmTestImplementation(libs.ktorClientCio)
+    jvmTestImplementation(libs.ktorClientWebSockets)
+    jvmTestImplementation(libs.ktorServerNetty)
+    jvmTestImplementation(libs.ktorServerWebSockets)
     jvmTestImplementation(libs.kotlinxSerializationJson)
 }
 
