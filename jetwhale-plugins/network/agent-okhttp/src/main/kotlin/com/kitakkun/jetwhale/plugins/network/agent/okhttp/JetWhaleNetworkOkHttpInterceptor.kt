@@ -210,8 +210,7 @@ private fun buildMockResponse(request: Request, mock: MockResponseSpec): Respons
 }
 
 /** True for a successful WebSocket upgrade response (101 Switching Protocols + `Upgrade: websocket`). */
-private fun Response.isWebSocketUpgrade(): Boolean =
-    code == 101 && header("Upgrade")?.equals("websocket", ignoreCase = true) == true
+private fun Response.isWebSocketUpgrade(): Boolean = code == 101 && header("Upgrade")?.equals("websocket", ignoreCase = true) == true
 
 /** Preserves original header-name case, unlike [Headers.toMultimap] which lowercases keys. */
 private fun Headers.toCapturedMap(): Map<String, List<String>> = groupBy({ it.first }, { it.second })
