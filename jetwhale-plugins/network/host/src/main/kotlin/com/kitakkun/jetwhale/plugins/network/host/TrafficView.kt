@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
+import androidx.compose.foundation.ContextMenuArea
+import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -127,11 +129,13 @@ internal fun TrafficTab(
                     },
             ) {
                 items(visible, key = { it.txId }) { tx ->
-                    TransactionRow(
-                        tx = tx,
-                        selected = tx.txId == selectedTxId,
-                        onClick = { selectedTxId = tx.txId },
-                    )
+                    ContextMenuArea(items = { transactionContextMenuItems(tx) }) {
+                        TransactionRow(
+                            tx = tx,
+                            selected = tx.txId == selectedTxId,
+                            onClick = { selectedTxId = tx.txId },
+                        )
+                    }
                     HorizontalDivider()
                 }
             }
@@ -154,6 +158,17 @@ internal fun TrafficTab(
                 }
             }
         }
+    }
+}
+
+private fun transactionContextMenuItems(tx: HttpTransaction): List<ContextMenuItem> = buildList {
+    add(ContextMenuItem("Copy as cURL") { copyToClipboard(buildCurlCommand(tx.request)) })
+    add(ContextMenuItem("Copy URL") { copyToClipboard(tx.request.url) })
+    tx.request.body?.let { body ->
+        add(ContextMenuItem("Copy request body") { copyToClipboard(body) })
+    }
+    tx.response?.body?.let { body ->
+        add(ContextMenuItem("Copy response body") { copyToClipboard(body) })
     }
 }
 
