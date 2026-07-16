@@ -19,8 +19,33 @@ import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.ui.isShortcutModifierPressed
 import dev.zacsweers.metro.createGraph
 import kotlinx.coroutines.runBlocking
+import org.jetbrains.compose.resources.painterResource
+import java.awt.Taskbar
+import javax.imageio.ImageIO
+
+/**
+ * Applies the application name and icon at runtime so they are correct even when the host is
+ * launched as a plain JVM process (e.g. the `runJetWhale`/`runJetWhaleLocal` Gradle tasks or
+ * `java -jar` on the uber jar). Packaged distributions get them from the installer metadata,
+ * where these calls are harmless no-ops.
+ */
+private fun configureAppMetadata() {
+    // Read by macOS AWT during initialization, so this must run before any AWT class is touched.
+    System.setProperty("apple.awt.application.name", "JetWhale")
+
+    if (Taskbar.isTaskbarSupported()) {
+        val taskbar = Taskbar.getTaskbar()
+        if (taskbar.isSupported(Taskbar.Feature.ICON_IMAGE)) {
+            object {}.javaClass.getResource("/icon.png")?.let { iconUrl ->
+                taskbar.iconImage = ImageIO.read(iconUrl)
+            }
+        }
+    }
+}
 
 fun main(args: Array<String>) = runBlocking {
+    configureAppMetadata()
+
     CommandLineArgumentsParser().parse(args)
 
     val appGraph: JetWhaleAppGraph = createGraph()
@@ -49,6 +74,7 @@ fun main(args: Array<String>) = runBlocking {
 
         Window(
             title = "JetWhale",
+            icon = painterResource(Res.drawable.app_icon),
             state = WindowState(position = WindowPosition.Aligned(Alignment.Center)),
             onCloseRequest = appGraph.applicationLifecycleOwner::shutdown,
             onPreviewKeyEvent = { keyEvent ->

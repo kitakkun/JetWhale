@@ -37,14 +37,18 @@ tasks.register<JavaExec>("runJetWhaleLocal") {
     // Point the host at the dev plugins directory; this enables dev-mode loading + hot reload.
     // Supplied lazily via a CommandLineArgumentProvider so the task stays configuration-cache safe.
     val devDirProvider = devPluginsDir.map { it.asFile.absolutePath }
+    val osName = providers.systemProperty("os.name")
     jvmArgumentProviders.add(
         CommandLineArgumentProvider {
-            listOf(
-                "-Djetwhale.devPluginsDir=${devDirProvider.get()}",
+            buildList {
+                add("-Djetwhale.devPluginsDir=${devDirProvider.get()}")
                 // Allow the dev hot-reload to self-attach a JVM agent (byte-buddy-agent) for in-place
                 // class redefinition; self-attach is disabled by default on JDK 9+.
-                "-Djdk.attach.allowAttachSelf=true",
-            )
+                add("-Djdk.attach.allowAttachSelf=true")
+                // The macOS Dock name (hover text) comes from the bundle name, which for a bare JVM
+                // can only be set via -Xdock:name at launch — it is not settable at runtime.
+                if (osName.getOrElse("").contains("mac", ignoreCase = true)) add("-Xdock:name=JetWhale")
+            }
         },
     )
 }
