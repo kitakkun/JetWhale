@@ -60,6 +60,16 @@ jetwhalePlugin {
 }
 ```
 
+::: warning Kotlin version compatibility
+The host loads your plugin jar into its own runtime, which ships a fixed Kotlin stdlib and Compose
+runtime. Kotlin is **not forward-compatible**: a plugin compiled with a newer Kotlin than the host's
+may fail to load or crash at runtime. Build your plugin with the **same Kotlin (and Compose) version
+as the host release you target** — check the host's release notes for the versions it was built
+with. When in doubt, match the versions used by
+[`jetwhale-plugins`](https://github.com/kitakkun/JetWhale/tree/main/jetwhale-plugins) at the
+corresponding release tag.
+:::
+
 The agent SDK goes in the **app being debugged** (a normal runtime dependency, not in the plugin
 module):
 

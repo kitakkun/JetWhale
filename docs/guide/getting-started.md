@@ -32,6 +32,27 @@ dependencies {
 }
 ```
 
+::: warning Kotlin version compatibility
+JetWhale artifacts are built with a recent Kotlin release (currently **2.4.0**), and your app needs
+**Kotlin 2.3 or newer** to use them. With an older Kotlin, the build fails with metadata-version
+errors — upgrade your app's Kotlin plugin, or pick an older JetWhale release built with a matching
+Kotlin.
+
+If you cannot upgrade, `-Xskip-metadata-version-check` is an unofficial escape hatch:
+
+```kotlin
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xskip-metadata-version-check")
+    }
+}
+```
+
+This only silences the metadata check — it does not guarantee compatibility. It is verified to
+compile and run against the current release with Kotlin 2.0–2.2, but it is unsupported by JetBrains
+and may break (especially around `inline` functions) with future releases. Prefer upgrading Kotlin.
+:::
+
 ::: tip
 Only add JetWhale to debug builds (e.g. `debugImplementation` on Android, or your own build-flavor
 wiring) — it is a debugging tool and should not ship in release builds.
