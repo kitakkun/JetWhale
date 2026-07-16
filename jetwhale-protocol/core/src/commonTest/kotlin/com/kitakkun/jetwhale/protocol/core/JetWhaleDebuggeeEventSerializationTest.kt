@@ -1,9 +1,11 @@
 package com.kitakkun.jetwhale.protocol.core
 
 import com.kitakkun.jetwhale.protocol.JetWhaleSerializationTest
+import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 /**
  * Tests for ensuring stable serialization of [JetWhaleDebuggeeEvent].
@@ -11,58 +13,47 @@ import kotlin.test.assertIs
 class JetWhaleDebuggeeEventSerializationTest : JetWhaleSerializationTest() {
 
     @Test
-    fun `plugin message event should be serialized stably`() {
-        val event = JetWhaleDebuggeeEvent.PluginMessage(
-            pluginId = "example-plugin",
-            payload = "hello",
+    fun `notification frame message round-trips and carries the agent frame discriminator`() {
+        val event = JetWhaleDebuggeeEvent.PluginFrameMessage(
+            frame = PluginFrame.Notification(
+                pluginId = "example-plugin",
+                messageType = "network/request_sent",
+                payload = "{}",
+            ),
         )
 
         val encoded = json.encodeToString(event)
+        assertTrue(encoded.contains(""""type":"event/agent/plugin_frame""""), "missing discriminator: $encoded")
 
-        assertEquals(
-            expected = """{"type":"event/agent/plugin_message","pluginId":"example-plugin","payload":"hello"}""",
-            actual = encoded,
-        )
+        val decoded = json.decodeFromString<JetWhaleDebuggeeEvent>(encoded)
+        assertEquals(event, assertIs<JetWhaleDebuggeeEvent.PluginFrameMessage>(decoded))
     }
 
     @Test
-    fun `method result success event should be serialized stably`() {
-        val event = JetWhaleDebuggeeEvent.MethodResultResponse.Success(
-            requestId = "req-1",
-            payload = "result",
+    fun `reply success frame message round-trips`() {
+        val event = JetWhaleDebuggeeEvent.PluginFrameMessage(
+            frame = PluginFrame.Reply.Success(
+                pluginId = "example-plugin",
+                inReplyTo = "corr-1",
+                payload = "{}",
+            ),
         )
 
-        val encoded = json.encodeToString(event)
-
-        assertEquals(
-            expected = """{"type":"event/agent/method_result_response/success","requestId":"req-1","payload":"result"}""",
-            actual = encoded,
-        )
+        val decoded = json.decodeFromString<JetWhaleDebuggeeEvent>(json.encodeToString(event))
+        assertEquals(event, decoded)
     }
 
     @Test
-    fun `method result failed event should be serialized stably`() {
-        val event = JetWhaleDebuggeeEvent.MethodResultResponse.Failure(
-            requestId = "req-2",
-            errorMessage = "something went wrong",
+    fun `reply failure frame message round-trips`() {
+        val event = JetWhaleDebuggeeEvent.PluginFrameMessage(
+            frame = PluginFrame.Reply.Failure(
+                pluginId = "example-plugin",
+                inReplyTo = "corr-2",
+                errorMessage = "something went wrong",
+            ),
         )
 
-        val encoded = json.encodeToString(event)
-
-        assertEquals(
-            expected = """{"type":"event/agent/method_result_response/failure","requestId":"req-2","errorMessage":"something went wrong"}""",
-            actual = encoded,
-        )
-    }
-
-    @Test
-    fun `method result response should be deserializable`() {
-        val jsonString = """{"type":"event/agent/method_result_response/success","requestId":"req-3","payload":"ok"}"""
-
-        val decoded = json.decodeFromString<JetWhaleDebuggeeEvent>(jsonString)
-
-        val success = assertIs<JetWhaleDebuggeeEvent.MethodResultResponse.Success>(decoded)
-        assertEquals("req-3", success.requestId)
-        assertEquals("ok", success.payload)
+        val decoded = json.decodeFromString<JetWhaleDebuggeeEvent>(json.encodeToString(event))
+        assertEquals(event, decoded)
     }
 }

@@ -1,17 +1,17 @@
 package com.kitakkun.jetwhale.host.sdk
 
 /**
- * Optional interface that a [JetWhaleRawHostPlugin] can implement to
+ * Optional interface that a [JetWhaleHostPlugin] can implement to
  * advertise plugin-specific MCP tools to the MCP server.
  *
  * The MCP server queries all active plugin instances for this interface
- * after each session negotiation and registers the returned tool descriptors.
+ * as sessions come up and registers the returned tool descriptors.
  * When a tool is invoked, [handleMcpTool] is called on the correct
  * plugin instance (keyed by pluginId + sessionId).
  *
  * Usage:
  * ```kotlin
- * class MyHostPlugin : JetWhaleHostPlugin<...>(), JetWhaleMcpCapablePlugin {
+ * class MyHostPlugin : JetWhaleHostPlugin(), JetWhaleMcpCapablePlugin {
  *     override fun mcpTools() = listOf(
  *         JetWhaleMcpToolDescriptor(
  *             name = "com.example.myplugin.inspectWidget",
@@ -26,7 +26,7 @@ package com.kitakkun.jetwhale.host.sdk
  *         return when (toolName) {
  *             "com.example.myplugin.inspectWidget" -> {
  *                 val widgetId = arguments["widgetId"] ?: return null
- *                 // dispatch to debuggee via context.dispatch(...) or return local data
+ *                 // talk to the agent via the plugin's own messenger.request(...) or return local data
  *                 """{"widget": "$widgetId", "type": "Button"}"""
  *             }
  *             else -> null

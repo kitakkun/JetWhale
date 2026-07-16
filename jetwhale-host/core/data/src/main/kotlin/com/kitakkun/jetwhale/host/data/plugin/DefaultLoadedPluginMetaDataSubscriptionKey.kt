@@ -26,6 +26,7 @@ class DefaultLoadedPluginMetaDataSubscriptionKey(
                     name = loaded.manifest.pluginName,
                     id = loaded.manifest.pluginId,
                     version = loaded.manifest.version,
+                    requiresAgent = loaded.manifest.requiresAgent,
                     activeIconResource = loaded.manifest.icon?.activePath?.let {
                         val resource = classLoader.getResource(it) ?: return@let null
                         PluginIconResource(resource)

@@ -84,8 +84,7 @@ by instantiating the `factoryClass` named in the manifest. See `jetwhale-plugins
 complete, working example:
 
 - `src/main/kotlin/.../MyPluginFactory.kt` — a `JetWhaleHostPluginFactory` returning your
-  `JetWhaleRawHostPlugin` (or the typed `JetWhaleHostPlugin<Event, Method, MethodResult>`). It needs a
-  public no-arg constructor so the host can instantiate it.
+  `JetWhaleHostPlugin`. It needs a public no-arg constructor so the host can instantiate it.
 - `src/main/resources/META-INF/jetwhale/plugin-manifest.json` — one entry per plugin under `plugins`,
   each with `pluginId`, `pluginName`, `version`, and `factoryClass` (the fully-qualified name of the
   factory above):
@@ -108,6 +107,142 @@ complete, working example:
 A single module's jar can ship several plugins: add one entry per plugin to the `plugins` array, each
 pointing at its own `factoryClass`. The plugins share the jar (and its classloader), and are loaded,
 reloaded, and hot-redefined together.
+
+### 4. Talk to the app (messaging)
+
+A host plugin and its agent counterpart (a `JetWhaleAgentPlugin` with the **same `pluginId`**) exchange
+messages over one **symmetric** channel. You define your messages as plain `@Serializable` classes in a
+shared module and tag them by role:
+
+- `JetWhaleEvent` — a fire-and-forget notification.
+- `JetWhaleRequest<R>` — a request that expects a reply of type `R` (also a plain `@Serializable` class).
+
+```kotlin
+// either side -> the other
+@Serializable
+data class ButtonClicked(val count: Int) : JetWhaleEvent
+
+// a request, with its reply declared as Pong
+@Serializable
+data object Ping : JetWhaleRequest<Pong>
+
+// a reply: no marker, so it can't be sent on its own
+@Serializable
+data object Pong
+```
+
+A messaging plugin extends `JetWhaleMessagingHostPlugin` on the host (and `JetWhaleAgentPlugin` on the
+agent). Both register handlers and send through a **messenger**:
+
+- `configure { … }` to register handlers — `onEvent { e: E -> … }` for fire-and-forget events, and
+  `onRequest { req: REQ -> … reply(r) }` for requests. A request handler must end with `reply(...)`
+  of the request's declared reply type — replying is enforced by the handler's return type, so a
+  path that forgets to reply (or replies with the wrong type) does not compile. The `reply(...)`
+  expression is also what makes "this value goes back over the wire" visible at the registration site.
+- a messenger to send — events with `trySend(event)` (drop if offline, returns `Boolean`),
+  `sendOrQueue(event)` (buffer while offline and flush on reconnect), or `sendOrFail(event)` (throw if
+  offline); plus `request(req): R` for request-reply (discard the result if you only need the call
+  to succeed — e.g. a command whose reply is just an `Ack`).
+
+```kotlin
+class MyHostPlugin : JetWhaleMessagingHostPlugin(), JetWhaleHostPluginUi {
+    override fun JetWhaleMessageHandlers.configure() {
+        onEvent { e: ButtonClicked -> /* update UI state */ }
+    }
+
+    @Composable
+    override fun Content() {
+        Button(
+            onClick = {
+                pluginScope.launch {
+                    messenger.request(Ping)
+                }
+            },
+        ) {
+            Text("Ping")
+        }
+    }
+}
+```
+
+Requests work in **both directions** — the agent can `request` the host just as the host can `request`
+the agent. A failed/timed-out request throws `JetWhaleRequestException`; pass `timeout` to `request`
+to override the default per call (e.g. `request(SlowOp, timeout = 30.seconds)`). Implement `JetWhaleHostPluginUi`
+(`@Composable Content()`) to render a UI; plugins that don't are **headless** (e.g. MCP-only).
+
+**The host plugin's `messenger` is a plain property.** A host plugin instance lives exactly as long
+as its session's connection, so `messenger` is valid from `onCreate()` through `onDispose()` and may
+be used anywhere — UI callbacks, MCP tool handlers, background jobs. Launch background work on
+`pluginScope` (also a property): the runtime cancels it when the instance is disposed, so nothing
+can outlive the plugin. State that must survive across sessions does **not** belong in the instance.
+
+**On the agent** the `messenger` property is **connection-independent** (it outlives any single
+connection), so app code may send at any time and choose the offline behavior per call: `trySend`
+drops, `sendOrQueue` buffers, `sendOrFail` throws. Buffering is opt-in — override
+`offlineEventBufferCapacity` (bounded, drops oldest when full).
+
+**Commands vs queries.** `request` returns the reply value (`val r: Pong = request(Ping)`); when you
+issue a command and only need it to succeed, just discard the result (`request(SetMockRules(rules))`).
+The reply type is still inferred from the request's declaration, so the call is well-formed either way.
+
+**Handlers reply via their return value.** The reply is sent when the handler returns, so don't do
+slow post-reply work inline — compute the reply, offload the rest:
+
+```kotlin
+onRequest { req: SetMockRules ->
+    applyRules(req.rules)
+    pluginScope.launch { rebuildExpensiveIndex() } // after-reply work: don't keep the caller waiting
+    reply(Ack)
+}
+```
+
+**Agent lifecycle.** The **app** owns an agent plugin instance, so the runtime does not create or
+dispose it — it **activates** and **deactivates** it: `onActivate()` (the host enabled the plugin) →
+`onPrepare()` / `onDisconnected()` (each (re)connection within the activation) → `onDeactivate()`
+(the host disabled it). A disconnect is **not** a deactivation: the plugin stays activated and keeps
+buffering for the next connection. The runtime does **not** cancel the plugin's own coroutines, so
+stop anything you started in `onActivate()` from `onDeactivate()`.
+
+**Initial exchange: `onPrepare()`.** To exchange initial state on connect, override the suspend
+`onPrepare()` on either side — plain `messenger` calls, no special scope. Until it returns, none of
+that side's handlers are dispatched (inbound events and requests are held in arrival order) and the
+agent's buffered `sendOrQueue` events are held — so handlers and the other side never observe
+un-prepared state:
+
+```kotlin
+// host: fetch and adopt the config the agent holds (its config survives host restarts)
+override suspend fun onPrepare() {
+    val config = messenger.request(GetMockConfig)
+    apply(config)
+}
+// agent: nothing to do — it just answers GetMockConfig from its handlers
+```
+
+By convention only **one** side of a plugin pair actively `request`s during preparation (the other
+answers from its handlers): two sides that both block on each other's handlers while preparing would
+deadlock until the timeout. `onPrepare` is bounded by `prepareTimeoutMillis` — on timeout (or
+failure) the runtime logs a warning (visible in the host log) and opens handler dispatch anyway, so
+the plugin proceeds degraded rather than hanging.
+
+Note that there is no preparation-only message lane: a handler registered in `configure` is callable
+by the other side for the **whole session**, not just while preparing. Design prepare-time exchanges
+as **idempotent, read-only queries** (like `GetMockConfig`) so answering them again later is
+harmless; if an exchange truly must happen only once, validate that in the handler and reply with an
+error afterwards.
+
+**Treat the other side's input as untrusted.** Because messaging is symmetric, a host `onRequest` /
+`onEvent` handler runs on input the **agent** (the app being debugged) chose to send — and vice
+versa. Validate payloads, and keep handlers cheap and non-blocking: the peer caps how many requests
+run concurrently and rejects a flood with a failure reply, but a handler that blocks still holds its
+slot, so offload slow work rather than stalling inside the handler.
+
+#### Host-only plugins (no agent, no messaging)
+
+If a plugin doesn't talk to the app at all — a host-side tool that just renders UI or uses the host's
+own capabilities — extend the plain `JetWhaleHostPlugin` (not `JetWhaleMessagingHostPlugin`) and set
+`"requiresAgent": false` in its manifest entry. Such a plugin has no agent counterpart and no
+`messenger`; it is made available for every active session. See
+`ExampleHostOnlyPlugin` in `jetwhale-plugins/example/host`.
 
 ## Hot reload (the live dev loop)
 

@@ -16,7 +16,6 @@ dependencies {
     implementation(projects.jetwhaleHostSdk)
     implementation(projects.jetwhaleHost.core.model)
     implementation(projects.jetwhaleHost.core.mcp)
-    implementation(projects.jetwhaleProtocol.host)
     implementation(projects.jetwhaleProtocol.core)
 
     implementation(compose.desktop.currentOs)

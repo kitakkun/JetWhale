@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.agent.runtime
 
-import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import kotlinx.coroutines.CoroutineScope
@@ -11,7 +10,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
-@OptIn(InternalJetWhaleApi::class)
 internal class DefaultJetWhaleMessagingService(
     private val socketClient: JetWhaleSocketClient,
     private val pluginService: JetWhaleAgentPluginService,
@@ -30,7 +28,7 @@ internal class DefaultJetWhaleMessagingService(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (_: Throwable) {
-                    pluginService.deactivateAllPlugins()
+                    pluginService.disconnectAll()
                     retryCount++
                     val delayMillis = (retryCount * RETRY_DELAY_INCREMENT_MILLIS).coerceAtMost(MAX_RECONNECT_DELAY_MILLIS)
                     delay(delayMillis)
@@ -44,44 +42,27 @@ internal class DefaultJetWhaleMessagingService(
 
         retryCount = 0
 
-        val sendPluginMessageEvent: PluginAwareMessageSender = { pluginId: String, pluginMessages: Array<out String> ->
-            coroutineScope.launch {
-                pluginMessages.forEach {
-                    socketClient.sendDebuggeeEvent(
-                        JetWhaleDebuggeeEvent.PluginMessage(
-                            pluginId = pluginId,
-                            payload = it,
-                        ),
-                    )
-                }
-            }
-        }
-
-        pluginService.activatePlugins(
-            ids = connection.negotiationResult.availablePluginIds.toTypedArray(),
-            sender = sendPluginMessageEvent,
+        pluginService.startConnection(
+            scope = coroutineScope,
+            sendFrame = { frame ->
+                socketClient.sendDebuggeeEvent(JetWhaleDebuggeeEvent.PluginFrameMessage(frame))
+            },
         )
 
-        connection.debuggerEventFlow.collect { event ->
-            when (event) {
-                is JetWhaleDebuggerEvent.PluginActivated -> pluginService.activatePlugins(event.pluginId, sender = sendPluginMessageEvent)
+        try {
+            pluginService.syncActivePlugins(connection.negotiationResult.availablePluginIds.toSet())
 
-                is JetWhaleDebuggerEvent.PluginDeactivated -> pluginService.deactivatePlugins(event.pluginId)
-
-                is JetWhaleDebuggerEvent.MethodRequest -> {
-                    val plugin = pluginService.getPluginById(event.pluginId) ?: return@collect
-                    val methodResult = plugin.onRawMethod(event.payload)
-
-                    coroutineScope.launch {
-                        socketClient.sendDebuggeeEvent(
-                            event = JetWhaleDebuggeeEvent.MethodResultResponse.Success(
-                                requestId = event.requestId,
-                                payload = methodResult,
-                            ),
-                        )
-                    }
+            connection.debuggerEventFlow.collect { event ->
+                when (event) {
+                    is JetWhaleDebuggerEvent.PluginActivated -> pluginService.activatePlugin(event.pluginId)
+                    is JetWhaleDebuggerEvent.PluginDeactivated -> pluginService.deactivatePlugin(event.pluginId)
+                    is JetWhaleDebuggerEvent.PluginFrameMessage -> pluginService.onFrame(event.frame)
                 }
             }
+        } finally {
+            // The connection ended (closed or errored); drop this connection's peers so the next
+            // connection re-establishes them against a fresh socket. Plugins stay activated.
+            pluginService.disconnectAll()
         }
     }
 

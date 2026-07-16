@@ -5,11 +5,20 @@ import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
-import com.kitakkun.jetwhale.plugins.network.protocol.NetworkEvent
-import com.kitakkun.jetwhale.plugins.network.protocol.NetworkMethod
-import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
+import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
+import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
+import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
+import com.kitakkun.jetwhale.plugins.network.protocol.SetMockRules
+import com.kitakkun.jetwhale.protocol.messaging.DefaultJetWhaleMessagingFormat
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
+import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
+import com.kitakkun.jetwhale.protocol.messaging.OfflineSendPolicy
+import com.kitakkun.jetwhale.protocol.messaging.request
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.StringFormat
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -28,12 +37,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import kotlin.time.Duration
 
 class JetWhaleNetworkOkHttpInterceptorTest {
 
     private lateinit var server: MockWebServer
     private lateinit var agent: JetWhaleNetworkAgentPlugin
-    private lateinit var events: MutableList<NetworkEvent>
+    private lateinit var events: MutableList<Any>
 
     @OptIn(InternalJetWhaleApi::class)
     @BeforeTest
@@ -43,7 +53,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         agent = JetWhaleNetworkAgentPlugin()
         // The interceptor also runs on OkHttp's WebSocket threads, not just the test thread.
         events = Collections.synchronizedList(mutableListOf())
-        agent.activate { messages -> messages.forEach { events += JetWhaleJson.decodeFromString<NetworkEvent>(it) } }
+        agent.bindMessenger(RecordingMessenger(events))
     }
 
     @AfterTest
@@ -65,8 +75,8 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         assertEquals("hello", response.body!!.string())
 
         assertEquals(2, events.size)
-        val sent = events[0] as NetworkEvent.RequestSent
-        val received = events[1] as NetworkEvent.ResponseReceived
+        val sent = events[0] as RequestSent
+        val received = events[1] as ResponseReceived
         assertEquals(sent.request.txId, received.response.txId)
         assertEquals("GET", sent.request.method)
         assertEquals(200, received.response.statusCode)
@@ -81,7 +91,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         val request = Request.Builder().url(server.url("/echo")).post(body).build()
         client().newCall(request).execute().close()
 
-        val sent = events[0] as NetworkEvent.RequestSent
+        val sent = events[0] as RequestSent
         assertEquals("ping", sent.request.body)
         assertTrue(sent.request.headers.keys.any { it.equals("Content-Type", ignoreCase = true) })
     }
@@ -96,30 +106,26 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         assertFailsWith<IOException> { client().newCall(request).execute() }
 
         assertEquals(2, events.size)
-        val sent = events[0] as NetworkEvent.RequestSent
-        val failed = events[1] as NetworkEvent.RequestFailed
+        val sent = events[0] as RequestSent
+        val failed = events[1] as RequestFailed
         assertEquals(sent.request.txId, failed.failure.txId)
     }
 
     @Test
     fun `serves a mock response without hitting the server`() {
-        runBlocking {
-            agent.onReceiveMethod(
-                NetworkMethod.SetMockRules(
-                    listOf(
-                        MockRule(
-                            id = "/users",
-                            matcher = MockMatcher(urlPattern = "/users"),
-                            response = MockResponseSpec(
-                                statusCode = 418,
-                                headers = mapOf("Content-Type" to "application/json"),
-                                body = "{\"mock\":true}",
-                            ),
-                        ),
+        applyMockRules(
+            listOf(
+                MockRule(
+                    id = "/users",
+                    matcher = MockMatcher(urlPattern = "/users"),
+                    response = MockResponseSpec(
+                        statusCode = 418,
+                        headers = mapOf("Content-Type" to "application/json"),
+                        body = "{\"mock\":true}",
                     ),
                 ),
-            )
-        }
+            ),
+        )
         val request = Request.Builder().url(server.url("/users")).build()
         val response = client().newCall(request).execute()
 
@@ -127,7 +133,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         assertEquals("{\"mock\":true}", response.body!!.string())
         assertEquals(0, server.requestCount)
 
-        val received = events.last() as NetworkEvent.ResponseReceived
+        val received = events.last() as ResponseReceived
         assertEquals(true, received.response.fromMock)
         assertEquals(listOf("application/json"), received.response.headers["Content-Type"])
     }
@@ -141,7 +147,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
 
         assertEquals(longBody, response.body!!.string())
 
-        val received = events.last() as NetworkEvent.ResponseReceived
+        val received = events.last() as ResponseReceived
         assertEquals(true, received.response.bodyTruncated)
         assertEquals(SMALL_BODY_CAP, received.response.body?.length)
     }
@@ -179,7 +185,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
             // The real regression check: the interceptor must not have stolen bytes from the frame stream.
             assertEquals("hello from server", receivedText)
 
-            val received = events.last() as NetworkEvent.ResponseReceived
+            val received = events.last() as ResponseReceived
             assertEquals(101, received.response.statusCode)
             assertEquals("<websocket upgrade>", received.response.body)
             assertEquals(false, received.response.bodyTruncated)
@@ -197,7 +203,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         val request = Request.Builder().url(server.url("/jp")).build()
         clientWithSmallBodyCap().newCall(request).execute().close()
 
-        val received = events.last() as NetworkEvent.ResponseReceived
+        val received = events.last() as ResponseReceived
         assertEquals(true, received.response.bodyTruncated)
     }
 
@@ -208,12 +214,42 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         val request = Request.Builder().url(server.url("/upload")).post(longBody.toRequestBody("text/plain".toMediaType())).build()
         clientWithSmallBodyCap().newCall(request).execute().close()
 
-        val sent = events[0] as NetworkEvent.RequestSent
+        val sent = events[0] as RequestSent
         assertEquals(true, sent.request.bodyTruncated)
         assertEquals("y".repeat(SMALL_BODY_CAP), sent.request.body)
+    }
+
+    /** Delivers a SetMockRules request to the agent's handlers through a real peer pair. */
+    @OptIn(InternalJetWhaleApi::class)
+    private fun applyMockRules(rules: List<MockRule>) = runBlocking {
+        val scope = CoroutineScope(SupervisorJob())
+        lateinit var agentPeer: JetWhalePluginPeer
+        val hostPeer = JetWhalePluginPeer(JetWhaleNetworkAgentPlugin.PLUGIN_ID, scope, sendFrame = { agentPeer.onFrame(it) })
+        agentPeer = JetWhalePluginPeer(JetWhaleNetworkAgentPlugin.PLUGIN_ID, scope, sendFrame = { hostPeer.onFrame(it) })
+        agentPeer.configure { agent.registerHandlers(this) }
+        hostPeer.messenger.request(SetMockRules(rules))
+        scope.cancel()
     }
 
     companion object {
         private const val SMALL_BODY_CAP = 100
     }
+}
+
+/** Records every event the plugin sends, decoded back to its typed form. */
+private class RecordingMessenger(val events: MutableList<Any>) : JetWhaleMessenger {
+    override val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob())
+    override val payloadFormat: StringFormat = DefaultJetWhaleMessagingFormat
+
+    override fun sendRaw(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean {
+        events += when (messageType) {
+            "network/request_sent" -> payloadFormat.decodeFromString(RequestSent.serializer(), payload)
+            "network/response_received" -> payloadFormat.decodeFromString(ResponseReceived.serializer(), payload)
+            "network/request_failed" -> payloadFormat.decodeFromString(RequestFailed.serializer(), payload)
+            else -> error("Unexpected message type: $messageType")
+        }
+        return true
+    }
+
+    override suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String = error("The network agent plugin never requests the host in these tests.")
 }

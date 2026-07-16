@@ -203,9 +203,12 @@ class DefaultPluginHotReloadService(
     private suspend fun reinitializeInstances(pluginId: String) {
         if (!enabledPluginsRepository.isPluginEnabled(pluginId)) return
 
+        // A host-only plugin (requiresAgent = false) is available for every active session, not just
+        // the sessions whose agent advertised it.
+        val requiresAgent = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
         val activeSessionIds = debugSessionRepository.debugSessionsFlow.first()
             .filter { it.isActive }
-            .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
+            .filter { session -> !requiresAgent || session.installedPlugins.any { it.pluginId == pluginId } }
             .map { it.id }
             .toSet()
 

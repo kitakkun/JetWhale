@@ -1,32 +1,58 @@
 package com.kitakkun.jetwhale.host.sdk
 
-import com.kitakkun.jetwhale.protocol.host.JetWhaleHostPluginProtocol
+import kotlinx.coroutines.CoroutineScope
 
 /**
- * Base class for typed JetWhale host plugins: it decodes raw event strings into [Event]s via
- * [protocol] and hands them to [onEvent].
+ * Base class for a JetWhale host plugin. This base is **pure**: it has only a lifecycle and no
+ * messaging — use it for plugins that don't talk to an agent (e.g. a host-only tool, declared with
+ * `"requiresAgent": false` in the manifest).
  *
- * This base is **headless** (no UI). For a plugin that renders a UI, extend [JetWhaleUiHostPlugin]
- * instead, which adds the [JetWhaleUiHostPlugin.Content] composable.
+ * Add capabilities by combining types:
+ * - [JetWhaleMessagingHostPlugin] (extend it instead) — to exchange messages with an agent counterpart.
+ * - [JetWhaleHostPluginUi] (implement it) — to render a Compose UI.
  */
-public abstract class JetWhaleHostPlugin<Event, Method, MethodResult> : JetWhaleRawHostPlugin() {
-    /**
-     * The protocol used for encoding and decoding events, methods, and method results
-     */
-    protected abstract val protocol: JetWhaleHostPluginProtocol<Event, Method, MethodResult>
+public abstract class JetWhaleHostPlugin {
+    private var boundPluginScope: CoroutineScope? = null
 
     /**
-     * Called when an event is received from debuggee
-     * @param event The received event
+     * Scope tied to this plugin instance's lifetime: available from [onCreate], cancelled by the
+     * runtime when the instance is disposed. Launch background work here so it can never outlive
+     * the instance.
      */
-    public abstract fun onEvent(event: Event)
+    protected val pluginScope: CoroutineScope
+        get() = checkNotNull(boundPluginScope) {
+            "pluginScope is only available after the plugin instance has been bound (in or after onCreate())."
+        }
 
-    /**
-     * Handles a raw event message received from the debuggee.
-     * Decodes the message and processes it.
-     */
-    final override fun onRawEvent(event: String) {
-        val decodedEvent = protocol.decodeEvent(event)
-        onEvent(decodedEvent)
+    /** Called once when this plugin instance is created, before it is shown or used. */
+    protected open fun onCreate() {}
+
+    /** Called when this plugin instance is disposed (session closed, plugin disabled, or reloaded). */
+    public open fun onDispose() {}
+
+    // -- runtime hooks (not for plugin authors) -------------------------------
+
+    /** Binds the instance-scoped coroutine scope. Called once, before [onCreate]. */
+    @InternalJetWhaleHostApi
+    public fun bindPluginScope(scope: CoroutineScope) {
+        boundPluginScope = scope
+    }
+
+    @InternalJetWhaleHostApi
+    public fun dispatchCreate() {
+        onCreate()
+    }
+
+    @InternalJetWhaleHostApi
+    public fun dispatchDispose() {
+        onDispose()
     }
 }
+
+/**
+ * Marks host-runtime-only entry points that plugin authors must not call. The host wires these when
+ * it creates a plugin instance.
+ */
+@RequiresOptIn(message = "This is a JetWhale host-runtime API and must not be called by plugin code.")
+@Retention(AnnotationRetention.BINARY)
+public annotation class InternalJetWhaleHostApi

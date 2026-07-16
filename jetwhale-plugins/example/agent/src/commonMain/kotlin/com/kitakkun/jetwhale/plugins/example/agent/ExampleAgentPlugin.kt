@@ -1,47 +1,39 @@
 package com.kitakkun.jetwhale.plugins.example.agent
 
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
-import com.kitakkun.jetwhale.plugins.example.protocol.ExampleEvent
-import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethod
-import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethodResult
-import com.kitakkun.jetwhale.protocol.agent.JetWhaleAgentPluginProtocol
-import com.kitakkun.jetwhale.protocol.agent.kotlinxSerializationJetWhaleAgentPluginProtocol
+import com.kitakkun.jetwhale.plugins.example.protocol.ButtonClicked
+import com.kitakkun.jetwhale.plugins.example.protocol.Ping
+import com.kitakkun.jetwhale.plugins.example.protocol.Pong
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
+import com.kitakkun.jetwhale.protocol.messaging.reply
+import com.kitakkun.jetwhale.protocol.messaging.trySend
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 
 /**
- * An example JetWhale agent plugin that handles ExampleMethod and ExampleEvent.
- * It logs received methods and events to a StateFlow of event logs.
+ * An example JetWhale agent plugin. It replies to [Ping] requests with [Pong] and sends
+ * [ButtonClicked] events to the host, logging both into a StateFlow the demo UI observes.
  */
-class ExampleAgentPlugin : JetWhaleAgentPlugin<ExampleEvent, ExampleMethod, ExampleMethodResult>() {
+class ExampleAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginId: String get() = "com.kitakkun.jetwhale.example"
     override val pluginVersion: String get() = "1.0.0"
-    override val protocol: JetWhaleAgentPluginProtocol<ExampleEvent, ExampleMethod, ExampleMethodResult> = kotlinxSerializationJetWhaleAgentPluginProtocol()
 
-    val mutableEventLogsFlow: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())
+    private val mutableEventLogsFlow: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())
     val eventLogsFlow: StateFlow<List<String>> = mutableEventLogsFlow
 
-    override suspend fun onReceiveMethod(method: ExampleMethod): ExampleMethodResult {
-        when (method) {
-            is ExampleMethod.Ping -> {
-                val result = ExampleMethodResult.Pong
-                mutableEventLogsFlow.update {
-                    it.toMutableList().apply {
-                        add("Method: $method")
-                        add("MethodResult: $result")
-                    }
-                }
-                return result
-            }
+    override fun JetWhaleMessageHandlers.configure() {
+        onRequest { _: Ping ->
+            mutableEventLogsFlow.update { it + "Request: Ping" + "Reply: Pong" }
+            reply(Pong)
         }
     }
 
-    override fun onEnqueueEvent(event: ExampleEvent) {
-        mutableEventLogsFlow.update {
-            it.toMutableList().apply {
-                add("Event: $event")
-            }
-        }
+    /** Sends a button-clicked event to the host (and logs it locally). A click is only meaningful
+     *  live, so it is dropped if the host is not connected. */
+    fun reportButtonClicked(count: Int) {
+        val event = ButtonClicked(count)
+        mutableEventLogsFlow.update { it + "Event: $event" }
+        messenger.trySend(event)
     }
 }

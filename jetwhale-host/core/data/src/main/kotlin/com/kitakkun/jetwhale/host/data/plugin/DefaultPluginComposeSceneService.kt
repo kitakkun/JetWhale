@@ -10,22 +10,17 @@ import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
-import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
-import com.kitakkun.jetwhale.host.sdk.JetWhaleRawDebugOperationContext
-import com.kitakkun.jetwhale.host.sdk.JetWhaleRawUiHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.plus
 import kotlinx.coroutines.withContext
 
 @OptIn(InternalComposeUiApi::class)
@@ -35,7 +30,6 @@ import kotlinx.coroutines.withContext
 class DefaultPluginComposeSceneService(
     private val pluginBridgeProvider: DynamicPluginBridgeProvider,
     private val pluginInstanceService: PluginInstanceService,
-    private val debugWebSocketServer: DebugWebSocketServer,
 ) : PluginComposeSceneService {
     private val pluginScenes = mutableMapOf<String, PluginComposeScene>()
 
@@ -51,22 +45,14 @@ class DefaultPluginComposeSceneService(
         }
         return withContext(Dispatchers.Main) {
             pluginScenes.getOrPut("$pluginId:$sessionId") {
-                val debugOperationContext = object : JetWhaleRawDebugOperationContext {
-                    override val coroutineScope: CoroutineScope = debugWebSocketServer.getCoroutineScopeForSession(sessionId) + SupervisorJob()
-                    override suspend fun dispatch(method: String): String? = debugWebSocketServer.sendMethod(
-                        pluginId = pluginId,
-                        sessionId = sessionId,
-                        payload = method,
-                    )
-                }
-
                 val windowUpdatableContext = DynamicWindowInfoPlatformContext()
                 val composeScene = CanvasLayersComposeScene(platformContext = windowUpdatableContext)
 
                 composeScene.setContent {
                     pluginBridgeProvider.PluginEntryPoint {
-                        // Headless plugins (not a JetWhaleRawUiHostPlugin) render no content.
-                        (pluginInstance as? JetWhaleRawUiHostPlugin)?.ContentRaw(context = debugOperationContext)
+                        // Headless plugins (not a JetWhaleHostPluginUi) render no content.
+                        val ui = pluginInstance as? JetWhaleHostPluginUi ?: return@PluginEntryPoint
+                        ui.Content()
                     }
                 }
 

@@ -4,18 +4,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
-import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
-import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
-import com.kitakkun.jetwhale.host.sdk.JetWhaleUiHostPlugin
-import com.kitakkun.jetwhale.plugins.example.protocol.ExampleEvent
-import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethod
-import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethodResult
-import com.kitakkun.jetwhale.protocol.host.JetWhaleHostPluginProtocol
-import com.kitakkun.jetwhale.protocol.host.kotlinxSerializationJetWhaleHostPluginProtocol
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
+import com.kitakkun.jetwhale.plugins.example.protocol.ButtonClicked
+import com.kitakkun.jetwhale.plugins.example.protocol.Ping
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import com.kitakkun.jetwhale.protocol.messaging.request
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
@@ -24,40 +25,39 @@ import kotlinx.serialization.json.put
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class ExampleHostPluginFactory : JetWhaleHostPluginFactory {
-    override fun createPlugin(): JetWhaleRawHostPlugin = ExampleHostPlugin()
+    override fun createPlugin(): JetWhaleHostPlugin = ExampleHostPlugin()
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private class ExampleHostPlugin :
-    JetWhaleUiHostPlugin<ExampleEvent, ExampleMethod, ExampleMethodResult>(),
+    JetWhaleMessagingHostPlugin(),
+    JetWhaleHostPluginUi,
     JetWhaleMcpCapablePlugin {
-
-    override val protocol: JetWhaleHostPluginProtocol<ExampleEvent, ExampleMethod, ExampleMethodResult> = kotlinxSerializationJetWhaleHostPluginProtocol()
 
     private val eventLogs: SnapshotStateList<String> = mutableStateListOf()
 
-    // Stored so that MCP tool handlers can dispatch methods to the debuggee.
-    private var debugContext: JetWhaleDebugOperationContext<ExampleMethod, ExampleMethodResult>? = null
-
-    override fun onEvent(event: ExampleEvent) {
-        when (event) {
-            is ExampleEvent.ButtonClicked -> eventLogs.add("Event: $event")
-        }
-    }
-
-    override fun onDispose() {
-        debugContext = null
+    override fun JetWhaleMessageHandlers.configure() {
+        onEvent { event: ButtonClicked -> eventLogs.add("Event: $event") }
     }
 
     @Composable
-    override fun Content(context: JetWhaleDebugOperationContext<ExampleMethod, ExampleMethodResult>) {
-        // FIXME: `context` should ideally be provided to MCP tool handlers via a safer API rather than relying on Composable function execution.
-        //   This is just for demonstration purposes to show that method dispatch from MCP tools is possible.
-        //   We should consider alternative ways to provide context to tools.
-        debugContext = context
+    override fun Content() {
         ExamplePluginContent(
             eventLogs = eventLogs,
-            context = context,
+            onClickSendPing = {
+                pluginScope.launch {
+                    eventLogs.add("Request: Ping")
+                    // Catch the messaging failure specifically — runCatching would also swallow the
+                    // CancellationException that cancels this coroutine.
+                    val reply = try {
+                        messenger.request(Ping)
+                        "Reply: Pong"
+                    } catch (e: JetWhaleMessagingException) {
+                        "Error: ${e.message}"
+                    }
+                    eventLogs.add(reply)
+                }
+            },
         )
     }
 
@@ -68,7 +68,7 @@ private class ExampleHostPlugin :
     override fun mcpTools(): List<JetWhaleMcpToolDescriptor> = listOf(
         JetWhaleMcpToolDescriptor(
             name = "com.kitakkun.jetwhale.example.sendPing",
-            description = "Sends a Ping method to the debuggee and returns whether a Pong response was received.",
+            description = "Sends a Ping request to the debuggee and returns whether a Pong reply was received.",
         ),
         JetWhaleMcpToolDescriptor(
             name = "com.kitakkun.jetwhale.example.getEventLogs",
@@ -83,24 +83,25 @@ private class ExampleHostPlugin :
         ),
     )
 
-    override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? {
-        return when (toolName) {
-            "com.kitakkun.jetwhale.example.sendPing" -> {
-                val context = debugContext
-                    ?: return buildJsonObject { put("error", "Plugin UI is not active") }.toString()
-                val result: ExampleMethodResult? = context.dispatch(ExampleMethod.Ping)
-                buildJsonObject {
-                    put("pongReceived", result is ExampleMethodResult.Pong)
-                }.toString()
+    override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? = when (toolName) {
+        "com.kitakkun.jetwhale.example.sendPing" -> {
+            val pongReceived = try {
+                messenger.request(Ping)
+                true
+            } catch (e: JetWhaleMessagingException) {
+                false
             }
-
-            "com.kitakkun.jetwhale.example.getEventLogs" -> {
-                val limit = arguments["limit"]?.toIntOrNull()
-                val logs = if (limit != null) eventLogs.takeLast(limit) else eventLogs.toList()
-                Json.encodeToJsonElement(logs).toString()
-            }
-
-            else -> null
+            buildJsonObject {
+                put("pongReceived", pongReceived)
+            }.toString()
         }
+
+        "com.kitakkun.jetwhale.example.getEventLogs" -> {
+            val limit = arguments["limit"]?.toIntOrNull()
+            val logs = if (limit != null) eventLogs.takeLast(limit) else eventLogs.toList()
+            Json.encodeToJsonElement(logs).toString()
+        }
+
+        else -> null
     }
 }

@@ -15,26 +15,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
-import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
-import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethod
-import com.kitakkun.jetwhale.plugins.example.protocol.ExampleMethodResult
-import kotlinx.coroutines.launch
 
 @Composable
 fun ExamplePluginContent(
     eventLogs: SnapshotStateList<String>,
-    context: JetWhaleDebugOperationContext<ExampleMethod, ExampleMethodResult>,
+    onClickSendPing: () -> Unit,
 ) {
     ExamplePluginView(
         eventLogs = eventLogs,
-        onClickSendPing = {
-            context.coroutineScope.launch {
-                val method = ExampleMethod.Ping
-                eventLogs.add("Method: $method")
-                val result: ExampleMethodResult.Pong? = context.dispatch(method)
-                eventLogs.add("Method Result: $result")
-            }
-        },
+        onClickSendPing = onClickSendPing,
         onClickTriggerUIError = { error("Example Error") },
     )
 }

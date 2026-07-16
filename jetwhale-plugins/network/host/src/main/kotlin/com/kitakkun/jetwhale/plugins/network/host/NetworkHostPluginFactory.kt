@@ -6,49 +6,58 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import com.kitakkun.jetwhale.host.sdk.JetWhaleDebugOperationContext
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
-import com.kitakkun.jetwhale.host.sdk.JetWhaleRawHostPlugin
-import com.kitakkun.jetwhale.host.sdk.JetWhaleUiHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
+import com.kitakkun.jetwhale.plugins.network.protocol.GetMockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
-import com.kitakkun.jetwhale.plugins.network.protocol.NetworkEvent
-import com.kitakkun.jetwhale.plugins.network.protocol.NetworkMethod
-import com.kitakkun.jetwhale.plugins.network.protocol.NetworkMethodResult
-import com.kitakkun.jetwhale.protocol.host.JetWhaleHostPluginProtocol
-import com.kitakkun.jetwhale.protocol.host.kotlinxSerializationJetWhaleHostPluginProtocol
+import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
+import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
+import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
+import com.kitakkun.jetwhale.plugins.network.protocol.SetMockRules
+import com.kitakkun.jetwhale.plugins.network.protocol.SetMockingEnabled
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
+import com.kitakkun.jetwhale.protocol.messaging.request
 import kotlinx.coroutines.launch
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class NetworkHostPluginFactory : JetWhaleHostPluginFactory {
-    override fun createPlugin(): JetWhaleRawHostPlugin = NetworkHostPlugin()
+    override fun createPlugin(): JetWhaleHostPlugin = NetworkHostPlugin()
 }
 
 private const val MAX_TRANSACTIONS = 500
 
-private class NetworkHostPlugin : JetWhaleUiHostPlugin<NetworkEvent, NetworkMethod, NetworkMethodResult>() {
-
-    override val protocol: JetWhaleHostPluginProtocol<NetworkEvent, NetworkMethod, NetworkMethodResult> =
-        kotlinxSerializationJetWhaleHostPluginProtocol()
+private class NetworkHostPlugin :
+    JetWhaleMessagingHostPlugin(),
+    JetWhaleHostPluginUi {
 
     private val transactions: SnapshotStateList<HttpTransaction> = mutableStateListOf()
     private val mockRules: SnapshotStateList<MockRule> = mutableStateListOf()
     private var mockingEnabled by mutableStateOf(true)
 
-    override fun onEvent(event: NetworkEvent) {
-        when (event) {
-            is NetworkEvent.RequestSent -> {
-                transactions.add(HttpTransaction(request = event.request))
-                while (transactions.size > MAX_TRANSACTIONS) transactions.removeAt(0)
-            }
+    override fun JetWhaleMessageHandlers.configure() {
+        onEvent { event: RequestSent ->
+            transactions.add(HttpTransaction(request = event.request))
+            while (transactions.size > MAX_TRANSACTIONS) transactions.removeAt(0)
+        }
+        onEvent { event: ResponseReceived ->
+            updateTransaction(event.response.txId) { it.copy(response = event.response) }
+        }
+        onEvent { event: RequestFailed ->
+            updateTransaction(event.failure.txId) { it.copy(failure = event.failure) }
+        }
+    }
 
-            is NetworkEvent.ResponseReceived -> updateTransaction(event.response.txId) {
-                it.copy(response = event.response)
-            }
-
-            is NetworkEvent.RequestFailed -> updateTransaction(event.failure.txId) {
-                it.copy(failure = event.failure)
-            }
+    // The agent is the source of truth for the mock config (it survives host restarts): fetch and
+    // adopt it before any traffic handler runs.
+    override suspend fun onPrepare() {
+        val config = messenger.request(GetMockConfig)
+        mockingEnabled = config.enabled
+        mockRules.apply {
+            clear()
+            addAll(config.rules)
         }
     }
 
@@ -58,7 +67,7 @@ private class NetworkHostPlugin : JetWhaleUiHostPlugin<NetworkEvent, NetworkMeth
     }
 
     @Composable
-    override fun Content(context: JetWhaleDebugOperationContext<NetworkMethod, NetworkMethodResult>) {
+    override fun Content() {
         NetworkInspectorScreen(
             transactions = transactions,
             mockRules = mockRules,
@@ -66,8 +75,8 @@ private class NetworkHostPlugin : JetWhaleUiHostPlugin<NetworkEvent, NetworkMeth
             onClearTransactions = { transactions.clear() },
             onToggleMocking = { enabled ->
                 mockingEnabled = enabled
-                context.coroutineScope.launch {
-                    context.dispatch<NetworkMethodResult>(NetworkMethod.SetMockingEnabled(enabled))
+                pluginScope.launch {
+                    messenger.request(SetMockingEnabled(enabled))
                 }
             },
             onMockRulesChanged = { rules ->
@@ -75,8 +84,8 @@ private class NetworkHostPlugin : JetWhaleUiHostPlugin<NetworkEvent, NetworkMeth
                     clear()
                     addAll(rules)
                 }
-                context.coroutineScope.launch {
-                    context.dispatch<NetworkMethodResult>(NetworkMethod.SetMockRules(rules))
+                pluginScope.launch {
+                    messenger.request(SetMockRules(rules))
                 }
             },
         )

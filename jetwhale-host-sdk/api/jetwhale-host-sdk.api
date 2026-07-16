@@ -1,42 +1,45 @@
 public abstract interface annotation class com/kitakkun/jetwhale/host/sdk/ExperimentalJetWhaleApi : java/lang/annotation/Annotation {
 }
 
-public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleDebugOperationContext {
-	public abstract fun dispatch (Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun getCoroutineScope ()Lkotlinx/coroutines/CoroutineScope;
+public abstract interface annotation class com/kitakkun/jetwhale/host/sdk/InternalJetWhaleHostApi : java/lang/annotation/Annotation {
 }
 
-public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin : com/kitakkun/jetwhale/host/sdk/JetWhaleRawHostPlugin {
+public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin {
 	public static final field $stable I
 	public fun <init> ()V
-	protected abstract fun getProtocol ()Lcom/kitakkun/jetwhale/protocol/host/JetWhaleHostPluginProtocol;
-	public abstract fun onEvent (Ljava/lang/Object;)V
-	public final fun onRawEvent (Ljava/lang/String;)V
+	public final fun bindPluginScope (Lkotlinx/coroutines/CoroutineScope;)V
+	public final fun dispatchCreate ()V
+	public final fun dispatchDispose ()V
+	protected final fun getPluginScope ()Lkotlinx/coroutines/CoroutineScope;
+	protected fun onCreate ()V
+	public fun onDispose ()V
 }
 
 public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory {
-	public abstract fun createPlugin ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleRawHostPlugin;
+	public abstract fun createPlugin ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin;
 }
 
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest {
 	public static final field $stable I
 	public static final field Companion Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()Ljava/lang/String;
 	public final fun component4 ()Ljava/lang/String;
-	public final fun component5 ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
-	public final fun component6 ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;
+	public final fun component5 ()Z
+	public final fun component6 ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
+	public final fun component7 ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAgentVersionRange ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
 	public final fun getFactoryClass ()Ljava/lang/String;
 	public final fun getIcon ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;
 	public final fun getPluginId ()Ljava/lang/String;
 	public final fun getPluginName ()Ljava/lang/String;
+	public final fun getRequiresAgent ()Z
 	public final fun getVersion ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
@@ -153,6 +156,10 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifestFile
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginUi {
+	public abstract fun Content (Landroidx/compose/runtime/Composer;I)V
+}
+
 public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCapablePlugin {
 	public abstract fun handleMcpTool (Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun mcpTools ()Ljava/util/List;
@@ -192,26 +199,16 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor {
 	public fun toString ()Ljava/lang/String;
 }
 
-public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleRawDebugOperationContext {
-	public abstract fun dispatch (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun getCoroutineScope ()Lkotlinx/coroutines/CoroutineScope;
-}
-
-public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleRawHostPlugin {
+public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMessagingHostPlugin : com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin {
 	public static final field $stable I
 	public fun <init> ()V
-	public fun onDispose ()V
-	public abstract fun onRawEvent (Ljava/lang/String;)V
-}
-
-public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleRawUiHostPlugin {
-	public abstract fun ContentRaw (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleRawDebugOperationContext;Landroidx/compose/runtime/Composer;I)V
-}
-
-public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleUiHostPlugin : com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin, com/kitakkun/jetwhale/host/sdk/JetWhaleRawUiHostPlugin {
-	public static final field $stable I
-	public fun <init> ()V
-	public abstract fun Content (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleDebugOperationContext;Landroidx/compose/runtime/Composer;I)V
-	public final fun ContentRaw (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleRawDebugOperationContext;Landroidx/compose/runtime/Composer;I)V
+	public final fun bindMessenger (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;)V
+	protected fun configure (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessageHandlers;)V
+	public final fun dispatchPrepare (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	protected final fun getMessenger ()Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;
+	protected fun getPrepareTimeoutMillis ()J
+	protected fun onPrepare (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun prepareTimeoutMillis ()J
+	public final fun registerHandlers (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessageHandlers;)V
 }
 
