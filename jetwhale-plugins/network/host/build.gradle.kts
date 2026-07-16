@@ -22,4 +22,5 @@ dependencies {
     compileOnly(libs.kotlinxSerializationJson)
     api(projects.jetwhalePlugins.network.protocol)
     testImplementation(libs.kotlinTest)
+    testImplementation(libs.kotlinxSerializationJson)
 }
