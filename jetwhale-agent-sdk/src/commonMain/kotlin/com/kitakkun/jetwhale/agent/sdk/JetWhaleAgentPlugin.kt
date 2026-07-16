@@ -50,7 +50,7 @@ public abstract class JetWhaleAgentPlugin {
      */
     protected val messenger: JetWhaleMessenger
         get() = checkNotNull(boundMessenger) {
-            "messenger is only available after the plugin has been registered (in or after onActivate())."
+            "messenger is not bound: the plugin has not been registered with the JetWhale agent runtime."
         }
 
     /** Registers handlers for messages from the host (`onEvent { e: E -> }` / `onRequest { req -> reply(...) }`). */

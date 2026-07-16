@@ -27,7 +27,6 @@ class BufferedMessengerTest {
 
     /** A live transport that records the payloads forwarded to it, in order. */
     private class Recorder : JetWhaleMessenger {
-        override val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob())
         override val payloadFormat: StringFormat = Json
         val received: CopyOnWriteArrayList<String> = CopyOnWriteArrayList()
 
