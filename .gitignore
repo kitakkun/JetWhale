@@ -5,3 +5,8 @@ build
 .kotlin
 bin
 .mcp.json
+
+# VitePress docs site
+website/node_modules
+website/.vitepress/dist
+website/.vitepress/cache

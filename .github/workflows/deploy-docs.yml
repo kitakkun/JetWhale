@@ -1,0 +1,78 @@
+name: Deploy docs to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "website/**"
+      - ".github/workflows/deploy-docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deployment at a time; don't cancel a running production deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history so archived doc versions can be built from their tags.
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Build latest docs
+        working-directory: website
+        run: |
+          npm ci
+          npm run docs:build
+          mkdir -p "$GITHUB_WORKSPACE/site"
+          cp -r .vitepress/dist/. "$GITHUB_WORKSPACE/site/"
+
+      - name: Build archived doc versions
+        run: |
+          # website/versions.json lists released doc versions; each entry <v>
+          # is built from the git tag <v> and served under /JetWhale/<v>/.
+          jq -r '.[]' website/versions.json | while IFS= read -r version; do
+            echo "Building docs for $version"
+            worktree="$RUNNER_TEMP/docs-$version"
+            git worktree add "$worktree" "$version"
+            # The version switcher must know about all versions, and the build
+            # must know its own version for the base path.
+            cp website/versions.json "$worktree/website/versions.json"
+            (cd "$worktree/website" && npm ci && DOCS_VERSION="$version" npm run docs:build)
+            mkdir -p "site/$version"
+            cp -r "$worktree/website/.vitepress/dist/." "site/$version/"
+            git worktree remove --force "$worktree"
+          done
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

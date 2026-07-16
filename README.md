@@ -12,6 +12,8 @@ Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal lea
 > We welcome feedback as we work toward a stable release.
 > Please note that the Plugin SDK APIs are not yet finalized and may change in the future.
 
+📖 **Documentation: <https://kitakkun.github.io/JetWhale/>**
+
 ## Features
 
 - 🐳 **Powerful Debugging Platform**
@@ -44,7 +46,7 @@ Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal lea
     - Build your own plugins in your **own** repository against the published SDK — no fork needed
     - `runJetWhale` downloads a real JetWhale host and launches it with your plugin loaded;
       edit your plugin, re-stage, and the host **hot-reloads** it — no restart
-    - See [Developing plugins](docs/developing-plugins.md)
+    - See [Developing plugins](https://kitakkun.github.io/JetWhale/guide/developing-plugins)
 
 ## Developing plugins
 
@@ -56,6 +58,6 @@ fast, **hot-reload** dev loop:
   OS — no manual install).
 - Re-stage on save with `./gradlew :myPlugin:stageDevPlugin -t`; the host reloads your plugin without
   a restart — keeping its state for simple (method-body) edits, and recreating it for structural
-  changes (see the [limitations](docs/developing-plugins.md#limitations)).
+  changes (see the [limitations](https://kitakkun.github.io/JetWhale/guide/developing-plugins#limitations)).
 
-See **[docs/developing-plugins.md](docs/developing-plugins.md)** for the full guide.
+See **[Developing plugins](https://kitakkun.github.io/JetWhale/guide/developing-plugins)** for the full guide.
