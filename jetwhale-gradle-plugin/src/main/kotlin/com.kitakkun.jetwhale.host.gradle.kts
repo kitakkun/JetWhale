@@ -267,10 +267,14 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
     }
 
     val devDirProvider = devPluginsDir.map { it.asFile.absolutePath }
+    val osName = providers.systemProperty("os.name")
     jvmArgumentProviders.add(
         CommandLineArgumentProvider {
             buildList {
                 add("-Djetwhale.devPluginsDir=${devDirProvider.get()}")
+                // The macOS Dock name (hover text) comes from the bundle name, which for a bare JVM
+                // can only be set via -Xdock:name at launch — it is not settable at runtime.
+                if (osName.getOrElse("").contains("mac", ignoreCase = true)) add("-Xdock:name=JetWhale")
                 // Self-attach for the dev hot-reload's in-place class redefinition (off by default
                 // on JDK 9+).
                 add("-Djdk.attach.allowAttachSelf=true")

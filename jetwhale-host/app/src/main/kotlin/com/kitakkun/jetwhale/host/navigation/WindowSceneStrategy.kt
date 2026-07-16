@@ -18,7 +18,10 @@ import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SceneStrategyScope
 import com.kitakkun.jetwhale.host.LocalComposeWindow
+import com.kitakkun.jetwhale.host.Res
+import com.kitakkun.jetwhale.host.app_icon
 import com.kitakkun.jetwhale.host.ui.isShortcutModifierPressed
+import org.jetbrains.compose.resources.painterResource
 
 data class WindowProperties(
     val windowPlacement: WindowPlacement = WindowPlacement.Floating,
@@ -50,6 +53,7 @@ internal class WindowOverlayScene<T : Any>(
 
                 Window(
                     state = windowState,
+                    icon = painterResource(Res.drawable.app_icon),
                     onCloseRequest = { onCloseRequest(windowEntry.entry) },
                     onPreviewKeyEvent = { keyEvent ->
                         if (keyEvent.type == KeyEventType.KeyDown && keyEvent.isShortcutModifierPressed && keyEvent.key == Key.W) {
