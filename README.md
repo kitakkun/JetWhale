@@ -1,4 +1,12 @@
+<div align="center">
+  <img src="assets/icon.png" alt="JetWhale icon" width="128" />
+</div>
+
 # JetWhale
+
+[![Maven Central](https://img.shields.io/maven-central/v/com.kitakkun.jetwhale/jetwhale-agent-runtime)](https://central.sonatype.com/search?namespace=com.kitakkun.jetwhale)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![License](https://img.shields.io/github/license/kitakkun/JetWhale)](LICENSE)
 
 JetWhale is a next-generation, extensible debugging tool inspired
 by [Flipper](https://github.com/facebook/flipper).
