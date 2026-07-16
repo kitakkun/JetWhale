@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "docs/**"
+      - "website/**"
       - ".github/workflows/deploy-docs.yml"
   workflow_dispatch:
 
@@ -33,10 +34,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: docs/package-lock.json
+          cache-dependency-path: website/package-lock.json
 
       - name: Build latest docs
-        working-directory: docs
+        working-directory: website
         run: |
           npm ci
           npm run docs:build
@@ -45,18 +46,18 @@ jobs:
 
       - name: Build archived doc versions
         run: |
-          # docs/versions.json lists released doc versions; each entry <v> is
-          # built from the git tag <v> and served under /JetWhale/<v>/.
-          for version in $(jq -r '.[]' docs/versions.json); do
+          # website/versions.json lists released doc versions; each entry <v>
+          # is built from the git tag <v> and served under /JetWhale/<v>/.
+          for version in $(jq -r '.[]' website/versions.json); do
             echo "Building docs for $version"
             worktree="$RUNNER_TEMP/docs-$version"
             git worktree add "$worktree" "$version"
             # The version switcher must know about all versions, and the build
             # must know its own version for the base path.
-            cp docs/versions.json "$worktree/docs/versions.json"
-            (cd "$worktree/docs" && npm ci && DOCS_VERSION="$version" npm run docs:build)
+            cp website/versions.json "$worktree/website/versions.json"
+            (cd "$worktree/website" && npm ci && DOCS_VERSION="$version" npm run docs:build)
             mkdir -p "site/$version"
-            cp -r "$worktree/docs/.vitepress/dist/." "site/$version/"
+            cp -r "$worktree/website/.vitepress/dist/." "site/$version/"
             git worktree remove --force "$worktree"
           done
 

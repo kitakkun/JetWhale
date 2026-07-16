@@ -1,6 +1,9 @@
 import { defineConfig } from 'vitepress'
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
+
+const require = createRequire(import.meta.url)
 
 // List of archived doc versions (e.g. ["1.0.0"]), built by CI from git tags.
 // The dev server and the "latest" build always serve the working-tree docs.
@@ -14,6 +17,21 @@ const docsVersion = process.env.DOCS_VERSION // undefined => latest
 const base = docsVersion ? `/JetWhale/${docsVersion}/` : '/JetWhale/'
 
 export default defineConfig({
+  // The markdown content lives in the repo's plain docs/ directory;
+  // all site tooling stays under website/.
+  srcDir: '../docs',
+  vite: {
+    publicDir: fileURLToPath(new URL('../public', import.meta.url)),
+    resolve: {
+      alias: {
+        // The markdown sources in ../docs sit outside this npm project, so
+        // bare imports injected into them (by the SSR transform) don't find
+        // website/node_modules on their own — pin them explicitly.
+        'vue/server-renderer': require.resolve('vue/server-renderer'),
+        vue: require.resolve('vue'),
+      },
+    },
+  },
   title: 'JetWhale',
   description:
     'A next-generation, extensible debugging tool for Kotlin and Compose apps',

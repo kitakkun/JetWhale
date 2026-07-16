@@ -6,7 +6,7 @@ build
 bin
 .mcp.json
 
-# VitePress docs
-docs/node_modules
-docs/.vitepress/dist
-docs/.vitepress/cache
+# VitePress docs site
+website/node_modules
+website/.vitepress/dist
+website/.vitepress/cache
