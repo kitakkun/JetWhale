@@ -50,12 +50,8 @@ public val DefaultJetWhaleMessagingFormat: StringFormat = Json {
  * [sendFrame] (e.g. over a WebSocket).
  *
  * When [awaitReady] is true, inbound notifications and requests are held (in arrival order) until
- * [markReady] is called; replies always flow. The runtimes use this as the `onPrepare` barrier: the
- * plugin's own outbound requests work during preparation, but none of its handlers run until
- * preparation completes. Note the implication for two peers preparing simultaneously: a request
- * sent *from* `onPrepare` is answered only if the other side is already ready (or has no
- * preparation of its own) — by convention, only one side of a plugin pair actively requests during
- * preparation.
+ * [markReady]; replies always flow, so the preparing side's own requests still complete. The
+ * runtimes use this as the `onPrepare` barrier.
  *
  * The inbound/outbound queues are bounded to [bufferCapacity] to avoid unbounded growth under load;
  * a frame that cannot be enqueued is dropped (notifications) or fails its request fast, reported via
@@ -84,8 +80,6 @@ public class JetWhalePluginPeer(
     // itself awaiting a reply behind a slow notification.
     private val inboundQueue = Channel<PluginFrame>(capacity = bufferCapacity, onBufferOverflow = BufferOverflow.SUSPEND)
 
-    // The onPrepare barrier: while incomplete, the inbound consumer holds notifications and requests
-    // (replies never queue there, so the preparing side's own requests still complete).
     private val readyGate: CompletableDeferred<Unit> =
         if (awaitReady) CompletableDeferred() else CompletableDeferred(Unit)
 
@@ -109,7 +103,6 @@ public class JetWhalePluginPeer(
         // own coroutine so it runs concurrently (and may request() back) without blocking this loop.
         scope.launch {
             for (frame in inboundQueue) {
-                // The onPrepare barrier: nothing is dispatched to handlers until markReady().
                 readyGate.await()
                 when (frame) {
                     is PluginFrame.Notification -> dispatchNotification(frame)
@@ -148,11 +141,7 @@ public class JetWhalePluginPeer(
         override suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String = this@JetWhalePluginPeer.requestRaw(messageType, payload, timeout)
     }
 
-    /**
-     * Opens the handler-dispatch gate (see the class KDoc). Call once the plugin's preparation
-     * (`onPrepare`) has completed — or failed, since a degraded plugin still beats a frozen one.
-     * Idempotent; a no-op for a peer constructed without `awaitReady`.
-     */
+    /** Opens handler dispatch. Call once preparation has completed — or failed. Idempotent. */
     public fun markReady() {
         readyGate.complete(Unit)
     }

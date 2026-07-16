@@ -50,8 +50,7 @@ class DefaultPluginComposeSceneService(
 
                 composeScene.setContent {
                     pluginBridgeProvider.PluginEntryPoint {
-                        // Headless plugins (not a JetWhaleHostPluginUi) render no content. A messaging
-                        // plugin talks to the agent via its own `messenger` property — nothing to provide.
+                        // Headless plugins (not a JetWhaleHostPluginUi) render no content.
                         val ui = pluginInstance as? JetWhaleHostPluginUi ?: return@PluginEntryPoint
                         ui.Content()
                     }

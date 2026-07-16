@@ -108,14 +108,10 @@ internal class JetWhaleAgentPluginService(
         val scope = connectionScope ?: return
         val sendFrame = sendFrame ?: return
         if (runtime.peer != null) return
-        // awaitReady holds inbound handler dispatch until onPrepare completes (the prepare barrier).
         val peer = JetWhalePluginPeer(pluginId = runtime.plugin.pluginId, parentScope = scope, sendFrame = sendFrame, awaitReady = true)
         peer.configure { runtime.plugin.registerHandlers(this) }
         runtime.peer = peer
-        // Attach the live transport (requests work now); run the plugin's preparation, then open the
-        // handler gate and the flush gate so handlers run and buffered events flush only after it
-        // finishes. A preparation that hangs is bounded by a timeout: warn loudly and proceed,
-        // rather than freeze.
+        // markReady() and the buffered-event flush also run on prepare timeout: degraded beats frozen.
         runtime.messenger.bind(peer.messenger)
         runtime.connectJob = scope.launch {
             try {

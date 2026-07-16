@@ -95,7 +95,6 @@ class DefaultPluginInstanceService(
                 pluginId = pluginId,
                 parentScope = scope,
                 sendFrame = { frame -> frameSender.sendFrame(sessionId, frame) },
-                // Hold handler dispatch until onPrepare completes (the prepare barrier).
                 awaitReady = true,
             ).also { peer ->
                 peer.configure { plugin.registerHandlers(this) }
@@ -106,9 +105,7 @@ class DefaultPluginInstanceService(
         }
         plugin.dispatchCreate()
         if (peer != null && plugin is JetWhaleMessagingHostPlugin) {
-            // Run the plugin's initial exchange, then open handler dispatch. Bounded by a timeout: a
-            // hung preparation is warned about (visible in the host log) and the plugin proceeds
-            // degraded rather than frozen. markReady() also runs on failure — same reasoning.
+            // markReady() also runs on prepare timeout/failure: a degraded plugin beats a frozen one.
             instanceScope.launch {
                 try {
                     withTimeout(plugin.prepareTimeoutMillis()) {

@@ -44,8 +44,7 @@ class JetWhaleNetworkAgentPlugin : JetWhaleAgentPlugin() {
     private val mockRules = MutableStateFlow(emptyList<MockRule>())
 
     override fun JetWhaleMessageHandlers.configure() {
-        // Answered during the host's onPrepare: we are the config's source of truth (it survives
-        // host restarts), so the host fetches and adopts it on every (re)connect.
+        // We are the config's source of truth (it survives host restarts); the host fetches it in onPrepare.
         onRequest { _: GetMockConfig ->
             reply(MockConfig(enabled = mockingEnabled.value, rules = mockRules.value))
         }

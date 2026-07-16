@@ -6,23 +6,15 @@ import kotlinx.serialization.serializer
 /**
  * Typed handler registry, configured once per plugin instance (in `configure { ... }`).
  *
- * Whether a handler answers a request or consumes a fire-and-forget event is stated twice, on
- * purpose: by the message type ([JetWhaleEvent] vs [JetWhaleRequest]) and by the registration
- * function. A single overloaded `on` was tried and abandoned — with the message type only on the
- * lambda parameter, overload resolution cannot discriminate the two shapes (the two-type-variable
- * request bound is never pruned, and a member candidate "wins" by inferring an intersection type),
- * so the split names are what keeps registration checkable:
- *
  * ```kotlin
- * onEvent { e: ButtonClicked -> counter++ }                 // event: no reply
- * onRequest { req: GetConfig -> reply(buildConfig()) }      // request: must end with reply(...)
+ * onEvent { e: ButtonClicked -> counter++ }
+ * onRequest { req: GetConfig -> reply(buildConfig()) }
  * ```
  *
- * Registration is reified, which is what removes the need for a sealed message hierarchy and a
- * hand-written protocol: each registration captures the serializer and the wire type key
- * (`descriptor.serialName`) of the concrete message type. For requests, the reply type is inferred
- * from the request's [JetWhaleRequest] declaration, so a handler ending with a `reply(...)` of the
- * wrong type does not compile.
+ * Registration is reified: each call captures the serializer and the wire type key
+ * (`descriptor.serialName`) of the concrete message type, so no sealed hierarchy or hand-written
+ * protocol is needed. (A single overloaded `on` cannot be resolved from the lambda parameter type
+ * alone — hence the two names.)
  */
 public class JetWhaleMessageHandlers internal constructor() {
     internal class EventEntry(
@@ -45,10 +37,9 @@ public class JetWhaleMessageHandlers internal constructor() {
     }
 
     /**
-     * Registers a handler for the request type [REQ]. The handler must produce — via [reply] — the
-     * reply type [R] declared by `REQ : JetWhaleRequest<R>`; anything else is a compile-time error.
-     * One handler per type; the wrapped value is sent back as the reply once the handler returns
-     * (offload post-reply work to a scope rather than doing it before the final `reply(...)`).
+     * Registers a handler for the request type [REQ]. It must return — via [reply] — the reply type
+     * declared by `REQ : JetWhaleRequest<R>`. The reply is sent when the handler returns, so
+     * offload post-reply work to a scope instead of doing it before the final `reply(...)`.
      */
     public inline fun <reified REQ : JetWhaleRequest<R>, reified R : Any> onRequest(
         noinline handler: suspend (REQ) -> Reply<R>,
