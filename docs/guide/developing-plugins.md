@@ -224,6 +224,12 @@ deadlock until the timeout. `onPrepare` is bounded by `prepareTimeoutMillis` —
 failure) the runtime logs a warning (visible in the host log) and opens handler dispatch anyway, so
 the plugin proceeds degraded rather than hanging.
 
+Note that there is no preparation-only message lane: a handler registered in `configure` is callable
+by the other side for the **whole session**, not just while preparing. Design prepare-time exchanges
+as **idempotent, read-only queries** (like `GetMockConfig`) so answering them again later is
+harmless; if an exchange truly must happen only once, validate that in the handler and reply with an
+error afterwards.
+
 **Treat the other side's input as untrusted.** Because messaging is symmetric, a host `onRequest` /
 `onEvent` handler runs on input the **agent** (the app being debugged) chose to send — and vice
 versa. Validate payloads, and keep handlers cheap and non-blocking: the peer caps how many requests
