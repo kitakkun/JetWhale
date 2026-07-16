@@ -23,8 +23,6 @@ abstract interface <#A: kotlin/Any> com.kitakkun.jetwhale.protocol.messaging/Jet
 abstract interface com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent // com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent|null[0]
 
 abstract interface com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger { // com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger|null[0]
-    abstract val coroutineScope // com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger.coroutineScope|{}coroutineScope[0]
-        abstract fun <get-coroutineScope>(): kotlinx.coroutines/CoroutineScope // com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger.coroutineScope.<get-coroutineScope>|<get-coroutineScope>(){}[0]
     abstract val payloadFormat // com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger.payloadFormat|{}payloadFormat[0]
         abstract fun <get-payloadFormat>(): kotlinx.serialization/StringFormat // com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger.payloadFormat.<get-payloadFormat>|<get-payloadFormat>(){}[0]
 
@@ -584,8 +582,6 @@ final class <#A: kotlin/Any> com.kitakkun.jetwhale.protocol.messaging/Reply // c
 final class com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger : com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger { // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger|null[0]
     constructor <init>(kotlinx.coroutines/CoroutineScope, kotlinx.serialization/StringFormat, kotlin/Int, kotlin/Function1<kotlin/String, kotlin/Unit> = ...) // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.<init>|<init>(kotlinx.coroutines.CoroutineScope;kotlinx.serialization.StringFormat;kotlin.Int;kotlin.Function1<kotlin.String,kotlin.Unit>){}[0]
 
-    final val coroutineScope // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.coroutineScope|{}coroutineScope[0]
-        final fun <get-coroutineScope>(): kotlinx.coroutines/CoroutineScope // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.coroutineScope.<get-coroutineScope>|<get-coroutineScope>(){}[0]
     final val payloadFormat // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.payloadFormat|{}payloadFormat[0]
         final fun <get-payloadFormat>(): kotlinx.serialization/StringFormat // com.kitakkun.jetwhale.protocol.messaging/BufferedMessenger.payloadFormat.<get-payloadFormat>|<get-payloadFormat>(){}[0]
 

@@ -32,9 +32,6 @@ public enum class OfflineSendPolicy {
  * capture the message serializer at the call site via reified type parameters.
  */
 public interface JetWhaleMessenger {
-    /** Scope tied to this connection; cancelled when the connection closes. */
-    public val coroutineScope: CoroutineScope
-
     /** Format used to (de)serialize message payloads. */
     public val payloadFormat: StringFormat
 
@@ -77,7 +74,9 @@ public inline fun <reified E : JetWhaleEvent> JetWhaleMessenger.trySend(event: E
  * Sends a fire-and-forget event, **buffering it** while the connection is unavailable and flushing
  * it (in order) on reconnect. Use this for streams you must not lose across a disconnect (e.g.
  * captured traffic). The buffer is bounded and opt-in — without capacity this behaves like
- * [trySend]. Only [JetWhaleEvent] types are accepted.
+ * [trySend]. Buffering exists only on the agent's connection-independent messenger; a host plugin's
+ * messenger lives exactly as long as its connection, so there is nothing to buffer across and this
+ * degrades to [trySend] there. Only [JetWhaleEvent] types are accepted.
  */
 public inline fun <reified E : JetWhaleEvent> JetWhaleMessenger.sendOrQueue(event: E) {
     val eventSerializer = serializer<E>()

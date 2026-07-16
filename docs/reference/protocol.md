@@ -32,10 +32,15 @@ The negotiation phase consists of the following steps:
 
 ## Debugging Session
 
-During the debugging session, both sides can send or receive the following types of messages:
+During the debugging session, plugin messages travel as **plugin frames**, carried symmetrically in
+both directions (there is no directional difference between the debugger and the debuggee). A frame
+is one of:
 
-- **Debuggee Event**: This message is sent from the debuggee to the debugger. The debuggee can
-  send various types of information to support plugin debugging features. This is a unidirectional
-  message, so the debuggee does not expect any response from the debugger.
-- **Method**: This message is sent from the debugger to the debuggee to request specific actions or
-  information. The debuggee processes the method and sends back a corresponding response message.
+- **Notification**: a fire-and-forget event. The sender expects no response.
+- **Request**: expects a reply; the sender assigns a correlation id and applies a timeout.
+- **Reply**: completes a request (as a success payload or a failure message), matched to it by the
+  correlation id.
+
+Frames are addressed by plugin id and routed to that plugin's messaging peer on the receiving side.
+Notifications and requests are dispatched in arrival order; replies bypass the queue so a handler
+awaiting a reply is never blocked behind other traffic.

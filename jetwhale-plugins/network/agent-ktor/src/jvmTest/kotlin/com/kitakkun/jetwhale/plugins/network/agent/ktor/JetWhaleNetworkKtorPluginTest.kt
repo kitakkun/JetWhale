@@ -148,7 +148,6 @@ class JetWhaleNetworkKtorPluginTest {
 
 /** Records every event the plugin sends, decoded back to its typed form. */
 private class RecordingMessenger(val events: MutableList<Any>) : JetWhaleMessenger {
-    override val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob())
     override val payloadFormat: StringFormat = DefaultJetWhaleMessagingFormat
 
     override fun sendRaw(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean {

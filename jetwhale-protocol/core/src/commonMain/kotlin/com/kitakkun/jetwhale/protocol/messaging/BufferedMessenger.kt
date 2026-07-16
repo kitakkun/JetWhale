@@ -47,8 +47,6 @@ public class BufferedMessenger(
     private val scope: CoroutineScope =
         CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
 
-    override val coroutineScope: CoroutineScope get() = scope
-
     /** The live transport, or null while disconnected. Sole writer is [bind]/[unbind]. */
     private val live = MutableStateFlow<JetWhaleMessenger?>(null)
 

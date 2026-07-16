@@ -10,8 +10,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Owns the messaging peers for the agent plugins, and tracks two independent lifecycles:
@@ -90,7 +92,13 @@ internal class JetWhaleAgentPluginService(
         val runtime = runtimes[id] ?: return
         if (!runtime.active) {
             runtime.active = true
-            runtime.plugin.dispatchActivate()
+            // A plugin whose onActivate throws must not take down the connection (and with it every
+            // other plugin): isolate the failure and keep the plugin activated so its peer still works.
+            try {
+                runtime.plugin.dispatchActivate()
+            } catch (e: Throwable) {
+                JetWhaleLogger.w("JetWhale: onActivate for plugin '${runtime.plugin.pluginId}' failed.", e)
+            }
         }
         establishPeer(runtime)
     }
@@ -101,7 +109,13 @@ internal class JetWhaleAgentPluginService(
         // Not a transient disconnect, so no onDisconnected; the plugin gets onDeactivate to stop its work.
         dropPeer(runtime, notifyDisconnected = false)
         runtime.active = false
-        runtime.plugin.dispatchDeactivate()
+        try {
+            runtime.plugin.dispatchDeactivate()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            JetWhaleLogger.w("JetWhale: onDeactivate for plugin '${runtime.plugin.pluginId}' failed.", e)
+        }
     }
 
     private fun establishPeer(runtime: PluginRuntime) {
@@ -109,7 +123,15 @@ internal class JetWhaleAgentPluginService(
         val sendFrame = sendFrame ?: return
         if (runtime.peer != null) return
         val peer = JetWhalePluginPeer(pluginId = runtime.plugin.pluginId, parentScope = scope, sendFrame = sendFrame, awaitReady = true)
-        peer.configure { runtime.plugin.registerHandlers(this) }
+        // A broken configure (e.g. duplicate handler registration) must not leak the half-built peer
+        // or abort the connection for other plugins.
+        try {
+            peer.configure { runtime.plugin.registerHandlers(this) }
+        } catch (e: Throwable) {
+            JetWhaleLogger.w("JetWhale: handler registration for plugin '${runtime.plugin.pluginId}' failed; plugin stays offline this connection.", e)
+            scope.launch { peer.close() }
+            return
+        }
         runtime.peer = peer
         // markReady() and the buffered-event flush also run on prepare timeout: degraded beats frozen.
         runtime.messenger.bind(peer.messenger)
@@ -120,6 +142,12 @@ internal class JetWhaleAgentPluginService(
                 }
             } catch (e: TimeoutCancellationException) {
                 JetWhaleLogger.w("JetWhale: onPrepare for plugin '${runtime.plugin.pluginId}' did not complete in time; proceeding.", e)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                // A failed request (JetWhaleRequestException etc.) is the common degraded path here;
+                // it must never escape as an uncaught exception in the debuggee process.
+                JetWhaleLogger.w("JetWhale: onPrepare for plugin '${runtime.plugin.pluginId}' failed; proceeding.", e)
             } finally {
                 peer.markReady()
                 runtime.messenger.startFlush()
@@ -129,13 +157,22 @@ internal class JetWhaleAgentPluginService(
 
     private suspend fun dropPeer(runtime: PluginRuntime, notifyDisconnected: Boolean) {
         val peer = runtime.peer ?: return
-        runtime.connectJob?.cancel()
+        // Join, don't just cancel: the job's finally opens the flush gate (markReady/startFlush), and
+        // if it ran after the next connection's bind() it would open that connection's gate before its
+        // prepare completed.
+        runtime.connectJob?.cancelAndJoin()
         runtime.connectJob = null
         // Detach the transport (closing the flush gate) but keep the messenger alive so it keeps buffering.
         runtime.messenger.unbind()
         runtime.peer = null
         try {
             if (notifyDisconnected) runtime.plugin.dispatchDisconnected()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            // Isolate per plugin: one throwing onDisconnected must not skip dropPeer for the others,
+            // or they would stay bound to the dead peer across the reconnect.
+            JetWhaleLogger.w("JetWhale: onDisconnected for plugin '${runtime.plugin.pluginId}' failed.", e)
         } finally {
             peer.close()
         }
@@ -155,13 +192,21 @@ internal class JetWhaleAgentPluginService(
         if (frame is PluginFrame.Request) {
             val sendFrame = sendFrame ?: return
             serviceScope.launch {
-                sendFrame(
-                    PluginFrame.Reply.Failure(
-                        pluginId = frame.pluginId,
-                        inReplyTo = frame.correlationId,
-                        errorMessage = "Plugin '${frame.pluginId}' is not active in the agent.",
-                    ),
-                )
+                // Best effort: the socket may already be dead (e.g. a request racing a disconnect);
+                // a failed failure-reply must not surface as an uncaught exception in the debuggee.
+                try {
+                    sendFrame(
+                        PluginFrame.Reply.Failure(
+                            pluginId = frame.pluginId,
+                            inReplyTo = frame.correlationId,
+                            errorMessage = "Plugin '${frame.pluginId}' is not active in the agent.",
+                        ),
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    JetWhaleLogger.w("JetWhale: failed to send fast-fail reply for plugin '${frame.pluginId}'.", e)
+                }
             }
         }
     }

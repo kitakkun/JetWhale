@@ -75,7 +75,7 @@ class DefaultPluginInstanceService(
             val key = PluginInstanceKey(pluginId, sessionId)
             loadedPlugins.computeIfAbsent(key) {
                 newlyInitializedSessions += sessionId
-                createInstance(pluginId, sessionId, loaded.factory.createPlugin())
+                createInstance(pluginId, sessionId, loaded.factory.createPlugin(), loaded.manifest.requiresAgent)
             }
         }
 
@@ -85,10 +85,22 @@ class DefaultPluginInstanceService(
         return newlyInitializedSessions
     }
 
-    private fun createInstance(pluginId: String, sessionId: String, plugin: JetWhaleHostPlugin): LoadedInstance {
+    private fun createInstance(pluginId: String, sessionId: String, plugin: JetWhaleHostPlugin, requiresAgent: Boolean): LoadedInstance {
+        if (!requiresAgent && plugin is JetWhaleMessagingHostPlugin) {
+            // A messaging plugin without an agent counterpart waits out its prepare timeout on every
+            // session and gets "not active" failures for every request — surface the misconfiguration
+            // instead of degrading silently.
+            logger.warning(
+                "Plugin '$pluginId' declares requiresAgent=false but its factory returns a JetWhaleMessagingHostPlugin; " +
+                    "its messenger will never reach an agent.",
+            )
+        }
         val instanceScope = CoroutineScope(scope.coroutineContext + SupervisorJob(scope.coroutineContext[Job]))
         plugin.bindPluginScope(instanceScope)
 
+        // User code below (registerHandlers, onCreate) is guarded: this runs inside the map's
+        // computeIfAbsent, and a throwing plugin must neither leak the just-created peer/scope nor
+        // abort loading for the caller.
         // Only messaging plugins get a peer; a pure plugin pays none of the messaging cost.
         val peer = if (plugin is JetWhaleMessagingHostPlugin) {
             JetWhalePluginPeer(
@@ -97,13 +109,21 @@ class DefaultPluginInstanceService(
                 sendFrame = { frame -> frameSender.sendFrame(sessionId, frame) },
                 awaitReady = true,
             ).also { peer ->
-                peer.configure { plugin.registerHandlers(this) }
+                try {
+                    peer.configure { plugin.registerHandlers(this) }
+                } catch (e: Throwable) {
+                    logger.warning("Handler registration for plugin '$pluginId' in session '$sessionId' failed: ${e.message}")
+                }
                 plugin.bindMessenger(peer.messenger)
             }
         } else {
             null
         }
-        plugin.dispatchCreate()
+        try {
+            plugin.dispatchCreate()
+        } catch (e: Throwable) {
+            logger.warning("onCreate for plugin '$pluginId' in session '$sessionId' failed: ${e.message}")
+        }
         if (peer != null && plugin is JetWhaleMessagingHostPlugin) {
             // markReady() also runs on prepare timeout/failure: a degraded plugin beats a frozen one.
             instanceScope.launch {
@@ -138,14 +158,22 @@ class DefaultPluginInstanceService(
         // session while this one failure reply is in flight.
         if (frame is PluginFrame.Request) {
             scope.launch {
-                frameSender.sendFrame(
-                    sessionId = sessionId,
-                    frame = PluginFrame.Reply.Failure(
-                        pluginId = frame.pluginId,
-                        inReplyTo = frame.correlationId,
-                        errorMessage = "Plugin '${frame.pluginId}' is not loaded in session '$sessionId'.",
-                    ),
-                )
+                // Best effort: the session may already be half-closed; a failed failure-reply must
+                // not escalate through the supervisor.
+                try {
+                    frameSender.sendFrame(
+                        sessionId = sessionId,
+                        frame = PluginFrame.Reply.Failure(
+                            pluginId = frame.pluginId,
+                            inReplyTo = frame.correlationId,
+                            errorMessage = "Plugin '${frame.pluginId}' is not loaded in session '$sessionId'.",
+                        ),
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    logger.warning("Failed to send fast-fail reply for plugin '${frame.pluginId}' in session '$sessionId': ${e.message}")
+                }
             }
         }
     }
@@ -164,10 +192,17 @@ class DefaultPluginInstanceService(
 
     private fun disposeInstance(key: PluginInstanceKey, emitEvent: Boolean = true) {
         val removed = loadedPlugins.remove(key) ?: return
-        removed.plugin.dispatchDispose()
-        removed.instanceScope.cancel()
-        // close() suspends (it fails pending requests under a mutex), so run it off the caller.
-        removed.peer?.let { peer -> scope.launch { peer.close() } }
+        try {
+            removed.plugin.dispatchDispose()
+        } catch (e: Throwable) {
+            // A throwing onDispose must not leak the scope/peer, nor abort disposing the session's
+            // other plugins from the callers' forEach loops.
+            logger.warning("onDispose for plugin '${key.pluginId}' in session '${key.sessionId}' failed: ${e.message}")
+        } finally {
+            removed.instanceScope.cancel()
+            // close() suspends (it fails pending requests under a mutex), so run it off the caller.
+            removed.peer?.let { peer -> scope.launch { peer.close() } }
+        }
         if (emitEvent) emitEvent(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
     }
 
