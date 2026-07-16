@@ -23,12 +23,13 @@ claude mcp add --transport sse jetwhale http://localhost:7080/sse
 | Tool | What it does |
 |------|--------------|
 | `jetwhale.listSessions` | Lists connected debug sessions; other tools take a `sessionId` from here |
-| `screenshot` | Captures the debuggee's screen |
-| `click` | Clicks/taps at a position or element |
-| `type` | Types text |
-| `scroll` | Scrolls |
-| `drag` | Performs a drag gesture |
-| `getAccessibilityTree` | Returns the accessibility (semantics) tree of the current UI |
+| `jetwhale.listPlugins` | Lists the plugins available in a session |
+| `jetwhale.screenshot` | Captures the debuggee's screen |
+| `jetwhale.click` | Clicks/taps at a position or element |
+| `jetwhale.type` | Types text |
+| `jetwhale.scroll` | Scrolls |
+| `jetwhale.drag` | Performs a drag gesture |
+| `jetwhale.getAccessibilityTree` | Returns the accessibility (semantics) tree of the current UI |
 
 Because a single host can debug multiple apps at once, every tool that targets a device takes a
 required `sessionId` parameter — call `jetwhale.listSessions` first to find the session you want.
@@ -36,9 +37,9 @@ required `sessionId` parameter — call `jetwhale.listSessions` first to find th
 ## Plugin-provided tools
 
 Host plugins can expose their own MCP tools by implementing `JetWhaleMcpCapablePlugin`. Their tools
-are registered alongside the built-ins (with the same injected `sessionId` parameter), so an AI
-agent can use your custom debugging features too. See
-[Developing Plugins](/guide/developing-plugins).
+are registered alongside the built-ins; JetWhale automatically injects a required `sessionId`
+parameter into each plugin tool's schema so an AI agent can target a specific connected device with
+your custom debugging features too. See [Developing Plugins](/guide/developing-plugins).
 
 ::: warning
 The MCP server is experimental — tool names and behavior may change between releases.

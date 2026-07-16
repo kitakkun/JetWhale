@@ -48,7 +48,7 @@ jobs:
         run: |
           # website/versions.json lists released doc versions; each entry <v>
           # is built from the git tag <v> and served under /JetWhale/<v>/.
-          for version in $(jq -r '.[]' website/versions.json); do
+          jq -r '.[]' website/versions.json | while IFS= read -r version; do
             echo "Building docs for $version"
             worktree="$RUNNER_TEMP/docs-$version"
             git worktree add "$worktree" "$version"
