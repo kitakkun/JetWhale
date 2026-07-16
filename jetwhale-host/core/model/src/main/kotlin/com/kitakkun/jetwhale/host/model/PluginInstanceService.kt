@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.host.model
 
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import kotlinx.coroutines.flow.SharedFlow
 
@@ -21,8 +20,6 @@ interface PluginInstanceService {
     fun unloadPluginInstanceForSession(sessionId: String)
     fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin?
 
-    /** Returns the messenger of the plugin instance in [sessionId], or null if it has none (host-only). */
-    fun getMessengerForSession(pluginId: String, sessionId: String): JetWhaleMessenger?
     fun unloadPluginInstancesForPlugin(pluginId: String)
     fun clearAllPluginInstances()
 

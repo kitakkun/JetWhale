@@ -6,13 +6,25 @@ import kotlinx.serialization.serializer
 /**
  * Typed handler registry, configured once per plugin instance (in `configure { ... }`).
  *
+ * Whether a handler answers a request or consumes a fire-and-forget event is stated twice, on
+ * purpose: by the message type ([JetWhaleEvent] vs [JetWhaleRequest]) and by the registration
+ * function. A single overloaded `on` was tried and abandoned — with the message type only on the
+ * lambda parameter, overload resolution cannot discriminate the two shapes (the two-type-variable
+ * request bound is never pruned, and a member candidate "wins" by inferring an intersection type),
+ * so the split names are what keeps registration checkable:
+ *
+ * ```kotlin
+ * onEvent { e: ButtonClicked -> counter++ }                 // event: no reply
+ * onRequest { req: GetConfig -> reply(buildConfig()) }      // request: must end with reply(...)
+ * ```
+ *
  * Registration is reified, which is what removes the need for a sealed message hierarchy and a
- * hand-written protocol: each `onEvent`/`onRequest` call captures the serializer and the wire type
- * key (`descriptor.serialName`) of the concrete message type. For requests, the reply type is
- * inferred from the request's [JetWhaleRequest] declaration, so a handler returning the wrong
- * reply type does not compile.
+ * hand-written protocol: each registration captures the serializer and the wire type key
+ * (`descriptor.serialName`) of the concrete message type. For requests, the reply type is inferred
+ * from the request's [JetWhaleRequest] declaration, so a handler ending with a `reply(...)` of the
+ * wrong type does not compile.
  */
-public class JetWhaleMessagingHandlers internal constructor() {
+public class JetWhaleMessageHandlers internal constructor() {
     internal class EventEntry(
         val serializer: KSerializer<*>,
         val handler: suspend (Any) -> Unit,
@@ -33,12 +45,13 @@ public class JetWhaleMessagingHandlers internal constructor() {
     }
 
     /**
-     * Registers a handler for the request type [REQ]. The handler must return the reply type [R]
-     * declared by `REQ : JetWhaleRequest<R>` — anything else is a compile-time error. One handler
-     * per type; the returned value is sent back as the reply.
+     * Registers a handler for the request type [REQ]. The handler must produce — via [reply] — the
+     * reply type [R] declared by `REQ : JetWhaleRequest<R>`; anything else is a compile-time error.
+     * One handler per type; the wrapped value is sent back as the reply once the handler returns
+     * (offload post-reply work to a scope rather than doing it before the final `reply(...)`).
      */
     public inline fun <reified REQ : JetWhaleRequest<R>, reified R : Any> onRequest(
-        noinline handler: suspend (REQ) -> R,
+        noinline handler: suspend (REQ) -> Reply<R>,
     ) {
         registerRequest(serializer<REQ>(), serializer<R>(), handler)
     }
@@ -58,12 +71,12 @@ public class JetWhaleMessagingHandlers internal constructor() {
     internal fun <REQ : JetWhaleRequest<R>, R : Any> registerRequest(
         requestSerializer: KSerializer<REQ>,
         replySerializer: KSerializer<R>,
-        handler: suspend (REQ) -> R,
+        handler: suspend (REQ) -> Reply<R>,
     ) {
         val key = requestSerializer.descriptor.serialName
         check(key !in requestEntries) { "A request handler for '$key' is already registered." }
         @Suppress("UNCHECKED_CAST")
-        requestEntries[key] = RequestEntry(requestSerializer, replySerializer) { value -> handler(value as REQ) }
+        requestEntries[key] = RequestEntry(requestSerializer, replySerializer) { value -> handler(value as REQ).value }
     }
 
     internal fun eventEntryFor(messageType: String): EventEntry? = eventEntries[messageType]

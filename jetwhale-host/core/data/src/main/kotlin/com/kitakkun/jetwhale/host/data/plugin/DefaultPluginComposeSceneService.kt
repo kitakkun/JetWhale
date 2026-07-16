@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -17,7 +16,6 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
-import com.kitakkun.jetwhale.host.sdk.LocalJetWhaleMessenger
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -45,9 +43,6 @@ class DefaultPluginComposeSceneService(
         ) ?: run {
             error("Plugin instance not found for pluginId=$pluginId, sessionId=$sessionId")
         }
-        // The instance's messenger (null for a host-only plugin), provided to Content() as a
-        // composition-scoped value so the plugin reads it instead of holding a long-lived reference.
-        val messenger = pluginInstanceService.getMessengerForSession(pluginId = pluginId, sessionId = sessionId)
         return withContext(Dispatchers.Main) {
             pluginScenes.getOrPut("$pluginId:$sessionId") {
                 val windowUpdatableContext = DynamicWindowInfoPlatformContext()
@@ -55,13 +50,10 @@ class DefaultPluginComposeSceneService(
 
                 composeScene.setContent {
                     pluginBridgeProvider.PluginEntryPoint {
-                        // Headless plugins (not a JetWhaleHostPluginUi) render no content.
+                        // Headless plugins (not a JetWhaleHostPluginUi) render no content. A messaging
+                        // plugin talks to the agent via its own `messenger` property — nothing to provide.
                         val ui = pluginInstance as? JetWhaleHostPluginUi ?: return@PluginEntryPoint
-                        if (messenger != null) {
-                            CompositionLocalProvider(LocalJetWhaleMessenger provides messenger) { ui.Content() }
-                        } else {
-                            ui.Content()
-                        }
+                        ui.Content()
                     }
                 }
 

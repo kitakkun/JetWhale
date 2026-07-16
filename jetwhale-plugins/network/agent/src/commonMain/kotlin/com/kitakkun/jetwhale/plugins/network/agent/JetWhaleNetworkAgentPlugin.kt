@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.Ack
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
+import com.kitakkun.jetwhale.plugins.network.protocol.GetMockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.MockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
@@ -13,12 +14,9 @@ import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockRules
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockingEnabled
-import com.kitakkun.jetwhale.plugins.network.protocol.SyncMockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.findMatching
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers
-import com.kitakkun.jetwhale.protocol.messaging.SessionNegotiationScope
-import com.kitakkun.jetwhale.protocol.messaging.receive
-import com.kitakkun.jetwhale.protocol.messaging.send
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
+import com.kitakkun.jetwhale.protocol.messaging.reply
 import com.kitakkun.jetwhale.protocol.messaging.sendOrQueue
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.uuid.ExperimentalUuidApi
@@ -45,24 +43,20 @@ class JetWhaleNetworkAgentPlugin : JetWhaleAgentPlugin() {
     private val mockingEnabled = MutableStateFlow(true)
     private val mockRules = MutableStateFlow(emptyList<MockRule>())
 
-    override fun JetWhaleMessagingHandlers.configure() {
+    override fun JetWhaleMessageHandlers.configure() {
+        // Answered during the host's onPrepare: we are the config's source of truth (it survives
+        // host restarts), so the host fetches and adopts it on every (re)connect.
+        onRequest { _: GetMockConfig ->
+            reply(MockConfig(enabled = mockingEnabled.value, rules = mockRules.value))
+        }
         onRequest { request: SetMockRules ->
             mockRules.value = request.rules
-            Ack
+            reply(Ack)
         }
         onRequest { request: SetMockingEnabled ->
             mockingEnabled.value = request.enabled
-            Ack
+            reply(Ack)
         }
-    }
-
-    // On connect we propose the config we hold (we are its source of truth, it survives host restarts);
-    // the host resolves it and returns the effective config, which we adopt. Agent initiates (send first).
-    override suspend fun SessionNegotiationScope.negotiate() {
-        send(SyncMockConfig(MockConfig(enabled = mockingEnabled.value, rules = mockRules.value)))
-        val resolved = receive<MockConfig>()
-        mockingEnabled.value = resolved.enabled
-        mockRules.value = resolved.rules
     }
 
     // ---------------------------------------------------------------------------------------

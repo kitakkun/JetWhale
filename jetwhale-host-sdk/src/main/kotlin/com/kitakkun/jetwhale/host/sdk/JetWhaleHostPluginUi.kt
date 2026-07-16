@@ -7,9 +7,8 @@ import androidx.compose.runtime.Composable
  * addition to extending [JetWhaleHostPlugin]. Plugins that don't implement it are headless and the
  * host renders no scene for them.
  *
- * To talk to the agent from [Content], read [LocalJetWhaleMessenger] (a composition-scoped messenger
- * the host provides while rendering) rather than holding a long-lived reference; there is no context
- * parameter.
+ * To talk to the agent from [Content], use the plugin's own `messenger` property (a
+ * [JetWhaleMessagingHostPlugin]); there is no context parameter.
  */
 public interface JetWhaleHostPluginUi {
     /**

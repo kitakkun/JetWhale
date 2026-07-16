@@ -8,7 +8,6 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
 import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import dev.zacsweers.metro.AppScope
@@ -18,8 +17,10 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -38,6 +39,8 @@ private class LoadedInstance(
     val plugin: JetWhaleHostPlugin,
     // null for a pure (non-messaging) plugin: no peer is created for it.
     val peer: JetWhalePluginPeer?,
+    /** Backs the plugin's `pluginScope`; cancelled when the instance is disposed. */
+    val instanceScope: CoroutineScope,
 )
 
 @OptIn(InternalJetWhaleHostApi::class)
@@ -64,8 +67,6 @@ class DefaultPluginInstanceService(
 
     override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.plugin
 
-    override fun getMessengerForSession(pluginId: String, sessionId: String): JetWhaleMessenger? = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.peer?.messenger
-
     override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
         val loaded = pluginFactoryRepository.loadedPlugins[pluginId] ?: return emptySet()
 
@@ -85,36 +86,46 @@ class DefaultPluginInstanceService(
     }
 
     private fun createInstance(pluginId: String, sessionId: String, plugin: JetWhaleHostPlugin): LoadedInstance {
+        val instanceScope = CoroutineScope(scope.coroutineContext + SupervisorJob(scope.coroutineContext[Job]))
+        plugin.bindPluginScope(instanceScope)
+
         // Only messaging plugins get a peer; a pure plugin pays none of the messaging cost.
         val peer = if (plugin is JetWhaleMessagingHostPlugin) {
             JetWhalePluginPeer(
                 pluginId = pluginId,
                 parentScope = scope,
                 sendFrame = { frame -> frameSender.sendFrame(sessionId, frame) },
+                // Hold handler dispatch until onPrepare completes (the prepare barrier).
+                awaitReady = true,
             ).also { peer ->
                 peer.configure { plugin.registerHandlers(this) }
-                // Run the host's half of the negotiation (the agent initiates). Bounded by a timeout:
-                // a hung negotiation is warned about (visible in the host log) rather than left to
-                // freeze. A closed inbox (the session ended mid-negotiation) just ends it quietly.
-                scope.launch {
-                    try {
-                        withTimeout(plugin.negotiationTimeoutMillis()) {
-                            plugin.runNegotiation(peer.negotiationScope)
-                        }
-                    } catch (e: TimeoutCancellationException) {
-                        logger.warning("Negotiation for plugin '$pluginId' in session '$sessionId' did not complete in time; proceeding.")
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Throwable) {
-                        logger.fine("Negotiation for plugin '$pluginId' in session '$sessionId' ended early: ${e.message}")
-                    }
-                }
+                plugin.bindMessenger(peer.messenger)
             }
         } else {
             null
         }
         plugin.dispatchCreate()
-        return LoadedInstance(plugin, peer)
+        if (peer != null && plugin is JetWhaleMessagingHostPlugin) {
+            // Run the plugin's initial exchange, then open handler dispatch. Bounded by a timeout: a
+            // hung preparation is warned about (visible in the host log) and the plugin proceeds
+            // degraded rather than frozen. markReady() also runs on failure — same reasoning.
+            instanceScope.launch {
+                try {
+                    withTimeout(plugin.prepareTimeoutMillis()) {
+                        plugin.dispatchPrepare()
+                    }
+                } catch (e: TimeoutCancellationException) {
+                    logger.warning("onPrepare for plugin '$pluginId' in session '$sessionId' did not complete in time; proceeding.")
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    logger.warning("onPrepare for plugin '$pluginId' in session '$sessionId' failed: ${e.message}; proceeding.")
+                } finally {
+                    peer.markReady()
+                }
+            }
+        }
+        return LoadedInstance(plugin, peer, instanceScope)
     }
 
     override suspend fun routeFrame(sessionId: String, frame: PluginFrame) {
@@ -157,6 +168,7 @@ class DefaultPluginInstanceService(
     private fun disposeInstance(key: PluginInstanceKey, emitEvent: Boolean = true) {
         val removed = loadedPlugins.remove(key) ?: return
         removed.plugin.dispatchDispose()
+        removed.instanceScope.cancel()
         // close() suspends (it fails pending requests under a mutex), so run it off the caller.
         removed.peer?.let { peer -> scope.launch { peer.close() } }
         if (emitEvent) emitEvent(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))

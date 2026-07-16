@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.host.sdk
 
+import kotlinx.coroutines.CoroutineScope
+
 /**
  * Base class for a JetWhale host plugin. This base is **pure**: it has only a lifecycle and no
  * messaging — use it for plugins that don't talk to an agent (e.g. a host-only tool, declared with
@@ -10,6 +12,18 @@ package com.kitakkun.jetwhale.host.sdk
  * - [JetWhaleHostPluginUi] (implement it) — to render a Compose UI.
  */
 public abstract class JetWhaleHostPlugin {
+    private var boundPluginScope: CoroutineScope? = null
+
+    /**
+     * Scope tied to this plugin instance's lifetime: available from [onCreate], cancelled by the
+     * runtime when the instance is disposed. Launch background work here so it can never outlive
+     * the instance.
+     */
+    protected val pluginScope: CoroutineScope
+        get() = checkNotNull(boundPluginScope) {
+            "pluginScope is only available after the plugin instance has been bound (in or after onCreate())."
+        }
+
     /** Called once when this plugin instance is created, before it is shown or used. */
     protected open fun onCreate() {}
 
@@ -17,6 +31,12 @@ public abstract class JetWhaleHostPlugin {
     public open fun onDispose() {}
 
     // -- runtime hooks (not for plugin authors) -------------------------------
+
+    /** Binds the instance-scoped coroutine scope. Called once, before [onCreate]. */
+    @InternalJetWhaleHostApi
+    public fun bindPluginScope(scope: CoroutineScope) {
+        boundPluginScope = scope
+    }
 
     @InternalJetWhaleHostApi
     public fun dispatchCreate() {

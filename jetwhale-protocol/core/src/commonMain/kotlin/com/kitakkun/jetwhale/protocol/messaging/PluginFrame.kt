@@ -35,23 +35,6 @@ public sealed interface PluginFrame {
     ) : PluginFrame
 
     /**
-     * A message exchanged during the connection-time negotiation phase, delivered to the plugin's
-     * `negotiate` script via [SessionNegotiationScope.receive]. Separate from [Notification] so the
-     * peer routes it to the negotiation inbox rather than the normal event lane.
-     *
-     * @property pluginId Id of the plugin this negotiation message is addressed to.
-     * @property messageType Serial name of the concrete message type.
-     * @property payload The message, serialized with the payload format.
-     */
-    @SerialName("frame/negotiation")
-    @Serializable
-    public data class Negotiation(
-        override val pluginId: String,
-        val messageType: String,
-        val payload: String,
-    ) : PluginFrame
-
-    /**
      * A message that expects exactly one [Reply] correlated via [correlationId].
      *
      * @property pluginId Id of the plugin this request is addressed to.

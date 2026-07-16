@@ -19,7 +19,7 @@ import kotlinx.coroutines.withTimeout
  * - **activation** (the host enabled/disabled the plugin): `onActivate` / `onDeactivate`. Persists
  *   across connections — a disconnect does not deactivate a plugin.
  * - **connection** (the transport went up/down): a [JetWhalePluginPeer] is the live transport, created
- *   for each active plugin on connect (running its `negotiation`) and dropped on disconnect (with
+ *   for each active plugin on connect (running its `onPrepare`) and dropped on disconnect (with
  *   `onDisconnected`). The plugin keeps its connection-independent [BufferedMessenger] (and keeps
  *   buffering, per [JetWhaleAgentPlugin.offlineEventBufferCapacity]) across the gap.
  *
@@ -108,21 +108,24 @@ internal class JetWhaleAgentPluginService(
         val scope = connectionScope ?: return
         val sendFrame = sendFrame ?: return
         if (runtime.peer != null) return
-        val peer = JetWhalePluginPeer(pluginId = runtime.plugin.pluginId, parentScope = scope, sendFrame = sendFrame)
+        // awaitReady holds inbound handler dispatch until onPrepare completes (the prepare barrier).
+        val peer = JetWhalePluginPeer(pluginId = runtime.plugin.pluginId, parentScope = scope, sendFrame = sendFrame, awaitReady = true)
         peer.configure { runtime.plugin.registerHandlers(this) }
         runtime.peer = peer
-        // Attach the live transport (requests work now); run the plugin's negotiation, then open the
-        // gate so buffered events flush only after it finishes. A negotiation that hangs (e.g. a
-        // mismatched script) is bounded by a timeout: warn loudly and proceed, rather than freeze.
+        // Attach the live transport (requests work now); run the plugin's preparation, then open the
+        // handler gate and the flush gate so handlers run and buffered events flush only after it
+        // finishes. A preparation that hangs is bounded by a timeout: warn loudly and proceed,
+        // rather than freeze.
         runtime.messenger.bind(peer.messenger)
         runtime.connectJob = scope.launch {
             try {
-                withTimeout(runtime.plugin.negotiationTimeoutMillis()) {
-                    runtime.plugin.runNegotiation(peer.negotiationScope)
+                withTimeout(runtime.plugin.prepareTimeoutMillis()) {
+                    runtime.plugin.dispatchPrepare()
                 }
             } catch (e: TimeoutCancellationException) {
-                JetWhaleLogger.w("JetWhale: negotiation for plugin '${runtime.plugin.pluginId}' did not complete in time; proceeding.", e)
+                JetWhaleLogger.w("JetWhale: onPrepare for plugin '${runtime.plugin.pluginId}' did not complete in time; proceeding.", e)
             } finally {
+                peer.markReady()
                 runtime.messenger.startFlush()
             }
         }

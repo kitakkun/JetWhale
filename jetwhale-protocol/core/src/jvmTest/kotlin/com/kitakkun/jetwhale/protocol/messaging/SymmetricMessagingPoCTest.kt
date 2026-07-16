@@ -89,6 +89,41 @@ class SymmetricMessagingPoCTest {
         scope.cancel()
     }
 
+    // -- prepare barrier -------------------------------------------------------
+
+    @Test
+    fun `an awaitReady peer holds handler dispatch until markReady, but its own requests complete`() = runBlocking {
+        val received = java.util.concurrent.CopyOnWriteArrayList<Int>()
+        lateinit var preparing: JetWhalePluginPeer
+        val remote = JetWhalePluginPeer(PLUGIN_ID, scope, sendFrame = { preparing.onFrame(roundTrip(it)) })
+        preparing = JetWhalePluginPeer(
+            pluginId = PLUGIN_ID,
+            parentScope = scope,
+            sendFrame = { remote.onFrame(roundTrip(it)) },
+            awaitReady = true,
+        )
+        remote.configure {
+            onRequest { ping: Ping -> reply(Pong(ping.tag)) }
+        }
+        preparing.configure {
+            onEvent { event: CounterEvent -> received += event.value }
+        }
+
+        // The remote sends events before the preparing side is ready: they must be held.
+        remote.messenger.sendOrFail(CounterEvent(1))
+        remote.messenger.sendOrFail(CounterEvent(2))
+        // Outbound requests from the preparing side (what onPrepare does) still complete: replies
+        // bypass the gate.
+        assertEquals(Pong("during-prepare"), preparing.messenger.request(Ping("during-prepare")))
+        assertEquals(emptyList(), received.toList(), "events must not be dispatched before markReady")
+
+        preparing.markReady()
+        withTimeout(5_000) {
+            while (received.size < 2) delay(10)
+        }
+        assertEquals(listOf(1, 2), received.toList(), "held events flush in arrival order")
+    }
+
     // -- fire-and-forget ------------------------------------------------------
 
     @Test
@@ -110,7 +145,7 @@ class SymmetricMessagingPoCTest {
     fun `unknown event is skipped without breaking the connection`() = runBlocking {
         // right registers no CounterEvent handler at all
         right.configure {
-            onRequest { ping: Ping -> Pong(ping.tag) }
+            onRequest { ping: Ping -> reply(Pong(ping.tag)) }
         }
 
         left.messenger.sendOrFail(CounterEvent(42)) // skipped on the right, must not break anything
@@ -130,7 +165,7 @@ class SymmetricMessagingPoCTest {
             }
             onRequest { ping: Ping ->
                 order += "request"
-                Pong(ping.tag)
+                reply(Pong(ping.tag))
             }
         }
 
@@ -146,7 +181,7 @@ class SymmetricMessagingPoCTest {
     @Test
     fun `request infers the reply type from the request declaration`() = runBlocking {
         right.configure {
-            onRequest { ping: Ping -> Pong(ping.tag.uppercase()) }
+            onRequest { ping: Ping -> reply(Pong(ping.tag.uppercase())) }
         }
 
         // The whole point of the marker: no type argument, no cast — `Pong` is inferred.
@@ -157,10 +192,10 @@ class SymmetricMessagingPoCTest {
     @Test
     fun `requests work in both directions`() = runBlocking {
         left.configure {
-            onRequest { _: WhoAreYou -> Identity("left") }
+            onRequest { _: WhoAreYou -> reply(Identity("left")) }
         }
         right.configure {
-            onRequest { _: WhoAreYou -> Identity("right") }
+            onRequest { _: WhoAreYou -> reply(Identity("right")) }
         }
 
         // host->agent AND agent->host with the exact same API.
@@ -173,7 +208,7 @@ class SymmetricMessagingPoCTest {
         right.configure {
             onRequest { ping: Ping ->
                 delay(Random.nextLong(1, 30)) // shuffle completion order
-                Pong(ping.tag)
+                reply(Pong(ping.tag))
             }
         }
 
@@ -189,13 +224,13 @@ class SymmetricMessagingPoCTest {
     @Test
     fun `request handler may call back in the opposite direction without deadlocking`() = runBlocking {
         left.configure {
-            onRequest { _: WhoAreYou -> Identity("left") }
+            onRequest { _: WhoAreYou -> reply(Identity("left")) }
         }
         right.configure {
             // While handling left's Ping, right requests WhoAreYou from left.
             onRequest { ping: Ping ->
                 val caller: Identity = right.messenger.request(WhoAreYou)
-                Pong("${ping.tag}-handled-for-${caller.name}")
+                reply(Pong("${ping.tag}-handled-for-${caller.name}"))
             }
         }
 
@@ -221,7 +256,7 @@ class SymmetricMessagingPoCTest {
         responder.configure {
             onRequest { ping: Ping ->
                 gate.await()
-                Pong(ping.tag)
+                reply(Pong(ping.tag))
             }
         }
 
@@ -260,7 +295,7 @@ class SymmetricMessagingPoCTest {
             // (Pong) keeps R pinned even though this input always throws.
             onRequest { explode: Explode ->
                 require(explode.reason != "test") { "boom: ${explode.reason}" }
-                Pong(explode.reason)
+                reply(Pong(explode.reason))
             }
         }
 
@@ -278,7 +313,7 @@ class SymmetricMessagingPoCTest {
             // it fell back to the default, the reply would arrive first and the request would succeed.
             onRequest { ping: Ping ->
                 delay(2_000)
-                Pong(ping.tag)
+                reply(Pong(ping.tag))
             }
         }
 

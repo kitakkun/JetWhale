@@ -1,22 +1,22 @@
 public abstract class com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
 	public fun <init> ()V
 	public final fun bindMessenger (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;)V
-	protected fun configure (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessagingHandlers;)V
+	protected fun configure (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessageHandlers;)V
 	public final fun dispatchActivate ()V
 	public final fun dispatchDeactivate ()V
 	public final fun dispatchDisconnected (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun dispatchPrepare (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	protected final fun getMessenger ()Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;
-	protected fun getNegotiationTimeoutMillis ()J
 	protected fun getOfflineEventBufferCapacity ()I
 	public abstract fun getPluginId ()Ljava/lang/String;
 	public abstract fun getPluginVersion ()Ljava/lang/String;
-	protected fun negotiate (Lcom/kitakkun/jetwhale/protocol/messaging/SessionNegotiationScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun negotiationTimeoutMillis ()J
+	protected fun getPrepareTimeoutMillis ()J
 	public final fun offlineEventBufferCapacity ()I
 	protected fun onActivate ()V
 	protected fun onDeactivate ()V
 	protected fun onDisconnected (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public final fun registerHandlers (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessagingHandlers;)V
-	public final fun runNegotiation (Lcom/kitakkun/jetwhale/protocol/messaging/SessionNegotiationScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	protected fun onPrepare (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun prepareTimeoutMillis ()J
+	public final fun registerHandlers (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessageHandlers;)V
 }
 

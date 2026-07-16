@@ -8,7 +8,6 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock
@@ -107,7 +106,6 @@ class DefaultMcpServerServiceTest {
             LoadedPluginInstance(testPluginId, testSessionId, fakePlugin),
         )
         every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns fakePlugin
-        every { pluginInstanceService.getMessengerForSession(testPluginId, testSessionId) } returns null
 
         service.start(host, port)
         try {
@@ -145,7 +143,6 @@ class DefaultMcpServerServiceTest {
 
         every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
         every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns fakePlugin
-        every { pluginInstanceService.getMessengerForSession(testPluginId, testSessionId) } returns null
 
         service.start(host, port)
         try {
@@ -177,7 +174,6 @@ class DefaultMcpServerServiceTest {
 
         every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
         every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns fakePlugin
-        every { pluginInstanceService.getMessengerForSession(testPluginId, testSessionId) } returns null
 
         service.start(host, port)
         try {
@@ -236,7 +232,7 @@ private class FakeMcpCapablePlugin :
         ),
     )
 
-    override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>, messenger: JetWhaleMessenger?): String? = when (toolName) {
+    override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? = when (toolName) {
         "com.example.test.greet" -> "Hello, ${arguments["name"]}!"
         else -> null
     }

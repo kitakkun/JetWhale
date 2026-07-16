@@ -4,7 +4,8 @@ import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
 import com.kitakkun.jetwhale.plugins.example.protocol.ButtonClicked
 import com.kitakkun.jetwhale.plugins.example.protocol.Ping
 import com.kitakkun.jetwhale.plugins.example.protocol.Pong
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
+import com.kitakkun.jetwhale.protocol.messaging.reply
 import com.kitakkun.jetwhale.protocol.messaging.trySend
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,10 +22,10 @@ class ExampleAgentPlugin : JetWhaleAgentPlugin() {
     private val mutableEventLogsFlow: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())
     val eventLogsFlow: StateFlow<List<String>> = mutableEventLogsFlow
 
-    override fun JetWhaleMessagingHandlers.configure() {
+    override fun JetWhaleMessageHandlers.configure() {
         onRequest { _: Ping ->
             mutableEventLogsFlow.update { it + "Request: Ping" + "Reply: Pong" }
-            Pong
+            reply(Pong)
         }
     }
 

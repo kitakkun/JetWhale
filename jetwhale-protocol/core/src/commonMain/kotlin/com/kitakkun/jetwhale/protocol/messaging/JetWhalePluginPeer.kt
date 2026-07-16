@@ -49,6 +49,14 @@ public val DefaultJetWhaleMessagingFormat: StringFormat = Json {
  * The transport is abstract: feed inbound frames to [onFrame], and deliver outbound frames in
  * [sendFrame] (e.g. over a WebSocket).
  *
+ * When [awaitReady] is true, inbound notifications and requests are held (in arrival order) until
+ * [markReady] is called; replies always flow. The runtimes use this as the `onPrepare` barrier: the
+ * plugin's own outbound requests work during preparation, but none of its handlers run until
+ * preparation completes. Note the implication for two peers preparing simultaneously: a request
+ * sent *from* `onPrepare` is answered only if the other side is already ready (or has no
+ * preparation of its own) — by convention, only one side of a plugin pair actively requests during
+ * preparation.
+ *
  * The inbound/outbound queues are bounded to [bufferCapacity] to avoid unbounded growth under load;
  * a frame that cannot be enqueued is dropped (notifications) or fails its request fast, reported via
  * [logger] (a no-op by default).
@@ -61,12 +69,13 @@ public class JetWhalePluginPeer(
     private val payloadFormat: StringFormat = DefaultJetWhaleMessagingFormat,
     private val bufferCapacity: Int = DEFAULT_BUFFER_CAPACITY,
     private val maxConcurrentRequests: Int = DEFAULT_MAX_CONCURRENT_REQUESTS,
+    awaitReady: Boolean = false,
     private val logger: (String) -> Unit = {},
 ) {
     private val scope: CoroutineScope =
         CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
 
-    private val handlers = JetWhaleMessagingHandlers()
+    private val handlers = JetWhaleMessageHandlers()
 
     private val outgoingQueue = Channel<PluginFrame>(capacity = bufferCapacity, onBufferOverflow = BufferOverflow.SUSPEND)
 
@@ -75,10 +84,10 @@ public class JetWhalePluginPeer(
     // itself awaiting a reply behind a slow notification.
     private val inboundQueue = Channel<PluginFrame>(capacity = bufferCapacity, onBufferOverflow = BufferOverflow.SUSPEND)
 
-    // Negotiation messages are delivered to the plugin's negotiate() script via [negotiationScope],
-    // not through the normal lanes. Unbounded: a negotiation is short, and dropping a step would just
-    // stall the other side until its timeout.
-    private val negotiationInbox = Channel<PluginFrame.Negotiation>(capacity = Channel.UNLIMITED)
+    // The onPrepare barrier: while incomplete, the inbound consumer holds notifications and requests
+    // (replies never queue there, so the preparing side's own requests still complete).
+    private val readyGate: CompletableDeferred<Unit> =
+        if (awaitReady) CompletableDeferred() else CompletableDeferred(Unit)
 
     private val pendingMutex = Mutex()
     private val pendingReplies = mutableMapOf<String, CompletableDeferred<PluginFrame.Reply>>()
@@ -100,13 +109,15 @@ public class JetWhalePluginPeer(
         // own coroutine so it runs concurrently (and may request() back) without blocking this loop.
         scope.launch {
             for (frame in inboundQueue) {
+                // The onPrepare barrier: nothing is dispatched to handlers until markReady().
+                readyGate.await()
                 when (frame) {
                     is PluginFrame.Notification -> dispatchNotification(frame)
 
                     is PluginFrame.Request -> dispatchRequest(frame)
 
-                    // Replies and negotiation messages never enter this queue (see onFrame).
-                    is PluginFrame.Reply, is PluginFrame.Negotiation ->
+                    // Replies never enter this queue (see onFrame).
+                    is PluginFrame.Reply ->
                         logger("JetWhale: unexpected ${frame::class.simpleName} in the inbound queue for plugin '$pluginId'; ignoring.")
                 }
             }
@@ -114,7 +125,7 @@ public class JetWhalePluginPeer(
     }
 
     /** Registers typed handlers. Call before frames start flowing (e.g. in the plugin's setup). */
-    public fun configure(block: JetWhaleMessagingHandlers.() -> Unit) {
+    public fun configure(block: JetWhaleMessageHandlers.() -> Unit) {
         handlers.block()
     }
 
@@ -137,18 +148,13 @@ public class JetWhalePluginPeer(
         override suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String = this@JetWhalePluginPeer.requestRaw(messageType, payload, timeout)
     }
 
-    /** The exchange surface for this peer's connection-time negotiation. Valid until [close]. */
-    public val negotiationScope: SessionNegotiationScope = object : SessionNegotiationScope {
-        override val payloadFormat: StringFormat get() = this@JetWhalePluginPeer.payloadFormat
-
-        override suspend fun sendRaw(messageType: String, payload: String) {
-            outgoingQueue.send(PluginFrame.Negotiation(pluginId, messageType, payload))
-        }
-
-        override suspend fun receiveRaw(): RawNegotiationMessage {
-            val frame = negotiationInbox.receive()
-            return RawNegotiationMessage(frame.messageType, frame.payload)
-        }
+    /**
+     * Opens the handler-dispatch gate (see the class KDoc). Call once the plugin's preparation
+     * (`onPrepare`) has completed — or failed, since a degraded plugin still beats a frozen one.
+     * Idempotent; a no-op for a peer constructed without `awaitReady`.
+     */
+    public fun markReady() {
+        readyGate.complete(Unit)
     }
 
     /** Feed every inbound frame addressed to [pluginId] here. */
@@ -160,9 +166,6 @@ public class JetWhalePluginPeer(
             // Off-queue on purpose: a notification/request handler may be awaiting this very reply, so
             // it must not queue behind that handler (it would deadlock the serial inbound consumer).
             is PluginFrame.Reply -> completePending(frame)
-
-            // Negotiation messages go to their own inbox, read by the plugin's negotiate() script.
-            is PluginFrame.Negotiation -> negotiationInbox.trySend(frame)
 
             // Notifications and requests share one ordered queue so they are dispatched in the order
             // the other side sent them.
@@ -192,7 +195,7 @@ public class JetWhalePluginPeer(
                 logger("JetWhale: dropped inbound notification '${frame.messageType}' for plugin '$pluginId' (${queueState(result.isClosed)}).")
 
             // Only notifications and requests reach this path (see onFrame).
-            is PluginFrame.Reply, is PluginFrame.Negotiation -> Unit
+            is PluginFrame.Reply -> Unit
         }
     }
 
@@ -201,7 +204,6 @@ public class JetWhalePluginPeer(
         // Close the queues first so further sends fail fast instead of enqueueing with no consumer.
         outgoingQueue.close()
         inboundQueue.close()
-        negotiationInbox.close()
         pendingMutex.withLock {
             pendingReplies.values.forEach { it.completeExceptionally(JetWhaleConnectionClosedException()) }
             pendingReplies.clear()

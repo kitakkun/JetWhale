@@ -1,21 +1,20 @@
 package com.kitakkun.jetwhale.agent.sdk
 
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingHandlers
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
-import com.kitakkun.jetwhale.protocol.messaging.SessionNegotiationScope
 
 /**
  * Base class for a JetWhale plugin running inside the debug-target app (the agent).
  *
  * A plugin exchanges messages with its host counterpart through the symmetric [messenger]
  * (`trySend` / `sendOrQueue` / `sendOrFail` / `request`) and handles incoming messages
- * registered in [configure] (`onEvent<E>` / `onRequest`). Both ends use the same vocabulary; the
- * agent can `request` the host just as the host can `request` the agent.
+ * registered in [configure] (`onEvent { e: E -> }` / `onRequest { req -> reply(...) }`). Both ends use the same
+ * vocabulary; the agent can `request` the host just as the host can `request` the agent.
  *
  * Unlike a host plugin, the **app** owns the instance — it constructs and registers it — so the
  * runtime does not create or dispose it, it **activates** and **deactivates** it:
- * [onActivate] (the host enabled this plugin) → [negotiation] / [onDisconnected] (each (re)connection
+ * [onActivate] (the host enabled this plugin) → [onPrepare] / [onDisconnected] (each (re)connection
  * within the activation) → [onDeactivate] (the host disabled it). One-time setup goes in the
  * constructor; per-activation setup in [onActivate]; teardown of anything you started in
  * [onDeactivate].
@@ -54,29 +53,29 @@ public abstract class JetWhaleAgentPlugin {
             "messenger is only available after the plugin has been registered (in or after onActivate())."
         }
 
-    /** Registers handlers for messages from the host (`onEvent<E> { }` / `onRequest { req -> reply }`). */
-    protected open fun JetWhaleMessagingHandlers.configure() {}
+    /** Registers handlers for messages from the host (`onEvent { e: E -> }` / `onRequest { req -> reply(...) }`). */
+    protected open fun JetWhaleMessageHandlers.configure() {}
 
     /**
      * Called when the host **activates** this plugin (enables it), before any message flows and before
      * a connection is established. Per activation — it runs again if the host disables and re-enables
-     * the plugin. Use it for local setup; for host communication use [negotiation]. Anything you start
+     * the plugin. Use it for local setup; for host communication use [onPrepare]. Anything you start
      * here (e.g. a background job) should be stopped in [onDeactivate].
      */
     protected open fun onActivate() {}
 
     /**
-     * The negotiation script this plugin runs on each (re)connection to exchange initial state with
-     * the host. It runs over a [SessionNegotiationScope] (typed `send` / `receive`), and the plugin
-     * operates only once it returns — buffered `sendOrQueue` events are held until then. By convention
-     * the agent **initiates**: start with `send`, while the host's matching `negotiate` starts with
-     * `receive`. Bounded by [negotiationTimeoutMillis]; on timeout the runtime warns and lets the
-     * plugin proceed (degraded) rather than hang.
+     * The plugin's initial exchange with the host, run on each (re)connection. Until it returns, no
+     * handler registered in [configure] is dispatched and buffered `sendOrQueue` events are held —
+     * so handlers and the host never observe un-prepared state. Use plain [messenger] calls,
+     * typically `request`. By convention only one side of a plugin pair actively `request`s during
+     * preparation (the other side answers from its handlers). Bounded by [prepareTimeoutMillis]; on
+     * timeout the runtime warns and lets the plugin proceed (degraded) rather than hang.
      */
-    protected open suspend fun SessionNegotiationScope.negotiate() {}
+    protected open suspend fun onPrepare() {}
 
-    /** How long the runtime waits for [negotiate] before warning and proceeding. */
-    protected open val negotiationTimeoutMillis: Long = 10_000
+    /** How long the runtime waits for [onPrepare] before warning and proceeding. */
+    protected open val prepareTimeoutMillis: Long = 10_000
 
     /** Called when the connection drops (a transient disconnect; the plugin stays activated and keeps
      *  buffering for the next connection). Best-effort: the transport may already be gone. */
@@ -97,7 +96,7 @@ public abstract class JetWhaleAgentPlugin {
     public fun offlineEventBufferCapacity(): Int = offlineEventBufferCapacity
 
     @InternalJetWhaleApi
-    public fun registerHandlers(handlers: JetWhaleMessagingHandlers) {
+    public fun registerHandlers(handlers: JetWhaleMessageHandlers) {
         handlers.configure()
     }
 
@@ -113,11 +112,11 @@ public abstract class JetWhaleAgentPlugin {
     }
 
     @InternalJetWhaleApi
-    public fun negotiationTimeoutMillis(): Long = negotiationTimeoutMillis
+    public fun prepareTimeoutMillis(): Long = prepareTimeoutMillis
 
     @InternalJetWhaleApi
-    public suspend fun runNegotiation(scope: SessionNegotiationScope) {
-        scope.negotiate()
+    public suspend fun dispatchPrepare() {
+        onPrepare()
     }
 
     @InternalJetWhaleApi

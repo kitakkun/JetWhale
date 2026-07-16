@@ -29,16 +29,16 @@ data class SetMockRules(val rules: List<MockRule>) : JetWhaleRequest<Ack>
 @Serializable
 data class SetMockingEnabled(val enabled: Boolean) : JetWhaleRequest<Ack>
 
-// -- Negotiation messages (exchanged in the negotiate scripts) ---------------
+// -- Preparation messages (sent from the host's onPrepare) --------------------
 
 /**
- * Step 1, agent -> host: the agent proposes the mock configuration it holds (it survives host
- * restarts). The host replies with a [MockConfig] (step 2) carrying the effective config, which the
- * agent adopts — a two-way sync. Agent-initiated, so the negotiation has a single, clear driver.
+ * Host -> agent, on connect: fetches the mock configuration the agent holds (it is the source of
+ * truth — its config survives host restarts). The host adopts the returned [MockConfig] before any
+ * other handler runs.
  */
-@SerialName("network/sync_mock_config")
+@SerialName("network/get_mock_config")
 @Serializable
-data class SyncMockConfig(val config: MockConfig)
+data object GetMockConfig : JetWhaleRequest<MockConfig>
 
 // -- Replies -----------------------------------------------------------------
 
