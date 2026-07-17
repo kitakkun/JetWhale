@@ -4,26 +4,30 @@ import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class DefaultPluginTrustRepositoryTest {
-    private val originalUserHome: String? = System.getProperty("user.home")
-    private val tempHome: File = File.createTempFile("jetwhale-home-", "").apply {
-        delete()
-        mkdirs()
-    }
+    private var originalUserHome: String? = null
+    private lateinit var tempHome: File
 
-    init {
+    @BeforeTest
+    fun setUp() {
         // AppDataDirectoryProvider resolves its paths from user.home in field initializers, so point
         // it at an isolated temp home before any provider is constructed in a test.
+        originalUserHome = System.getProperty("user.home")
+        tempHome = File.createTempFile("jetwhale-home-", "").apply {
+            delete()
+            mkdirs()
+        }
         System.setProperty("user.home", tempHome.absolutePath)
     }
 
     @AfterTest
     fun cleanup() {
-        if (originalUserHome != null) System.setProperty("user.home", originalUserHome)
+        originalUserHome?.let { System.setProperty("user.home", it) }
         tempHome.deleteRecursively()
     }
 

@@ -8,6 +8,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,6 +43,9 @@ class DefaultPluginTrustService(
     }
 
     override suspend fun trustAndLoad(jarPath: String) {
+        require(appDataDirectoryProvider.isManagedPluginJarPath(jarPath)) {
+            "Refusing to trust a jar outside the managed plugins directory: $jarPath"
+        }
         pluginTrustRepository.trust(jarPath, computeSha256(jarPath))
         mutableUntrustedJarPathsFlow.update { it - jarPath }
         pluginFactoryRepository.loadPlugin(jarPath)
@@ -60,7 +64,17 @@ class DefaultPluginTrustService(
     /** True only if [jarPath] has a trusted entry whose pinned hash matches the jar's current bytes. */
     private suspend fun isTrusted(jarPath: String): Boolean {
         val entry = pluginTrustRepository.trustedEntry(jarPath) ?: return false
-        return entry.sha256 == computeSha256(jarPath)
+        val currentSha256 = try {
+            computeSha256(jarPath)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // A jar we cannot read is a jar we cannot verify: fail safe as untrusted instead of
+            // letting an IO error abort loading of every other plugin.
+            println("Failed to hash plugin jar, treating as untrusted: $jarPath (${e.message})")
+            return false
+        }
+        return entry.sha256 == currentSha256
     }
 
     private suspend fun computeSha256(jarPath: String): String = withContext(Dispatchers.IO) {

@@ -21,6 +21,10 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
+import java.io.File
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 /**
  * JSON-file-backed trust registry stored at `~/.jetwhale/trusted-plugins.json`. Reads itself once on
@@ -98,7 +102,15 @@ class DefaultPluginTrustRepository(
                 ),
             )
         }
-        file.writeText(json.encodeToString(JsonElement.serializer(), root))
+        // Write to a sibling temp file and move it into place so an interrupted write can never
+        // leave a truncated registry behind (which would fail-safe but wipe all trust decisions).
+        val tempFile = File(file.parentFile, "${file.name}.tmp")
+        tempFile.writeText(json.encodeToString(JsonElement.serializer(), root))
+        try {
+            Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        } catch (e: AtomicMoveNotSupportedException) {
+            Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 
     companion object {
