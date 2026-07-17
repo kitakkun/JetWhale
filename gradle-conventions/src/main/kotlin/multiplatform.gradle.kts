@@ -28,6 +28,6 @@ configure<KotlinMultiplatformExtension> {
     linuxArm64()
 
     configure<KotlinMultiplatformAndroidLibraryExtension> {
-        compileSdk = 36
+        compileSdk = 37
     }
 }
