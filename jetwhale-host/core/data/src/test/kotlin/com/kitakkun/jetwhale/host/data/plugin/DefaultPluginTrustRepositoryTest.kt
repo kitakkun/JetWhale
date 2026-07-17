@@ -32,7 +32,28 @@ class DefaultPluginTrustRepositoryTest {
     }
 
     // A fresh repository each time so we exercise the on-disk read path, not just the in-memory cache.
-    private fun newRepository() = DefaultPluginTrustRepository(AppDataDirectoryProvider())
+    private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) =
+        DefaultPluginTrustRepository(AppDataDirectoryProvider(), signer)
+
+    /**
+     * Deterministic stand-in for the keyring-backed signer: the "signature" is a digest of the
+     * payload (not the payload itself, so editing the file cannot keep it self-consistent), which
+     * preserves the property under test — a signature only verifies against the exact payload it
+     * was produced for.
+     */
+    private class FakeTrustRegistrySigner(
+        private val available: Boolean = true,
+        private val keyPreexisted: Boolean = true,
+    ) : TrustRegistrySigner {
+        override fun sign(payload: String): String? = if (available) "signed:${payload.hashCode()}" else null
+
+        override fun verify(payload: String, signature: String?): TrustRegistrySigner.Verification = when {
+            !available -> TrustRegistrySigner.Verification.UNAVAILABLE
+            signature == null -> if (keyPreexisted) TrustRegistrySigner.Verification.INVALID else TrustRegistrySigner.Verification.VALID
+            signature == "signed:${payload.hashCode()}" -> TrustRegistrySigner.Verification.VALID
+            else -> TrustRegistrySigner.Verification.INVALID
+        }
+    }
 
     @Test
     fun `trusted entries survive a read back from disk`() = runBlocking {
@@ -54,5 +75,42 @@ class DefaultPluginTrustRepositoryTest {
         }
 
         assertNull(newRepository().trustedEntry("/plugins/a.jar"))
+    }
+
+    @Test
+    fun aTamperedRegistryIsRejectedWholesale() = runBlocking {
+        newRepository().trust("/plugins/a.jar", "hash-a")
+
+        // Simulate a malicious process rewriting the file: swap in a different hash while leaving
+        // the recorded signature untouched.
+        val registryFile = AppDataDirectoryProvider().getTrustRegistryFile()
+        registryFile.writeText(registryFile.readText().replace("hash-a", "forged-hash"))
+
+        assertNull(newRepository().trustedEntry("/plugins/a.jar"))
+    }
+
+    @Test
+    fun anUnsignedRegistryIsRejectedWhenASigningKeyAlreadyExists() = runBlocking {
+        newRepository(FakeTrustRegistrySigner(available = false)).trust("/plugins/a.jar", "hash-a")
+
+        assertNull(newRepository(FakeTrustRegistrySigner(keyPreexisted = true)).trustedEntry("/plugins/a.jar"))
+    }
+
+    @Test
+    fun anUnsignedRegistryIsAcceptedOnFirstRunWithANewSigningKey() = runBlocking {
+        // Upgrade path: the registry predates registry signing, so no signature exists yet. The
+        // key being brand new proves no signed registry could ever have been written.
+        newRepository(FakeTrustRegistrySigner(available = false)).trust("/plugins/a.jar", "hash-a")
+
+        val reloaded = newRepository(FakeTrustRegistrySigner(keyPreexisted = false))
+        assertEquals("hash-a", reloaded.trustedEntry("/plugins/a.jar")?.sha256)
+    }
+
+    @Test
+    fun registryIsLoadedWithoutVerificationWhenTheCredentialStoreIsUnavailable() = runBlocking {
+        newRepository().trust("/plugins/a.jar", "hash-a")
+
+        val reloaded = newRepository(FakeTrustRegistrySigner(available = false))
+        assertEquals("hash-a", reloaded.trustedEntry("/plugins/a.jar")?.sha256)
     }
 }

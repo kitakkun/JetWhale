@@ -29,6 +29,7 @@ import java.nio.file.StandardCopyOption
 @Inject
 class DefaultPluginTrustRepository(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
+    private val trustRegistrySigner: TrustRegistrySigner,
 ) : PluginTrustRepository {
     private val writeMutex = Mutex()
 
@@ -55,6 +56,22 @@ class DefaultPluginTrustRepository(
         if (!file.exists()) return emptyMap()
         return try {
             val registry = json.decodeFromString<TrustRegistryFile>(file.readText())
+            // Verify the HMAC over the exact re-encoding of the entries map — the same string
+            // persist() signed. An INVALID result means the file was modified by something other
+            // than this app (or the key store was reset): fail safe, trust nothing.
+            val verification = trustRegistrySigner.verify(json.encodeToString(registry.entries), registry.signature)
+            when (verification) {
+                TrustRegistrySigner.Verification.VALID -> Unit
+
+                TrustRegistrySigner.Verification.INVALID -> {
+                    println("Plugin trust registry failed signature verification, treating all plugins as untrusted.")
+                    return emptyMap()
+                }
+
+                TrustRegistrySigner.Verification.UNAVAILABLE -> {
+                    println("OS credential store unavailable; loading plugin trust registry without signature verification.")
+                }
+            }
             registry.entries.mapValues { (path, entry) ->
                 TrustedPluginEntry(
                     jarPath = path,
@@ -75,13 +92,15 @@ class DefaultPluginTrustRepository(
     private fun persist(entries: Map<String, TrustedPluginEntry>) {
         val file = appDataDirectoryProvider.getTrustRegistryFile()
         file.parentFile?.mkdirs()
+        val storedEntries = entries.mapValues { (_, entry) ->
+            StoredTrustedPluginEntry(
+                sha256 = entry.sha256,
+                trustedAtEpochMillis = entry.trustedAtEpochMillis,
+            )
+        }
         val registry = TrustRegistryFile(
-            entries = entries.mapValues { (_, entry) ->
-                StoredTrustedPluginEntry(
-                    sha256 = entry.sha256,
-                    trustedAtEpochMillis = entry.trustedAtEpochMillis,
-                )
-            },
+            entries = storedEntries,
+            signature = trustRegistrySigner.sign(json.encodeToString(storedEntries)),
         )
         // Write to a sibling temp file and move it into place so an interrupted write can never
         // leave a truncated registry behind (which would fail-safe but wipe all trust decisions).
@@ -94,9 +113,15 @@ class DefaultPluginTrustRepository(
         }
     }
 
+    /**
+     * On-disk shape of the registry. [signature] is the HMAC over the serialized [entries] map;
+     * it is `null` when the credential store was unavailable at write time, and absent in files
+     * written before registry signing existed.
+     */
     @Serializable
     private data class TrustRegistryFile(
         val entries: Map<String, StoredTrustedPluginEntry>,
+        val signature: String? = null,
     )
 
     @Serializable
