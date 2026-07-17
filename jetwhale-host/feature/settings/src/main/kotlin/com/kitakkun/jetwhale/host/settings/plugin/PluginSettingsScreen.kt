@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +42,7 @@ import org.jetbrains.compose.resources.stringResource
 fun PluginSettingsScreen(
     uiState: PluginSettingsScreenUiState,
     onClickAddPlugin: () -> Unit,
+    onClickInstallFromMaven: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showFailedJarsDialog by remember { mutableStateOf(false) }
@@ -149,8 +152,42 @@ fun PluginSettingsScreen(
                 )
             }
         }
-        Button(onClickAddPlugin) {
-            Text("Add Plugin")
+        uiState.installError?.let { error ->
+            Text(
+                text = error,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = MaterialTheme.shapes.small,
+                    )
+                    .padding(8.dp),
+            )
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Button(
+                onClick = onClickAddPlugin,
+                enabled = !uiState.isInstalling,
+            ) {
+                Text("Add Plugin from File")
+            }
+            Button(
+                onClick = onClickInstallFromMaven,
+                enabled = !uiState.isInstalling,
+            ) {
+                Text("Install from Maven")
+            }
+            if (uiState.isInstalling) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 2.dp,
+                )
+            }
         }
     }
 }
