@@ -90,7 +90,14 @@ fun captureScreenshot(
 
     val imageBitmap = ImageBitmap(viewport.size.width, viewport.size.height)
     val composeCanvas = Canvas(imageBitmap)
-    scene.composeScene.render(composeCanvas, System.nanoTime())
+    // Raised only for this off-screen render (render() applies the resulting recomposition);
+    // being on the UI thread, no interactive frame can observe the raised state.
+    scene.isScreenshotCapture.value = true
+    try {
+        scene.composeScene.render(composeCanvas, System.nanoTime())
+    } finally {
+        scene.isScreenshotCapture.value = false
+    }
 
     return SkiaImage.makeFromBitmap(imageBitmap.asSkiaBitmap())
         .encodeToData(EncodedImageFormat.PNG)

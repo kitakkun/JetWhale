@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
+import com.kitakkun.jetwhale.host.sdk.LocalIsScreenshotCapture
 import com.kitakkun.jetwhale.plugins.network.protocol.GetMockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.GetRedactionConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
@@ -121,8 +122,11 @@ private class NetworkHostPlugin :
 
     @Composable
     override fun Content() {
+        // MCP screenshot captures are AI-agent-facing like tool results, so MCP_ONLY rules
+        // apply to them too; the interactive window keeps showing the raw values.
+        val redactForCapture = LocalIsScreenshotCapture.current && mcpRedactionRules.isNotEmpty()
         NetworkInspectorScreen(
-            transactions = transactions,
+            transactions = if (redactForCapture) transactions.map { it.redactedForMcp() } else transactions,
             mockRules = mockRules,
             mockingEnabled = mockingEnabled,
             onClearTransactions = { transactions.clear() },

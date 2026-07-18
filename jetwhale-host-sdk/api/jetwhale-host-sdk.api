@@ -285,3 +285,7 @@ public final class com/kitakkun/jetwhale/host/sdk/RememberPersistentKt {
 	public static final fun rememberPersistent (Ljava/lang/String;Ljava/lang/Object;Lkotlinx/serialization/KSerializer;Landroidx/compose/runtime/Composer;I)Landroidx/compose/runtime/MutableState;
 }
 
+public final class com/kitakkun/jetwhale/host/sdk/ScreenshotCaptureKt {
+	public static final fun getLocalIsScreenshotCapture ()Landroidx/compose/runtime/ProvidableCompositionLocal;
+}
+

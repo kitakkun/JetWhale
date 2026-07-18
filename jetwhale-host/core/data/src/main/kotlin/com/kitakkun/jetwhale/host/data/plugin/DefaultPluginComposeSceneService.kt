@@ -18,6 +18,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
+import com.kitakkun.jetwhale.host.sdk.LocalIsScreenshotCapture
 import com.kitakkun.jetwhale.host.sdk.LocalJetWhalePluginStorage
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -50,11 +51,13 @@ class DefaultPluginComposeSceneService(
             pluginScenes.getOrPut("$pluginId:$sessionId") {
                 val windowUpdatableContext = DynamicWindowInfoPlatformContext()
                 val composeScene = CanvasLayersComposeScene(platformContext = windowUpdatableContext)
+                val isScreenshotCapture = mutableStateOf(false)
 
                 composeScene.setContent {
                     // Expose the plugin's own pluginId-scoped storage so rememberPersistent can reach it.
                     CompositionLocalProvider(
                         LocalJetWhalePluginStorage provides pluginInstance.boundStorageForRuntime(),
+                        LocalIsScreenshotCapture provides isScreenshotCapture.value,
                     ) {
                         pluginBridgeProvider.PluginEntryPoint {
                             // Headless plugins (not a JetWhaleHostPluginUi) render no content.
@@ -68,6 +71,7 @@ class DefaultPluginComposeSceneService(
                     composeScene = composeScene,
                     windowInfoUpdater = windowUpdatableContext,
                     semanticsOwners = windowUpdatableContext.semanticsOwners,
+                    isScreenshotCapture = isScreenshotCapture,
                 )
             }
         }

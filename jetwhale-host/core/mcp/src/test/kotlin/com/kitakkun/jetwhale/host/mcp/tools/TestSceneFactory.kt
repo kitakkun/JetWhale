@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
@@ -12,6 +14,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
+import com.kitakkun.jetwhale.host.sdk.LocalIsScreenshotCapture
 
 const val TEST_SCENE_WIDTH = 1280
 const val TEST_SCENE_HEIGHT = 720
@@ -20,11 +23,17 @@ const val TEST_SCENE_HEIGHT = 720
 fun createTestScene(content: @Composable () -> Unit = {}): PluginComposeScene {
     val platformContext = TestPlatformContext()
     val composeScene = CanvasLayersComposeScene(platformContext = platformContext)
-    composeScene.setContent(content)
+    val isScreenshotCapture = mutableStateOf(false)
+    composeScene.setContent {
+        CompositionLocalProvider(LocalIsScreenshotCapture provides isScreenshotCapture.value) {
+            content()
+        }
+    }
     return PluginComposeScene(
         composeScene = composeScene,
         windowInfoUpdater = platformContext,
         semanticsOwners = platformContext.semanticsOwners,
+        isScreenshotCapture = isScreenshotCapture,
     )
 }
 
