@@ -3,9 +3,11 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
@@ -15,9 +17,13 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.jetbrains.skia.Image as SkiaImage
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
@@ -46,8 +52,16 @@ private class MirrorHostPlugin :
     private val devices: SnapshotStateList<MirrorDevice> = mutableStateListOf()
     private var selectedDeviceId by mutableStateOf<String?>(null)
     private var mirroringEnabled by mutableStateOf(true)
-    private var latestFrame by mutableStateOf<ImageBitmap?>(null)
+
+    // All connected devices are mirrored concurrently, one capture loop and frame slot each.
+    private val frames: SnapshotStateMap<String, ImageBitmap> = mutableStateMapOf()
+    private val mirrorJobs = mutableMapOf<String, Job>()
+    private val refreshMutex = Mutex()
+
     private var lastError by mutableStateOf<String?>(null)
+    private var activeRecording by mutableStateOf<ActiveRecording?>(null)
+
+    private class ActiveRecording(val deviceId: String, val recording: DeviceRecording)
 
     private val selectedDevice: MirrorDevice? get() = devices.firstOrNull { it.id == selectedDeviceId }
 
@@ -58,28 +72,9 @@ private class MirrorHostPlugin :
                 delay(DEVICE_POLL_INTERVAL_MILLIS)
             }
         }
-        // The mirror is a screenshot poll loop: cheap, tool-free, and identical for both platforms.
-        pluginScope.launch {
-            while (isActive) {
-                val device = selectedDevice
-                if (mirroringEnabled && device != null) {
-                    try {
-                        val png = device.controller.captureScreenshot()
-                        latestFrame = SkiaImage.makeFromEncoded(png).toComposeImageBitmap()
-                        lastError = null
-                        delay(FRAME_INTERVAL_MILLIS)
-                    } catch (e: DeviceControlException) {
-                        lastError = e.message
-                        delay(FRAME_RETRY_INTERVAL_MILLIS)
-                    }
-                } else {
-                    delay(DEVICE_POLL_INTERVAL_MILLIS)
-                }
-            }
-        }
     }
 
-    private suspend fun refreshDevices(): List<MirrorDevice> {
+    private suspend fun refreshDevices(): List<MirrorDevice> = refreshMutex.withLock {
         val discovered = discovery.discoverDevices()
         devices.apply {
             clear()
@@ -87,9 +82,36 @@ private class MirrorHostPlugin :
         }
         if (devices.none { it.id == selectedDeviceId }) {
             selectedDeviceId = devices.firstOrNull()?.id
-            latestFrame = null
         }
-        return discovered
+        val discoveredIds = discovered.map { it.id }.toSet()
+        mirrorJobs.keys.filter { it !in discoveredIds }.forEach { id ->
+            mirrorJobs.remove(id)?.cancel()
+            frames.remove(id)
+        }
+        discovered.forEach { device ->
+            if (mirrorJobs[device.id]?.isActive != true) {
+                mirrorJobs[device.id] = pluginScope.launch { mirrorLoop(device) }
+            }
+        }
+        discovered
+    }
+
+    // The mirror is a screenshot poll loop: cheap, tool-free, and identical for both platforms.
+    private suspend fun mirrorLoop(device: MirrorDevice) {
+        while (currentCoroutineContext().isActive) {
+            if (!mirroringEnabled) {
+                delay(DEVICE_POLL_INTERVAL_MILLIS)
+                continue
+            }
+            try {
+                val png = device.controller.captureScreenshot()
+                frames[device.id] = SkiaImage.makeFromEncoded(png).toComposeImageBitmap()
+                delay(FRAME_INTERVAL_MILLIS)
+            } catch (e: DeviceControlException) {
+                lastError = "${device.name}: ${e.message}"
+                delay(FRAME_RETRY_INTERVAL_MILLIS)
+            }
+        }
     }
 
     // Runs a device-control action from a UI callback, surfacing failures in the status bar.
@@ -109,22 +131,27 @@ private class MirrorHostPlugin :
         MirrorScreen(
             devices = devices,
             selectedDeviceId = selectedDeviceId,
-            onSelectDevice = { id ->
-                selectedDeviceId = id
-                latestFrame = null
-            },
-            frame = latestFrame,
+            onSelectDevice = { id -> selectedDeviceId = id },
+            frames = frames,
             mirroringEnabled = mirroringEnabled,
             onToggleMirroring = { mirroringEnabled = it },
             errorMessage = lastError,
             onRefreshDevices = { pluginScope.launch { refreshDevices() } },
-            onTap = { x, y -> selectedDevice?.let { runControl { it.controller.tap(x, y) } } },
-            onSwipe = { fromX, fromY, toX, toY ->
-                selectedDevice?.let { runControl { it.controller.swipe(fromX, fromY, toX, toY, durationMillis = 200) } }
+            onTap = { device, x, y -> runControl { device.controller.tap(x, y) } },
+            onSwipe = { device, fromX, fromY, toX, toY ->
+                runControl { device.controller.swipe(fromX, fromY, toX, toY, durationMillis = 200) }
             },
             onPressButton = { button -> selectedDevice?.let { runControl { it.controller.pressButton(button) } } },
             onInputText = { text -> selectedDevice?.let { runControl { it.controller.inputText(text) } } },
             onSaveScreenshot = { selectedDevice?.let { runControl { saveScreenshotToDisk(it) } } },
+            isRecording = activeRecording != null,
+            onToggleRecording = {
+                if (activeRecording != null) {
+                    runControl { lastError = "Saved recording: ${stopRecording().absolutePath}" }
+                } else {
+                    selectedDevice?.let { runControl { startRecording(it) } }
+                }
+            },
         )
     }
 
@@ -133,6 +160,18 @@ private class MirrorHostPlugin :
         val file = screenshotFile(device)
         file.writeBytes(png)
         lastError = "Saved screenshot: ${file.absolutePath}"
+    }
+
+    private suspend fun startRecording(device: MirrorDevice) {
+        if (activeRecording != null) throw DeviceControlException("a recording is already in progress; stop it first")
+        val recording = device.controller.startRecording(recordingFile(device))
+        activeRecording = ActiveRecording(deviceId = device.id, recording = recording)
+    }
+
+    private suspend fun stopRecording(): java.io.File {
+        val active = activeRecording ?: throw DeviceControlException("no recording in progress")
+        activeRecording = null
+        return active.recording.stop()
     }
 
     // -------------------------------------------------------------------------
@@ -157,5 +196,7 @@ private class MirrorHostPlugin :
         SwipeCommand(resolveDevice = ::resolveDevice),
         PressButtonCommand(resolveDevice = ::resolveDevice),
         InputTextCommand(resolveDevice = ::resolveDevice),
+        StartRecordingCommand(resolveDevice = ::resolveDevice, startRecording = ::startRecording),
+        StopRecordingCommand(stopRecording = ::stopRecording),
     )
 }
