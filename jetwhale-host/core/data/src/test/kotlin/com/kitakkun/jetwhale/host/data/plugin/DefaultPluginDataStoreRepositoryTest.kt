@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
+import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.get
 import com.kitakkun.jetwhale.host.sdk.getFlow
 import com.kitakkun.jetwhale.host.sdk.put
@@ -14,6 +16,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@OptIn(InternalJetWhaleHostApi::class)
 class DefaultPluginDataStoreRepositoryTest {
     private val originalUserHome: String? = System.getProperty("user.home")
 
@@ -81,5 +84,71 @@ class DefaultPluginDataStoreRepositoryTest {
         assertNull(storage.getFlow<Int>("count").first())
         storage.put("count", 42)
         assertEquals(42, storage.getFlow<Int>("count").first())
+    }
+
+    @Test
+    fun `storage migration hook runs once with the stored version`() = runBlocking {
+        val repository = newRepository()
+        // Seed pre-versioning (v1) data directly through the raw repository storage.
+        repository.storageFor("plugin.migrating").put("draft", "hello")
+
+        val plugin = object : JetWhaleHostPlugin() {
+            override val storageVersion: Int = 2
+            var migratedFrom: Int? = null
+
+            override suspend fun onStorageMigrate(fromVersion: Int) {
+                migratedFrom = fromVersion
+                val old = storage.get<String>("draft")
+                if (old != null) {
+                    storage.put("draft-input", old)
+                    storage.remove("draft")
+                }
+            }
+
+            suspend fun readDraftInput(): String? = storage.get<String>("draft-input")
+            suspend fun readDraft(): String? = storage.get<String>("draft")
+        }
+        plugin.bindStorage(repository.storageFor("plugin.migrating"))
+
+        assertEquals("hello", plugin.readDraftInput())
+        assertNull(plugin.readDraft())
+        assertEquals(1, plugin.migratedFrom)
+
+        // A second instance with the same version must not migrate again.
+        val second = object : JetWhaleHostPlugin() {
+            override val storageVersion: Int = 2
+            var migrationRan = false
+
+            override suspend fun onStorageMigrate(fromVersion: Int) {
+                migrationRan = true
+            }
+
+            suspend fun readDraftInput(): String? = storage.get<String>("draft-input")
+        }
+        second.bindStorage(repository.storageFor("plugin.migrating"))
+        assertEquals("hello", second.readDraftInput())
+        assertFalse(second.migrationRan)
+    }
+
+    @Test
+    fun `fresh store skips migration and version key stays hidden`() = runBlocking {
+        val repository = newRepository()
+        val plugin = object : JetWhaleHostPlugin() {
+            override val storageVersion: Int = 3
+            var migrationRan = false
+
+            override suspend fun onStorageMigrate(fromVersion: Int) {
+                migrationRan = true
+            }
+
+            suspend fun writeAndListKeys(): Set<String> {
+                storage.put("only-key", 1)
+                return storage.keysFlow.first()
+            }
+        }
+        plugin.bindStorage(repository.storageFor("plugin.fresh"))
+
+        assertEquals(setOf("only-key"), plugin.writeAndListKeys())
+        assertFalse(plugin.migrationRan)
     }
 }

@@ -14,9 +14,9 @@ import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
-import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
+import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.LocalJetWhalePluginStorage
 import dev.zacsweers.metro.AppScope
@@ -26,14 +26,13 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-@OptIn(InternalComposeUiApi::class)
+@OptIn(InternalComposeUiApi::class, InternalJetWhaleHostApi::class)
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
 @Inject
 class DefaultPluginComposeSceneService(
     private val pluginBridgeProvider: DynamicPluginBridgeProvider,
     private val pluginInstanceService: PluginInstanceService,
-    private val pluginDataStoreRepository: PluginDataStoreRepository,
 ) : PluginComposeSceneService {
     private val pluginScenes = mutableMapOf<String, PluginComposeScene>()
 
@@ -55,7 +54,7 @@ class DefaultPluginComposeSceneService(
                 composeScene.setContent {
                     // Expose the plugin's own pluginId-scoped storage so rememberPersistent can reach it.
                     CompositionLocalProvider(
-                        LocalJetWhalePluginStorage provides pluginDataStoreRepository.storageFor(pluginId),
+                        LocalJetWhalePluginStorage provides pluginInstance.boundStorageForRuntime(),
                     ) {
                         pluginBridgeProvider.PluginEntryPoint {
                             // Headless plugins (not a JetWhaleHostPluginUi) render no content.
