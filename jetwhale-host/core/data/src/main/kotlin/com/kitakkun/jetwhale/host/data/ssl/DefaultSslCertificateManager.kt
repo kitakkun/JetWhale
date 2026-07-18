@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.host.data.ssl
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
-import com.kitakkun.jetwhale.host.data.FilePermissions
+import com.kitakkun.jetwhale.host.data.FilePermissionsWriter
 import com.kitakkun.jetwhale.host.data.cert.CACertificateGenerator
 import com.kitakkun.jetwhale.host.data.cert.KeyPairFactory
 import com.kitakkun.jetwhale.host.data.cert.PemConverter
@@ -89,7 +89,7 @@ class DefaultSslCertificateManager(
 
     private fun saveMetadata(store: CertificatesStore) {
         metadataFile.writeText(json.encodeToString(store))
-        FilePermissions.restrictToOwnerFile(metadataFile)
+        FilePermissionsWriter.restrictToOwnerFile(metadataFile)
     }
 
     override fun getAllCertificates(): List<SslCertificateEntry> {
@@ -144,14 +144,14 @@ class DefaultSslCertificateManager(
             keyStore.store(output, KEYSTORE_PASSWORD.toCharArray())
         }
         // The keystore holds the CA private key: restrict it to owner read/write only (0600).
-        FilePermissions.restrictToOwnerFile(keyStoreFile)
+        FilePermissionsWriter.restrictToOwnerFile(keyStoreFile)
 
         // Persist the CA certificate as the trust anchor distributed to target apps.
         val pemFile = caCertPemFile(id)
         with(pemConverter) {
             pemFile.writeText(ca.cert.toPem())
         }
-        FilePermissions.restrictToOwnerFile(pemFile)
+        FilePermissionsWriter.restrictToOwnerFile(pemFile)
 
         val store = loadMetadata()
         val updatedCertificates = store.certificates.map { it.copy(isActive = false) } +

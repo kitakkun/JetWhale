@@ -12,7 +12,7 @@ import java.nio.file.attribute.PosixFilePermission
  * (e.g. Windows/NTFS) do not support POSIX modes, so we fall back to the [File] read/write/execute
  * toggles: first strip access for everyone, then re-grant it to the owner only.
  */
-internal object FilePermissions {
+internal object FilePermissionsWriter {
     /** Restrict a directory to owner-only access (POSIX 0700). */
     fun restrictToOwnerDirectory(file: File) {
         val posix = setOf(
