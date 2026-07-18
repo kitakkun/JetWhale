@@ -37,11 +37,15 @@ tasks.register<JavaExec>("runJetWhaleLocal") {
     // Point the host at the dev plugins directory; this enables dev-mode loading + hot reload.
     // Supplied lazily via a CommandLineArgumentProvider so the task stays configuration-cache safe.
     val devDirProvider = devPluginsDir.map { it.asFile.absolutePath }
+    // Isolated, disposable app-data root for this plugin project so the host does not run against the
+    // developer's real `~/.jetwhale`. Lives under `build/`, so it survives re-launches but `clean` wipes it.
+    val sandboxDirProvider = layout.buildDirectory.dir("jetwhale-sandbox").map { it.asFile.absolutePath }
     val osName = providers.systemProperty("os.name")
     jvmArgumentProviders.add(
         CommandLineArgumentProvider {
             buildList {
                 add("-Djetwhale.devPluginsDir=${devDirProvider.get()}")
+                add("-Djetwhale.appDataDir=${sandboxDirProvider.get()}")
                 // Allow the dev hot-reload to self-attach a JVM agent (byte-buddy-agent) for in-place
                 // class redefinition; self-attach is disabled by default on JDK 9+.
                 add("-Djdk.attach.allowAttachSelf=true")
