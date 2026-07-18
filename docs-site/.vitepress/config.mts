@@ -77,10 +77,10 @@ export default defineConfig({
       {
         text: 'Guide',
         items: [
-          { text: 'ADB Auto Port Mapping', link: '/guide/adb-auto-port-mapping' },
           { text: 'Network Inspector', link: '/guide/network-inspector' },
           { text: 'MCP Server', link: '/guide/mcp-server' },
           { text: 'Host Settings', link: '/guide/host-settings' },
+          { text: 'ADB Auto Port Mapping', link: '/guide/adb-auto-port-mapping' },
         ],
       },
       {
