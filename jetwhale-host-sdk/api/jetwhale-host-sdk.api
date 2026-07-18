@@ -212,3 +212,7 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMessagingHostPlugin
 	public final fun registerHandlers (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessageHandlers;)V
 }
 
+public final class com/kitakkun/jetwhale/host/sdk/ScreenshotCaptureKt {
+	public static final fun getLocalIsScreenshotCapture ()Landroidx/compose/runtime/ProvidableCompositionLocal;
+}
+
