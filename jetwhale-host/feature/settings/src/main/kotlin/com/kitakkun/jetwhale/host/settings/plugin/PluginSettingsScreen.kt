@@ -32,9 +32,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
+import com.kitakkun.jetwhale.host.settings.add_plugin_from_file
 import com.kitakkun.jetwhale.host.settings.dialog_ok
 import com.kitakkun.jetwhale.host.settings.failed_jar_path_hint
 import com.kitakkun.jetwhale.host.settings.failed_to_load_plugins
+import com.kitakkun.jetwhale.host.settings.install_from_maven
 import com.kitakkun.jetwhale.host.settings.installed_plugins
 import org.jetbrains.compose.resources.stringResource
 
@@ -174,13 +176,13 @@ fun PluginSettingsScreen(
                 onClick = onClickAddPlugin,
                 enabled = !uiState.isInstalling,
             ) {
-                Text("Add Plugin from File")
+                Text(stringResource(Res.string.add_plugin_from_file))
             }
             Button(
                 onClick = onClickInstallFromMaven,
                 enabled = !uiState.isInstalling,
             ) {
-                Text("Install from Maven")
+                Text(stringResource(Res.string.install_from_maven))
             }
             if (uiState.isInstalling) {
                 CircularProgressIndicator(

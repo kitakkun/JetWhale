@@ -42,4 +42,16 @@
     <string name="log_viewer_auto_scroll">自動スクロール</string>
     <string name="log_viewer_clear_logs">ログをクリア</string>
     <string name="log_viewer_no_logs">まだログがキャプチャされていません</string>
+    <string name="add_plugin_from_file">ファイルからプラグインを追加</string>
+    <string name="install_from_maven">Mavenからインストール</string>
+    <string name="maven_install_dialog_title">Mavenリポジトリからプラグインをインストール</string>
+    <string name="maven_install_dialog_description">Maven座標を入力してプラグインをダウンロード・インストールします。</string>
+    <string name="maven_install_paste_label">座標を貼り付け</string>
+    <string name="maven_install_paste_supporting_text">group:artifact:version、Gradleの依存関係の行、Mavenの&lt;dependency&gt;ブロックに対応しています。下のフィールドは自動的に入力されます。</string>
+    <string name="maven_install_group_id_label">Group ID</string>
+    <string name="maven_install_artifact_id_label">Artifact ID</string>
+    <string name="maven_install_version_label">バージョン</string>
+    <string name="maven_install_repository_url_label">リポジトリURL</string>
+    <string name="maven_install_error_fill_required">必須フィールドをすべて入力してください。</string>
+    <string name="maven_install_install">インストール</string>
 </resources>

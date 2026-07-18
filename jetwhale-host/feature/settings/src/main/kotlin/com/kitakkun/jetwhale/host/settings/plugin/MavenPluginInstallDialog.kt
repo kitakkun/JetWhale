@@ -20,6 +20,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.MavenCoordinates
+import com.kitakkun.jetwhale.host.settings.Res
+import com.kitakkun.jetwhale.host.settings.dialog_cancel
+import com.kitakkun.jetwhale.host.settings.maven_install_artifact_id_label
+import com.kitakkun.jetwhale.host.settings.maven_install_dialog_description
+import com.kitakkun.jetwhale.host.settings.maven_install_dialog_title
+import com.kitakkun.jetwhale.host.settings.maven_install_error_fill_required
+import com.kitakkun.jetwhale.host.settings.maven_install_group_id_label
+import com.kitakkun.jetwhale.host.settings.maven_install_install
+import com.kitakkun.jetwhale.host.settings.maven_install_paste_label
+import com.kitakkun.jetwhale.host.settings.maven_install_paste_supporting_text
+import com.kitakkun.jetwhale.host.settings.maven_install_repository_url_label
+import com.kitakkun.jetwhale.host.settings.maven_install_version_label
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun MavenPluginInstallDialog(
@@ -32,11 +45,12 @@ fun MavenPluginInstallDialog(
     var version by remember { mutableStateOf("") }
     var repositoryUrl by remember { mutableStateOf(MavenCoordinates.MAVEN_CENTRAL_URL) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val fillRequiredFieldsError = stringResource(Res.string.maven_install_error_fill_required)
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = {
-            Text("Install Plugin from Maven Repository")
+            Text(stringResource(Res.string.maven_install_dialog_title))
         },
         text = {
             Column(
@@ -44,7 +58,7 @@ fun MavenPluginInstallDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "Enter Maven coordinates to download and install a plugin.",
+                    text = stringResource(Res.string.maven_install_dialog_description),
                     style = MaterialTheme.typography.bodyMedium,
                 )
 
@@ -62,10 +76,10 @@ fun MavenPluginInstallDialog(
                         }
                         errorMessage = null
                     },
-                    label = { Text("Paste coordinates") },
+                    label = { Text(stringResource(Res.string.maven_install_paste_label)) },
                     placeholder = { Text("com.example:my-plugin:1.0.0") },
                     supportingText = {
-                        Text("Accepts group:artifact:version, Gradle dependency lines, or a Maven <dependency> block. Fields below are filled automatically.")
+                        Text(stringResource(Res.string.maven_install_paste_supporting_text))
                     },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -77,7 +91,7 @@ fun MavenPluginInstallDialog(
                         groupId = it
                         errorMessage = null
                     },
-                    label = { Text("Group ID") },
+                    label = { Text(stringResource(Res.string.maven_install_group_id_label)) },
                     placeholder = { Text("com.example") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -89,7 +103,7 @@ fun MavenPluginInstallDialog(
                         artifactId = it
                         errorMessage = null
                     },
-                    label = { Text("Artifact ID") },
+                    label = { Text(stringResource(Res.string.maven_install_artifact_id_label)) },
                     placeholder = { Text("my-plugin") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -101,7 +115,7 @@ fun MavenPluginInstallDialog(
                         version = it
                         errorMessage = null
                     },
-                    label = { Text("Version") },
+                    label = { Text(stringResource(Res.string.maven_install_version_label)) },
                     placeholder = { Text("1.0.0") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -113,7 +127,7 @@ fun MavenPluginInstallDialog(
                         repositoryUrl = it
                         errorMessage = null
                     },
-                    label = { Text("Repository URL") },
+                    label = { Text(stringResource(Res.string.maven_install_repository_url_label)) },
                     placeholder = { Text(MavenCoordinates.MAVEN_CENTRAL_URL) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -133,7 +147,7 @@ fun MavenPluginInstallDialog(
             Button(
                 onClick = {
                     if (groupId.isBlank() || artifactId.isBlank() || version.isBlank()) {
-                        errorMessage = "Please fill in all required fields."
+                        errorMessage = fillRequiredFieldsError
                         return@Button
                     }
                     val coordinates = MavenCoordinates(
@@ -146,12 +160,12 @@ fun MavenPluginInstallDialog(
                     onDismissRequest()
                 },
             ) {
-                Text("Install")
+                Text(stringResource(Res.string.maven_install_install))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismissRequest) {
-                Text("Cancel")
+                Text(stringResource(Res.string.dialog_cancel))
             }
         },
     )
