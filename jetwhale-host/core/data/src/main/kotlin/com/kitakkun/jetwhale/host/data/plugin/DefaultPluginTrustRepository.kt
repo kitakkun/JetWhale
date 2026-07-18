@@ -13,14 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.long
-import kotlinx.serialization.json.put
 import java.io.File
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
@@ -30,10 +24,6 @@ import java.nio.file.StandardCopyOption
  * JSON-file-backed trust registry stored at `~/.jetwhale/trusted-plugins.json`. Reads itself once on
  * construction so the trust decision is available before any plugin jar is loaded; every mutation
  * updates the in-memory snapshot and rewrites the file under a mutex.
- *
- * The JSON is built and parsed with the [JsonObject] tree API rather than `@Serializable` classes on
- * purpose: this module does not apply the kotlinx.serialization compiler plugin, so a generated
- * serializer for a local data class would not exist and `encodeToString` would fail at runtime.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
@@ -66,14 +56,12 @@ class DefaultPluginTrustRepository(
         val file = appDataDirectoryProvider.getTrustRegistryFile()
         if (!file.exists()) return emptyMap()
         return try {
-            val root = json.parseToJsonElement(file.readText()).jsonObject
-            val entries = root[ENTRIES_KEY]?.jsonObject ?: return emptyMap()
-            entries.mapValues { (path, element) ->
-                val entry = element.jsonObject
+            val registry = json.decodeFromString<TrustRegistryFile>(file.readText())
+            registry.entries.mapValues { (path, entry) ->
                 TrustedPluginEntry(
                     jarPath = path,
-                    sha256 = entry.getValue(SHA256_KEY).jsonPrimitive.content,
-                    trustedAtEpochMillis = entry.getValue(TRUSTED_AT_KEY).jsonPrimitive.long,
+                    sha256 = entry.sha256,
+                    trustedAtEpochMillis = entry.trustedAtEpochMillis,
                 )
             }
         } catch (e: CancellationException) {
@@ -89,23 +77,18 @@ class DefaultPluginTrustRepository(
     private fun persist(entries: Map<String, TrustedPluginEntry>) {
         val file = appDataDirectoryProvider.getTrustRegistryFile()
         file.parentFile?.mkdirs()
-        val root = buildJsonObject {
-            put(
-                ENTRIES_KEY,
-                JsonObject(
-                    entries.mapValues { (_, entry) ->
-                        buildJsonObject {
-                            put(SHA256_KEY, entry.sha256)
-                            put(TRUSTED_AT_KEY, entry.trustedAtEpochMillis)
-                        }
-                    },
-                ),
-            )
-        }
+        val registry = TrustRegistryFile(
+            entries = entries.mapValues { (_, entry) ->
+                StoredTrustedPluginEntry(
+                    sha256 = entry.sha256,
+                    trustedAtEpochMillis = entry.trustedAtEpochMillis,
+                )
+            },
+        )
         // Write to a sibling temp file and move it into place so an interrupted write can never
         // leave a truncated registry behind (which would fail-safe but wipe all trust decisions).
         val tempFile = File(file.parentFile, "${file.name}.tmp")
-        tempFile.writeText(json.encodeToString(JsonElement.serializer(), root))
+        tempFile.writeText(json.encodeToString(registry))
         try {
             Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
         } catch (e: AtomicMoveNotSupportedException) {
@@ -113,10 +96,18 @@ class DefaultPluginTrustRepository(
         }
     }
 
+    @Serializable
+    private data class TrustRegistryFile(
+        val entries: Map<String, StoredTrustedPluginEntry>,
+    )
+
+    @Serializable
+    private data class StoredTrustedPluginEntry(
+        val sha256: String,
+        val trustedAtEpochMillis: Long,
+    )
+
     companion object {
-        private const val ENTRIES_KEY = "entries"
-        private const val SHA256_KEY = "sha256"
-        private const val TRUSTED_AT_KEY = "trustedAtEpochMillis"
         private val json = Json { prettyPrint = true }
     }
 }

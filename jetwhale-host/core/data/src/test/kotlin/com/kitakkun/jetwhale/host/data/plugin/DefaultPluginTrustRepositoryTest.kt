@@ -36,10 +36,6 @@ class DefaultPluginTrustRepositoryTest {
 
     @Test
     fun trustedEntriesSurviveAReadBackFromDisk() = runBlocking {
-        // Regression guard for the original bug: persisting the registry must actually write valid
-        // JSON. It previously threw a SerializationException at runtime (no serializer was generated
-        // for the @Serializable model because this module lacks the serialization plugin); the
-        // mutation swallowed it, so approving an untrusted jar silently did nothing.
         newRepository().apply {
             trust("/plugins/a.jar", "hash-a")
             trust("/plugins/b.jar", "hash-b")
