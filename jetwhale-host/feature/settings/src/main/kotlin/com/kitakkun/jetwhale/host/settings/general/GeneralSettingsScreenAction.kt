@@ -8,4 +8,5 @@ sealed interface GeneralSettingsScreenAction {
     data class ChangeAutomaticallyWireADBTransport(val shouldAutomaticallyWire: Boolean) : GeneralSettingsScreenAction
     data class AppLanguageSelected(val language: AppLanguage) : GeneralSettingsScreenAction
     data class ColorSchemeSelected(val colorSchemeId: JetWhaleColorSchemeId) : GeneralSettingsScreenAction
+    data object CheckForUpdates : GeneralSettingsScreenAction
 }
