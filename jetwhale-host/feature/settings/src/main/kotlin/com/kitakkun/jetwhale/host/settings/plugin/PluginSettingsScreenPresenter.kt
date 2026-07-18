@@ -26,6 +26,7 @@ fun pluginSettingsScreenPresenter(
     val pluginInstallMutation = rememberMutation(presenterContext.pluginInstallMutationKey)
     val pluginInstallFromMavenMutation = rememberMutation(presenterContext.pluginInstallFromMavenMutationKey)
     val trustPluginMutation = rememberMutation(presenterContext.trustPluginMutationKey)
+    val officialPluginInstallMutation = rememberMutation(presenterContext.officialPluginInstallMutationKey)
 
     ActionEffect(screenChannel) { action ->
         when (action) {
@@ -34,13 +35,11 @@ fun pluginSettingsScreenPresenter(
             }
 
             is PluginSettingsScreenAction.InstallFromMaven -> {
-                pluginInstallFromMavenMutation.mutateAsync(listOf(action.coordinates))
+                pluginInstallFromMavenMutation.mutateAsync(action.coordinates)
             }
 
             is PluginSettingsScreenAction.InstallOfficialPlugin -> {
-                pluginInstallFromMavenMutation.mutateAsync(
-                    action.plugin.installCandidatesFor(presenterContext.hostVersionInfo),
-                )
+                officialPluginInstallMutation.mutateAsync(action.plugin)
             }
 
             is PluginSettingsScreenAction.UntrustedJarApproved -> {
@@ -49,8 +48,11 @@ fun pluginSettingsScreenPresenter(
         }
     }
 
-    val isInstalling = pluginInstallMutation.isPending || pluginInstallFromMavenMutation.isPending
-    val installError = pluginInstallFromMavenMutation.error?.message
+    val isInstalling = pluginInstallMutation.isPending ||
+        pluginInstallFromMavenMutation.isPending ||
+        officialPluginInstallMutation.isPending
+    val installError = officialPluginInstallMutation.error?.message
+        ?: pluginInstallFromMavenMutation.error?.message
         ?: pluginInstallMutation.error?.message
 
     return PluginSettingsScreenUiState(
