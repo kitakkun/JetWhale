@@ -41,6 +41,11 @@ class DefaultWindowStateRepository(
             if (x != null && y != null) {
                 prefs[xPreferencesKey] = x
                 prefs[yPreferencesKey] = y
+            } else {
+                // An unspecified position means "no position recorded"; drop any stale keys so the
+                // next launch falls back to centered placement.
+                prefs.remove(xPreferencesKey)
+                prefs.remove(yPreferencesKey)
             }
         }
     }
