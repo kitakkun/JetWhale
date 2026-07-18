@@ -10,7 +10,7 @@ import kotlin.io.path.readBytes
 
 enum class DevicePlatform { ANDROID, IOS }
 
-enum class DeviceButton { HOME, BACK, POWER, VOLUME_UP, VOLUME_DOWN }
+enum class DeviceButton { HOME, BACK, POWER, VOLUME_UP, VOLUME_DOWN, BACKSPACE, ENTER }
 
 /** One connected Android emulator/device or booted iOS simulator. */
 data class MirrorDevice(
@@ -61,6 +61,8 @@ internal class AndroidDeviceController(
             DeviceButton.POWER -> "KEYCODE_POWER"
             DeviceButton.VOLUME_UP -> "KEYCODE_VOLUME_UP"
             DeviceButton.VOLUME_DOWN -> "KEYCODE_VOLUME_DOWN"
+            DeviceButton.BACKSPACE -> "KEYCODE_DEL"
+            DeviceButton.ENTER -> "KEYCODE_ENTER"
         }
         runCommandChecked(adbPath, "-s", serial, "shell", "input", "keyevent", keycode)
     }
@@ -114,17 +116,29 @@ internal class IosDeviceController(
     }
 
     override suspend fun pressButton(button: DeviceButton) {
-        val idbButton = when (button) {
-            DeviceButton.HOME -> "HOME"
+        when (button) {
+            DeviceButton.HOME -> pressHardwareButton("HOME")
 
-            DeviceButton.POWER -> "LOCK"
+            DeviceButton.POWER -> pressHardwareButton("LOCK")
+
+            // Keyboard keys go through `ui key` with USB HID usage codes.
+            DeviceButton.BACKSPACE -> pressKey(hidCode = 42)
+
+            DeviceButton.ENTER -> pressKey(hidCode = 40)
 
             DeviceButton.BACK -> throw DeviceControlException("iOS has no BACK button")
 
             DeviceButton.VOLUME_UP, DeviceButton.VOLUME_DOWN ->
                 throw DeviceControlException("volume buttons are not controllable on the iOS simulator")
         }
+    }
+
+    private suspend fun pressHardwareButton(idbButton: String) {
         runCommandChecked(requireIdb(), "ui", "button", "--udid", udid, idbButton)
+    }
+
+    private suspend fun pressKey(hidCode: Int) {
+        runCommandChecked(requireIdb(), "ui", "key", "--udid", udid, "$hidCode")
     }
 
     override suspend fun inputText(text: String) {

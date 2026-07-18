@@ -156,7 +156,7 @@ private fun ControlButtonsRow(
     ) {
         Button(onClick = onSaveScreenshot, enabled = enabled) { Text("Screenshot") }
         val buttons = when (platform) {
-            DevicePlatform.IOS -> listOf(DeviceButton.HOME, DeviceButton.POWER)
+            DevicePlatform.IOS -> listOf(DeviceButton.HOME, DeviceButton.POWER, DeviceButton.BACKSPACE, DeviceButton.ENTER)
             else -> DeviceButton.entries
         }
         buttons.forEach { button ->
@@ -168,6 +168,8 @@ private fun ControlButtonsRow(
                         DeviceButton.POWER -> "Power"
                         DeviceButton.VOLUME_UP -> "Vol +"
                         DeviceButton.VOLUME_DOWN -> "Vol -"
+                        DeviceButton.BACKSPACE -> "⌫"
+                        DeviceButton.ENTER -> "⏎"
                     },
                 )
             }
