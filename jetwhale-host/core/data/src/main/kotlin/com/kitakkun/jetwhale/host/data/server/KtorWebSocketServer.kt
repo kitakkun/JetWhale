@@ -58,7 +58,6 @@ import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.security.KeyStore
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -323,14 +322,12 @@ class KtorWebSocketServer(
 
                 mutableNegotiationCompletedFlow.emit(SessionOpened(negotiationResult, transportSecurity))
 
-                closeReason.await().also {
-                    println("closed: ${it?.message}")
-                }
+                val reason = closeReason.await()
 
                 receiveJob.cancel()
                 sessions.remove(sessionId)
 
-                println("session $sessionId closed")
+                log.info("session $sessionId closed: ${reason?.message}")
 
                 mutableSessionClosedFlow.emit(sessionId)
             }
@@ -344,8 +341,6 @@ class KtorWebSocketServer(
     suspend fun broadcastToSessions(event: JetWhaleDebuggerEvent) {
         sessions.values.forEach { session -> session.sendSerialized(event) }
     }
-
-    fun getSessionCoroutineContext(sessionId: String): CoroutineContext = sessions[sessionId]?.coroutineContext ?: throw IllegalArgumentException("No session with ID $sessionId")
 }
 
 /** Hosts treated as loopback for [SessionTransportSecurity.LOOPBACK] classification. */
