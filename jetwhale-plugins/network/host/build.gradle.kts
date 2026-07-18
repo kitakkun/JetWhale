@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.jetwhalePlugin)
     // In-repo only: adds runJetWhaleLocal, which launches the local :jetwhale-host:app project.
     alias(libs.plugins.jetwhaleHostLaunch)
+    alias(libs.plugins.publish)
 }
 
 // Distinct group so this module's coordinates don't collide with `example:host`.
@@ -28,4 +29,13 @@ dependencies {
     testImplementation(libs.kotlinTest)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.material3)
+}
+
+// The jetwhalePlugin convention publishes the `packageMavenPlugin` jar (the module's classes plus a
+// manifest of its runtime dependencies) as the main artifact; the host's "Install from Maven"
+// feature downloads it and fetches the listed dependencies itself.
+jetwhalePublish {
+    artifactId = "jetwhale-network-inspector"
+    name = "JetWhale Network Inspector"
+    description = "JetWhale host plugin for the Network Inspector (HTTP capture and mocking)."
 }
