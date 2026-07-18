@@ -135,7 +135,12 @@ class KtorWebSocketServer(
                         keyStorePassword = { sslCertificateManager.getKeyStorePassword() },
                         privateKeyPassword = { sslCertificateManager.getKeyStorePassword() },
                     ) {
-                        this.host = host
+                        // Unlike the plain ws connector (kept on [host], i.e. localhost, reachable
+                        // only via ADB forwarding), the TLS connector listens on all interfaces so
+                        // physical devices on the same network (e.g. iPhones) can connect. The
+                        // channel is encrypted and clients pin the local CA, so LAN exposure is
+                        // limited to the encrypted endpoint.
+                        this.host = "0.0.0.0"
                         this.port = wssPort
                     }
                 },

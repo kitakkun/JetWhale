@@ -18,6 +18,8 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.net.Inet4Address
+import java.net.NetworkInterface
 import java.security.KeyStore
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -112,7 +114,9 @@ class DefaultSslCertificateManager(
         val certName = name ?: generateDefaultName(createdAt)
 
         // Build a self-contained local PKI: a root CA that signs a server certificate valid for
-        // localhost / 127.0.0.1.
+        // localhost / 127.0.0.1 plus this machine's current LAN addresses, so physical devices on
+        // the same network pass hostname verification. LAN addresses are captured at generation
+        // time — when the machine's IP changes (e.g. DHCP), generate a new certificate.
         val ca = caCertificateGenerator.createRootCA(commonName = "JetWhale Local CA")
         val serverKeyPair = keyPairFactory.generate()
         val serverCertificate = serverCertificateIssuer.issue(
@@ -120,7 +124,7 @@ class DefaultSslCertificateManager(
             serverKeyPair = serverKeyPair,
             commonName = "localhost",
             dnsSans = listOf("localhost"),
-            ipSans = listOf("127.0.0.1"),
+            ipSans = listOf("127.0.0.1") + collectLocalIpAddresses(),
         )
 
         // Persist the server material as a PKCS#12 keystore consumed by the wss server.
@@ -205,6 +209,21 @@ class DefaultSslCertificateManager(
         val active = loadMetadata().certificates.find { it.isActive } ?: return null
         return keyAlias(active.id)
     }
+
+    /**
+     * Returns the machine's non-loopback IPv4 addresses (Wi-Fi/Ethernet), used as additional
+     * Subject Alternative Names so LAN clients can verify the certificate against the address they
+     * dialed.
+     */
+    private fun collectLocalIpAddresses(): List<String> = runCatching {
+        NetworkInterface.getNetworkInterfaces().asSequence()
+            .filter { it.isUp && !it.isLoopback }
+            .flatMap { it.inetAddresses.asSequence() }
+            .filterIsInstance<Inet4Address>()
+            .mapNotNull { it.hostAddress }
+            .distinct()
+            .toList()
+    }.getOrDefault(emptyList())
 
     private fun generateDefaultName(createdAt: Long): String {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
