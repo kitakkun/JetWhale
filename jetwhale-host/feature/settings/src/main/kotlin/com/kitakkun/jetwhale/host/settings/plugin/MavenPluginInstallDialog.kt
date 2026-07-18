@@ -2,12 +2,10 @@ package com.kitakkun.jetwhale.host.settings.plugin
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -132,31 +130,28 @@ fun MavenPluginInstallDialog(
             }
         },
         confirmButton = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Button(
+                onClick = {
+                    if (groupId.isBlank() || artifactId.isBlank() || version.isBlank()) {
+                        errorMessage = "Please fill in all required fields."
+                        return@Button
+                    }
+                    val coordinates = MavenCoordinates(
+                        groupId = groupId.trim(),
+                        artifactId = artifactId.trim(),
+                        version = version.trim(),
+                        repositoryUrl = repositoryUrl.trim().ifBlank { MavenCoordinates.MAVEN_CENTRAL_URL },
+                    )
+                    onInstall(coordinates)
+                    onDismissRequest()
+                },
             ) {
-                TextButton(onClick = onDismissRequest) {
-                    Text("Cancel")
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        if (groupId.isBlank() || artifactId.isBlank() || version.isBlank()) {
-                            errorMessage = "Please fill in all required fields."
-                            return@Button
-                        }
-                        val coordinates = MavenCoordinates(
-                            groupId = groupId.trim(),
-                            artifactId = artifactId.trim(),
-                            version = version.trim(),
-                            repositoryUrl = repositoryUrl.trim().ifBlank { MavenCoordinates.MAVEN_CENTRAL_URL },
-                        )
-                        onInstall(coordinates)
-                        onDismissRequest()
-                    },
-                ) {
-                    Text("Install")
-                }
+                Text("Install")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest) {
+                Text("Cancel")
             }
         },
     )

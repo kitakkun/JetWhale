@@ -6,6 +6,7 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.isSuccess
@@ -15,7 +16,12 @@ import java.io.File
 @SingleIn(AppScope::class)
 @Inject
 class MavenArtifactResolver {
-    private val httpClient = HttpClient(CIO)
+    private val httpClient = HttpClient(CIO) {
+        install(HttpTimeout) {
+            connectTimeoutMillis = 30_000
+            socketTimeoutMillis = 30_000
+        }
+    }
 
     /**
      * Downloads a JAR file from Maven repository to the specified destination directory.
@@ -26,7 +32,7 @@ class MavenArtifactResolver {
      */
     suspend fun downloadJar(coordinates: MavenCoordinates, destinationDir: File): String {
         val jarUrl = coordinates.toJarUrl()
-        val jarFileName = "${coordinates.artifactId}-${coordinates.version}.jar"
+        val jarFileName = "${coordinates.groupId}-${coordinates.artifactId}-${coordinates.version}.jar"
         val destinationFile = File(destinationDir, jarFileName)
 
         try {
