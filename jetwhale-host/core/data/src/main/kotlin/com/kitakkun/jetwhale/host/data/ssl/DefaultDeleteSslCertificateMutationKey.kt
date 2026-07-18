@@ -6,6 +6,8 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.binding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import soil.query.MutationId
 import soil.query.MutationKey
 import soil.query.buildMutationKey
@@ -18,6 +20,9 @@ class DefaultDeleteSslCertificateMutationKey(
     MutationKey<Boolean, String> by buildMutationKey(
         id = MutationId("delete_ssl_certificate"),
         mutate = { id: String ->
-            sslCertificateManager.deleteCertificate(id)
+            // File removal and metadata persistence are blocking disk work.
+            withContext(Dispatchers.IO) {
+                sslCertificateManager.deleteCertificate(id)
+            }
         },
     )
