@@ -194,7 +194,6 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand {
 	public abstract fun execute (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpArguments;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun getDescription ()Ljava/lang/String;
 	public abstract fun getName ()Ljava/lang/String;
-	public final fun getParameters ()Ljava/util/List;
 	protected final fun int (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	public static synthetic fun int$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	protected final fun intOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;

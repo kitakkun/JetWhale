@@ -38,16 +38,11 @@ public abstract class JetWhaleMcpCommand {
 
     private val declaredParameters = mutableListOf<JetWhaleMcpParameter<*>>()
 
-    // Set once the declarations have been read (i.e. the schema may have been shown to a
-    // caller); late declarations would silently diverge from it, so they throw instead.
+    // Set once the schema has been produced (and may have been shown to a caller); late
+    // declarations would silently diverge from it, so they throw instead. The declarations are
+    // deliberately not readable any other way: an accidental read during construction would
+    // observe a half-built list.
     private var parametersSealed = false
-
-    /** The parameters declared via the protected factory functions, in declaration order. */
-    public val parameters: List<JetWhaleMcpParameter<*>>
-        get() {
-            parametersSealed = true
-            return declaredParameters.toList()
-        }
 
     /**
      * Executes the tool.
@@ -56,17 +51,20 @@ public abstract class JetWhaleMcpCommand {
      */
     public abstract suspend fun execute(arguments: JetWhaleMcpArguments): String
 
-    public fun toDescriptor(): JetWhaleMcpToolDescriptor = JetWhaleMcpToolDescriptor(
-        name = name,
-        description = description,
-        parameters = parameters.associate { parameter ->
-            parameter.name to JetWhaleMcpParameterDescriptor(
-                type = parameter.type,
-                description = parameter.description,
-                required = parameter.required,
-            )
-        },
-    )
+    public fun toDescriptor(): JetWhaleMcpToolDescriptor {
+        parametersSealed = true
+        return JetWhaleMcpToolDescriptor(
+            name = name,
+            description = description,
+            parameters = declaredParameters.associate { parameter ->
+                parameter.name to JetWhaleMcpParameterDescriptor(
+                    type = parameter.type,
+                    description = parameter.description,
+                    required = parameter.required,
+                )
+            },
+        )
+    }
 
     // -- Parameter declaration (use with `by` on a property; the property name is the parameter
     // name unless overridden via the `name` argument) ---------------------------------------
