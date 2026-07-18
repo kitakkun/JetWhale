@@ -13,10 +13,14 @@ plugins {
 // to a numeric 4th component so successive pre-releases are recognized as updates
 // (e.g. 1.0.0-alpha08 -> 1.0.0.8). The final stable release must bump the base
 // version (e.g. 1.0.1) so it sorts above its own pre-releases.
-version = libs.versions.jetwhale.get().let { full ->
-    val base = full.substringBefore("-")
-    val preReleaseNumber = full.substringAfter("-", "").filter { it.isDigit() }.toIntOrNull()
-    if (preReleaseNumber != null) "$base.$preReleaseNumber" else base
+// Snapshot builds never go through Conveyor, so they keep the root convention's
+// `-SNAPSHOT`-suffixed version instead of this numeric override.
+if (!hasProperty("jetwhaleSnapshot")) {
+    version = libs.versions.jetwhale.get().let { full ->
+        val base = full.substringBefore("-")
+        val preReleaseNumber = full.substringAfter("-", "").filter { it.isDigit() }.toIntOrNull()
+        if (preReleaseNumber != null) "$base.$preReleaseNumber" else base
+    }
 }
 
 val generateBuildConfig by tasks.registering {
