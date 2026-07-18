@@ -24,11 +24,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
-import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.disconnected_sessions
+import com.kitakkun.jetwhale.host.group_collapsed
+import com.kitakkun.jetwhale.host.group_expanded
+import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.no_session_available
 import com.kitakkun.jetwhale.host.select_session
 import kotlinx.collections.immutable.ImmutableList
@@ -78,7 +82,7 @@ fun SessionSelectorView(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
-            val (activeSessions, disconnectedSessions) = sessions.partition { it.isActive }
+            val (activeSessions, disconnectedSessions) = remember(sessions) { sessions.partition { it.isActive } }
             activeSessions.forEach {
                 SessionDropdownMenuItem(
                     selected = it.id == selectedSession?.id,
@@ -92,6 +96,9 @@ fun SessionSelectorView(
             }
             if (disconnectedSessions.isNotEmpty()) {
                 var disconnectedExpanded by remember { mutableStateOf(false) }
+                val groupStateDescription = stringResource(
+                    if (disconnectedExpanded) Res.string.group_expanded else Res.string.group_collapsed,
+                )
                 DropdownMenuItem(
                     text = {
                         Text(stringResource(Res.string.disconnected_sessions, disconnectedSessions.size))
@@ -103,6 +110,7 @@ fun SessionSelectorView(
                         )
                     },
                     onClick = { disconnectedExpanded = !disconnectedExpanded },
+                    modifier = Modifier.semantics { stateDescription = groupStateDescription },
                 )
                 if (disconnectedExpanded) {
                     disconnectedSessions.forEach {
