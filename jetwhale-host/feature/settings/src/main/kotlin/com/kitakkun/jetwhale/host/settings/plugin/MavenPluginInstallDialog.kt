@@ -149,6 +149,9 @@ fun MavenPluginInstallDialog(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(stringResource(Res.string.maven_install_repository_label)) },
+                        supportingText = selectedWellKnownRepository?.let { repository ->
+                            { Text(repository.url) }
+                        },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = repositoryMenuExpanded) },
                         singleLine = true,
                         modifier = Modifier
@@ -161,7 +164,16 @@ fun MavenPluginInstallDialog(
                     ) {
                         WellKnownMavenRepositories.entries.forEach { repository ->
                             DropdownMenuItem(
-                                text = { Text(repository.displayName) },
+                                text = {
+                                    Column {
+                                        Text(repository.displayName)
+                                        Text(
+                                            text = repository.url,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                },
                                 onClick = {
                                     repositoryUrl = repository.url
                                     useCustomRepository = false
