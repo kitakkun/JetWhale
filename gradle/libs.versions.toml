@@ -36,6 +36,7 @@ kermit = "2.1.0"
 
 aboutLibraries = "15.0.4"
 spotless = "8.8.0"
+conveyor = "2.0"
 
 [libraries]
 # Gradle Plugins
@@ -161,6 +162,7 @@ metro = { id = "dev.zacsweers.metro", version.ref = "metro" }
 mokkery = { id = "dev.mokkery", version.ref = "mokkery" }
 
 aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutLibraries" }
+conveyor = { id = "dev.hydraulic.conveyor", version.ref = "conveyor" }
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 
