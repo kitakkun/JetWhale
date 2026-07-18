@@ -65,4 +65,6 @@
     <string name="official_plugins">Official Plugins</string>
     <string name="official_plugin_installed">Installed</string>
     <string name="no_plugins_installed">No plugins installed yet. Install one from the official catalog below, from Maven, or from a local file.</string>
+    <string name="maven_install_repository_label">Repository</string>
+    <string name="maven_install_repository_custom">Custom URL</string>
 </resources>

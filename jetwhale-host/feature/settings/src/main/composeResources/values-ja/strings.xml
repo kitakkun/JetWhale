@@ -65,4 +65,6 @@
     <string name="official_plugins">公式プラグイン</string>
     <string name="official_plugin_installed">インストール済み</string>
     <string name="no_plugins_installed">プラグインはまだインストールされていません。下の公式カタログ、Maven、またはローカルファイルからインストールできます。</string>
+    <string name="maven_install_repository_label">リポジトリ</string>
+    <string name="maven_install_repository_custom">カスタムURL</string>
 </resources>

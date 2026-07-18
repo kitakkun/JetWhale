@@ -11,6 +11,7 @@ data class MavenCoordinates(
 ) {
     companion object {
         const val MAVEN_CENTRAL_URL = "https://repo1.maven.org/maven2"
+        const val MAVEN_SNAPSHOTS_URL = "https://central.sonatype.com/repository/maven-snapshots"
 
         /**
          * Parse Maven coordinates from a string in the format "groupId:artifactId:version"

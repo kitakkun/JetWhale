@@ -37,12 +37,11 @@ data class OfficialPlugin(
         groupId = OFFICIAL_PLUGIN_GROUP_ID,
         artifactId = artifactId,
         version = version,
-        repositoryUrl = MAVEN_SNAPSHOTS_URL,
+        repositoryUrl = MavenCoordinates.MAVEN_SNAPSHOTS_URL,
     )
 
     companion object {
         const val OFFICIAL_PLUGIN_GROUP_ID = "com.kitakkun.jetwhale"
-        const val MAVEN_SNAPSHOTS_URL = "https://central.sonatype.com/repository/maven-snapshots"
     }
 }
 
