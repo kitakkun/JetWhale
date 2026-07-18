@@ -46,6 +46,7 @@ fun serverSettingsScreenPresenter(
 
     var editingDebugPortText by remember { mutableStateOf(debuggerSettings.serverPort.toString()) }
     var certificateDetailDialogEntry by remember { mutableStateOf<CertificateUiEntry?>(null) }
+    var showRestartRequiredDialog by remember { mutableStateOf(false) }
     var editingMcpPortText by remember { mutableStateOf(debuggerSettings.mcpServerPort.toString()) }
     var showDebugApplyConfirmDialog by remember { mutableStateOf(false) }
     var showMcpApplyConfirmDialog by remember { mutableStateOf(false) }
@@ -55,6 +56,7 @@ fun serverSettingsScreenPresenter(
     val generateCertificateMutation = rememberMutation(presenterContext.generateSslCertificateMutationKey)
     val activateCertificateMutation = rememberMutation(presenterContext.activateSslCertificateMutationKey)
     val deleteCertificateMutation = rememberMutation(presenterContext.deleteSslCertificateMutationKey)
+    val restartDebugServerMutation = rememberMutation(presenterContext.restartDebugServerMutationKey)
 
     val savedDebugPortText by rememberUpdatedState(debuggerSettings.serverPort.toString())
     val savedMcpPortText by rememberUpdatedState(debuggerSettings.mcpServerPort.toString())
@@ -125,18 +127,37 @@ fun serverSettingsScreenPresenter(
             }
 
             ServerSettingsScreenAction.AddCertificate -> {
+                // A newly generated certificate becomes the active one, so the running server keeps
+                // using the previous certificate until it is restarted.
                 generateCertificateMutation.mutateAsync(null)
+                showRestartRequiredDialog = true
             }
 
             is ServerSettingsScreenAction.SetActiveCertificate -> {
                 activateCertificateMutation.mutateAsync(action.id)
+                showRestartRequiredDialog = true
             }
 
             is ServerSettingsScreenAction.DeleteCertificate -> {
+                // Deleting the active certificate changes what the server would serve on restart;
+                // deleting an inactive one has no effect on the running server.
+                val wasActive = certificates.find { it.id == action.id }?.isActive == true
                 deleteCertificateMutation.mutateAsync(action.id)
                 if (certificateDetailDialogEntry?.id == action.id) {
                     certificateDetailDialogEntry = null
                 }
+                if (wasActive) {
+                    showRestartRequiredDialog = true
+                }
+            }
+
+            ServerSettingsScreenAction.RestartServer -> {
+                showRestartRequiredDialog = false
+                restartDebugServerMutation.mutateAsync(Unit)
+            }
+
+            ServerSettingsScreenAction.DismissRestartRequiredDialog -> {
+                showRestartRequiredDialog = false
             }
 
             is ServerSettingsScreenAction.ShowCertificateDetail -> {
@@ -189,5 +210,6 @@ fun serverSettingsScreenPresenter(
         showMcpApplyConfirmDialog = showMcpApplyConfirmDialog,
         certificates = certificates,
         certificateDetailDialogEntry = certificateDetailDialogEntry,
+        showRestartRequiredDialog = showRestartRequiredDialog,
     )
 }

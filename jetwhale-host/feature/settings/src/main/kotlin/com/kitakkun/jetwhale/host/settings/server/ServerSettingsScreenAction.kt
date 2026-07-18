@@ -16,4 +16,7 @@ sealed interface ServerSettingsScreenAction {
     data class DeleteCertificate(val id: String) : ServerSettingsScreenAction
     data class ShowCertificateDetail(val id: String) : ServerSettingsScreenAction
     data object DismissCertificateDetailDialog : ServerSettingsScreenAction
+
+    data object RestartServer : ServerSettingsScreenAction
+    data object DismissRestartRequiredDialog : ServerSettingsScreenAction
 }

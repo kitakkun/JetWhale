@@ -40,6 +40,11 @@
     <string name="ssl_certificate_no_certificate">証明書はまだ生成されていません</string>
     <string name="ssl_certificate_created_at">作成日時: %1$s</string>
     <string name="ssl_certificate_detail_title">CA証明書 (PEM)</string>
+    <string name="ssl_certificate_restart_note">証明書の変更（生成・有効化・削除）は、デバッグサーバーを再起動した後に反映されますわ。</string>
+    <string name="ssl_certificate_restart_required_title">再起動が必要です</string>
+    <string name="ssl_certificate_restart_required_message">有効な証明書が変更されましたわ。新しい wss 接続に反映するには、デバッグサーバーを今すぐ再起動してくださいませ。</string>
+    <string name="ssl_certificate_restart_now">今すぐ再起動</string>
+    <string name="ssl_certificate_restart_later">後で</string>
     <string name="server_status_starting">起動中...</string>
     <string name="server_status_stopping">停止中...</string>
     <string name="server_status_error">エラー: %1$s</string>

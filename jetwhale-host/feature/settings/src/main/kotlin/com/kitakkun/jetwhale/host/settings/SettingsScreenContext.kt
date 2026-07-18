@@ -21,6 +21,7 @@ import com.kitakkun.jetwhale.host.model.OfficialPluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.PluginInstallFromMavenMutationKey
 import com.kitakkun.jetwhale.host.model.PluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.PluginInstallProgressSubscriptionKey
+import com.kitakkun.jetwhale.host.model.RestartDebugServerMutationKey
 import com.kitakkun.jetwhale.host.model.ServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
@@ -42,6 +43,7 @@ class SettingsPresenterContext(
     val appColorSchemeMutationKey: AppColorSchemeMutationKey,
     val adbAutoPortMappingMutationKey: AdbAutoPortMappingMutationKey,
     val serverPortMutationKey: ServerPortMutationKey,
+    val restartDebugServerMutationKey: RestartDebugServerMutationKey,
     val mcpServerPortMutationKey: McpServerPortMutationKey,
     val pluginInstallMutationKey: PluginInstallMutationKey,
     val pluginInstallFromMavenMutationKey: PluginInstallFromMavenMutationKey,

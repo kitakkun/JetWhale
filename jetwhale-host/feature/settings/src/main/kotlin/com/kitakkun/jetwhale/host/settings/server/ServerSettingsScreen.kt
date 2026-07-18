@@ -50,6 +50,11 @@ import com.kitakkun.jetwhale.host.settings.ssl_certificate_created_at
 import com.kitakkun.jetwhale.host.settings.ssl_certificate_delete
 import com.kitakkun.jetwhale.host.settings.ssl_certificate_detail_title
 import com.kitakkun.jetwhale.host.settings.ssl_certificate_no_certificate
+import com.kitakkun.jetwhale.host.settings.ssl_certificate_restart_later
+import com.kitakkun.jetwhale.host.settings.ssl_certificate_restart_note
+import com.kitakkun.jetwhale.host.settings.ssl_certificate_restart_now
+import com.kitakkun.jetwhale.host.settings.ssl_certificate_restart_required_message
+import com.kitakkun.jetwhale.host.settings.ssl_certificate_restart_required_title
 import com.kitakkun.jetwhale.host.settings.ssl_certificate_set_active
 import com.kitakkun.jetwhale.host.settings.ssl_certificate_show_detail
 import org.jetbrains.compose.resources.stringResource
@@ -70,7 +75,27 @@ fun ServerSettingsScreen(
     onDeleteCertificate: (String) -> Unit,
     onShowCertificateDetail: (String) -> Unit,
     onDismissCertificateDetailDialog: () -> Unit,
+    onRestartServer: () -> Unit,
+    onDismissRestartRequiredDialog: () -> Unit,
 ) {
+    if (uiState.showRestartRequiredDialog) {
+        AlertDialog(
+            onDismissRequest = onDismissRestartRequiredDialog,
+            title = { Text(stringResource(Res.string.ssl_certificate_restart_required_title)) },
+            text = { Text(stringResource(Res.string.ssl_certificate_restart_required_message)) },
+            confirmButton = {
+                Button(onClick = onRestartServer) {
+                    Text(stringResource(Res.string.ssl_certificate_restart_now))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissRestartRequiredDialog) {
+                    Text(stringResource(Res.string.ssl_certificate_restart_later))
+                }
+            },
+        )
+    }
+
     if (uiState.showDebugApplyConfirmDialog) {
         AlertDialog(
             onDismissRequest = onDismissApplyDebugPortDialog,
@@ -204,6 +229,11 @@ fun ServerSettingsScreen(
             SettingOptionView(
                 label = stringResource(Res.string.ssl_certificate),
             ) {
+                Text(
+                    text = stringResource(Res.string.ssl_certificate_restart_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 if (uiState.certificates.isEmpty()) {
                     Text(stringResource(Res.string.ssl_certificate_no_certificate))
                 }
