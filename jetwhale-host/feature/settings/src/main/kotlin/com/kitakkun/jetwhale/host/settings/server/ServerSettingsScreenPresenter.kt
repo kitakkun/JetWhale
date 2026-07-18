@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
 import com.kitakkun.jetwhale.host.model.McpServerStatus
+import com.kitakkun.jetwhale.host.model.SslCertificateEntry
 import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
 import soil.query.compose.rememberMutation
 import java.text.SimpleDateFormat
@@ -26,22 +27,24 @@ fun serverSettingsScreenPresenter(
     serverStatus: DebugWebSocketServerStatus,
     mcpServerStatus: McpServerStatus,
     debuggerSettings: DebuggerBehaviorSettings,
+    sslCertificates: List<SslCertificateEntry>,
 ): ServerSettingsScreenUiState {
-    fun loadCertificates(): List<CertificateUiEntry> {
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-        return presenterContext.sslCertificateManager.getAllCertificates().map { entry ->
-            CertificateUiEntry(
-                id = entry.id,
-                name = entry.name,
-                createdAt = dateFormat.format(Date(entry.createdAt)),
-                caCertificatePem = entry.caCertificatePem,
-                isActive = entry.isActive,
-            )
+    val certificates by remember(sslCertificates) {
+        derivedStateOf {
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+            sslCertificates.map { entry ->
+                CertificateUiEntry(
+                    id = entry.id,
+                    name = entry.name,
+                    createdAt = dateFormat.format(Date(entry.createdAt)),
+                    caCertificatePem = entry.caCertificatePem,
+                    isActive = entry.isActive,
+                )
+            }
         }
     }
 
     var editingDebugPortText by remember { mutableStateOf(debuggerSettings.serverPort.toString()) }
-    var certificates by remember { mutableStateOf(loadCertificates()) }
     var certificateDetailDialogEntry by remember { mutableStateOf<CertificateUiEntry?>(null) }
     var editingMcpPortText by remember { mutableStateOf(debuggerSettings.mcpServerPort.toString()) }
     var showDebugApplyConfirmDialog by remember { mutableStateOf(false) }
@@ -49,6 +52,9 @@ fun serverSettingsScreenPresenter(
 
     val debugPortMutation = rememberMutation(presenterContext.serverPortMutationKey)
     val mcpPortMutation = rememberMutation(presenterContext.mcpServerPortMutationKey)
+    val generateCertificateMutation = rememberMutation(presenterContext.generateSslCertificateMutationKey)
+    val activateCertificateMutation = rememberMutation(presenterContext.activateSslCertificateMutationKey)
+    val deleteCertificateMutation = rememberMutation(presenterContext.deleteSslCertificateMutationKey)
 
     val savedDebugPortText by rememberUpdatedState(debuggerSettings.serverPort.toString())
     val savedMcpPortText by rememberUpdatedState(debuggerSettings.mcpServerPort.toString())
@@ -119,18 +125,15 @@ fun serverSettingsScreenPresenter(
             }
 
             ServerSettingsScreenAction.AddCertificate -> {
-                presenterContext.sslCertificateManager.generateAndAddCertificate(null)
-                certificates = loadCertificates()
+                generateCertificateMutation.mutateAsync(null)
             }
 
             is ServerSettingsScreenAction.SetActiveCertificate -> {
-                presenterContext.sslCertificateManager.setActiveCertificate(action.id)
-                certificates = loadCertificates()
+                activateCertificateMutation.mutateAsync(action.id)
             }
 
             is ServerSettingsScreenAction.DeleteCertificate -> {
-                presenterContext.sslCertificateManager.deleteCertificate(action.id)
-                certificates = loadCertificates()
+                deleteCertificateMutation.mutateAsync(action.id)
                 if (certificateDetailDialogEntry?.id == action.id) {
                     certificateDetailDialogEntry = null
                 }

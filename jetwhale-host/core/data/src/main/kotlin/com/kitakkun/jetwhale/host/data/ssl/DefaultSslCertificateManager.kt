@@ -11,6 +11,8 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -51,6 +53,15 @@ class DefaultSslCertificateManager(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
 ) : SslCertificateManager {
     private val json = Json { prettyPrint = true }
+
+    private val mutableCertificatesFlow: MutableStateFlow<List<SslCertificateEntry>> by lazy {
+        MutableStateFlow(getAllCertificates())
+    }
+    override val certificatesFlow: StateFlow<List<SslCertificateEntry>> get() = mutableCertificatesFlow
+
+    private fun notifyCertificatesChanged() {
+        mutableCertificatesFlow.value = getAllCertificates()
+    }
 
     private val caCertificateGenerator = CACertificateGenerator()
     private val serverCertificateIssuer = ServerCertificateIssuer()
@@ -140,6 +151,7 @@ class DefaultSslCertificateManager(
                 isActive = true,
             )
         saveMetadata(CertificatesStore(updatedCertificates))
+        notifyCertificatesChanged()
 
         return SslCertificateEntry(
             id = id,
@@ -154,6 +166,7 @@ class DefaultSslCertificateManager(
         val store = loadMetadata()
         if (store.certificates.none { it.id == id }) return false
         saveMetadata(CertificatesStore(store.certificates.map { it.copy(isActive = it.id == id) }))
+        notifyCertificatesChanged()
         return true
     }
 
@@ -173,6 +186,7 @@ class DefaultSslCertificateManager(
             remaining
         }
         saveMetadata(CertificatesStore(updatedCertificates))
+        notifyCertificatesChanged()
         return true
     }
 
