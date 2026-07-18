@@ -32,6 +32,21 @@ internal class KtorWebSocketClient(
 ) : JetWhaleSocketClient {
     private var session: DefaultClientWebSocketSession? = null
 
+    constructor(
+        json: Json,
+        negotiationStrategy: ClientSessionNegotiationStrategy,
+        sslConfiguration: JetWhaleSslConfiguration = JetWhaleSslConfiguration(),
+    ) : this(
+        json = json,
+        negotiationStrategy = negotiationStrategy,
+        httpClient = HttpClient(defaultKtorEngineFactory()) {
+            engine {
+                configureSsl(sslConfiguration)
+            }
+        },
+        sslConfiguration = sslConfiguration,
+    )
+
     private val client: HttpClient = httpClient.config {
         configureHttpClient()
     }
@@ -103,10 +118,6 @@ internal class KtorWebSocketClient(
                 KtorLogLevel.BODY -> LogLevel.BODY
                 KtorLogLevel.NONE -> LogLevel.NONE
             }
-        }
-
-        engine {
-            configureSsl(sslConfiguration)
         }
     }
 }

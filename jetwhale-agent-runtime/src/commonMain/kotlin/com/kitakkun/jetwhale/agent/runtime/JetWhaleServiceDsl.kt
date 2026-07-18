@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.agent.runtime
 
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
-import io.ktor.client.HttpClient
 
 /**
  * Starts the JetWhale Messaging Service with the provided configuration.
@@ -22,7 +21,6 @@ public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
         DefaultJetWhaleMessagingService(
             socketClient = KtorWebSocketClient(
                 json = json,
-                httpClient = HttpClient(defaultKtorEngineFactory()),
                 negotiationStrategy = DefaultClientSessionNegotiationStrategy(configuration.plugins.plugins),
                 sslConfiguration = configuration.connection.sslConfiguration,
             ),
