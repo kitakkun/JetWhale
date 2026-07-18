@@ -29,6 +29,17 @@
     <string name="application_data_directory">Application Data Directory</string>
     <string name="server_status_stopped">Stopped</string>
     <string name="server_status_running">Running on port %1$d</string>
+    <string name="server_status_running_with_wss">Running on port %1$d (WSS: %2$d)</string>
+    <string name="ssl_certificate">SSL Certificate</string>
+    <string name="ssl_certificate_add">Add Certificate</string>
+    <string name="ssl_certificate_delete">Delete</string>
+    <string name="ssl_certificate_set_active">Set Active</string>
+    <string name="ssl_certificate_active">Active</string>
+    <string name="ssl_certificate_show_detail">Show Details</string>
+    <string name="ssl_certificate_copy">Copy to Clipboard</string>
+    <string name="ssl_certificate_no_certificate">No certificate generated yet</string>
+    <string name="ssl_certificate_created_at">Created: %1$s</string>
+    <string name="ssl_certificate_detail_title">CA Certificate (PEM)</string>
     <string name="server_status_starting">Starting...</string>
     <string name="server_status_stopping">Stopping...</string>
     <string name="server_status_error">Error: %1$s</string>

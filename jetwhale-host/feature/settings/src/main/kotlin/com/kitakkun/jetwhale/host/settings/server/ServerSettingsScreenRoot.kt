@@ -50,6 +50,21 @@ fun ServerSettingsScreenRoot() {
             onDismissApplyMcpPortDialog = {
                 screenChannel.send(ServerSettingsScreenAction.DismissApplyMcpPortDialog)
             },
+            onAddCertificate = {
+                screenChannel.send(ServerSettingsScreenAction.AddCertificate)
+            },
+            onSetActiveCertificate = {
+                screenChannel.send(ServerSettingsScreenAction.SetActiveCertificate(it))
+            },
+            onDeleteCertificate = {
+                screenChannel.send(ServerSettingsScreenAction.DeleteCertificate(it))
+            },
+            onShowCertificateDetail = {
+                screenChannel.send(ServerSettingsScreenAction.ShowCertificateDetail(it))
+            },
+            onDismissCertificateDetailDialog = {
+                screenChannel.send(ServerSettingsScreenAction.DismissCertificateDetailDialog)
+            },
         )
     }
 }

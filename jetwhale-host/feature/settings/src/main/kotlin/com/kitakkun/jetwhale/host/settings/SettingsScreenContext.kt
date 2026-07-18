@@ -21,6 +21,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstallProgressSubscriptionKey
 import com.kitakkun.jetwhale.host.model.ServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.SslCertificateManager
 import com.kitakkun.jetwhale.host.model.TrustPluginMutationKey
 import com.kitakkun.jetwhale.host.model.UntrustedPluginJarPathsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.UpdateCheckMutationKey
@@ -48,6 +49,7 @@ class SettingsPresenterContext(
     val checkForUpdatesOnStartupMutationKey: CheckForUpdatesOnStartupMutationKey,
     val hostVersionInfo: HostVersionInfo,
     val logCaptureService: LogCaptureService,
+    val sslCertificateManager: SslCertificateManager,
 ) : PresenterContext
 
 /**
