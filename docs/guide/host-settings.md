@@ -18,8 +18,11 @@ The JetWhale host's behavior is configured from its **Settings** screen.
 
 ## Plugins
 
-Installed plugins live in `~/.jetwhale/plugins/`. There are two ways to install one:
+Installed plugins live in `~/.jetwhale/plugins/`. There are three ways to install one:
 
+- **Official Plugins** — one-click install for officially published plugins (e.g. the Network
+  Inspector), no coordinates needed. The artifact version matching the running host is fetched
+  from Maven Central (snapshot hosts fetch the matching snapshot build).
 - **Install from Maven** — enter the plugin's `group:artifact:version` (append
   `@https://your.repo/url` for a repository other than Maven Central; pasting a Gradle dependency
   line or a Maven `<dependency>` block also works). The host downloads the plugin jar and the

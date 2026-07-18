@@ -12,6 +12,7 @@ import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.McpServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.McpServerStatusSubscriptionKey
+import com.kitakkun.jetwhale.host.model.OfficialPluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.PluginInstallFromMavenMutationKey
 import com.kitakkun.jetwhale.host.model.PluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.PluginInstallProgressSubscriptionKey
@@ -37,6 +38,7 @@ class SettingsPresenterContext(
     val pluginInstallMutationKey: PluginInstallMutationKey,
     val pluginInstallFromMavenMutationKey: PluginInstallFromMavenMutationKey,
     val trustPluginMutationKey: TrustPluginMutationKey,
+    val officialPluginInstallMutationKey: OfficialPluginInstallMutationKey,
     val logCaptureService: LogCaptureService,
 ) : PresenterContext
 

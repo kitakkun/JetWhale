@@ -12,6 +12,8 @@
     <string name="check_for_updates_on_startup">起動時に更新を確認する</string>
     <string name="check_for_updates">更新を確認</string>
     <string name="installed_plugins">インストール済みプラグイン</string>
+    <string name="failed_to_load_plugins">互換性のないプラグイン</string>
+    <string name="failed_jar_path_hint">これらのjarは読み込めませんでした。別のJetWhaleバージョン向けにビルドされているか、依存関係が不足しているか、有効なプラグインjarではない可能性があります。</string>
     <string name="untrusted_plugins">未検証のプラグイン</string>
     <string name="untrusted_jar_hint">これらの JAR はプラグインディレクトリにありますが、承認されていない（または承認後に内容が変更された）ため読み込まれていません。プラグインはこのアプリの全権限で動作します。信頼できる JAR のみ承認してください。</string>
     <string name="approve_untrusted_plugin">承認</string>
@@ -60,4 +62,9 @@
     <string name="install_progress_downloading_plugin">プラグインをダウンロード中…</string>
     <string name="install_progress_downloading_dependencies">依存関係をダウンロード中 (%1$d/%2$d)…</string>
     <string name="install_progress_loading_plugin">プラグインを読み込み中…</string>
+    <string name="official_plugins">公式プラグイン</string>
+    <string name="official_plugin_installed">インストール済み</string>
+    <string name="no_plugins_installed">プラグインはまだインストールされていません。下の公式カタログ、Maven、またはローカルファイルからインストールできます。</string>
+    <string name="maven_install_repository_label">リポジトリ</string>
+    <string name="maven_install_repository_custom">カスタムURL</string>
 </resources>
