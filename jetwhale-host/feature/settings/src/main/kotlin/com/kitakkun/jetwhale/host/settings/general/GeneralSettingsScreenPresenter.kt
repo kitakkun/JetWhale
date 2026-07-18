@@ -62,6 +62,8 @@ fun generalSettingsScreenPresenter(
         language = appearanceSettings.appLanguage,
         appDataPath = diagnostics.appDataPath,
         adbPath = diagnostics.adbPath,
+        idbPath = diagnostics.idbPath,
+        idbCompanionPath = diagnostics.idbCompanionPath,
         currentVersion = presenterContext.hostVersionInfo.version,
         checkForUpdatesOnStartup = debuggerBehaviorSettings.checkForUpdatesOnStartup,
         isCheckingForUpdates = updateCheckMutation.isPending,

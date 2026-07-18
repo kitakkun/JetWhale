@@ -12,6 +12,8 @@ data class GeneralSettingsScreenUiState(
     val availableColorSchemes: ImmutableList<JetWhaleColorSchemeId>,
     val appDataPath: String,
     val adbPath: String,
+    val idbPath: String,
+    val idbCompanionPath: String,
     val currentVersion: String,
     val checkForUpdatesOnStartup: Boolean,
     val isCheckingForUpdates: Boolean,
