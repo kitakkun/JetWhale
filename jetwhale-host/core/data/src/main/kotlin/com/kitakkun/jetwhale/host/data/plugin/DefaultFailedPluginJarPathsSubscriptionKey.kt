@@ -17,6 +17,6 @@ class DefaultFailedPluginJarPathsSubscriptionKey(
 ) : FailedPluginJarPathsSubscriptionKey by buildSubscriptionKey(
     id = SubscriptionId("default_failed_plugin_jar_paths_subscription_key"),
     subscribe = {
-        pluginFactoryRepository.failedJarPathsFlow.map { it.toPersistentList() }
+        pluginFactoryRepository.failedJarsFlow.map { it.toPersistentList() }
     },
 )

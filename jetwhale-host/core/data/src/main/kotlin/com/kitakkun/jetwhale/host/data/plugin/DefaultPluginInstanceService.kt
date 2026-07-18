@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
+import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
@@ -50,6 +51,7 @@ private class LoadedInstance(
 class DefaultPluginInstanceService(
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val frameSender: HostPluginFrameSender,
+    private val pluginDataStoreRepository: PluginDataStoreRepository,
 ) : PluginInstanceService {
     private val logger = Logger.getLogger(DefaultPluginInstanceService::class.java.name)
 
@@ -97,6 +99,10 @@ class DefaultPluginInstanceService(
         }
         val instanceScope = CoroutineScope(scope.coroutineContext + SupervisorJob(scope.coroutineContext[Job]))
         plugin.bindPluginScope(instanceScope)
+
+        // Hand the plugin a storage handle already scoped to its own pluginId, so it can never
+        // name or reach another plugin's data.
+        plugin.bindStorage(pluginDataStoreRepository.storageFor(pluginId))
 
         // User code below (registerHandlers, onCreate) is guarded: this runs inside the map's
         // computeIfAbsent, and a throwing plugin must neither leak the just-created peer/scope nor

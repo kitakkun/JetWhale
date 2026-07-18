@@ -15,8 +15,33 @@ class AppDataDirectoryProvider {
     private val pluginDir = "$appDataDir/plugins"
     private val pluginLibsDir = "$pluginDir/libs"
     private val dataStoreFilesDir = "$appDataDir/dataStorePreferences"
+    private val pluginDataDir = "$appDataDir/plugin-data"
 
     fun resolveDataStoreFilePath(fileName: String): Path = "$dataStoreFilesDir/$fileName".toPath()
+
+    /**
+     * Resolves the persistent store file for a single plugin. Each plugin gets its own directory so
+     * plugins cannot reach each other's data. [pluginId] is sanitized first so a crafted id (e.g.
+     * one containing path separators or `..`) cannot escape [pluginDataDir].
+     */
+    fun resolvePluginDataFilePath(pluginId: String): Path = "$pluginDataDir/${sanitizePluginId(pluginId)}/store.json".toPath()
+
+    private fun sanitizePluginId(pluginId: String): String {
+        val sanitized = buildString {
+            for (c in pluginId) {
+                append(if (c.isLetterOrDigit() || c == '.' || c == '-' || c == '_') c else '_')
+            }
+        }
+        // Sanitization is lossy: distinct ids like "a/b" and "a_b" would otherwise collapse into the
+        // same directory (breaking isolation and DataStore's single-instance-per-file rule). When any
+        // character was replaced, a hash of the original id is appended to keep the name unique.
+        val hashSuffix = "_" + pluginId.hashCode().toUInt().toString(16)
+        return when {
+            sanitized.isEmpty() || sanitized == "." || sanitized == ".." -> "plugin$hashSuffix"
+            sanitized != pluginId -> sanitized + hashSuffix
+            else -> sanitized
+        }
+    }
 
     fun getAppDataPath(): String = "~/.jetwhale"
 

@@ -9,11 +9,20 @@
     <string name="adb_support">ADB Support</string>
     <string name="automatically_wire_adb_transport">Automatically wire ADB port to host PC port</string>
     <string name="maintenance">Maintenance</string>
-    <string name="check_for_updates_on_startup">Check for updates on startup</string>
+    <string name="updates">Updates</string>
+    <string name="current_version">Current Version</string>
+    <string name="check_for_updates_on_startup">Check for updates on startup (notify only)</string>
     <string name="check_for_updates">Check for Updates</string>
+    <string name="checking_for_updates">Checking for updates…</string>
+    <string name="update_up_to_date">You're up to date</string>
+    <string name="update_available">New version %1$s is available</string>
+    <string name="update_available_hint">Updates are never applied automatically. Install it now, or download it manually.</string>
+    <string name="install_update">Install and Relaunch</string>
+    <string name="open_download_page">Open Download Page</string>
+    <string name="update_check_failed">Update check failed: %1$s</string>
     <string name="installed_plugins">Installed Plugins</string>
-    <string name="failed_to_load_plugins">Failed to Load</string>
-    <string name="failed_jar_path_hint">plugin-manifest.json was not found or the JAR is invalid.</string>
+    <string name="failed_to_load_plugins">Incompatible Plugins</string>
+    <string name="failed_jar_path_hint">These jars could not be loaded. They may be built for a different JetWhale version, be missing their dependencies, or not be valid plugin jars.</string>
     <string name="untrusted_plugins">Unverified Plugins</string>
     <string name="untrusted_jar_hint">These JARs were found in the plugins directory but have not been approved (or their contents changed since approval), so they were not loaded. Only approve JARs you trust — a plugin runs with full access to this app.</string>
     <string name="approve_untrusted_plugin">Approve</string>
@@ -62,4 +71,9 @@
     <string name="install_progress_downloading_plugin">Downloading plugin…</string>
     <string name="install_progress_downloading_dependencies">Downloading dependencies (%1$d/%2$d)…</string>
     <string name="install_progress_loading_plugin">Loading plugin…</string>
+    <string name="official_plugins">Official Plugins</string>
+    <string name="official_plugin_installed">Installed</string>
+    <string name="no_plugins_installed">No plugins installed yet. Install one from the official catalog below, from Maven, or from a local file.</string>
+    <string name="maven_install_repository_label">Repository</string>
+    <string name="maven_install_repository_custom">Custom URL</string>
 </resources>

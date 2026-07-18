@@ -3,6 +3,8 @@ package com.kitakkun.jetwhale.host.settings.plugin
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
+import com.kitakkun.jetwhale.host.model.FailedPluginJar
+import com.kitakkun.jetwhale.host.model.OfficialPluginCatalog
 import com.kitakkun.jetwhale.host.model.PluginInstallProgress
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.TrustPluginRequest
@@ -17,13 +19,14 @@ context(presenterContext: SettingsPresenterContext)
 fun pluginSettingsScreenPresenter(
     screenChannel: ScreenChannel<PluginSettingsScreenAction, Nothing>,
     loadedPlugins: ImmutableList<PluginMetaData>,
-    failedJarPaths: ImmutableList<String>,
+    failedJars: ImmutableList<FailedPluginJar>,
     untrustedJarPaths: ImmutableList<String>,
     installProgress: PluginInstallProgress?,
 ): PluginSettingsScreenUiState {
     val pluginInstallMutation = rememberMutation(presenterContext.pluginInstallMutationKey)
     val pluginInstallFromMavenMutation = rememberMutation(presenterContext.pluginInstallFromMavenMutationKey)
     val trustPluginMutation = rememberMutation(presenterContext.trustPluginMutationKey)
+    val officialPluginInstallMutation = rememberMutation(presenterContext.officialPluginInstallMutationKey)
 
     ActionEffect(screenChannel) { action ->
         when (action) {
@@ -35,14 +38,21 @@ fun pluginSettingsScreenPresenter(
                 pluginInstallFromMavenMutation.mutateAsync(action.coordinates)
             }
 
+            is PluginSettingsScreenAction.InstallOfficialPlugin -> {
+                officialPluginInstallMutation.mutateAsync(action.plugin)
+            }
+
             is PluginSettingsScreenAction.UntrustedJarApproved -> {
                 trustPluginMutation.mutateAsync(TrustPluginRequest(action.path))
             }
         }
     }
 
-    val isInstalling = pluginInstallMutation.isPending || pluginInstallFromMavenMutation.isPending
-    val installError = pluginInstallFromMavenMutation.error?.message
+    val isInstalling = pluginInstallMutation.isPending ||
+        pluginInstallFromMavenMutation.isPending ||
+        officialPluginInstallMutation.isPending
+    val installError = officialPluginInstallMutation.error?.message
+        ?: pluginInstallFromMavenMutation.error?.message
         ?: pluginInstallMutation.error?.message
 
     return PluginSettingsScreenUiState(
@@ -53,7 +63,13 @@ fun pluginSettingsScreenPresenter(
                 version = it.version,
             )
         }.toPersistentList(),
-        failedJarPaths = failedJarPaths,
+        officialPlugins = OfficialPluginCatalog.plugins.map { plugin ->
+            OfficialPluginUiState(
+                plugin = plugin,
+                isInstalled = loadedPlugins.any { it.id == plugin.pluginId },
+            )
+        }.toPersistentList(),
+        failedJars = failedJars,
         untrustedJarPaths = untrustedJarPaths,
         isInstalling = isInstalling,
         installProgress = installProgress,

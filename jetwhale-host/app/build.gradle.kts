@@ -6,6 +6,21 @@ plugins {
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.metro)
     alias(libs.plugins.aboutLibraries)
+    alias(libs.plugins.conveyor)
+}
+
+// Conveyor packages require a purely numeric version. Map the pre-release suffix
+// to a numeric 4th component so successive pre-releases are recognized as updates
+// (e.g. 1.0.0-alpha08 -> 1.0.0.8). The final stable release must bump the base
+// version (e.g. 1.0.1) so it sorts above its own pre-releases.
+// Snapshot builds never go through Conveyor, so they keep the root convention's
+// `-SNAPSHOT`-suffixed version instead of this numeric override.
+if (!hasProperty("jetwhaleSnapshot")) {
+    version = libs.versions.jetwhale.get().let { full ->
+        val base = full.substringBefore("-")
+        val preReleaseNumber = full.substringAfter("-", "").filter { it.isDigit() }.toIntOrNull()
+        if (preReleaseNumber != null) "$base.$preReleaseNumber" else base
+    }
 }
 
 val generateBuildConfig by tasks.registering {
@@ -73,6 +88,13 @@ compose.resources {
 val aboutLibrariesDir = layout.buildDirectory.dir("generated/aboutlibraries")
 
 kotlin {
+    // Vendor pin makes Conveyor bundle a maintained Corretto build
+    // instead of the stale OpenJDK GA archive it would pick by default.
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+        vendor.set(JvmVendorSpec.AMAZON)
+    }
+
     compilerOptions {
         freeCompilerArgs.add("-opt-in=soil.query.annotation.ExperimentalSoilQueryApi")
         freeCompilerArgs.add("-opt-in=com.kitakkun.jetwhale.annotations.InternalJetWhaleApi")
@@ -107,6 +129,13 @@ dependencies {
 
     implementation(libs.jetbrainsComposeMaterialIconsExtended)
     testImplementation(libs.kotlinTest)
+
+    // Machine-specific Compose runtime dependencies resolved by Conveyor
+    // when cross-building packages for each target platform.
+    linuxAmd64(compose.desktop.linux_x64)
+    macAmd64(compose.desktop.macos_x64)
+    macAarch64(compose.desktop.macos_arm64)
+    windowsAmd64(compose.desktop.windows_x64)
 }
 
 aboutLibraries {

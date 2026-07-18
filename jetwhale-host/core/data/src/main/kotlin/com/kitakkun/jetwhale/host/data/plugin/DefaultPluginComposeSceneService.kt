@@ -16,8 +16,10 @@ import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
+import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.LocalIsScreenshotCapture
+import com.kitakkun.jetwhale.host.sdk.LocalJetWhalePluginStorage
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -25,7 +27,7 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-@OptIn(InternalComposeUiApi::class)
+@OptIn(InternalComposeUiApi::class, InternalJetWhaleHostApi::class)
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
 @Inject
@@ -52,7 +54,11 @@ class DefaultPluginComposeSceneService(
                 val isScreenshotCapture = mutableStateOf(false)
 
                 composeScene.setContent {
-                    CompositionLocalProvider(LocalIsScreenshotCapture provides isScreenshotCapture.value) {
+                    // Expose the plugin's own pluginId-scoped storage so rememberPersistent can reach it.
+                    CompositionLocalProvider(
+                        LocalJetWhalePluginStorage provides pluginInstance.boundStorageForRuntime(),
+                        LocalIsScreenshotCapture provides isScreenshotCapture.value,
+                    ) {
                         pluginBridgeProvider.PluginEntryPoint {
                             // Headless plugins (not a JetWhaleHostPluginUi) render no content.
                             val ui = pluginInstance as? JetWhaleHostPluginUi ?: return@PluginEntryPoint

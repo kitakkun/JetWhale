@@ -23,13 +23,13 @@ fun PluginSettingsScreenRoot() {
         state2 = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey),
         state3 = rememberSubscription(screenContext.untrustedPluginJarPathsSubscriptionKey),
         state4 = rememberSubscription(screenContext.pluginInstallProgressSubscriptionKey),
-    ) { loadedPlugins, failedJarPaths, untrustedJars, installProgress ->
+    ) { loadedPlugins, failedJars, untrustedJars, installProgress ->
         val screenChannel = rememberScreenChannel<PluginSettingsScreenAction, Nothing>()
         val uiState = context(screenContext.presenterContext) {
             pluginSettingsScreenPresenter(
                 screenChannel = screenChannel,
                 loadedPlugins = loadedPlugins,
-                failedJarPaths = failedJarPaths,
+                failedJars = failedJars,
                 untrustedJarPaths = untrustedJars.paths,
                 installProgress = installProgress,
             )
@@ -46,6 +46,9 @@ fun PluginSettingsScreenRoot() {
             },
             onClickInstallFromMaven = {
                 showMavenDialog = true
+            },
+            onClickInstallOfficialPlugin = { plugin ->
+                screenChannel.send(PluginSettingsScreenAction.InstallOfficialPlugin(plugin))
             },
         )
 
