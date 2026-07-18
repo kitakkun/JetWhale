@@ -67,6 +67,20 @@ public interface JetWhaleSslConfigurationScope {
      * @param pem The certificate in PEM format (including -----BEGIN CERTIFICATE----- and -----END CERTIFICATE----- markers).
      */
     public fun trustCertificate(pem: String)
+
+    /**
+     * Fetches the host's active CA certificate over the plain (ws) channel at connect time and pins
+     * the resulting wss connection to it, so no CA certificate has to be hardcoded in the app.
+     *
+     * The CA is downloaded from `http://<host>:<port>/jetwhale/ca` before the wss handshake. This is
+     * a trust-on-first-use exchange: the plain channel is not itself authenticated. Over ADB port
+     * forwarding (the primary use case) the download is as trustworthy as the ADB link, because the
+     * traffic never leaves the machine. On an untrusted LAN prefer [trustCertificate] with a
+     * manually exported CA for strict pinning.
+     *
+     * When the CA cannot be fetched, the connection falls back to plain ws.
+     */
+    public fun trustServerCertificate()
 }
 
 @JetWhaleDsl
@@ -116,12 +130,26 @@ internal class JetWhaleSslConfiguration : JetWhaleSslConfigurationScope {
     val trustedCertificates: List<String>
         get() = mutableTrustedCertificates
 
-    /** True when SSL is enabled (i.e. at least one trusted certificate is configured). */
+    /**
+     * True when the host's active CA certificate should be fetched over the plain channel and pinned
+     * at connect time.
+     */
+    var trustServerCertificate: Boolean = false
+        private set
+
+    /**
+     * True when SSL is enabled, i.e. at least one trusted certificate is configured or the CA is to
+     * be fetched from the host at connect time.
+     */
     val isEnabled: Boolean
-        get() = mutableTrustedCertificates.isNotEmpty()
+        get() = mutableTrustedCertificates.isNotEmpty() || trustServerCertificate
 
     override fun trustCertificate(pem: String) {
         mutableTrustedCertificates.add(pem)
+    }
+
+    override fun trustServerCertificate() {
+        trustServerCertificate = true
     }
 }
 

@@ -9,6 +9,11 @@ fun initializeJetWhale() {
         connection {
             host = "localhost"
             port = 5443
+            ssl {
+                // Fetches the host's active CA over the plain channel (via ADB forwarding) and pins
+                // the wss connection to it, so the app never has to hardcode a CA certificate.
+                trustServerCertificate()
+            }
         }
 
         logging {

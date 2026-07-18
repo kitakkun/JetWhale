@@ -10,6 +10,8 @@ import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStarted
@@ -23,6 +25,9 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.engine.sslConnector
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.origin
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.server.websocket.WebSocketServerSession
@@ -179,6 +184,18 @@ class KtorWebSocketServer(
         }
 
         routing {
+            // Serves the active CA certificate over the plain channel so agents can fetch and pin it
+            // at connect time (trust-on-first-use) without hardcoding a PEM. The CA certificate is
+            // public trust-anchor material, so exposing it is not a secret leak. Routes apply to both
+            // connectors, which is acceptable here.
+            get("/jetwhale/ca") {
+                val caCertificatePem = sslCertificateManager.getActiveCertificate()?.caCertificatePem
+                if (caCertificatePem == null) {
+                    call.respond(HttpStatusCode.NotFound, "No active certificate")
+                } else {
+                    call.respondText(caCertificatePem, ContentType.parse("application/x-pem-file"))
+                }
+            }
             webSocket {
                 context(log) {
                     configureSession()

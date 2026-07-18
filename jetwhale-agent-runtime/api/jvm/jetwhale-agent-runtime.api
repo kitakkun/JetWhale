@@ -31,6 +31,7 @@ public final class com/kitakkun/jetwhale/agent/runtime/JetWhaleServiceDslKt {
 
 public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleSslConfigurationScope {
 	public abstract fun trustCertificate (Ljava/lang/String;)V
+	public abstract fun trustServerCertificate ()V
 }
 
 public final class com/kitakkun/jetwhale/agent/runtime/KtorLogLevel : java/lang/Enum {
