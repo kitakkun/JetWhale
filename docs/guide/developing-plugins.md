@@ -328,7 +328,8 @@ state; for changes it can't apply that way it recreates the plugin from a fresh 
 
 ### Isolated sandbox environment
 
-`runJetWhale` and `runJetWhaleHot` run the host against an **isolated, per-project sandbox** at
+`runJetWhale`, `runJetWhaleHot` and the in-repo `runJetWhaleLocal` run the host against an
+**isolated, per-project sandbox** at
 `build/jetwhale-sandbox/` instead of your real `~/.jetwhale/`. Everything the host persists — installed
 plugins, settings, per-plugin data, TLS material and the plugin trust registry — lives there, so trying
 a plugin never reads or mutates your actual JetWhale installation. The sandbox starts empty: only your

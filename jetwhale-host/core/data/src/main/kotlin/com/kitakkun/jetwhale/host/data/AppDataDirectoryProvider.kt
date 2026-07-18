@@ -14,7 +14,7 @@ class AppDataDirectoryProvider {
 
     // The app data root. Normally `~/.jetwhale`, but a launch may point it elsewhere via the
     // `jetwhale.appDataDir` system property. The plugin-developer Gradle tasks (`runJetWhale`,
-    // `runJetWhaleHot`) set it to a disposable per-project sandbox under the plugin module's `build/`
+    // `runJetWhaleHot`, `runJetWhaleLocal`) set it to a disposable per-project sandbox under the plugin module's `build/`
     // directory, so trying a plugin never reads or mutates the developer's real installed plugins,
     // settings, plugin-data or trust registry. Every path below is derived from this single root.
     private val appDataDir = System.getProperty(APP_DATA_DIR_PROPERTY)?.takeIf { it.isNotBlank() }
@@ -122,8 +122,9 @@ class AppDataDirectoryProvider {
      * `jetwhale.devPluginsDir` JVM system property (set by the `runJetWhale` Gradle task).
      *
      * Returns `null` in normal usage so production behaviour is unchanged. When present, the host
-     * additionally loads and hot-reloads plugins from this directory, on top of the regular
-     * `~/.jetwhale/plugins` directory.
+     * additionally loads and hot-reloads plugins from this directory, on top of the regular managed
+     * plugins directory ([getPluginDirectory], which is `~/.jetwhale/plugins` — or, under the dev
+     * sandbox, the sandbox root's `plugins` subdirectory).
      */
     fun getDevPluginsDir(): String? = System.getProperty(DEV_PLUGINS_DIR_PROPERTY)?.takeIf { it.isNotBlank() }
 
