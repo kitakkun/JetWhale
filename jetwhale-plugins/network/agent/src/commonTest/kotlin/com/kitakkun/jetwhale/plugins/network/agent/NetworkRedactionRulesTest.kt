@@ -43,6 +43,23 @@ class NetworkRedactionRulesTest {
     }
 
     @Test
+    fun `mask strategy masks emoji as one asterisk per code point`() {
+        val rules = NetworkRedactionRules {
+            header("Authorization", strategy = RedactionStrategy.MASK)
+            bodyJsonField("secret", strategy = RedactionStrategy.MASK)
+        }
+        val redacted = rules.redactAtCapture(
+            request(
+                // "🔑" and "🐳" are surrogate pairs (length 2 each); "あ" is a single UTF-16 unit.
+                headers = mapOf("Authorization" to listOf("🔑ab🐳")),
+                body = """{"secret":"🐳あ🐳"}""",
+            ),
+        )
+        assertEquals(listOf("****"), redacted.headers["Authorization"])
+        assertEquals("""{"secret":"***"}""", redacted.body)
+    }
+
+    @Test
     fun `query param rule redacts only matching params and preserves fragment`() {
         val rules = NetworkRedactionRules { urlQueryParam("token") }
         val redacted = rules.redactAtCapture(request(url = "https://x.dev/a?token=abc&page=2#frag"))

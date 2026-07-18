@@ -23,7 +23,7 @@ enum class RedactionStrategy {
     /** Replaces the value with [REDACTED_PLACEHOLDER]. */
     PLACEHOLDER,
 
-    /** Replaces each character of the value with `*`, preserving its length. */
+    /** Replaces the value with one `*` per Unicode code point, so supplementary-plane characters (e.g. emoji) count as one. */
     MASK,
 }
 
@@ -73,7 +73,9 @@ private fun List<RedactionRule>.strategyFor(target: RedactionTarget, name: Strin
 
 private fun RedactionStrategy.render(original: String): String = when (this) {
     RedactionStrategy.PLACEHOLDER -> REDACTED_PLACEHOLDER
-    RedactionStrategy.MASK -> "*".repeat(original.length)
+
+    // Count code points, not UTF-16 units, so surrogate-pair characters mask as one asterisk.
+    RedactionStrategy.MASK -> "*".repeat(original.count { !it.isLowSurrogate() })
 }
 
 private fun List<RedactionRule>.redactHeaders(headers: Map<String, List<String>>): Map<String, List<String>> = headers.mapValues { (name, values) ->
