@@ -92,6 +92,29 @@ setup with a shared `initializeJetWhale()` function.
 An optional `logging { }` block controls agent-side logging
 (`enabled = true`, `logLevel = LogLevel.WARN` by default).
 
+### Session metadata
+
+The agent reports app/device metadata to the host during connection, and the host uses it to label
+and group sessions (for example, all sessions from the same physical device). Everything is
+resolved automatically on a best-effort basis — the app name on Android/iOS/macOS, a stable device
+identifier and the device name per platform — so usually you configure nothing.
+
+To override any of it (or supply values on platforms where auto-resolution is unavailable), add an
+`app { }` block; explicit values always win over the auto-resolved defaults:
+
+```kotlin
+startJetWhale {
+    connection { /* ... */ }
+    app {
+        appName = "My App (staging)"
+        deviceName = "CI emulator"
+        // deviceId = "..."            // stable id used to group sessions per device
+        // appIconPng = iconPngBytes   // PNG, at most 64x64 px; dropped if base64 exceeds 32KB
+    }
+    plugins { /* ... */ }
+}
+```
+
 ## Secure connections (wss)
 
 By default the agent connects over plain **ws** (port **5080**). The host can additionally serve

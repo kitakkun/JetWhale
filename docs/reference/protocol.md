@@ -20,9 +20,15 @@ The negotiation phase consists of the following steps:
 
 1. **Protocol Version Exchange**: The debuggee sends its supported protocol version to the
    debugger. The debugger accepts or rejects the version based on its own supported versions.
-2. **Session ID Exchange**: The debugger assigns a unique session ID to distinguish each debuggee.
+2. **Session Exchange**: The debugger assigns a unique session ID to distinguish each debuggee.
    The debuggee needs to get assigned a session ID from the debugger. If the debuggee wants to
-   resume a previous session, it can provide the existing session ID.
+   resume a previous session, it can provide the existing session ID. Alongside the session
+   request, the debuggee reports its **app/device metadata** — all fields optional: `appName`,
+   `deviceId` (a stable per-device identifier the debugger uses to group sessions), `deviceName`,
+   and `appIconPngBase64` (a small app icon, at most 64×64 px; icons whose base64 form exceeds
+   32KB are dropped to keep the negotiation payload small). See
+   [Session metadata](/guide/getting-started#session-metadata) for how the agent resolves and
+   overrides these values.
 3. **Capabilities Exchange**: Both the debugger and debuggee exchange their capabilities to
    understand what features are supported during the debugging session.
 4. **Plugin Compatibility Check**: The debuggee sends a list of registered plugins to the debugger.

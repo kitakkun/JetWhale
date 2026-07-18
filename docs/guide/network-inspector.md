@@ -5,8 +5,11 @@ and for **mocking responses** without touching your backend.
 
 - 📡 Live view of HTTP transactions (request/response headers, bodies, timing)
 - 🔍 JSON body viewer for structured responses
-- 📋 Copy transactions for sharing or reproducing requests
+- 📋 Copy transactions for sharing or reproducing requests — the detail pane is fully
+  text-selectable
 - 🎭 Response mocking with configurable rules, toggled from the host UI
+- 🙈 [Redaction rules](#redacting-sensitive-values) to keep secrets (auth headers, tokens,
+  passwords) out of captured traffic
 
 It works with **Ktor** and **OkHttp** clients.
 
@@ -82,6 +85,36 @@ Open the **Network Inspector** plugin in the JetWhale host and select your app's
 transaction appears live as your app makes requests. Select a transaction to inspect its request
 and response — headers, bodies (with a dedicated JSON view), and status. Use **copy** on a
 transaction to share it or reproduce the request elsewhere.
+
+## Redacting sensitive values
+
+Captured traffic often contains secrets — `Authorization` headers, session cookies, tokens in query
+parameters, passwords in JSON bodies. Pass **redaction rules** to the agent plugin to strip them:
+
+```kotlin
+val networkAgent = JetWhaleNetworkAgentPlugin(
+    redaction = NetworkRedactionRules {
+        header("Authorization", "Cookie")
+        header("X-Session-Id", scope = RedactionScope.MCP_ONLY)
+        urlQueryParam("token", strategy = RedactionStrategy.MASK)
+        bodyJsonField("password", "access_token")
+    },
+)
+```
+
+Three rule targets are available — `header(...)`, `urlQueryParam(...)`, and `bodyJsonField(...)`
+(matches the field name anywhere in a JSON body). Name matching is case-insensitive, and each rule
+takes two options:
+
+- **`scope`** — where the rule is enforced:
+  - `EVERYWHERE` (default): applied at capture time on the agent, so the value never leaves the
+    debuggee process.
+  - `MCP_ONLY`: the value stays visible in the host UI, but is hidden from AI agents connected via
+    the [MCP server](/guide/mcp-server).
+- **`strategy`** — how the redacted value is rendered: `PLACEHOLDER` (default, a `<redacted>`
+  marker) or `MASK` (one `*` per character, preserving the value's length).
+
+Without a `redaction` argument no rules apply and captured data is forwarded verbatim.
 
 ## Mocking responses
 

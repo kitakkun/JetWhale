@@ -2,12 +2,46 @@
 
 The JetWhale host's behavior is configured from its **Settings** screen.
 
+::: tip Window size and position
+The host remembers its window size and position across launches automatically (when the window is
+in normal floating state — maximized/fullscreen state is not persisted). There is nothing to
+configure.
+:::
+
 ## General
+
+The **Settings → General** screen groups the host-wide options:
+
+### Appearance
+
+| Setting | Description |
+|---------|-------------|
+| **Language** | UI language of the host: **English** or **Japanese**. |
+| **Theme** | Color scheme: the built-in `dynamic`, `light`, or `dark` schemes, plus any custom schemes available. |
+
+### ADB support
 
 | Setting | Default | Description |
 |---------|---------|-------------|
 | **ADB auto port mapping** | off | Automatically runs `adb reverse` for Android devices as they connect. See [ADB Auto Port Mapping](/guide/adb-auto-port-mapping). |
-| **Persist data** | off | Not yet implemented — the toggle exists but has no effect in the current release. |
+
+### Maintenance
+
+- **Application data directory** — shows the host's app-data path (normally `~/.jetwhale/`) with a
+  shortcut to open it in your file manager.
+- **View application logs** — opens the built-in log viewer.
+
+### Updates
+
+- **Current version** — the running host version.
+- **Check for updates on startup** — toggle the automatic update check.
+- **Check for updates** — check immediately; when an update is found you can install it or open the
+  download page.
+
+### Health check
+
+- **adb executable path** — shows where JetWhale found `adb` (see
+  [How adb is found](/guide/adb-auto-port-mapping#how-adb-is-found)), or that it is unavailable.
 
 ## Server
 

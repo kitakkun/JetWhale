@@ -22,7 +22,9 @@ JetWhale consists of two sides connected over a WebSocket:
   to the host and exchanges type-safe messages powered by kotlinx.serialization.
 
 One host can debug **multiple sessions simultaneously** — for example an Android device and a
-desktop app at the same time.
+desktop app at the same time. Each session is labeled with the app's name and icon and grouped by
+the device it runs on — resolved automatically, and customizable via the agent's
+[`app { }` block](/guide/getting-started#session-metadata).
 
 The connection is plain **ws** by default, and can be upgraded to **secure WebSocket (wss)** with a
 locally-issued certificate — see [Secure connections](/guide/getting-started#secure-connections-wss).
