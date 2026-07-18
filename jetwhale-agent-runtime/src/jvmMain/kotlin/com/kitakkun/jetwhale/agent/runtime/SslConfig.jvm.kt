@@ -12,6 +12,9 @@ import javax.net.ssl.X509TrustManager
 internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 
+    // The engine is not user-configurable: it always comes from defaultKtorEngineFactory(), which
+    // returns CIO on this platform. If the default engine ever changes, fail fast here instead of
+    // silently skipping certificate pinning (which would surface as an obscure TLS handshake error).
     check(this is CIOEngineConfig) { "Expected CIOEngineConfig but got ${this::class.simpleName}" }
 
     https {
