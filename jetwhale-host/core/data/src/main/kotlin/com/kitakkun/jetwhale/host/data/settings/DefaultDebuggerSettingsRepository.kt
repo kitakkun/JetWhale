@@ -35,6 +35,13 @@ class DefaultDebuggerSettingsRepository(
             started = SharingStarted.Eagerly,
             initialValue = false,
         )
+    override val checkForUpdatesOnStartupFlow = dataStore.data
+        .map { it[KEY_CHECK_FOR_UPDATES_ON_STARTUP] ?: DEFAULT_CHECK_FOR_UPDATES_ON_STARTUP }
+        .stateIn(
+            scope = coroutineScope,
+            started = SharingStarted.Eagerly,
+            initialValue = DEFAULT_CHECK_FOR_UPDATES_ON_STARTUP,
+        )
     override val persistDataFlow = dataStore.data.mapNotNull { it[KEY_PERSIST_DATA] }
         .stateIn(
             scope = coroutineScope,
@@ -62,6 +69,14 @@ class DefaultDebuggerSettingsRepository(
         }
     }
 
+    override suspend fun readCheckForUpdatesOnStartup(): Boolean = dataStore.data.first()[KEY_CHECK_FOR_UPDATES_ON_STARTUP] ?: DEFAULT_CHECK_FOR_UPDATES_ON_STARTUP
+
+    override suspend fun updateCheckForUpdatesOnStartup(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[KEY_CHECK_FOR_UPDATES_ON_STARTUP] = enabled
+        }
+    }
+
     override suspend fun updatePersistData(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[KEY_PERSIST_DATA] = enabled
@@ -86,6 +101,8 @@ class DefaultDebuggerSettingsRepository(
 
     companion object Companion {
         private val KEY_ADB_AUTO_PORT_MAPPING_ENABLED = booleanPreferencesKey("adb_auto_port_mapping_enabled")
+        private val KEY_CHECK_FOR_UPDATES_ON_STARTUP = booleanPreferencesKey("check_for_updates_on_startup")
+        private const val DEFAULT_CHECK_FOR_UPDATES_ON_STARTUP = true
         private val KEY_PERSIST_DATA = booleanPreferencesKey("persist_data")
         private val KEY_SERVER_PORT = intPreferencesKey("server_port")
         private val KEY_MCP_SERVER_PORT = intPreferencesKey("mcp_server_port")

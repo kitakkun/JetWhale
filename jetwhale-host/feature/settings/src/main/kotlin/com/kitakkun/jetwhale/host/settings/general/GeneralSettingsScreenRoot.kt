@@ -51,6 +51,22 @@ fun GeneralSettingsScreenRoot(
                 }
             },
             onClickOpenLogViewer = onOpenLogViewer,
+            onClickCheckForUpdates = {
+                screenChannel.send(GeneralSettingsScreenAction.CheckForUpdates)
+            },
+            onCheckForUpdatesOnStartupChange = {
+                screenChannel.send(GeneralSettingsScreenAction.ChangeCheckForUpdatesOnStartup(it))
+            },
+            onClickInstallUpdate = {
+                screenChannel.send(GeneralSettingsScreenAction.InstallUpdate)
+            },
+            onClickOpenDownloadPage = { url ->
+                try {
+                    Desktop.getDesktop().browse(java.net.URI(url))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            },
         )
     }
 }

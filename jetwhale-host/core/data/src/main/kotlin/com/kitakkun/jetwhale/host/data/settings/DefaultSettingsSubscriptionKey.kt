@@ -20,12 +20,14 @@ class DefaultSettingsSubscriptionKey(
     subscribe = {
         combine(
             defaultDebuggerSettingsRepository.adbAutoPortMappingEnabledFlow,
+            defaultDebuggerSettingsRepository.checkForUpdatesOnStartupFlow,
             defaultDebuggerSettingsRepository.persistDataFlow,
             defaultDebuggerSettingsRepository.serverPortFlow,
             defaultDebuggerSettingsRepository.mcpServerPortFlow,
-        ) { adbAutoPortMappingEnabled, persistData, serverPort, mcpServerPort ->
+        ) { adbAutoPortMappingEnabled, checkForUpdatesOnStartup, persistData, serverPort, mcpServerPort ->
             DebuggerBehaviorSettings(
                 adbAutoPortMappingEnabled = adbAutoPortMappingEnabled,
+                checkForUpdatesOnStartup = checkForUpdatesOnStartup,
                 persistData = persistData,
                 serverPort = serverPort,
                 mcpServerPort = mcpServerPort,

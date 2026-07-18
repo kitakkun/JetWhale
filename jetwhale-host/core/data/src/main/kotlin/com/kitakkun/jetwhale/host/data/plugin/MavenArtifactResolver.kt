@@ -6,7 +6,6 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
-import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsChannel
@@ -16,12 +15,10 @@ import io.ktor.utils.io.jvm.javaio.toInputStream
 import java.io.File
 
 @SingleIn(AppScope::class)
-class MavenArtifactResolver internal constructor(
+@Inject
+class MavenArtifactResolver(
     engine: HttpClientEngine,
 ) {
-    @Inject
-    constructor() : this(CIO.create())
-
     private val httpClient = HttpClient(engine) {
         install(HttpTimeout) {
             connectTimeoutMillis = 30_000

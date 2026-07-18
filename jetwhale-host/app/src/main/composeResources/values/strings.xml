@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">JetWhale Debugger</string>
     <string name="version_format">Version %1$s</string>
+    <string name="update_banner_message">New version %1$s is available</string>
+    <string name="update_banner_open_settings">View in Settings</string>
     <string name="developed_by">Developed by kitakkun</string>
     <string name="github_url">GitHub: https://github.com/kitakkun/JetWhale</string>
     <string name="oss_licenses">OSS Licenses</string>

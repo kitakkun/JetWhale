@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldScreenContext
 import com.kitakkun.jetwhale.host.mcp.McpServerService
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
+import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LogCaptureService
@@ -14,6 +15,7 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginHotReloadService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
+import com.kitakkun.jetwhale.host.model.UpdateCheckMutationKey
 import com.kitakkun.jetwhale.host.plugin.PluginScreenContext
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 import com.kitakkun.jetwhale.host.settings.licenses.LicensesScreenContext
@@ -46,6 +48,8 @@ interface JetWhaleAppGraph : ScreenContext {
     val pluginHotReloadService: PluginHotReloadService
     val logCaptureService: LogCaptureService
     val enabledPluginsRepository: EnabledPluginsRepository
+    val debuggerSettingsRepository: DebuggerSettingsRepository
+    val updateCheckMutationKey: UpdateCheckMutationKey
 
     @Provides
     fun provideSwrClient(): SwrClientPlus = SwrCachePlus(SwrCachePlusPolicy(SwrCacheScope()))
