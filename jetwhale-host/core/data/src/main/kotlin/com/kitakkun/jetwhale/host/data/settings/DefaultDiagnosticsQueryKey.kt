@@ -2,6 +2,8 @@ package com.kitakkun.jetwhale.host.data.settings
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.data.util.findAdbPath
+import com.kitakkun.jetwhale.host.data.util.findIdbCompanionPath
+import com.kitakkun.jetwhale.host.data.util.findIdbPath
 import com.kitakkun.jetwhale.host.model.DebuggingToolsDiagnostics
 import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
 import dev.zacsweers.metro.AppScope
@@ -21,6 +23,8 @@ class DefaultDiagnosticsQueryKey(
         val appDataPath = appDataDirectoryProvider.getAppDataPath()
         DebuggingToolsDiagnostics(
             adbPath = adbPath,
+            idbPath = findIdbPath(),
+            idbCompanionPath = findIdbCompanionPath(),
             appDataPath = appDataPath,
         )
     },

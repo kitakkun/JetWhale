@@ -46,6 +46,10 @@ import com.kitakkun.jetwhale.host.settings.component.SettingsItemRow
 import com.kitakkun.jetwhale.host.settings.component.SwitchSettingsItemView
 import com.kitakkun.jetwhale.host.settings.current_version
 import com.kitakkun.jetwhale.host.settings.health_check
+import com.kitakkun.jetwhale.host.settings.idb_companion_executable_path
+import com.kitakkun.jetwhale.host.settings.idb_companion_unavailable
+import com.kitakkun.jetwhale.host.settings.idb_executable_path
+import com.kitakkun.jetwhale.host.settings.idb_unavailable
 import com.kitakkun.jetwhale.host.settings.install_update
 import com.kitakkun.jetwhale.host.settings.language_option
 import com.kitakkun.jetwhale.host.settings.maintenance
@@ -152,20 +156,41 @@ fun GeneralSettingsScreen(
         }
         item {
             SettingOptionView(stringResource(Res.string.health_check)) {
-                SettingsItemRow(stringResource(Res.string.adb_executable_path)) {
-                    Text(
-                        text = uiState.adbPath.ifEmpty { stringResource(Res.string.adb_unavailable) },
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    if (uiState.adbPath.isNotEmpty()) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            tint = MaterialTheme.colorScheme.primary,
-                            contentDescription = null,
-                        )
-                    }
-                }
+                ToolPathRow(
+                    label = stringResource(Res.string.adb_executable_path),
+                    path = uiState.adbPath,
+                    unavailableText = stringResource(Res.string.adb_unavailable),
+                )
+                ToolPathRow(
+                    label = stringResource(Res.string.idb_executable_path),
+                    path = uiState.idbPath,
+                    unavailableText = stringResource(Res.string.idb_unavailable),
+                )
+                ToolPathRow(
+                    label = stringResource(Res.string.idb_companion_executable_path),
+                    path = uiState.idbCompanionPath,
+                    unavailableText = stringResource(Res.string.idb_companion_unavailable),
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun ToolPathRow(
+    label: String,
+    path: String,
+    unavailableText: String,
+) {
+    SettingsItemRow(label) {
+        Text(text = path.ifEmpty { unavailableText })
+        Spacer(Modifier.width(8.dp))
+        if (path.isNotEmpty()) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                tint = MaterialTheme.colorScheme.primary,
+                contentDescription = null,
+            )
         }
     }
 }
@@ -253,6 +278,8 @@ private fun GeneralSettingsScreenPreview() {
             language = AppLanguage.English,
             appDataPath = "~/.jetwhale",
             adbPath = "/path/to/adb",
+            idbPath = "/path/to/idb",
+            idbCompanionPath = "",
             currentVersion = "1.0.0-alpha08",
             checkForUpdatesOnStartup = true,
             isCheckingForUpdates = false,

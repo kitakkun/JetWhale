@@ -61,6 +61,10 @@
     <string name="health_check">ヘルスチェック</string>
     <string name="adb_executable_path">ADB実行可能ファイルのパス</string>
     <string name="adb_unavailable">ADBコマンドが見つかりません</string>
+    <string name="idb_executable_path">idb実行可能ファイルのパス</string>
+    <string name="idb_unavailable">idbコマンドが見つかりません</string>
+    <string name="idb_companion_executable_path">idb_companion実行可能ファイルのパス</string>
+    <string name="idb_companion_unavailable">idb_companionコマンドが見つかりません</string>
     <string name="view_application_logs">アプリケーションログを表示</string>
     <string name="log_viewer_filter_placeholder">ログをフィルター…</string>
     <string name="log_viewer_filter_icon">フィルター</string>

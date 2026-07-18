@@ -61,6 +61,10 @@
     <string name="health_check">Health Check</string>
     <string name="adb_executable_path">ADB Executable Path</string>
     <string name="adb_unavailable">ADB command not found</string>
+    <string name="idb_executable_path">idb Executable Path</string>
+    <string name="idb_unavailable">idb command not found</string>
+    <string name="idb_companion_executable_path">idb_companion Executable Path</string>
+    <string name="idb_companion_unavailable">idb_companion command not found</string>
     <string name="view_application_logs">View Application Logs</string>
     <string name="log_viewer_filter_placeholder">Filter logs…</string>
     <string name="log_viewer_filter_icon">Filter</string>
