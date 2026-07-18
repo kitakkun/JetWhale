@@ -39,6 +39,12 @@ From the **SSL Certificate** section you can:
 - **Show Details** — view the CA certificate in PEM form and **Copy to Clipboard**, to paste into an
   agent's `ssl { trustCertificate(pem = "...") }`.
 
+TLS material is stored under `~/.jetwhale/ssl` with owner-only permissions (the keystore holds the
+CA private key), and the generated CA carries name constraints limiting it to local/private
+addresses (`localhost`, loopback, and the RFC 1918 / link-local ranges). If you install the CA into
+an OS trust store — for example on the Windows WinHttp path — prefer the **current-user** store over
+the machine-wide store.
+
 ::: warning Restart required
 Certificate changes (generate, activate, delete) only take effect after the **debug server
 restarts**. When the active certificate changes, the host prompts to restart the server now or

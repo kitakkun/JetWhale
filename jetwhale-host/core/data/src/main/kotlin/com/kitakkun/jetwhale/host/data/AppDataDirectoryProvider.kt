@@ -61,6 +61,9 @@ class AppDataDirectoryProvider {
         if (!exists()) {
             mkdirs()
         }
+        // TLS material (including the CA private key) lives here, so restrict the directory to the
+        // owning user only (0700 on POSIX; owner-only fallback on non-POSIX filesystems).
+        FilePermissions.restrictToOwnerDirectory(this)
     }
 
     /**
