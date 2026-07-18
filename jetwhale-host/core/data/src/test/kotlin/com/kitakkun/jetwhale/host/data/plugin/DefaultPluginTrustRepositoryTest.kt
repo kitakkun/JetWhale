@@ -35,7 +35,7 @@ class DefaultPluginTrustRepositoryTest {
     private fun newRepository() = DefaultPluginTrustRepository(AppDataDirectoryProvider())
 
     @Test
-    fun trustedEntriesSurviveAReadBackFromDisk() = runBlocking {
+    fun `trusted entries survive a read back from disk`() = runBlocking {
         newRepository().apply {
             trust("/plugins/a.jar", "hash-a")
             trust("/plugins/b.jar", "hash-b")
@@ -47,7 +47,7 @@ class DefaultPluginTrustRepositoryTest {
     }
 
     @Test
-    fun revokeRemovesTheEntryAndPersists() = runBlocking {
+    fun `revoke removes the entry and persists`() = runBlocking {
         newRepository().apply {
             trust("/plugins/a.jar", "hash-a")
             revoke("/plugins/a.jar")

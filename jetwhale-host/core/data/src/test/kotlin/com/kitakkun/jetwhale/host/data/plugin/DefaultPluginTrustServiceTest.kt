@@ -46,7 +46,7 @@ class DefaultPluginTrustServiceTest {
     }
 
     @Test
-    fun trustAndLoadAcceptsAJarInsideThePluginsDirectory() = runBlocking {
+    fun `trustAndLoad accepts a jar inside the plugins directory`() = runBlocking {
         val jar = File(pluginsDir, "plugin.jar").apply { writeBytes(byteArrayOf(1, 2, 3)) }
 
         service.trustAndLoad(jar.absolutePath)
@@ -56,7 +56,7 @@ class DefaultPluginTrustServiceTest {
     }
 
     @Test
-    fun trustAndLoadRejectsAJarOutsideThePluginsDirectory() = runBlocking {
+    fun `trustAndLoad rejects a jar outside the plugins directory`() = runBlocking {
         val outsideJar = File(tempHome, "evil.jar").apply { writeBytes(byteArrayOf(1)) }
 
         assertFailsWith<IllegalArgumentException> { service.trustAndLoad(outsideJar.absolutePath) }
@@ -65,7 +65,7 @@ class DefaultPluginTrustServiceTest {
     }
 
     @Test
-    fun trustAndLoadRejectsAPathEscapingThePluginsDirectoryViaDotDot() = runBlocking {
+    fun `trustAndLoad rejects a path escaping the plugins directory via dot-dot`() = runBlocking {
         val outsideJar = File(tempHome, "evil.jar").apply { writeBytes(byteArrayOf(1)) }
         val sneakyPath = "${pluginsDir.absolutePath}/../../${outsideJar.name}"
 
@@ -74,7 +74,7 @@ class DefaultPluginTrustServiceTest {
     }
 
     @Test
-    fun trustAndLoadRejectsANonJarFile() = runBlocking {
+    fun `trustAndLoad rejects a non-jar file`() = runBlocking {
         val notAJar = File(pluginsDir, "plugin.zip").apply { writeBytes(byteArrayOf(1)) }
 
         assertFailsWith<IllegalArgumentException> { service.trustAndLoad(notAJar.absolutePath) }
@@ -82,7 +82,7 @@ class DefaultPluginTrustServiceTest {
     }
 
     @Test
-    fun loadTrustedPluginsTreatsAnUnhashableJarAsUntrustedInsteadOfAborting() = runBlocking {
+    fun `loadTrustedPlugins treats an unhashable jar as untrusted instead of aborting`() = runBlocking {
         val readable = File(pluginsDir, "good.jar").apply { writeBytes(byteArrayOf(1, 2, 3)) }
         service.trustAndLoad(readable.absolutePath)
         factoryRepository.loadedJarPaths.clear()
