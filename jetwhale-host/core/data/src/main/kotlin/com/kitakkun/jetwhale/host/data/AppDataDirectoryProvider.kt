@@ -32,12 +32,14 @@ class AppDataDirectoryProvider {
                 append(if (c.isLetterOrDigit() || c == '.' || c == '-' || c == '_') c else '_')
             }
         }
-        // After replacing separators, the only remaining traversal risk is the id being exactly "."
-        // or ".." (a single dot-segment); fall back to a stable hashed name in that case.
-        return if (sanitized.isEmpty() || sanitized == "." || sanitized == "..") {
-            "plugin_" + pluginId.hashCode().toUInt().toString(16)
-        } else {
-            sanitized
+        // Sanitization is lossy: distinct ids like "a/b" and "a_b" would otherwise collapse into the
+        // same directory (breaking isolation and DataStore's single-instance-per-file rule). When any
+        // character was replaced, a hash of the original id is appended to keep the name unique.
+        val hashSuffix = "_" + pluginId.hashCode().toUInt().toString(16)
+        return when {
+            sanitized.isEmpty() || sanitized == "." || sanitized == ".." -> "plugin$hashSuffix"
+            sanitized != pluginId -> sanitized + hashSuffix
+            else -> sanitized
         }
     }
 

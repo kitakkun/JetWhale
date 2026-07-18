@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
+import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import okio.BufferedSink
@@ -72,7 +74,13 @@ private class DataStorePluginStorage(
 
     override suspend fun <T> get(key: String, serializer: KSerializer<T>): T? = getFlow(key, serializer).first()
 
-    override fun <T> getFlow(key: String, serializer: KSerializer<T>): Flow<T?> = dataStore.data.map { obj -> obj[key]?.let { json.decodeFromJsonElement(serializer, it) } }
+    override fun <T> getFlow(key: String, serializer: KSerializer<T>): Flow<T?> = dataStore.data.map { obj ->
+        obj[key]?.let { element ->
+            // A stored value that no longer matches the requested serializer (e.g. after a plugin
+            // schema change) is treated as absent instead of cancelling the flow for every consumer.
+            runCatching { json.decodeFromJsonElement(serializer, element) }.getOrNull()
+        }
+    }
 
     override suspend fun contains(key: String): Boolean = dataStore.data.first().containsKey(key)
 
@@ -94,7 +102,13 @@ private object JsonObjectOkioSerializer : OkioSerializer<JsonObject> {
     override suspend fun readFrom(source: BufferedSource): JsonObject {
         val text = source.readUtf8()
         if (text.isBlank()) return defaultValue
-        return json.decodeFromString(JsonObject.serializer(), text)
+        return try {
+            json.decodeFromString(JsonObject.serializer(), text)
+        } catch (e: SerializationException) {
+            // DataStore only routes CorruptionException to the ReplaceFileCorruptionHandler; wrap
+            // malformed JSON so a corrupted store is replaced instead of crashing every read.
+            throw CorruptionException("Plugin data store contains malformed JSON.", e)
+        }
     }
 
     override suspend fun writeTo(t: JsonObject, sink: BufferedSink) {
