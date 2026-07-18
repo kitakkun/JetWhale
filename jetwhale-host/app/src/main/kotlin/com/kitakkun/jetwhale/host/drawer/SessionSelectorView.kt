@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -25,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.disconnected_sessions
 import com.kitakkun.jetwhale.host.no_session_available
 import com.kitakkun.jetwhale.host.select_session
 import kotlinx.collections.immutable.ImmutableList
@@ -74,7 +78,8 @@ fun SessionSelectorView(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
-            sessions.forEach {
+            val (activeSessions, disconnectedSessions) = sessions.partition { it.isActive }
+            activeSessions.forEach {
                 SessionDropdownMenuItem(
                     selected = it.id == selectedSession?.id,
                     isActive = it.isActive,
@@ -84,6 +89,34 @@ fun SessionSelectorView(
                         expanded = false
                     },
                 )
+            }
+            if (disconnectedSessions.isNotEmpty()) {
+                var disconnectedExpanded by remember { mutableStateOf(false) }
+                DropdownMenuItem(
+                    text = {
+                        Text(stringResource(Res.string.disconnected_sessions, disconnectedSessions.size))
+                    },
+                    trailingIcon = {
+                        Icon(
+                            imageVector = if (disconnectedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = { disconnectedExpanded = !disconnectedExpanded },
+                )
+                if (disconnectedExpanded) {
+                    disconnectedSessions.forEach {
+                        SessionDropdownMenuItem(
+                            selected = it.id == selectedSession?.id,
+                            isActive = it.isActive,
+                            displayName = it.displayName,
+                            onClick = {
+                                onSelectSession(it)
+                                expanded = false
+                            },
+                        )
+                    }
+                }
             }
         }
     }
