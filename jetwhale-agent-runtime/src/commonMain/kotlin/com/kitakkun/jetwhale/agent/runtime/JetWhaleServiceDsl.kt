@@ -24,6 +24,7 @@ public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
                 json = json,
                 httpClient = HttpClient(defaultKtorEngineFactory()),
                 negotiationStrategy = DefaultClientSessionNegotiationStrategy(configuration.plugins.plugins),
+                sslConfiguration = configuration.connection.sslConfiguration,
             ),
             pluginService = JetWhaleAgentPluginService(
                 plugins = configuration.plugins.plugins,
@@ -49,6 +50,25 @@ public interface JetWhaleConfigurationScope {
 public interface JetWhaleConnectionConfigurationScope {
     public var host: String
     public var port: Int
+
+    /**
+     * Configures SSL settings for the connection. When at least one trusted certificate is
+     * registered, the connection is established over wss instead of plain ws.
+     *
+     * @param configure A lambda function to configure SSL settings.
+     */
+    public fun ssl(configure: JetWhaleSslConfigurationScope.() -> Unit)
+}
+
+@JetWhaleDsl
+public interface JetWhaleSslConfigurationScope {
+    /**
+     * Adds a trusted certificate in PEM format.
+     * This certificate will be used to verify the server's identity.
+     *
+     * @param pem The certificate in PEM format (including -----BEGIN CERTIFICATE----- and -----END CERTIFICATE----- markers).
+     */
+    public fun trustCertificate(pem: String)
 }
 
 @JetWhaleDsl
@@ -84,6 +104,27 @@ private class JetWhaleConfiguration : JetWhaleConfigurationScope {
 private class JetWhaleConnectionConfiguration : JetWhaleConnectionConfigurationScope {
     override var host: String = "localhost"
     override var port: Int = 8080
+    val sslConfiguration: JetWhaleSslConfiguration = JetWhaleSslConfiguration()
+
+    override fun ssl(configure: JetWhaleSslConfigurationScope.() -> Unit) {
+        sslConfiguration.configure()
+    }
+}
+
+internal class JetWhaleSslConfiguration : JetWhaleSslConfigurationScope {
+    private val mutableTrustedCertificates: MutableList<String> = mutableListOf()
+
+    /** List of trusted certificates in PEM format. */
+    val trustedCertificates: List<String>
+        get() = mutableTrustedCertificates
+
+    /** True when SSL is enabled (i.e. at least one trusted certificate is configured). */
+    val isEnabled: Boolean
+        get() = mutableTrustedCertificates.isNotEmpty()
+
+    override fun trustCertificate(pem: String) {
+        mutableTrustedCertificates.add(pem)
+    }
 }
 
 private class JetWhaleLoggingConfiguration : JetWhaleLoggingConfigurationScope {
