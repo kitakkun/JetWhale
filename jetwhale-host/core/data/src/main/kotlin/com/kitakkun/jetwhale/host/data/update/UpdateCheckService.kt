@@ -7,7 +7,6 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
-import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
@@ -18,13 +17,11 @@ import io.ktor.http.isSuccess
  * `metadata.properties` and comparing its `app.version` against the running host's version.
  */
 @SingleIn(AppScope::class)
-class UpdateCheckService internal constructor(
+@Inject
+class UpdateCheckService(
     engine: HttpClientEngine,
     private val hostVersionInfo: HostVersionInfo,
 ) {
-    @Inject
-    constructor(hostVersionInfo: HostVersionInfo) : this(CIO.create(), hostVersionInfo)
-
     private val httpClient = HttpClient(engine) {
         install(HttpTimeout) {
             connectTimeoutMillis = 30_000
