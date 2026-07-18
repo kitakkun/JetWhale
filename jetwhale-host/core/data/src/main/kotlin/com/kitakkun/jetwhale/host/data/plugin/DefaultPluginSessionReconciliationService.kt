@@ -27,18 +27,16 @@ class DefaultPluginSessionReconciliationService(
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val pluginInstanceService: PluginInstanceService,
 ) : PluginSessionReconciliationService {
-    override fun requiresAgent(pluginId: String): Boolean =
-        pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
+    override fun requiresAgent(pluginId: String): Boolean = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
 
-    override fun targetSessionIds(pluginId: String, sessions: List<DebugSession>): Set<String> =
-        if (requiresAgent(pluginId)) {
-            sessions
-                .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
-                .map { it.id }
-                .toSet()
-        } else {
-            sessions.map { it.id }.toSet()
-        }
+    override fun targetSessionIds(pluginId: String, sessions: List<DebugSession>): Set<String> = if (requiresAgent(pluginId)) {
+        sessions
+            .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
+            .map { it.id }
+            .toSet()
+    } else {
+        sessions.map { it.id }.toSet()
+    }
 
     override fun reconciliationEvents(): Flow<PluginReconciliationEvent> = channelFlow {
         // Enable/session reconciliation: whenever the enabled set or the active sessions change,

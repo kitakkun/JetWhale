@@ -345,6 +345,12 @@ public final class com/kitakkun/jetwhale/protocol/messaging/PluginFrame$Request$
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class com/kitakkun/jetwhale/protocol/messaging/PluginPeerLifecycleKt {
+	public static final fun configurePeerGuarded (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhalePluginPeer;Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;)Z
+	public static final fun launchPeerPreparation (Lkotlinx/coroutines/CoroutineScope;Lcom/kitakkun/jetwhale/protocol/messaging/JetWhalePluginPeer;Ljava/lang/String;JLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function0;)Lkotlinx/coroutines/Job;
+	public static final fun replyPeerUnavailable (Lkotlinx/coroutines/CoroutineScope;Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;)V
+}
+
 public final class com/kitakkun/jetwhale/protocol/messaging/Reply {
 }
 
