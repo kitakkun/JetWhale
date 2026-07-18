@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -154,7 +155,11 @@ internal fun TrafficTab(
                         color = MaterialTheme.colorScheme.outline,
                     )
                 } else {
-                    TransactionDetail(tx = tx, onCreateMock = { onCreateMock(tx) })
+                    // Detail pane values (URL, headers, bodies) are read-only reference data
+                    // developers frequently copy, so make the whole pane text-selectable.
+                    SelectionContainer {
+                        TransactionDetail(tx = tx, onCreateMock = { onCreateMock(tx) })
+                    }
                 }
             }
         }
