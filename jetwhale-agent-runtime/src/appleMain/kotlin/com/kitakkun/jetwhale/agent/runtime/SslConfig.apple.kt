@@ -2,20 +2,90 @@ package com.kitakkun.jetwhale.agent.runtime
 
 import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.engine.darwin.DarwinClientEngineConfig
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.UByteVar
+import kotlinx.cinterop.allocArrayOf
+import kotlinx.cinterop.convert
+import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.reinterpret
+import platform.CoreFoundation.CFArrayCreate
+import platform.CoreFoundation.CFDataCreate
+import platform.CoreFoundation.kCFAllocatorDefault
+import platform.Foundation.NSData
+import platform.Foundation.NSDataBase64DecodingIgnoreUnknownCharacters
+import platform.Foundation.NSURLAuthenticationMethodServerTrust
+import platform.Foundation.NSURLCredential
+import platform.Foundation.NSURLSessionAuthChallengeCancelAuthenticationChallenge
+import platform.Foundation.NSURLSessionAuthChallengePerformDefaultHandling
+import platform.Foundation.NSURLSessionAuthChallengeUseCredential
+import platform.Foundation.create
+import platform.Foundation.serverTrust
+import platform.Security.SecCertificateCreateWithData
+import platform.Security.SecCertificateRef
+import platform.Security.SecTrustEvaluateWithError
+import platform.Security.SecTrustSetAnchorCertificates
+import platform.Security.SecTrustSetAnchorCertificatesOnly
 
+@OptIn(ExperimentalForeignApi::class)
 internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 
+    // The engine is not user-configurable: it always comes from defaultKtorEngineFactory(), which
+    // returns Darwin on this platform. If the default engine ever changes, fail fast here instead of
+    // silently skipping certificate pinning (which would surface as an obscure TLS handshake error).
     check(this is DarwinClientEngineConfig) { "Expected DarwinClientEngineConfig but got ${this::class.simpleName}" }
 
-    // Note: Darwin engine uses the system's certificate store by default.
-    // Custom certificate configuration for Darwin requires NSURLSession delegate setup
-    // which is currently not fully supported through Ktor's Darwin engine configuration.
-    // For custom certificates on Apple platforms, consider adding them to the system keychain
-    // or using a custom NSURLSessionDelegate.
+    val anchorCertificates = sslConfiguration.trustedCertificates.mapNotNull { pem ->
+        pemToSecCertificate(pem).also {
+            if (it == null) JetWhaleLogger.w("Failed to parse a trusted certificate PEM; it will be ignored.")
+        }
+    }
+    if (anchorCertificates.isEmpty()) {
+        JetWhaleLogger.w("No trusted certificate could be parsed; falling back to system trust evaluation.")
+        return
+    }
 
-    JetWhaleLogger.w(
-        "SSL certificate configuration for Apple/Darwin is limited. " +
-            "Consider adding certificates to the system keychain.",
-    )
+    handleChallenge { _, _, challenge, completionHandler ->
+        val serverTrust = challenge.protectionSpace.serverTrust
+        if (challenge.protectionSpace.authenticationMethod != NSURLAuthenticationMethodServerTrust || serverTrust == null) {
+            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, null)
+            return@handleChallenge
+        }
+
+        // Evaluate the server chain against the configured CA certificates only, so the locally
+        // issued JetWhale CA is trusted without being installed in the device trust store.
+        val trusted = memScoped {
+            val certArray = allocArrayOf(*anchorCertificates.toTypedArray())
+            val cfAnchors = CFArrayCreate(kCFAllocatorDefault, certArray.reinterpret(), anchorCertificates.size.convert(), null)
+            SecTrustSetAnchorCertificates(serverTrust, cfAnchors)
+            SecTrustSetAnchorCertificatesOnly(serverTrust, true)
+            SecTrustEvaluateWithError(serverTrust, null)
+        }
+
+        if (trusted) {
+            completionHandler(NSURLSessionAuthChallengeUseCredential, NSURLCredential.create(trust = serverTrust))
+        } else {
+            JetWhaleLogger.w("Server certificate is not signed by a trusted JetWhale CA; cancelling the connection.")
+            completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null)
+        }
+    }
+}
+
+/** Decodes a PEM certificate (base64 DER between BEGIN/END markers) into a [SecCertificateRef]. */
+@OptIn(ExperimentalForeignApi::class)
+private fun pemToSecCertificate(pem: String): SecCertificateRef? {
+    val base64 = pem.lineSequence()
+        .filterNot { it.contains("-----") }
+        .joinToString("")
+        .trim()
+    val derData = NSData.create(
+        base64EncodedString = base64,
+        options = NSDataBase64DecodingIgnoreUnknownCharacters,
+    ) ?: return null
+    val cfData = CFDataCreate(
+        kCFAllocatorDefault,
+        derData.bytes?.reinterpret<UByteVar>(),
+        derData.length.convert(),
+    ) ?: return null
+    return SecCertificateCreateWithData(null, cfData)
 }
