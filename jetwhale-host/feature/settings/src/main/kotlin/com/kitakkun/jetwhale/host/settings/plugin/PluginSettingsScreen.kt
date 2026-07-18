@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.model.PluginInstallProgress
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.add_plugin_from_file
@@ -38,6 +39,9 @@ import com.kitakkun.jetwhale.host.settings.dialog_ok
 import com.kitakkun.jetwhale.host.settings.failed_jar_path_hint
 import com.kitakkun.jetwhale.host.settings.failed_to_load_plugins
 import com.kitakkun.jetwhale.host.settings.install_from_maven
+import com.kitakkun.jetwhale.host.settings.install_progress_downloading_dependencies
+import com.kitakkun.jetwhale.host.settings.install_progress_downloading_plugin
+import com.kitakkun.jetwhale.host.settings.install_progress_loading_plugin
 import com.kitakkun.jetwhale.host.settings.installed_plugins
 import com.kitakkun.jetwhale.host.settings.untrusted_jar_hint
 import com.kitakkun.jetwhale.host.settings.untrusted_plugins
@@ -195,6 +199,26 @@ fun PluginSettingsScreen(
                 Text(stringResource(Res.string.install_from_maven))
             }
             if (uiState.isInstalling) {
+                uiState.installProgress?.let { progress ->
+                    Text(
+                        text = when (progress) {
+                            is PluginInstallProgress.DownloadingPlugin ->
+                                stringResource(Res.string.install_progress_downloading_plugin)
+
+                            is PluginInstallProgress.DownloadingDependencies ->
+                                stringResource(
+                                    Res.string.install_progress_downloading_dependencies,
+                                    progress.completed + 1,
+                                    progress.total,
+                                )
+
+                            is PluginInstallProgress.LoadingPlugin ->
+                                stringResource(Res.string.install_progress_loading_plugin)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
                     strokeWidth = 2.dp,

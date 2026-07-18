@@ -57,4 +57,7 @@
     <string name="maven_install_repository_url_label">リポジトリURL</string>
     <string name="maven_install_error_fill_required">必須フィールドをすべて入力してください。</string>
     <string name="maven_install_install">インストール</string>
+    <string name="install_progress_downloading_plugin">プラグインをダウンロード中…</string>
+    <string name="install_progress_downloading_dependencies">依存関係をダウンロード中 (%1$d/%2$d)…</string>
+    <string name="install_progress_loading_plugin">プラグインを読み込み中…</string>
 </resources>

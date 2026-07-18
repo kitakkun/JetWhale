@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.host.model.McpServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.McpServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.PluginInstallFromMavenMutationKey
 import com.kitakkun.jetwhale.host.model.PluginInstallMutationKey
+import com.kitakkun.jetwhale.host.model.PluginInstallProgressSubscriptionKey
 import com.kitakkun.jetwhale.host.model.ServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
@@ -51,6 +52,7 @@ class SettingsScreenContext(
     val loadedPluginsMetaDataSubscriptionKey: LoadedPluginsMetaDataSubscriptionKey,
     val failedPluginJarPathsSubscriptionKey: FailedPluginJarPathsSubscriptionKey,
     val untrustedPluginJarPathsSubscriptionKey: UntrustedPluginJarPathsSubscriptionKey,
+    val pluginInstallProgressSubscriptionKey: PluginInstallProgressSubscriptionKey,
     val serverStatusSubscriptionKey: ServerStatusSubscriptionKey,
     val mcpServerStatusSubscriptionKey: McpServerStatusSubscriptionKey,
     val presenterContext: SettingsPresenterContext,
