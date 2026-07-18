@@ -84,7 +84,7 @@ Where to call it, per platform:
 - **Android** — in `Application.onCreate()`
 - **Desktop (JVM)** — first line of `main()`
 - **Web (JS / WasmJS)** — first line of `main()`
-- **iOS (Simulator)** — in your SwiftUI `App` init, e.g. `InitializeJetWhaleKt.initializeJetWhale()`
+- **iOS (Simulator & physical devices)** — in your SwiftUI `App` init, e.g. `InitializeJetWhaleKt.initializeJetWhale()`. A physical device connects over the local network via wss — see [Secure connections (wss)](#secure-connections-wss)
 
 The [demo apps](https://github.com/kitakkun/JetWhale/tree/main/demo) show a complete multiplatform
 setup with a shared `initializeJetWhale()` function.

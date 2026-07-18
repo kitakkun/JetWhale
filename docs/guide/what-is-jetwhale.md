@@ -43,7 +43,7 @@ Each session in the host shows a lock indicator for how its transport is secured
 - ⚙️ **Easy integration** — DSL-based setup in your app;
   [ADB auto port mapping](/guide/adb-auto-port-mapping) for zero-setup Android debugging
 - 🛜 **Type-safe communication** — kotlinx.serialization between debugger and debuggee
-- ✅ **Multiplatform debuggees** — Android, Desktop (JVM), iOS (Simulator only), Web (JS, WasmJS)
+- ✅ **Multiplatform debuggees** — Android, Desktop (JVM), iOS (Simulator & physical devices over wss), Web (JS, WasmJS)
 - 🤖 **[MCP server](/guide/mcp-server)** *(experimental)* — AI agents can interact with your app
 - 🔥 **[Hot-reloadable plugin development](/guide/developing-plugins)** — build plugins in your own
   repository against the published SDK
