@@ -121,12 +121,20 @@ startJetWhale {
 
 ### Which one to use
 
-- **`trustServerCertificate()`** — the agent downloads the host's active CA over the plain channel
-  (`http://<host>:<port>/jetwhale/ca`) at connect time and pins the wss connection to it, so no PEM
-  is hardcoded in the app. This is a *trust-on-first-use* exchange: the plain channel is not itself
-  authenticated. Over ADB port forwarding (the usual case) the download never leaves the machine, so
-  it is as trustworthy as the ADB link. If the CA cannot be fetched, the connection falls back to
-  plain ws.
+- **`trustServerCertificate()`** — the agent downloads the host's active CA from `/jetwhale/ca` at
+  connect time and pins the wss connection to it, so no PEM is hardcoded in the app. It probes the
+  configured `port` in two topologies, in order:
+    1. `http://<host>:<port>/jetwhale/ca` — the plain channel, used when `port` is the host's
+       plain-ws port (localhost / ADB port forwarding).
+    2. `https://<host>:<port>/jetwhale/ca` with certificate verification disabled — used when the
+       plain fetch is unreachable, e.g. a LAN device (iPhone) connecting to the host's TLS server on
+       the wss port while the host's plain server is bound to loopback.
+
+  Both are a *trust-on-first-use* exchange: the fetch itself is not authenticated, and the disabled
+  verification in step 2 is security-equivalent to the plain fetch in step 1 (the fetched CA still
+  pins the subsequent wss session). Over ADB port forwarding (the usual case) the download never
+  leaves the machine, so it is as trustworthy as the ADB link. If the CA cannot be fetched over
+  either channel, the connection falls back to plain ws.
 - **`trustCertificate(pem)`** — pins a CA PEM you exported yourself from the host's Server settings
   (**Show Details → Copy to Clipboard**). Prefer this on an untrusted LAN, where strict pinning
   matters.
@@ -139,10 +147,25 @@ stack constrains it:
 | Platform | Behaviour |
 |----------|-----------|
 | **JVM / Android** | Full pinning via a custom `X509TrustManager` built from the configured PEMs. Invalid PEMs log a warning and fall back to system trust. |
-| **iOS / macOS** | Full pinning via Security.framework anchor certificates (`SecTrustSetAnchorCertificates`), so the local CA is trusted without installing it in the device trust store. |
+| **iOS / macOS** | Full pinning via Security.framework anchor certificates (`SecTrustSetAnchorCertificates`), so the local CA is trusted without installing it in the device trust store. A physical iPhone reaches the host over the LAN and fetches the CA over the wss port; add the [Local Network permission](#ios-local-network-permission) so iOS allows it. |
 | **Linux** | Pinning via curl's `CURLOPT_CAINFO`: the PEMs are written to a private per-process CA bundle file under the temp dir and pinned against it. |
 | **Windows** | WinHttp validates only against the Windows certificate store and cannot pin a custom CA in code. Install the exported CA into the store manually, e.g. `certutil -user -addstore Root jetwhale-ca.pem`. |
 | **Web (JS / WasmJS)** | The browser manages TLS; custom CA configuration is not supported and is ignored with a warning. |
+
+### iOS Local Network permission
+
+A physical iPhone connects to the host over the local network rather than `localhost`, and both the
+wss connection and the trust-on-first-use CA fetch go over the LAN. iOS gates local-network access
+behind a user permission, so add a usage-description string to the app's `Info.plist`:
+
+```xml
+<key>NSLocalNetworkUsageDescription</key>
+<string>JetWhale connects to the debugger host running on your local network.</string>
+```
+
+iOS prompts the user to allow local-network access on the first connection. `NSBonjourServices` is
+not required — the agent dials the host by address, not via Bonjour discovery. Because the CA fetch
+falls back to `https` over the wss port, no App Transport Security exception for plain HTTP is needed.
 
 ## 4. Connect a device
 

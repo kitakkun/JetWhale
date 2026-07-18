@@ -98,9 +98,9 @@ internal class KtorWebSocketClient(
 
     /**
      * Produces the SSL configuration effective for this connection. When
-     * [JetWhaleSslConfiguration.trustServerCertificate] is set, the host's active CA is fetched over
-     * the plain channel and pinned; on failure the manually configured certificates (if any) are
-     * used, otherwise the connection falls back to plain ws.
+     * [JetWhaleSslConfiguration.trustServerCertificate] is set, the host's active CA is fetched and
+     * pinned; on failure the manually configured certificates (if any) are used, otherwise the
+     * connection falls back to plain ws.
      */
     private suspend fun resolveSslConfiguration(host: String, port: Int): JetWhaleSslConfiguration {
         val fetchedCaPem = if (sslConfiguration.trustServerCertificate) {
@@ -115,23 +115,46 @@ internal class KtorWebSocketClient(
         }
     }
 
-    /** Fetches the host's active CA certificate PEM from the well-known plain-HTTP endpoint. */
+    /**
+     * Fetches the host's active CA certificate PEM from the well-known `/jetwhale/ca` endpoint,
+     * probing the same [port] the wss connection targets in two topologies:
+     *
+     * 1. `http://<host>:<port>/jetwhale/ca` — the plain channel. Cheap and works when [port] is the
+     *    host's plain-ws port (localhost / ADB port forwarding), where the plain server also serves
+     *    the route.
+     * 2. `https://<host>:<port>/jetwhale/ca` **with certificate verification disabled** — used when
+     *    the plain fetch is unreachable, e.g. a LAN device connecting to the TLS server on the wss
+     *    port (the plain server is bound to loopback). The TLS server serves the same route. Skipping
+     *    verification here is security-equivalent to the plain fetch: both are trust-on-first-use and
+     *    the fetched CA still pins the subsequent wss session.
+     *
+     * Returns null when neither attempt succeeds, so the caller falls back to plain ws.
+     */
     private suspend fun fetchCaCertificate(host: String, port: Int): String? {
-        val httpClient = HttpClient(defaultKtorEngineFactory())
+        fetchCaCertificate("http://$host:$port/jetwhale/ca", disableVerification = false)?.let { return it }
+        return fetchCaCertificate("https://$host:$port/jetwhale/ca", disableVerification = true)
+    }
+
+    private suspend fun fetchCaCertificate(url: String, disableVerification: Boolean): String? {
+        val httpClient = HttpClient(defaultKtorEngineFactory()) {
+            if (disableVerification) {
+                engine { disableCertificateVerification() }
+            }
+        }
         return try {
-            val response = httpClient.get("http://$host:$port/jetwhale/ca")
+            val response = httpClient.get(url)
             if (response.status.isSuccess()) {
                 response.bodyAsText().also {
-                    JetWhaleLogger.i("Fetched CA certificate from host for trust-on-first-use pinning")
+                    JetWhaleLogger.i("Fetched CA certificate from $url for trust-on-first-use pinning")
                 }
             } else {
-                JetWhaleLogger.w("Host returned ${response.status} for the CA certificate; falling back to plain ws")
+                JetWhaleLogger.w("Host returned ${response.status} for the CA certificate at $url")
                 null
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            JetWhaleLogger.w("Failed to fetch CA certificate from host; falling back to plain ws", e)
+            JetWhaleLogger.w("Failed to fetch CA certificate from $url", e)
             null
         } finally {
             httpClient.close()

@@ -69,16 +69,23 @@ public interface JetWhaleSslConfigurationScope {
     public fun trustCertificate(pem: String)
 
     /**
-     * Fetches the host's active CA certificate over the plain (ws) channel at connect time and pins
-     * the resulting wss connection to it, so no CA certificate has to be hardcoded in the app.
+     * Fetches the host's active CA certificate at connect time and pins the resulting wss connection
+     * to it, so no CA certificate has to be hardcoded in the app.
      *
-     * The CA is downloaded from `http://<host>:<port>/jetwhale/ca` before the wss handshake. This is
-     * a trust-on-first-use exchange: the plain channel is not itself authenticated. Over ADB port
+     * The CA is downloaded from `/jetwhale/ca` before the wss handshake, probing the configured
+     * `port` in two topologies:
+     * 1. `http://<host>:<port>/jetwhale/ca` — works when `port` is the host's plain-ws port
+     *    (localhost / ADB port forwarding).
+     * 2. `https://<host>:<port>/jetwhale/ca` with certificate verification disabled — used when the
+     *    plain fetch is unreachable, e.g. a LAN device (iPhone) connecting to the TLS server on the
+     *    wss port while the host's plain server is bound to loopback.
+     *
+     * Both are a trust-on-first-use exchange: the fetch itself is not authenticated. Over ADB port
      * forwarding (the primary use case) the download is as trustworthy as the ADB link, because the
      * traffic never leaves the machine. On an untrusted LAN prefer [trustCertificate] with a
      * manually exported CA for strict pinning.
      *
-     * When the CA cannot be fetched, the connection falls back to plain ws.
+     * When the CA cannot be fetched over either channel, the connection falls back to plain ws.
      */
     public fun trustServerCertificate()
 }

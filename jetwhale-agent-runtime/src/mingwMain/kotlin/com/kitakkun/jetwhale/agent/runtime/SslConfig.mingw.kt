@@ -3,6 +3,13 @@ package com.kitakkun.jetwhale.agent.runtime
 import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.engine.winhttp.WinHttpClientEngineConfig
 
+internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
+    check(this is WinHttpClientEngineConfig) { "Expected WinHttpClientEngineConfig but got ${this::class.simpleName}" }
+    // WinHttp validates against the Windows store by default; disabling it lets the CA fetch succeed
+    // over the wss port (trust-on-first-use). The fetched CA still governs the wss session.
+    sslVerify = false
+}
+
 internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 

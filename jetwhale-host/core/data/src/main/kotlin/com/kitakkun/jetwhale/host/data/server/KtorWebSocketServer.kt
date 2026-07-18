@@ -265,10 +265,11 @@ class KtorWebSocketServer(
         }
 
         routing {
-            // Serves the active CA certificate over the plain channel so agents can fetch and pin it
-            // at connect time (trust-on-first-use) without hardcoding a PEM. The CA certificate is
-            // public trust-anchor material, so exposing it is not a secret leak. Routes apply to both
-            // servers, which is acceptable here.
+            // Serves the active CA certificate so agents can fetch and pin it at connect time
+            // (trust-on-first-use) without hardcoding a PEM. Both servers install this module, so the
+            // route is reachable over the plain port (localhost / ADB) and over the TLS port on
+            // 0.0.0.0 (LAN devices such as iPhones that cannot reach the loopback-bound plain server).
+            // The CA certificate is public trust-anchor material, so exposing it is not a secret leak.
             get("/jetwhale/ca") {
                 val caCertificatePem = sslCertificateManager.getActiveCertificate()?.caCertificatePem
                 if (caCertificatePem == null) {

@@ -2,6 +2,15 @@ package com.kitakkun.jetwhale.agent.runtime
 
 import io.ktor.client.engine.HttpClientEngineConfig
 
+internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
+    // The browser fully controls TLS verification; it cannot be disabled from code. The CA fetch
+    // over the wss port therefore fails here and the caller falls back to plain ws.
+    JetWhaleLogger.w(
+        "Certificate verification cannot be disabled in JavaScript environments; " +
+            "the CA fetch over the wss port is not available.",
+    )
+}
+
 internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 

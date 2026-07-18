@@ -24,6 +24,8 @@ import java.net.URI
 import java.security.KeyStore
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
+import javax.net.ssl.HostnameVerifier
+import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManager
@@ -174,6 +176,70 @@ class KtorWebSocketServerTest {
             }
 
             server.stop()
+        }
+    }
+
+    @Test
+    fun `serves the active CA certificate over the tls channel`() {
+        // A real certificate manager backed by a temp home so the TLS server starts with a usable
+        // keystore and getActiveCertificate() returns the matching CA PEM.
+        val tempHome = createTempDirectory().toFile()
+        val originalHome = System.getProperty("user.home")
+        System.setProperty("user.home", tempHome.absolutePath)
+        try {
+            val sslCertificateManager = DefaultSslCertificateManager(AppDataDirectoryProvider())
+            sslCertificateManager.generateAndAddCertificate("tls-ca")
+            val expectedPem = sslCertificateManager.getActiveCertificate()?.caCertificatePem
+
+            val server = KtorWebSocketServer(
+                json = Json,
+                negotiationStrategy = mock(),
+                sslCertificateManager = sslCertificateManager,
+            )
+
+            val wssPort = freePort()
+            runBlocking {
+                server.start("localhost", freePort(), wssPort = wssPort)
+                withTimeout(10_000) {
+                    server.statusFlow.first { it is DebugWebSocketServerStatus.Started }
+                }
+
+                val body = withTimeout(10_000) {
+                    var result: String? = null
+                    while (result == null) {
+                        result = runCatching { httpsGet(wssPort, "/jetwhale/ca") }.getOrNull()
+                        if (result == null) delay(100)
+                    }
+                    result
+                }
+
+                assertEquals(expectedPem, body)
+                server.stop()
+            }
+        } finally {
+            System.setProperty("user.home", originalHome)
+            tempHome.deleteRecursively()
+        }
+    }
+
+    /** Performs an HTTPS GET against the TLS listener with verification disabled. */
+    private fun httpsGet(port: Int, path: String): String {
+        val trustAll = arrayOf<TrustManager>(
+            object : X509TrustManager {
+                override fun checkClientTrusted(chain: Array<X509Certificate>?, authType: String?) = Unit
+                override fun checkServerTrusted(chain: Array<X509Certificate>?, authType: String?) = Unit
+                override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+            },
+        )
+        val sslContext = SSLContext.getInstance("TLS").apply { init(null, trustAll, SecureRandom()) }
+        val connection = URI("https://localhost:$port$path").toURL().openConnection() as HttpsURLConnection
+        connection.sslSocketFactory = sslContext.socketFactory
+        connection.hostnameVerifier = HostnameVerifier { _, _ -> true }
+        return try {
+            check(connection.responseCode == HttpURLConnection.HTTP_OK) { "unexpected status ${connection.responseCode}" }
+            connection.inputStream.bufferedReader().readText()
+        } finally {
+            connection.disconnect()
         }
     }
 

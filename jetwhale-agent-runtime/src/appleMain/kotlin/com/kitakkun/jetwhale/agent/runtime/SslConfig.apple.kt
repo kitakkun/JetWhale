@@ -27,6 +27,21 @@ import platform.Security.SecTrustSetAnchorCertificates
 import platform.Security.SecTrustSetAnchorCertificatesOnly
 
 @OptIn(ExperimentalForeignApi::class)
+internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
+    check(this is DarwinClientEngineConfig) { "Expected DarwinClientEngineConfig but got ${this::class.simpleName}" }
+    handleChallenge { _, _, challenge, completionHandler ->
+        val serverTrust = challenge.protectionSpace.serverTrust
+        if (challenge.protectionSpace.authenticationMethod != NSURLAuthenticationMethodServerTrust || serverTrust == null) {
+            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, null)
+            return@handleChallenge
+        }
+        // Accept the presented server trust unconditionally: this path only fetches the CA over the
+        // wss port (trust-on-first-use), and the fetched CA still pins the subsequent wss session.
+        completionHandler(NSURLSessionAuthChallengeUseCredential, NSURLCredential.create(trust = serverTrust))
+    }
+}
+
+@OptIn(ExperimentalForeignApi::class)
 internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 

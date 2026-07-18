@@ -17,6 +17,13 @@ import platform.posix.getpid
 import platform.posix.open
 import platform.posix.write
 
+internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
+    check(this is CurlClientEngineConfig) { "Expected CurlClientEngineConfig but got ${this::class.simpleName}" }
+    // Curl validates the peer against the CA bundle by default; disabling it lets the CA fetch
+    // succeed over the wss port (trust-on-first-use). The fetched CA still pins the wss session.
+    sslVerify = false
+}
+
 @OptIn(ExperimentalForeignApi::class)
 internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return

@@ -9,6 +9,20 @@ import java.security.cert.X509Certificate
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
 
+internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
+    check(this is CIOEngineConfig) { "Expected CIOEngineConfig but got ${this::class.simpleName}" }
+    https {
+        trustManager = TrustAllX509TrustManager
+    }
+}
+
+/** Trust manager that accepts any server certificate; see [disableCertificateVerification]. */
+private object TrustAllX509TrustManager : X509TrustManager {
+    override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) = Unit
+    override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) = Unit
+    override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+}
+
 internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 
