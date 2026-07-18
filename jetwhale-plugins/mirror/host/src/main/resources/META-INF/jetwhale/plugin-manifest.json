@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../../../../../../../../schemas/plugin-manifest.schema.json",
+  "plugins": [
+    {
+      "pluginId": "com.kitakkun.jetwhale.mirror",
+      "pluginName": "Device Mirror",
+      "version": "1.0.0",
+      "factoryClass": "com.kitakkun.jetwhale.plugins.mirror.host.MirrorHostPluginFactory",
+      "requiresAgent": false,
+      "icon": {
+        "activePath": "icons/mirror_filled.svg",
+        "inactivePath": "icons/mirror_outlined.svg"
+      }
+    }
+  ]
+}
