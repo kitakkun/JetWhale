@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,29 +24,34 @@ fun LogEntryRow(
     val backgroundColor = logEntry.level.backgroundColor
     val textColor = logEntry.level.textColor
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(backgroundColor)
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        LogTimestamp(
-            timestamp = logEntry.timestamp.toString()
-                .substringAfter("T")
-                .substringBefore("."),
-        )
+    // Per-item SelectionContainer: the log list is a LazyColumn, so selection is scoped to a
+    // single line. Wrapping the whole LazyColumn in one SelectionContainer is avoided because it
+    // forces composition of off-screen items and has known perf/UX issues.
+    SelectionContainer {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .background(backgroundColor)
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            LogTimestamp(
+                timestamp = logEntry.timestamp.toString()
+                    .substringAfter("T")
+                    .substringBefore("."),
+            )
 
-        LogLevelBadge(
-            level = logEntry.level,
-            color = textColor,
-        )
+            LogLevelBadge(
+                level = logEntry.level,
+                color = textColor,
+            )
 
-        LogMessage(
-            message = logEntry.message,
-            color = textColor,
-            modifier = Modifier.weight(1f),
-        )
+            LogMessage(
+                message = logEntry.message,
+                color = textColor,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
