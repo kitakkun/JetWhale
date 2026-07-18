@@ -77,6 +77,12 @@ data class MavenCoordinates(
     }
 
     /**
+     * File name used for this artifact's jar on disk. Includes the groupId so artifacts that share
+     * an artifactId/version cannot collide.
+     */
+    fun jarFileName(): String = "$groupId-$artifactId-$version.jar"
+
+    /**
      * Builds the URL to download the JAR file from the Maven repository
      */
     fun toJarUrl(): String {

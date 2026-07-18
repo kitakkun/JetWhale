@@ -13,6 +13,7 @@ class AppDataDirectoryProvider {
     private val homeDir = System.getProperty("user.home")
     private val appDataDir = "$homeDir/.jetwhale"
     private val pluginDir = "$appDataDir/plugins"
+    private val pluginLibsDir = "$pluginDir/libs"
     private val dataStoreFilesDir = "$appDataDir/dataStorePreferences"
 
     fun resolveDataStoreFilePath(fileName: String): Path = "$dataStoreFilesDir/$fileName".toPath()
@@ -51,6 +52,10 @@ class AppDataDirectoryProvider {
         if (!pluginDirectory.exists()) {
             pluginDirectory.mkdirs()
         }
+        val pluginLibsDirectory = File(pluginLibsDir)
+        if (!pluginLibsDirectory.exists()) {
+            pluginLibsDirectory.mkdirs()
+        }
     }
 
     fun copyJarFileToAppDataDirectory(jarFilePath: String): String {
@@ -68,6 +73,13 @@ class AppDataDirectoryProvider {
     }
 
     fun getPluginDirectory(): File = File(pluginDir)
+
+    /**
+     * Directory holding the external dependency jars that Maven-installed plugins declare in their
+     * `META-INF/jetwhale/dependencies.txt` manifest. Kept in a subdirectory of the plugins
+     * directory so the jars are not themselves picked up as plugins by [getAllPluginJarFilePaths].
+     */
+    fun getPluginLibsDirectory(): File = File(pluginLibsDir)
 
     /**
      * The development-only "dev plugins directory" supplied by a plugin developer via the

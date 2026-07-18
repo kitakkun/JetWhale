@@ -32,8 +32,7 @@ class MavenArtifactResolver {
      */
     suspend fun downloadJar(coordinates: MavenCoordinates, destinationDir: File): String {
         val jarUrl = coordinates.toJarUrl()
-        val jarFileName = "${coordinates.groupId}-${coordinates.artifactId}-${coordinates.version}.jar"
-        val destinationFile = File(destinationDir, jarFileName)
+        val destinationFile = File(destinationDir, coordinates.jarFileName())
 
         try {
             val response = httpClient.get(jarUrl)

@@ -79,7 +79,21 @@ class DefaultPluginFactoryRepository @Inject constructor(
         // which otherwise throws ZipException on later resource/class reads. Every plugin declared by
         // the jar shares this single classloader.
         val runtimeJar = createRuntimeCopyIfDevJar(pluginJarPath)
-        val classLoader = URLClassLoader(arrayOf((runtimeJar ?: File(pluginJarPath)).toURI().toURL()))
+        val openedJar = runtimeJar ?: File(pluginJarPath)
+
+        // Maven-installed plugins declare their external dependencies in a manifest instead of
+        // bundling them; those jars were downloaded into the plugin libs directory at install time
+        // and join the plugin's classpath here. A missing jar (or an unreadable manifest) fails the
+        // load and surfaces the jar in the failed list. Fat-jars have no manifest → empty list.
+        val dependencyJarUrls = try {
+            resolveDeclaredDependencyJars(openedJar).map { it.toURI().toURL() }
+        } catch (e: Exception) {
+            println("Failed to load plugin from $pluginJarPath: ${e.message}")
+            mutableFailedJarPathsFlow.update { if (pluginJarPath in it) it else it + pluginJarPath }
+            runtimeJar?.delete()
+            return
+        }
+        val classLoader = URLClassLoader((listOf(openedJar.toURI().toURL()) + dependencyJarUrls).toTypedArray())
 
         // Once the classloader is handed to `classLoaders`, the map owns it and the `finally` below
         // must not close it; until then it (and its temp copy) is ours to discard on any failure.
@@ -123,6 +137,23 @@ class DefaultPluginFactoryRepository @Inject constructor(
                 classLoader.close()
                 runtimeJar?.delete()
             }
+        }
+    }
+
+    /**
+     * Maps the plugin jar's dependency manifest to the downloaded jar files in the plugin libs
+     * directory, failing with a clear message when one is missing (e.g. the jar was copied from
+     * another machine without its libs, or the libs directory was cleaned).
+     */
+    private fun resolveDeclaredDependencyJars(pluginJar: File): List<File> {
+        val libsDir = appDataDirectoryProvider.getPluginLibsDirectory()
+        return PluginDependencyManifest.readFrom(pluginJar).map { dependency ->
+            val libFile = File(libsDir, dependency.jarFileName())
+            check(libFile.exists()) {
+                "Declared dependency $dependency is missing (expected at ${libFile.path}). " +
+                    "Reinstall the plugin to download it."
+            }
+            libFile
         }
     }
 
