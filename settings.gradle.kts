@@ -51,6 +51,8 @@ include(":jetwhale-plugins:network:agent-ktor")
 include(":jetwhale-plugins:network:agent-okhttp")
 include(":jetwhale-plugins:network:host")
 
+include(":jetwhale-plugins:mirror:host")
+
 include(":test-annotations")
 
 include(":demo:shared")
