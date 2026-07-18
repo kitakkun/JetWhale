@@ -3,6 +3,8 @@ package com.kitakkun.jetwhale.host.data.plugin
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.model.MavenCoordinates
 import com.kitakkun.jetwhale.host.model.PluginInstallFromMavenMutationKey
+import com.kitakkun.jetwhale.host.model.PluginInstallProgress
+import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
 import com.kitakkun.jetwhale.host.model.PluginTrustService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -17,28 +19,36 @@ class DefaultPluginInstallFromMavenMutationKey(
     private val pluginTrustService: PluginTrustService,
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
     private val mavenArtifactResolver: MavenArtifactResolver,
+    private val pluginInstallProgressRepository: PluginInstallProgressRepository,
 ) : PluginInstallFromMavenMutationKey by buildMutationKey(
     id = MutationId("pluginInstallFromMaven"),
     mutate = { coordinates: MavenCoordinates ->
         appDataDirectoryProvider.createAppDataDirectoriesIfNeeded()
         val pluginDir = appDataDirectoryProvider.getPluginDirectory()
-        val downloadedJarPath = mavenArtifactResolver.downloadJar(coordinates, pluginDir)
         try {
-            downloadDeclaredDependencies(
-                pluginJar = File(downloadedJarPath),
-                pluginCoordinates = coordinates,
-                libsDir = appDataDirectoryProvider.getPluginLibsDirectory(),
-                resolver = mavenArtifactResolver,
-            )
-            // Requesting an install by coordinates is the user's explicit consent, exactly like the
-            // file picker: approve (pin the content hash) and load.
-            pluginTrustService.trustAndLoad(downloadedJarPath)
-        } catch (e: Exception) {
-            File(downloadedJarPath).delete()
-            throw PluginInstallationException(
-                "Failed to load plugin from $coordinates: ${e.message}",
-                e,
-            )
+            pluginInstallProgressRepository.update(PluginInstallProgress.DownloadingPlugin)
+            val downloadedJarPath = mavenArtifactResolver.downloadJar(coordinates, pluginDir)
+            try {
+                downloadDeclaredDependencies(
+                    pluginJar = File(downloadedJarPath),
+                    pluginCoordinates = coordinates,
+                    libsDir = appDataDirectoryProvider.getPluginLibsDirectory(),
+                    resolver = mavenArtifactResolver,
+                    onProgress = pluginInstallProgressRepository::update,
+                )
+                pluginInstallProgressRepository.update(PluginInstallProgress.LoadingPlugin)
+                // Requesting an install by coordinates is the user's explicit consent, exactly like
+                // the file picker: approve (pin the content hash) and load.
+                pluginTrustService.trustAndLoad(downloadedJarPath)
+            } catch (e: Exception) {
+                File(downloadedJarPath).delete()
+                throw PluginInstallationException(
+                    "Failed to load plugin from $coordinates: ${e.message}",
+                    e,
+                )
+            }
+        } finally {
+            pluginInstallProgressRepository.update(null)
         }
     },
 )
@@ -57,9 +67,12 @@ private suspend fun downloadDeclaredDependencies(
     pluginCoordinates: MavenCoordinates,
     libsDir: File,
     resolver: MavenArtifactResolver,
+    onProgress: (PluginInstallProgress) -> Unit,
 ) {
-    PluginDependencyManifest.readFrom(pluginJar).forEach { dependency ->
-        if (File(libsDir, dependency.jarFileName()).exists()) return@forEach
+    val dependencies = PluginDependencyManifest.readFrom(pluginJar)
+    dependencies.forEachIndexed { index, dependency ->
+        onProgress(PluginInstallProgress.DownloadingDependencies(completed = index, total = dependencies.size))
+        if (File(libsDir, dependency.jarFileName()).exists()) return@forEachIndexed
         try {
             resolver.downloadJar(dependency.copy(repositoryUrl = pluginCoordinates.repositoryUrl), libsDir)
         } catch (e: MavenArtifactDownloadException) {

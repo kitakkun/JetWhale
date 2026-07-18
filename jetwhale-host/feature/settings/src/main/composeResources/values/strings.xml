@@ -59,4 +59,7 @@
     <string name="maven_install_repository_url_label">Repository URL</string>
     <string name="maven_install_error_fill_required">Please fill in all required fields.</string>
     <string name="maven_install_install">Install</string>
+    <string name="install_progress_downloading_plugin">Downloading plugin…</string>
+    <string name="install_progress_downloading_dependencies">Downloading dependencies (%1$d/%2$d)…</string>
+    <string name="install_progress_loading_plugin">Loading plugin…</string>
 </resources>
