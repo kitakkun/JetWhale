@@ -22,6 +22,7 @@ import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.engine.sslConnector
 import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.origin
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.server.websocket.WebSocketServerSession
@@ -72,8 +73,8 @@ class KtorWebSocketServer(
     private val mutableSessionClosedFlow: MutableSharedFlow<String> = MutableSharedFlow()
     val sessionClosedFlow: SharedFlow<String> = mutableSessionClosedFlow
 
-    private val mutableNegotiationCompletedFlow: MutableSharedFlow<ServerSessionNegotiationResult.Success> = MutableSharedFlow()
-    val negotiationCompletedFlow: SharedFlow<ServerSessionNegotiationResult.Success> = mutableNegotiationCompletedFlow
+    private val mutableNegotiationCompletedFlow: MutableSharedFlow<SessionOpened> = MutableSharedFlow()
+    val negotiationCompletedFlow: SharedFlow<SessionOpened> = mutableNegotiationCompletedFlow
 
     suspend fun start(host: String, port: Int, wssPort: Int?) {
         mutableStatusFlow.update { DebugWebSocketServerStatus.Starting }
@@ -188,6 +189,9 @@ class KtorWebSocketServer(
 
     context(log: Logger)
     private suspend fun DefaultWebSocketServerSession.configureSession() {
+        // Whether this connection arrived through the TLS (wss) connector rather than plain ws.
+        val isSecure = call.request.origin.scheme == "https"
+
         val negotiationResult = with(negotiationStrategy) { negotiate() }
 
         when (negotiationResult) {
@@ -210,7 +214,7 @@ class KtorWebSocketServer(
                         }
                 }
 
-                mutableNegotiationCompletedFlow.emit(negotiationResult)
+                mutableNegotiationCompletedFlow.emit(SessionOpened(negotiationResult, isSecure))
 
                 closeReason.await().also {
                     println("closed: ${it?.message}")
@@ -236,3 +240,15 @@ class KtorWebSocketServer(
 
     fun getSessionCoroutineContext(sessionId: String): CoroutineContext = sessions[sessionId]?.coroutineContext ?: throw IllegalArgumentException("No session with ID $sessionId")
 }
+
+/**
+ * A completed session negotiation together with transport metadata the negotiation itself does not
+ * carry.
+ *
+ * @property result The successful negotiation outcome.
+ * @property isSecure True when the session is connected over TLS (wss).
+ */
+data class SessionOpened(
+    val result: ServerSessionNegotiationResult.Success,
+    val isSecure: Boolean,
+)

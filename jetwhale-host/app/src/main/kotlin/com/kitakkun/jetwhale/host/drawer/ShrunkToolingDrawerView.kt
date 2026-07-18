@@ -101,6 +101,7 @@ fun ShrunkToolingDrawerView(
                     SessionDropdownMenuItem(
                         selected = session.id == selectedSessionId,
                         isActive = session.isActive,
+                        isSecure = session.isSecure,
                         displayName = session.displayName,
                         onClick = {
                             onSelectSession(session)

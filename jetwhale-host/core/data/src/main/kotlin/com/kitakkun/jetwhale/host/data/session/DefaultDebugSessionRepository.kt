@@ -27,6 +27,7 @@ class DefaultDebugSessionRepository : DebugSessionRepository {
     override suspend fun registerDebugSession(
         sessionId: String,
         sessionName: String?,
+        isSecure: Boolean,
         installedPlugins: List<JetWhalePluginInfo>,
     ) {
         mutableDebugSessions.update { sessions ->
@@ -37,6 +38,7 @@ class DefaultDebugSessionRepository : DebugSessionRepository {
                         id = sessionId,
                         name = sessionName,
                         isActive = true,
+                        isSecure = isSecure,
                         installedPlugins = installedPlugins.toImmutableList(),
                     ),
                 )

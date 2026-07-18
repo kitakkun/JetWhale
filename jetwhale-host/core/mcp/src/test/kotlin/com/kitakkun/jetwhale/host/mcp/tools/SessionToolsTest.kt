@@ -33,6 +33,7 @@ class SessionToolsTest {
             id = "session-id-123",
             name = "TestDevice",
             isActive = true,
+            isSecure = false,
             installedPlugins = persistentListOf(JetWhalePluginInfo("com.example.plugin", "1.0")),
         )
         val repo = mock<DebugSessionRepository> {
@@ -49,6 +50,7 @@ class SessionToolsTest {
             id = "session-id-456",
             name = "InactiveDevice",
             isActive = false,
+            isSecure = false,
             installedPlugins = persistentListOf(),
         )
         val repo = mock<DebugSessionRepository> {
@@ -75,6 +77,7 @@ class SessionToolsTest {
             id = "session-abc",
             name = "Device",
             isActive = true,
+            isSecure = false,
             installedPlugins = persistentListOf(JetWhalePluginInfo("com.example.plugin", "1.0")),
         )
         val repo = mock<DebugSessionRepository> {

@@ -97,11 +97,12 @@ class DefaultDebugWebSocketServer(
     }
 
     private suspend fun monitorNegotiationCompleted() {
-        ktorWebSocketServer.negotiationCompletedFlow.collect { result ->
+        ktorWebSocketServer.negotiationCompletedFlow.collect { opened ->
             sessionRepository.registerDebugSession(
-                sessionId = result.session.sessionId,
-                sessionName = result.session.sessionName,
-                installedPlugins = result.plugin.requestedPlugins,
+                sessionId = opened.result.session.sessionId,
+                sessionName = opened.result.session.sessionName,
+                isSecure = opened.isSecure,
+                installedPlugins = opened.result.plugin.requestedPlugins,
             )
         }
     }
