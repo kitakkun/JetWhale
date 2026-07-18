@@ -45,8 +45,8 @@
     <string name="add_plugin_from_file">ファイルからプラグインを追加</string>
     <string name="install_from_maven">Mavenからインストール</string>
     <string name="maven_install_dialog_title">Mavenリポジトリからプラグインをインストール</string>
-    <string name="maven_install_dialog_description">Maven座標を入力してプラグインをダウンロード・インストールします。</string>
-    <string name="maven_install_paste_label">座標を貼り付け</string>
+    <string name="maven_install_dialog_description">Mavenアーティファクトの情報（group:artifact:version）を入力してプラグインをダウンロード・インストールします。</string>
+    <string name="maven_install_paste_label">依存関係表記を貼り付け</string>
     <string name="maven_install_paste_supporting_text">group:artifact:version、Gradleの依存関係の行、Mavenの&lt;dependency&gt;ブロックに対応しています。下のフィールドは自動的に入力されます。</string>
     <string name="maven_install_group_id_label">Group ID</string>
     <string name="maven_install_artifact_id_label">Artifact ID</string>
