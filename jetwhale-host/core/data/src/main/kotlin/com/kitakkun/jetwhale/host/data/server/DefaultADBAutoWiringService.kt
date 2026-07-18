@@ -29,10 +29,19 @@ private const val RECONNECT_DELAY_MS = 2_000L
 class DefaultADBAutoWiringService : ADBAutoWiringService {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private val wiredDevices = ConcurrentSet<String>()
+
+    // Every port currently subject to auto wiring (ws and wss are wired independently). A single
+    // device-tracking job serves all of them.
+    private val wiredPorts = ConcurrentSet<Int>()
     private var wiringJob: Job? = null
     private val adbPath: String by lazy { findAdbPath() }
 
     override fun startAutoWiring(port: Int) {
+        if (!wiredPorts.add(port)) return
+
+        // Devices that connected before this port was registered still need the new forwarding.
+        wiredDevices.forEach { serial -> wire(serial, port) }
+
         if (wiringJob != null) return
 
         wiringJob = coroutineScope.launch {
@@ -43,8 +52,8 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
                 try {
                     deviceEventFlow().collect { event ->
                         when (event) {
-                            is DeviceEvent.Connected -> wire(event.serial, port)
-                            is DeviceEvent.Disconnected -> unwire(event.serial, port)
+                            is DeviceEvent.Connected -> wiredPorts.forEach { wire(event.serial, it) }
+                            is DeviceEvent.Disconnected -> wiredPorts.forEach { unwire(event.serial, it) }
                         }
                     }
                     System.err.println("ADB device tracking ended; re-attaching in ${RECONNECT_DELAY_MS}ms")
@@ -110,12 +119,16 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
     }
 
     override fun stopAutoWiring(port: Int) {
-        wiringJob?.cancel()
-        wiringJob = null
+        wiredPorts.remove(port)
         wiredDevices.forEach { serial ->
             runAdb("-s", serial, "reverse", "--remove", "tcp:$port")
         }
-        wiredDevices.clear()
+        // Keep tracking as long as any port is still wired (e.g. only wss was turned off).
+        if (wiredPorts.isEmpty()) {
+            wiringJob?.cancel()
+            wiringJob = null
+            wiredDevices.clear()
+        }
     }
 
     /** Runs an adb command to completion and returns its exit code together with its merged output. */

@@ -77,16 +77,18 @@ class DefaultDebugWebSocketServer(
     private suspend fun monitorAdbAutoWiring() {
         if (!settingsRepository.adbAutoPortMappingEnabledFlow.value) return
 
-        var port: Int? = null
+        var wiredPorts: List<Int> = emptyList()
         ktorWebSocketServer.statusFlow.collect { status ->
             when (status) {
                 is DebugWebSocketServerStatus.Started -> {
-                    port = status.port
-                    adbAutoWiringService.startAutoWiring(status.port)
+                    // Wire both connectors so an on-device app can reach ws and wss alike through
+                    // localhost, whichever it is configured for.
+                    wiredPorts = listOfNotNull(status.port, status.wssPort)
+                    wiredPorts.forEach { adbAutoWiringService.startAutoWiring(it) }
                 }
 
                 is DebugWebSocketServerStatus.Stopped -> {
-                    port?.let { adbAutoWiringService.stopAutoWiring(it) }
+                    wiredPorts.forEach { adbAutoWiringService.stopAutoWiring(it) }
                 }
 
                 else -> Unit
