@@ -64,4 +64,5 @@
     <string name="install_progress_loading_plugin">Loading plugin…</string>
     <string name="official_plugins">Official Plugins</string>
     <string name="official_plugin_installed">Installed</string>
+    <string name="no_plugins_installed">No plugins installed yet. Install one from the official catalog below, from Maven, or from a local file.</string>
 </resources>

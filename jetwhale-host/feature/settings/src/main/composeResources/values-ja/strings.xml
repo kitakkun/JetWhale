@@ -62,4 +62,5 @@
     <string name="install_progress_loading_plugin">プラグインを読み込み中…</string>
     <string name="official_plugins">公式プラグイン</string>
     <string name="official_plugin_installed">インストール済み</string>
+    <string name="no_plugins_installed">プラグインはまだインストールされていません。下の公式カタログ、Maven、またはローカルファイルからインストールできます。</string>
 </resources>
