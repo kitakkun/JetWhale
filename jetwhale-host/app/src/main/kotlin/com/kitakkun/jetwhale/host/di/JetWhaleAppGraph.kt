@@ -16,6 +16,7 @@ import com.kitakkun.jetwhale.host.model.PluginHotReloadService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
 import com.kitakkun.jetwhale.host.model.UpdateCheckMutationKey
+import com.kitakkun.jetwhale.host.model.WindowStateRepository
 import com.kitakkun.jetwhale.host.plugin.PluginScreenContext
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 import com.kitakkun.jetwhale.host.settings.licenses.LicensesScreenContext
@@ -50,6 +51,7 @@ interface JetWhaleAppGraph : ScreenContext {
     val enabledPluginsRepository: EnabledPluginsRepository
     val debuggerSettingsRepository: DebuggerSettingsRepository
     val updateCheckMutationKey: UpdateCheckMutationKey
+    val windowStateRepository: WindowStateRepository
 
     @Provides
     fun provideSwrClient(): SwrClientPlus = SwrCachePlus(SwrCachePlusPolicy(SwrCacheScope()))
