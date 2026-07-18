@@ -64,6 +64,7 @@ androidxCoreKtx = { module = "androidx.core:core-ktx", version.ref = "androidxCo
 androidxActivityCompose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivity" }
 androidxActivityKtx = { module = "androidx.activity:activity-ktx", version.ref = "androidxActivity" }
 androidxDatastorePreferences = { module = "androidx.datastore:datastore-preferences", version.ref = "androidxDatastore" }
+androidxDatastoreCoreOkio = { module = "androidx.datastore:datastore-core-okio", version.ref = "androidxDatastore" }
 
 # compose
 jetbrainsComposeRuntime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "jetbrainsCompose" }

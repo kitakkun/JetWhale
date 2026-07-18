@@ -8,11 +8,16 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin {
 	public static final field $stable I
 	public fun <init> ()V
 	public final fun bindPluginScope (Lkotlinx/coroutines/CoroutineScope;)V
+	public final fun bindStorage (Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginStorage;)V
+	public final fun boundStorageForRuntime ()Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginStorage;
 	public final fun dispatchCreate ()V
 	public final fun dispatchDispose ()V
 	protected final fun getPluginScope ()Lkotlinx/coroutines/CoroutineScope;
+	protected final fun getStorage ()Lcom/kitakkun/jetwhale/host/sdk/JetWhalePluginStorage;
+	protected fun getStorageVersion ()I
 	protected fun onCreate ()V
 	public fun onDispose ()V
+	protected fun onStorageMigrate (ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory {
@@ -210,5 +215,20 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMessagingHostPlugin
 	protected fun onPrepare (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun prepareTimeoutMillis ()J
 	public final fun registerHandlers (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessageHandlers;)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhalePluginStorage {
+	public abstract fun clear (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun contains (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun get (Ljava/lang/String;Lkotlinx/serialization/KSerializer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun getFlow (Ljava/lang/String;Lkotlinx/serialization/KSerializer;)Lkotlinx/coroutines/flow/Flow;
+	public abstract fun getKeysFlow ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun put (Ljava/lang/String;Ljava/lang/Object;Lkotlinx/serialization/KSerializer;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun remove (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/RememberPersistentKt {
+	public static final fun getLocalJetWhalePluginStorage ()Landroidx/compose/runtime/ProvidableCompositionLocal;
+	public static final fun rememberPersistent (Ljava/lang/String;Ljava/lang/Object;Lkotlinx/serialization/KSerializer;Landroidx/compose/runtime/Composer;I)Landroidx/compose/runtime/MutableState;
 }
 

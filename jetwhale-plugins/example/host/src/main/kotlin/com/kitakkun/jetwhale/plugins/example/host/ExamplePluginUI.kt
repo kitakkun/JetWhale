@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
@@ -12,9 +11,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
+import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 
 @Composable
 fun ExamplePluginContent(
@@ -35,7 +36,9 @@ fun ExamplePluginView(
     onClickSendPing: () -> Unit,
     onClickTriggerUIError: () -> Unit,
 ) {
-    val textFieldState = remember { TextFieldState() }
+    // Demonstrates rememberPersistent: this text is saved to the plugin's own pluginId-scoped
+    // storage and survives plugin reloads and host restarts.
+    var persistedInput by rememberPersistent("draft-input", default = "")
 
     Scaffold(
         topBar = {
@@ -59,8 +62,9 @@ fun ExamplePluginView(
                     Text("Throw UI error")
                 }
                 OutlinedTextField(
-                    state = textFieldState,
-                    label = { Text("Input") },
+                    value = persistedInput,
+                    onValueChange = { persistedInput = it },
+                    label = { Text("Persisted input") },
                 )
             }
             items(eventLogs) { log ->
