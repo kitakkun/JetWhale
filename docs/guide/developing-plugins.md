@@ -140,10 +140,11 @@ agent). Both register handlers and send through a **messenger**:
   of the request's declared reply type — replying is enforced by the handler's return type, so a
   path that forgets to reply (or replies with the wrong type) does not compile. The `reply(...)`
   expression is also what makes "this value goes back over the wire" visible at the registration site.
-- a messenger to send — events with `trySend(event)` (drop if offline, returns `Boolean`),
-  `sendOrQueue(event)` (buffer while offline and flush on reconnect), or `sendOrFail(event)` (throw if
-  offline); plus `request(req): R` for request-reply (discard the result if you only need the call
-  to succeed — e.g. a command whose reply is just an `Ack`).
+- a messenger to send — fire-and-forget events with `trySend(event)` (returns `Boolean`), plus
+  `request(req): R` for request-reply (discard the result if you only need the call to succeed —
+  e.g. a command whose reply is just an `Ack`). The **agent** messenger additionally offers offline
+  send policies (`sendOrQueue` / `sendOrFail`); the **host** messenger is always connected and does
+  not (see below).
 
 ```kotlin
 class MyHostPlugin : JetWhaleMessagingHostPlugin(), JetWhaleHostPluginUi {
@@ -173,11 +174,15 @@ pass `timeout` to `request`
 to override the default per call (e.g. `request(SlowOp, timeout = 30.seconds)`). Implement `JetWhaleHostPluginUi`
 (`@Composable Content()`) to render a UI; plugins that don't are **headless** (e.g. MCP-only).
 
-**The host plugin's `messenger` is a plain property.** A host plugin instance lives exactly as long
-as its session's connection, so `messenger` is valid from `onCreate()` through `onDispose()` and may
-be used anywhere — UI callbacks, MCP tool handlers, background jobs. Launch background work on
-`pluginScope` (also a property): the runtime cancels it when the instance is disposed, so nothing
-can outlive the plugin. State that must survive across sessions does **not** belong in the instance.
+**The host plugin's `messenger` is a plain, always-connected property.** A host plugin instance
+lives exactly as long as its session's connection, so `messenger` is valid from `onCreate()` through
+`onDispose()` and may be used anywhere — UI callbacks, MCP tool handlers, background jobs. Because
+the instance only exists while its session is connected, the host messenger is **always connected**
+for the instance's lifetime and exposes only `trySend` and `request` — there is no offline-buffering
+vocabulary (`sendOrQueue` / `sendOrFail` / send policy), since a host plugin has nothing to buffer
+across. Launch background work on `pluginScope` (also a property): the runtime cancels it when the
+instance is disposed, so nothing can outlive the plugin. State that must survive across sessions does
+**not** belong in the instance.
 
 **On the agent** the `messenger` property is **connection-independent** (it outlives any single
 connection), so app code may send at any time and choose the offline behavior per call: `trySend`

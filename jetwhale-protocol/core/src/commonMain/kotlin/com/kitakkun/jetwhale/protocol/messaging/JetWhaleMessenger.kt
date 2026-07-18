@@ -1,11 +1,9 @@
 package com.kitakkun.jetwhale.protocol.messaging
 
-import kotlinx.serialization.StringFormat
 import kotlinx.serialization.serializer
-import kotlin.time.Duration
 
 /**
- * What a [send][trySend] should do when the connection is not currently available. Only events
+ * What a [send][sendOrQueue] should do when the connection is not currently available. Only events
  * (fire-and-forget) carry a policy; requests always fail when offline (see [request]).
  */
 public enum class OfflineSendPolicy {
@@ -23,17 +21,19 @@ public enum class OfflineSendPolicy {
 }
 
 /**
- * The sending face of a plugin connection. Symmetric: the host-side and agent-side messengers are
- * the same type with the same semantics.
+ * The **agent-side** sending face of a plugin connection. Extends the always-connected
+ * [JetWhaleConnectedMessenger] with an offline-buffering vocabulary: the agent's messenger is
+ * connection-independent (it outlives any single connection), so app code may send while
+ * disconnected and choose what happens then via [OfflineSendPolicy].
  *
- * The interface itself is the *raw* (string) layer — the two shapes a transport needs. Plugin
- * authors use the typed [trySend] / [sendOrQueue] / [sendOrFail] / [request] extensions, which
- * capture the message serializer at the call site via reified type parameters.
+ * Host plugins do not see this type — they see the always-connected [JetWhaleConnectedMessenger],
+ * where there is nothing to buffer across.
+ *
+ * The interface itself is the *raw* (string) layer. Plugin authors use the typed
+ * [trySend] / [sendOrQueue] / [sendOrFail] / [request] extensions, which capture the message
+ * serializer at the call site via reified type parameters.
  */
-public interface JetWhaleMessenger {
-    /** Format used to (de)serialize message payloads. */
-    public val payloadFormat: StringFormat
-
+public interface JetWhaleMessenger : JetWhaleConnectedMessenger {
     /**
      * Raw fire-and-forget shape. Prefer the typed [trySend] / [sendOrQueue] / [sendOrFail]
      * extensions. [policy] decides what happens when the connection is unavailable.
@@ -44,38 +44,16 @@ public interface JetWhaleMessenger {
      */
     public fun sendRaw(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean
 
-    /**
-     * Raw request-response shape. Prefer the typed [request] extension. [timeout] overrides the
-     * connection's default request timeout for this call; `null` uses the default.
-     * @throws JetWhaleRequestException on handler failure or timeout
-     * @throws JetWhaleConnectionClosedException when offline, or when the connection closes while waiting
-     */
-    public suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String
-}
-
-/**
- * Sends a fire-and-forget event if the connection is available, otherwise **drops it** and returns
- * `false`. Use this for events that are only meaningful live (a momentary signal). Only
- * [JetWhaleEvent] types are accepted: passing a [JetWhaleRequest] is a compile-time error.
- *
- * @return `true` if the event was handed to the live connection, `false` if there was none.
- */
-public inline fun <reified E : JetWhaleEvent> JetWhaleMessenger.trySend(event: E): Boolean {
-    val eventSerializer = serializer<E>()
-    return sendRaw(
-        messageType = eventSerializer.descriptor.serialName,
-        payload = payloadFormat.encodeToString(eventSerializer, event),
-        policy = OfflineSendPolicy.DROP,
-    )
+    /** The always-connected send maps to a best-effort [OfflineSendPolicy.DROP]. */
+    override fun sendRaw(messageType: String, payload: String): Boolean = sendRaw(messageType, payload, OfflineSendPolicy.DROP)
 }
 
 /**
  * Sends a fire-and-forget event, **buffering it** while the connection is unavailable and flushing
  * it (in order) on reconnect. Use this for streams you must not lose across a disconnect (e.g.
  * captured traffic). The buffer is bounded and opt-in — without capacity this behaves like
- * [trySend]. Buffering exists only on the agent's connection-independent messenger; a host plugin's
- * messenger lives exactly as long as its connection, so there is nothing to buffer across and this
- * degrades to [trySend] there. Only [JetWhaleEvent] types are accepted.
+ * [trySend]. Buffering exists only on the agent's connection-independent messenger. Only
+ * [JetWhaleEvent] types are accepted.
  */
 public inline fun <reified E : JetWhaleEvent> JetWhaleMessenger.sendOrQueue(event: E) {
     val eventSerializer = serializer<E>()
@@ -100,43 +78,6 @@ public inline fun <reified E : JetWhaleEvent> JetWhaleMessenger.sendOrFail(event
         payload = payloadFormat.encodeToString(eventSerializer, event),
         policy = OfflineSendPolicy.FAIL,
     )
-}
-
-/**
- * Sends a request and suspends until its reply *value* arrives. The reply type [R] is resolved by
- * type inference from the request's `JetWhaleRequest<R>` declaration — no type argument, no cast:
- *
- * ```kotlin
- * val pong: Pong = messenger.request(Ping) // Ping : JetWhaleRequest<Pong>
- * ```
- *
- * If you only need the call to succeed (e.g. a command whose reply is just an `Ack`), simply
- * discard the result — `R` is still inferred from the request's declaration.
- *
- * Pass [timeout] to override the connection's default request timeout for this call.
- *
- * @throws JetWhaleRequestException if the remote handler fails, none is registered, the reply
- *   cannot be decoded as [R], or the request times out
- * @throws JetWhaleConnectionClosedException when offline, or when the connection closes while waiting
- */
-public suspend inline fun <reified REQ : JetWhaleRequest<R>, reified R : Any> JetWhaleMessenger.request(
-    request: REQ,
-    timeout: Duration? = null,
-): R {
-    val requestSerializer = serializer<REQ>()
-    val replyPayload = requestRaw(
-        messageType = requestSerializer.descriptor.serialName,
-        payload = payloadFormat.encodeToString(requestSerializer, request),
-        timeout = timeout,
-    )
-    return try {
-        payloadFormat.decodeFromString(serializer<R>(), replyPayload)
-    } catch (e: kotlinx.serialization.SerializationException) {
-        throw JetWhaleRequestException(
-            "Reply to '${requestSerializer.descriptor.serialName}' could not be decoded as the declared reply type: ${e.message}",
-            e,
-        )
-    }
 }
 
 /** Base type for messaging failures. */

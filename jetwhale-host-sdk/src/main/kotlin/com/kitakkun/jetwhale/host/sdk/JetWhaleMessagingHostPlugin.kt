@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.host.sdk
 
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleConnectedMessenger
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
 
 /**
  * Base class for a host plugin that exchanges messages with its agent counterpart (a
@@ -17,15 +17,17 @@ import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
  * Combine with [JetWhaleHostPluginUi] to also render a UI.
  */
 public abstract class JetWhaleMessagingHostPlugin : JetWhaleHostPlugin() {
-    private var boundMessenger: JetWhaleMessenger? = null
+    private var boundMessenger: JetWhaleConnectedMessenger? = null
 
     /**
-     * Sends messages to the agent counterpart: `trySend` / `sendOrQueue` / `sendOrFail` for events,
+     * Sends messages to the agent counterpart: `trySend(event)` for fire-and-forget events,
      * `request(req): R` for request-reply. Valid for the whole life of this instance ([onCreate]
-     * onwards) — the instance only exists while its session is connected. For that same reason there
-     * is no offline buffer here: `sendOrQueue` behaves like `trySend` on the host side.
+     * onwards) — the instance only exists while its session is connected, so the messenger is
+     * **always connected** for the instance's lifetime. There is no offline-buffering vocabulary
+     * here (no `sendOrQueue` / `sendOrFail` / send policy): offline buffering is an agent-side
+     * concept, and a host plugin has nothing to buffer across.
      */
-    protected val messenger: JetWhaleMessenger
+    protected val messenger: JetWhaleConnectedMessenger
         get() = checkNotNull(boundMessenger) {
             "messenger is only available after the plugin instance has been bound (in or after onCreate())."
         }
@@ -68,7 +70,7 @@ public abstract class JetWhaleMessagingHostPlugin : JetWhaleHostPlugin() {
 
     /** Binds the session-scoped messenger. Called once, before [onCreate]. */
     @InternalJetWhaleHostApi
-    public fun bindMessenger(messenger: JetWhaleMessenger) {
+    public fun bindMessenger(messenger: JetWhaleConnectedMessenger) {
         boundMessenger = messenger
     }
 
