@@ -5,6 +5,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
@@ -15,9 +16,13 @@ import io.ktor.utils.io.jvm.javaio.toInputStream
 import java.io.File
 
 @SingleIn(AppScope::class)
-@Inject
-class MavenArtifactResolver {
-    private val httpClient = HttpClient(CIO) {
+class MavenArtifactResolver internal constructor(
+    engine: HttpClientEngine,
+) {
+    @Inject
+    constructor() : this(CIO.create())
+
+    private val httpClient = HttpClient(engine) {
         install(HttpTimeout) {
             connectTimeoutMillis = 30_000
             socketTimeoutMillis = 30_000
@@ -32,10 +37,10 @@ class MavenArtifactResolver {
      * @throws MavenArtifactDownloadException if download fails
      */
     suspend fun downloadJar(coordinates: MavenCoordinates, destinationDir: File): String {
-        val jarUrl = resolveJarUrl(coordinates)
         val destinationFile = File(destinationDir, coordinates.jarFileName())
 
         try {
+            val jarUrl = resolveJarUrl(coordinates)
             val response = httpClient.get(jarUrl)
             if (!response.status.isSuccess()) {
                 throw MavenArtifactDownloadException(
@@ -68,7 +73,7 @@ class MavenArtifactResolver {
      * through the version directory's `maven-metadata.xml`. Falls back to the literal `-SNAPSHOT`
      * file name when the metadata is missing or incomplete (some repositories serve it directly).
      */
-    private suspend fun resolveJarUrl(coordinates: MavenCoordinates): String {
+    internal suspend fun resolveJarUrl(coordinates: MavenCoordinates): String {
         if (!coordinates.isSnapshot) return coordinates.toJarUrl()
 
         val metadataResponse = httpClient.get("${coordinates.toVersionDirectoryUrl()}/maven-metadata.xml")
@@ -77,7 +82,7 @@ class MavenArtifactResolver {
         val metadata = metadataResponse.bodyAsText()
         val timestamp = extractXmlTagValue(metadata, "timestamp") ?: return coordinates.toJarUrl()
         val buildNumber = extractXmlTagValue(metadata, "buildNumber") ?: return coordinates.toJarUrl()
-        val timestampedVersion = coordinates.version.removeSuffix("SNAPSHOT") + "$timestamp-$buildNumber"
+        val timestampedVersion = coordinates.version.removeSuffix("-SNAPSHOT") + "-$timestamp-$buildNumber"
         return coordinates.toSnapshotJarUrl(timestampedVersion)
     }
 
