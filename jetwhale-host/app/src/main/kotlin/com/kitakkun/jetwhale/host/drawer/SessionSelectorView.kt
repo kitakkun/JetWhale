@@ -14,12 +14,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -109,14 +111,26 @@ fun SessionSelectorView(
                 Column(
                     modifier = Modifier.hoverable(interactionSource = groupInteractionSource),
                 ) {
+                    val groupContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     DropdownMenuItem(
                         text = {
-                            Text(stringResource(Res.string.disconnected_sessions, disconnectedSessions.size))
+                            Text(
+                                text = stringResource(Res.string.disconnected_sessions, disconnectedSessions.size),
+                                color = groupContentColor,
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.LinkOff,
+                                contentDescription = null,
+                                tint = groupContentColor,
+                            )
                         },
                         trailingIcon = {
                             Icon(
                                 imageVector = if (disconnectedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                 contentDescription = null,
+                                tint = groupContentColor,
                             )
                         },
                         onClick = { pinnedExpanded = !pinnedExpanded },
