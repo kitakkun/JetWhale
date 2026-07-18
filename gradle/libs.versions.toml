@@ -39,6 +39,8 @@ spotless = "8.8.0"
 conveyor = "2.0"
 conveyorControl = "1.1"
 
+bouncyCastle = "1.83"
+
 [libraries]
 # Gradle Plugins
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -118,6 +120,10 @@ kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 
 aboutLibrariesComposeM3 = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutLibraries" }
 aboutLibrariesCore = { module = "com.mikepenz:aboutlibraries-core", version.ref = "aboutLibraries" }
+
+# certs
+bouncyCastleBcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncyCastle" }
+bouncyCastleBcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle" }
 
 [bundles]
 gradlePlugins = [

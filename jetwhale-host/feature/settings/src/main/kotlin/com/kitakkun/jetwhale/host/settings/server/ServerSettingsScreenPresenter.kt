@@ -13,8 +13,12 @@ import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
 import com.kitakkun.jetwhale.host.model.McpServerStatus
+import com.kitakkun.jetwhale.host.model.SslCertificateEntry
 import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
 import soil.query.compose.rememberMutation
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 context(presenterContext: SettingsPresenterContext)
@@ -23,14 +27,34 @@ fun serverSettingsScreenPresenter(
     serverStatus: DebugWebSocketServerStatus,
     mcpServerStatus: McpServerStatus,
     debuggerSettings: DebuggerBehaviorSettings,
+    sslCertificates: List<SslCertificateEntry>,
 ): ServerSettingsScreenUiState {
+    val certificates by remember(sslCertificates) {
+        derivedStateOf {
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+            sslCertificates.map { entry ->
+                CertificateUiEntry(
+                    id = entry.id,
+                    name = entry.name,
+                    createdAt = dateFormat.format(Date(entry.createdAt)),
+                    caCertificatePem = entry.caCertificatePem,
+                    isActive = entry.isActive,
+                )
+            }
+        }
+    }
+
     var editingDebugPortText by remember { mutableStateOf(debuggerSettings.serverPort.toString()) }
+    var certificateDetailDialogEntry by remember { mutableStateOf<CertificateUiEntry?>(null) }
     var editingMcpPortText by remember { mutableStateOf(debuggerSettings.mcpServerPort.toString()) }
     var showDebugApplyConfirmDialog by remember { mutableStateOf(false) }
     var showMcpApplyConfirmDialog by remember { mutableStateOf(false) }
 
     val debugPortMutation = rememberMutation(presenterContext.serverPortMutationKey)
     val mcpPortMutation = rememberMutation(presenterContext.mcpServerPortMutationKey)
+    val generateCertificateMutation = rememberMutation(presenterContext.generateSslCertificateMutationKey)
+    val activateCertificateMutation = rememberMutation(presenterContext.activateSslCertificateMutationKey)
+    val deleteCertificateMutation = rememberMutation(presenterContext.deleteSslCertificateMutationKey)
 
     val savedDebugPortText by rememberUpdatedState(debuggerSettings.serverPort.toString())
     val savedMcpPortText by rememberUpdatedState(debuggerSettings.mcpServerPort.toString())
@@ -99,6 +123,31 @@ fun serverSettingsScreenPresenter(
             ServerSettingsScreenAction.DismissApplyMcpPortDialog -> {
                 showMcpApplyConfirmDialog = false
             }
+
+            ServerSettingsScreenAction.AddCertificate -> {
+                // A newly generated certificate becomes the active one; the running TLS server
+                // hot-swaps to it automatically.
+                generateCertificateMutation.mutateAsync(null)
+            }
+
+            is ServerSettingsScreenAction.SetActiveCertificate -> {
+                activateCertificateMutation.mutateAsync(action.id)
+            }
+
+            is ServerSettingsScreenAction.DeleteCertificate -> {
+                deleteCertificateMutation.mutateAsync(action.id)
+                if (certificateDetailDialogEntry?.id == action.id) {
+                    certificateDetailDialogEntry = null
+                }
+            }
+
+            is ServerSettingsScreenAction.ShowCertificateDetail -> {
+                certificateDetailDialogEntry = certificates.find { it.id == action.id }
+            }
+
+            ServerSettingsScreenAction.DismissCertificateDetailDialog -> {
+                certificateDetailDialogEntry = null
+            }
         }
     }
 
@@ -111,6 +160,7 @@ fun serverSettingsScreenPresenter(
             is DebugWebSocketServerStatus.Started -> ServerState.Running(
                 host = serverStatus.host,
                 port = serverStatus.port,
+                wssPort = serverStatus.wssPort,
             )
 
             is DebugWebSocketServerStatus.Error -> ServerState.Error(reason = serverStatus.message)
@@ -139,5 +189,7 @@ fun serverSettingsScreenPresenter(
         isMcpApplyEnabled = isMcpPortValid && isMcpDirty,
         showDebugApplyConfirmDialog = showDebugApplyConfirmDialog,
         showMcpApplyConfirmDialog = showMcpApplyConfirmDialog,
+        certificates = certificates,
+        certificateDetailDialogEntry = certificateDetailDialogEntry,
     )
 }

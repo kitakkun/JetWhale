@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.agent.runtime
 
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
-import io.ktor.client.HttpClient
 
 /**
  * Starts the JetWhale Messaging Service with the provided configuration.
@@ -22,8 +21,8 @@ public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
         DefaultJetWhaleMessagingService(
             socketClient = KtorWebSocketClient(
                 json = json,
-                httpClient = HttpClient(defaultKtorEngineFactory()),
                 negotiationStrategy = DefaultClientSessionNegotiationStrategy(configuration.plugins.plugins),
+                sslConfiguration = configuration.connection.sslConfiguration,
             ),
             pluginService = JetWhaleAgentPluginService(
                 plugins = configuration.plugins.plugins,
@@ -49,6 +48,46 @@ public interface JetWhaleConfigurationScope {
 public interface JetWhaleConnectionConfigurationScope {
     public var host: String
     public var port: Int
+
+    /**
+     * Configures SSL settings for the connection. When at least one trusted certificate is
+     * registered, the connection is established over wss instead of plain ws.
+     *
+     * @param configure A lambda function to configure SSL settings.
+     */
+    public fun ssl(configure: JetWhaleSslConfigurationScope.() -> Unit)
+}
+
+@JetWhaleDsl
+public interface JetWhaleSslConfigurationScope {
+    /**
+     * Adds a trusted certificate in PEM format.
+     * This certificate will be used to verify the server's identity.
+     *
+     * @param pem The certificate in PEM format (including -----BEGIN CERTIFICATE----- and -----END CERTIFICATE----- markers).
+     */
+    public fun trustCertificate(pem: String)
+
+    /**
+     * Fetches the host's active CA certificate at connect time and pins the resulting wss connection
+     * to it, so no CA certificate has to be hardcoded in the app.
+     *
+     * The CA is downloaded from `/jetwhale/ca` before the wss handshake, probing the configured
+     * `port` in two topologies:
+     * 1. `http://<host>:<port>/jetwhale/ca` — works when `port` is the host's plain-ws port
+     *    (localhost / ADB port forwarding).
+     * 2. `https://<host>:<port>/jetwhale/ca` with certificate verification disabled — used when the
+     *    plain fetch is unreachable, e.g. a LAN device (iPhone) connecting to the TLS server on the
+     *    wss port while the host's plain server is bound to loopback.
+     *
+     * Both are a trust-on-first-use exchange: the fetch itself is not authenticated. Over ADB port
+     * forwarding (the primary use case) the download is as trustworthy as the ADB link, because the
+     * traffic never leaves the machine. On an untrusted LAN prefer [trustCertificate] with a
+     * manually exported CA for strict pinning.
+     *
+     * When the CA cannot be fetched over either channel, the connection falls back to plain ws.
+     */
+    public fun trustServerCertificate()
 }
 
 @JetWhaleDsl
@@ -84,6 +123,41 @@ private class JetWhaleConfiguration : JetWhaleConfigurationScope {
 private class JetWhaleConnectionConfiguration : JetWhaleConnectionConfigurationScope {
     override var host: String = "localhost"
     override var port: Int = 8080
+    val sslConfiguration: JetWhaleSslConfiguration = JetWhaleSslConfiguration()
+
+    override fun ssl(configure: JetWhaleSslConfigurationScope.() -> Unit) {
+        sslConfiguration.configure()
+    }
+}
+
+internal class JetWhaleSslConfiguration : JetWhaleSslConfigurationScope {
+    private val mutableTrustedCertificates: MutableList<String> = mutableListOf()
+
+    /** List of trusted certificates in PEM format. */
+    val trustedCertificates: List<String>
+        get() = mutableTrustedCertificates
+
+    /**
+     * True when the host's active CA certificate should be fetched over the plain channel and pinned
+     * at connect time.
+     */
+    var trustServerCertificate: Boolean = false
+        private set
+
+    /**
+     * True when SSL is enabled, i.e. at least one trusted certificate is configured or the CA is to
+     * be fetched from the host at connect time.
+     */
+    val isEnabled: Boolean
+        get() = mutableTrustedCertificates.isNotEmpty() || trustServerCertificate
+
+    override fun trustCertificate(pem: String) {
+        mutableTrustedCertificates.add(pem)
+    }
+
+    override fun trustServerCertificate() {
+        trustServerCertificate = true
+    }
 }
 
 private class JetWhaleLoggingConfiguration : JetWhaleLoggingConfigurationScope {

@@ -31,7 +31,7 @@ features:
     details: kotlinx.serialization powers type-safe messaging between the debugger and your app.
   - icon: ✅
     title: Multiplatform
-    details: Debug Android, Desktop (JVM), iOS (Simulator), and Web (JS / WasmJS) apps.
+    details: Debug Android, Desktop (JVM), iOS (Simulator & physical devices), and Web (JS / WasmJS) apps.
   - icon: 🤖
     title: MCP Server (Experimental)
     details: A built-in MCP server lets AI agents interact with your app — screenshot, click, type, scroll, drag, and accessibility-tree inspection.

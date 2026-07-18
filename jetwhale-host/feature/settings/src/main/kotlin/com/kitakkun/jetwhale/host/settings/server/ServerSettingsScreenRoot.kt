@@ -13,7 +13,8 @@ fun ServerSettingsScreenRoot() {
         state1 = rememberSubscription(screenContext.serverStatusSubscriptionKey),
         state2 = rememberSubscription(screenContext.mcpServerStatusSubscriptionKey),
         state3 = rememberSubscription(screenContext.settingsSubscriptionKey),
-    ) { serverStatus, mcpServerStatus, debuggerSettings ->
+        state4 = rememberSubscription(screenContext.sslCertificatesSubscriptionKey),
+    ) { serverStatus, mcpServerStatus, debuggerSettings, sslCertificates ->
         val screenChannel = rememberScreenChannel<ServerSettingsScreenAction, Nothing>()
         val uiState = context(screenContext.presenterContext) {
             serverSettingsScreenPresenter(
@@ -21,6 +22,7 @@ fun ServerSettingsScreenRoot() {
                 serverStatus = serverStatus,
                 mcpServerStatus = mcpServerStatus,
                 debuggerSettings = debuggerSettings,
+                sslCertificates = sslCertificates,
             )
         }
 
@@ -49,6 +51,21 @@ fun ServerSettingsScreenRoot() {
             },
             onDismissApplyMcpPortDialog = {
                 screenChannel.send(ServerSettingsScreenAction.DismissApplyMcpPortDialog)
+            },
+            onAddCertificate = {
+                screenChannel.send(ServerSettingsScreenAction.AddCertificate)
+            },
+            onSetActiveCertificate = {
+                screenChannel.send(ServerSettingsScreenAction.SetActiveCertificate(it))
+            },
+            onDeleteCertificate = {
+                screenChannel.send(ServerSettingsScreenAction.DeleteCertificate(it))
+            },
+            onShowCertificateDetail = {
+                screenChannel.send(ServerSettingsScreenAction.ShowCertificateDetail(it))
+            },
+            onDismissCertificateDetailDialog = {
+                screenChannel.send(ServerSettingsScreenAction.DismissCertificateDetailDialog)
             },
         )
     }

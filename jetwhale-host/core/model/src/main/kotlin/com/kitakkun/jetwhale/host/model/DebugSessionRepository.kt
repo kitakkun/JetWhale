@@ -10,6 +10,7 @@ interface DebugSessionRepository {
     suspend fun registerDebugSession(
         sessionId: String,
         sessionName: String?,
+        transportSecurity: SessionTransportSecurity,
         installedPlugins: List<JetWhalePluginInfo>,
     )
 

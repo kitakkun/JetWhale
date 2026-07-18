@@ -7,6 +7,8 @@ data class DebugSession(
     val id: String,
     val name: String?,
     val isActive: Boolean,
+    /** Security of the transport carrying this session. */
+    val transportSecurity: SessionTransportSecurity,
     val installedPlugins: ImmutableList<JetWhalePluginInfo>,
 ) {
     private val shortId: String

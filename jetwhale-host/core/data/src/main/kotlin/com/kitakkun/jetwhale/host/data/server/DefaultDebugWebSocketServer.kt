@@ -44,11 +44,12 @@ class DefaultDebugWebSocketServer(
 
     private var serverMonitoringJob: Job? = null
 
-    override suspend fun start(host: String, port: Int) {
+    override suspend fun start(host: String, port: Int, wssPort: Int?) {
         subscribeServerEvents()
         ktorWebSocketServer.start(
             host = host,
             port = port,
+            wssPort = wssPort,
         )
     }
 
@@ -76,16 +77,18 @@ class DefaultDebugWebSocketServer(
     private suspend fun monitorAdbAutoWiring() {
         if (!settingsRepository.adbAutoPortMappingEnabledFlow.value) return
 
-        var port: Int? = null
+        var wiredPorts: List<Int> = emptyList()
         ktorWebSocketServer.statusFlow.collect { status ->
             when (status) {
                 is DebugWebSocketServerStatus.Started -> {
-                    port = status.port
-                    adbAutoWiringService.startAutoWiring(status.port)
+                    // Wire both connectors so an on-device app can reach ws and wss alike through
+                    // localhost, whichever it is configured for.
+                    wiredPorts = listOfNotNull(status.port, status.wssPort)
+                    wiredPorts.forEach { adbAutoWiringService.startAutoWiring(it) }
                 }
 
                 is DebugWebSocketServerStatus.Stopped -> {
-                    port?.let { adbAutoWiringService.stopAutoWiring(it) }
+                    wiredPorts.forEach { adbAutoWiringService.stopAutoWiring(it) }
                 }
 
                 else -> Unit
@@ -94,11 +97,12 @@ class DefaultDebugWebSocketServer(
     }
 
     private suspend fun monitorNegotiationCompleted() {
-        ktorWebSocketServer.negotiationCompletedFlow.collect { result ->
+        ktorWebSocketServer.negotiationCompletedFlow.collect { opened ->
             sessionRepository.registerDebugSession(
-                sessionId = result.session.sessionId,
-                sessionName = result.session.sessionName,
-                installedPlugins = result.plugin.requestedPlugins,
+                sessionId = opened.result.session.sessionId,
+                sessionName = opened.result.session.sessionName,
+                transportSecurity = opened.transportSecurity,
+                installedPlugins = opened.result.plugin.requestedPlugins,
             )
         }
     }

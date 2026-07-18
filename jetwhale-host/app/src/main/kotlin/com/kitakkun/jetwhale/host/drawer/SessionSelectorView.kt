@@ -81,7 +81,11 @@ fun SessionSelectorView(
                     },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
+                if (selectedSession != null) {
+                    SessionSecurityIcon(selectedSession.transportSecurity)
+                }
             }
         }
         ExposedDropdownMenu(
@@ -93,6 +97,7 @@ fun SessionSelectorView(
                 SessionDropdownMenuItem(
                     selected = it.id == selectedSession?.id,
                     isActive = it.isActive,
+                    transportSecurity = it.transportSecurity,
                     displayName = it.displayName,
                     onClick = {
                         onSelectSession(it)
@@ -141,6 +146,7 @@ fun SessionSelectorView(
                             SessionDropdownMenuItem(
                                 selected = it.id == selectedSession?.id,
                                 isActive = it.isActive,
+                                transportSecurity = it.transportSecurity,
                                 displayName = it.displayName,
                                 onClick = {
                                     onSelectSession(it)

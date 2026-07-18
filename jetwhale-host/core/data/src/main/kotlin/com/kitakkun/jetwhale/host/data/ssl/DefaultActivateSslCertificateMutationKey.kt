@@ -1,0 +1,28 @@
+package com.kitakkun.jetwhale.host.data.ssl
+
+import com.kitakkun.jetwhale.host.model.ActivateSslCertificateMutationKey
+import com.kitakkun.jetwhale.host.model.SslCertificateManager
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.binding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import soil.query.MutationId
+import soil.query.MutationKey
+import soil.query.buildMutationKey
+
+@ContributesBinding(AppScope::class, binding<ActivateSslCertificateMutationKey>())
+@Inject
+class DefaultActivateSslCertificateMutationKey(
+    private val sslCertificateManager: SslCertificateManager,
+) : ActivateSslCertificateMutationKey,
+    MutationKey<Boolean, String> by buildMutationKey(
+        id = MutationId("activate_ssl_certificate"),
+        mutate = { id: String ->
+            // Metadata persistence is blocking disk work.
+            withContext(Dispatchers.IO) {
+                sslCertificateManager.setActiveCertificate(id)
+            }
+        },
+    )

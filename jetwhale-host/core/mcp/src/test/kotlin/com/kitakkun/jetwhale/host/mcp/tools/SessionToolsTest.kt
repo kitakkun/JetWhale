@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import dev.mokkery.answering.returns
 import dev.mokkery.every
@@ -33,6 +34,7 @@ class SessionToolsTest {
             id = "session-id-123",
             name = "TestDevice",
             isActive = true,
+            transportSecurity = SessionTransportSecurity.PLAINTEXT,
             installedPlugins = persistentListOf(JetWhalePluginInfo("com.example.plugin", "1.0")),
         )
         val repo = mock<DebugSessionRepository> {
@@ -49,6 +51,7 @@ class SessionToolsTest {
             id = "session-id-456",
             name = "InactiveDevice",
             isActive = false,
+            transportSecurity = SessionTransportSecurity.PLAINTEXT,
             installedPlugins = persistentListOf(),
         )
         val repo = mock<DebugSessionRepository> {
@@ -75,6 +78,7 @@ class SessionToolsTest {
             id = "session-abc",
             name = "Device",
             isActive = true,
+            transportSecurity = SessionTransportSecurity.PLAINTEXT,
             installedPlugins = persistentListOf(JetWhalePluginInfo("com.example.plugin", "1.0")),
         )
         val repo = mock<DebugSessionRepository> {

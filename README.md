@@ -40,7 +40,7 @@ Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal lea
       and debuggees
 
 - ✅ **Multiplatform Support**
-    - Supports **Android**, **Desktop(JVM)**, **iOS**(Simulator Only), and **Web** (Js, WasmJs)
+    - Supports **Android**, **Desktop(JVM)**, **iOS** (Simulator & physical devices over the local network), and **Web** (Js, WasmJs)
       debuggees
 
 - 🤖 **MCP Server Support** *(Experimental)*

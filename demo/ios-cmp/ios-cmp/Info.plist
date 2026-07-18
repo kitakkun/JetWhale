@@ -4,5 +4,9 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- Required so the agent can reach the host over the local network (wss on the LAN and the
+	     trust-on-first-use CA fetch). iOS prompts the user for this on first connection. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>JetWhale connects to the debugger host running on your local network.</string>
 </dict>
 </plist>

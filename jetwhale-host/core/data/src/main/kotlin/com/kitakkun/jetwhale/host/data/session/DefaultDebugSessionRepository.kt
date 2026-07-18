@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.data.session
 
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
+import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -27,6 +28,7 @@ class DefaultDebugSessionRepository : DebugSessionRepository {
     override suspend fun registerDebugSession(
         sessionId: String,
         sessionName: String?,
+        transportSecurity: SessionTransportSecurity,
         installedPlugins: List<JetWhalePluginInfo>,
     ) {
         mutableDebugSessions.update { sessions ->
@@ -37,6 +39,7 @@ class DefaultDebugSessionRepository : DebugSessionRepository {
                         id = sessionId,
                         name = sessionName,
                         isActive = true,
+                        transportSecurity = transportSecurity,
                         installedPlugins = installedPlugins.toImmutableList(),
                     ),
                 )

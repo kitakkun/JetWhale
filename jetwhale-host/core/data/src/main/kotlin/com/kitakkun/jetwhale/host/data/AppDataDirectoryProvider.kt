@@ -16,6 +16,7 @@ class AppDataDirectoryProvider {
     private val pluginLibsDir = "$pluginDir/libs"
     private val dataStoreFilesDir = "$appDataDir/dataStorePreferences"
     private val pluginDataDir = "$appDataDir/plugin-data"
+    private val sslDir = "$appDataDir/ssl"
 
     fun resolveDataStoreFilePath(fileName: String): Path = "$dataStoreFilesDir/$fileName".toPath()
 
@@ -51,6 +52,19 @@ class AppDataDirectoryProvider {
      * directory so it is created and read before any plugin jar is touched.
      */
     fun getTrustRegistryFile(): File = File(appDataDir, "trusted-plugins.json")
+
+    /**
+     * Resolves the directory that stores TLS material (server keystores, CA certificates, metadata)
+     * for secure WebSocket (wss) connections, creating it if necessary.
+     */
+    fun getSslDirectory(): File = File(sslDir).apply {
+        if (!exists()) {
+            mkdirs()
+        }
+        // TLS material (including the CA private key) lives here, so restrict the directory to the
+        // owning user only (0700 on POSIX; owner-only fallback on non-POSIX filesystems).
+        FilePermissionsWriter.restrictToOwnerDirectory(this)
+    }
 
     /**
      * True only for a `.jar` file directly inside the managed plugins directory. Paths are compared

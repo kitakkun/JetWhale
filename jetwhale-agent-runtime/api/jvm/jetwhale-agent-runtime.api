@@ -9,6 +9,7 @@ public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleConn
 	public abstract fun getPort ()I
 	public abstract fun setHost (Ljava/lang/String;)V
 	public abstract fun setPort (I)V
+	public abstract fun ssl (Lkotlin/jvm/functions/Function1;)V
 }
 
 public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleLoggingConfigurationScope {
@@ -26,6 +27,11 @@ public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhalePlug
 
 public final class com/kitakkun/jetwhale/agent/runtime/JetWhaleServiceDslKt {
 	public static final fun startJetWhale (Lkotlin/jvm/functions/Function1;)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleSslConfigurationScope {
+	public abstract fun trustCertificate (Ljava/lang/String;)V
+	public abstract fun trustServerCertificate ()V
 }
 
 public final class com/kitakkun/jetwhale/agent/runtime/KtorLogLevel : java/lang/Enum {
