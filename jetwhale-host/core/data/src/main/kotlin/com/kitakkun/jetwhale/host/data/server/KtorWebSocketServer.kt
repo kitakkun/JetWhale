@@ -42,6 +42,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.cancellation.CancellationException
@@ -57,6 +58,8 @@ class KtorWebSocketServer(
     private val negotiationStrategy: ServerSessionNegotiationStrategy,
     private val sslCertificateManager: SslCertificateManager,
 ) {
+    private val logger = LoggerFactory.getLogger(KtorWebSocketServer::class.java)
+
     private var embeddedServer: EmbeddedServer<*, *>? = null
     private val sessions: ConcurrentHashMap<String, WebSocketServerSession> = ConcurrentHashMap()
 
@@ -106,6 +109,16 @@ class KtorWebSocketServer(
 
         val keyStore = if (wssPort != null) sslCertificateManager.getActiveKeyStore() else null
         val keyAlias = sslCertificateManager.getActiveKeyAlias()
+
+        if (wssPort != null && (keyStore == null || keyAlias == null)) {
+            // wss was requested but the active certificate could not be loaded (e.g. corrupt or
+            // missing files). Surface the failure instead of pretending wss is up; the plain ws
+            // connector still starts so ADB-forwarded local debugging keeps working.
+            logger.error(
+                "wss was enabled on port $wssPort but the active certificate could not be loaded; " +
+                    "starting without the TLS connector. Re-generate a certificate from the server settings.",
+            )
+        }
 
         return if (wssPort != null && keyStore != null && keyAlias != null) {
             embeddedServer(

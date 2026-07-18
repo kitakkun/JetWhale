@@ -17,8 +17,17 @@ internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWha
     // silently skipping certificate pinning (which would surface as an obscure TLS handshake error).
     check(this is CIOEngineConfig) { "Expected CIOEngineConfig but got ${this::class.simpleName}" }
 
+    val trustManager = try {
+        createTrustManager(sslConfiguration.trustedCertificates)
+    } catch (e: Exception) {
+        // An invalid PEM must not take the whole connection down in a non-obvious way; fall back to
+        // system trust evaluation with an explicit warning instead.
+        JetWhaleLogger.w("Failed to build a trust manager from the configured certificates; falling back to system trust evaluation.", e)
+        return
+    }
+
     https {
-        trustManager = createTrustManager(sslConfiguration.trustedCertificates)
+        this.trustManager = trustManager
     }
 }
 
