@@ -15,6 +15,9 @@ import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
 import soil.query.compose.rememberMutation
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 context(presenterContext: SettingsPresenterContext)
@@ -24,7 +27,22 @@ fun serverSettingsScreenPresenter(
     mcpServerStatus: McpServerStatus,
     debuggerSettings: DebuggerBehaviorSettings,
 ): ServerSettingsScreenUiState {
+    fun loadCertificates(): List<CertificateUiEntry> {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        return presenterContext.sslCertificateManager.getAllCertificates().map { entry ->
+            CertificateUiEntry(
+                id = entry.id,
+                name = entry.name,
+                createdAt = dateFormat.format(Date(entry.createdAt)),
+                caCertificatePem = entry.caCertificatePem,
+                isActive = entry.isActive,
+            )
+        }
+    }
+
     var editingDebugPortText by remember { mutableStateOf(debuggerSettings.serverPort.toString()) }
+    var certificates by remember { mutableStateOf(loadCertificates()) }
+    var certificateDetailDialogEntry by remember { mutableStateOf<CertificateUiEntry?>(null) }
     var editingMcpPortText by remember { mutableStateOf(debuggerSettings.mcpServerPort.toString()) }
     var showDebugApplyConfirmDialog by remember { mutableStateOf(false) }
     var showMcpApplyConfirmDialog by remember { mutableStateOf(false) }
@@ -99,6 +117,32 @@ fun serverSettingsScreenPresenter(
             ServerSettingsScreenAction.DismissApplyMcpPortDialog -> {
                 showMcpApplyConfirmDialog = false
             }
+
+            ServerSettingsScreenAction.AddCertificate -> {
+                presenterContext.sslCertificateManager.generateAndAddCertificate(null)
+                certificates = loadCertificates()
+            }
+
+            is ServerSettingsScreenAction.SetActiveCertificate -> {
+                presenterContext.sslCertificateManager.setActiveCertificate(action.id)
+                certificates = loadCertificates()
+            }
+
+            is ServerSettingsScreenAction.DeleteCertificate -> {
+                presenterContext.sslCertificateManager.deleteCertificate(action.id)
+                certificates = loadCertificates()
+                if (certificateDetailDialogEntry?.id == action.id) {
+                    certificateDetailDialogEntry = null
+                }
+            }
+
+            is ServerSettingsScreenAction.ShowCertificateDetail -> {
+                certificateDetailDialogEntry = certificates.find { it.id == action.id }
+            }
+
+            ServerSettingsScreenAction.DismissCertificateDetailDialog -> {
+                certificateDetailDialogEntry = null
+            }
         }
     }
 
@@ -111,6 +155,7 @@ fun serverSettingsScreenPresenter(
             is DebugWebSocketServerStatus.Started -> ServerState.Running(
                 host = serverStatus.host,
                 port = serverStatus.port,
+                wssPort = serverStatus.wssPort,
             )
 
             is DebugWebSocketServerStatus.Error -> ServerState.Error(reason = serverStatus.message)
@@ -139,5 +184,7 @@ fun serverSettingsScreenPresenter(
         isMcpApplyEnabled = isMcpPortValid && isMcpDirty,
         showDebugApplyConfirmDialog = showDebugApplyConfirmDialog,
         showMcpApplyConfirmDialog = showMcpApplyConfirmDialog,
+        certificates = certificates,
+        certificateDetailDialogEntry = certificateDetailDialogEntry,
     )
 }
