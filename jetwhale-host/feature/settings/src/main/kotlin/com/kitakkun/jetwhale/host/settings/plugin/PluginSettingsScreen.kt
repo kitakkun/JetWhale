@@ -188,7 +188,9 @@ fun PluginSettingsScreen(
         }
         items(
             items = uiState.plugins,
-            key = { plugin -> plugin.id },
+            // Prefixed so an official catalog entry for the same plugin id cannot collide with it
+            // in this single LazyColumn.
+            key = { plugin -> "installed:${plugin.id}" },
         ) { plugin ->
             InstalledPluginRow(plugin = plugin)
         }
@@ -243,7 +245,7 @@ fun PluginSettingsScreen(
             }
             items(
                 items = uiState.officialPlugins,
-                key = { official -> official.plugin.pluginId },
+                key = { official -> "official:${official.plugin.pluginId}" },
             ) { officialPlugin ->
                 OfficialPluginRow(
                     uiState = officialPlugin,
