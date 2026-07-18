@@ -102,4 +102,36 @@ class NetworkMcpCommandsTest {
         }
         assertTrue("invalid matchType" in badMatchType.message!!, badMatchType.message!!)
     }
+
+    @Test
+    fun `declaring a parameter after the schema was read fails fast`() {
+        val command = object : JetWhaleMcpCommand() {
+            override val name = "test.late"
+            override val description = "declares a parameter inside execute"
+
+            override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+                stringOrNull("late", "declared too late")
+                return "unreachable"
+            }
+        }
+        command.toDescriptor()
+        val exception = assertFailsWith<IllegalStateException> { execute(command) }
+        assertTrue("late" in exception.message!!, exception.message!!)
+    }
+
+    @Test
+    fun `declaring the same parameter name twice fails fast`() {
+        val exception = assertFailsWith<IllegalStateException> {
+            object : JetWhaleMcpCommand() {
+                override val name = "test.dup"
+                override val description = "declares the same name twice"
+
+                private val first = stringOrNull("x", "first declaration")
+                private val second = stringOrNull("x", "second declaration")
+
+                override suspend fun execute(arguments: JetWhaleMcpArguments): String = "unused"
+            }
+        }
+        assertTrue("declared twice" in exception.message!!, exception.message!!)
+    }
 }

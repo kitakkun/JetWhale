@@ -34,8 +34,16 @@ public abstract class JetWhaleMcpCommand {
 
     private val declaredParameters = mutableListOf<JetWhaleMcpParameter<*>>()
 
+    // Set once the declarations have been read (i.e. the schema may have been shown to a
+    // caller); late declarations would silently diverge from it, so they throw instead.
+    private var parametersSealed = false
+
     /** The parameters declared via the protected factory functions, in declaration order. */
-    public val parameters: List<JetWhaleMcpParameter<*>> get() = declaredParameters
+    public val parameters: List<JetWhaleMcpParameter<*>>
+        get() {
+            parametersSealed = true
+            return declaredParameters.toList()
+        }
 
     /**
      * Executes the tool.
@@ -47,7 +55,7 @@ public abstract class JetWhaleMcpCommand {
     public fun toDescriptor(): JetWhaleMcpToolDescriptor = JetWhaleMcpToolDescriptor(
         name = name,
         description = description,
-        parameters = declaredParameters.associate { parameter ->
+        parameters = parameters.associate { parameter ->
             parameter.name to JetWhaleMcpParameterDescriptor(
                 type = parameter.type,
                 description = parameter.description,
@@ -93,6 +101,12 @@ public abstract class JetWhaleMcpCommand {
     )
 
     private fun <T> declare(parameter: JetWhaleMcpParameter<T>): JetWhaleMcpParameter<T> {
+        check(!parametersSealed) {
+            "Parameter '${parameter.name}' was declared after the parameter list of '$name' was read. Declare parameters only in property initializers, never inside execute() or conditionally."
+        }
+        check(declaredParameters.none { it.name == parameter.name }) {
+            "Parameter '${parameter.name}' is declared twice on '$name'."
+        }
         declaredParameters.add(parameter)
         return parameter
     }
