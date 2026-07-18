@@ -12,9 +12,10 @@ class KtorWebSocketServerTest {
         val server = KtorWebSocketServer(
             json = Json,
             negotiationStrategy = mock(),
+            sslCertificateManager = mock(),
         )
         runBlocking {
-            server.start("localhost", 5080)
+            server.start("localhost", 5080, wssPort = null)
         }
     }
 }

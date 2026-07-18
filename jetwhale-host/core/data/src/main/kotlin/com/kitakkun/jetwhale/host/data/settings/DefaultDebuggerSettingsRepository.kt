@@ -62,6 +62,20 @@ class DefaultDebuggerSettingsRepository(
             started = SharingStarted.Eagerly,
             initialValue = DEFAULT_MCP_SERVER_PORT,
         )
+    override val wssPortFlow = dataStore.data
+        .map { it[KEY_WSS_PORT] ?: DEFAULT_WSS_PORT }
+        .stateIn(
+            scope = coroutineScope,
+            started = SharingStarted.Eagerly,
+            initialValue = DEFAULT_WSS_PORT,
+        )
+    override val wssEnabledFlow = dataStore.data
+        .map { it[KEY_WSS_ENABLED] ?: DEFAULT_WSS_ENABLED }
+        .stateIn(
+            scope = coroutineScope,
+            started = SharingStarted.Eagerly,
+            initialValue = DEFAULT_WSS_ENABLED,
+        )
 
     override suspend fun updateAdbAutoPortMappingEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
@@ -99,6 +113,20 @@ class DefaultDebuggerSettingsRepository(
         }
     }
 
+    override suspend fun readWssPort(): Int = dataStore.data.first()[KEY_WSS_PORT] ?: DEFAULT_WSS_PORT
+
+    override suspend fun updateWssPort(port: Int) {
+        dataStore.edit { prefs ->
+            prefs[KEY_WSS_PORT] = port
+        }
+    }
+
+    override suspend fun updateWssEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[KEY_WSS_ENABLED] = enabled
+        }
+    }
+
     companion object Companion {
         private val KEY_ADB_AUTO_PORT_MAPPING_ENABLED = booleanPreferencesKey("adb_auto_port_mapping_enabled")
         private val KEY_CHECK_FOR_UPDATES_ON_STARTUP = booleanPreferencesKey("check_for_updates_on_startup")
@@ -106,7 +134,11 @@ class DefaultDebuggerSettingsRepository(
         private val KEY_PERSIST_DATA = booleanPreferencesKey("persist_data")
         private val KEY_SERVER_PORT = intPreferencesKey("server_port")
         private val KEY_MCP_SERVER_PORT = intPreferencesKey("mcp_server_port")
+        private val KEY_WSS_PORT = intPreferencesKey("wss_port")
+        private val KEY_WSS_ENABLED = booleanPreferencesKey("wss_enabled")
         private const val DEFAULT_SERVER_PORT = 5080
         private const val DEFAULT_MCP_SERVER_PORT = 7080
+        private const val DEFAULT_WSS_PORT = 5443
+        private const val DEFAULT_WSS_ENABLED = true
     }
 }

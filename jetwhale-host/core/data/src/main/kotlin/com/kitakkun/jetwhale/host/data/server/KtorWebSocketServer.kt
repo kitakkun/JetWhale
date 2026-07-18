@@ -94,9 +94,54 @@ class KtorWebSocketServer(
         mutableStatusFlow.update { DebugWebSocketServerStatus.Stopped }
     }
 
+    /**
+     * Builds the embedded server. When [wssPort] is non-null, an additional TLS (wss) connector is
+     * configured next to the plain ws connector, backed by the active certificate from
+     * [SslCertificateManager] (generated on demand when none exists yet).
+     */
+    private fun createServer(host: String, port: Int, wssPort: Int?): EmbeddedServer<*, *> {
+        if (wssPort != null && !sslCertificateManager.hasCertificate()) {
+            sslCertificateManager.generateAndAddCertificate(null)
+        }
+
+        val keyStore = if (wssPort != null) sslCertificateManager.getActiveKeyStore() else null
+        val keyAlias = sslCertificateManager.getActiveKeyAlias()
+
+        return if (wssPort != null && keyStore != null && keyAlias != null) {
+            embeddedServer(
+                factory = Netty,
+                environment = applicationEnvironment {},
+                configure = {
+                    connector {
+                        this.host = host
+                        this.port = port
+                    }
+                    sslConnector(
+                        keyStore = keyStore,
+                        keyAlias = keyAlias,
+                        keyStorePassword = { sslCertificateManager.getKeyStorePassword() },
+                        privateKeyPassword = { sslCertificateManager.getKeyStorePassword() },
+                    ) {
+                        this.host = host
+                        this.port = wssPort
+                    }
+                },
+                module = { configureWebSocket(host, port, wssPort) },
+            )
+        } else {
+            embeddedServer(
+                factory = Netty,
+                host = host,
+                port = port,
+                module = { configureWebSocket(host, port, null) },
+            )
+        }
+    }
+
     private fun Application.configureWebSocket(
         host: String,
         port: Int,
+        wssPort: Int?,
     ) {
         install(WebSockets.Plugin) {
             contentConverter = KotlinxWebsocketSerializationConverter(json)
@@ -104,7 +149,7 @@ class KtorWebSocketServer(
 
         monitor.subscribe(ApplicationStarted) {
             mutableStatusFlow.update {
-                DebugWebSocketServerStatus.Started(host, port)
+                DebugWebSocketServerStatus.Started(host, port, wssPort)
             }
         }
 

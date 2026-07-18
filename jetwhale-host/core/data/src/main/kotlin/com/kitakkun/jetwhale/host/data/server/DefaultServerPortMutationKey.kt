@@ -19,6 +19,11 @@ class DefaultServerPortMutationKey(
     mutate = { port: Int ->
         settingsRepository.updateServerPort(port)
         debugWebSocketServer.stop()
-        debugWebSocketServer.start(host = "localhost", port = port)
+        val wssPort = if (settingsRepository.wssEnabledFlow.value) {
+            settingsRepository.wssPortFlow.value
+        } else {
+            null
+        }
+        debugWebSocketServer.start(host = "localhost", port = port, wssPort = wssPort)
     },
 )
