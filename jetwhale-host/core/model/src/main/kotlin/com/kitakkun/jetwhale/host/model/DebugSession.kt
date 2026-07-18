@@ -7,8 +7,8 @@ data class DebugSession(
     val id: String,
     val name: String?,
     val isActive: Boolean,
-    /** True when the session is connected over TLS (wss) rather than plain ws. */
-    val isSecure: Boolean,
+    /** Security of the transport carrying this session. */
+    val transportSecurity: SessionTransportSecurity,
     val installedPlugins: ImmutableList<JetWhalePluginInfo>,
 ) {
     private val shortId: String

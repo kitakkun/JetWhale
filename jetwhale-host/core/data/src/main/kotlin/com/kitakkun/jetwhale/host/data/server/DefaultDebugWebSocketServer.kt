@@ -101,7 +101,7 @@ class DefaultDebugWebSocketServer(
             sessionRepository.registerDebugSession(
                 sessionId = opened.result.session.sessionId,
                 sessionName = opened.result.session.sessionName,
-                isSecure = opened.isSecure,
+                transportSecurity = opened.transportSecurity,
                 installedPlugins = opened.result.plugin.requestedPlugins,
             )
         }

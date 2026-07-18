@@ -10,13 +10,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LinkOff
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,7 +41,6 @@ import com.kitakkun.jetwhale.host.group_expanded
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.no_session_available
 import com.kitakkun.jetwhale.host.select_session
-import com.kitakkun.jetwhale.host.session_secure_connection
 import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.stringResource
 
@@ -86,13 +83,8 @@ fun SessionSelectorView(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                if (selectedSession?.isSecure == true) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = stringResource(Res.string.session_secure_connection),
-                        tint = SecureSessionGreen,
-                        modifier = Modifier.size(14.dp),
-                    )
+                if (selectedSession != null) {
+                    SessionSecurityIcon(selectedSession.transportSecurity)
                 }
             }
         }
@@ -105,7 +97,7 @@ fun SessionSelectorView(
                 SessionDropdownMenuItem(
                     selected = it.id == selectedSession?.id,
                     isActive = it.isActive,
-                    isSecure = it.isSecure,
+                    transportSecurity = it.transportSecurity,
                     displayName = it.displayName,
                     onClick = {
                         onSelectSession(it)
@@ -154,7 +146,7 @@ fun SessionSelectorView(
                             SessionDropdownMenuItem(
                                 selected = it.id == selectedSession?.id,
                                 isActive = it.isActive,
-                                isSecure = it.isSecure,
+                                transportSecurity = it.transportSecurity,
                                 displayName = it.displayName,
                                 onClick = {
                                     onSelectSession(it)

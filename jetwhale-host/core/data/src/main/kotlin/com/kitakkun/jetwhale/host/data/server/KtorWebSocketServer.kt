@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.data.server
 import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationResult
 import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationStrategy
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
+import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.model.SslCertificateManager
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
@@ -206,8 +207,16 @@ class KtorWebSocketServer(
 
     context(log: Logger)
     private suspend fun DefaultWebSocketServerSession.configureSession() {
-        // Whether this connection arrived through the TLS (wss) connector rather than plain ws.
-        val isSecure = call.request.origin.scheme == "https"
+        val transportSecurity = when {
+            // Arrived through the TLS (wss) connector: encrypted end to end.
+            call.request.origin.scheme == "https" -> SessionTransportSecurity.TLS
+
+            // Plain ws whose peer is loopback: traffic never leaves the machine (the ADB-forwarded
+            // case), so it is effectively secure.
+            call.request.origin.remoteHost in LOOPBACK_HOSTS -> SessionTransportSecurity.LOOPBACK
+
+            else -> SessionTransportSecurity.PLAINTEXT
+        }
 
         val negotiationResult = with(negotiationStrategy) { negotiate() }
 
@@ -231,7 +240,7 @@ class KtorWebSocketServer(
                         }
                 }
 
-                mutableNegotiationCompletedFlow.emit(SessionOpened(negotiationResult, isSecure))
+                mutableNegotiationCompletedFlow.emit(SessionOpened(negotiationResult, transportSecurity))
 
                 closeReason.await().also {
                     println("closed: ${it?.message}")
@@ -258,14 +267,17 @@ class KtorWebSocketServer(
     fun getSessionCoroutineContext(sessionId: String): CoroutineContext = sessions[sessionId]?.coroutineContext ?: throw IllegalArgumentException("No session with ID $sessionId")
 }
 
+/** Hosts treated as loopback for [SessionTransportSecurity.LOOPBACK] classification. */
+private val LOOPBACK_HOSTS = setOf("127.0.0.1", "::1", "0:0:0:0:0:0:0:1", "localhost")
+
 /**
  * A completed session negotiation together with transport metadata the negotiation itself does not
  * carry.
  *
  * @property result The successful negotiation outcome.
- * @property isSecure True when the session is connected over TLS (wss).
+ * @property transportSecurity Security of the transport carrying the session.
  */
 data class SessionOpened(
     val result: ServerSessionNegotiationResult.Success,
-    val isSecure: Boolean,
+    val transportSecurity: SessionTransportSecurity,
 )
