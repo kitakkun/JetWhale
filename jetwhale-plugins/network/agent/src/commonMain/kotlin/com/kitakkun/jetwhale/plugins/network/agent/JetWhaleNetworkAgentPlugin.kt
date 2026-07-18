@@ -5,10 +5,12 @@ import com.kitakkun.jetwhale.plugins.network.protocol.Ack
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.GetMockConfig
+import com.kitakkun.jetwhale.plugins.network.protocol.GetRedactionConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.MockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.plugins.network.protocol.RedactionConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
@@ -29,8 +31,14 @@ import kotlin.uuid.Uuid
  * ([recordRequest]/[recordResponse]/[recordFailure]/[findMock]) that transport adapters call.
  * Adapters exist for Ktor (`network:agent-ktor`) and OkHttp (`network:agent-okhttp`); a
  * Retrofit adapter could reuse the exact same API without touching this class.
+ *
+ * [redaction] rules are applied here, at capture time, so redacted values never leave the
+ * process regardless of which transport adapter produced the event.
  */
-class JetWhaleNetworkAgentPlugin : JetWhaleAgentPlugin() {
+class JetWhaleNetworkAgentPlugin(
+    // Defaulted so existing integrations keep capturing verbatim; redaction is opt-in.
+    private val redaction: NetworkRedactionRules = NetworkRedactionRules.None,
+) : JetWhaleAgentPlugin() {
     override val pluginId: String get() = PLUGIN_ID
     override val pluginVersion: String get() = "1.0.0"
 
@@ -56,6 +64,10 @@ class JetWhaleNetworkAgentPlugin : JetWhaleAgentPlugin() {
             mockingEnabled.value = request.enabled
             reply(Ack)
         }
+        // MCP_ONLY rules are enforced host-side, so the host fetches them in onPrepare.
+        onRequest { _: GetRedactionConfig ->
+            reply(RedactionConfig(mcpOnlyRules = redaction.mcpOnlyRules))
+        }
     }
 
     // ---------------------------------------------------------------------------------------
@@ -67,11 +79,11 @@ class JetWhaleNetworkAgentPlugin : JetWhaleAgentPlugin() {
     fun newTransactionId(): String = Uuid.random().toString()
 
     fun recordRequest(request: CapturedHttpRequest) {
-        messenger.sendOrQueue(RequestSent(request))
+        messenger.sendOrQueue(RequestSent(redaction.redactAtCapture(request)))
     }
 
     fun recordResponse(response: CapturedHttpResponse) {
-        messenger.sendOrQueue(ResponseReceived(response))
+        messenger.sendOrQueue(ResponseReceived(redaction.redactAtCapture(response)))
     }
 
     fun recordFailure(failure: HttpRequestFailure) {

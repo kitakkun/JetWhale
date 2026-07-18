@@ -27,6 +27,7 @@ dependencies {
     compileOnly(libs.kotlinxSerializationJson)
     api(projects.jetwhalePlugins.network.protocol)
     testImplementation(libs.kotlinTest)
+    testImplementation(libs.kotlinxSerializationJson)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.material3)
 }
