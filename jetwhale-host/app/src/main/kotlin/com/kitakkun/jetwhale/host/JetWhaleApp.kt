@@ -1,5 +1,10 @@
 package com.kitakkun.jetwhale.host
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -9,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.savedstate.serialization.SavedStateConfiguration
@@ -145,15 +151,23 @@ fun JetWhaleApp() {
                                     },
                                 ) {
                                     Column {
-                                        if (availableUpdate != null && !updateBannerDismissed) {
-                                            UpdateAvailableBanner(
-                                                latestVersion = availableUpdate.latestVersion,
-                                                onClickOpenSettings = {
-                                                    updateBannerDismissed = true
-                                                    backStack.addSingleTop(SettingsNavKey())
-                                                },
-                                                onDismiss = { updateBannerDismissed = true },
-                                            )
+                                        AnimatedVisibility(
+                                            visible = availableUpdate != null && !updateBannerDismissed,
+                                            enter = slideInVertically { -it } + expandVertically(expandFrom = Alignment.Top),
+                                            exit = slideOutVertically { -it } + shrinkVertically(shrinkTowards = Alignment.Top),
+                                        ) {
+                                            // Non-null while visible; stays rendered during the exit
+                                            // animation because dismissing only flips the flag.
+                                            availableUpdate?.let { update ->
+                                                UpdateAvailableBanner(
+                                                    latestVersion = update.latestVersion,
+                                                    onClickOpenSettings = {
+                                                        updateBannerDismissed = true
+                                                        backStack.addSingleTop(SettingsNavKey())
+                                                    },
+                                                    onDismiss = { updateBannerDismissed = true },
+                                                )
+                                            }
                                         }
                                         JetWhaleNavDisplay(backStack)
                                     }
