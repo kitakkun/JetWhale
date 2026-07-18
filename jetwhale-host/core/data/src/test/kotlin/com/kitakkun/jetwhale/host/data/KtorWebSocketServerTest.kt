@@ -4,22 +4,34 @@ import com.kitakkun.jetwhale.host.data.cert.CACertificateGenerator
 import com.kitakkun.jetwhale.host.data.cert.KeyPairFactory
 import com.kitakkun.jetwhale.host.data.cert.ServerCertificateIssuer
 import com.kitakkun.jetwhale.host.data.server.KtorWebSocketServer
+import com.kitakkun.jetwhale.host.data.ssl.DefaultSslCertificateManager
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.SslCertificateEntry
 import com.kitakkun.jetwhale.host.model.SslCertificateManager
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
+import java.math.BigInteger
 import java.net.HttpURLConnection
 import java.net.ServerSocket
 import java.net.URI
 import java.security.KeyStore
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLSocket
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
+import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 class KtorWebSocketServerTest {
     private fun freePort(): Int = ServerSocket(0).use { it.localPort }
@@ -47,6 +59,7 @@ class KtorWebSocketServerTest {
             setKeyEntry("test_alias", serverKeyPair.private, "test_pass".toCharArray(), arrayOf(serverCertificate, ca.cert))
         }
         val sslCertificateManager = mock<SslCertificateManager> {
+            every { certificatesFlow } returns MutableStateFlow(emptyList())
             every { hasCertificate() } returns true
             every { getActiveKeyStore() } returns keyStore
             every { getActiveKeyAlias() } returns "test_alias"
@@ -67,6 +80,61 @@ class KtorWebSocketServerTest {
             }
             assertEquals(wssPort, (status as DebugWebSocketServerStatus.Started).wssPort)
             server.stop()
+        }
+    }
+
+    @Test
+    fun `swapping the active certificate restarts the tls listener with the new certificate`() {
+        // A real certificate manager backed by a temp home so activating a new certificate emits on
+        // certificatesFlow, which the server observes to hot-swap the TLS listener.
+        val tempHome = createTempDirectory().toFile()
+        val originalHome = System.getProperty("user.home")
+        System.setProperty("user.home", tempHome.absolutePath)
+        try {
+            val sslCertificateManager = DefaultSslCertificateManager(AppDataDirectoryProvider())
+            sslCertificateManager.generateAndAddCertificate("first")
+
+            val server = KtorWebSocketServer(
+                json = Json,
+                negotiationStrategy = mock(),
+                sslCertificateManager = sslCertificateManager,
+            )
+
+            val wssPort = freePort()
+            runBlocking {
+                server.start("localhost", freePort(), wssPort = wssPort)
+                withTimeout(10_000) {
+                    server.statusFlow.first { it is DebugWebSocketServerStatus.Started }
+                }
+
+                val serialBefore = withTimeout(10_000) {
+                    var serial: BigInteger? = null
+                    while (serial == null) {
+                        serial = runCatching { fetchLeafSerial(wssPort) }.getOrNull()
+                        if (serial == null) delay(100)
+                    }
+                    serial
+                }
+
+                // Generating a new certificate marks it active, which the server hot-swaps onto the
+                // wss listener without touching the plain server.
+                sslCertificateManager.generateAndAddCertificate("second")
+
+                val serialAfter = withTimeout(10_000) {
+                    var serial = serialBefore
+                    while (serial == serialBefore) {
+                        delay(100)
+                        serial = runCatching { fetchLeafSerial(wssPort) }.getOrDefault(serialBefore)
+                    }
+                    serial
+                }
+
+                assertNotEquals(serialBefore, serialAfter)
+                server.stop()
+            }
+        } finally {
+            System.setProperty("user.home", originalHome)
+            tempHome.deleteRecursively()
         }
     }
 
@@ -106,6 +174,26 @@ class KtorWebSocketServerTest {
             }
 
             server.stop()
+        }
+    }
+
+    /**
+     * Opens a TLS handshake against the wss listener with a trust-all manager and returns the serial
+     * number of the presented leaf certificate.
+     */
+    private fun fetchLeafSerial(port: Int): BigInteger {
+        val trustAll = arrayOf<TrustManager>(
+            object : X509TrustManager {
+                override fun checkClientTrusted(chain: Array<X509Certificate>?, authType: String?) = Unit
+                override fun checkServerTrusted(chain: Array<X509Certificate>?, authType: String?) = Unit
+                override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+            },
+        )
+        val sslContext = SSLContext.getInstance("TLS").apply { init(null, trustAll, SecureRandom()) }
+        val socket = sslContext.socketFactory.createSocket("127.0.0.1", port) as SSLSocket
+        return socket.use {
+            it.startHandshake()
+            (it.session.peerCertificates[0] as X509Certificate).serialNumber
         }
     }
 }

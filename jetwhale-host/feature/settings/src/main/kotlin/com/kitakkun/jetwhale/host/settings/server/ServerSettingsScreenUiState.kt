@@ -13,7 +13,6 @@ data class ServerSettingsScreenUiState(
     val showMcpApplyConfirmDialog: Boolean,
     val certificates: List<CertificateUiEntry>,
     val certificateDetailDialogEntry: CertificateUiEntry?,
-    val showRestartRequiredDialog: Boolean,
 )
 
 data class CertificateUiEntry(

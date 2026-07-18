@@ -67,12 +67,6 @@ fun ServerSettingsScreenRoot() {
             onDismissCertificateDetailDialog = {
                 screenChannel.send(ServerSettingsScreenAction.DismissCertificateDetailDialog)
             },
-            onRestartServer = {
-                screenChannel.send(ServerSettingsScreenAction.RestartServer)
-            },
-            onDismissRestartRequiredDialog = {
-                screenChannel.send(ServerSettingsScreenAction.DismissRestartRequiredDialog)
-            },
         )
     }
 }

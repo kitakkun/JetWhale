@@ -40,11 +40,7 @@
     <string name="ssl_certificate_no_certificate">No certificate generated yet</string>
     <string name="ssl_certificate_created_at">Created: %1$s</string>
     <string name="ssl_certificate_detail_title">CA Certificate (PEM)</string>
-    <string name="ssl_certificate_restart_note">Certificate changes (generate, activate, delete) only take effect after the debug server restarts.</string>
-    <string name="ssl_certificate_restart_required_title">Restart required</string>
-    <string name="ssl_certificate_restart_required_message">The active certificate changed. Restart the debug server now to apply it to new wss connections.</string>
-    <string name="ssl_certificate_restart_now">Restart now</string>
-    <string name="ssl_certificate_restart_later">Later</string>
+    <string name="ssl_certificate_apply_note">Certificate changes (generate, activate, delete) apply immediately; connected wss clients reconnect against the new certificate.</string>
     <string name="server_status_starting">Starting...</string>
     <string name="server_status_stopping">Stopping...</string>
     <string name="server_status_error">Error: %1$s</string>

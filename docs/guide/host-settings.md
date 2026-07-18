@@ -45,10 +45,11 @@ addresses (`localhost`, loopback, and the RFC 1918 / link-local ranges). If you 
 an OS trust store — for example on the Windows WinHttp path — prefer the **current-user** store over
 the machine-wide store.
 
-::: warning Restart required
-Certificate changes (generate, activate, delete) only take effect after the **debug server
-restarts**. When the active certificate changes, the host prompts to restart the server now or
-later; new wss connections use the new certificate once it has restarted.
+::: tip Certificate changes apply immediately
+Certificate changes (generate, activate, delete) take effect at once: the host hot-swaps only the
+**wss** listener onto the new certificate while the plain **ws** listener keeps running untouched.
+Connected wss clients drop and reconnect against the new certificate; plain-ws sessions are
+unaffected.
 :::
 
 ### LAN exposure

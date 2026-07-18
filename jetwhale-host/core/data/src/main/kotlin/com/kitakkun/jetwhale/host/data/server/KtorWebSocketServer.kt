@@ -15,13 +15,10 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationStarted
-import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.applicationEnvironment
-import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.engine.sslConnector
 import io.ktor.server.netty.Netty
@@ -39,17 +36,27 @@ import io.ktor.util.logging.Logger
 import io.ktor.websocket.Frame
 import io.ktor.websocket.closeExceptionally
 import io.ktor.websocket.readText
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
+import java.security.KeyStore
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.cancellation.CancellationException
@@ -57,6 +64,19 @@ import kotlin.coroutines.cancellation.CancellationException
 /**
  * A Ktor-based WebSocket server for handling debug sessions.
  * This class mainly focuses on WebSocket connection management and message routing.
+ *
+ * Two independent embedded servers back the listeners so the TLS certificate can be hot-swapped
+ * without disturbing plain-ws traffic:
+ * - the **plain server** hosts the ws connector on [host] (localhost) plus the `GET /jetwhale/ca`
+ *   route, and
+ * - the **TLS server** hosts the wss connector on `0.0.0.0:<wssPort>` backed by the active
+ *   certificate.
+ *
+ * Both instances install the same application module ([configureWebSocket]) and therefore share the
+ * same session map and event flows. When the active certificate changes while the TLS server is
+ * running, only the TLS server is stopped and restarted with the new keystore
+ * (see [restartTlsServer]); plain-ws sessions are unaffected while wss sessions drop and agents
+ * reconnect against the new certificate.
  */
 @SingleIn(AppScope::class)
 @Inject
@@ -67,7 +87,20 @@ class KtorWebSocketServer(
 ) {
     private val logger = LoggerFactory.getLogger(KtorWebSocketServer::class.java)
 
-    private var embeddedServer: EmbeddedServer<*, *>? = null
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    private var plainServer: EmbeddedServer<*, *>? = null
+    private var tlsServer: EmbeddedServer<*, *>? = null
+
+    // Serializes TLS server lifecycle transitions (initial start and hot-swap restarts) so rapid
+    // certificate changes cannot race a stop against a start.
+    private val tlsServerMutex: Mutex = Mutex()
+    private var certificateObserverJob: Job? = null
+
+    private var currentHost: String? = null
+    private var currentPort: Int? = null
+    private var currentWssPort: Int? = null
+
     private val sessions: ConcurrentHashMap<String, WebSocketServerSession> = ConcurrentHashMap()
 
     private val mutableStatusFlow: MutableStateFlow<DebugWebSocketServerStatus> = MutableStateFlow(DebugWebSocketServerStatus.Stopped)
@@ -85,9 +118,29 @@ class KtorWebSocketServer(
     suspend fun start(host: String, port: Int, wssPort: Int?) {
         mutableStatusFlow.update { DebugWebSocketServerStatus.Starting }
         try {
-            createServer(host = host, port = port, wssPort = wssPort).also {
+            currentHost = host
+            currentPort = port
+            currentWssPort = wssPort
+
+            buildPlainServer(host, port).also {
                 it.startSuspend()
-                embeddedServer = it
+                plainServer = it
+            }
+
+            val tlsStarted = if (wssPort != null) {
+                tlsServerMutex.withLock { startTlsServerLocked(wssPort) }
+            } else {
+                false
+            }
+
+            if (wssPort != null && tlsStarted) {
+                startCertificateObserver()
+            }
+
+            // Started reflects both listeners. The wss port is only reported when the TLS server is
+            // actually up, so a certificate that fails to load surfaces as a plain-only server.
+            mutableStatusFlow.update {
+                DebugWebSocketServerStatus.Started(host, port, wssPort.takeIf { tlsStarted })
             }
         } catch (e: CancellationException) {
             // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
@@ -99,96 +152,123 @@ class KtorWebSocketServer(
 
     suspend fun stop() {
         mutableStatusFlow.update { DebugWebSocketServerStatus.Stopping }
-        embeddedServer?.stopSuspend()
-        embeddedServer = null
+        certificateObserverJob?.cancel()
+        certificateObserverJob = null
+        tlsServerMutex.withLock {
+            tlsServer?.stopSuspend()
+            tlsServer = null
+        }
+        plainServer?.stopSuspend()
+        plainServer = null
+        currentHost = null
+        currentPort = null
+        currentWssPort = null
         mutableStatusFlow.update { DebugWebSocketServerStatus.Stopped }
     }
 
+    /** Builds the plain-ws server: the ws connector on [host] plus the `GET /jetwhale/ca` route. */
+    private fun buildPlainServer(host: String, port: Int): EmbeddedServer<*, *> = embeddedServer(
+        factory = Netty,
+        host = host,
+        port = port,
+        module = { configureWebSocket() },
+    )
+
     /**
-     * Builds the embedded server. When [wssPort] is non-null, an additional TLS (wss) connector is
-     * configured next to the plain ws connector, backed by the active certificate from
-     * [SslCertificateManager] (generated on demand when none exists yet).
+     * Builds the TLS (wss) server backed by [keyStore]/[keyAlias]. Unlike the plain ws connector
+     * (kept on localhost, reachable only via ADB forwarding), the TLS connector listens on all
+     * interfaces so physical devices on the same network (e.g. iPhones) can connect. The channel is
+     * encrypted and clients pin the local CA, so LAN exposure is limited to the encrypted endpoint.
      */
-    private fun createServer(host: String, port: Int, wssPort: Int?): EmbeddedServer<*, *> {
-        if (wssPort != null && !sslCertificateManager.hasCertificate()) {
+    private fun buildTlsServer(wssPort: Int, keyStore: KeyStore, keyAlias: String): EmbeddedServer<*, *> = embeddedServer(
+        factory = Netty,
+        environment = applicationEnvironment {},
+        configure = {
+            sslConnector(
+                keyStore = keyStore,
+                keyAlias = keyAlias,
+                keyStorePassword = { sslCertificateManager.getKeyStorePassword() },
+                privateKeyPassword = { sslCertificateManager.getKeyStorePassword() },
+            ) {
+                this.host = "0.0.0.0"
+                this.port = wssPort
+            }
+        },
+        module = { configureWebSocket() },
+    )
+
+    /**
+     * Starts the TLS server on [wssPort] backed by the currently active certificate, generating one
+     * on demand when none exists. Returns true when the connector started; returns false (leaving
+     * the plain server untouched) when the active certificate cannot be loaded, so ADB-forwarded
+     * local debugging keeps working.
+     *
+     * Must be called while holding [tlsServerMutex].
+     */
+    private suspend fun startTlsServerLocked(wssPort: Int): Boolean {
+        if (!sslCertificateManager.hasCertificate()) {
             sslCertificateManager.generateAndAddCertificate(null)
         }
 
-        val keyStore = if (wssPort != null) sslCertificateManager.getActiveKeyStore() else null
+        val keyStore = sslCertificateManager.getActiveKeyStore()
         val keyAlias = sslCertificateManager.getActiveKeyAlias()
-
-        if (wssPort != null && (keyStore == null || keyAlias == null)) {
-            // wss was requested but the active certificate could not be loaded (e.g. corrupt or
-            // missing files). Surface the failure instead of pretending wss is up; the plain ws
-            // connector still starts so ADB-forwarded local debugging keeps working.
+        if (keyStore == null || keyAlias == null) {
             logger.error(
                 "wss was enabled on port $wssPort but the active certificate could not be loaded; " +
                     "starting without the TLS connector. Re-generate a certificate from the server settings.",
             )
+            return false
         }
 
-        return if (wssPort != null && keyStore != null && keyAlias != null) {
-            embeddedServer(
-                factory = Netty,
-                environment = applicationEnvironment {},
-                configure = {
-                    connector {
-                        this.host = host
-                        this.port = port
-                    }
-                    sslConnector(
-                        keyStore = keyStore,
-                        keyAlias = keyAlias,
-                        keyStorePassword = { sslCertificateManager.getKeyStorePassword() },
-                        privateKeyPassword = { sslCertificateManager.getKeyStorePassword() },
-                    ) {
-                        // Unlike the plain ws connector (kept on [host], i.e. localhost, reachable
-                        // only via ADB forwarding), the TLS connector listens on all interfaces so
-                        // physical devices on the same network (e.g. iPhones) can connect. The
-                        // channel is encrypted and clients pin the local CA, so LAN exposure is
-                        // limited to the encrypted endpoint.
-                        this.host = "0.0.0.0"
-                        this.port = wssPort
-                    }
-                },
-                module = { configureWebSocket(host, port, wssPort) },
-            )
-        } else {
-            embeddedServer(
-                factory = Netty,
-                host = host,
-                port = port,
-                module = { configureWebSocket(host, port, null) },
-            )
+        buildTlsServer(wssPort, keyStore, keyAlias).also {
+            it.startSuspend()
+            tlsServer = it
+        }
+        return true
+    }
+
+    /**
+     * Observes the active certificate and hot-swaps the TLS server whenever it changes while the
+     * server is running. The current active certificate the TLS server already started with is
+     * dropped so only subsequent changes trigger a restart.
+     */
+    private fun startCertificateObserver() {
+        certificateObserverJob?.cancel()
+        certificateObserverJob = coroutineScope.launch {
+            sslCertificateManager.certificatesFlow
+                .map { certificates -> certificates.find { it.isActive }?.id }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { restartTlsServer() }
         }
     }
 
-    private fun Application.configureWebSocket(
-        host: String,
-        port: Int,
-        wssPort: Int?,
-    ) {
+    /**
+     * Stops and restarts only the TLS server with the currently active certificate. The overall
+     * status stays [DebugWebSocketServerStatus.Started] throughout (the plain server is unaffected),
+     * so the reported wss port does not flap during the sub-second swap. In-flight wss sessions drop
+     * and agents reconnect against the new certificate; plain-ws sessions are untouched. Restarts
+     * are serialized on [tlsServerMutex] so rapid certificate changes cannot race.
+     */
+    private suspend fun restartTlsServer() {
+        tlsServerMutex.withLock {
+            val wssPort = currentWssPort ?: return
+            tlsServer?.stopSuspend()
+            tlsServer = null
+            startTlsServerLocked(wssPort)
+        }
+    }
+
+    private fun Application.configureWebSocket() {
         install(WebSockets.Plugin) {
             contentConverter = KotlinxWebsocketSerializationConverter(json)
-        }
-
-        monitor.subscribe(ApplicationStarted) {
-            mutableStatusFlow.update {
-                DebugWebSocketServerStatus.Started(host, port, wssPort)
-            }
-        }
-
-        monitor.subscribe(ApplicationStopped) {
-            mutableStatusFlow.update {
-                DebugWebSocketServerStatus.Stopped
-            }
         }
 
         routing {
             // Serves the active CA certificate over the plain channel so agents can fetch and pin it
             // at connect time (trust-on-first-use) without hardcoding a PEM. The CA certificate is
             // public trust-anchor material, so exposing it is not a secret leak. Routes apply to both
-            // connectors, which is acceptable here.
+            // servers, which is acceptable here.
             get("/jetwhale/ca") {
                 val caCertificatePem = sslCertificateManager.getActiveCertificate()?.caCertificatePem
                 if (caCertificatePem == null) {
