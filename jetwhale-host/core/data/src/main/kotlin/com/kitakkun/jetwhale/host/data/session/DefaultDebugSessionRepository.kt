@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.data.session
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
+import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAppMetadata
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -30,6 +31,7 @@ class DefaultDebugSessionRepository : DebugSessionRepository {
         sessionName: String?,
         transportSecurity: SessionTransportSecurity,
         installedPlugins: List<JetWhalePluginInfo>,
+        appMetadata: JetWhaleAppMetadata,
     ) {
         mutableDebugSessions.update { sessions ->
             sessions.toMutableMap().apply {
@@ -41,6 +43,10 @@ class DefaultDebugSessionRepository : DebugSessionRepository {
                         isActive = true,
                         transportSecurity = transportSecurity,
                         installedPlugins = installedPlugins.toImmutableList(),
+                        appName = appMetadata.appName,
+                        deviceId = appMetadata.deviceId,
+                        deviceName = appMetadata.deviceName,
+                        appIconPngBase64 = appMetadata.appIconPngBase64,
                     ),
                 )
             }.toPersistentMap()

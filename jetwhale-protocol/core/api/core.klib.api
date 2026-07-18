@@ -387,8 +387,10 @@ sealed interface com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotia
     }
 
     final class Session : com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest { // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session|null[0]
-        constructor <init>(kotlin/String?, kotlin/String) // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.<init>|<init>(kotlin.String?;kotlin.String){}[0]
+        constructor <init>(kotlin/String?, kotlin/String, com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata = ...) // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.<init>|<init>(kotlin.String?;kotlin.String;com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAppMetadata){}[0]
 
+        final val appMetadata // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.appMetadata|{}appMetadata[0]
+            final fun <get-appMetadata>(): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.appMetadata.<get-appMetadata>|<get-appMetadata>(){}[0]
         final val sessionId // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.sessionId|{}sessionId[0]
             final fun <get-sessionId>(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.sessionId.<get-sessionId>|<get-sessionId>(){}[0]
         final val sessionName // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.sessionName|{}sessionName[0]
@@ -396,7 +398,8 @@ sealed interface com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotia
 
         final fun component1(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.component1|component1(){}[0]
         final fun component2(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.component2|component2(){}[0]
-        final fun copy(kotlin/String? = ..., kotlin/String = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.copy|copy(kotlin.String?;kotlin.String){}[0]
+        final fun component3(): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.component3|component3(){}[0]
+        final fun copy(kotlin/String? = ..., kotlin/String = ..., com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.copy|copy(kotlin.String?;kotlin.String;com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAppMetadata){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.toString|toString(){}[0]
@@ -627,6 +630,41 @@ final class com.kitakkun.jetwhale.protocol.messaging/JetWhalePluginPeer { // com
 
 final class com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequestException : com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessagingException { // com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequestException|null[0]
     constructor <init>(kotlin/String, kotlin/Throwable? = ...) // com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequestException.<init>|<init>(kotlin.String;kotlin.Throwable?){}[0]
+}
+
+final class com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata { // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata|null[0]
+    constructor <init>(kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ...) // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.<init>|<init>(kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?){}[0]
+
+    final val appIconPngBase64 // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.appIconPngBase64|{}appIconPngBase64[0]
+        final fun <get-appIconPngBase64>(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.appIconPngBase64.<get-appIconPngBase64>|<get-appIconPngBase64>(){}[0]
+    final val appName // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.appName|{}appName[0]
+        final fun <get-appName>(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.appName.<get-appName>|<get-appName>(){}[0]
+    final val deviceId // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.deviceId|{}deviceId[0]
+        final fun <get-deviceId>(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.deviceId.<get-deviceId>|<get-deviceId>(){}[0]
+    final val deviceName // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.deviceName|{}deviceName[0]
+        final fun <get-deviceName>(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.deviceName.<get-deviceName>|<get-deviceName>(){}[0]
+
+    final fun component1(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.component1|component1(){}[0]
+    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.component2|component2(){}[0]
+    final fun component3(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.component3|component3(){}[0]
+    final fun component4(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.component4|component4(){}[0]
+    final fun copy(kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.copy|copy(kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata> { // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata) // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAppMetadata){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata> // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.Companion.serializer|serializer(){}[0]
+    }
 }
 
 final class com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo { // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo|null[0]

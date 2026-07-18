@@ -17,11 +17,15 @@ public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
     JetWhaleLogger.setKtorLogLevel(configuration.logging.ktorLogLevel)
 
     val json = JetWhaleJson
+    val appMetadata = resolveAppMetadata(configuration.app.toResolvedConfiguration())
     val service: JetWhaleMessagingService =
         DefaultJetWhaleMessagingService(
             socketClient = KtorWebSocketClient(
                 json = json,
-                negotiationStrategy = DefaultClientSessionNegotiationStrategy(configuration.plugins.plugins),
+                negotiationStrategy = DefaultClientSessionNegotiationStrategy(
+                    plugins = configuration.plugins.plugins,
+                    appMetadata = appMetadata,
+                ),
                 sslConfiguration = configuration.connection.sslConfiguration,
             ),
             pluginService = JetWhaleAgentPluginService(
@@ -42,6 +46,34 @@ public interface JetWhaleConfigurationScope {
     public fun connection(configure: JetWhaleConnectionConfigurationScope.() -> Unit)
     public fun logging(configure: JetWhaleLoggingConfigurationScope.() -> Unit)
     public fun plugins(configure: JetWhalePluginConfigurationScope.() -> Unit)
+
+    /**
+     * Configures the application/device metadata reported to the host during session negotiation.
+     * All values are optional: unset values are auto-resolved per platform on a best-effort basis.
+     */
+    public fun app(configure: JetWhaleAppConfigurationScope.() -> Unit)
+}
+
+/**
+ * DSL scope for the application/device metadata reported to the host.
+ * Explicit values set here always take precedence over auto-resolved defaults.
+ */
+@JetWhaleDsl
+public interface JetWhaleAppConfigurationScope {
+    /** Human-readable application name. Auto-resolved on Android/iOS/macOS when left null. */
+    public var appName: String?
+
+    /** Stable per-device identifier used by the host to group sessions. Auto-resolved on Android/iOS when left null. */
+    public var deviceId: String?
+
+    /** Human-readable device name. Defaults to the platform device/host name when left null. */
+    public var deviceName: String?
+
+    /**
+     * Application icon as PNG bytes. Provide an image already downscaled to at most 64x64 pixels;
+     * icons whose encoded PNG exceeds 32KB are dropped so the negotiation payload stays small.
+     */
+    public var appIconPng: ByteArray?
 }
 
 @JetWhaleDsl
@@ -106,6 +138,7 @@ private class JetWhaleConfiguration : JetWhaleConfigurationScope {
     val connection: JetWhaleConnectionConfiguration = JetWhaleConnectionConfiguration()
     val logging: JetWhaleLoggingConfiguration = JetWhaleLoggingConfiguration()
     val plugins: JetWhalePluginConfiguration = JetWhalePluginConfiguration()
+    val app: JetWhaleAppConfiguration = JetWhaleAppConfiguration()
 
     override fun connection(configure: JetWhaleConnectionConfigurationScope.() -> Unit) {
         connection.configure()
@@ -118,6 +151,24 @@ private class JetWhaleConfiguration : JetWhaleConfigurationScope {
     override fun plugins(configure: JetWhalePluginConfigurationScope.() -> Unit) {
         plugins.configure()
     }
+
+    override fun app(configure: JetWhaleAppConfigurationScope.() -> Unit) {
+        app.configure()
+    }
+}
+
+private class JetWhaleAppConfiguration : JetWhaleAppConfigurationScope {
+    override var appName: String? = null
+    override var deviceId: String? = null
+    override var deviceName: String? = null
+    override var appIconPng: ByteArray? = null
+
+    fun toResolvedConfiguration(): ResolvedAppConfiguration = ResolvedAppConfiguration(
+        appName = appName,
+        deviceId = deviceId,
+        deviceName = deviceName,
+        appIconPng = appIconPng,
+    )
 }
 
 private class JetWhaleConnectionConfiguration : JetWhaleConnectionConfigurationScope {

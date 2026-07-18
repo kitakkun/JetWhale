@@ -66,6 +66,9 @@ private fun DebugSession.toSessionInfo() = SessionInfo(
     sessionName = name,
     isActive = isActive,
     installedPlugins = installedPlugins.map { it.pluginId },
+    appName = appName,
+    deviceId = deviceId,
+    deviceName = deviceName,
 )
 
 @Inject
@@ -120,6 +123,9 @@ data class SessionInfo(
     val sessionName: String?,
     val isActive: Boolean,
     val installedPlugins: List<String>,
+    val appName: String? = null,
+    val deviceId: String? = null,
+    val deviceName: String? = null,
 )
 
 @Serializable

@@ -38,4 +38,5 @@ internal object JetWhaleSerialNames {
     // model/*
     const val MODEL_PLUGIN_INFO = "model/plugin_info"
     const val MODEL_PROTOCOL_VERSION = "model/protocol_version"
+    const val MODEL_APP_METADATA = "model/app_metadata"
 }

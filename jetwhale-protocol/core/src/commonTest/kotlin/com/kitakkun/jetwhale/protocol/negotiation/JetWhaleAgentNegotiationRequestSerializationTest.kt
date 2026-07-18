@@ -29,14 +29,45 @@ class JetWhaleAgentNegotiationRequestSerializationTest : JetWhaleSerializationTe
         val request = JetWhaleAgentNegotiationRequest.Session(
             sessionId = null,
             sessionName = "SessionName",
+            appMetadata = JetWhaleAppMetadata(
+                appName = "Sample App",
+                deviceId = "device-1",
+                deviceName = "Pixel 8",
+                appIconPngBase64 = "aWNvbg==",
+            ),
         )
 
         val encoded = json.encodeToString(request)
 
         assertEquals(
-            expected = """{"type":"negotiation/agent/session","sessionId":null,"sessionName":"SessionName"}""",
+            expected = """{"type":"negotiation/agent/session","sessionId":null,"sessionName":"SessionName","appMetadata":{"type":"model/app_metadata","appName":"Sample App","deviceId":"device-1","deviceName":"Pixel 8","appIconPngBase64":"aWNvbg=="}}""",
             actual = encoded,
         )
+    }
+
+    @Test
+    fun `session negotiation request without app metadata should serialize the default metadata`() {
+        val request = JetWhaleAgentNegotiationRequest.Session(
+            sessionId = null,
+            sessionName = "SessionName",
+        )
+
+        val encoded = json.encodeToString(request)
+
+        assertEquals(
+            expected = """{"type":"negotiation/agent/session","sessionId":null,"sessionName":"SessionName","appMetadata":{"type":"model/app_metadata","appName":null,"deviceId":null,"deviceName":null,"appIconPngBase64":null}}""",
+            actual = encoded,
+        )
+    }
+
+    @Test
+    fun `legacy session negotiation request without app metadata should be deserializable`() {
+        val jsonString = """{"type":"negotiation/agent/session","sessionId":"session-1","sessionName":"My Session"}"""
+
+        val decoded = json.decodeFromString<JetWhaleAgentNegotiationRequest>(jsonString)
+
+        val session = assertIs<JetWhaleAgentNegotiationRequest.Session>(decoded)
+        assertEquals(JetWhaleAppMetadata(), session.appMetadata)
     }
 
     @Test

@@ -103,6 +103,7 @@ class DefaultDebugWebSocketServer(
                 sessionName = opened.result.session.sessionName,
                 transportSecurity = opened.transportSecurity,
                 installedPlugins = opened.result.plugin.requestedPlugins,
+                appMetadata = opened.result.session.appMetadata,
             )
         }
     }
