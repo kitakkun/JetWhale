@@ -110,8 +110,8 @@ class NetworkMcpCommandsTest {
             override val description = "declares a parameter inside execute"
 
             override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-                stringOrNull("late", "declared too late")
-                return "unreachable"
+                val late by stringOrNull("declared too late")
+                return late.name
             }
         }
         command.toDescriptor()
@@ -126,8 +126,8 @@ class NetworkMcpCommandsTest {
                 override val name = "test.dup"
                 override val description = "declares the same name twice"
 
-                private val first = stringOrNull("x", "first declaration")
-                private val second = stringOrNull("x", "second declaration")
+                private val first by stringOrNull("first declaration", name = "x")
+                private val second by stringOrNull("second declaration", name = "x")
 
                 override suspend fun execute(arguments: JetWhaleMcpArguments): String = "unused"
             }

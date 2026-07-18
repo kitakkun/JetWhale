@@ -1,19 +1,23 @@
 package com.kitakkun.jetwhale.host.sdk
 
+import kotlin.properties.PropertyDelegateProvider
+import kotlin.properties.ReadOnlyProperty
+import kotlin.reflect.KProperty
+
 /**
  * One MCP tool as a self-contained unit: its name, documentation, parameter schema, and
  * execution logic live in a single class.
  *
- * Parameters are declared once as typed properties via the protected factory functions, and read
- * back through the same property — the schema shown to the AI agent and the code consuming the
- * arguments cannot drift apart, and there are no repeated string keys:
+ * Parameters are declared once as delegated properties — the property name becomes the
+ * parameter name shown to the AI agent, and the value is read back through the same property,
+ * so a parameter has exactly one definition and its type is checked at compile time:
  * ```kotlin
  * class InspectWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpCommand() {
  *     override val name = "com.example.myplugin.inspectWidget"
  *     override val description = "Inspect the selected widget"
  *
- *     private val widgetId = string("widgetId", "The widget ID")
- *     private val verbose = booleanOrNull("verbose", "Include layout details.")
+ *     private val widgetId by string("The widget ID")
+ *     private val verbose by booleanOrNull("Include layout details.")
  *
  *     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
  *         return widgets.describeAsJson(id = arguments[widgetId], verbose = arguments[verbose] ?: false)
@@ -64,45 +68,55 @@ public abstract class JetWhaleMcpCommand {
         },
     )
 
-    // -- Parameter declaration (call from property initializers) ------------------------------
+    // -- Parameter declaration (use with `by` on a property; the property name is the parameter
+    // name unless overridden via the `name` argument) ---------------------------------------
 
-    protected fun string(name: String, description: String): JetWhaleMcpParameter<String> = required(name, "string", description) { it }
+    protected fun string(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<String> = requiredDeclaration(name, "string", description) { _, value -> value }
 
-    protected fun stringOrNull(name: String, description: String): JetWhaleMcpParameter<String?> = optional(name, "string", description) { it }
+    protected fun stringOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<String?> = optionalDeclaration(name, "string", description) { _, value -> value }
 
-    protected fun int(name: String, description: String): JetWhaleMcpParameter<Int> = required(name, "integer", description) { parseInt(name, it) }
+    protected fun int(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Int> = requiredDeclaration(name, "integer", description, ::parseInt)
 
-    protected fun intOrNull(name: String, description: String): JetWhaleMcpParameter<Int?> = optional(name, "integer", description) { parseInt(name, it) }
+    protected fun intOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Int?> = optionalDeclaration(name, "integer", description, ::parseInt)
 
-    protected fun long(name: String, description: String): JetWhaleMcpParameter<Long> = required(name, "integer", description) { parseLong(name, it) }
+    protected fun long(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Long> = requiredDeclaration(name, "integer", description, ::parseLong)
 
-    protected fun longOrNull(name: String, description: String): JetWhaleMcpParameter<Long?> = optional(name, "integer", description) { parseLong(name, it) }
+    protected fun longOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Long?> = optionalDeclaration(name, "integer", description, ::parseLong)
 
-    protected fun boolean(name: String, description: String): JetWhaleMcpParameter<Boolean> = required(name, "boolean", description) { parseBoolean(name, it) }
+    protected fun boolean(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Boolean> = requiredDeclaration(name, "boolean", description, ::parseBoolean)
 
-    protected fun booleanOrNull(name: String, description: String): JetWhaleMcpParameter<Boolean?> = optional(name, "boolean", description) { parseBoolean(name, it) }
-
-    /** Matches [entries] by enum name, case-insensitively. */
-    protected fun <T : Enum<T>> enum(name: String, description: String, entries: List<T>): JetWhaleMcpParameter<T> = required(name, "string", description) { parseEnum(name, it, entries) }
+    protected fun booleanOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<Boolean?> = optionalDeclaration(name, "boolean", description, ::parseBoolean)
 
     /** Matches [entries] by enum name, case-insensitively. */
-    protected fun <T : Enum<T>> enumOrNull(name: String, description: String, entries: List<T>): JetWhaleMcpParameter<T?> = optional(name, "string", description) { parseEnum(name, it, entries) }
+    protected fun <T : Enum<T>> enum(description: String, entries: List<T>, name: String? = null): JetWhaleMcpParameterDeclaration<T> = requiredDeclaration(name, "string", description) { paramName, value -> parseEnum(paramName, value, entries) }
 
-    private fun <T : Any> required(name: String, type: String, description: String, parse: (String) -> T): JetWhaleMcpParameter<T> = declare(
-        JetWhaleMcpParameter(name = name, type = type, description = description, required = true) { raw ->
-            raw[name]?.let(parse) ?: throw JetWhaleMcpArgumentException("missing required argument: $name")
-        },
-    )
+    /** Matches [entries] by enum name, case-insensitively. */
+    protected fun <T : Enum<T>> enumOrNull(description: String, entries: List<T>, name: String? = null): JetWhaleMcpParameterDeclaration<T?> = optionalDeclaration(name, "string", description) { paramName, value -> parseEnum(paramName, value, entries) }
 
-    private fun <T : Any> optional(name: String, type: String, description: String, parse: (String) -> T): JetWhaleMcpParameter<T?> = declare(
-        JetWhaleMcpParameter(name = name, type = type, description = description, required = false) { raw ->
-            raw[name]?.let(parse)
-        },
-    )
+    private fun <T : Any> requiredDeclaration(name: String?, type: String, description: String, parse: (String, String) -> T): JetWhaleMcpParameterDeclaration<T> = JetWhaleMcpParameterDeclaration(
+        command = this,
+        explicitName = name,
+        type = type,
+        description = description,
+        required = true,
+    ) { paramName, raw ->
+        raw[paramName]?.let { parse(paramName, it) }
+            ?: throw JetWhaleMcpArgumentException("missing required argument: $paramName")
+    }
 
-    private fun <T> declare(parameter: JetWhaleMcpParameter<T>): JetWhaleMcpParameter<T> {
+    private fun <T : Any> optionalDeclaration(name: String?, type: String, description: String, parse: (String, String) -> T): JetWhaleMcpParameterDeclaration<T?> = JetWhaleMcpParameterDeclaration(
+        command = this,
+        explicitName = name,
+        type = type,
+        description = description,
+        required = false,
+    ) { paramName, raw ->
+        raw[paramName]?.let { parse(paramName, it) }
+    }
+
+    internal fun <T> declare(parameter: JetWhaleMcpParameter<T>): JetWhaleMcpParameter<T> {
         check(!parametersSealed) {
-            "Parameter '${parameter.name}' was declared after the parameter list of '$name' was read. Declare parameters only in property initializers, never inside execute() or conditionally."
+            "Parameter '${parameter.name}' was declared after the parameter list of '$name' was read. Declare parameters only as property declarations on the command, never inside execute()."
         }
         check(declaredParameters.none { it.name == parameter.name }) {
             "Parameter '${parameter.name}' is declared twice on '$name'."
@@ -124,8 +138,36 @@ public abstract class JetWhaleMcpCommand {
 }
 
 /**
- * A single typed parameter of a [JetWhaleMcpCommand]. Created via the command's protected
- * factory functions; read with [JetWhaleMcpArguments.get].
+ * The right-hand side of a `by` parameter declaration on a [JetWhaleMcpCommand]. Registration
+ * happens in [provideDelegate], so a parameter can only come into existence as a property
+ * declaration — the parameter name defaults to the property name.
+ */
+@ExperimentalJetWhaleApi
+public class JetWhaleMcpParameterDeclaration<T> internal constructor(
+    private val command: JetWhaleMcpCommand,
+    private val explicitName: String?,
+    private val type: String,
+    private val description: String,
+    private val required: Boolean,
+    private val extract: (name: String, raw: Map<String, String>) -> T,
+) : PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, JetWhaleMcpParameter<T>>> {
+    override fun provideDelegate(thisRef: Any?, property: KProperty<*>): ReadOnlyProperty<Any?, JetWhaleMcpParameter<T>> {
+        val parameterName = explicitName ?: property.name
+        val parameter = command.declare(
+            JetWhaleMcpParameter(
+                name = parameterName,
+                type = type,
+                description = description,
+                required = required,
+            ) { raw -> extract(parameterName, raw) },
+        )
+        return ReadOnlyProperty { _, _ -> parameter }
+    }
+}
+
+/**
+ * A single typed parameter of a [JetWhaleMcpCommand]. Obtained by reading a `by`-declared
+ * parameter property; read the value with [JetWhaleMcpArguments.get].
  */
 @ExperimentalJetWhaleApi
 public class JetWhaleMcpParameter<T> internal constructor(

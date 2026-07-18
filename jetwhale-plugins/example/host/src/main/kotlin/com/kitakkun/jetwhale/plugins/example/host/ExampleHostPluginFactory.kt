@@ -86,10 +86,10 @@ private class ExampleHostPlugin :
             override val name = "com.kitakkun.jetwhale.example.getEventLogs"
             override val description = "Returns the list of event log entries accumulated by the Example plugin."
 
-            private val limitParam = intOrNull("limit", "Maximum number of log entries to return. Returns all entries if omitted.")
+            private val limit by intOrNull("Maximum number of log entries to return. Returns all entries if omitted.")
 
             override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-                val limit = arguments[limitParam]
+                val limit = arguments[this.limit]
                 val logs = if (limit != null) eventLogs.takeLast(limit) else eventLogs.toList()
                 return Json.encodeToJsonElement(logs).toString()
             }

@@ -17,10 +17,10 @@ internal class RemoveMockRuleCommand(
     override val name = "$TOOL_PREFIX.removeMockRule"
     override val description = "Removes the mock rule with the given id."
 
-    private val idParam = string("id", "The rule id from getMockConfig or addMockRule.")
+    private val id by string("The rule id from getMockConfig or addMockRule.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val id = arguments[idParam]
+        val id = arguments[this.id]
         val current = mockRules()
         val remaining = current.filterNot { it.id == id }
         if (remaining.size == current.size) throw JetWhaleMcpArgumentException("no mock rule with id: $id")

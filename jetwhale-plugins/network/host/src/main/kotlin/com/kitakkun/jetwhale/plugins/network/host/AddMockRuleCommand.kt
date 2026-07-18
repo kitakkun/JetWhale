@@ -21,32 +21,33 @@ internal class AddMockRuleCommand(
     override val description =
         "Adds a mock rule: requests matching the URL pattern (and optional method) receive the canned response instead of hitting the network. Returns the created rule."
 
-    private val urlPatternParam = string("urlPattern", "URL pattern to match, interpreted per matchType.")
-    private val matchTypeParam = enumOrNull(
-        "matchType",
+    private val urlPattern by string("URL pattern to match, interpreted per matchType.")
+    private val matchType by enumOrNull(
         "How urlPattern is compared: CONTAINS, EXACT, or REGEX. Defaults to CONTAINS.",
         MockMatchType.entries,
     )
-    private val methodParam = stringOrNull("method", "HTTP method to match (case-insensitive). Matches any method if omitted.")
-    private val ruleNameParam = stringOrNull("name", "Human-readable rule name shown in the UI.")
-    private val statusCodeParam = intOrNull("statusCode", "Status code of the mocked response. Defaults to 200.")
-    private val bodyParam = stringOrNull("body", "Body of the mocked response. Defaults to empty.")
-    private val delayMsParam = longOrNull("delayMs", "Artificial delay before the mocked response is delivered, in milliseconds. Defaults to 0.")
+    private val method by stringOrNull("HTTP method to match (case-insensitive). Matches any method if omitted.")
+
+    // The property cannot be called `name` (that is the tool name), so the wire name is overridden.
+    private val ruleName by stringOrNull("Human-readable rule name shown in the UI.", name = "name")
+    private val statusCode by intOrNull("Status code of the mocked response. Defaults to 200.")
+    private val body by stringOrNull("Body of the mocked response. Defaults to empty.")
+    private val delayMs by longOrNull("Artificial delay before the mocked response is delivered, in milliseconds. Defaults to 0.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val rule = MockRule(
             id = UUID.randomUUID().toString(),
-            name = arguments[ruleNameParam] ?: "",
+            name = arguments[ruleName] ?: "",
             enabled = true,
             matcher = MockMatcher(
-                method = arguments[methodParam],
-                urlPattern = arguments[urlPatternParam],
-                matchType = arguments[matchTypeParam] ?: MockMatchType.CONTAINS,
+                method = arguments[method],
+                urlPattern = arguments[urlPattern],
+                matchType = arguments[matchType] ?: MockMatchType.CONTAINS,
             ),
             response = MockResponseSpec(
-                statusCode = arguments[statusCodeParam] ?: 200,
-                body = arguments[bodyParam] ?: "",
-                delayMs = arguments[delayMsParam] ?: 0L,
+                statusCode = arguments[statusCode] ?: 200,
+                body = arguments[body] ?: "",
+                delayMs = arguments[delayMs] ?: 0L,
             ),
         )
         return when (val failure = syncMockRules(mockRules() + rule)) {
