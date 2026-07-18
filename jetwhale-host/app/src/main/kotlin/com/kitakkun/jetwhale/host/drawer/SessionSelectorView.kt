@@ -1,6 +1,10 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -95,34 +99,41 @@ fun SessionSelectorView(
                 )
             }
             if (disconnectedSessions.isNotEmpty()) {
-                var disconnectedExpanded by remember { mutableStateOf(false) }
+                val groupInteractionSource = remember { MutableInteractionSource() }
+                val hovered by groupInteractionSource.collectIsHoveredAsState()
+                var pinnedExpanded by remember { mutableStateOf(false) }
+                val disconnectedExpanded = hovered || pinnedExpanded
                 val groupStateDescription = stringResource(
                     if (disconnectedExpanded) Res.string.group_expanded else Res.string.group_collapsed,
                 )
-                DropdownMenuItem(
-                    text = {
-                        Text(stringResource(Res.string.disconnected_sessions, disconnectedSessions.size))
-                    },
-                    trailingIcon = {
-                        Icon(
-                            imageVector = if (disconnectedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = null,
-                        )
-                    },
-                    onClick = { disconnectedExpanded = !disconnectedExpanded },
-                    modifier = Modifier.semantics { stateDescription = groupStateDescription },
-                )
-                if (disconnectedExpanded) {
-                    disconnectedSessions.forEach {
-                        SessionDropdownMenuItem(
-                            selected = it.id == selectedSession?.id,
-                            isActive = it.isActive,
-                            displayName = it.displayName,
-                            onClick = {
-                                onSelectSession(it)
-                                expanded = false
-                            },
-                        )
+                Column(
+                    modifier = Modifier.hoverable(interactionSource = groupInteractionSource),
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(stringResource(Res.string.disconnected_sessions, disconnectedSessions.size))
+                        },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = if (disconnectedExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = { pinnedExpanded = !pinnedExpanded },
+                        modifier = Modifier.semantics { stateDescription = groupStateDescription },
+                    )
+                    if (disconnectedExpanded) {
+                        disconnectedSessions.forEach {
+                            SessionDropdownMenuItem(
+                                selected = it.id == selectedSession?.id,
+                                isActive = it.isActive,
+                                displayName = it.displayName,
+                                onClick = {
+                                    onSelectSession(it)
+                                    expanded = false
+                                },
+                            )
+                        }
                     }
                 }
             }
