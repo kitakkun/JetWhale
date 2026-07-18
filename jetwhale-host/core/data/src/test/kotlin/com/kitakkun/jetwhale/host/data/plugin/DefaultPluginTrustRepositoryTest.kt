@@ -77,7 +77,7 @@ class DefaultPluginTrustRepositoryTest {
     }
 
     @Test
-    fun aTamperedRegistryIsRejectedWholesale() = runBlocking {
+    fun `a tampered registry is rejected wholesale`() = runBlocking {
         newRepository().trust("/plugins/a.jar", "hash-a")
 
         // Simulate a malicious process rewriting the file: swap in a different hash while leaving
@@ -89,14 +89,14 @@ class DefaultPluginTrustRepositoryTest {
     }
 
     @Test
-    fun anUnsignedRegistryIsRejectedWhenASigningKeyAlreadyExists() = runBlocking {
+    fun `an unsigned registry is rejected when a signing key already exists`() = runBlocking {
         newRepository(FakeTrustRegistrySigner(available = false)).trust("/plugins/a.jar", "hash-a")
 
         assertNull(newRepository(FakeTrustRegistrySigner(keyPreexisted = true)).trustedEntry("/plugins/a.jar"))
     }
 
     @Test
-    fun anUnsignedRegistryIsAcceptedOnFirstRunWithANewSigningKey() = runBlocking {
+    fun `an unsigned registry is accepted on first run with a new signing key`() = runBlocking {
         // Upgrade path: the registry predates registry signing, so no signature exists yet. The
         // key being brand new proves no signed registry could ever have been written.
         newRepository(FakeTrustRegistrySigner(available = false)).trust("/plugins/a.jar", "hash-a")
@@ -106,7 +106,7 @@ class DefaultPluginTrustRepositoryTest {
     }
 
     @Test
-    fun registryIsLoadedWithoutVerificationWhenTheCredentialStoreIsUnavailable() = runBlocking {
+    fun `registry is loaded without verification when the credential store is unavailable`() = runBlocking {
         newRepository().trust("/plugins/a.jar", "hash-a")
 
         val reloaded = newRepository(FakeTrustRegistrySigner(available = false))
