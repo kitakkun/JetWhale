@@ -34,7 +34,23 @@ final enum class com.kitakkun.jetwhale.agent.runtime/LogLevel : kotlin/Enum<com.
     final fun values(): kotlin/Array<com.kitakkun.jetwhale.agent.runtime/LogLevel> // com.kitakkun.jetwhale.agent.runtime/LogLevel.values|values#static(){}[0]
 }
 
+abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope|null[0]
+    abstract var appIconPng // com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope.appIconPng|{}appIconPng[0]
+        abstract fun <get-appIconPng>(): kotlin/ByteArray? // com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope.appIconPng.<get-appIconPng>|<get-appIconPng>(){}[0]
+        abstract fun <set-appIconPng>(kotlin/ByteArray?) // com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope.appIconPng.<set-appIconPng>|<set-appIconPng>(kotlin.ByteArray?){}[0]
+    abstract var appName // com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope.appName|{}appName[0]
+        abstract fun <get-appName>(): kotlin/String? // com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope.appName.<get-appName>|<get-appName>(){}[0]
+        abstract fun <set-appName>(kotlin/String?) // com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope.appName.<set-appName>|<set-appName>(kotlin.String?){}[0]
+    abstract var deviceId // com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope.deviceId|{}deviceId[0]
+        abstract fun <get-deviceId>(): kotlin/String? // com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope.deviceId.<get-deviceId>|<get-deviceId>(){}[0]
+        abstract fun <set-deviceId>(kotlin/String?) // com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope.deviceId.<set-deviceId>|<set-deviceId>(kotlin.String?){}[0]
+    abstract var deviceName // com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope.deviceName|{}deviceName[0]
+        abstract fun <get-deviceName>(): kotlin/String? // com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope.deviceName.<get-deviceName>|<get-deviceName>(){}[0]
+        abstract fun <set-deviceName>(kotlin/String?) // com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope.deviceName.<set-deviceName>|<set-deviceName>(kotlin.String?){}[0]
+}
+
 abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope|null[0]
+    abstract fun app(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleAppConfigurationScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope.app|app(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleAppConfigurationScope,kotlin.Unit>){}[0]
     abstract fun connection(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope.connection|connection(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleConnectionConfigurationScope,kotlin.Unit>){}[0]
     abstract fun logging(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope.logging|logging(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleLoggingConfigurationScope,kotlin.Unit>){}[0]
     abstract fun plugins(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhalePluginConfigurationScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope.plugins|plugins(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhalePluginConfigurationScope,kotlin.Unit>){}[0]

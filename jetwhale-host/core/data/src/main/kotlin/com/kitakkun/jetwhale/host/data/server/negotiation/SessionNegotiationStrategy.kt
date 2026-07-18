@@ -20,6 +20,7 @@ class SessionNegotiationStrategy : NegotiationStrategy<SessionNegotiationResult>
         return SessionNegotiationResult(
             sessionId = sessionId,
             sessionName = sessionNegotiationRequest.sessionName,
+            appMetadata = sessionNegotiationRequest.appMetadata,
         )
     }
 }

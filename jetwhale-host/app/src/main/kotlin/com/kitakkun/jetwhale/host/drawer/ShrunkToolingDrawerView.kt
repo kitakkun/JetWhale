@@ -97,12 +97,12 @@ fun ShrunkToolingDrawerView(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
             ) {
-                sessions.forEach { session ->
+                sessions.filter { it.isActive }.forEach { session ->
                     SessionDropdownMenuItem(
                         selected = session.id == selectedSessionId,
                         isActive = session.isActive,
                         transportSecurity = session.transportSecurity,
-                        displayName = session.displayName,
+                        displayName = "${session.deviceDisplayName} · ${session.appDisplayName}",
                         onClick = {
                             onSelectSession(session)
                             expanded = false

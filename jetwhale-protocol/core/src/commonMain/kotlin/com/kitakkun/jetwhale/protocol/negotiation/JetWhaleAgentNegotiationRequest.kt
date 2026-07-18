@@ -33,6 +33,8 @@ public sealed interface JetWhaleAgentNegotiationRequest {
      *
      * @param sessionId the session ID to join. If null, a new session is requested.
      * @param sessionName the name of the session which is displayed in the host UI.
+     * @param appMetadata optional application/device metadata used by the host to group sessions.
+     *   Added additively with a default so older hosts and agents keep interoperating.
      * @see [JetWhaleHostNegotiationResponse.AcceptSession] for response
      */
     @SerialName(JetWhaleSerialNames.NEGOTIATION_AGENT_SESSION)
@@ -40,6 +42,7 @@ public sealed interface JetWhaleAgentNegotiationRequest {
     public data class Session(
         val sessionId: String?,
         val sessionName: String,
+        val appMetadata: JetWhaleAppMetadata = JetWhaleAppMetadata(),
     ) : JetWhaleAgentNegotiationRequest
 
     /**

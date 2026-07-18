@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.agent.runtime
 
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAgentNegotiationRequest
+import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAppMetadata
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleHostNegotiationResponse
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleProtocolVersion
@@ -9,7 +10,10 @@ import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.sendSerialized
 import kotlin.coroutines.cancellation.CancellationException
 
-internal class DefaultClientSessionNegotiationStrategy(private val plugins: List<AgentPlugin>) : ClientSessionNegotiationStrategy {
+internal class DefaultClientSessionNegotiationStrategy(
+    private val plugins: List<AgentPlugin>,
+    private val appMetadata: JetWhaleAppMetadata,
+) : ClientSessionNegotiationStrategy {
     private var sessionId: String? = null
 
     override suspend fun DefaultClientWebSocketSession.negotiate(): ClientSessionNegotiationResult = try {
@@ -58,7 +62,8 @@ internal class DefaultClientSessionNegotiationStrategy(private val plugins: List
         sendSerialized(
             JetWhaleAgentNegotiationRequest.Session(
                 sessionId = resumingSessionId,
-                sessionName = getDeviceModelName(),
+                sessionName = appMetadata.deviceName ?: getDeviceModelName(),
+                appMetadata = appMetadata,
             ),
         )
         JetWhaleLogger.v("Sent session negotiation request" + " with sessionId: $resumingSessionId".takeIf { resumingSessionId != null })
