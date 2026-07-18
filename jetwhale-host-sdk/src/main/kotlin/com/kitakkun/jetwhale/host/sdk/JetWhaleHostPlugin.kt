@@ -24,16 +24,17 @@ public abstract class JetWhaleHostPlugin {
             "pluginScope is only available after the plugin instance has been bound (in or after onCreate())."
         }
 
+    private var boundStorage: JetWhalePluginStorage? = null
+
     /**
-     * Called once, right after the plugin instance is created and before [onCreate].
-     *
-     * Provides the [JetWhaleHostContext], which exposes host capabilities such as the plugin's
-     * own persistent [JetWhalePluginStorage]. The default is a no-op, so plugins that don't need
-     * the context keep working unchanged.
-     *
-     * @param host The host context scoped to this plugin instance
+     * Persistent key-value storage scoped to this plugin's own pluginId, so a plugin can never name
+     * or reach another plugin's data. Available from [onCreate]; bound by the runtime right after
+     * the instance is created.
      */
-    protected open fun onAttach(host: JetWhaleHostContext) {}
+    protected val storage: JetWhalePluginStorage
+        get() = checkNotNull(boundStorage) {
+            "storage is only available after the plugin instance has been bound (in or after onCreate())."
+        }
 
     /** Called once when this plugin instance is created, before it is shown or used. */
     protected open fun onCreate() {}
@@ -49,9 +50,10 @@ public abstract class JetWhaleHostPlugin {
         boundPluginScope = scope
     }
 
+    /** Binds the pluginId-scoped persistent storage. Called once, before [onCreate]. */
     @InternalJetWhaleHostApi
-    public fun dispatchAttach(host: JetWhaleHostContext) {
-        onAttach(host)
+    public fun bindStorage(storage: JetWhalePluginStorage) {
+        boundStorage = storage
     }
 
     @InternalJetWhaleHostApi

@@ -7,10 +7,8 @@ import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
-import com.kitakkun.jetwhale.host.sdk.JetWhaleHostContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
-import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
 import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import dev.zacsweers.metro.AppScope
@@ -45,10 +43,6 @@ private class LoadedInstance(
     /** Backs the plugin's `pluginScope`; cancelled when the instance is disposed. */
     val instanceScope: CoroutineScope,
 )
-
-private class PluginHostContext(
-    override val storage: JetWhalePluginStorage,
-) : JetWhaleHostContext
 
 @OptIn(InternalJetWhaleHostApi::class)
 @Inject
@@ -106,13 +100,9 @@ class DefaultPluginInstanceService(
         val instanceScope = CoroutineScope(scope.coroutineContext + SupervisorJob(scope.coroutineContext[Job]))
         plugin.bindPluginScope(instanceScope)
 
-        // Hand the plugin a host context whose storage is already scoped to its own
-        // pluginId, so it can never name or reach another plugin's data.
-        try {
-            plugin.dispatchAttach(PluginHostContext(pluginDataStoreRepository.storageFor(pluginId)))
-        } catch (e: Throwable) {
-            logger.warning("onAttach for plugin '$pluginId' in session '$sessionId' failed: ${e.message}")
-        }
+        // Hand the plugin a storage handle already scoped to its own pluginId, so it can never
+        // name or reach another plugin's data.
+        plugin.bindStorage(pluginDataStoreRepository.storageFor(pluginId))
 
         // User code below (registerHandlers, onCreate) is guarded: this runs inside the map's
         // computeIfAbsent, and a throwing plugin must neither leak the just-created peer/scope nor

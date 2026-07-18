@@ -26,7 +26,9 @@ import kotlinx.serialization.json.JsonObject
 import okio.BufferedSink
 import okio.BufferedSource
 import okio.FileSystem
+import okio.Path.Companion.toPath
 import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Logger
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
@@ -48,12 +50,36 @@ class DefaultPluginDataStoreRepository(
             serializer = JsonObjectOkioSerializer,
             producePath = { appDataDirectoryProvider.resolvePluginDataFilePath(pluginId) },
         ),
-        corruptionHandler = ReplaceFileCorruptionHandler { EMPTY_JSON_OBJECT },
+        corruptionHandler = ReplaceFileCorruptionHandler { exception ->
+            // Replacing a corrupted store keeps the plugin functional, but silently discarding user
+            // data would be dangerous — keep a timestamped copy next to the store for recovery and
+            // make the incident visible in the logs.
+            backUpCorruptedStore(pluginId, exception)
+            EMPTY_JSON_OBJECT
+        },
         scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     )
 
+    private fun backUpCorruptedStore(pluginId: String, exception: CorruptionException) {
+        val storePath = appDataDirectoryProvider.resolvePluginDataFilePath(pluginId)
+        runCatching {
+            val backupPath = "$storePath.corrupted-${System.currentTimeMillis()}".toPath()
+            FileSystem.SYSTEM.copy(storePath, backupPath)
+            logger.warning(
+                "Persistent store for plugin '$pluginId' is corrupted and has been reset. " +
+                    "The corrupted file was backed up to $backupPath (cause: ${exception.message})",
+            )
+        }.onFailure { e ->
+            logger.warning(
+                "Persistent store for plugin '$pluginId' is corrupted and has been reset; " +
+                    "backing up the corrupted file failed: ${e.message}",
+            )
+        }
+    }
+
     private companion object {
         val EMPTY_JSON_OBJECT = JsonObject(emptyMap())
+        val logger: Logger = Logger.getLogger(DefaultPluginDataStoreRepository::class.java.name)
     }
 }
 

@@ -5,7 +5,7 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.serializer
 
 /**
- * Per-plugin persistent key-value storage handed to a plugin via [JetWhaleHostContext.storage].
+ * Per-plugin persistent key-value storage exposed to a plugin via [JetWhaleHostPlugin.storage].
  *
  * Every handle a plugin receives is already scoped to that plugin's own `pluginId` by the host: a
  * plugin can neither name another plugin's id nor reach its data. Values are stored on disk and
