@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.model
 
+import kotlinx.coroutines.flow.StateFlow
 import java.security.KeyStore
 
 /**
@@ -32,6 +33,9 @@ data class SslCertificateEntry(
  * invalidating apps still pinning the previous one.
  */
 interface SslCertificateManager {
+    /** Emits the current certificate entries, updated after every mutating operation. */
+    val certificatesFlow: StateFlow<List<SslCertificateEntry>>
+
     /** Returns all certificate entries, ordered by creation time. */
     fun getAllCertificates(): List<SslCertificateEntry>
 

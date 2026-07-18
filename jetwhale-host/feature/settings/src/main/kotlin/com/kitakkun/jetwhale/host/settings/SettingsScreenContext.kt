@@ -2,13 +2,16 @@ package com.kitakkun.jetwhale.host.settings
 
 import com.kitakkun.jetwhale.host.architecture.PresenterContext
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
+import com.kitakkun.jetwhale.host.model.ActivateSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.AdbAutoPortMappingMutationKey
 import com.kitakkun.jetwhale.host.model.AppColorSchemeMutationKey
 import com.kitakkun.jetwhale.host.model.AppLanguageMutationKey
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.CheckForUpdatesOnStartupMutationKey
+import com.kitakkun.jetwhale.host.model.DeleteSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
 import com.kitakkun.jetwhale.host.model.FailedPluginJarPathsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.GenerateSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.LogCaptureService
@@ -21,7 +24,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstallProgressSubscriptionKey
 import com.kitakkun.jetwhale.host.model.ServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
-import com.kitakkun.jetwhale.host.model.SslCertificateManager
+import com.kitakkun.jetwhale.host.model.SslCertificatesSubscriptionKey
 import com.kitakkun.jetwhale.host.model.TrustPluginMutationKey
 import com.kitakkun.jetwhale.host.model.UntrustedPluginJarPathsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.UpdateCheckMutationKey
@@ -48,8 +51,10 @@ class SettingsPresenterContext(
     val updateInstallMutationKey: UpdateInstallMutationKey,
     val checkForUpdatesOnStartupMutationKey: CheckForUpdatesOnStartupMutationKey,
     val hostVersionInfo: HostVersionInfo,
+    val generateSslCertificateMutationKey: GenerateSslCertificateMutationKey,
+    val activateSslCertificateMutationKey: ActivateSslCertificateMutationKey,
+    val deleteSslCertificateMutationKey: DeleteSslCertificateMutationKey,
     val logCaptureService: LogCaptureService,
-    val sslCertificateManager: SslCertificateManager,
 ) : PresenterContext
 
 /**
@@ -67,5 +72,6 @@ class SettingsScreenContext(
     val pluginInstallProgressSubscriptionKey: PluginInstallProgressSubscriptionKey,
     val serverStatusSubscriptionKey: ServerStatusSubscriptionKey,
     val mcpServerStatusSubscriptionKey: McpServerStatusSubscriptionKey,
+    val sslCertificatesSubscriptionKey: SslCertificatesSubscriptionKey,
     val presenterContext: SettingsPresenterContext,
 ) : ScreenContext
