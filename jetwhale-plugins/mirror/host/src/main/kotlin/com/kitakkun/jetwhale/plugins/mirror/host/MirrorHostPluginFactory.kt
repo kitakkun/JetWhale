@@ -27,7 +27,13 @@ class MirrorHostPluginFactory : JetWhaleHostPluginFactory {
 }
 
 private const val DEVICE_POLL_INTERVAL_MILLIS = 3_000L
-private const val FRAME_INTERVAL_MILLIS = 350L
+
+// The frame loop is paced by the screenshot capture itself (~100-300ms per adb/simctl round
+// trip); this small gap only keeps a failing capture from busy-looping.
+private const val FRAME_INTERVAL_MILLIS = 16L
+
+// Back off after a failed capture so a dead device doesn't spam error processes.
+private const val FRAME_RETRY_INTERVAL_MILLIS = 1_000L
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private class MirrorHostPlugin :
@@ -61,10 +67,11 @@ private class MirrorHostPlugin :
                         val png = device.controller.captureScreenshot()
                         latestFrame = SkiaImage.makeFromEncoded(png).toComposeImageBitmap()
                         lastError = null
+                        delay(FRAME_INTERVAL_MILLIS)
                     } catch (e: DeviceControlException) {
                         lastError = e.message
+                        delay(FRAME_RETRY_INTERVAL_MILLIS)
                     }
-                    delay(FRAME_INTERVAL_MILLIS)
                 } else {
                     delay(DEVICE_POLL_INTERVAL_MILLIS)
                 }
