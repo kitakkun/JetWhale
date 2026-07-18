@@ -2,8 +2,12 @@ package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -28,9 +32,9 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * Only called if the plugin implements [JetWhaleMcpCapablePlugin].
      */
     fun register(pluginId: String, sessionId: String, plugin: JetWhaleMcpCapablePlugin) {
-        plugin.mcpTools().forEach { descriptor ->
-            val entry = registrations.getOrPut(descriptor.name) {
-                PluginToolEntry(descriptor = descriptor, sessionToPlugin = ConcurrentHashMap())
+        plugin.mcpCommands.forEach { command ->
+            val entry = registrations.getOrPut(command.name) {
+                PluginToolEntry(descriptor = command.toDescriptor(), sessionToPlugin = ConcurrentHashMap())
             }
             entry.sessionToPlugin[sessionId] = pluginId
         }
@@ -65,7 +69,14 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
             pluginId = pluginId,
             sessionId = sessionId,
         ) as? JetWhaleMcpCapablePlugin ?: return null
-        return plugin.handleMcpTool(toolName, arguments - "sessionId")
+        val command = plugin.mcpCommands.firstOrNull { it.name == toolName } ?: return null
+        return try {
+            command.execute(JetWhaleMcpArguments(arguments - "sessionId"))
+        } catch (e: JetWhaleMcpArgumentException) {
+            // A caller mistake becomes a payload the AI agent can read and correct, instead of
+            // an MCP-level failure.
+            buildJsonObject { put("error", e.message.orEmpty()) }.toString()
+        }
     }
 
     /** Removes all registered plugin tools. Call on server stop to avoid stale entries on restart. */
