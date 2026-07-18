@@ -6,4 +6,6 @@ data class DebuggerBehaviorSettings(
     val persistData: Boolean,
     val serverPort: Int,
     val mcpServerPort: Int,
+    val wssPort: Int,
+    val wssEnabled: Boolean,
 )

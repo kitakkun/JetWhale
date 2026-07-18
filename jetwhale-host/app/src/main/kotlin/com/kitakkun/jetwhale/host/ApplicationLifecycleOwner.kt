@@ -40,9 +40,15 @@ class ApplicationLifecycleOwner(
     fun initialize() {
         mutableApplicationStateFlow.update { ApplicationState.INITIALIZING }
         coroutineScope.launch {
+            val wssPort = if (settingsRepository.wssEnabledFlow.value) {
+                settingsRepository.readWssPort()
+            } else {
+                null
+            }
             server.start(
                 host = "localhost",
                 port = settingsRepository.readServerPort(),
+                wssPort = wssPort,
             )
             mcpServerService.start(
                 host = "localhost",

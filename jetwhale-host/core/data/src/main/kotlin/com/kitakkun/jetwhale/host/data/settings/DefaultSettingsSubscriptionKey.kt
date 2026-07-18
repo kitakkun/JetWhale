@@ -23,14 +23,21 @@ class DefaultSettingsSubscriptionKey(
             defaultDebuggerSettingsRepository.checkForUpdatesOnStartupFlow,
             defaultDebuggerSettingsRepository.persistDataFlow,
             defaultDebuggerSettingsRepository.serverPortFlow,
-            defaultDebuggerSettingsRepository.mcpServerPortFlow,
-        ) { adbAutoPortMappingEnabled, checkForUpdatesOnStartup, persistData, serverPort, mcpServerPort ->
+            // combine only offers lambdas for up to five flows; the remaining ones are combined first.
+            combine(
+                defaultDebuggerSettingsRepository.mcpServerPortFlow,
+                defaultDebuggerSettingsRepository.wssPortFlow,
+                defaultDebuggerSettingsRepository.wssEnabledFlow,
+            ) { mcpServerPort, wssPort, wssEnabled -> Triple(mcpServerPort, wssPort, wssEnabled) },
+        ) { adbAutoPortMappingEnabled, checkForUpdatesOnStartup, persistData, serverPort, (mcpServerPort, wssPort, wssEnabled) ->
             DebuggerBehaviorSettings(
                 adbAutoPortMappingEnabled = adbAutoPortMappingEnabled,
                 checkForUpdatesOnStartup = checkForUpdatesOnStartup,
                 persistData = persistData,
                 serverPort = serverPort,
                 mcpServerPort = mcpServerPort,
+                wssPort = wssPort,
+                wssEnabled = wssEnabled,
             )
         }
     },

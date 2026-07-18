@@ -44,11 +44,12 @@ class DefaultDebugWebSocketServer(
 
     private var serverMonitoringJob: Job? = null
 
-    override suspend fun start(host: String, port: Int) {
+    override suspend fun start(host: String, port: Int, wssPort: Int?) {
         subscribeServerEvents()
         ktorWebSocketServer.start(
             host = host,
             port = port,
+            wssPort = wssPort,
         )
     }
 
