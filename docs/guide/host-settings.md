@@ -6,15 +6,55 @@ The JetWhale host's behavior is configured from its **Settings** screen.
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| **Server port** | `5080` | The WebSocket port debuggee apps connect to. Must match the `port` in your app's `startJetWhale { connection { ... } }` block. |
 | **ADB auto port mapping** | off | Automatically runs `adb reverse` for Android devices as they connect. See [ADB Auto Port Mapping](/guide/adb-auto-port-mapping). |
 | **Persist data** | off | Not yet implemented — the toggle exists but has no effect in the current release. |
 
 ## Server
 
+The **Settings → Server** screen configures the debug WebSocket server and its TLS certificates.
+
 | Setting | Default | Description |
 |---------|---------|-------------|
+| **Debug server port** | `5080` | The plain **ws** port debuggee apps connect to. Must match the `port` in your app's `startJetWhale { connection { ... } }` block. |
+| **wss port** | `5443` | The **secure WebSocket (wss)** port, served alongside plain ws when a certificate is active. Point the agent's `port` at this when it connects over `ssl { }`. |
 | **MCP server port** | `7080` | Port of the built-in [MCP server](/guide/mcp-server) for AI agents. |
+
+The server status line shows the running ports, e.g. *Running on port 5080 (WSS: 5443)* when wss is
+active.
+
+### SSL certificates
+
+To let agents connect over [wss](/guide/getting-started#secure-connections-wss), the host serves TLS
+using a **locally-issued certificate**. Each entry is a self-contained local PKI: a root CA plus a
+`localhost` server certificate signed by it. The host serves wss with the server certificate; the
+agent trusts the CA.
+
+From the **SSL Certificate** section you can:
+
+- **Add Certificate** — generate a new CA + server certificate and mark it active.
+- **Set Active** — switch which certificate the server uses. Multiple certificates can coexist so a
+  certificate can be rotated without immediately invalidating apps still pinning the previous one.
+- **Delete** — remove a certificate. If the active one is deleted, the first remaining certificate
+  becomes active.
+- **Show Details** — view the CA certificate in PEM form and **Copy to Clipboard**, to paste into an
+  agent's `ssl { trustCertificate(pem = "...") }`.
+
+::: warning Restart required
+Certificate changes (generate, activate, delete) only take effect after the **debug server
+restarts**. When the active certificate changes, the host prompts to restart the server now or
+later; new wss connections use the new certificate once it has restarted.
+:::
+
+### LAN exposure
+
+- **Plain ws** listens on **localhost only** — it is reachable from a device only via ADB reverse
+  forwarding, so its traffic never leaves the machine.
+- **wss** listens on **all interfaces**, so physical devices on the same network (e.g. an iPhone)
+  can connect. The channel is encrypted and clients pin the local CA, so exposure is limited to the
+  encrypted endpoint.
+- This machine's current LAN IP addresses are embedded as Subject Alternative Names in the server
+  certificate **at generation time**. If your machine's IP changes, **regenerate the certificate**
+  so LAN clients still pass hostname verification.
 
 ## Plugins
 

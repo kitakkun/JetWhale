@@ -23,8 +23,9 @@ While enabled, the host:
    adb -s <serial> reverse tcp:<serverPort> tcp:<serverPort>
    ```
 
-   where `<serverPort>` is the host's WebSocket server port.
-4. When a device goes offline, removes its reverse mapping.
+   for **each** active server port — the plain ws port and, when a certificate is active, the
+   [wss](/guide/getting-started#secure-connections-wss) port too — so both endpoints reach the host.
+4. When a device goes offline, removes its reverse mappings.
 
 If the ADB server restarts or crashes (for example, another tool ran `adb kill-server`), JetWhale
 automatically re-attaches to the device tracking stream after a short backoff — you don't need to
@@ -53,7 +54,8 @@ If you'd rather manage the forwarding yourself, leave the setting off and run:
 adb reverse tcp:<serverPort> tcp:<serverPort>
 ```
 
-after each device connection, using the server port shown in **Settings → General**.
+after each device connection, using the ports shown in **Settings → Server** (repeat for the wss
+port if the agent connects over wss).
 
 ::: tip Non-Android platforms
 Desktop, iOS Simulator, and Web debuggees run on the same machine (or share its network stack), so

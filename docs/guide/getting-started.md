@@ -92,6 +92,58 @@ setup with a shared `initializeJetWhale()` function.
 An optional `logging { }` block controls agent-side logging
 (`enabled = true`, `logLevel = LogLevel.WARN` by default).
 
+## Secure connections (wss)
+
+By default the agent connects over plain **ws** (port **5080**). The host can additionally serve
+**secure WebSocket (wss)** on port **5443**, backed by a locally-issued CA — see
+[Host Settings → Server](/guide/host-settings#server) for generating and activating a certificate.
+
+To make the agent connect over wss, add an `ssl { }` block to `connection { }`. As soon as at least
+one trusted certificate is configured, the connection switches from ws to wss:
+
+```kotlin
+startJetWhale {
+    connection {
+        host = "localhost"
+        port = 5443 // the host's wss port
+
+        ssl {
+            // Option A: fetch and pin the host's active CA automatically (trust-on-first-use).
+            trustServerCertificate()
+
+            // Option B: pin a CA you exported from the host's Server settings.
+            // trustCertificate(pem = "-----BEGIN CERTIFICATE-----\n...")
+        }
+    }
+    plugins { /* ... */ }
+}
+```
+
+### Which one to use
+
+- **`trustServerCertificate()`** — the agent downloads the host's active CA over the plain channel
+  (`http://<host>:<port>/jetwhale/ca`) at connect time and pins the wss connection to it, so no PEM
+  is hardcoded in the app. This is a *trust-on-first-use* exchange: the plain channel is not itself
+  authenticated. Over ADB port forwarding (the usual case) the download never leaves the machine, so
+  it is as trustworthy as the ADB link. If the CA cannot be fetched, the connection falls back to
+  plain ws.
+- **`trustCertificate(pem)`** — pins a CA PEM you exported yourself from the host's Server settings
+  (**Show Details → Copy to Clipboard**). Prefer this on an untrusted LAN, where strict pinning
+  matters.
+
+### Per-platform pinning support
+
+Certificate pinning is implemented per platform; behaviour differs where the platform's networking
+stack constrains it:
+
+| Platform | Behaviour |
+|----------|-----------|
+| **JVM / Android** | Full pinning via a custom `X509TrustManager` built from the configured PEMs. Invalid PEMs log a warning and fall back to system trust. |
+| **iOS / macOS** | Full pinning via Security.framework anchor certificates (`SecTrustSetAnchorCertificates`), so the local CA is trusted without installing it in the device trust store. |
+| **Linux** | Pinning via curl's `CURLOPT_CAINFO`: the PEMs are written to a private per-process CA bundle file under the temp dir and pinned against it. |
+| **Windows** | WinHttp validates only against the Windows certificate store and cannot pin a custom CA in code. Install the exported CA into the store manually, e.g. `certutil -user -addstore Root jetwhale-ca.pem`. |
+| **Web (JS / WasmJS)** | The browser manages TLS; custom CA configuration is not supported and is ignored with a warning. |
+
 ## 4. Connect a device
 
 - **Desktop / iOS Simulator / Web** debuggees reach the host directly on `localhost` — no extra
