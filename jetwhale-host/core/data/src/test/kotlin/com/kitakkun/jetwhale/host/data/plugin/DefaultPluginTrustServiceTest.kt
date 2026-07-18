@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
+import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginTrustRepository
@@ -116,7 +117,7 @@ class DefaultPluginTrustServiceTest {
         val loadedJarPaths = mutableListOf<String>()
         override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(emptyMap())
         override val loadedPlugins: Map<String, LoadedHostPlugin> = emptyMap()
-        override val failedJarPathsFlow: Flow<List<String>> = MutableStateFlow(emptyList())
+        override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
 
         override suspend fun loadPlugin(pluginJarPath: String) {
             loadedJarPaths.add(pluginJarPath)

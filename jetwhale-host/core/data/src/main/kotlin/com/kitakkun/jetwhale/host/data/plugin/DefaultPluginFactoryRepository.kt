@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
+import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
@@ -39,8 +40,15 @@ class DefaultPluginFactoryRepository @Inject constructor(
     override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = mutablePluginsFlow
     override val loadedPlugins: Map<String, LoadedHostPlugin> get() = mutablePluginsFlow.value
 
-    private val mutableFailedJarPathsFlow: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())
-    override val failedJarPathsFlow: Flow<List<String>> = mutableFailedJarPathsFlow.asStateFlow()
+    private val mutableFailedJarsFlow: MutableStateFlow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
+    override val failedJarsFlow: Flow<List<FailedPluginJar>> = mutableFailedJarsFlow.asStateFlow()
+
+    /** Records [pluginJarPath] as failed with [reason], replacing any previous failure for the jar. */
+    private fun recordFailedJar(pluginJarPath: String, reason: String) {
+        mutableFailedJarsFlow.update { failed ->
+            failed.filterNot { it.jarPath == pluginJarPath } + FailedPluginJar(pluginJarPath, reason)
+        }
+    }
 
     /**
      * The classloader that owns each loaded jar, keyed by absolute jar path. A single jar may declare
@@ -89,7 +97,7 @@ class DefaultPluginFactoryRepository @Inject constructor(
             resolveDeclaredDependencyJars(openedJar).map { it.toURI().toURL() }
         } catch (e: Exception) {
             println("Failed to load plugin from $pluginJarPath: ${e.message}")
-            mutableFailedJarPathsFlow.update { if (pluginJarPath in it) it else it + pluginJarPath }
+            recordFailedJar(pluginJarPath, e.message ?: e.javaClass.simpleName)
             runtimeJar?.delete()
             return
         }
@@ -125,13 +133,14 @@ class DefaultPluginFactoryRepository @Inject constructor(
             }
             loaded.forEach { println("Loaded plugin: ${it.manifest.pluginId} v${it.manifest.version}") }
             // A previously failed jar may now succeed (e.g. after a rebuild); clear it from failures.
-            mutableFailedJarPathsFlow.update { it.filterNot { path -> path == pluginJarPath } }
+            mutableFailedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
             println("Failed to load plugin from $pluginJarPath: ${e.message}")
-            // Avoid accumulating duplicates across repeated failed loads (e.g. a hot-reload rebuild loop).
-            mutableFailedJarPathsFlow.update { if (pluginJarPath in it) it else it + pluginJarPath }
+            // recordFailedJar replaces a previous entry, so repeated failed loads (e.g. a hot-reload
+            // rebuild loop) don't accumulate duplicates.
+            recordFailedJar(pluginJarPath, e.message ?: e.javaClass.simpleName)
         } finally {
             if (!committed) {
                 classLoader.close()
@@ -265,7 +274,7 @@ class DefaultPluginFactoryRepository @Inject constructor(
         loadPluginUnderLock(pluginJarPath)
         // loadPlugin records the path in failedJarPaths on failure; treat that as an unsuccessful
         // reload (don't report stale success from a leftover jarPathToPluginIds mapping).
-        if (pluginJarPath in mutableFailedJarPathsFlow.value) {
+        if (mutableFailedJarsFlow.value.any { it.jarPath == pluginJarPath }) {
             emptyList()
         } else {
             jarPathToPluginIds[pluginJarPath].orEmpty()

@@ -79,18 +79,25 @@ fun PluginSettingsScreen(
             },
             title = { Text(stringResource(Res.string.failed_to_load_plugins)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         text = stringResource(Res.string.failed_jar_path_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     HorizontalDivider()
-                    uiState.failedJarPaths.forEach { path ->
-                        Text(
-                            text = path,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
+                    uiState.failedJars.forEach { failedJar ->
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = failedJar.jarPath,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Text(
+                                text = failedJar.reason,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 }
             },
@@ -206,7 +213,7 @@ fun PluginSettingsScreen(
                 )
             }
         }
-        if (uiState.failedJarPaths.isNotEmpty()) {
+        if (uiState.failedJars.isNotEmpty()) {
             item(key = "failed_jars") {
                 TextButton(
                     onClick = { showFailedJarsDialog = true },
@@ -220,7 +227,7 @@ fun PluginSettingsScreen(
                     )
                     Text(
                         text = stringResource(Res.string.failed_to_load_plugins) +
-                            " (${uiState.failedJarPaths.size})",
+                            " (${uiState.failedJars.size})",
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.weight(1f),
                     )

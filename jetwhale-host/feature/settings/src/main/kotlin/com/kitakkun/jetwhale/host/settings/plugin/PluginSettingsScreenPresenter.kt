@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.settings.plugin
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
+import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.OfficialPluginCatalog
 import com.kitakkun.jetwhale.host.model.PluginInstallProgress
 import com.kitakkun.jetwhale.host.model.PluginMetaData
@@ -18,7 +19,7 @@ context(presenterContext: SettingsPresenterContext)
 fun pluginSettingsScreenPresenter(
     screenChannel: ScreenChannel<PluginSettingsScreenAction, Nothing>,
     loadedPlugins: ImmutableList<PluginMetaData>,
-    failedJarPaths: ImmutableList<String>,
+    failedJars: ImmutableList<FailedPluginJar>,
     untrustedJarPaths: ImmutableList<String>,
     installProgress: PluginInstallProgress?,
 ): PluginSettingsScreenUiState {
@@ -66,7 +67,7 @@ fun pluginSettingsScreenPresenter(
                 isInstalled = loadedPlugins.any { it.id == plugin.pluginId },
             )
         }.toPersistentList(),
-        failedJarPaths = failedJarPaths,
+        failedJars = failedJars,
         untrustedJarPaths = untrustedJarPaths,
         isInstalling = isInstalling,
         installProgress = installProgress,
