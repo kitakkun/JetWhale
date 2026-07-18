@@ -10,6 +10,8 @@ plugins {
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.composeCompiler)
+    // Injects the build machine's LAN host candidates so the demo needs no hardcoded host/IP.
+    id("com.kitakkun.jetwhale.agent")
 }
 
 kotlin {

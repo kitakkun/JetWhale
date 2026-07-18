@@ -88,4 +88,8 @@ abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleSslConfigurationS
     abstract fun trustServerCertificate() // com.kitakkun.jetwhale.agent.runtime/JetWhaleSslConfigurationScope.trustServerCertificate|trustServerCertificate(){}[0]
 }
 
+final object com.kitakkun.jetwhale.agent.runtime/JetWhaleBuildEnvironment { // com.kitakkun.jetwhale.agent.runtime/JetWhaleBuildEnvironment|null[0]
+    final fun registerHostCandidates(kotlin/String?, kotlin.collections/List<kotlin/String>) // com.kitakkun.jetwhale.agent.runtime/JetWhaleBuildEnvironment.registerHostCandidates|registerHostCandidates(kotlin.String?;kotlin.collections.List<kotlin.String>){}[0]
+}
+
 final fun com.kitakkun.jetwhale.agent.runtime/startJetWhale(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/startJetWhale|startJetWhale(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleConfigurationScope,kotlin.Unit>){}[0]

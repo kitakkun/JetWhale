@@ -9,6 +9,11 @@ public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleAppC
 	public abstract fun setDeviceName (Ljava/lang/String;)V
 }
 
+public final class com/kitakkun/jetwhale/agent/runtime/JetWhaleBuildEnvironment {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleBuildEnvironment;
+	public final fun registerHostCandidates (Ljava/lang/String;Ljava/util/List;)V
+}
+
 public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleConfigurationScope {
 	public abstract fun app (Lkotlin/jvm/functions/Function1;)V
 	public abstract fun connection (Lkotlin/jvm/functions/Function1;)V

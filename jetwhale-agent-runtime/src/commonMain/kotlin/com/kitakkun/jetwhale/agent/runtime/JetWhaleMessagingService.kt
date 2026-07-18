@@ -5,10 +5,12 @@ package com.kitakkun.jetwhale.agent.runtime
  */
 internal interface JetWhaleMessagingService {
     /**
-     * Starts the messaging service to connect to the JetWhale debugger server.
+     * Starts the messaging service, connecting to the first reachable host in [candidates].
      *
-     * @param host The hostname or IP address of the JetWhale debugger server.
-     * @param port The port number of the JetWhale debugger server.
+     * The candidates are tried in order on every (re)connection attempt, each with a short timeout,
+     * so a stale or unreachable address falls through to the next quickly.
+     *
+     * @param candidates The ordered host addresses to try; must be non-empty.
      */
-    fun startService(host: String, port: Int)
+    fun startService(candidates: List<HostCandidate>)
 }
