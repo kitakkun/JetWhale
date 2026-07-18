@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
@@ -90,13 +91,21 @@ fun captureScreenshot(
 
     val imageBitmap = ImageBitmap(viewport.size.width, viewport.size.height)
     val composeCanvas = Canvas(imageBitmap)
-    // Raised only for this off-screen render (render() applies the resulting recomposition);
-    // being on the UI thread, no interactive frame can observe the raised state.
+    // Raised only for this off-screen render; being on the UI thread, no interactive frame can
+    // observe the raised state.
     scene.isScreenshotCapture.value = true
     try {
+        // render() only flushes snapshot apply notifications at its end (before draw), so a write
+        // made right before it is not yet observed by the scene's recomposer and the frame would be
+        // drawn with the stale value. Flush explicitly here so the flag-flip recomposition is applied
+        // within this render pass.
+        Snapshot.sendApplyNotifications()
         scene.composeScene.render(composeCanvas, System.nanoTime())
     } finally {
         scene.isScreenshotCapture.value = false
+        // Flush the restore so the next interactive render observes capture=false immediately rather
+        // than lagging a frame behind.
+        Snapshot.sendApplyNotifications()
     }
 
     return SkiaImage.makeFromBitmap(imageBitmap.asSkiaBitmap())
