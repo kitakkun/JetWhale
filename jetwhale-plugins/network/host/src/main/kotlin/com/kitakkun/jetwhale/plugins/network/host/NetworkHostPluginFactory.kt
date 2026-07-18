@@ -152,11 +152,26 @@ private class NetworkHostPlugin :
     override fun mcpTools(): List<JetWhaleMcpToolDescriptor> = listOf(
         JetWhaleMcpToolDescriptor(
             name = "$TOOL_PREFIX.listTransactions",
-            description = "Lists captured HTTP transactions (newest last) as summaries: txId, method, url, status, duration, mock/failure flags. Use getTransaction for headers and bodies.",
+            description = "Lists captured HTTP transactions (oldest first) as summaries: txId, method, url, timestamp, status, duration, mock/failure flags. Returns {\"transactions\": [...]} plus \"nextCursor\" when a cursor page was truncated. Use getTransaction for headers and bodies.",
             parameters = mapOf(
                 "limit" to JetWhaleMcpParameterDescriptor(
                     type = "integer",
-                    description = "Maximum number of transactions to return, counted from the newest. Returns all if omitted.",
+                    description = "Maximum number of transactions to return. Without afterTxId it counts from the newest; with afterTxId it is the page size counted forward from the cursor. Returns all if omitted.",
+                    required = false,
+                ),
+                "afterTxId" to JetWhaleMcpParameterDescriptor(
+                    type = "string",
+                    description = "Cursor: only include transactions captured after this txId (exclusive), oldest first. Pass the previous response's nextCursor to fetch the next page, or the last txId you have seen to fetch only new traffic.",
+                    required = false,
+                ),
+                "sinceTimestampMs" to JetWhaleMcpParameterDescriptor(
+                    type = "integer",
+                    description = "Only include transactions whose request timestampMs is >= this epoch-millisecond value.",
+                    required = false,
+                ),
+                "untilTimestampMs" to JetWhaleMcpParameterDescriptor(
+                    type = "integer",
+                    description = "Only include transactions whose request timestampMs is <= this epoch-millisecond value.",
                     required = false,
                 ),
                 "urlContains" to JetWhaleMcpParameterDescriptor(
@@ -256,11 +271,42 @@ private class NetworkHostPlugin :
             val urlContains = arguments["urlContains"]
             val method = arguments["method"]
             val limit = arguments["limit"]?.toIntOrNull()
-            var result = transactions.toList()
+            val sinceTimestampMs = arguments["sinceTimestampMs"]?.toLongOrNull()
+            val untilTimestampMs = arguments["untilTimestampMs"]?.toLongOrNull()
+            val afterTxId = arguments["afterTxId"]
+
+            // The cursor is resolved against the unfiltered capture list so it stays valid when
+            // the caller changes filters between pages.
+            val all = transactions.toList()
+            val afterIndex = if (afterTxId != null) {
+                val index = all.indexOfFirst { it.txId == afterTxId }
+                if (index < 0) {
+                    return errorJson(
+                        "unknown afterTxId: $afterTxId (the transaction may have been evicted or cleared; restart without a cursor)",
+                    )
+                }
+                index
+            } else {
+                -1
+            }
+
+            val filtered = all.drop(afterIndex + 1)
                 .filter { urlContains == null || it.request.url.contains(urlContains) }
                 .filter { method == null || it.request.method.equals(method, ignoreCase = true) }
-            if (limit != null) result = result.takeLast(limit)
-            JsonArray(result.map { it.redactedForMcp().toSummaryJson() }).toString()
+                .filter { sinceTimestampMs == null || it.request.timestampMs >= sinceTimestampMs }
+                .filter { untilTimestampMs == null || it.request.timestampMs <= untilTimestampMs }
+
+            // Without a cursor, limit keeps its "latest N" meaning; with one, it pages forward.
+            val page = when {
+                limit == null -> filtered
+                afterTxId == null -> filtered.takeLast(limit)
+                else -> filtered.take(limit)
+            }
+            val nextCursor = page.lastOrNull()?.txId?.takeIf { afterTxId != null && page.size < filtered.size }
+            buildJsonObject {
+                put("transactions", JsonArray(page.map { it.redactedForMcp().toSummaryJson() }))
+                nextCursor?.let { put("nextCursor", it) }
+            }.toString()
         }
 
         "$TOOL_PREFIX.getTransaction" -> {
