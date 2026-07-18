@@ -12,17 +12,17 @@ import kotlin.random.Random
  */
 internal class PendingRequestStore {
     private val mutex = Mutex()
-    private val pending = mutableMapOf<String, CompletableDeferred<PluginFrame.Reply>>()
+    private val pendingReplies = mutableMapOf<String, CompletableDeferred<PluginFrame.Reply>>()
 
     fun newCorrelationId(): String = Random.nextLong().toULong().toString(16).padStart(16, '0') +
         Random.nextLong().toULong().toString(16).padStart(16, '0')
 
     suspend fun register(correlationId: String, deferred: CompletableDeferred<PluginFrame.Reply>) {
-        mutex.withLock { pending[correlationId] = deferred }
+        mutex.withLock { pendingReplies[correlationId] = deferred }
     }
 
     suspend fun remove(correlationId: String) {
-        mutex.withLock { pending.remove(correlationId) }
+        mutex.withLock { pendingReplies.remove(correlationId) }
     }
 
     /**
@@ -30,7 +30,7 @@ internal class PendingRequestStore {
      * a late reply after timeout/close, or a correlation bug on the other side — so the caller can log.
      */
     suspend fun complete(reply: PluginFrame.Reply): Boolean {
-        val deferred = mutex.withLock { pending.remove(reply.inReplyTo) } ?: return false
+        val deferred = mutex.withLock { pendingReplies.remove(reply.inReplyTo) } ?: return false
         deferred.complete(reply)
         return true
     }
@@ -38,8 +38,8 @@ internal class PendingRequestStore {
     /** Fails every pending request with [JetWhaleConnectionClosedException] and clears the store. */
     suspend fun failAll() {
         mutex.withLock {
-            pending.values.forEach { it.completeExceptionally(JetWhaleConnectionClosedException()) }
-            pending.clear()
+            pendingReplies.values.forEach { it.completeExceptionally(JetWhaleConnectionClosedException()) }
+            pendingReplies.clear()
         }
     }
 }

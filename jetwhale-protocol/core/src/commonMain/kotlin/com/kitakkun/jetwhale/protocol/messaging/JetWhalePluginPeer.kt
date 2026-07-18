@@ -65,9 +65,9 @@ public class JetWhalePluginPeer(
 
     private val outgoingQueue = Channel<PluginFrame>(capacity = bufferCapacity, onBufferOverflow = BufferOverflow.SUSPEND)
 
-    private val pending = PendingRequestStore()
+    private val pendingRequestStore = PendingRequestStore()
 
-    private val inbound = InboundFrameDispatcher(
+    private val inboundFrameDispatcher = InboundFrameDispatcher(
         pluginId = pluginId,
         scope = scope,
         handlers = handlers,
@@ -93,7 +93,7 @@ public class JetWhalePluginPeer(
                     // outbound side and fail pending requests fast instead.
                     logger("JetWhale: transport send failed for plugin '$pluginId'; closing outbound. (${e.message})")
                     outgoingQueue.close()
-                    pending.failAll()
+                    pendingRequestStore.failAll()
                     break
                 }
             }
@@ -125,7 +125,7 @@ public class JetWhalePluginPeer(
 
     /** Opens handler dispatch. Call once preparation has completed — or failed. Idempotent. */
     public fun markReady() {
-        inbound.markReady()
+        inboundFrameDispatcher.markReady()
     }
 
     /** Feed every inbound frame addressed to [pluginId] here. */
@@ -140,7 +140,7 @@ public class JetWhalePluginPeer(
 
             // Notifications and requests share one ordered queue so they are dispatched in the order
             // the other side sent them.
-            is PluginFrame.Notification, is PluginFrame.Request -> inbound.enqueue(frame)
+            is PluginFrame.Notification, is PluginFrame.Request -> inboundFrameDispatcher.enqueue(frame)
         }
     }
 
@@ -148,20 +148,20 @@ public class JetWhalePluginPeer(
     public suspend fun close() {
         // Close the queues first so further sends fail fast instead of enqueueing with no consumer.
         outgoingQueue.close()
-        inbound.close()
-        pending.failAll()
+        inboundFrameDispatcher.close()
+        pendingRequestStore.failAll()
         scope.cancel()
     }
 
     private suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String {
         val effectiveTimeout = timeout ?: requestTimeout
-        val correlationId = pending.newCorrelationId()
+        val correlationId = pendingRequestStore.newCorrelationId()
         val deferred = CompletableDeferred<PluginFrame.Reply>()
-        pending.register(correlationId, deferred)
+        pendingRequestStore.register(correlationId, deferred)
 
         val sendResult = outgoingQueue.trySend(PluginFrame.Request(pluginId, correlationId, messageType, payload))
         if (!sendResult.isSuccess) {
-            pending.remove(correlationId)
+            pendingRequestStore.remove(correlationId)
             throw if (sendResult.isClosed) {
                 JetWhaleConnectionClosedException()
             } else {
@@ -183,12 +183,12 @@ public class JetWhalePluginPeer(
                 )
             }
         } finally {
-            pending.remove(correlationId)
+            pendingRequestStore.remove(correlationId)
         }
     }
 
     private suspend fun completePending(reply: PluginFrame.Reply) {
-        if (!pending.complete(reply)) {
+        if (!pendingRequestStore.complete(reply)) {
             // Late reply after timeout/close, or a correlation bug on the other side.
             logger("JetWhale: dropping reply with unknown correlation id '${reply.inReplyTo}' for plugin '$pluginId'.")
         }
