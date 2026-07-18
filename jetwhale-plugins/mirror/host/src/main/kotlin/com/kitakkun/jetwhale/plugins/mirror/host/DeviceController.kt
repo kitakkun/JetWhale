@@ -116,8 +116,11 @@ internal class IosDeviceController(
     override suspend fun pressButton(button: DeviceButton) {
         val idbButton = when (button) {
             DeviceButton.HOME -> "HOME"
+
             DeviceButton.POWER -> "LOCK"
+
             DeviceButton.BACK -> throw DeviceControlException("iOS has no BACK button")
+
             DeviceButton.VOLUME_UP, DeviceButton.VOLUME_DOWN ->
                 throw DeviceControlException("volume buttons are not controllable on the iOS simulator")
         }
