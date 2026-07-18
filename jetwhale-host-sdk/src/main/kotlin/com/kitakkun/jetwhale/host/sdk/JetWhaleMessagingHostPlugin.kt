@@ -22,7 +22,8 @@ public abstract class JetWhaleMessagingHostPlugin : JetWhaleHostPlugin() {
     /**
      * Sends messages to the agent counterpart: `trySend` / `sendOrQueue` / `sendOrFail` for events,
      * `request(req): R` for request-reply. Valid for the whole life of this instance ([onCreate]
-     * onwards) — the instance only exists while its session is connected.
+     * onwards) — the instance only exists while its session is connected. For that same reason there
+     * is no offline buffer here: `sendOrQueue` behaves like `trySend` on the host side.
      */
     protected val messenger: JetWhaleMessenger
         get() = checkNotNull(boundMessenger) {

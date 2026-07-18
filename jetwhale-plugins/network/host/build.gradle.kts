@@ -1,10 +1,12 @@
 plugins {
     alias(libs.plugins.jvm)
-    alias(libs.plugins.compose)
+    alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.jetbrainsCompose)
     // Provides packagePlugin / installPlugin / stageDevPlugin / runJetWhale / runJetWhaleHot (published).
     alias(libs.plugins.jetwhalePlugin)
     // In-repo only: adds runJetWhaleLocal, which launches the local :jetwhale-host:app project.
     alias(libs.plugins.jetwhaleHostLaunch)
+    alias(libs.plugins.publish)
 }
 
 // Distinct group so this module's coordinates don't collide with `example:host`.
@@ -17,10 +19,24 @@ jetwhalePlugin {
 }
 
 dependencies {
+    // Provided by the host at runtime, so compileOnly: these must be neither bundled into the
+    // plugin jar nor listed in its dependency manifest.
     compileOnly(projects.jetwhaleHostSdk)
+    compileOnly(compose.desktop.currentOs)
     compileOnly(libs.material3)
     compileOnly(libs.kotlinxSerializationJson)
     api(projects.jetwhalePlugins.network.protocol)
     testImplementation(libs.kotlinTest)
     testImplementation(libs.kotlinxSerializationJson)
+    testImplementation(compose.desktop.currentOs)
+    testImplementation(libs.material3)
+}
+
+// The jetwhalePlugin convention publishes the `packageMavenPlugin` jar (the module's classes plus a
+// manifest of its runtime dependencies) as the main artifact; the host's "Install from Maven"
+// feature downloads it and fetches the listed dependencies itself.
+jetwhalePublish {
+    artifactId = "jetwhale-network-inspector"
+    name = "JetWhale Network Inspector"
+    description = "JetWhale host plugin for the Network Inspector (HTTP capture and mocking)."
 }

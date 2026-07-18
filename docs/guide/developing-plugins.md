@@ -12,6 +12,7 @@ The `com.kitakkun.jetwhale.host` plugin gives your plugin's module these tasks:
 | `packagePlugin`          | Builds the distributable plugin fat-jar (the artifact you drop into `~/.jetwhale/plugins/`).          |
 | `installPlugin`          | Copies the packaged fat-jar into `~/.jetwhale/plugins/`.                                              |
 | `stageDevPlugin`         | Stages the packaged fat-jar into a private dev directory the host watches for hot reload.             |
+| `packageMavenPlugin`     | Builds the publishable plugin jar (see [Publishing your plugin to Maven](#publishing-your-plugin-to-maven)). |
 | `runJetWhale`            | Downloads a released JetWhale host for your OS and launches it with your plugin loaded.|
 | `runJetWhaleHot`         | Like `runJetWhale`, but runs the host on the JetBrains Runtime so structural changes hot-reload in place (see [Limitations](#limitations)), and auto re-stages your plugin in the background — the whole hot-reload loop in one command. |
 
@@ -166,7 +167,9 @@ class MyHostPlugin : JetWhaleMessagingHostPlugin(), JetWhaleHostPluginUi {
 ```
 
 Requests work in **both directions** — the agent can `request` the host just as the host can `request`
-the agent. A failed/timed-out request throws `JetWhaleRequestException`; pass `timeout` to `request`
+the agent. A failed/timed-out request throws `JetWhaleRequestException` (and `sendOrFail`/`request`
+throw `JetWhaleConnectionClosedException` while disconnected — both are `JetWhaleMessagingException`);
+pass `timeout` to `request`
 to override the default per call (e.g. `request(SlowOp, timeout = 30.seconds)`). Implement `JetWhaleHostPluginUi`
 (`@Composable Content()`) to render a UI; plugins that don't are **headless** (e.g. MCP-only).
 
@@ -315,6 +318,36 @@ plugins { id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 
 So: a change that can't be redefined in place costs you the plugin's in-memory state — never a host
 restart.
+
+## Publishing your plugin to Maven
+
+Users can install a plugin straight from a Maven repository: **Settings → Plugins → Install from
+Maven**, entering `group:artifact:version` (append `@https://your.repo/url` for a repository other
+than Maven Central — pasting a Gradle dependency line or a Maven `<dependency>` block also works).
+
+To make your plugin installable that way, apply a Maven publishing plugin (e.g.
+[`com.vanniktech.maven.publish`](https://github.com/vanniktech/gradle-maven-publish-plugin) or plain
+`maven-publish`) to the plugin module alongside `com.kitakkun.jetwhale.host`, and publish to any
+Maven repository you like. The JetWhale plugin automatically makes the published main artifact the
+`packageMavenPlugin` jar, which contains:
+
+- your module's classes and resources, and
+- `META-INF/jetwhale/dependencies.txt` — the flat `group:artifact:version` list of your runtime
+  dependencies, exactly as Gradle resolved them at build time.
+
+Dependencies are deliberately **not** bundled: the host downloads each jar listed in the manifest
+when the plugin is installed (from your plugin's repository, falling back to Maven Central) and
+puts them on the plugin's classpath. This keeps the published artifact small and
+platform-independent, and means you never redistribute third-party code.
+
+In-build project dependencies (e.g. a sibling `protocol` module) are listed in the manifest by
+their own publication coordinates when the module has a Maven publication configured — publish
+them alongside the plugin. A project dependency without a publication is bundled into the plugin
+jar as a fallback.
+
+Remember that host-provided dependencies (`jetwhale-host-sdk`, Compose, `material3`) must stay
+`compileOnly` — they are provided by the host at runtime and must appear neither in the jar nor in
+the dependency manifest.
 
 ## Trying an unreleased (SNAPSHOT) build
 

@@ -33,7 +33,7 @@ dependencies {
 ```
 
 ::: warning Kotlin version compatibility
-JetWhale artifacts are built with a recent Kotlin release (currently **2.4.0**), and your app needs
+JetWhale artifacts are built with a recent Kotlin release (currently **2.4.10**), and your app needs
 **Kotlin 2.3 or newer** to use them. With an older Kotlin, the build fails with metadata-version
 errors — upgrade your app's Kotlin plugin, or pick an older JetWhale release built with a matching
 Kotlin.

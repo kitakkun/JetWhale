@@ -26,9 +26,16 @@ export default defineConfig({
       alias: {
         // The markdown sources in ../docs sit outside this npm project, so
         // bare imports injected into them (by the SSR transform) don't find
-        // website/node_modules on their own — pin them explicitly.
-        'vue/server-renderer': require.resolve('vue/server-renderer'),
-        vue: require.resolve('vue'),
+        // website/node_modules on their own — pin them explicitly. They must
+        // point at the ESM builds: require.resolve('vue') returns the CJS
+        // entry, which bundles a second Vue runtime and breaks hydration
+        // (search, nav menu, and appearance toggle all stop responding).
+        'vue/server-renderer': fileURLToPath(
+          new URL('../node_modules/vue/server-renderer/index.mjs', import.meta.url),
+        ),
+        vue: fileURLToPath(
+          new URL('../node_modules/vue/dist/vue.runtime.esm-bundler.js', import.meta.url),
+        ),
       },
     },
   },

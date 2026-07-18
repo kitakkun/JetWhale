@@ -12,6 +12,9 @@
     <string name="check_for_updates_on_startup">起動時に更新を確認する</string>
     <string name="check_for_updates">更新を確認</string>
     <string name="installed_plugins">インストール済みプラグイン</string>
+    <string name="untrusted_plugins">未検証のプラグイン</string>
+    <string name="untrusted_jar_hint">これらの JAR はプラグインディレクトリにありますが、承認されていない（または承認後に内容が変更された）ため読み込まれていません。プラグインはこのアプリの全権限で動作します。信頼できる JAR のみ承認してください。</string>
+    <string name="approve_untrusted_plugin">承認</string>
     <string name="application_data_directory">アプリケーションデータディレクトリ</string>
     <string name="server_status_stopped">停止</string>
     <string name="server_status_running">ポート %1$d で実行中</string>
@@ -42,4 +45,19 @@
     <string name="log_viewer_auto_scroll">自動スクロール</string>
     <string name="log_viewer_clear_logs">ログをクリア</string>
     <string name="log_viewer_no_logs">まだログがキャプチャされていません</string>
+    <string name="add_plugin_from_file">ファイルからプラグインを追加</string>
+    <string name="install_from_maven">Mavenからインストール</string>
+    <string name="maven_install_dialog_title">Mavenリポジトリからプラグインをインストール</string>
+    <string name="maven_install_dialog_description">Maven coordinatesを入力してプラグインをダウンロード・インストールします。</string>
+    <string name="maven_install_paste_label">Maven coordinatesを貼り付け</string>
+    <string name="maven_install_paste_supporting_text">group:artifact:version、Gradleの依存関係の行、Mavenの&lt;dependency&gt;ブロックに対応しています。下のフィールドは自動的に入力されます。</string>
+    <string name="maven_install_group_id_label">Group ID</string>
+    <string name="maven_install_artifact_id_label">Artifact ID</string>
+    <string name="maven_install_version_label">バージョン</string>
+    <string name="maven_install_repository_url_label">リポジトリURL</string>
+    <string name="maven_install_error_fill_required">必須フィールドをすべて入力してください。</string>
+    <string name="maven_install_install">インストール</string>
+    <string name="install_progress_downloading_plugin">プラグインをダウンロード中…</string>
+    <string name="install_progress_downloading_dependencies">依存関係をダウンロード中 (%1$d/%2$d)…</string>
+    <string name="install_progress_loading_plugin">プラグインを読み込み中…</string>
 </resources>

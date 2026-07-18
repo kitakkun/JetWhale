@@ -22,6 +22,9 @@ runs:
       uses: gradle/actions/setup-gradle@v5.0.0
       with:
         gradle-version: wrapper
+        # Only main-branch builds write to the Gradle cache; PR builds read it.
+        # Keeps short-lived PR entries from evicting the shared cache (10 GB repo limit).
+        cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
     - name: Set konan cache key
       id: konan-cache-key
@@ -34,3 +37,7 @@ runs:
         path: |
           ~/.konan
         key: v1-konan-${{ runner.os }}-${{ hashFiles('.xcode-version') }}-${{ steps.konan-cache-key.outputs.KOTLIN_VERSION }}
+        # Warm start after a Kotlin/Xcode bump instead of re-downloading everything.
+        restore-keys: |
+          v1-konan-${{ runner.os }}-${{ hashFiles('.xcode-version') }}-
+          v1-konan-${{ runner.os }}-

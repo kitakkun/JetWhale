@@ -127,7 +127,6 @@ public final class com/kitakkun/jetwhale/protocol/messaging/BufferedMessenger : 
 	public synthetic fun <init> (Lkotlinx/coroutines/CoroutineScope;Lkotlinx/serialization/StringFormat;ILkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun bind (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;)V
 	public final fun close ()V
-	public fun getCoroutineScope ()Lkotlinx/coroutines/CoroutineScope;
 	public fun getPayloadFormat ()Lkotlinx/serialization/StringFormat;
 	public fun requestRaw-5_5nbZA (Ljava/lang/String;Ljava/lang/String;Lkotlin/time/Duration;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun sendRaw (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/protocol/messaging/OfflineSendPolicy;)Z
@@ -159,7 +158,6 @@ public class com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessagingException
 }
 
 public abstract interface class com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger {
-	public abstract fun getCoroutineScope ()Lkotlinx/coroutines/CoroutineScope;
 	public abstract fun getPayloadFormat ()Lkotlinx/serialization/StringFormat;
 	public abstract fun requestRaw-5_5nbZA (Ljava/lang/String;Ljava/lang/String;Lkotlin/time/Duration;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun sendRaw (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/protocol/messaging/OfflineSendPolicy;)Z

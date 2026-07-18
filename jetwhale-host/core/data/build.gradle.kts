@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.jvm)
     alias(libs.plugins.metro)
+    alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.mokkery)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.jetbrainsCompose)
@@ -31,6 +32,8 @@ dependencies {
     // redefinition. Dormant in production: only touched when the dev plugins directory is configured.
     implementation(libs.byteBuddyAgent)
     implementation(libs.bundles.ktorServer)
+    implementation(libs.ktorClientCore)
+    implementation(libs.ktorClientCio)
     implementation(libs.logbackClassic)
     implementation(libs.kotlinTest)
 }

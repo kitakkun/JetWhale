@@ -1,5 +1,8 @@
 package com.kitakkun.jetwhale.host.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 @JvmInline
 value class JetWhaleColorSchemeId private constructor(val id: String) {
     companion object {

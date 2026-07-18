@@ -13,7 +13,7 @@ plugins {
 kotlin {
     android {
         namespace = "com.kitakkun.jetwhale.plugins.example"
-        compileSdk = 36
+        compileSdk = 37
     }
 }
 

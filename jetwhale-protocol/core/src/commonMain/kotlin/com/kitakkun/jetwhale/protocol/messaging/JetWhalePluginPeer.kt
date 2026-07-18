@@ -95,7 +95,19 @@ public class JetWhalePluginPeer(
         // Single writer: every outbound frame goes through one queue so send order is preserved.
         scope.launch {
             for (frame in outgoingQueue) {
-                sendFrame(frame)
+                try {
+                    sendFrame(frame)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    // The transport is broken (e.g. a half-closed socket). Without this the pump would
+                    // die silently and every later request would wait out its full timeout: close the
+                    // outbound side and fail pending requests fast instead.
+                    logger("JetWhale: transport send failed for plugin '$pluginId'; closing outbound. (${e.message})")
+                    outgoingQueue.close()
+                    failAllPending()
+                    break
+                }
             }
         }
         // Single consumer: notifications and requests are dispatched in arrival order. A notification
@@ -124,7 +136,6 @@ public class JetWhalePluginPeer(
 
     /** The sending face handed to plugin code. Valid for the lifetime of this peer. */
     public val messenger: JetWhaleMessenger = object : JetWhaleMessenger {
-        override val coroutineScope: CoroutineScope get() = scope
         override val payloadFormat: StringFormat get() = this@JetWhalePluginPeer.payloadFormat
 
         // The peer is the live transport: while it is bound it simply sends. There is no per-peer
@@ -193,11 +204,15 @@ public class JetWhalePluginPeer(
         // Close the queues first so further sends fail fast instead of enqueueing with no consumer.
         outgoingQueue.close()
         inboundQueue.close()
+        failAllPending()
+        scope.cancel()
+    }
+
+    private suspend fun failAllPending() {
         pendingMutex.withLock {
             pendingReplies.values.forEach { it.completeExceptionally(JetWhaleConnectionClosedException()) }
             pendingReplies.clear()
         }
-        scope.cancel()
     }
 
     private suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String {

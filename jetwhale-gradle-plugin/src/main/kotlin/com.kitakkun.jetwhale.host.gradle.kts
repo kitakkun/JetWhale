@@ -371,3 +371,146 @@ registerRunTask(
 tasks.named("assemble") {
     dependsOn(packagePlugin)
 }
+
+// ---------------------------------------------------------------------------
+// Maven publishing: publish a thin plugin jar plus a dependency manifest.
+// ---------------------------------------------------------------------------
+
+// The published plugin artifact deliberately does NOT bundle third-party dependencies (publishing a
+// fat-jar would redistribute them, with the license obligations that entails, and would bake the
+// build machine's platform-specific artifacts into a supposedly universal jar). Instead the
+// published jar carries:
+//
+// - the module's own classes and resources (plus, as a fallback, the classes of any in-build
+//   project dependency that is NOT itself published — a published project dependency has Maven
+//   coordinates of its own, taken from its `publishing` configuration exactly as the generated POM
+//   does, and is listed in the manifest like any external dependency), and
+// - `META-INF/jetwhale/dependencies.txt` — the flat list of runtime dependencies as
+//   `group:artifact:version` lines, exactly as Gradle resolved them at build time.
+//
+// The host downloads the listed jars itself when installing the plugin from Maven, so no full
+// dependency-resolution logic (parent POMs, BOMs, Gradle module metadata…) is ever needed at
+// runtime, and nothing third-party is redistributed by the plugin author.
+
+val runtimeElementsIncoming = configurations.getByName("runtimeClasspath").incoming
+
+// External module dependencies -> lockfile lines. Resolved lazily and configuration-cache safe.
+val externalDependencyCoordinates: Provider<List<String>> = runtimeElementsIncoming.artifacts.resolvedArtifacts.map { artifacts ->
+    artifacts
+        .mapNotNull { it.id.componentIdentifier as? org.gradle.api.artifacts.component.ModuleComponentIdentifier }
+        .map { "${it.group}:${it.module}:${it.version}" }
+        .distinct()
+        .sorted()
+}
+
+// In-build project dependencies: published ones are trusted to be fetchable by their publication
+// coordinates (the same source the generated POM uses — for KMP modules that is the `jvm`
+// publication, e.g. `protocol-jvm`); unpublished ones are bundled into the jar as a fallback.
+// Both sets are filled once every project is evaluated (publication coordinates are configured in
+// the dependency projects' own afterEvaluate blocks, so they cannot be read earlier).
+val publishedProjectDependencyCoordinates = mutableSetOf<String>()
+val bundledProjectPaths = mutableSetOf<String>()
+
+// Declared-dependency configurations that can carry project dependencies, for plain-JVM and KMP
+// modules alike. Walking declarations (instead of resolving the classpath, which is not allowed at
+// configuration time) is safe here: we only need to identify the project modules in the graph.
+val projectDependencyConfigurationNames = listOf(
+    "api",
+    "implementation",
+    "runtimeOnly",
+    "commonMainApi",
+    "commonMainImplementation",
+    "jvmMainApi",
+    "jvmMainImplementation",
+)
+
+fun collectProjectDependencies(from: Project, seenPaths: MutableSet<String>) {
+    projectDependencyConfigurationNames.forEach { configurationName ->
+        from.configurations.findByName(configurationName)
+            ?.dependencies
+            ?.withType(org.gradle.api.artifacts.ProjectDependency::class.java)
+            ?.forEach { dependency ->
+                val depProject = runCatching { from.project(dependency.path) }.getOrNull() ?: return@forEach
+                if (seenPaths.add(depProject.path)) collectProjectDependencies(depProject, seenPaths)
+            }
+    }
+}
+
+gradle.projectsEvaluated {
+    val seenPaths = mutableSetOf<String>()
+    collectProjectDependencies(project, seenPaths)
+    seenPaths.forEach { path ->
+        val depProject = project.project(path)
+        val publications = depProject.extensions
+            .findByType(org.gradle.api.publish.PublishingExtension::class.java)
+            ?.publications
+            ?.withType(org.gradle.api.publish.maven.MavenPublication::class.java)
+        // KMP modules publish the JVM variant under the `jvm` publication; plain JVM modules
+        // publish a single publication (commonly `maven`).
+        val publication = publications?.findByName("jvm") ?: publications?.singleOrNull()
+        if (publication != null) {
+            publishedProjectDependencyCoordinates +=
+                "${publication.groupId}:${publication.artifactId}:${publication.version}"
+        } else {
+            logger.info(
+                "packageMavenPlugin: project dependency $path has no Maven publication; " +
+                    "bundling its classes into the plugin jar.",
+            )
+            bundledProjectPaths += path
+        }
+    }
+}
+
+val projectDependencyFiles = runtimeElementsIncoming.artifactView {
+    componentFilter {
+        it is org.gradle.api.artifacts.component.ProjectComponentIdentifier && it.projectPath in bundledProjectPaths
+    }
+}.files
+
+val generatePluginDependencyManifest = tasks.register("generatePluginDependencyManifest") {
+    group = "jetwhale"
+    description = "Writes the plugin's external runtime dependencies as a Maven-coordinates manifest."
+
+    val projectCoordinates = publishedProjectDependencyCoordinates
+    val coordinates = externalDependencyCoordinates.map { external ->
+        (external + projectCoordinates).distinct().sorted()
+    }
+    val outputFile = layout.buildDirectory.file("jetwhale/dependencies.txt")
+    inputs.property("coordinates", coordinates)
+    outputs.file(outputFile)
+
+    doLast {
+        outputFile.get().asFile.writeText(coordinates.get().joinToString("\n", postfix = "\n"))
+    }
+}
+
+val packageMavenPlugin = tasks.register<Jar>("packageMavenPlugin") {
+    group = "jetwhale"
+    description = "Builds the publishable plugin jar (own + project-dependency classes, external deps as a manifest)."
+
+    archiveBaseName.set(pluginExtension.pluginArchiveName)
+    archiveClassifier.set("jetwhale-maven-plugin")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    val thinJar = tasks.named<Jar>("jar")
+    from(thinJar.map { zipTree(it.archiveFile) })
+    from({ projectDependencyFiles.map { zipTree(it) } })
+    from(generatePluginDependencyManifest) {
+        into("META-INF/jetwhale")
+    }
+}
+
+// When the plugin author also applies a Maven publishing plugin, replace the outgoing jar of the
+// java component with the `packageMavenPlugin` jar (classifier cleared, so it publishes as the
+// plain `<artifactId>-<version>.jar`): the JetWhale host's Install-from-Maven feature downloads
+// exactly that main artifact.
+pluginManager.withPlugin("maven-publish") {
+    listOf("apiElements", "runtimeElements").forEach { configurationName ->
+        configurations.named(configurationName) {
+            outgoing.artifacts.clear()
+            outgoing.artifact(packageMavenPlugin) {
+                classifier = null
+            }
+        }
+    }
+}

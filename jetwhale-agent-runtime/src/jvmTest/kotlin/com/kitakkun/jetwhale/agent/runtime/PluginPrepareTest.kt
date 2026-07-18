@@ -29,7 +29,6 @@ private class FakeMessenger(
     private val scope: CoroutineScope,
     private val cannedReply: String,
 ) : JetWhaleMessenger {
-    override val coroutineScope: CoroutineScope get() = scope
     override val payloadFormat: StringFormat = Json
 
     val requested: MutableList<String> = mutableListOf()

@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.jvm)
+    alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.metro)
@@ -7,10 +8,12 @@ plugins {
 
 dependencies {
     implementation(projects.jetwhaleHostSdk)
+    implementation(libs.kotlinxSerializationJson)
     implementation(libs.soilQueryCore)
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(libs.kotlinxDatetime)
     implementation(libs.jetbrainsComposeRuntime)
     implementation(compose.desktop.currentOs)
     implementation(libs.aboutLibrariesCore)
+    testImplementation(libs.kotlinTest)
 }

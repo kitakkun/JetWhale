@@ -1,11 +1,10 @@
 package com.kitakkun.jetwhale.host
 
-import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.mcp.McpServerService
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
-import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginHotReloadService
+import com.kitakkun.jetwhale.host.model.PluginTrustService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -21,8 +20,7 @@ import kotlinx.coroutines.launch
 class ApplicationLifecycleOwner(
     private val server: DebugWebSocketServer,
     private val mcpServerService: McpServerService,
-    private val appDataDirectoryProvider: AppDataDirectoryProvider,
-    private val pluginFactoryRepository: PluginFactoryRepository,
+    private val pluginTrustService: PluginTrustService,
     private val pluginHotReloadService: PluginHotReloadService,
     private val settingsRepository: DebuggerSettingsRepository,
 ) {
@@ -51,9 +49,11 @@ class ApplicationLifecycleOwner(
                 port = settingsRepository.readMcpServerPort(),
             )
 
-            appDataDirectoryProvider.getAllPluginJarFilePaths().forEach {
-                pluginFactoryRepository.loadPlugin(it)
-            }
+            // Load only jars the user has explicitly approved (pinned by content hash). Anything else
+            // in the plugins directory — a jar that was never approved, or one whose bytes changed
+            // after approval — is surfaced for review instead of being executed. This is what stops a
+            // malicious jar dropped into ~/.jetwhale/plugins from auto-running in the host process.
+            pluginTrustService.loadTrustedPlugins()
 
             // Loads dev plugins (if any) and starts watching the dev directory for hot reload.
             // No-op unless the jetwhale.devPluginsDir system property is set.
