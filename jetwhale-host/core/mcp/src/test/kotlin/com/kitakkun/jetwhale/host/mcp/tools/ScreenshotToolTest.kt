@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
 import com.kitakkun.jetwhale.host.mcp.viewport.applyViewport
+import com.kitakkun.jetwhale.host.sdk.LocalIsScreenshotCapture
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -84,5 +85,20 @@ class ScreenshotToolTest {
         // Sample the center of each box
         assertEquals(Color.Red, pixels[25, 25], "Expected red at center of left box")
         assertEquals(Color.Blue, pixels[75, 25], "Expected blue at center of right box")
+    }
+
+    @Test
+    fun `LocalIsScreenshotCapture is true only while capturing`() {
+        val observed = mutableListOf<Boolean>()
+        val scene = createTestScene {
+            observed.add(LocalIsScreenshotCapture.current)
+        }
+        renderTestScene(scene)
+        captureScreenshot(scene, McpViewport(size = IntSize(100, 100), density = Density(1f)))
+        renderTestScene(scene)
+
+        assertEquals(false, observed.first(), "Interactive composition must see capture=false")
+        assertTrue(observed.contains(true), "Capture render must see capture=true")
+        assertEquals(false, observed.last(), "Composition must return to capture=false after capture")
     }
 }
