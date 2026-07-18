@@ -82,13 +82,26 @@ data class MavenCoordinates(
      */
     fun jarFileName(): String = "$groupId-$artifactId-$version.jar"
 
+    val isSnapshot: Boolean get() = version.endsWith("-SNAPSHOT")
+
     /**
-     * Builds the URL to download the JAR file from the Maven repository
+     * URL of the directory holding this version's artifacts (and, for snapshots, the
+     * `maven-metadata.xml` naming the current timestamped build).
      */
-    fun toJarUrl(): String {
+    fun toVersionDirectoryUrl(): String {
         val groupPath = groupId.replace('.', '/')
-        return "${repositoryUrl.trimEnd('/')}/$groupPath/$artifactId/$version/$artifactId-$version.jar"
+        return "${repositoryUrl.trimEnd('/')}/$groupPath/$artifactId/$version"
     }
+
+    /**
+     * URL of this version's jar under its literal version name. For snapshots most repositories
+     * only store timestamped file names — resolve those through [toVersionDirectoryUrl]'s
+     * `maven-metadata.xml` and [toSnapshotJarUrl] instead.
+     */
+    fun toJarUrl(): String = "${toVersionDirectoryUrl()}/$artifactId-$version.jar"
+
+    /** URL of the snapshot jar for a concrete timestamped build (e.g. `1.0.0-20260718.103017-1`). */
+    fun toSnapshotJarUrl(timestampedVersion: String): String = "${toVersionDirectoryUrl()}/$artifactId-$timestampedVersion.jar"
 
     override fun toString(): String = "$groupId:$artifactId:$version"
 }

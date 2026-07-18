@@ -72,7 +72,9 @@ private suspend fun downloadDeclaredDependencies(
     val dependencies = PluginDependencyManifest.readFrom(pluginJar)
     dependencies.forEachIndexed { index, dependency ->
         onProgress(PluginInstallProgress.DownloadingDependencies(completed = index, total = dependencies.size))
-        if (File(libsDir, dependency.jarFileName()).exists()) return@forEachIndexed
+        // Released artifacts are immutable, so an already-downloaded jar can be reused; snapshots
+        // are overwritable and must be re-downloaded to pick up the current build.
+        if (!dependency.isSnapshot && File(libsDir, dependency.jarFileName()).exists()) return@forEachIndexed
         try {
             resolver.downloadJar(dependency.copy(repositoryUrl = pluginCoordinates.repositoryUrl), libsDir)
         } catch (e: MavenArtifactDownloadException) {
