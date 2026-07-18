@@ -17,7 +17,7 @@ The **Settings → General** screen groups the host-wide options:
 | Setting | Description |
 |---------|-------------|
 | **Language** | UI language of the host: **English** or **Japanese**. |
-| **Theme** | Color scheme: the built-in `dynamic`, `light`, or `dark` schemes, plus any custom schemes available. |
+| **Theme** | Color scheme: `builtin:dynamic`, `builtin:light`, or `builtin:dark`. |
 
 ### ADB support
 
