@@ -10,7 +10,6 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
@@ -33,23 +32,22 @@ class DefaultPluginTrustRepository(
 ) : PluginTrustRepository {
     private val writeMutex = Mutex()
 
-    private val mutableEntriesFlow: MutableStateFlow<Map<String, TrustedPluginEntry>> =
-        MutableStateFlow(readFromDisk())
-    override val trustedEntriesFlow: Flow<Map<String, TrustedPluginEntry>> = mutableEntriesFlow.asStateFlow()
+    override val trustedEntriesFlow: Flow<Map<String, TrustedPluginEntry>>
+        field = MutableStateFlow(readFromDisk())
 
-    override suspend fun trustedEntry(jarPath: String): TrustedPluginEntry? = mutableEntriesFlow.value[jarPath]
+    override suspend fun trustedEntry(jarPath: String): TrustedPluginEntry? = trustedEntriesFlow.value[jarPath]
 
     override suspend fun trust(jarPath: String, sha256: String): Unit = writeMutex.withLock {
-        val updated = mutableEntriesFlow.value + (jarPath to TrustedPluginEntry(jarPath, sha256, System.currentTimeMillis()))
+        val updated = trustedEntriesFlow.value + (jarPath to TrustedPluginEntry(jarPath, sha256, System.currentTimeMillis()))
         persist(updated)
-        mutableEntriesFlow.value = updated
+        trustedEntriesFlow.value = updated
     }
 
     override suspend fun revoke(jarPath: String): Unit = writeMutex.withLock {
-        if (jarPath !in mutableEntriesFlow.value) return@withLock
-        val updated = mutableEntriesFlow.value - jarPath
+        if (jarPath !in trustedEntriesFlow.value) return@withLock
+        val updated = trustedEntriesFlow.value - jarPath
         persist(updated)
-        mutableEntriesFlow.value = updated
+        trustedEntriesFlow.value = updated
     }
 
     private fun readFromDisk(): Map<String, TrustedPluginEntry> {

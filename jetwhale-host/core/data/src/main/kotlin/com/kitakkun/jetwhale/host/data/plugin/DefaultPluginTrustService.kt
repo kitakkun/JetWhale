@@ -12,7 +12,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -26,8 +25,8 @@ class DefaultPluginTrustService(
     private val pluginTrustRepository: PluginTrustRepository,
     private val pluginFactoryRepository: PluginFactoryRepository,
 ) : PluginTrustService {
-    private val mutableUntrustedJarPathsFlow: MutableStateFlow<List<String>> = MutableStateFlow(emptyList())
-    override val untrustedJarPathsFlow: Flow<List<String>> = mutableUntrustedJarPathsFlow.asStateFlow()
+    override val untrustedJarPathsFlow: Flow<List<String>>
+        field = MutableStateFlow(emptyList())
 
     override suspend fun loadTrustedPlugins() {
         val untrusted = mutableListOf<String>()
@@ -39,7 +38,7 @@ class DefaultPluginTrustService(
                 untrusted += jarPath
             }
         }
-        mutableUntrustedJarPathsFlow.value = untrusted
+        untrustedJarPathsFlow.value = untrusted
     }
 
     override suspend fun trustAndLoad(jarPath: String) {
@@ -47,7 +46,7 @@ class DefaultPluginTrustService(
             "Refusing to trust a jar outside the managed plugins directory: $jarPath"
         }
         pluginTrustRepository.trust(jarPath, computeSha256(jarPath))
-        mutableUntrustedJarPathsFlow.update { it - jarPath }
+        untrustedJarPathsFlow.update { it - jarPath }
         pluginFactoryRepository.loadPlugin(jarPath)
     }
 
@@ -57,7 +56,7 @@ class DefaultPluginTrustService(
         // restart. The jar file itself stays in the directory, so it becomes untrusted-but-present.
         pluginFactoryRepository.findPluginIdsByJarPath(jarPath).forEach { pluginFactoryRepository.unloadPlugin(it) }
         if (File(jarPath).exists()) {
-            mutableUntrustedJarPathsFlow.update { if (jarPath in it) it else it + jarPath }
+            untrustedJarPathsFlow.update { if (jarPath in it) it else it + jarPath }
         }
     }
 
