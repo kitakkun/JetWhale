@@ -32,8 +32,7 @@ class DefaultPluginTrustRepositoryTest {
     }
 
     // A fresh repository each time so we exercise the on-disk read path, not just the in-memory cache.
-    private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) =
-        DefaultPluginTrustRepository(AppDataDirectoryProvider(), signer)
+    private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) = DefaultPluginTrustRepository(AppDataDirectoryProvider(), signer)
 
     /**
      * Deterministic stand-in for the keyring-backed signer: the "signature" is a digest of the
