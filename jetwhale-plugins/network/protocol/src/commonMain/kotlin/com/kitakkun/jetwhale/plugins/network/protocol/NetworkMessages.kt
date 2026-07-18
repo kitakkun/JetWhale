@@ -40,6 +40,15 @@ data class SetMockingEnabled(val enabled: Boolean) : JetWhaleRequest<Ack>
 @Serializable
 data object GetMockConfig : JetWhaleRequest<MockConfig>
 
+/**
+ * Host -> agent, on connect: fetches the [RedactionScope.MCP_ONLY] rules configured on the agent
+ * so the host can enforce them when serving MCP tool results. [RedactionScope.EVERYWHERE] rules
+ * are applied at capture time on the agent and never travel.
+ */
+@SerialName("network/get_redaction_config")
+@Serializable
+data object GetRedactionConfig : JetWhaleRequest<RedactionConfig>
+
 // -- Replies -----------------------------------------------------------------
 
 @SerialName("network/ack")
@@ -51,4 +60,10 @@ data object Ack
 data class MockConfig(
     val enabled: Boolean,
     val rules: List<MockRule>,
+)
+
+@SerialName("network/redaction_config")
+@Serializable
+data class RedactionConfig(
+    val mcpOnlyRules: List<RedactionRule>,
 )

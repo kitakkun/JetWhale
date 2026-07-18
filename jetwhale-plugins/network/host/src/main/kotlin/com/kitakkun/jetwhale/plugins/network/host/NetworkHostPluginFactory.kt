@@ -15,15 +15,18 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.GetMockConfig
+import com.kitakkun.jetwhale.plugins.network.protocol.GetRedactionConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockRules
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockingEnabled
+import com.kitakkun.jetwhale.plugins.network.protocol.redact
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import com.kitakkun.jetwhale.protocol.messaging.request
@@ -53,6 +56,10 @@ private class NetworkHostPlugin :
     private val mockRules: SnapshotStateList<MockRule> = mutableStateListOf()
     private var mockingEnabled by mutableStateOf(true)
 
+    // MCP_ONLY redaction rules configured on the agent: applied to MCP tool results only, so the
+    // host UI keeps showing the raw values. Empty when the agent predates GetRedactionConfig.
+    private var mcpRedactionRules: List<RedactionRule> = emptyList()
+
     override fun JetWhaleMessageHandlers.configure() {
         onEvent { event: RequestSent ->
             transactions.add(HttpTransaction(request = event.request))
@@ -75,6 +82,21 @@ private class NetworkHostPlugin :
             clear()
             addAll(config.rules)
         }
+        mcpRedactionRules = try {
+            messenger.request(GetRedactionConfig).mcpOnlyRules
+        } catch (_: JetWhaleMessagingException) {
+            // An agent built before GetRedactionConfig existed cannot answer; it has no
+            // MCP_ONLY rules to enforce either.
+            emptyList()
+        }
+    }
+
+    private fun HttpTransaction.redactedForMcp(): HttpTransaction {
+        if (mcpRedactionRules.isEmpty()) return this
+        return copy(
+            request = mcpRedactionRules.redact(request),
+            response = response?.let { mcpRedactionRules.redact(it) },
+        )
     }
 
     private inline fun updateTransaction(txId: String, transform: (HttpTransaction) -> HttpTransaction) {
@@ -238,14 +260,14 @@ private class NetworkHostPlugin :
                 .filter { urlContains == null || it.request.url.contains(urlContains) }
                 .filter { method == null || it.request.method.equals(method, ignoreCase = true) }
             if (limit != null) result = result.takeLast(limit)
-            JsonArray(result.map { it.toSummaryJson() }).toString()
+            JsonArray(result.map { it.redactedForMcp().toSummaryJson() }).toString()
         }
 
         "$TOOL_PREFIX.getTransaction" -> {
             val txId = arguments["txId"] ?: return errorJson("missing required argument: txId")
             val transaction = transactions.toList().firstOrNull { it.txId == txId }
                 ?: return errorJson("no transaction with txId: $txId")
-            transaction.toDetailJson().toString()
+            transaction.redactedForMcp().toDetailJson().toString()
         }
 
         "$TOOL_PREFIX.clearTransactions" -> {
