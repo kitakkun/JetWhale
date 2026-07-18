@@ -71,7 +71,7 @@ public interface JetWhaleAppConfigurationScope {
 
     /**
      * Application icon as PNG bytes. Provide an image already downscaled to at most 64x64 pixels;
-     * icons whose encoded PNG exceeds 32KB are dropped so the negotiation payload stays small.
+     * icons whose base64-encoded form exceeds 32KB are dropped so the negotiation payload stays small.
      */
     public var appIconPng: ByteArray?
 }

@@ -16,8 +16,8 @@ import kotlinx.serialization.Serializable
  * @param deviceId Stable per-device identifier used to group sessions coming from the same device.
  * @param deviceName Human-readable device name (e.g. `Build.MODEL`, `UIDevice.name`, or the machine hostname).
  * @param appIconPngBase64 Base64-encoded PNG of the application icon. Senders MUST downscale to at most
- *   64x64 pixels and skip the icon entirely when the encoded PNG would exceed 32KB, so hosts can rely on
- *   the payload staying small.
+ *   64x64 pixels and skip the icon entirely when the base64-encoded string would exceed 32KB (the cap is
+ *   applied to the encoded payload, not the raw PNG bytes), so hosts can rely on the payload staying small.
  */
 @SerialName(JetWhaleSerialNames.MODEL_APP_METADATA)
 @Serializable

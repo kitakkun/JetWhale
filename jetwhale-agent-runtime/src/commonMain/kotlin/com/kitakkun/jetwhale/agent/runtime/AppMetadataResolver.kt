@@ -5,11 +5,13 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
- * Maximum size of an app icon PNG (in bytes) that is allowed on the wire.
- * Icons larger than this are dropped so the negotiation payload stays small.
- * Senders are expected to downscale icons to at most 64x64 pixels before providing them.
+ * Maximum length (in characters) of the base64-encoded app icon that is allowed on the wire.
+ * The bound is applied to the encoded string that actually travels in the negotiation payload,
+ * so the wire cost stays capped regardless of base64's ~4/3 expansion of the raw PNG bytes.
+ * Icons whose encoded form exceeds this are dropped. Senders are expected to downscale icons to
+ * at most 64x64 pixels before providing them.
  */
-internal const val MAX_APP_ICON_BYTES: Int = 32 * 1024
+internal const val MAX_APP_ICON_BASE64_LENGTH: Int = 32 * 1024
 
 /**
  * Best-effort resolver for [JetWhaleAppMetadata].
@@ -26,11 +28,12 @@ internal fun resolveAppMetadata(config: ResolvedAppConfiguration): JetWhaleAppMe
 @OptIn(ExperimentalEncodingApi::class)
 internal fun encodeAppIconOrNull(png: ByteArray?): String? {
     if (png == null) return null
-    if (png.size > MAX_APP_ICON_BYTES) {
-        JetWhaleLogger.w("App icon dropped: ${png.size} bytes exceeds the ${MAX_APP_ICON_BYTES} byte cap")
+    val encoded = Base64.encode(png)
+    if (encoded.length > MAX_APP_ICON_BASE64_LENGTH) {
+        JetWhaleLogger.w("App icon dropped: base64 length ${encoded.length} exceeds the $MAX_APP_ICON_BASE64_LENGTH character cap")
         return null
     }
-    return Base64.encode(png)
+    return encoded
 }
 
 /**
