@@ -22,36 +22,66 @@ class DefaultPluginInstallFromMavenMutationKey(
     private val pluginInstallProgressRepository: PluginInstallProgressRepository,
 ) : PluginInstallFromMavenMutationKey by buildMutationKey(
     id = MutationId("pluginInstallFromMaven"),
-    mutate = { coordinates: MavenCoordinates ->
+    mutate = { candidates: List<MavenCoordinates> ->
+        require(candidates.isNotEmpty()) { "No install candidates given" }
         appDataDirectoryProvider.createAppDataDirectoriesIfNeeded()
-        val pluginDir = appDataDirectoryProvider.getPluginDirectory()
         try {
-            pluginInstallProgressRepository.update(PluginInstallProgress.DownloadingPlugin)
-            val downloadedJarPath = mavenArtifactResolver.downloadJar(coordinates, pluginDir)
-            try {
-                downloadDeclaredDependencies(
-                    pluginJar = File(downloadedJarPath),
-                    pluginCoordinates = coordinates,
-                    libsDir = appDataDirectoryProvider.getPluginLibsDirectory(),
-                    resolver = mavenArtifactResolver,
-                    onProgress = pluginInstallProgressRepository::update,
-                )
-                pluginInstallProgressRepository.update(PluginInstallProgress.LoadingPlugin)
-                // Requesting an install by coordinates is the user's explicit consent, exactly like
-                // the file picker: approve (pin the content hash) and load.
-                pluginTrustService.trustAndLoad(downloadedJarPath)
-            } catch (e: Exception) {
-                File(downloadedJarPath).delete()
-                throw PluginInstallationException(
-                    "Failed to load plugin from $coordinates: ${e.message}",
-                    e,
-                )
+            var lastError: Exception? = null
+            for (coordinates in candidates) {
+                try {
+                    installFrom(
+                        coordinates = coordinates,
+                        pluginDir = appDataDirectoryProvider.getPluginDirectory(),
+                        libsDir = appDataDirectoryProvider.getPluginLibsDirectory(),
+                        resolver = mavenArtifactResolver,
+                        pluginTrustService = pluginTrustService,
+                        onProgress = pluginInstallProgressRepository::update,
+                    )
+                    lastError = null
+                    break
+                } catch (e: PluginInstallationException) {
+                    lastError = e
+                }
             }
+            lastError?.let { throw it }
         } finally {
             pluginInstallProgressRepository.update(null)
         }
     },
 )
+
+/** Downloads [coordinates] (plugin jar + declared dependencies), then approves and loads it. */
+private suspend fun installFrom(
+    coordinates: MavenCoordinates,
+    pluginDir: File,
+    libsDir: File,
+    resolver: MavenArtifactResolver,
+    pluginTrustService: PluginTrustService,
+    onProgress: (PluginInstallProgress) -> Unit,
+) {
+    onProgress(PluginInstallProgress.DownloadingPlugin)
+    val downloadedJarPath = try {
+        resolver.downloadJar(coordinates, pluginDir)
+    } catch (e: Exception) {
+        throw PluginInstallationException("Failed to download plugin $coordinates: ${'$'}{e.message}", e)
+    }
+    try {
+        downloadDeclaredDependencies(
+            pluginJar = File(downloadedJarPath),
+            pluginCoordinates = coordinates,
+            libsDir = libsDir,
+            resolver = resolver,
+            onProgress = onProgress,
+        )
+        onProgress(PluginInstallProgress.LoadingPlugin)
+        // Requesting an install by coordinates is the user's explicit consent, exactly like the
+        // file picker: approve (pin the content hash) and load.
+        pluginTrustService.trustAndLoad(downloadedJarPath)
+    } catch (e: Exception) {
+        File(downloadedJarPath).delete()
+        throw PluginInstallationException("Failed to load plugin from $coordinates: ${'$'}{e.message}", e)
+    }
+}
 
 /**
  * Downloads every external dependency the plugin jar declares in its dependency manifest into
