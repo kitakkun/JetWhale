@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.data.server
 import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationResult
 import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationStrategy
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
+import com.kitakkun.jetwhale.host.model.SslCertificateManager
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
@@ -16,7 +17,10 @@ import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.engine.EmbeddedServer
+import io.ktor.server.engine.applicationEnvironment
+import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.engine.sslConnector
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.DefaultWebSocketServerSession
@@ -51,6 +55,7 @@ import kotlin.coroutines.cancellation.CancellationException
 class KtorWebSocketServer(
     private val json: Json,
     private val negotiationStrategy: ServerSessionNegotiationStrategy,
+    private val sslCertificateManager: SslCertificateManager,
 ) {
     private var embeddedServer: EmbeddedServer<*, *>? = null
     private val sessions: ConcurrentHashMap<String, WebSocketServerSession> = ConcurrentHashMap()
@@ -67,15 +72,10 @@ class KtorWebSocketServer(
     private val mutableNegotiationCompletedFlow: MutableSharedFlow<ServerSessionNegotiationResult.Success> = MutableSharedFlow()
     val negotiationCompletedFlow: SharedFlow<ServerSessionNegotiationResult.Success> = mutableNegotiationCompletedFlow
 
-    suspend fun start(host: String, port: Int) {
+    suspend fun start(host: String, port: Int, wssPort: Int?) {
         mutableStatusFlow.update { DebugWebSocketServerStatus.Starting }
         try {
-            embeddedServer(
-                factory = Netty,
-                host = host,
-                port = port,
-                module = { configureWebSocket(host, port) },
-            ).also {
+            createServer(host = host, port = port, wssPort = wssPort).also {
                 it.startSuspend()
                 embeddedServer = it
             }
