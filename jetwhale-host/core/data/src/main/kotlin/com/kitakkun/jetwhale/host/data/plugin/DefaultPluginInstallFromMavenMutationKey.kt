@@ -2,8 +2,8 @@ package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.model.MavenCoordinates
-import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstallFromMavenMutationKey
+import com.kitakkun.jetwhale.host.model.PluginTrustService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -14,7 +14,7 @@ import java.io.File
 @Inject
 @ContributesBinding(AppScope::class)
 class DefaultPluginInstallFromMavenMutationKey(
-    private val pluginFactoryRepository: PluginFactoryRepository,
+    private val pluginTrustService: PluginTrustService,
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
     private val mavenArtifactResolver: MavenArtifactResolver,
 ) : PluginInstallFromMavenMutationKey by buildMutationKey(
@@ -24,7 +24,15 @@ class DefaultPluginInstallFromMavenMutationKey(
         val pluginDir = appDataDirectoryProvider.getPluginDirectory()
         val downloadedJarPath = mavenArtifactResolver.downloadJar(coordinates, pluginDir)
         try {
-            pluginFactoryRepository.loadPlugin(downloadedJarPath)
+            downloadDeclaredDependencies(
+                pluginJar = File(downloadedJarPath),
+                pluginCoordinates = coordinates,
+                libsDir = appDataDirectoryProvider.getPluginLibsDirectory(),
+                resolver = mavenArtifactResolver,
+            )
+            // Requesting an install by coordinates is the user's explicit consent, exactly like the
+            // file picker: approve (pin the content hash) and load.
+            pluginTrustService.trustAndLoad(downloadedJarPath)
         } catch (e: Exception) {
             File(downloadedJarPath).delete()
             throw PluginInstallationException(
@@ -34,6 +42,32 @@ class DefaultPluginInstallFromMavenMutationKey(
         }
     },
 )
+
+/**
+ * Downloads every external dependency the plugin jar declares in its dependency manifest into
+ * [libsDir], skipping jars that are already present (dependencies are shared across plugins by
+ * coordinates, and released artifacts are immutable).
+ *
+ * Each dependency is fetched from the repository the plugin itself came from first, falling back to
+ * Maven Central: a plugin in a custom repository may keep its own modules there while depending on
+ * public libraries.
+ */
+private suspend fun downloadDeclaredDependencies(
+    pluginJar: File,
+    pluginCoordinates: MavenCoordinates,
+    libsDir: File,
+    resolver: MavenArtifactResolver,
+) {
+    PluginDependencyManifest.readFrom(pluginJar).forEach { dependency ->
+        if (File(libsDir, dependency.jarFileName()).exists()) return@forEach
+        try {
+            resolver.downloadJar(dependency.copy(repositoryUrl = pluginCoordinates.repositoryUrl), libsDir)
+        } catch (e: MavenArtifactDownloadException) {
+            if (pluginCoordinates.repositoryUrl == MavenCoordinates.MAVEN_CENTRAL_URL) throw e
+            resolver.downloadJar(dependency.copy(repositoryUrl = MavenCoordinates.MAVEN_CENTRAL_URL), libsDir)
+        }
+    }
+}
 
 class PluginInstallationException(
     message: String,
