@@ -21,3 +21,24 @@ The JetWhale host's behavior is configured from its **Settings** screen.
 Installed plugins live in `~/.jetwhale/plugins/` as fat-jars. Drop a plugin jar there (or run
 `./gradlew installPlugin` from a plugin project) and the host picks it up. See
 [Developing Plugins](/guide/developing-plugins) for building your own.
+
+### Plugin trust
+
+Plugin jars are arbitrary code running inside the host process, so JetWhale only loads jars you
+have explicitly approved. Approvals are recorded in `~/.jetwhale/trusted-plugins.json`, with each
+jar pinned to the SHA-256 hash of its content at approval time. On startup:
+
+- Jars whose current content still matches their pinned hash are loaded.
+- Jars that were never approved, or whose content changed since approval, are **not** loaded and
+  appear in the **Unverified Plugins** section of the settings screen for review.
+
+Installing a plugin through the file picker counts as approval; jars dropped into the directory by
+anything else must be approved manually. Revoking trust unloads the plugin immediately.
+
+::: warning Threat model
+This is an entry-side defense: it stops JetWhale from executing jars you never vouched for, and
+detects jars swapped out after approval. It does **not** defend against malicious software already
+running with your user privileges — such software can rewrite the trust registry (or JetWhale
+itself) directly. Protecting against an attacker who already controls your user account is outside
+the scope of this mechanism.
+:::

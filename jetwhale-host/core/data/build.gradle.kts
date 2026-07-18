@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.jvm)
     alias(libs.plugins.metro)
+    alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.mokkery)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.jetbrainsCompose)

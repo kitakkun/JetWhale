@@ -14,6 +14,9 @@
     <string name="installed_plugins">Installed Plugins</string>
     <string name="failed_to_load_plugins">Failed to Load</string>
     <string name="failed_jar_path_hint">plugin-manifest.json was not found or the JAR is invalid.</string>
+    <string name="untrusted_plugins">Unverified Plugins</string>
+    <string name="untrusted_jar_hint">These JARs were found in the plugins directory but have not been approved (or their contents changed since approval), so they were not loaded. Only approve JARs you trust — a plugin runs with full access to this app.</string>
+    <string name="approve_untrusted_plugin">Approve</string>
     <string name="application_data_directory">Application Data Directory</string>
     <string name="server_status_stopped">Stopped</string>
     <string name="server_status_running">Running on port %1$d</string>

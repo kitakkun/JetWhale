@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.PluginMetaData
+import com.kitakkun.jetwhale.host.model.TrustPluginRequest
 import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
 import com.kitakkun.jetwhale.host.settings.component.PluginInfoUiState
 import kotlinx.collections.immutable.ImmutableList
@@ -16,9 +17,11 @@ fun pluginSettingsScreenPresenter(
     screenChannel: ScreenChannel<PluginSettingsScreenAction, Nothing>,
     loadedPlugins: ImmutableList<PluginMetaData>,
     failedJarPaths: ImmutableList<String>,
+    untrustedJarPaths: ImmutableList<String>,
 ): PluginSettingsScreenUiState {
     val pluginInstallMutation = rememberMutation(presenterContext.pluginInstallMutationKey)
     val pluginInstallFromMavenMutation = rememberMutation(presenterContext.pluginInstallFromMavenMutationKey)
+    val trustPluginMutation = rememberMutation(presenterContext.trustPluginMutationKey)
 
     ActionEffect(screenChannel) { action ->
         when (action) {
@@ -28,6 +31,10 @@ fun pluginSettingsScreenPresenter(
 
             is PluginSettingsScreenAction.InstallFromMaven -> {
                 pluginInstallFromMavenMutation.mutateAsync(action.coordinates)
+            }
+
+            is PluginSettingsScreenAction.UntrustedJarApproved -> {
+                trustPluginMutation.mutateAsync(TrustPluginRequest(action.path))
             }
         }
     }
@@ -45,6 +52,7 @@ fun pluginSettingsScreenPresenter(
             )
         }.toPersistentList(),
         failedJarPaths = failedJarPaths,
+        untrustedJarPaths = untrustedJarPaths,
         isInstalling = isInstalling,
         installError = installError,
     )

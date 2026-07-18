@@ -19,6 +19,29 @@ class AppDataDirectoryProvider {
 
     fun getAppDataPath(): String = "~/.jetwhale"
 
+    /**
+     * The file backing the plugin trust registry (the list of jars the user has explicitly approved,
+     * each pinned to the content hash it had at approval time). Lives directly under the app data
+     * directory so it is created and read before any plugin jar is touched.
+     */
+    fun getTrustRegistryFile(): File = File(appDataDir, "trusted-plugins.json")
+
+    /**
+     * True only for a `.jar` file directly inside the managed plugins directory. Paths are compared
+     * canonically so `..` segments or symlinked aliases cannot smuggle in a jar from elsewhere. This
+     * is the precondition for trusting a jar: the plugins directory is the security boundary, and
+     * only files placed there through the explicit install flow may be approved.
+     */
+    fun isManagedPluginJarPath(jarPath: String): Boolean {
+        val file = File(jarPath)
+        if (file.extension != "jar") return false
+        return try {
+            file.canonicalFile.parentFile == File(pluginDir).canonicalFile
+        } catch (e: java.io.IOException) {
+            false
+        }
+    }
+
     fun createAppDataDirectoriesIfNeeded() {
         val appDataDirectory = File(appDataDir)
         if (!appDataDirectory.exists()) {

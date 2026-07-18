@@ -21,13 +21,15 @@ fun PluginSettingsScreenRoot() {
     SoilDataBoundary(
         state1 = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
         state2 = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey),
-    ) { loadedPlugins, failedJarPaths ->
+        state3 = rememberSubscription(screenContext.untrustedPluginJarPathsSubscriptionKey),
+    ) { loadedPlugins, failedJarPaths, untrustedJars ->
         val screenChannel = rememberScreenChannel<PluginSettingsScreenAction, Nothing>()
         val uiState = context(screenContext.presenterContext) {
             pluginSettingsScreenPresenter(
                 screenChannel = screenChannel,
                 loadedPlugins = loadedPlugins,
                 failedJarPaths = failedJarPaths,
+                untrustedJarPaths = untrustedJars.paths,
             )
         }
 
@@ -36,6 +38,9 @@ fun PluginSettingsScreenRoot() {
             onClickAddPlugin = {
                 val selectedJar = selectJarFile() ?: return@PluginSettingsScreen
                 screenChannel.send(PluginSettingsScreenAction.PluginJarSelected(selectedJar.path))
+            },
+            onApproveUntrustedJar = { path ->
+                screenChannel.send(PluginSettingsScreenAction.UntrustedJarApproved(path))
             },
             onClickInstallFromMaven = {
                 showMavenDialog = true
