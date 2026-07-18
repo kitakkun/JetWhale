@@ -19,6 +19,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -44,6 +45,7 @@ import com.kitakkun.jetwhale.host.settings.component.SettingsItemRow
 import com.kitakkun.jetwhale.host.settings.component.SwitchSettingsItemView
 import com.kitakkun.jetwhale.host.settings.current_version
 import com.kitakkun.jetwhale.host.settings.health_check
+import com.kitakkun.jetwhale.host.settings.install_update
 import com.kitakkun.jetwhale.host.settings.language_option
 import com.kitakkun.jetwhale.host.settings.maintenance
 import com.kitakkun.jetwhale.host.settings.open_download_page
@@ -67,6 +69,7 @@ fun GeneralSettingsScreen(
     onClickOpenAppDataPath: () -> Unit,
     onClickOpenLogViewer: () -> Unit,
     onClickCheckForUpdates: () -> Unit,
+    onClickInstallUpdate: () -> Unit,
     onClickOpenDownloadPage: (url: String) -> Unit,
 ) {
     LazyColumn(
@@ -129,6 +132,7 @@ fun GeneralSettingsScreen(
                     isChecking = uiState.isCheckingForUpdates,
                     result = uiState.updateCheckResult,
                     error = uiState.updateCheckError,
+                    onClickInstallUpdate = onClickInstallUpdate,
                     onClickOpenDownloadPage = onClickOpenDownloadPage,
                 )
                 Button(
@@ -164,6 +168,7 @@ private fun UpdateCheckStatusView(
     isChecking: Boolean,
     result: UpdateCheckResult?,
     error: String?,
+    onClickInstallUpdate: () -> Unit,
     onClickOpenDownloadPage: (url: String) -> Unit,
 ) {
     when {
@@ -200,8 +205,15 @@ private fun UpdateCheckStatusView(
                         text = stringResource(Res.string.update_available_hint),
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    Button(onClick = { onClickOpenDownloadPage(result.downloadPageUrl) }) {
-                        Text(stringResource(Res.string.open_download_page))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (result.canInstallInApp) {
+                            Button(onClick = onClickInstallUpdate) {
+                                Text(stringResource(Res.string.install_update))
+                            }
+                        }
+                        OutlinedButton(onClick = { onClickOpenDownloadPage(result.downloadPageUrl) }) {
+                            Text(stringResource(Res.string.open_download_page))
+                        }
                     }
                 }
             }
@@ -246,6 +258,7 @@ private fun GeneralSettingsScreenPreview() {
         onClickOpenAppDataPath = {},
         onClickOpenLogViewer = {},
         onClickCheckForUpdates = {},
+        onClickInstallUpdate = {},
         onClickOpenDownloadPage = {},
     )
 }

@@ -54,6 +54,9 @@ fun GeneralSettingsScreenRoot(
             onClickCheckForUpdates = {
                 screenChannel.send(GeneralSettingsScreenAction.CheckForUpdates)
             },
+            onClickInstallUpdate = {
+                screenChannel.send(GeneralSettingsScreenAction.InstallUpdate)
+            },
             onClickOpenDownloadPage = { url ->
                 try {
                     Desktop.getDesktop().browse(java.net.URI(url))

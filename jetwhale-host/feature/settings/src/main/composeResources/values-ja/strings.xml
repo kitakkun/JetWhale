@@ -15,7 +15,8 @@
     <string name="checking_for_updates">更新を確認中…</string>
     <string name="update_up_to_date">最新の状態です</string>
     <string name="update_available">新しいバージョン %1$s が利用可能です</string>
-    <string name="update_available_hint">次回アプリ起動時に自動的にインストールされます。手動でダウンロードすることもできます。</string>
+    <string name="update_available_hint">更新が自動的に適用されることはありません。今すぐインストールするか、手動でダウンロードできます。</string>
+    <string name="install_update">インストールして再起動</string>
     <string name="open_download_page">ダウンロードページを開く</string>
     <string name="update_check_failed">更新の確認に失敗しました: %1$s</string>
     <string name="installed_plugins">インストール済みプラグイン</string>

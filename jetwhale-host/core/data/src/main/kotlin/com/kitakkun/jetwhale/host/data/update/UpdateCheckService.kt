@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.data.update
 
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.UpdateCheckResult
+import dev.hydraulic.conveyor.control.SoftwareUpdateController
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -29,6 +30,9 @@ class UpdateCheckService(
         }
     }
 
+    // Null when not running from a Conveyor package (dev runs, uber jar).
+    private val updateController: SoftwareUpdateController? = SoftwareUpdateController.getInstance()
+
     suspend fun checkForUpdates(): UpdateCheckResult {
         val response = httpClient.get("$UPDATE_SITE_URL/metadata.properties")
         if (!response.status.isSuccess()) {
@@ -41,8 +45,17 @@ class UpdateCheckService(
             currentVersion = currentVersion,
             latestVersion = latestVersion,
             updateAvailable = isNewer(candidate = latestVersion, current = currentVersion),
+            canInstallInApp = updateController?.canTriggerUpdateCheckUI() == SoftwareUpdateController.Availability.AVAILABLE,
             downloadPageUrl = DOWNLOAD_PAGE_URL,
         )
+    }
+
+    /**
+     * Hands control to the OS updater (Sparkle dialog on macOS, updater exe on Windows).
+     * The app may quit as part of this flow.
+     */
+    fun triggerUpdateInstall() {
+        updateController?.triggerUpdateCheckUI()
     }
 
     companion object {

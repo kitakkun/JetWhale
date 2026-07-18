@@ -15,7 +15,8 @@
     <string name="checking_for_updates">Checking for updates…</string>
     <string name="update_up_to_date">You're up to date</string>
     <string name="update_available">New version %1$s is available</string>
-    <string name="update_available_hint">It will be installed automatically the next time you launch the app. You can also download it manually.</string>
+    <string name="update_available_hint">Updates are never applied automatically. Install it now, or download it manually.</string>
+    <string name="install_update">Install and Relaunch</string>
     <string name="open_download_page">Open Download Page</string>
     <string name="update_check_failed">Update check failed: %1$s</string>
     <string name="installed_plugins">Installed Plugins</string>

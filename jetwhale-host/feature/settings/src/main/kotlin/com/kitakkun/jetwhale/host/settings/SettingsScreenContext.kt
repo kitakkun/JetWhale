@@ -23,6 +23,7 @@ import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.TrustPluginMutationKey
 import com.kitakkun.jetwhale.host.model.UntrustedPluginJarPathsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.UpdateCheckMutationKey
+import com.kitakkun.jetwhale.host.model.UpdateInstallMutationKey
 import dev.zacsweers.metro.Inject
 
 /**
@@ -42,6 +43,7 @@ class SettingsPresenterContext(
     val trustPluginMutationKey: TrustPluginMutationKey,
     val officialPluginInstallMutationKey: OfficialPluginInstallMutationKey,
     val updateCheckMutationKey: UpdateCheckMutationKey,
+    val updateInstallMutationKey: UpdateInstallMutationKey,
     val hostVersionInfo: HostVersionInfo,
     val logCaptureService: LogCaptureService,
 ) : PresenterContext

@@ -21,6 +21,7 @@ fun generalSettingsScreenPresenter(
     val appColorSchemeMutation = rememberMutation(presenterContext.appColorSchemeMutationKey)
     val adbAutoPortMappingMutation = rememberMutation(presenterContext.adbAutoPortMappingMutationKey)
     val updateCheckMutation = rememberMutation(presenterContext.updateCheckMutationKey)
+    val updateInstallMutation = rememberMutation(presenterContext.updateInstallMutationKey)
 
     ActionEffect(screenChannel) { action ->
         when (action) {
@@ -41,6 +42,10 @@ fun generalSettingsScreenPresenter(
 
             is GeneralSettingsScreenAction.CheckForUpdates -> {
                 updateCheckMutation.mutateAsync(Unit)
+            }
+
+            is GeneralSettingsScreenAction.InstallUpdate -> {
+                updateInstallMutation.mutateAsync(Unit)
             }
         }
     }
