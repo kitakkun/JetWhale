@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">JetWhale Debugger</string>
     <string name="version_format">バージョン %1$s</string>
+    <string name="update_banner_message">新しいバージョン %1$s が利用可能です</string>
+    <string name="update_banner_open_settings">設定で確認</string>
     <string name="developed_by">開発者: kitakkun</string>
     <string name="github_url">GitHub: https://github.com/kitakkun/JetWhale</string>
     <string name="oss_licenses">OSSライセンス</string>

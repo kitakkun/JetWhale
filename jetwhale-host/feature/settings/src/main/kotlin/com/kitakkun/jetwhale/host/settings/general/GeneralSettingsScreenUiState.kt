@@ -13,6 +13,7 @@ data class GeneralSettingsScreenUiState(
     val appDataPath: String,
     val adbPath: String,
     val currentVersion: String,
+    val checkForUpdatesOnStartup: Boolean,
     val isCheckingForUpdates: Boolean,
     val updateCheckResult: UpdateCheckResult?,
     val updateCheckError: String?,

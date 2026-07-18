@@ -11,6 +11,7 @@
     <string name="maintenance">Maintenance</string>
     <string name="updates">Updates</string>
     <string name="current_version">Current Version</string>
+    <string name="check_for_updates_on_startup">Check for updates on startup (notify only)</string>
     <string name="check_for_updates">Check for Updates</string>
     <string name="checking_for_updates">Checking for updates…</string>
     <string name="update_up_to_date">You're up to date</string>

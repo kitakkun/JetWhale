@@ -9,5 +9,6 @@ sealed interface GeneralSettingsScreenAction {
     data class AppLanguageSelected(val language: AppLanguage) : GeneralSettingsScreenAction
     data class ColorSchemeSelected(val colorSchemeId: JetWhaleColorSchemeId) : GeneralSettingsScreenAction
     data object CheckForUpdates : GeneralSettingsScreenAction
+    data class ChangeCheckForUpdatesOnStartup(val enabled: Boolean) : GeneralSettingsScreenAction
     data object InstallUpdate : GeneralSettingsScreenAction
 }

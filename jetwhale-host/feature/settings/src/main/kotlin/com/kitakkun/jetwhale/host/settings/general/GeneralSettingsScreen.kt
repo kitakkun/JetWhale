@@ -38,6 +38,7 @@ import com.kitakkun.jetwhale.host.settings.appearance
 import com.kitakkun.jetwhale.host.settings.application_data_directory
 import com.kitakkun.jetwhale.host.settings.automatically_wire_adb_transport
 import com.kitakkun.jetwhale.host.settings.check_for_updates
+import com.kitakkun.jetwhale.host.settings.check_for_updates_on_startup
 import com.kitakkun.jetwhale.host.settings.checking_for_updates
 import com.kitakkun.jetwhale.host.settings.component.DropdownSettingsItemView
 import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
@@ -69,6 +70,7 @@ fun GeneralSettingsScreen(
     onClickOpenAppDataPath: () -> Unit,
     onClickOpenLogViewer: () -> Unit,
     onClickCheckForUpdates: () -> Unit,
+    onCheckForUpdatesOnStartupChange: (Boolean) -> Unit,
     onClickInstallUpdate: () -> Unit,
     onClickOpenDownloadPage: (url: String) -> Unit,
 ) {
@@ -128,6 +130,11 @@ fun GeneralSettingsScreen(
                         Text(uiState.currentVersion)
                     }
                 }
+                SwitchSettingsItemView(
+                    label = stringResource(Res.string.check_for_updates_on_startup),
+                    isChecked = uiState.checkForUpdatesOnStartup,
+                    onCheckedChange = onCheckForUpdatesOnStartupChange,
+                )
                 UpdateCheckStatusView(
                     isChecking = uiState.isCheckingForUpdates,
                     result = uiState.updateCheckResult,
@@ -247,6 +254,7 @@ private fun GeneralSettingsScreenPreview() {
             appDataPath = "~/.jetwhale",
             adbPath = "/path/to/adb",
             currentVersion = "1.0.0-alpha08",
+            checkForUpdatesOnStartup = true,
             isCheckingForUpdates = false,
             updateCheckResult = null,
             updateCheckError = null,
@@ -258,6 +266,7 @@ private fun GeneralSettingsScreenPreview() {
         onClickOpenAppDataPath = {},
         onClickOpenLogViewer = {},
         onClickCheckForUpdates = {},
+        onCheckForUpdatesOnStartupChange = {},
         onClickInstallUpdate = {},
         onClickOpenDownloadPage = {},
     )

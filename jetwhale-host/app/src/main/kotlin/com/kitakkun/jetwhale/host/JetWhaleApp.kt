@@ -1,14 +1,20 @@
 package com.kitakkun.jetwhale.host
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
+import androidx.compose.runtime.setValue
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
+import com.kitakkun.jetwhale.host.component.UpdateAvailableBanner
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldRoot
 import com.kitakkun.jetwhale.host.navigation.EmptyPluginNavKey
@@ -25,6 +31,7 @@ import com.kitakkun.jetwhale.host.ui.AppEnvironment
 import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
 import kotlinx.serialization.modules.SerializersModule
 import soil.query.compose.SwrClientProvider
+import soil.query.compose.rememberMutation
 import soil.query.compose.rememberSubscription
 
 @Composable
@@ -85,6 +92,17 @@ fun JetWhaleApp() {
         onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey()) },
     ) {
         SwrClientProvider(appGraph.swrClient) {
+            // Startup update check: notify-only. Installing always requires an explicit
+            // user action in the settings screen.
+            val updateCheckMutation = rememberMutation(appGraph.updateCheckMutationKey)
+            var updateBannerDismissed by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) {
+                if (appGraph.debuggerSettingsRepository.readCheckForUpdatesOnStartup()) {
+                    runCatching { updateCheckMutation.mutateAsync(Unit) }
+                }
+            }
+            val availableUpdate = updateCheckMutation.data?.takeIf { it.updateAvailable }
+
             SoilDataBoundary(
                 state1 = rememberSubscription(appGraph.themeSubscriptionKey),
                 state2 = rememberSubscription(appGraph.appearanceSettingsSubscriptionKey),
@@ -126,7 +144,19 @@ fun JetWhaleApp() {
                                         )
                                     },
                                 ) {
-                                    JetWhaleNavDisplay(backStack)
+                                    Column {
+                                        if (availableUpdate != null && !updateBannerDismissed) {
+                                            UpdateAvailableBanner(
+                                                latestVersion = availableUpdate.latestVersion,
+                                                onClickOpenSettings = {
+                                                    updateBannerDismissed = true
+                                                    backStack.addSingleTop(SettingsNavKey())
+                                                },
+                                                onDismiss = { updateBannerDismissed = true },
+                                            )
+                                        }
+                                        JetWhaleNavDisplay(backStack)
+                                    }
                                 }
                             }
                         }

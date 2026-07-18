@@ -11,6 +11,7 @@
     <string name="maintenance">メンテナンス</string>
     <string name="updates">アップデート</string>
     <string name="current_version">現在のバージョン</string>
+    <string name="check_for_updates_on_startup">起動時に更新を確認する（通知のみ）</string>
     <string name="check_for_updates">更新を確認</string>
     <string name="checking_for_updates">更新を確認中…</string>
     <string name="update_up_to_date">最新の状態です</string>

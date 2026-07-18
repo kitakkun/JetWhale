@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.host.model.AdbAutoPortMappingMutationKey
 import com.kitakkun.jetwhale.host.model.AppColorSchemeMutationKey
 import com.kitakkun.jetwhale.host.model.AppLanguageMutationKey
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.CheckForUpdatesOnStartupMutationKey
 import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
 import com.kitakkun.jetwhale.host.model.FailedPluginJarPathsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
@@ -44,6 +45,7 @@ class SettingsPresenterContext(
     val officialPluginInstallMutationKey: OfficialPluginInstallMutationKey,
     val updateCheckMutationKey: UpdateCheckMutationKey,
     val updateInstallMutationKey: UpdateInstallMutationKey,
+    val checkForUpdatesOnStartupMutationKey: CheckForUpdatesOnStartupMutationKey,
     val hostVersionInfo: HostVersionInfo,
     val logCaptureService: LogCaptureService,
 ) : PresenterContext
