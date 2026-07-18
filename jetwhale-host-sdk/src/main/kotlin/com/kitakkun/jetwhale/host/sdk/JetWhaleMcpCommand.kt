@@ -12,8 +12,8 @@ package com.kitakkun.jetwhale.host.sdk
  *     override val name = "com.example.myplugin.inspectWidget"
  *     override val description = "Inspect the selected widget"
  *
- *     private val widgetId = requiredString("widgetId", "The widget ID")
- *     private val verbose = optionalBoolean("verbose", "Include layout details.")
+ *     private val widgetId = string("widgetId", "The widget ID")
+ *     private val verbose = booleanOrNull("verbose", "Include layout details.")
  *
  *     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
  *         return widgets.describeAsJson(id = arguments[widgetId], verbose = arguments[verbose] ?: false)
@@ -58,27 +58,27 @@ public abstract class JetWhaleMcpCommand {
 
     // -- Parameter declaration (call from property initializers) ------------------------------
 
-    protected fun requiredString(name: String, description: String): JetWhaleMcpParameter<String> = required(name, "string", description) { it }
+    protected fun string(name: String, description: String): JetWhaleMcpParameter<String> = required(name, "string", description) { it }
 
-    protected fun optionalString(name: String, description: String): JetWhaleMcpParameter<String?> = optional(name, "string", description) { it }
+    protected fun stringOrNull(name: String, description: String): JetWhaleMcpParameter<String?> = optional(name, "string", description) { it }
 
-    protected fun requiredInt(name: String, description: String): JetWhaleMcpParameter<Int> = required(name, "integer", description) { parseInt(name, it) }
+    protected fun int(name: String, description: String): JetWhaleMcpParameter<Int> = required(name, "integer", description) { parseInt(name, it) }
 
-    protected fun optionalInt(name: String, description: String): JetWhaleMcpParameter<Int?> = optional(name, "integer", description) { parseInt(name, it) }
+    protected fun intOrNull(name: String, description: String): JetWhaleMcpParameter<Int?> = optional(name, "integer", description) { parseInt(name, it) }
 
-    protected fun requiredLong(name: String, description: String): JetWhaleMcpParameter<Long> = required(name, "integer", description) { parseLong(name, it) }
+    protected fun long(name: String, description: String): JetWhaleMcpParameter<Long> = required(name, "integer", description) { parseLong(name, it) }
 
-    protected fun optionalLong(name: String, description: String): JetWhaleMcpParameter<Long?> = optional(name, "integer", description) { parseLong(name, it) }
+    protected fun longOrNull(name: String, description: String): JetWhaleMcpParameter<Long?> = optional(name, "integer", description) { parseLong(name, it) }
 
-    protected fun requiredBoolean(name: String, description: String): JetWhaleMcpParameter<Boolean> = required(name, "boolean", description) { parseBoolean(name, it) }
+    protected fun boolean(name: String, description: String): JetWhaleMcpParameter<Boolean> = required(name, "boolean", description) { parseBoolean(name, it) }
 
-    protected fun optionalBoolean(name: String, description: String): JetWhaleMcpParameter<Boolean?> = optional(name, "boolean", description) { parseBoolean(name, it) }
-
-    /** Matches [entries] by enum name, case-insensitively. */
-    protected fun <T : Enum<T>> requiredEnum(name: String, description: String, entries: List<T>): JetWhaleMcpParameter<T> = required(name, "string", description) { parseEnum(name, it, entries) }
+    protected fun booleanOrNull(name: String, description: String): JetWhaleMcpParameter<Boolean?> = optional(name, "boolean", description) { parseBoolean(name, it) }
 
     /** Matches [entries] by enum name, case-insensitively. */
-    protected fun <T : Enum<T>> optionalEnum(name: String, description: String, entries: List<T>): JetWhaleMcpParameter<T?> = optional(name, "string", description) { parseEnum(name, it, entries) }
+    protected fun <T : Enum<T>> enum(name: String, description: String, entries: List<T>): JetWhaleMcpParameter<T> = required(name, "string", description) { parseEnum(name, it, entries) }
+
+    /** Matches [entries] by enum name, case-insensitively. */
+    protected fun <T : Enum<T>> enumOrNull(name: String, description: String, entries: List<T>): JetWhaleMcpParameter<T?> = optional(name, "string", description) { parseEnum(name, it, entries) }
 
     private fun <T : Any> required(name: String, type: String, description: String, parse: (String) -> T): JetWhaleMcpParameter<T> = declare(
         JetWhaleMcpParameter(name = name, type = type, description = description, required = true) { raw ->

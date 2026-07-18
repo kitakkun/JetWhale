@@ -13,7 +13,7 @@ internal class GetTransactionCommand(
     override val name = "$TOOL_PREFIX.getTransaction"
     override val description = "Returns the full detail of one captured HTTP transaction (request/response headers and bodies, or the failure)."
 
-    private val txIdParam = requiredString("txId", "The transaction id from listTransactions.")
+    private val txIdParam = string("txId", "The transaction id from listTransactions.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val txId = arguments[txIdParam]

@@ -14,7 +14,7 @@ internal class SetMockingEnabledCommand(
     override val name = "$TOOL_PREFIX.setMockingEnabled"
     override val description = "Enables or disables HTTP response mocking globally on the debuggee."
 
-    private val enabledParam = requiredBoolean("enabled", "true to enable mocking, false to disable.")
+    private val enabledParam = boolean("enabled", "true to enable mocking, false to disable.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val enabled = arguments[enabledParam]

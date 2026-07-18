@@ -178,20 +178,20 @@ public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCapabl
 public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand {
 	public static final field $stable I
 	public fun <init> ()V
+	protected final fun boolean (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
+	protected final fun booleanOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
+	protected final fun enum (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
+	protected final fun enumOrNull (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
 	public abstract fun execute (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpArguments;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun getDescription ()Ljava/lang/String;
 	public abstract fun getName ()Ljava/lang/String;
 	public final fun getParameters ()Ljava/util/List;
-	protected final fun optionalBoolean (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
-	protected final fun optionalEnum (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
-	protected final fun optionalInt (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
-	protected final fun optionalLong (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
-	protected final fun optionalString (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
-	protected final fun requiredBoolean (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
-	protected final fun requiredEnum (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
-	protected final fun requiredInt (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
-	protected final fun requiredLong (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
-	protected final fun requiredString (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
+	protected final fun int (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
+	protected final fun intOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
+	protected final fun long (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
+	protected final fun longOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
+	protected final fun string (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
+	protected final fun stringOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;
 	public final fun toDescriptor ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor;
 }
 

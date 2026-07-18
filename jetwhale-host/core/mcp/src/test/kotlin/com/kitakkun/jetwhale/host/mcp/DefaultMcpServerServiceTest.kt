@@ -226,7 +226,7 @@ private class FakeMcpCapablePlugin :
             override val name = "com.example.test.greet"
             override val description = "Greet by name"
 
-            private val nameParam = requiredString("name", "Name to greet")
+            private val nameParam = string("name", "Name to greet")
 
             override suspend fun execute(arguments: JetWhaleMcpArguments): String = "Hello, ${arguments[nameParam]}!"
         },

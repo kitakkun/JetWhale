@@ -17,27 +17,27 @@ internal class ListTransactionsCommand(
     override val description =
         "Lists captured HTTP transactions (oldest first) as summaries: txId, method, url, timestamp, status, duration, mock/failure flags. Returns {\"transactions\": [...]} plus \"nextCursor\" when a cursor page was truncated. Use getTransaction for headers and bodies."
 
-    private val limitParam = optionalInt(
+    private val limitParam = intOrNull(
         "limit",
         "Maximum number of transactions to return. Without afterTxId it counts from the newest; with afterTxId it is the page size counted forward from the cursor. Returns all if omitted.",
     )
-    private val afterTxIdParam = optionalString(
+    private val afterTxIdParam = stringOrNull(
         "afterTxId",
         "Cursor: only include transactions captured after this txId (exclusive), oldest first. Pass the previous response's nextCursor to fetch the next page, or the last txId you have seen to fetch only new traffic.",
     )
-    private val sinceTimestampMsParam = optionalLong(
+    private val sinceTimestampMsParam = longOrNull(
         "sinceTimestampMs",
         "Only include transactions whose request timestampMs is >= this epoch-millisecond value.",
     )
-    private val untilTimestampMsParam = optionalLong(
+    private val untilTimestampMsParam = longOrNull(
         "untilTimestampMs",
         "Only include transactions whose request timestampMs is <= this epoch-millisecond value.",
     )
-    private val urlContainsParam = optionalString(
+    private val urlContainsParam = stringOrNull(
         "urlContains",
         "Only include transactions whose URL contains this substring.",
     )
-    private val methodParam = optionalString(
+    private val methodParam = stringOrNull(
         "method",
         "Only include transactions with this HTTP method (case-insensitive).",
     )
