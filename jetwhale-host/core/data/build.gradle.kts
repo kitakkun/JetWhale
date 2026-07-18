@@ -38,6 +38,8 @@ dependencies {
     implementation(libs.ktorClientCio)
     implementation(libs.conveyorControl)
     implementation(libs.logbackClassic)
+    implementation(libs.bouncyCastleBcprov)
+    implementation(libs.bouncyCastleBcpkix)
     implementation(libs.kotlinTest)
     testImplementation(libs.ktorClientMock)
 }
