@@ -1,63 +1,32 @@
 package com.kitakkun.jetwhale.host.sdk
 
 /**
- * Optional interface that a [JetWhaleHostPlugin] can implement to
- * advertise plugin-specific MCP tools to the MCP server.
+ * Optional interface that a [JetWhaleHostPlugin] can implement to advertise plugin-specific MCP
+ * tools to the MCP server, as a list of [JetWhaleMcpCommand]s.
  *
- * The MCP server queries all active plugin instances for this interface
- * as sessions come up and registers the returned tool descriptors.
- * When a tool is invoked, [handleMcpTool] is called on the correct
- * plugin instance (keyed by pluginId + sessionId).
+ * The MCP server queries all active plugin instances for this interface as sessions come up,
+ * registers each command's descriptor, and dispatches invocations to the matching command on the
+ * correct plugin instance (keyed by pluginId + sessionId). A [JetWhaleMcpArgumentException]
+ * thrown by a command is rendered as an `{"error": ...}` payload instead of failing the server.
  *
  * Usage:
  * ```kotlin
  * class MyHostPlugin : JetWhaleHostPlugin(), JetWhaleMcpCapablePlugin {
- *     override fun mcpTools() = listOf(
- *         JetWhaleMcpToolDescriptor(
- *             name = "com.example.myplugin.inspectWidget",
- *             description = "Inspect the selected widget",
- *             parameters = mapOf(
- *                 "widgetId" to JetWhaleMcpParameterDescriptor("string", "The widget ID")
- *             )
- *         )
- *     )
- *
- *     override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? {
- *         return when (toolName) {
- *             "com.example.myplugin.inspectWidget" -> {
- *                 val widgetId = arguments["widgetId"] ?: return null
- *                 // talk to the agent via the plugin's own messenger.request(...) or return local data
- *                 """{"widget": "$widgetId", "type": "Button"}"""
- *             }
- *             else -> null
- *         }
- *     }
+ *     override val mcpCommands = listOf(InspectWidgetCommand(widgetStore))
  * }
  * ```
+ * See [JetWhaleMcpCommand] for how to implement a command.
  */
 @ExperimentalJetWhaleApi
 public interface JetWhaleMcpCapablePlugin {
     /**
-     * Returns the list of MCP tool descriptors this plugin exposes.
-     * Called once per plugin instance activation; the list is treated
-     * as static for the lifetime of the plugin instance.
+     * The commands this plugin exposes. Read once per plugin instance activation; the list is
+     * treated as static for the lifetime of the plugin instance.
      *
-     * Tool names must be globally unique; by convention prefix with the
-     * pluginId, e.g. "com.example.myplugin.inspectWidget".
+     * Command names must be globally unique; by convention prefix with the pluginId,
+     * e.g. "com.example.myplugin.inspectWidget".
      */
-    public fun mcpTools(): List<JetWhaleMcpToolDescriptor>
-
-    /**
-     * Called by the MCP server when a tool registered by this plugin is invoked.
-     *
-     * @param toolName  The exact name returned in [mcpTools].
-     * @param arguments Map of argument name to JSON value string.
-     * @return A result string (plain text or JSON); null means no result.
-     */
-    public suspend fun handleMcpTool(
-        toolName: String,
-        arguments: Map<String, String>,
-    ): String?
+    public val mcpCommands: List<JetWhaleMcpCommand>
 }
 
 /**

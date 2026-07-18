@@ -5,7 +5,7 @@ package com.kitakkun.jetwhale.host.sdk
  * execution logic live in a single class, so the schema and the code reading the arguments
  * cannot drift apart, and each command can be unit-tested in isolation.
  *
- * Implement commands and expose them through [JetWhaleMcpCommandPlugin]:
+ * Implement commands and expose them through [JetWhaleMcpCapablePlugin]:
  * ```kotlin
  * class InspectWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpCommand() {
  *     override val name = "com.example.myplugin.inspectWidget"
@@ -86,42 +86,4 @@ public class JetWhaleMcpArguments(private val raw: Map<String, String>) {
     private fun missing(name: String): Nothing = throw JetWhaleMcpArgumentException("missing required argument: $name")
 
     private fun invalid(name: String, value: String, expected: String): Nothing = throw JetWhaleMcpArgumentException("invalid $name: $value (expected $expected)")
-}
-
-/**
- * [JetWhaleMcpCapablePlugin] implemented on top of a list of [JetWhaleMcpCommand]s: the
- * descriptor list and the dispatch are derived from [mcpCommands], and
- * [JetWhaleMcpArgumentException]s are rendered as `{"error": ...}` payloads.
- */
-@ExperimentalJetWhaleApi
-public interface JetWhaleMcpCommandPlugin : JetWhaleMcpCapablePlugin {
-    public val mcpCommands: List<JetWhaleMcpCommand>
-
-    override fun mcpTools(): List<JetWhaleMcpToolDescriptor> = mcpCommands.map { it.toDescriptor() }
-
-    override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? {
-        val command = mcpCommands.firstOrNull { it.name == toolName } ?: return null
-        return try {
-            command.execute(JetWhaleMcpArguments(arguments))
-        } catch (e: JetWhaleMcpArgumentException) {
-            """{"error":${jsonQuote(e.message.orEmpty())}}"""
-        }
-    }
-}
-
-// The SDK has no JSON dependency, so the error payload is escaped by hand.
-private fun jsonQuote(value: String): String = buildString {
-    append('"')
-    for (char in value) {
-        when {
-            char == '"' -> append("\\\"")
-            char == '\\' -> append("\\\\")
-            char == '\n' -> append("\\n")
-            char == '\r' -> append("\\r")
-            char == '\t' -> append("\\t")
-            char < ' ' -> append("\\u%04x".format(char.code))
-            else -> append(char)
-        }
-    }
-    append('"')
 }

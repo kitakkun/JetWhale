@@ -7,9 +7,10 @@ import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.example.protocol.ButtonClicked
 import com.kitakkun.jetwhale.plugins.example.protocol.Ping
@@ -65,43 +66,39 @@ private class ExampleHostPlugin :
     // JetWhaleMcpCapablePlugin
     // -------------------------------------------------------------------------
 
-    override fun mcpTools(): List<JetWhaleMcpToolDescriptor> = listOf(
-        JetWhaleMcpToolDescriptor(
-            name = "com.kitakkun.jetwhale.example.sendPing",
-            description = "Sends a Ping request to the debuggee and returns whether a Pong reply was received.",
-        ),
-        JetWhaleMcpToolDescriptor(
-            name = "com.kitakkun.jetwhale.example.getEventLogs",
-            description = "Returns the list of event log entries accumulated by the Example plugin.",
-            parameters = mapOf(
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        object : JetWhaleMcpCommand() {
+            override val name = "com.kitakkun.jetwhale.example.sendPing"
+            override val description = "Sends a Ping request to the debuggee and returns whether a Pong reply was received."
+
+            override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+                val pongReceived = try {
+                    messenger.request(Ping)
+                    true
+                } catch (e: JetWhaleMessagingException) {
+                    false
+                }
+                return buildJsonObject {
+                    put("pongReceived", pongReceived)
+                }.toString()
+            }
+        },
+        object : JetWhaleMcpCommand() {
+            override val name = "com.kitakkun.jetwhale.example.getEventLogs"
+            override val description = "Returns the list of event log entries accumulated by the Example plugin."
+            override val parameters = mapOf(
                 "limit" to JetWhaleMcpParameterDescriptor(
                     type = "integer",
                     description = "Maximum number of log entries to return. Returns all entries if omitted.",
                     required = false,
                 ),
-            ),
-        ),
-    )
+            )
 
-    override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? = when (toolName) {
-        "com.kitakkun.jetwhale.example.sendPing" -> {
-            val pongReceived = try {
-                messenger.request(Ping)
-                true
-            } catch (e: JetWhaleMessagingException) {
-                false
+            override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+                val limit = arguments.optionalInt("limit")
+                val logs = if (limit != null) eventLogs.takeLast(limit) else eventLogs.toList()
+                return Json.encodeToJsonElement(logs).toString()
             }
-            buildJsonObject {
-                put("pongReceived", pongReceived)
-            }.toString()
-        }
-
-        "com.kitakkun.jetwhale.example.getEventLogs" -> {
-            val limit = arguments["limit"]?.toIntOrNull()
-            val logs = if (limit != null) eventLogs.takeLast(limit) else eventLogs.toList()
-            Json.encodeToJsonElement(logs).toString()
-        }
-
-        else -> null
-    }
+        },
+    )
 }

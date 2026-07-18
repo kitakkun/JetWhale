@@ -181,8 +181,7 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpArguments {
 }
 
 public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCapablePlugin {
-	public abstract fun handleMcpTool (Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun mcpTools ()Ljava/util/List;
+	public abstract fun getMcpCommands ()Ljava/util/List;
 }
 
 public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand {
@@ -193,17 +192,6 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand {
 	public abstract fun getName ()Ljava/lang/String;
 	public fun getParameters ()Ljava/util/Map;
 	public final fun toDescriptor ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor;
-}
-
-public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommandPlugin : com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCapablePlugin {
-	public abstract fun getMcpCommands ()Ljava/util/List;
-	public fun handleMcpTool (Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun mcpTools ()Ljava/util/List;
-}
-
-public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommandPlugin$DefaultImpls {
-	public static fun handleMcpTool (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommandPlugin;Ljava/lang/String;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static fun mcpTools (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommandPlugin;)Ljava/util/List;
 }
 
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor {

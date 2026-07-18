@@ -1,9 +1,9 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommandPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -12,6 +12,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -71,39 +72,34 @@ class NetworkMcpCommandsTest {
     }
 
     @Test
-    fun `unknown afterTxId is rendered as an error payload by the command plugin`() {
-        val plugin = object : JetWhaleMcpCommandPlugin {
-            override val mcpCommands: List<JetWhaleMcpCommand> = listOf(listCommand())
+    fun `unknown afterTxId throws a caller-facing argument exception`() {
+        val exception = assertFailsWith<JetWhaleMcpArgumentException> {
+            execute(listCommand(), "afterTxId" to "ghost")
         }
-        val result = runBlocking { plugin.handleMcpTool("$TOOL_PREFIX.listTransactions", mapOf("afterTxId" to "ghost")) }
-        val error = Json.parseToJsonElement(result!!).jsonObject.getValue("error").jsonPrimitive.content
-        assertTrue("ghost" in error, "Error should name the unknown cursor: $error")
+        assertTrue("ghost" in exception.message!!, "The message should name the unknown cursor: ${exception.message}")
     }
 
     @Test
-    fun `invalid argument types are rendered as error payloads`() {
-        val plugin = object : JetWhaleMcpCommandPlugin {
-            override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
-                listCommand(),
-                SetMockingEnabledCommand { null },
-                AddMockRuleCommand(mockRules = { emptyList() }, syncMockRules = { null }),
-            )
+    fun `invalid argument types throw caller-facing argument exceptions`() {
+        val badLimit = assertFailsWith<JetWhaleMcpArgumentException> {
+            execute(listCommand(), "limit" to "many")
         }
-        runBlocking {
-            val badLimit = plugin.handleMcpTool("$TOOL_PREFIX.listTransactions", mapOf("limit" to "many"))
-            assertTrue("invalid limit" in badLimit!!, badLimit)
+        assertTrue("invalid limit" in badLimit.message!!, badLimit.message!!)
 
-            val badEnabled = plugin.handleMcpTool("$TOOL_PREFIX.setMockingEnabled", mapOf("enabled" to "yes"))
-            assertTrue("invalid enabled" in badEnabled!!, badEnabled)
-
-            val missingPattern = plugin.handleMcpTool("$TOOL_PREFIX.addMockRule", emptyMap())
-            assertTrue("missing required argument: urlPattern" in missingPattern!!, missingPattern)
-
-            val badMatchType = plugin.handleMcpTool("$TOOL_PREFIX.addMockRule", mapOf("urlPattern" to "/x", "matchType" to "GLOB"))
-            assertTrue("invalid matchType" in badMatchType!!, badMatchType)
-
-            val unknownTool = plugin.handleMcpTool("$TOOL_PREFIX.nope", emptyMap())
-            assertNull(unknownTool, "Unknown tools must return null so other handlers can claim them")
+        val badEnabled = assertFailsWith<JetWhaleMcpArgumentException> {
+            execute(SetMockingEnabledCommand { null }, "enabled" to "yes")
         }
+        assertTrue("invalid enabled" in badEnabled.message!!, badEnabled.message!!)
+
+        val addMockRule = AddMockRuleCommand(mockRules = { emptyList() }, syncMockRules = { null })
+        val missingPattern = assertFailsWith<JetWhaleMcpArgumentException> {
+            execute(addMockRule)
+        }
+        assertTrue("missing required argument: urlPattern" in missingPattern.message!!, missingPattern.message!!)
+
+        val badMatchType = assertFailsWith<JetWhaleMcpArgumentException> {
+            execute(addMockRule, "urlPattern" to "/x", "matchType" to "GLOB")
+        }
+        assertTrue("invalid matchType" in badMatchType.message!!, badMatchType.message!!)
     }
 }

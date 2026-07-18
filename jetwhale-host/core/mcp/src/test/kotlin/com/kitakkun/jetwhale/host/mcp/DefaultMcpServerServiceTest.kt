@@ -5,7 +5,9 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import dev.mokkery.answering.returns
@@ -219,21 +221,18 @@ private class FakeMcpCapablePlugin :
     JetWhaleHostPlugin(),
     JetWhaleMcpCapablePlugin {
 
-    override fun mcpTools() = listOf(
-        JetWhaleMcpToolDescriptor(
-            name = "com.example.test.greet",
-            description = "Greet by name",
-            parameters = mapOf(
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        object : JetWhaleMcpCommand() {
+            override val name = "com.example.test.greet"
+            override val description = "Greet by name"
+            override val parameters = mapOf(
                 "name" to JetWhaleMcpParameterDescriptor(
                     type = "string",
                     description = "Name to greet",
                 ),
-            ),
-        ),
-    )
+            )
 
-    override suspend fun handleMcpTool(toolName: String, arguments: Map<String, String>): String? = when (toolName) {
-        "com.example.test.greet" -> "Hello, ${arguments["name"]}!"
-        else -> null
-    }
+            override suspend fun execute(arguments: JetWhaleMcpArguments): String = "Hello, ${arguments.requireString("name")}!"
+        },
+    )
 }

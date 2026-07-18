@@ -10,8 +10,8 @@ import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommandPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.GetMockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.GetRedactionConfig
@@ -40,7 +40,7 @@ private const val MAX_TRANSACTIONS = 500
 private class NetworkHostPlugin :
     JetWhaleMessagingHostPlugin(),
     JetWhaleHostPluginUi,
-    JetWhaleMcpCommandPlugin {
+    JetWhaleMcpCapablePlugin {
 
     private val transactions: SnapshotStateList<HttpTransaction> = mutableStateListOf()
     private val mockRules: SnapshotStateList<MockRule> = mutableStateListOf()
@@ -136,7 +136,7 @@ private class NetworkHostPlugin :
     }
 
     // -------------------------------------------------------------------------
-    // JetWhaleMcpCommandPlugin
+    // JetWhaleMcpCapablePlugin
     // -------------------------------------------------------------------------
 
     override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
