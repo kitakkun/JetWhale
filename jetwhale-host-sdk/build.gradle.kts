@@ -21,6 +21,8 @@ kotlin {
 dependencies {
     implementation(libs.jetbrainsComposeRuntime)
     implementation(libs.kotlinxSerializationJson)
+    // Exposed in public API: JetWhalePluginStorage returns Flow and rememberPersistent uses coroutines.
+    api(libs.kotlinxCoroutinesCore)
     api(projects.jetwhaleProtocol.core)
 }
 

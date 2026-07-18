@@ -75,4 +75,23 @@ class MavenCoordinatesTest {
         assertNull(MavenCoordinates.parseLenient("not coordinates"))
         assertNull(MavenCoordinates.parseLenient("group:artifact"))
     }
+
+    @Test
+    fun snapshotUrls() {
+        val coordinates = MavenCoordinates("com.example", "my-plugin", "1.0.0-SNAPSHOT", "https://example.com/snapshots/")
+        assertEquals(true, coordinates.isSnapshot)
+        assertEquals(
+            "https://example.com/snapshots/com/example/my-plugin/1.0.0-SNAPSHOT",
+            coordinates.toVersionDirectoryUrl(),
+        )
+        assertEquals(
+            "https://example.com/snapshots/com/example/my-plugin/1.0.0-SNAPSHOT/my-plugin-1.0.0-20260718.103017-1.jar",
+            coordinates.toSnapshotJarUrl("1.0.0-20260718.103017-1"),
+        )
+    }
+
+    @Test
+    fun releaseIsNotSnapshot() {
+        assertEquals(false, MavenCoordinates("com.example", "my-plugin", "1.0.0").isSnapshot)
+    }
 }

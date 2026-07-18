@@ -6,12 +6,15 @@ import com.kitakkun.jetwhale.host.model.AdbAutoPortMappingMutationKey
 import com.kitakkun.jetwhale.host.model.AppColorSchemeMutationKey
 import com.kitakkun.jetwhale.host.model.AppLanguageMutationKey
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.CheckForUpdatesOnStartupMutationKey
 import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
 import com.kitakkun.jetwhale.host.model.FailedPluginJarPathsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.McpServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.McpServerStatusSubscriptionKey
+import com.kitakkun.jetwhale.host.model.OfficialPluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.PluginInstallFromMavenMutationKey
 import com.kitakkun.jetwhale.host.model.PluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.PluginInstallProgressSubscriptionKey
@@ -20,6 +23,8 @@ import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.TrustPluginMutationKey
 import com.kitakkun.jetwhale.host.model.UntrustedPluginJarPathsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.UpdateCheckMutationKey
+import com.kitakkun.jetwhale.host.model.UpdateInstallMutationKey
 import dev.zacsweers.metro.Inject
 
 /**
@@ -37,6 +42,11 @@ class SettingsPresenterContext(
     val pluginInstallMutationKey: PluginInstallMutationKey,
     val pluginInstallFromMavenMutationKey: PluginInstallFromMavenMutationKey,
     val trustPluginMutationKey: TrustPluginMutationKey,
+    val officialPluginInstallMutationKey: OfficialPluginInstallMutationKey,
+    val updateCheckMutationKey: UpdateCheckMutationKey,
+    val updateInstallMutationKey: UpdateInstallMutationKey,
+    val checkForUpdatesOnStartupMutationKey: CheckForUpdatesOnStartupMutationKey,
+    val hostVersionInfo: HostVersionInfo,
     val logCaptureService: LogCaptureService,
 ) : PresenterContext
 

@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.settings.general
 
 import com.kitakkun.jetwhale.host.model.AppLanguage
 import com.kitakkun.jetwhale.host.model.JetWhaleColorSchemeId
+import com.kitakkun.jetwhale.host.model.UpdateCheckResult
 import kotlinx.collections.immutable.ImmutableList
 
 data class GeneralSettingsScreenUiState(
@@ -11,4 +12,9 @@ data class GeneralSettingsScreenUiState(
     val availableColorSchemes: ImmutableList<JetWhaleColorSchemeId>,
     val appDataPath: String,
     val adbPath: String,
+    val currentVersion: String,
+    val checkForUpdatesOnStartup: Boolean,
+    val isCheckingForUpdates: Boolean,
+    val updateCheckResult: UpdateCheckResult?,
+    val updateCheckError: String?,
 )

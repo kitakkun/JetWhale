@@ -247,6 +247,76 @@ own capabilities — extend the plain `JetWhaleHostPlugin` (not `JetWhaleMessagi
 `messenger`; it is made available for every active session. See
 `ExampleHostOnlyPlugin` in `jetwhale-plugins/example/host`.
 
+## Persistent storage
+
+Every host plugin instance gets a persistent key-value store via the protected `storage` property,
+available from `onCreate()` onwards. Values live on disk under the host's app data directory and
+survive plugin reloads, session changes and host restarts.
+
+The store is **scoped to your `pluginId`**: a plugin can neither name another plugin's id nor reach
+its data.
+
+Anything with a `kotlinx.serialization` serializer can be stored — primitives, collections, and your
+own `@Serializable` classes. The reified overloads resolve the serializer for you:
+
+```kotlin
+class MyPlugin : JetWhaleMessagingHostPlugin() {
+    override fun onCreate() {
+        pluginScope.launch {
+            val filter = storage.get<String>("filter") ?: "all"
+            storage.put("last-opened", System.currentTimeMillis())
+        }
+    }
+}
+```
+
+The API is suspend/`Flow` based: `put` / `get` / `getFlow` / `contains` / `remove` / `clear`, plus
+`keysFlow` to observe the stored key set.
+
+### Compose helper: `rememberPersistent`
+
+Inside a plugin's UI, `rememberPersistent(key, default)` behaves like `rememberSaveable`, but backed
+by the plugin's persistent store — the value survives host restarts:
+
+```kotlin
+@Composable
+fun DraftField() {
+    var draft by rememberPersistent("draft-input", default = "")
+    OutlinedTextField(value = draft, onValueChange = { draft = it })
+}
+```
+
+### Migrating stored data
+
+When the shape of your stored data changes, bump `storageVersion` and override
+`onStorageMigrate(fromVersion)`. The runtime persists the version alongside the data and runs the
+hook **once**, before the first storage operation completes after an update — reads never observe
+pre-migration data:
+
+```kotlin
+class MyPlugin : JetWhaleMessagingHostPlugin() {
+    override val storageVersion: Int = 2
+
+    override suspend fun onStorageMigrate(fromVersion: Int) {
+        if (fromVersion < 2) {
+            // v1 stored the draft under "draft"; v2 renamed it.
+            storage.get<String>("draft")?.let {
+                storage.put("draft-input", it)
+                storage.remove("draft")
+            }
+        }
+    }
+}
+```
+
+Rules of thumb:
+
+- Stores written before versioning existed are treated as version `1`.
+- A store written by a **newer** plugin version than the running one is left untouched; values that
+  no longer decode simply read as `null`.
+- A value that fails to decode (for example after a schema change without a migration) is treated as
+  absent rather than crashing your plugin — but prefer writing a migration so the data is not lost.
+
 ## Hot reload (the live dev loop)
 
 `runJetWhale` starts the host with `-Djetwhale.devPluginsDir=<dir>` pointing at a dev

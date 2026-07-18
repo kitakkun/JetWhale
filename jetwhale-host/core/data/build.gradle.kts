@@ -26,6 +26,8 @@ dependencies {
     implementation(libs.kotlinxDatetime)
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(libs.androidxDatastorePreferences)
+    // Typed DataStore over okio for per-plugin JSON persistence (PluginDataStoreRepository).
+    implementation(libs.androidxDatastoreCoreOkio)
 
     implementation(libs.kotlinxSerializationJson)
     // Used in dev hot-reload to obtain a JVM Instrumentation handle (self-attach) for in-place class
@@ -34,6 +36,8 @@ dependencies {
     implementation(libs.bundles.ktorServer)
     implementation(libs.ktorClientCore)
     implementation(libs.ktorClientCio)
+    implementation(libs.conveyorControl)
     implementation(libs.logbackClassic)
     implementation(libs.kotlinTest)
+    testImplementation(libs.ktorClientMock)
 }
