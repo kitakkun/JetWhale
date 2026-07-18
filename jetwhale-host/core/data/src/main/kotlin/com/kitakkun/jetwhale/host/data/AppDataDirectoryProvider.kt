@@ -11,7 +11,15 @@ import java.io.File
 @Inject
 class AppDataDirectoryProvider {
     private val homeDir = System.getProperty("user.home")
-    private val appDataDir = "$homeDir/.jetwhale"
+
+    // The app data root. Normally `~/.jetwhale`, but a launch may point it elsewhere via the
+    // `jetwhale.appDataDir` system property. The plugin-developer Gradle tasks (`runJetWhale`,
+    // `runJetWhaleHot`, `runJetWhaleLocal`) set it to a disposable per-project sandbox under the plugin module's `build/`
+    // directory, so trying a plugin never reads or mutates the developer's real installed plugins,
+    // settings, plugin-data or trust registry. Every path below is derived from this single root.
+    private val appDataDir = System.getProperty(APP_DATA_DIR_PROPERTY)?.takeIf { it.isNotBlank() }
+        ?: "$homeDir/.jetwhale"
+    private val isAppDataDirOverridden = System.getProperty(APP_DATA_DIR_PROPERTY)?.isNotBlank() == true
     private val pluginDir = "$appDataDir/plugins"
     private val pluginLibsDir = "$pluginDir/libs"
     private val dataStoreFilesDir = "$appDataDir/dataStorePreferences"
@@ -44,7 +52,10 @@ class AppDataDirectoryProvider {
         }
     }
 
-    fun getAppDataPath(): String = "~/.jetwhale"
+    // For display (diagnostics/settings). Shows the literal sandbox path when overridden so a developer
+    // can see they are running against the isolated directory, and the tilde-abbreviated `~/.jetwhale`
+    // otherwise.
+    fun getAppDataPath(): String = if (isAppDataDirOverridden) appDataDir else "~/.jetwhale"
 
     /**
      * The file backing the plugin trust registry (the list of jars the user has explicitly approved,
@@ -125,8 +136,9 @@ class AppDataDirectoryProvider {
      * `jetwhale.devPluginsDir` JVM system property (set by the `runJetWhale` Gradle task).
      *
      * Returns `null` in normal usage so production behaviour is unchanged. When present, the host
-     * additionally loads and hot-reloads plugins from this directory, on top of the regular
-     * `~/.jetwhale/plugins` directory.
+     * additionally loads and hot-reloads plugins from this directory, on top of the regular managed
+     * plugins directory ([getPluginDirectory], which is `~/.jetwhale/plugins` — or, under the dev
+     * sandbox, the sandbox root's `plugins` subdirectory).
      */
     fun getDevPluginsDir(): String? = System.getProperty(DEV_PLUGINS_DIR_PROPERTY)?.takeIf { it.isNotBlank() }
 
@@ -139,5 +151,11 @@ class AppDataDirectoryProvider {
 
     companion object {
         const val DEV_PLUGINS_DIR_PROPERTY = "jetwhale.devPluginsDir"
+
+        /**
+         * JVM system property overriding the app data root (normally `~/.jetwhale`). Set by the
+         * plugin-developer Gradle tasks to an isolated per-project sandbox directory.
+         */
+        const val APP_DATA_DIR_PROPERTY = "jetwhale.appDataDir"
     }
 }

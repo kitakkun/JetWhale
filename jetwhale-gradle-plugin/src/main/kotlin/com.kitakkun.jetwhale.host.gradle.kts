@@ -267,11 +267,17 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
     }
 
     val devDirProvider = devPluginsDir.map { it.asFile.absolutePath }
+    // An isolated, disposable app-data root for this plugin project. The host runs against it instead
+    // of the developer's real `~/.jetwhale`, so trying the plugin never reads or mutates their installed
+    // plugins, settings, plugin-data or trust registry. It lives under `build/`, so it persists across
+    // re-launches of the same project (test data survives) but `clean` wipes it for a fresh start.
+    val sandboxDirProvider = layout.buildDirectory.dir("jetwhale-sandbox").map { it.asFile.absolutePath }
     val osName = providers.systemProperty("os.name")
     jvmArgumentProviders.add(
         CommandLineArgumentProvider {
             buildList {
                 add("-Djetwhale.devPluginsDir=${devDirProvider.get()}")
+                add("-Djetwhale.appDataDir=${sandboxDirProvider.get()}")
                 // The macOS Dock name (hover text) comes from the bundle name, which for a bare JVM
                 // can only be set via -Xdock:name at launch — it is not settable at runtime.
                 if (osName.getOrElse("").contains("mac", ignoreCase = true)) add("-Xdock:name=JetWhale")

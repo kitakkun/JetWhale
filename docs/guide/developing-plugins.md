@@ -320,11 +320,28 @@ Rules of thumb:
 ## Hot reload (the live dev loop)
 
 `runJetWhale` starts the host with `-Djetwhale.devPluginsDir=<dir>` pointing at a dev
-directory under your module's `build` folder. The host loads plugins from that directory **in addition
-to** `~/.jetwhale/plugins/` and watches it: whenever the plugin jar is re-staged, the host reloads it
-and refreshes the open plugin screen — **no host restart needed**. For simple edits it redefines your
-classes in place and keeps the plugin's state; for changes it can't apply that way it recreates the
-plugin from a fresh classloader (see [Limitations](#limitations) below).
+directory under your module's `build` folder. The host loads plugins from that directory and watches
+it: whenever the plugin jar is re-staged, the host reloads it and refreshes the open plugin screen —
+**no host restart needed**. For simple edits it redefines your classes in place and keeps the plugin's
+state; for changes it can't apply that way it recreates the plugin from a fresh classloader (see
+[Limitations](#limitations) below).
+
+### Isolated sandbox environment
+
+`runJetWhale`, `runJetWhaleHot` and the in-repo `runJetWhaleLocal` run the host against an
+**isolated, per-project sandbox** at
+`build/jetwhale-sandbox/` instead of your real `~/.jetwhale/`. Everything the host persists — installed
+plugins, settings, per-plugin data, TLS material and the plugin trust registry — lives there, so trying
+a plugin never reads or mutates your actual JetWhale installation. The sandbox starts empty: only your
+dev plugin is loaded (dev-directory plugins are trusted implicitly, so there is no trust prompt to
+click through), and there are no leftover plugins or settings from previous work.
+
+The sandbox lives under `build/`, so it **persists across re-launches** of the same project — test data
+you set up survives the next `runJetWhale`. Running `./gradlew :myPlugin:clean` wipes it for a
+completely fresh environment.
+
+Non-dev launches (the installed JetWhale app) are unaffected: without the override they use
+`~/.jetwhale/` exactly as before.
 
 The simplest loop is a single command — `runJetWhaleHot` launches the host **and** keeps re-staging
 your plugin for you:
