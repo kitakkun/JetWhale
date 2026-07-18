@@ -47,4 +47,16 @@
     <string name="log_viewer_auto_scroll">Auto-scroll</string>
     <string name="log_viewer_clear_logs">Clear Logs</string>
     <string name="log_viewer_no_logs">No logs captured yet</string>
+    <string name="add_plugin_from_file">Add Plugin from File</string>
+    <string name="install_from_maven">Install from Maven</string>
+    <string name="maven_install_dialog_title">Install Plugin from Maven Repository</string>
+    <string name="maven_install_dialog_description">Enter Maven coordinates to download and install a plugin.</string>
+    <string name="maven_install_paste_label">Paste coordinates</string>
+    <string name="maven_install_paste_supporting_text">Accepts group:artifact:version, Gradle dependency lines, or a Maven &lt;dependency&gt; block. Fields below are filled automatically.</string>
+    <string name="maven_install_group_id_label">Group ID</string>
+    <string name="maven_install_artifact_id_label">Artifact ID</string>
+    <string name="maven_install_version_label">Version</string>
+    <string name="maven_install_repository_url_label">Repository URL</string>
+    <string name="maven_install_error_fill_required">Please fill in all required fields.</string>
+    <string name="maven_install_install">Install</string>
 </resources>

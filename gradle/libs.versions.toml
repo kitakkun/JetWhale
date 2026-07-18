@@ -1,41 +1,41 @@
 [versions]
 jetwhale = "1.0.0-alpha08"
-mavenPublish = "0.36.0"
+mavenPublish = "0.37.0"
 
 # kotlin
-kotlin = "2.4.0"
-ksp = "2.3.9"
+kotlin = "2.4.10"
+ksp = "2.3.10"
 kotlinDsl = "6.5.7"
 kotlinxSerializationJson = "1.11.0"
-kotlinxCollectionsImmutable = "0.4.0"
+kotlinxCollectionsImmutable = "0.5.1"
 kotlinxCoroutines = "1.11.0"
-byteBuddy = "1.15.11"
+byteBuddy = "1.18.11"
 kotlinxDatetime = "0.8.0"
 
 # android
-androidGradlePlugin = "9.2.0"
-androidxCoreKtx = "1.18.0"
+androidGradlePlugin = "9.3.0"
+androidxCoreKtx = "1.19.0"
 androidxActivity = "1.13.0"
 
 jetbrainsCompose = "1.11.1"
 material3 = "1.11.0-alpha07"
-material3Adaptive = "1.3.0-alpha07"
+material3Adaptive = "1.3.0-beta02"
 navigation3 = "1.1.1"
-lifecycle = "2.11.0-beta01"
+lifecycle = "2.11.0"
 soil = "1.0.0-alpha15"
 
 androidxDatastore = "1.2.1"
-metro = "1.1.1"
-mokkery = "3.4.0"
-ktor = "3.5.0"
-okhttp = "4.12.0"
-mcpKotlinSdk = "0.13.0"
+metro = "1.3.2"
+mokkery = "3.4.2"
+ktor = "3.5.1"
+okhttp = "5.4.0"
+mcpKotlinSdk = "0.14.0"
 
-logback = "1.5.32"
+logback = "1.5.38"
 kermit = "2.1.0"
 
-aboutLibraries = "14.2.1"
-spotless = "8.6.0"
+aboutLibraries = "15.0.4"
+spotless = "8.8.0"
 
 [libraries]
 # Gradle Plugins

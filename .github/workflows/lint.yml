@@ -1,7 +1,16 @@
 name: Lint
 
+# Paths mirror the spotless targets in build.gradle.kts (**/*.kt, **/*.gradle.kts),
+# plus files that change how the check itself runs.
 on:
   pull_request:
+    paths:
+      - '**/*.kt'
+      - '**/*.kts'
+      - 'gradle/libs.versions.toml'
+      - 'gradle/wrapper/**'
+      - '.github/workflows/lint.yml'
+      - '.github/actions/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -17,7 +17,7 @@ kotlin {
 
     android {
         namespace = "com.kitakkun.jetwhale.agent.runtime"
-        compileSdk = 36
+        compileSdk = 37
     }
 
     sourceSets {

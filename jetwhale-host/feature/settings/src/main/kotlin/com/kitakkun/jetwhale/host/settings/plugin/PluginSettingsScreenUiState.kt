@@ -6,4 +6,6 @@ data class PluginSettingsScreenUiState(
     val plugins: ImmutableList<com.kitakkun.jetwhale.host.settings.component.PluginInfoUiState>,
     val failedJarPaths: ImmutableList<String>,
     val untrustedJarPaths: ImmutableList<String>,
+    val isInstalling: Boolean = false,
+    val installError: String? = null,
 )

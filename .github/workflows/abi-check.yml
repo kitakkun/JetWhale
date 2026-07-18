@@ -11,6 +11,9 @@ on:
       - 'jetwhale-protocol/agent/**'
       - 'jetwhale-protocol/host/**'
       - '**/build.gradle.kts'
+      - 'gradle/libs.versions.toml'
+      - '.github/workflows/abi-check.yml'
+      - '.github/actions/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

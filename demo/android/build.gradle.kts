@@ -9,7 +9,7 @@ kotlin {
 
 android {
     namespace = "com.kitakkun.jetwhale.demo"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 23

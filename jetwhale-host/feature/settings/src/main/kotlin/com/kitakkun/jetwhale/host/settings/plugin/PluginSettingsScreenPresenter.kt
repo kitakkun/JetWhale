@@ -20,6 +20,7 @@ fun pluginSettingsScreenPresenter(
     untrustedJarPaths: ImmutableList<String>,
 ): PluginSettingsScreenUiState {
     val pluginInstallMutation = rememberMutation(presenterContext.pluginInstallMutationKey)
+    val pluginInstallFromMavenMutation = rememberMutation(presenterContext.pluginInstallFromMavenMutationKey)
     val trustPluginMutation = rememberMutation(presenterContext.trustPluginMutationKey)
 
     ActionEffect(screenChannel) { action ->
@@ -28,11 +29,19 @@ fun pluginSettingsScreenPresenter(
                 pluginInstallMutation.mutateAsync(action.path)
             }
 
+            is PluginSettingsScreenAction.InstallFromMaven -> {
+                pluginInstallFromMavenMutation.mutateAsync(action.coordinates)
+            }
+
             is PluginSettingsScreenAction.UntrustedJarApproved -> {
                 trustPluginMutation.mutateAsync(TrustPluginRequest(action.path))
             }
         }
     }
+
+    val isInstalling = pluginInstallMutation.isPending || pluginInstallFromMavenMutation.isPending
+    val installError = pluginInstallFromMavenMutation.error?.message
+        ?: pluginInstallMutation.error?.message
 
     return PluginSettingsScreenUiState(
         plugins = loadedPlugins.map {
@@ -44,5 +53,7 @@ fun pluginSettingsScreenPresenter(
         }.toPersistentList(),
         failedJarPaths = failedJarPaths,
         untrustedJarPaths = untrustedJarPaths,
+        isInstalling = isInstalling,
+        installError = installError,
     )
 }
