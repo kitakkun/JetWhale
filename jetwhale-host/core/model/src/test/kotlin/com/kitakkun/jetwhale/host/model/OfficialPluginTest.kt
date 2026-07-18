@@ -12,28 +12,38 @@ class OfficialPluginTest {
     )
 
     @Test
-    fun `release host installs the release artifact from Maven Central`() {
+    fun `release host prefers the release artifact and falls back to its snapshot`() {
         assertEquals(
-            MavenCoordinates(
-                groupId = OfficialPlugin.OFFICIAL_PLUGIN_GROUP_ID,
-                artifactId = "example-plugin",
-                version = "1.0.0",
-                repositoryUrl = MavenCoordinates.MAVEN_CENTRAL_URL,
+            listOf(
+                MavenCoordinates(
+                    groupId = OfficialPlugin.OFFICIAL_PLUGIN_GROUP_ID,
+                    artifactId = "example-plugin",
+                    version = "1.0.0",
+                    repositoryUrl = MavenCoordinates.MAVEN_CENTRAL_URL,
+                ),
+                MavenCoordinates(
+                    groupId = OfficialPlugin.OFFICIAL_PLUGIN_GROUP_ID,
+                    artifactId = "example-plugin",
+                    version = "1.0.0-SNAPSHOT",
+                    repositoryUrl = OfficialPlugin.MAVEN_SNAPSHOTS_URL,
+                ),
             ),
-            plugin.coordinatesFor(HostVersionInfo("1.0.0")),
+            plugin.installCandidatesFor(HostVersionInfo("1.0.0")),
         )
     }
 
     @Test
-    fun `snapshot host installs the matching snapshot from the snapshots repository`() {
+    fun `snapshot host installs only the matching snapshot from the snapshots repository`() {
         assertEquals(
-            MavenCoordinates(
-                groupId = OfficialPlugin.OFFICIAL_PLUGIN_GROUP_ID,
-                artifactId = "example-plugin",
-                version = "1.0.0-SNAPSHOT",
-                repositoryUrl = OfficialPlugin.MAVEN_SNAPSHOTS_URL,
+            listOf(
+                MavenCoordinates(
+                    groupId = OfficialPlugin.OFFICIAL_PLUGIN_GROUP_ID,
+                    artifactId = "example-plugin",
+                    version = "1.0.0-SNAPSHOT",
+                    repositoryUrl = OfficialPlugin.MAVEN_SNAPSHOTS_URL,
+                ),
             ),
-            plugin.coordinatesFor(HostVersionInfo("1.0.0-SNAPSHOT")),
+            plugin.installCandidatesFor(HostVersionInfo("1.0.0-SNAPSHOT")),
         )
     }
 

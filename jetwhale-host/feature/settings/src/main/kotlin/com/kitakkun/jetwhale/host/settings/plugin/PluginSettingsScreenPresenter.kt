@@ -38,9 +38,17 @@ fun pluginSettingsScreenPresenter(
             }
 
             is PluginSettingsScreenAction.InstallOfficialPlugin -> {
-                pluginInstallFromMavenMutation.mutateAsync(
-                    action.plugin.coordinatesFor(presenterContext.hostVersionInfo),
-                )
+                // Try each candidate in order (release first, snapshot fallback); only the last
+                // failure is left to surface in the mutation's error state.
+                val candidates = action.plugin.installCandidatesFor(presenterContext.hostVersionInfo)
+                for ((index, coordinates) in candidates.withIndex()) {
+                    try {
+                        pluginInstallFromMavenMutation.mutateAsync(coordinates)
+                        break
+                    } catch (e: Exception) {
+                        if (index == candidates.lastIndex) throw e
+                    }
+                }
             }
 
             is PluginSettingsScreenAction.UntrustedJarApproved -> {

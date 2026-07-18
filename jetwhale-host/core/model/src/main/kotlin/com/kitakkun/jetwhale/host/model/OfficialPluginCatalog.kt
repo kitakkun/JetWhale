@@ -13,11 +13,31 @@ data class OfficialPlugin(
     val description: String,
     val artifactId: String,
 ) {
-    fun coordinatesFor(hostVersion: HostVersionInfo): MavenCoordinates = MavenCoordinates(
+    /**
+     * Install candidates in the order to attempt them. A snapshot host installs the matching
+     * `-SNAPSHOT` from the snapshots repository. A release host prefers the release artifact from
+     * Maven Central, but falls back to the matching snapshot build for host versions whose plugin
+     * release has not been published yet (e.g. a locally built host of an unreleased version).
+     */
+    fun installCandidatesFor(hostVersion: HostVersionInfo): List<MavenCoordinates> = if (hostVersion.isSnapshot) {
+        listOf(snapshotCoordinates(hostVersion.version))
+    } else {
+        listOf(
+            MavenCoordinates(
+                groupId = OFFICIAL_PLUGIN_GROUP_ID,
+                artifactId = artifactId,
+                version = hostVersion.version,
+                repositoryUrl = MavenCoordinates.MAVEN_CENTRAL_URL,
+            ),
+            snapshotCoordinates("${hostVersion.version}-SNAPSHOT"),
+        )
+    }
+
+    private fun snapshotCoordinates(version: String): MavenCoordinates = MavenCoordinates(
         groupId = OFFICIAL_PLUGIN_GROUP_ID,
         artifactId = artifactId,
-        version = hostVersion.version,
-        repositoryUrl = if (hostVersion.isSnapshot) MAVEN_SNAPSHOTS_URL else MavenCoordinates.MAVEN_CENTRAL_URL,
+        version = version,
+        repositoryUrl = MAVEN_SNAPSHOTS_URL,
     )
 
     companion object {
