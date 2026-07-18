@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import net.bytebuddy.agent.ByteBuddyAgent
 import java.io.File
@@ -177,7 +178,15 @@ class DefaultPluginFactoryRepository @Inject constructor(
         val manifestJson = classLoader.getResourceAsStream(MANIFEST_PATH)?.bufferedReader()?.use { it.readText() }
             ?: error("$MANIFEST_PATH not found in $pluginJarPath")
 
-        val manifests = pluginManifestJson.decodeFromString<JetWhaleHostPluginManifestFile>(manifestJson).plugins
+        val manifests = try {
+            pluginManifestJson.decodeFromString<JetWhaleHostPluginManifestFile>(manifestJson).plugins
+        } catch (e: SerializationException) {
+            throw PluginManifestParseException(
+                "$MANIFEST_PATH in $pluginJarPath is not a valid plugin manifest — it may follow an " +
+                    "older manifest format or target a different JetWhale version (${e.message})",
+                e,
+            )
+        }
         require(manifests.isNotEmpty()) { "$MANIFEST_PATH in $pluginJarPath declares no plugins" }
         val duplicateIds = manifests.groupingBy { it.pluginId }.eachCount().filterValues { it > 1 }.keys
         require(duplicateIds.isEmpty()) {
@@ -332,3 +341,9 @@ class DefaultPluginFactoryRepository @Inject constructor(
         private val pluginManifestJson = Json { ignoreUnknownKeys = true }
     }
 }
+
+/** The jar's plugin manifest exists but could not be parsed (malformed or incompatible schema). */
+class PluginManifestParseException(
+    message: String,
+    cause: Throwable? = null,
+) : Exception(message, cause)
