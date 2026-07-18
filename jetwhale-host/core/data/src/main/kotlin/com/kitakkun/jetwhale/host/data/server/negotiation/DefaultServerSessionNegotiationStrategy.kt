@@ -12,6 +12,7 @@ import kotlin.coroutines.cancellation.CancellationException
 class DefaultServerSessionNegotiationStrategy(
     private val protocolNegotiationStrategy: ProtocolNegotiationStrategy,
     private val sessionNegotiationStrategy: SessionNegotiationStrategy,
+    private val capabilitiesNegotiationStrategy: CapabilitiesNegotiationStrategy,
     private val pluginNegotiationStrategy: PluginNegotiationStrategy,
 ) : ServerSessionNegotiationStrategy {
     context(logger: Logger)
@@ -20,6 +21,8 @@ class DefaultServerSessionNegotiationStrategy(
             with(protocolNegotiationStrategy) { negotiate() }
 
             val session = with(sessionNegotiationStrategy) { negotiate() }
+
+            with(capabilitiesNegotiationStrategy) { negotiate() }
 
             val plugin = with(pluginNegotiationStrategy) { negotiate() }
 

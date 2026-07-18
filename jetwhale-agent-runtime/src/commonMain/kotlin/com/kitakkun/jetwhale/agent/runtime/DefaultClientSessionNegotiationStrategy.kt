@@ -16,6 +16,10 @@ internal class DefaultClientSessionNegotiationStrategy(private val plugins: List
         negotiateProtocolVersion()
         sessionId = negotiateSessionId(sessionId)
 
+        // Currently, we are not using the capabilities response for anything,
+        // Just for future extensibility.
+        negotiateCapabilities()
+
         val response = negotiatePlugins(plugins)
 
         ClientSessionNegotiationResult.Success(availablePluginIds = response.availablePlugins.map { it.pluginId })
@@ -63,6 +67,12 @@ internal class DefaultClientSessionNegotiationStrategy(private val plugins: List
         JetWhaleLogger.d("Session negotiation completed with sessionId: $assignedSessionId")
 
         return assignedSessionId
+    }
+
+    private suspend fun DefaultClientWebSocketSession.negotiateCapabilities(): JetWhaleHostNegotiationResponse.CapabilitiesResponse {
+        val request = JetWhaleAgentNegotiationRequest.Capabilities(capabilities = emptyMap())
+        sendSerialized(request)
+        return receiveDeserialized()
     }
 
     private suspend fun DefaultClientWebSocketSession.negotiatePlugins(plugins: List<AgentPlugin>): JetWhaleHostNegotiationResponse.AvailablePluginsResponse {
