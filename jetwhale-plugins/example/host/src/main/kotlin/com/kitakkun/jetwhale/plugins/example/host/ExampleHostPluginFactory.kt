@@ -10,7 +10,6 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.example.protocol.ButtonClicked
 import com.kitakkun.jetwhale.plugins.example.protocol.Ping
@@ -86,16 +85,11 @@ private class ExampleHostPlugin :
         object : JetWhaleMcpCommand() {
             override val name = "com.kitakkun.jetwhale.example.getEventLogs"
             override val description = "Returns the list of event log entries accumulated by the Example plugin."
-            override val parameters = mapOf(
-                "limit" to JetWhaleMcpParameterDescriptor(
-                    type = "integer",
-                    description = "Maximum number of log entries to return. Returns all entries if omitted.",
-                    required = false,
-                ),
-            )
+
+            private val limitParam = optionalInt("limit", "Maximum number of log entries to return. Returns all entries if omitted.")
 
             override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-                val limit = arguments.optionalInt("limit")
+                val limit = arguments[limitParam]
                 val logs = if (limit != null) eventLogs.takeLast(limit) else eventLogs.toList()
                 return Json.encodeToJsonElement(logs).toString()
             }

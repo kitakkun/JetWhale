@@ -4,7 +4,6 @@ import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -17,46 +16,39 @@ internal class ListTransactionsCommand(
     override val name = "$TOOL_PREFIX.listTransactions"
     override val description =
         "Lists captured HTTP transactions (oldest first) as summaries: txId, method, url, timestamp, status, duration, mock/failure flags. Returns {\"transactions\": [...]} plus \"nextCursor\" when a cursor page was truncated. Use getTransaction for headers and bodies."
-    override val parameters = mapOf(
-        "limit" to JetWhaleMcpParameterDescriptor(
-            type = "integer",
-            description = "Maximum number of transactions to return. Without afterTxId it counts from the newest; with afterTxId it is the page size counted forward from the cursor. Returns all if omitted.",
-            required = false,
-        ),
-        "afterTxId" to JetWhaleMcpParameterDescriptor(
-            type = "string",
-            description = "Cursor: only include transactions captured after this txId (exclusive), oldest first. Pass the previous response's nextCursor to fetch the next page, or the last txId you have seen to fetch only new traffic.",
-            required = false,
-        ),
-        "sinceTimestampMs" to JetWhaleMcpParameterDescriptor(
-            type = "integer",
-            description = "Only include transactions whose request timestampMs is >= this epoch-millisecond value.",
-            required = false,
-        ),
-        "untilTimestampMs" to JetWhaleMcpParameterDescriptor(
-            type = "integer",
-            description = "Only include transactions whose request timestampMs is <= this epoch-millisecond value.",
-            required = false,
-        ),
-        "urlContains" to JetWhaleMcpParameterDescriptor(
-            type = "string",
-            description = "Only include transactions whose URL contains this substring.",
-            required = false,
-        ),
-        "method" to JetWhaleMcpParameterDescriptor(
-            type = "string",
-            description = "Only include transactions with this HTTP method (case-insensitive).",
-            required = false,
-        ),
+
+    private val limitParam = optionalInt(
+        "limit",
+        "Maximum number of transactions to return. Without afterTxId it counts from the newest; with afterTxId it is the page size counted forward from the cursor. Returns all if omitted.",
+    )
+    private val afterTxIdParam = optionalString(
+        "afterTxId",
+        "Cursor: only include transactions captured after this txId (exclusive), oldest first. Pass the previous response's nextCursor to fetch the next page, or the last txId you have seen to fetch only new traffic.",
+    )
+    private val sinceTimestampMsParam = optionalLong(
+        "sinceTimestampMs",
+        "Only include transactions whose request timestampMs is >= this epoch-millisecond value.",
+    )
+    private val untilTimestampMsParam = optionalLong(
+        "untilTimestampMs",
+        "Only include transactions whose request timestampMs is <= this epoch-millisecond value.",
+    )
+    private val urlContainsParam = optionalString(
+        "urlContains",
+        "Only include transactions whose URL contains this substring.",
+    )
+    private val methodParam = optionalString(
+        "method",
+        "Only include transactions with this HTTP method (case-insensitive).",
     )
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val urlContains = arguments.optionalString("urlContains")
-        val method = arguments.optionalString("method")
-        val limit = arguments.optionalInt("limit")
-        val sinceTimestampMs = arguments.optionalLong("sinceTimestampMs")
-        val untilTimestampMs = arguments.optionalLong("untilTimestampMs")
-        val afterTxId = arguments.optionalString("afterTxId")
+        val urlContains = arguments[urlContainsParam]
+        val method = arguments[methodParam]
+        val limit = arguments[limitParam]
+        val sinceTimestampMs = arguments[sinceTimestampMsParam]
+        val untilTimestampMs = arguments[untilTimestampMsParam]
+        val afterTxId = arguments[afterTxIdParam]
 
         // The cursor is resolved against the unfiltered capture list so it stays valid when
         // the caller changes filters between pages.
