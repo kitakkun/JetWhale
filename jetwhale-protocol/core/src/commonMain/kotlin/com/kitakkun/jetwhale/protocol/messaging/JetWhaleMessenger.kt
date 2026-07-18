@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.protocol.messaging
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.StringFormat
 import kotlinx.serialization.serializer
 import kotlin.time.Duration

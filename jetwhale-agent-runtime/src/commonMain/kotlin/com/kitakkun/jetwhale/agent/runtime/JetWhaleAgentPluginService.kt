@@ -6,13 +6,14 @@ import com.kitakkun.jetwhale.protocol.messaging.BufferedMessenger
 import com.kitakkun.jetwhale.protocol.messaging.DefaultJetWhaleMessagingFormat
 import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
+import com.kitakkun.jetwhale.protocol.messaging.configurePeerGuarded
+import com.kitakkun.jetwhale.protocol.messaging.launchPeerPreparation
+import com.kitakkun.jetwhale.protocol.messaging.replyPeerUnavailable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -122,37 +123,30 @@ internal class JetWhaleAgentPluginService(
         val scope = connectionScope ?: return
         val sendFrame = sendFrame ?: return
         if (runtime.peer != null) return
+        val descriptor = "plugin '${runtime.plugin.pluginId}'"
         val peer = JetWhalePluginPeer(pluginId = runtime.plugin.pluginId, parentScope = scope, sendFrame = sendFrame, awaitReady = true)
-        // A broken configure (e.g. duplicate handler registration) must not leak the half-built peer
-        // or abort the connection for other plugins.
-        try {
-            peer.configure { runtime.plugin.registerHandlers(this) }
-        } catch (e: Throwable) {
-            JetWhaleLogger.w("JetWhale: handler registration for plugin '${runtime.plugin.pluginId}' failed; plugin stays offline this connection.", e)
+        val configured = configurePeerGuarded(
+            peer = peer,
+            descriptor = descriptor,
+            registerHandlers = { runtime.plugin.registerHandlers(this) },
+            warn = { message, e -> JetWhaleLogger.w(message, e) },
+        )
+        if (!configured) {
             scope.launch { peer.close() }
             return
         }
         runtime.peer = peer
-        // markReady() and the buffered-event flush also run on prepare timeout: degraded beats frozen.
+        // Bind before prepare so the plugin's own onPrepare requests can flow; the ready gate that
+        // holds inbound frames opens only once launchPeerPreparation finishes (or times out).
         runtime.messenger.bind(peer.messenger)
-        runtime.connectJob = scope.launch {
-            try {
-                withTimeout(runtime.plugin.prepareTimeoutMillis()) {
-                    runtime.plugin.dispatchPrepare()
-                }
-            } catch (e: TimeoutCancellationException) {
-                JetWhaleLogger.w("JetWhale: onPrepare for plugin '${runtime.plugin.pluginId}' did not complete in time; proceeding.", e)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Throwable) {
-                // A failed request (JetWhaleRequestException etc.) is the common degraded path here;
-                // it must never escape as an uncaught exception in the debuggee process.
-                JetWhaleLogger.w("JetWhale: onPrepare for plugin '${runtime.plugin.pluginId}' failed; proceeding.", e)
-            } finally {
-                peer.markReady()
-                runtime.messenger.startFlush()
-            }
-        }
+        runtime.connectJob = scope.launchPeerPreparation(
+            peer = peer,
+            descriptor = descriptor,
+            prepareTimeoutMillis = runtime.plugin.prepareTimeoutMillis(),
+            dispatchPrepare = { runtime.plugin.dispatchPrepare() },
+            warn = { message, e -> JetWhaleLogger.w(message, e) },
+            onReady = { runtime.messenger.startFlush() },
+        )
     }
 
     private suspend fun dropPeer(runtime: PluginRuntime, notifyDisconnected: Boolean) {
@@ -184,30 +178,15 @@ internal class JetWhaleAgentPluginService(
             peer.onFrame(frame)
             return
         }
-        // No active peer for this frame. If it expects a reply, fail it fast so the requester does
-        // not wait for the timeout (e.g. a host request that races ahead of this plugin's activation).
-        // Launch, don't await: sendFrame is a suspending socket write and onFrame runs on the
-        // connection's single frame collector, so awaiting here would stall delivery of every other
-        // plugin's frames while this one failure reply is in flight.
-        if (frame is PluginFrame.Request) {
-            val sendFrame = sendFrame ?: return
-            serviceScope.launch {
-                // Best effort: the socket may already be dead (e.g. a request racing a disconnect);
-                // a failed failure-reply must not surface as an uncaught exception in the debuggee.
-                try {
-                    sendFrame(
-                        PluginFrame.Reply.Failure(
-                            pluginId = frame.pluginId,
-                            inReplyTo = frame.correlationId,
-                            errorMessage = "Plugin '${frame.pluginId}' is not active in the agent.",
-                        ),
-                    )
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Throwable) {
-                    JetWhaleLogger.w("JetWhale: failed to send fast-fail reply for plugin '${frame.pluginId}'.", e)
-                }
-            }
-        }
+        // No active peer for this frame (e.g. a host request that races ahead of this plugin's
+        // activation): fast-fail a request so the requester does not wait out the timeout.
+        val sendFrame = sendFrame ?: return
+        replyPeerUnavailable(
+            scope = serviceScope,
+            frame = frame,
+            errorMessage = "Plugin '${frame.pluginId}' is not active in the agent.",
+            send = sendFrame,
+            warn = { message, e -> JetWhaleLogger.w(message, e) },
+        )
     }
 }
