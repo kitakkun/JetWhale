@@ -1,9 +1,13 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
+import java.util.concurrent.TimeUnit
 import kotlin.io.path.createTempFile
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readBytes
@@ -35,6 +39,14 @@ interface DeviceController {
     suspend fun pressButton(button: DeviceButton)
 
     suspend fun inputText(text: String)
+
+    /** Starts recording the screen into [outputFile] (mp4/mov). Stop it via the returned handle. */
+    suspend fun startRecording(outputFile: File): DeviceRecording
+}
+
+/** One in-progress screen recording; [stop] finalizes and returns the video file. */
+interface DeviceRecording {
+    suspend fun stop(): File
 }
 
 internal class AndroidDeviceController(
@@ -74,6 +86,31 @@ internal class AndroidDeviceController(
             .replace(Regex("""([\\'"`$&*()\[\]{}+|<>;?~#!])"""), """\\$1""")
             .replace(" ", "%s")
         runCommandChecked(adbPath, "-s", serial, "shell", "input", "text", escaped)
+    }
+
+    override suspend fun startRecording(outputFile: File): DeviceRecording {
+        // screenrecord writes on-device; the file is pulled after a clean SIGINT shutdown.
+        val remotePath = "/sdcard/${outputFile.name}"
+        val process = withContext(Dispatchers.IO) {
+            ProcessBuilder(adbPath, "-s", serial, "shell", "screenrecord", "--time-limit", "180", remotePath).start()
+        }
+        return object : DeviceRecording {
+            override suspend fun stop(): File = withContext(Dispatchers.IO) {
+                // SIGINT lets screenrecord finalize the mp4 moov atom; killing the local adb
+                // client instead would leave an unplayable file. Exit code is ignored: the
+                // process has already exited when the 180s time limit was hit.
+                runCommand(adbPath, "-s", serial, "shell", "pkill", "-INT", "screenrecord")
+                process.waitFor(10, TimeUnit.SECONDS)
+                // The device flushes the file asynchronously after the process exits.
+                delay(500)
+                try {
+                    runCommandChecked(adbPath, "-s", serial, "pull", remotePath, outputFile.absolutePath)
+                } finally {
+                    runCommand(adbPath, "-s", serial, "shell", "rm", "-f", remotePath)
+                }
+                outputFile
+            }
+        }
     }
 }
 
@@ -143,6 +180,24 @@ internal class IosDeviceController(
 
     override suspend fun inputText(text: String) {
         runCommandChecked(requireIdb(), "ui", "text", "--udid", udid, text)
+    }
+
+    override suspend fun startRecording(outputFile: File): DeviceRecording {
+        val process = withContext(Dispatchers.IO) {
+            ProcessBuilder("xcrun", "simctl", "io", udid, "recordVideo", "--codec=h264", "--force", outputFile.absolutePath).start()
+        }
+        return object : DeviceRecording {
+            override suspend fun stop(): File = withContext(Dispatchers.IO) {
+                // recordVideo finalizes the file only on SIGINT (its ctrl-c path);
+                // Process.destroy() sends SIGTERM, which leaves the video unplayable.
+                runCommand("kill", "-INT", "${process.pid()}")
+                if (!process.waitFor(15, TimeUnit.SECONDS)) process.destroyForcibly()
+                if (!outputFile.exists() || outputFile.length() == 0L) {
+                    throw DeviceControlException("recording failed: ${outputFile.absolutePath} was not written")
+                }
+                outputFile
+            }
+        }
     }
 
     private fun requireIdb(): String = idbPath

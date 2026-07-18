@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -9,16 +10,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -34,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -44,16 +44,18 @@ internal fun MirrorScreen(
     devices: List<MirrorDevice>,
     selectedDeviceId: String?,
     onSelectDevice: (String) -> Unit,
-    frame: ImageBitmap?,
+    frames: Map<String, ImageBitmap>,
     mirroringEnabled: Boolean,
     onToggleMirroring: (Boolean) -> Unit,
     errorMessage: String?,
     onRefreshDevices: () -> Unit,
-    onTap: (x: Int, y: Int) -> Unit,
-    onSwipe: (fromX: Int, fromY: Int, toX: Int, toY: Int) -> Unit,
+    onTap: (device: MirrorDevice, x: Int, y: Int) -> Unit,
+    onSwipe: (device: MirrorDevice, fromX: Int, fromY: Int, toX: Int, toY: Int) -> Unit,
     onPressButton: (DeviceButton) -> Unit,
     onInputText: (String) -> Unit,
     onSaveScreenshot: () -> Unit,
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit,
 ) {
     val selectedDevice = devices.firstOrNull { it.id == selectedDeviceId }
     Scaffold(
@@ -66,77 +68,71 @@ internal fun MirrorScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            DeviceSelectorRow(
-                devices = devices,
-                selectedDevice = selectedDevice,
-                onSelectDevice = onSelectDevice,
-                onRefreshDevices = onRefreshDevices,
+            MirrorToolbar(
                 mirroringEnabled = mirroringEnabled,
                 onToggleMirroring = onToggleMirroring,
+                onRefreshDevices = onRefreshDevices,
             )
             ControlButtonsRow(
                 platform = selectedDevice?.platform,
                 enabled = selectedDevice != null,
                 onPressButton = onPressButton,
                 onSaveScreenshot = onSaveScreenshot,
+                isRecording = isRecording,
+                onToggleRecording = onToggleRecording,
             )
             TextInputRow(enabled = selectedDevice != null, onInputText = onInputText)
             errorMessage?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
-            MirrorFrame(
-                frame = frame,
-                hasDevice = selectedDevice != null,
-                onTap = onTap,
-                onSwipe = onSwipe,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-            )
+            if (devices.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        "Boot an Android emulator or iOS simulator to start mirroring.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            } else {
+                // All connected devices side by side; the highlighted one receives the
+                // button/text controls, while taps and swipes go to the frame under the cursor.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    devices.forEach { device ->
+                        DeviceMirrorPane(
+                            device = device,
+                            frame = frames[device.id],
+                            isSelected = device.id == selectedDeviceId,
+                            onSelect = { onSelectDevice(device.id) },
+                            onTap = onTap,
+                            onSwipe = onSwipe,
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DeviceSelectorRow(
-    devices: List<MirrorDevice>,
-    selectedDevice: MirrorDevice?,
-    onSelectDevice: (String) -> Unit,
-    onRefreshDevices: () -> Unit,
+private fun MirrorToolbar(
     mirroringEnabled: Boolean,
     onToggleMirroring: (Boolean) -> Unit,
+    onRefreshDevices: () -> Unit,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        var expanded by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-            modifier = Modifier.weight(1f),
-        ) {
-            OutlinedTextField(
-                value = selectedDevice?.let { "${it.name} (${it.platform})" } ?: "No device",
-                onValueChange = {},
-                readOnly = true,
-                singleLine = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
-            )
-            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                devices.forEach { device ->
-                    DropdownMenuItem(
-                        text = { Text("${device.name} (${device.platform})") },
-                        onClick = {
-                            onSelectDevice(device.id)
-                            expanded = false
-                        },
-                    )
-                }
-            }
-        }
         OutlinedButton(onClick = onRefreshDevices) { Text("Refresh") }
         Text("Mirror", style = MaterialTheme.typography.labelMedium)
         Switch(checked = mirroringEnabled, onCheckedChange = onToggleMirroring)
@@ -149,12 +145,17 @@ private fun ControlButtonsRow(
     enabled: Boolean,
     onPressButton: (DeviceButton) -> Unit,
     onSaveScreenshot: () -> Unit,
+    isRecording: Boolean,
+    onToggleRecording: () -> Unit,
 ) {
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Button(onClick = onSaveScreenshot, enabled = enabled) { Text("Screenshot") }
+        Button(onClick = onToggleRecording, enabled = enabled || isRecording) {
+            Text(if (isRecording) "Stop Rec" else "Record")
+        }
         val buttons = when (platform) {
             DevicePlatform.IOS -> listOf(DeviceButton.HOME, DeviceButton.POWER, DeviceButton.BACKSPACE, DeviceButton.ENTER)
             else -> DeviceButton.entries
@@ -191,7 +192,7 @@ private fun TextInputRow(
             value = text,
             onValueChange = { text = it },
             singleLine = true,
-            placeholder = { Text("Type text to send to the device") },
+            placeholder = { Text("Type text to send to the selected device") },
             modifier = Modifier.weight(1f),
         )
         Button(
@@ -207,39 +208,62 @@ private fun TextInputRow(
 }
 
 @Composable
-private fun MirrorFrame(
+private fun DeviceMirrorPane(
+    device: MirrorDevice,
     frame: ImageBitmap?,
-    hasDevice: Boolean,
-    onTap: (x: Int, y: Int) -> Unit,
-    onSwipe: (fromX: Int, fromY: Int, toX: Int, toY: Int) -> Unit,
-    modifier: Modifier = Modifier,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    onTap: (device: MirrorDevice, x: Int, y: Int) -> Unit,
+    onSwipe: (device: MirrorDevice, fromX: Int, fromY: Int, toX: Int, toY: Int) -> Unit,
 ) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    Column(
+        modifier = Modifier.fillMaxHeight(),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "${device.name} (${device.platform})",
+            style = MaterialTheme.typography.labelMedium,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         if (frame == null) {
-            Text(
-                if (hasDevice) "Waiting for the first frame…" else "Boot an Android emulator or iOS simulator to start mirroring.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            return@Box
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(9f / 16f)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(4.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("Waiting…", style = MaterialTheme.typography.bodySmall)
+            }
+            return@Column
         }
         // aspectRatio makes the image composable's bounds coincide exactly with the drawn frame,
         // so pointer offsets scale linearly to device pixels.
         Image(
             bitmap = frame,
-            contentDescription = "Mirrored device screen",
+            contentDescription = "Mirrored screen of ${device.name}",
             modifier = Modifier
+                .weight(1f)
                 .aspectRatio(frame.width.toFloat() / frame.height.toFloat())
-                .pointerInput(frame.width, frame.height) {
+                .border(
+                    width = 2.dp,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    shape = RoundedCornerShape(4.dp),
+                )
+                .pointerInput(device.id, frame.width, frame.height) {
                     detectTapGestures { offset ->
+                        onSelect()
                         val scale = frame.width.toFloat() / size.width
-                        onTap((offset.x * scale).toInt(), (offset.y * scale).toInt())
+                        onTap(device, (offset.x * scale).toInt(), (offset.y * scale).toInt())
                     }
                 }
-                .pointerInput(frame.width, frame.height) {
+                .pointerInput(device.id, frame.width, frame.height) {
                     var dragStart = Offset.Zero
                     var dragEnd = Offset.Zero
                     detectDragGestures(
                         onDragStart = { offset ->
+                            onSelect()
                             dragStart = offset
                             dragEnd = offset
                         },
@@ -247,6 +271,7 @@ private fun MirrorFrame(
                         onDragEnd = {
                             val scale = frame.width.toFloat() / size.width
                             onSwipe(
+                                device,
                                 (dragStart.x * scale).toInt(),
                                 (dragStart.y * scale).toInt(),
                                 (dragEnd.x * scale).toInt(),
