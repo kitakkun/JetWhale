@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.model.OfficialPlugin
 import com.kitakkun.jetwhale.host.model.PluginInstallProgress
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
@@ -43,6 +44,9 @@ import com.kitakkun.jetwhale.host.settings.install_progress_downloading_dependen
 import com.kitakkun.jetwhale.host.settings.install_progress_downloading_plugin
 import com.kitakkun.jetwhale.host.settings.install_progress_loading_plugin
 import com.kitakkun.jetwhale.host.settings.installed_plugins
+import com.kitakkun.jetwhale.host.settings.maven_install_install
+import com.kitakkun.jetwhale.host.settings.official_plugin_installed
+import com.kitakkun.jetwhale.host.settings.official_plugins
 import com.kitakkun.jetwhale.host.settings.untrusted_jar_hint
 import com.kitakkun.jetwhale.host.settings.untrusted_plugins
 import org.jetbrains.compose.resources.stringResource
@@ -53,6 +57,7 @@ fun PluginSettingsScreen(
     onClickAddPlugin: () -> Unit,
     onApproveUntrustedJar: (String) -> Unit,
     onClickInstallFromMaven: () -> Unit,
+    onClickInstallOfficialPlugin: (OfficialPlugin) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showFailedJarsDialog by remember { mutableStateOf(false) }
@@ -167,6 +172,51 @@ fun PluginSettingsScreen(
                 untrustedJarPaths = uiState.untrustedJarPaths,
                 onApprove = onApproveUntrustedJar,
             )
+        }
+        if (uiState.officialPlugins.isNotEmpty()) {
+            Text(
+                text = stringResource(Res.string.official_plugins),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            uiState.officialPlugins.forEach { officialPlugin ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = MaterialTheme.shapes.small,
+                        )
+                        .padding(8.dp),
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = officialPlugin.plugin.displayName,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Text(
+                            text = officialPlugin.plugin.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (officialPlugin.isInstalled) {
+                        Text(
+                            text = stringResource(Res.string.official_plugin_installed),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Button(
+                            onClick = { onClickInstallOfficialPlugin(officialPlugin.plugin) },
+                            enabled = !uiState.isInstalling,
+                        ) {
+                            Text(stringResource(Res.string.maven_install_install))
+                        }
+                    }
+                }
+            }
         }
         uiState.installError?.let { error ->
             Text(

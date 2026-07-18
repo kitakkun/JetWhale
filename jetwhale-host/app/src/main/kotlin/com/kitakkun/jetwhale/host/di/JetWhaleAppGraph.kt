@@ -1,12 +1,14 @@
 package com.kitakkun.jetwhale.host.di
 
 import com.kitakkun.jetwhale.host.ApplicationLifecycleOwner
+import com.kitakkun.jetwhale.host.BuildConfig
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldScreenContext
 import com.kitakkun.jetwhale.host.mcp.McpServerService
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
+import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginHotReloadService
@@ -50,4 +52,7 @@ interface JetWhaleAppGraph : ScreenContext {
 
     @Provides
     fun providesWebSocketPayloadJson(): Json = JetWhaleJson
+
+    @Provides
+    fun providesHostVersionInfo(): HostVersionInfo = HostVersionInfo(BuildConfig.VERSION)
 }

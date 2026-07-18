@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.settings.plugin
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
+import com.kitakkun.jetwhale.host.model.OfficialPluginCatalog
 import com.kitakkun.jetwhale.host.model.PluginInstallProgress
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.TrustPluginRequest
@@ -35,6 +36,12 @@ fun pluginSettingsScreenPresenter(
                 pluginInstallFromMavenMutation.mutateAsync(action.coordinates)
             }
 
+            is PluginSettingsScreenAction.InstallOfficialPlugin -> {
+                pluginInstallFromMavenMutation.mutateAsync(
+                    action.plugin.coordinatesFor(presenterContext.hostVersionInfo),
+                )
+            }
+
             is PluginSettingsScreenAction.UntrustedJarApproved -> {
                 trustPluginMutation.mutateAsync(TrustPluginRequest(action.path))
             }
@@ -51,6 +58,12 @@ fun pluginSettingsScreenPresenter(
                 id = it.id,
                 name = it.name,
                 version = it.version,
+            )
+        }.toPersistentList(),
+        officialPlugins = OfficialPluginCatalog.plugins.map { plugin ->
+            OfficialPluginUiState(
+                plugin = plugin,
+                isInstalled = loadedPlugins.any { it.id == plugin.pluginId },
             )
         }.toPersistentList(),
         failedJarPaths = failedJarPaths,

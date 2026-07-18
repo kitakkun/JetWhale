@@ -60,4 +60,6 @@
     <string name="install_progress_downloading_plugin">プラグインをダウンロード中…</string>
     <string name="install_progress_downloading_dependencies">依存関係をダウンロード中 (%1$d/%2$d)…</string>
     <string name="install_progress_loading_plugin">プラグインを読み込み中…</string>
+    <string name="official_plugins">公式プラグイン</string>
+    <string name="official_plugin_installed">インストール済み</string>
 </resources>

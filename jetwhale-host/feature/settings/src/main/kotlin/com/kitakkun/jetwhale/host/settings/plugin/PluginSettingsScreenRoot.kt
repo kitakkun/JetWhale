@@ -47,6 +47,9 @@ fun PluginSettingsScreenRoot() {
             onClickInstallFromMaven = {
                 showMavenDialog = true
             },
+            onClickInstallOfficialPlugin = { plugin ->
+                screenChannel.send(PluginSettingsScreenAction.InstallOfficialPlugin(plugin))
+            },
         )
 
         if (showMavenDialog) {

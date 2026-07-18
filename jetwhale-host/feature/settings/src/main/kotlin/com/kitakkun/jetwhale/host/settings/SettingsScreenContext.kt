@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.AppLanguageMutationKey
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
 import com.kitakkun.jetwhale.host.model.FailedPluginJarPathsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.McpServerPortMutationKey
@@ -38,6 +39,7 @@ class SettingsPresenterContext(
     val pluginInstallFromMavenMutationKey: PluginInstallFromMavenMutationKey,
     val trustPluginMutationKey: TrustPluginMutationKey,
     val logCaptureService: LogCaptureService,
+    val hostVersionInfo: HostVersionInfo,
 ) : PresenterContext
 
 /**
