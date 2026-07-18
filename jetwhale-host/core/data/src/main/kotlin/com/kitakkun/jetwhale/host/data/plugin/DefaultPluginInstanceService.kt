@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Level
 import java.util.logging.Logger
 
 private data class PluginInstanceKey(val pluginId: String, val sessionId: String)
@@ -114,19 +115,27 @@ class DefaultPluginInstanceService(
         // abort loading for the caller.
         // Only messaging plugins get a peer; a pure plugin pays none of the messaging cost.
         val peer = if (plugin is JetWhaleMessagingHostPlugin) {
-            JetWhalePluginPeer(
+            val newPeer = JetWhalePluginPeer(
                 pluginId = pluginId,
                 parentScope = scope,
                 sendFrame = { frame -> frameSender.sendFrame(sessionId, frame) },
                 awaitReady = true,
-            ).also { peer ->
-                configurePeerGuarded(
-                    peer = peer,
-                    descriptor = descriptor,
-                    registerHandlers = { plugin.registerHandlers(this) },
-                    warn = { message, _ -> logger.warning(message) },
-                )
-                plugin.bindMessenger(peer.messenger)
+            )
+            val configured = configurePeerGuarded(
+                peer = newPeer,
+                descriptor = descriptor,
+                registerHandlers = { plugin.registerHandlers(this) },
+                warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
+            )
+            if (configured) {
+                plugin.bindMessenger(newPeer.messenger)
+                newPeer
+            } else {
+                // Registration failed: discard the half-configured peer (mirrors the agent's bail-out).
+                // The instance still loads, but without messaging — subsequent frames fast-fail via the
+                // no-peer path in routeFrame.
+                scope.launch { newPeer.close() }
+                null
             }
         } else {
             null
@@ -142,7 +151,7 @@ class DefaultPluginInstanceService(
                 descriptor = descriptor,
                 prepareTimeoutMillis = plugin.prepareTimeoutMillis(),
                 dispatchPrepare = { plugin.dispatchPrepare() },
-                warn = { message, _ -> logger.warning(message) },
+                warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
                 onReady = {},
             )
         } else {
@@ -164,7 +173,7 @@ class DefaultPluginInstanceService(
             frame = frame,
             errorMessage = "Plugin '${frame.pluginId}' is not loaded in session '$sessionId'.",
             send = { failureFrame -> frameSender.sendFrame(sessionId = sessionId, frame = failureFrame) },
-            warn = { message, _ -> logger.warning(message) },
+            warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
         )
     }
 

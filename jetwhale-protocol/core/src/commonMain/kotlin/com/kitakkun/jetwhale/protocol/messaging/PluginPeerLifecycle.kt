@@ -29,6 +29,8 @@ public fun configurePeerGuarded(
 ): Boolean = try {
     peer.configure(registerHandlers)
     true
+} catch (e: CancellationException) {
+    throw e
 } catch (e: Throwable) {
     warn("JetWhale: handler registration for $descriptor failed; plugin stays offline this connection.", e)
     false
