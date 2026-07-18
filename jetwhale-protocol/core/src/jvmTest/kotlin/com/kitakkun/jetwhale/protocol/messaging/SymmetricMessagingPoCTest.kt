@@ -110,8 +110,8 @@ class SymmetricMessagingPoCTest {
         }
 
         // The remote sends events before the preparing side is ready: they must be held.
-        remote.messenger.sendOrFail(CounterEvent(1))
-        remote.messenger.sendOrFail(CounterEvent(2))
+        remote.messenger.trySend(CounterEvent(1))
+        remote.messenger.trySend(CounterEvent(2))
         // Outbound requests from the preparing side (what onPrepare does) still complete: replies
         // bypass the gate.
         assertEquals(Pong("during-prepare"), preparing.messenger.request(Ping("during-prepare")))
@@ -133,7 +133,7 @@ class SymmetricMessagingPoCTest {
             onEvent { event: CounterEvent -> received += event.value }
         }
 
-        repeat(100) { left.messenger.sendOrFail(CounterEvent(it)) }
+        repeat(100) { left.messenger.trySend(CounterEvent(it)) }
 
         withTimeout(5_000) {
             while (received.size < 100) delay(10)
@@ -148,7 +148,7 @@ class SymmetricMessagingPoCTest {
             onRequest { ping: Ping -> reply(Pong(ping.tag)) }
         }
 
-        left.messenger.sendOrFail(CounterEvent(42)) // skipped on the right, must not break anything
+        left.messenger.trySend(CounterEvent(42)) // skipped on the right, must not break anything
         val pong: Pong = left.messenger.request(Ping("still-alive"))
         assertEquals(Pong("still-alive"), pong)
     }
@@ -169,7 +169,7 @@ class SymmetricMessagingPoCTest {
             }
         }
 
-        left.messenger.sendOrFail(CounterEvent(1))
+        left.messenger.trySend(CounterEvent(1))
         val pong: Pong = left.messenger.request(Ping("after-event"))
 
         assertEquals(Pong("after-event"), pong)

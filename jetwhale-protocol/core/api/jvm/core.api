@@ -122,19 +122,6 @@ public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$Plu
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/kitakkun/jetwhale/protocol/messaging/BufferedMessenger : com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger {
-	public fun <init> (Lkotlinx/coroutines/CoroutineScope;Lkotlinx/serialization/StringFormat;ILkotlin/jvm/functions/Function1;)V
-	public synthetic fun <init> (Lkotlinx/coroutines/CoroutineScope;Lkotlinx/serialization/StringFormat;ILkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun bind (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;)V
-	public final fun close ()V
-	public fun getPayloadFormat ()Lkotlinx/serialization/StringFormat;
-	public fun requestRaw-5_5nbZA (Ljava/lang/String;Ljava/lang/String;Lkotlin/time/Duration;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public fun sendRaw (Ljava/lang/String;Ljava/lang/String;)Z
-	public fun sendRaw (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/protocol/messaging/OfflineSendPolicy;)Z
-	public final fun startFlush ()V
-	public final fun unbind ()V
-}
-
 public abstract interface class com/kitakkun/jetwhale/protocol/messaging/JetWhaleConnectedMessenger {
 	public abstract fun getPayloadFormat ()Lkotlinx/serialization/StringFormat;
 	public abstract fun requestRaw-5_5nbZA (Ljava/lang/String;Ljava/lang/String;Lkotlin/time/Duration;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -164,15 +151,6 @@ public class com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessagingException
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 }
 
-public abstract interface class com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger : com/kitakkun/jetwhale/protocol/messaging/JetWhaleConnectedMessenger {
-	public fun sendRaw (Ljava/lang/String;Ljava/lang/String;)Z
-	public abstract fun sendRaw (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/protocol/messaging/OfflineSendPolicy;)Z
-}
-
-public final class com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger$DefaultImpls {
-	public static fun sendRaw (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;Ljava/lang/String;Ljava/lang/String;)Z
-}
-
 public final class com/kitakkun/jetwhale/protocol/messaging/JetWhalePluginPeer {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/messaging/JetWhalePluginPeer$Companion;
 	public static final field DEFAULT_BUFFER_CAPACITY I
@@ -181,7 +159,7 @@ public final class com/kitakkun/jetwhale/protocol/messaging/JetWhalePluginPeer {
 	public synthetic fun <init> (Ljava/lang/String;Lkotlinx/coroutines/CoroutineScope;Lkotlin/jvm/functions/Function2;JLkotlinx/serialization/StringFormat;IIZLkotlin/jvm/functions/Function1;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun close (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun configure (Lkotlin/jvm/functions/Function1;)V
-	public final fun getMessenger ()Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;
+	public final fun getMessenger ()Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleTransportMessenger;
 	public final fun getPluginId ()Ljava/lang/String;
 	public final fun markReady ()V
 	public final fun onFrame (Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -202,13 +180,8 @@ public final class com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequestExcep
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 }
 
-public final class com/kitakkun/jetwhale/protocol/messaging/OfflineSendPolicy : java/lang/Enum {
-	public static final field DROP Lcom/kitakkun/jetwhale/protocol/messaging/OfflineSendPolicy;
-	public static final field FAIL Lcom/kitakkun/jetwhale/protocol/messaging/OfflineSendPolicy;
-	public static final field QUEUE Lcom/kitakkun/jetwhale/protocol/messaging/OfflineSendPolicy;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/messaging/OfflineSendPolicy;
-	public static fun values ()[Lcom/kitakkun/jetwhale/protocol/messaging/OfflineSendPolicy;
+public abstract interface class com/kitakkun/jetwhale/protocol/messaging/JetWhaleTransportMessenger : com/kitakkun/jetwhale/protocol/messaging/JetWhaleConnectedMessenger {
+	public abstract fun trySendRaw (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/messaging/RawSendOutcome;
 }
 
 public abstract interface class com/kitakkun/jetwhale/protocol/messaging/PluginFrame {
@@ -359,6 +332,15 @@ public final class com/kitakkun/jetwhale/protocol/messaging/PluginPeerLifecycleK
 	public static final fun configurePeerGuarded (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhalePluginPeer;Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;)Z
 	public static final fun launchPeerPreparation (Lkotlinx/coroutines/CoroutineScope;Lcom/kitakkun/jetwhale/protocol/messaging/JetWhalePluginPeer;Ljava/lang/String;JLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function0;)Lkotlinx/coroutines/Job;
 	public static final fun replyPeerUnavailable (Lkotlinx/coroutines/CoroutineScope;Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;)V
+}
+
+public final class com/kitakkun/jetwhale/protocol/messaging/RawSendOutcome : java/lang/Enum {
+	public static final field BUFFER_FULL Lcom/kitakkun/jetwhale/protocol/messaging/RawSendOutcome;
+	public static final field CONNECTION_CLOSED Lcom/kitakkun/jetwhale/protocol/messaging/RawSendOutcome;
+	public static final field SENT Lcom/kitakkun/jetwhale/protocol/messaging/RawSendOutcome;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/messaging/RawSendOutcome;
+	public static fun values ()[Lcom/kitakkun/jetwhale/protocol/messaging/RawSendOutcome;
 }
 
 public final class com/kitakkun/jetwhale/protocol/messaging/Reply {

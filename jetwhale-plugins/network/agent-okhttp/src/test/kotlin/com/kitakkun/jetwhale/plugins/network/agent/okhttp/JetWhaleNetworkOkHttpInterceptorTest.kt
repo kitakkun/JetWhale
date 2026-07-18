@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.plugins.network.agent.okhttp
 
+import com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleMessenger
+import com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
@@ -10,9 +12,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockRules
 import com.kitakkun.jetwhale.protocol.messaging.DefaultJetWhaleMessagingFormat
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
 import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
-import com.kitakkun.jetwhale.protocol.messaging.OfflineSendPolicy
 import com.kitakkun.jetwhale.protocol.messaging.request
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob

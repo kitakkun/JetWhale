@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.network.agent
 
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
+import com.kitakkun.jetwhale.agent.sdk.messaging.sendOrQueue
 import com.kitakkun.jetwhale.plugins.network.protocol.Ack
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
@@ -19,7 +20,6 @@ import com.kitakkun.jetwhale.plugins.network.protocol.SetMockingEnabled
 import com.kitakkun.jetwhale.plugins.network.protocol.findMatching
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.reply
-import com.kitakkun.jetwhale.protocol.messaging.sendOrQueue
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid

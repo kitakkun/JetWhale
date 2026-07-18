@@ -19,7 +19,7 @@ import kotlinx.serialization.StringFormat
  * in the exact order the other side sent them. A notification runs to completion before the next
  * inbound frame is dispatched (notifications are **serial**); a request is then launched on its own
  * coroutine (requests run **concurrently**, up to [maxConcurrentRequests] in flight) so a handler
- * that itself calls [JetWhaleMessenger.request] in the opposite direction cannot deadlock the receive
+ * that itself calls `request` in the opposite direction cannot deadlock the receive
  * loop. Requests beyond that bound are rejected with a fast [PluginFrame.Reply.Failure] instead of
  * spawning unbounded handlers.
  *

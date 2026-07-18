@@ -1,13 +1,13 @@
 package com.kitakkun.jetwhale.plugins.network.agent.ktor
 
+import com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleMessenger
+import com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import com.kitakkun.jetwhale.protocol.messaging.DefaultJetWhaleMessagingFormat
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
-import com.kitakkun.jetwhale.protocol.messaging.OfflineSendPolicy
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.mock.MockEngine

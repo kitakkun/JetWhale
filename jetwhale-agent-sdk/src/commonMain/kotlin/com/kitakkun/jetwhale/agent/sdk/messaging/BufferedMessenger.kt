@@ -1,5 +1,8 @@
-package com.kitakkun.jetwhale.protocol.messaging
+package com.kitakkun.jetwhale.agent.sdk.messaging
 
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleConnectionClosedException
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleTransportMessenger
+import com.kitakkun.jetwhale.protocol.messaging.RawSendOutcome
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -22,7 +25,7 @@ import kotlin.time.Duration
  * Its reason to exist is the [OfflineSendPolicy.QUEUE] path: events sent while no transport is bound
  * are held in a **bounded, drop-oldest** buffer and flushed, in arrival order, once a transport is
  * bound *and* flushing has been opened with [startFlush]. The gate lets the runtime run a plugin's
- * connection-time initialization (which may [request] the other side) before buffered events start
+ * connection-time initialization (which may `request` the other side) before buffered events start
  * flowing. [OfflineSendPolicy.DROP] and [OfflineSendPolicy.FAIL] sends and all requests go straight to
  * the live transport (or are dropped / fail / throw when there is none) — they are never buffered or
  * gated, so initialization can request() freely.
@@ -30,11 +33,12 @@ import kotlin.time.Duration
  * Concurrency: sends arrive from arbitrary app threads while [bind]/[unbind] run on the runtime's
  * messaging coroutine. The live reference is a [MutableStateFlow] (atomic reads) and the offline
  * buffer is a single [Channel] drained by one consumer, so queued events keep a single FIFO order
- * without a lock. (Cross-policy ordering is not guaranteed: a [DROP]/[FAIL] send may overtake queued
- * events still draining. Use one policy per event stream if order matters.)
+ * without a lock. (Cross-policy ordering is not guaranteed: a [DROP][OfflineSendPolicy.DROP] /
+ * [FAIL][OfflineSendPolicy.FAIL] send may overtake queued events still draining. Use one policy per
+ * event stream if order matters.)
  *
  * @param bufferCapacity max number of offline events to retain; `0` disables buffering (QUEUE then
- *   behaves like [trySend]).
+ *   behaves like `trySend`).
  */
 public class BufferedMessenger(
     parentScope: CoroutineScope,
@@ -48,7 +52,7 @@ public class BufferedMessenger(
         CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
 
     /** The live transport, or null while disconnected. Sole writer is [bind]/[unbind]. */
-    private val live = MutableStateFlow<JetWhaleMessenger?>(null)
+    private val live = MutableStateFlow<JetWhaleTransportMessenger?>(null)
 
     /** Whether buffered events may flush. Opened by [startFlush] (after init), reset by [unbind]. */
     private val flushOpen = MutableStateFlow(false)
@@ -65,14 +69,14 @@ public class BufferedMessenger(
             scope.launch {
                 for (event in buffer) {
                     val transport = awaitFlushableTransport()
-                    transport.sendRaw(event.messageType, event.payload, OfflineSendPolicy.DROP)
+                    transport.sendRaw(event.messageType, event.payload)
                 }
             }
         }
     }
 
     /** Suspends until a transport is bound and flushing has been opened, then returns that transport. */
-    private suspend fun awaitFlushableTransport(): JetWhaleMessenger = combine(live, flushOpen) { transport, open -> transport.takeIf { open } }
+    private suspend fun awaitFlushableTransport(): JetWhaleTransportMessenger = combine(live, flushOpen) { transport, open -> transport.takeIf { open } }
         .filterNotNull()
         .first()
 
@@ -84,7 +88,7 @@ public class BufferedMessenger(
             OfflineSendPolicy.QUEUE -> {
                 if (offlineBuffer == null) {
                     // No capacity: degrade to a best-effort live send.
-                    if (transport != null) transport.sendRaw(messageType, payload, OfflineSendPolicy.DROP) else false
+                    if (transport != null) transport.sendRaw(messageType, payload) else false
                 } else {
                     offlineBuffer.trySend(BufferedEvent(messageType, payload)) // drop-oldest never fails while open
                     true
@@ -92,10 +96,16 @@ public class BufferedMessenger(
             }
 
             OfflineSendPolicy.DROP ->
-                if (transport != null) transport.sendRaw(messageType, payload, OfflineSendPolicy.DROP) else false
+                if (transport != null) transport.sendRaw(messageType, payload) else false
 
-            OfflineSendPolicy.FAIL ->
-                transport?.sendRaw(messageType, payload, OfflineSendPolicy.FAIL) ?: throw JetWhaleConnectionClosedException()
+            OfflineSendPolicy.FAIL -> {
+                if (transport == null) throw JetWhaleConnectionClosedException()
+                when (transport.trySendRaw(messageType, payload)) {
+                    RawSendOutcome.SENT -> true
+                    RawSendOutcome.BUFFER_FULL -> false
+                    RawSendOutcome.CONNECTION_CLOSED -> throw JetWhaleConnectionClosedException()
+                }
+            }
         }
     }
 
@@ -109,7 +119,7 @@ public class BufferedMessenger(
      * Attaches the live transport. Requests and DROP/FAIL sends work immediately; buffered
      * [OfflineSendPolicy.QUEUE] events stay held until [startFlush] opens the gate.
      */
-    public fun bind(transport: JetWhaleMessenger) {
+    public fun bind(transport: JetWhaleTransportMessenger) {
         live.value = transport
     }
 

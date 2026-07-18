@@ -1,8 +1,8 @@
 package com.kitakkun.jetwhale.agent.sdk
 
+import com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleMessenger
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
 
 /**
  * Base class for a JetWhale plugin running inside the debug-target app (the agent).

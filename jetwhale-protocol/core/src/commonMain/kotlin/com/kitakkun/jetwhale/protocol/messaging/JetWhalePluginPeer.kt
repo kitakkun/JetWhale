@@ -105,18 +105,30 @@ public class JetWhalePluginPeer(
         handlers.block()
     }
 
-    /** The sending face handed to plugin code. Valid for the lifetime of this peer. */
-    public val messenger: JetWhaleMessenger = object : JetWhaleMessenger {
+    /**
+     * The sending face handed to plugin code. Valid for the lifetime of this peer. It is the live
+     * transport: while bound it simply sends. Host plugins use it through the shared
+     * [JetWhaleConnectedMessenger] face; the agent's connection-independent buffering messenger binds
+     * to it through the low-level [JetWhaleTransportMessenger.trySendRaw], which is why this peer
+     * exposes the tri-state enqueue rather than any offline-policy vocabulary (cross-connection
+     * buffering lives in the agent-side messenger that wraps this).
+     */
+    public val messenger: JetWhaleTransportMessenger = object : JetWhaleTransportMessenger {
         override val payloadFormat: StringFormat get() = this@JetWhalePluginPeer.payloadFormat
 
-        // The peer is the live transport: while it is bound it simply sends. There is no per-peer
-        // offline buffer (cross-connection buffering lives in a BufferedMessenger that wraps this),
-        // so QUEUE degrades to a best-effort send here and only FAIL distinguishes a closed peer.
-        override fun sendRaw(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean {
+        override fun trySendRaw(messageType: String, payload: String): RawSendOutcome {
             val result = outgoingQueue.trySend(PluginFrame.Notification(pluginId, messageType, payload))
-            if (result.isSuccess) return true
-            if (policy == OfflineSendPolicy.FAIL && result.isClosed) throw JetWhaleConnectionClosedException()
-            logger("JetWhale: dropped outbound notification '$messageType' for plugin '$pluginId' (${sendFailureReason(result.isClosed)}).")
+            return when {
+                result.isSuccess -> RawSendOutcome.SENT
+                result.isClosed -> RawSendOutcome.CONNECTION_CLOSED
+                else -> RawSendOutcome.BUFFER_FULL
+            }
+        }
+
+        override fun sendRaw(messageType: String, payload: String): Boolean {
+            val outcome = trySendRaw(messageType, payload)
+            if (outcome == RawSendOutcome.SENT) return true
+            logger("JetWhale: dropped outbound notification '$messageType' for plugin '$pluginId' (${sendFailureReason(outcome == RawSendOutcome.CONNECTION_CLOSED)}).")
             return false
         }
 

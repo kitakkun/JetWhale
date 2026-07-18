@@ -1,10 +1,13 @@
-package com.kitakkun.jetwhale.protocol.messaging
+package com.kitakkun.jetwhale.agent.sdk.messaging
 
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleConnectedMessenger
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleConnectionClosedException
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleEvent
 import kotlinx.serialization.serializer
 
 /**
  * What a [send][sendOrQueue] should do when the connection is not currently available. Only events
- * (fire-and-forget) carry a policy; requests always fail when offline (see [request]).
+ * (fire-and-forget) carry a policy; requests always fail when offline (see `request`).
  */
 public enum class OfflineSendPolicy {
     /** Drop the event silently. The send reports `false` so the caller can react if it cares. */
@@ -30,12 +33,12 @@ public enum class OfflineSendPolicy {
  * where there is nothing to buffer across.
  *
  * The interface itself is the *raw* (string) layer. Plugin authors use the typed
- * [trySend] / [sendOrQueue] / [sendOrFail] / [request] extensions, which capture the message
+ * `trySend` / [sendOrQueue] / [sendOrFail] / `request` extensions, which capture the message
  * serializer at the call site via reified type parameters.
  */
 public interface JetWhaleMessenger : JetWhaleConnectedMessenger {
     /**
-     * Raw fire-and-forget shape. Prefer the typed [trySend] / [sendOrQueue] / [sendOrFail]
+     * Raw fire-and-forget shape. Prefer the typed `trySend` / [sendOrQueue] / [sendOrFail]
      * extensions. [policy] decides what happens when the connection is unavailable.
      *
      * @return `true` if the event was sent or buffered, `false` if it was dropped.
@@ -52,7 +55,7 @@ public interface JetWhaleMessenger : JetWhaleConnectedMessenger {
  * Sends a fire-and-forget event, **buffering it** while the connection is unavailable and flushing
  * it (in order) on reconnect. Use this for streams you must not lose across a disconnect (e.g.
  * captured traffic). The buffer is bounded and opt-in — without capacity this behaves like
- * [trySend]. Buffering exists only on the agent's connection-independent messenger. Only
+ * `trySend`. Buffering exists only on the agent's connection-independent messenger. Only
  * [JetWhaleEvent] types are accepted.
  */
 public inline fun <reified E : JetWhaleEvent> JetWhaleMessenger.sendOrQueue(event: E) {
@@ -79,20 +82,3 @@ public inline fun <reified E : JetWhaleEvent> JetWhaleMessenger.sendOrFail(event
         policy = OfflineSendPolicy.FAIL,
     )
 }
-
-/** Base type for messaging failures. */
-public open class JetWhaleMessagingException(
-    message: String,
-    cause: Throwable? = null,
-) : RuntimeException(message, cause)
-
-/** A request failed: remote handler error, no handler registered, undecodable reply, or timeout. */
-public class JetWhaleRequestException(
-    message: String,
-    cause: Throwable? = null,
-) : JetWhaleMessagingException(message, cause)
-
-/** The connection closed while a request was waiting for its reply. */
-public class JetWhaleConnectionClosedException(
-    message: String = "The connection was closed",
-) : JetWhaleMessagingException(message)

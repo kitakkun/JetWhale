@@ -11,8 +11,8 @@ import kotlin.time.Duration
  * This is the face a **host** plugin sees. A host plugin instance lives exactly as long as its
  * connection's session, so it is always connected for the whole of its lifetime — there is nothing
  * to buffer *across* and no send policy to choose. Offline buffering is an agent-side concept only;
- * the agent's connection-independent messenger ([JetWhaleMessenger]) layers [OfflineSendPolicy] and
- * `sendOrQueue` / `sendOrFail` on top of this base.
+ * the agent's connection-independent messenger (`JetWhaleMessenger`, defined on the agent side)
+ * layers an offline send policy and `sendOrQueue` / `sendOrFail` on top of this base.
  *
  * The interface itself is the *raw* (string) layer — the two shapes a transport needs. Plugin
  * authors use the typed [trySend] / [request] extensions, which capture the message serializer at
@@ -45,8 +45,8 @@ public interface JetWhaleConnectedMessenger {
  * a [JetWhaleRequest] is a compile-time error.
  *
  * On the always-connected host face this hands the event to the live connection. On the agent's
- * [JetWhaleMessenger] the same call **drops** the event if the connection is currently unavailable
- * (use [sendOrQueue] / [sendOrFail] there to choose otherwise).
+ * `JetWhaleMessenger` the same call **drops** the event if the connection is currently unavailable
+ * (use `sendOrQueue` / `sendOrFail` there to choose otherwise).
  *
  * @return `true` if the event was handed to the connection, `false` if there was none.
  */

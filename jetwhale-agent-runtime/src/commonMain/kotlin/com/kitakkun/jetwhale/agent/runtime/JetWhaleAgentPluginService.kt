@@ -1,8 +1,8 @@
 package com.kitakkun.jetwhale.agent.runtime
 
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
+import com.kitakkun.jetwhale.agent.sdk.messaging.BufferedMessenger
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
-import com.kitakkun.jetwhale.protocol.messaging.BufferedMessenger
 import com.kitakkun.jetwhale.protocol.messaging.DefaultJetWhaleMessagingFormat
 import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
