@@ -27,7 +27,7 @@ private fun createTrustManager(pemCertificates: List<String>): X509TrustManager 
 
     pemCertificates.forEachIndexed { index, pem ->
         val certificate = certificateFactory.generateCertificate(
-            ByteArrayInputStream(pem.toByteArray())
+            ByteArrayInputStream(pem.toByteArray()),
         ) as X509Certificate
         keyStore.setCertificateEntry("trusted_cert_$index", certificate)
     }

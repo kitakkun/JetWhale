@@ -12,6 +12,7 @@ import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.sendSerialized
 import io.ktor.client.plugins.websocket.webSocketSession
+import io.ktor.http.URLProtocol
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
@@ -27,6 +28,7 @@ internal class KtorWebSocketClient(
     private val json: Json,
     private val negotiationStrategy: ClientSessionNegotiationStrategy,
     httpClient: HttpClient,
+    private val sslConfiguration: JetWhaleSslConfiguration = JetWhaleSslConfiguration(),
 ) : JetWhaleSocketClient {
     private var session: DefaultClientWebSocketSession? = null
 
@@ -45,7 +47,11 @@ internal class KtorWebSocketClient(
         val session = client.webSocketSession(
             host = host,
             port = port,
-        )
+        ) {
+            url {
+                protocol = if (sslConfiguration.isEnabled) URLProtocol.WSS else URLProtocol.WS
+            }
+        }
         this.session = session
         return session.configureSession()
     }
@@ -97,6 +103,10 @@ internal class KtorWebSocketClient(
                 KtorLogLevel.BODY -> LogLevel.BODY
                 KtorLogLevel.NONE -> LogLevel.NONE
             }
+        }
+
+        engine {
+            configureSsl(sslConfiguration)
         }
     }
 }

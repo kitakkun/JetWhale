@@ -13,6 +13,8 @@ internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWha
     // or provide certificates via environment variables (CURL_CA_BUNDLE).
     // Direct PEM string configuration is not supported by Curl engine.
 
-    JetWhaleLogger.w("SSL certificate configuration for Linux/Curl is limited. " +
-            "Consider using system CA bundle or CURL_CA_BUNDLE environment variable.")
+    JetWhaleLogger.w(
+        "SSL certificate configuration for Linux/Curl is limited. " +
+            "Consider using system CA bundle or CURL_CA_BUNDLE environment variable.",
+    )
 }

@@ -12,6 +12,8 @@ internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWha
     // For custom certificates, users should install them in the Windows certificate store.
     // Direct PEM string configuration is not supported by WinHttp engine.
 
-    JetWhaleLogger.w("SSL certificate configuration for Windows/WinHttp is limited. " +
-            "Consider installing certificates in the Windows certificate store.")
+    JetWhaleLogger.w(
+        "SSL certificate configuration for Windows/WinHttp is limited. " +
+            "Consider installing certificates in the Windows certificate store.",
+    )
 }

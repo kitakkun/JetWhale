@@ -14,6 +14,8 @@ internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWha
     // For custom certificates on Apple platforms, consider adding them to the system keychain
     // or using a custom NSURLSessionDelegate.
 
-    JetWhaleLogger.w("SSL certificate configuration for Apple/Darwin is limited. " +
-            "Consider adding certificates to the system keychain.")
+    JetWhaleLogger.w(
+        "SSL certificate configuration for Apple/Darwin is limited. " +
+            "Consider adding certificates to the system keychain.",
+    )
 }

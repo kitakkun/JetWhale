@@ -9,6 +9,8 @@ internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWha
     // Custom certificate configuration is not supported in browser environments.
     // The browser's built-in certificate store is used for SSL verification.
 
-    JetWhaleLogger.w("SSL certificate configuration is not supported in WebAssembly environments. " +
-            "The browser manages SSL certificates automatically.")
+    JetWhaleLogger.w(
+        "SSL certificate configuration is not supported in WebAssembly environments. " +
+            "The browser manages SSL certificates automatically.",
+    )
 }
