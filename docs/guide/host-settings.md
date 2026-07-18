@@ -22,13 +22,19 @@ Installed plugins live in `~/.jetwhale/plugins/`. There are three ways to instal
 
 - **Official Plugins** — one-click install for officially published plugins (e.g. the Network
   Inspector), no coordinates needed. The artifact version matching the running host is fetched
-  from Maven Central (snapshot hosts fetch the matching snapshot build).
-- **Install from Maven** — enter the plugin's `group:artifact:version` (append
-  `@https://your.repo/url` for a repository other than Maven Central; pasting a Gradle dependency
-  line or a Maven `<dependency>` block also works). The host downloads the plugin jar and the
+  from Maven Central, falling back to the matching snapshot build when the release is not
+  published yet (snapshot hosts fetch their matching snapshot directly).
+- **Install from Maven** — enter the plugin's `group:artifact:version` and pick a repository
+  preset (Maven Central, Central Snapshots, Google, JitPack) or a custom URL. Pasting a plain
+  coordinate line (optionally with `@https://your.repo/url`), a Gradle dependency line, or a Maven
+  `<dependency>` block fills the fields automatically. The host downloads the plugin jar and the
   external dependencies it declares (stored in `~/.jetwhale/plugins/libs/`).
 - **Add Plugin from File** — pick a locally built fat-jar, or drop one into `~/.jetwhale/plugins/`
   yourself (or run `./gradlew installPlugin` from a plugin project).
+
+Jars that cannot be loaded (built for a different JetWhale version, missing dependencies, or not
+valid plugin jars) are listed under **Incompatible Plugins**, with the concrete failure reason
+shown per jar.
 
 See [Developing Plugins](/guide/developing-plugins) for building your own.
 
@@ -42,8 +48,9 @@ jar pinned to the SHA-256 hash of its content at approval time. On startup:
 - Jars that were never approved, or whose content changed since approval, are **not** loaded and
   appear in the **Unverified Plugins** section of the settings screen for review.
 
-Installing a plugin through the file picker counts as approval; jars dropped into the directory by
-anything else must be approved manually. Revoking trust unloads the plugin immediately.
+Installing a plugin through the file picker, the Maven dialog, or the official catalog counts as
+approval; jars dropped into the directory by anything else must be approved manually. Revoking
+trust unloads the plugin immediately.
 
 ::: warning Threat model
 This is an entry-side defense: it stops JetWhale from executing jars you never vouched for, and
