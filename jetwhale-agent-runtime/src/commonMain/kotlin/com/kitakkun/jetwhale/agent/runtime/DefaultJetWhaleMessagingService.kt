@@ -18,13 +18,20 @@ internal class DefaultJetWhaleMessagingService(
     private var keepAwakeJob: Job? = null
     private var retryCount = 0
 
-    override fun startService(host: String, port: Int) {
+    override fun startService(host: String, port: Int, discovery: HostDiscoveryConfig?) {
         JetWhaleLogger.i("Starting JetWhale Messaging Service")
         keepAwakeJob?.cancel()
         keepAwakeJob = coroutineScope.launch {
+            // Resolve the host once before the connect/retry loop: discovery browses the LAN for an
+            // advertised host and falls back to the configured host/port when disabled or unresolved.
+            val (resolvedHost, resolvedPort) = resolveHost(
+                fallbackHost = host,
+                fallbackPort = port,
+                discovery = discovery,
+            )
             while (isActive) {
                 try {
-                    openConnection(host, port)
+                    openConnection(resolvedHost, resolvedPort)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (_: Throwable) {

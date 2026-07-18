@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
+import com.kitakkun.jetwhale.host.model.HostDiscoveryAdvertiser
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginReconciliationEvent
 import com.kitakkun.jetwhale.host.model.PluginSessionReconciliationService
@@ -31,6 +32,7 @@ class DefaultDebugWebSocketServer(
     private val settingsRepository: DebuggerSettingsRepository,
     private val reconciliationService: PluginSessionReconciliationService,
     private val ktorWebSocketServer: KtorWebSocketServer,
+    private val hostDiscoveryAdvertiser: HostDiscoveryAdvertiser,
 ) : DebugWebSocketServer {
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
     override val sessionClosedFlow: Flow<String> get() = ktorWebSocketServer.sessionClosedFlow
@@ -41,6 +43,9 @@ class DefaultDebugWebSocketServer(
 
     override suspend fun start(host: String, port: Int, wssPort: Int?) {
         subscribeServerEvents()
+        // Advertise the server over mDNS while it runs so LAN devices can discover it. The advertiser
+        // tracks statusFlow itself, so it registers once the connectors report Started.
+        hostDiscoveryAdvertiser.start()
         ktorWebSocketServer.start(
             host = host,
             port = port,
@@ -51,6 +56,7 @@ class DefaultDebugWebSocketServer(
     override suspend fun stop() {
         serverMonitoringJob?.cancel()
         serverMonitoringJob = null
+        hostDiscoveryAdvertiser.stop()
         ktorWebSocketServer.stop()
         sessionRepository.markAllSessionsInactive()
         pluginInstanceService.clearAllPluginInstances()
