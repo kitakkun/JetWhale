@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.data.server
 
 import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationResult
 import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiationStrategy
+import com.kitakkun.jetwhale.host.model.DebugServerStatusProvider
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.model.SslCertificateManager
@@ -9,6 +10,7 @@ import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import com.kitakkun.jetwhale.protocol.serialization.decodeFromStringOrNull
 import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import io.ktor.http.ContentType
@@ -78,12 +80,13 @@ import kotlin.coroutines.cancellation.CancellationException
  * reconnect against the new certificate.
  */
 @SingleIn(AppScope::class)
+@ContributesBinding(AppScope::class)
 @Inject
 class KtorWebSocketServer(
     private val json: Json,
     private val negotiationStrategy: ServerSessionNegotiationStrategy,
     private val sslCertificateManager: SslCertificateManager,
-) {
+) : DebugServerStatusProvider {
     private val logger = LoggerFactory.getLogger(KtorWebSocketServer::class.java)
 
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -103,7 +106,7 @@ class KtorWebSocketServer(
     private val sessions: ConcurrentHashMap<String, WebSocketServerSession> = ConcurrentHashMap()
 
     private val mutableStatusFlow: MutableStateFlow<DebugWebSocketServerStatus> = MutableStateFlow(DebugWebSocketServerStatus.Stopped)
-    val statusFlow: StateFlow<DebugWebSocketServerStatus> = mutableStatusFlow
+    override val statusFlow: StateFlow<DebugWebSocketServerStatus> = mutableStatusFlow
 
     private val mutableDebuggeeEventFlow: MutableSharedFlow<Pair<String, JetWhaleDebuggeeEvent>> = MutableSharedFlow()
     val debuggeeEventFlow: SharedFlow<Pair<String, JetWhaleDebuggeeEvent>> = mutableDebuggeeEventFlow

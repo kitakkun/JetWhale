@@ -7,6 +7,10 @@ import com.kitakkun.jetwhale.agent.runtime.startJetWhale
 fun initializeJetWhale() {
     startJetWhale {
         connection {
+            // Zero-config discovery of the host over mDNS for physical LAN devices. When no host is
+            // advertised (or the platform lacks mDNS), the connection falls back to host/port below,
+            // keeping "localhost" working for emulators/simulators and ADB-forwarded devices.
+            discoverHost()
             host = "localhost"
             port = 5443
             ssl {
