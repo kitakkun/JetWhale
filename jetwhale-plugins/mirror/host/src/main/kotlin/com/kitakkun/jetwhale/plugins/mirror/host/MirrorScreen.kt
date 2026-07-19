@@ -21,15 +21,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -43,7 +44,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -237,12 +237,13 @@ private fun DirectKeyInputField(
     onSendText: (String) -> Unit,
     onSendKey: (DeviceButton) -> Unit,
 ) {
-    var value by remember { mutableStateOf(TextFieldValue("")) }
+    // TextFieldState (not the TextFieldValue overload): the value-based field does not render
+    // in-progress IME composition on desktop, so Japanese conversion was invisible while typing.
+    val state = rememberTextFieldState()
     BasicTextField(
-        value = value,
-        onValueChange = { value = it },
+        state = state,
         enabled = enabled,
-        singleLine = true,
+        lineLimits = TextFieldLineLimits.SingleLine,
         textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         modifier = Modifier
@@ -253,11 +254,11 @@ private fun DirectKeyInputField(
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 // While the IME is composing, every key (including Enter, which commits the
                 // conversion) belongs to the IME — never intercept.
-                if (value.composition != null) return@onPreviewKeyEvent false
+                if (state.composition != null) return@onPreviewKeyEvent false
                 when {
-                    event.key == Key.Enter && value.text.isNotEmpty() -> {
-                        onSendText(value.text)
-                        value = TextFieldValue("")
+                    event.key == Key.Enter && state.text.isNotEmpty() -> {
+                        onSendText(state.text.toString())
+                        state.clearText()
                         true
                     }
 
@@ -266,7 +267,7 @@ private fun DirectKeyInputField(
                         true
                     }
 
-                    event.key == Key.Backspace && value.text.isEmpty() -> {
+                    event.key == Key.Backspace && state.text.isEmpty() -> {
                         onSendKey(DeviceButton.BACKSPACE)
                         true
                     }
@@ -274,9 +275,9 @@ private fun DirectKeyInputField(
                     else -> false
                 }
             },
-        decorationBox = { innerTextField ->
+        decorator = { innerTextField ->
             Box(contentAlignment = Alignment.CenterStart) {
-                if (value.text.isEmpty()) {
+                if (state.text.isEmpty()) {
                     Text(
                         "⌨ Type, Enter to send",
                         style = MaterialTheme.typography.bodySmall,
