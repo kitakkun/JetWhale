@@ -39,7 +39,19 @@ required `sessionId` parameter — call `jetwhale.listSessions` first to find th
 Host plugins can expose their own MCP tools by implementing `JetWhaleMcpCapablePlugin`. Their tools
 are registered alongside the built-ins; JetWhale automatically injects a required `sessionId`
 parameter into each plugin tool's schema so an AI agent can target a specific connected device with
-your custom debugging features too. See [Developing Plugins](/guide/developing-plugins).
+your custom debugging features too. See
+[Developing Plugins → Exposing MCP tools](/guide/developing-plugins#exposing-mcp-tools) for how to
+write one.
+
+The [Network Inspector](/guide/network-inspector#mcp-tools) ships a full set of plugin tools
+(`com.kitakkun.jetwhale.network.*`) for reading captured traffic and managing mock rules.
+
+::: tip Sensitive values
+Plugin UIs can hide sensitive content from `jetwhale.screenshot` captures via the
+`LocalIsScreenshotCapture` CompositionLocal, and the Network Inspector's
+[redaction rules](/guide/network-inspector#redacting-sensitive-values) support an `MCP_ONLY` scope
+that keeps values visible to you but hidden from AI agents.
+:::
 
 ::: warning
 The MCP server is experimental — tool names and behavior may change between releases.

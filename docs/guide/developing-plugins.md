@@ -252,6 +252,57 @@ own capabilities — extend the plain `JetWhaleHostPlugin` (not `JetWhaleMessagi
 `messenger`; it is made available for every active session. See
 `ExampleHostOnlyPlugin` in `jetwhale-plugins/example/host`.
 
+## Exposing MCP tools <Badge type="warning" text="experimental" />
+
+A host plugin can contribute tools to the host's [MCP server](/guide/mcp-server) by implementing
+`JetWhaleMcpCapablePlugin`. Each tool is a `JetWhaleMcpCommand`: a self-contained class holding the
+tool's name, description, parameter schema, and execution logic. Parameters are declared as
+delegated properties — the property name becomes the parameter name shown to the AI agent, and the
+same property reads the value back, so each parameter has exactly one, compile-time-checked
+definition:
+
+```kotlin
+@OptIn(ExperimentalJetWhaleApi::class)
+class InspectWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpCommand() {
+    override val name = "com.example.myplugin.inspectWidget"
+    override val description = "Inspect the selected widget"
+
+    private val widgetId by string("The widget ID")
+    private val verbose by booleanOrNull("Include layout details.")
+
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+        return widgets.describeAsJson(id = arguments[widgetId], verbose = arguments[verbose] ?: false)
+    }
+}
+
+class MyPlugin : JetWhaleMessagingHostPlugin(), JetWhaleMcpCapablePlugin {
+    override val mcpCommands = listOf(InspectWidgetCommand(widgets))
+}
+```
+
+Things to know:
+
+- **Names must be globally unique** — prefix them with your `pluginId` by convention.
+- **`sessionId` is injected for you.** JetWhale adds a required `sessionId` parameter to every
+  plugin tool's schema and routes the call to the right plugin instance, so your command runs
+  against the correct session without handling it yourself.
+- **`execute` returns a string** (plain text or JSON). Throw `JetWhaleMcpArgumentException` for
+  caller mistakes — it is rendered as an `{"error": ...}` payload instead of failing the server.
+- **Messaging works from tool handlers.** `messenger` is valid for the whole instance lifetime, so
+  a command can `request` the agent directly.
+- The MCP APIs are marked `@ExperimentalJetWhaleApi` and may change between releases.
+
+The Network Inspector's own tools (`com.kitakkun.jetwhale.network.*`) are a complete in-repo
+example — see `jetwhale-plugins/network/host`.
+
+### Hiding sensitive UI from MCP screenshots
+
+`jetwhale.screenshot` renders the same Compose scene the host window shows. If your plugin UI
+displays values that AI agents should not see, read the `LocalIsScreenshotCapture`
+CompositionLocal — it is `true` only while the scene is being rendered for an MCP screenshot
+capture — and blank or mask the sensitive content while it is raised. The interactive window never
+observes the raised state, so there is no on-screen flicker.
+
 ## Persistent storage
 
 Every host plugin instance gets a persistent key-value store via the protected `storage` property,

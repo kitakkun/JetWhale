@@ -122,3 +122,24 @@ The Mocks view lets you define **mock rules** on the host and push them to the r
 mocking is enabled, requests matching a rule get the mocked response instead of hitting the
 network. This is handy for reproducing error states, empty lists, or slow-path payloads without a
 test backend. Toggle mocking on/off at any time from the host — no app restart needed.
+
+## MCP tools
+
+The Network Inspector contributes its own tools to the host's [MCP server](/guide/mcp-server), so
+an AI agent can read captured traffic and manage mock rules for a session:
+
+| Tool | What it does |
+|------|--------------|
+| `com.kitakkun.jetwhale.network.listTransactions` | Lists captured HTTP transactions |
+| `com.kitakkun.jetwhale.network.getTransaction` | Returns one transaction in full (headers, bodies, timing) |
+| `com.kitakkun.jetwhale.network.clearTransactions` | Clears the captured transaction list |
+| `com.kitakkun.jetwhale.network.getMockConfig` | Returns the current mock rules and whether mocking is enabled |
+| `com.kitakkun.jetwhale.network.addMockRule` | Adds a mock rule |
+| `com.kitakkun.jetwhale.network.removeMockRule` | Removes a mock rule |
+| `com.kitakkun.jetwhale.network.setMockingEnabled` | Turns mocking on or off |
+
+Like every MCP tool, they take a required `sessionId` (from `jetwhale.listSessions`).
+
+[Redaction rules](#redacting-sensitive-values) apply to MCP output as well: values redacted with
+`RedactionScope.MCP_ONLY` are hidden from these tools' results **and** from `jetwhale.screenshot`
+captures of the Network Inspector UI, while staying visible to you in the host window.
