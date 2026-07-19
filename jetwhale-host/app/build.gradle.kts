@@ -58,6 +58,9 @@ compose.desktop {
             modules("jdk.unsupported")
             modules("java.naming")
             modules("java.sql")
+            // java.lang.instrument.Instrumentation (ByteBuddy self-attach for plugin hot-reload)
+            // lives in java.instrument; without it the packaged app crashes on startup.
+            modules("java.instrument")
 
             targetFormats(
                 TargetFormat.Dmg,
