@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.data.plugin
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.security.MessageDigest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -44,14 +45,17 @@ class DefaultPluginTrustRepositoryTest {
         private val available: Boolean = true,
         private val keyPreexisted: Boolean = true,
     ) : TrustRegistrySigner {
-        override fun sign(payload: String): String? = if (available) "signed:${payload.hashCode()}" else null
+        override fun sign(payload: String): String? = if (available) digest(payload) else null
 
         override fun verify(payload: String, signature: String?): TrustRegistrySigner.Verification = when {
             !available -> TrustRegistrySigner.Verification.UNAVAILABLE
             signature == null -> if (keyPreexisted) TrustRegistrySigner.Verification.INVALID else TrustRegistrySigner.Verification.VALID
-            signature == "signed:${payload.hashCode()}" -> TrustRegistrySigner.Verification.VALID
+            signature == digest(payload) -> TrustRegistrySigner.Verification.VALID
             else -> TrustRegistrySigner.Verification.INVALID
         }
+
+        private fun digest(payload: String): String =
+            "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
     @Test

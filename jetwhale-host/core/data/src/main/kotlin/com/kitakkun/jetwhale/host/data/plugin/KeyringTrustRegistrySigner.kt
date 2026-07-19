@@ -32,14 +32,31 @@ class KeyringTrustRegistrySigner : TrustRegistrySigner {
     private val hmacKey: ByteArray? by lazy {
         try {
             Keyring.create().use { keyring ->
-                try {
-                    Base64.getDecoder().decode(keyring.getPassword(KEYRING_SERVICE, KEYRING_ACCOUNT))
+                val stored = try {
+                    keyring.getPassword(KEYRING_SERVICE, KEYRING_ACCOUNT)
                 } catch (e: PasswordAccessException) {
                     // No key stored yet: first run (or first run since this feature shipped).
-                    val newKey = ByteArray(KEY_LENGTH_BYTES).also { SecureRandom().nextBytes(it) }
+                    null
+                }
+                val decoded = stored?.let {
+                    try {
+                        Base64.getDecoder().decode(it).takeIf { key -> key.size == KEY_LENGTH_BYTES }
+                    } catch (e: IllegalArgumentException) {
+                        null
+                    }
+                }
+                if (stored != null && decoded == null) {
+                    // A stored key that fails to decode was written by something other than this
+                    // app. Rotate to a fresh key instead of disabling verification; existing
+                    // signatures then fail verification, which is the fail-safe outcome. Unlike
+                    // the no-key-at-all case, keyCreatedThisRun stays false so an unsigned
+                    // registry is also rejected.
+                    println("Stored plugin trust registry key is corrupted, rotating it; existing registry will not verify.")
+                }
+                decoded ?: ByteArray(KEY_LENGTH_BYTES).also { newKey ->
+                    SecureRandom().nextBytes(newKey)
                     keyring.setPassword(KEYRING_SERVICE, KEYRING_ACCOUNT, Base64.getEncoder().encodeToString(newKey))
-                    keyCreatedThisRun = true
-                    newKey
+                    keyCreatedThisRun = stored == null
                 }
             }
         } catch (e: Exception) {
