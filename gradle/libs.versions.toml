@@ -10,6 +10,7 @@ kotlinxSerializationJson = "1.11.0"
 kotlinxCollectionsImmutable = "0.5.1"
 kotlinxCoroutines = "1.11.0"
 byteBuddy = "1.18.11"
+javaKeyring = "1.0.4"
 kotlinxDatetime = "0.8.0"
 
 # android
@@ -59,6 +60,7 @@ kotlinxSerializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serializati
 kotlinxCollectionsImmutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 kotlinxCoroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 byteBuddyAgent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "byteBuddy" }
+javaKeyring = { module = "com.github.javakeyring:java-keyring", version.ref = "javaKeyring" }
 kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 
 # androidx

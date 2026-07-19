@@ -30,6 +30,9 @@ dependencies {
     implementation(libs.androidxDatastoreCoreOkio)
 
     implementation(libs.kotlinxSerializationJson)
+    // Stores the HMAC key protecting the plugin trust registry in the OS credential store
+    // (macOS Keychain / Windows Credential Manager / Linux Secret Service).
+    implementation(libs.javaKeyring)
     // Used in dev hot-reload to obtain a JVM Instrumentation handle (self-attach) for in-place class
     // redefinition. Dormant in production: only touched when the dev plugins directory is configured.
     implementation(libs.byteBuddyAgent)
