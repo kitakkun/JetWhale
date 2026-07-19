@@ -53,6 +53,9 @@ private const val FRAME_RETRY_INTERVAL_MILLIS = 1_000L
 // Unselected devices publish only every Nth decoded stream frame (~2fps at 30fps input).
 private const val BACKGROUND_STREAM_FRAME_STRIDE = 15
 
+// A stream that has not produced a frame by this deadline is treated as broken.
+private const val STREAM_START_TIMEOUT_MILLIS = 7_000L
+
 @OptIn(ExperimentalJetWhaleApi::class)
 private class MirrorHostPlugin :
     JetWhaleHostPlugin(),
@@ -168,12 +171,21 @@ private class MirrorHostPlugin :
         val grabber = FFmpegFrameGrabber(process.inputStream, 0)
         grabber.format = "h264"
         val converter = Java2DFrameConverter()
+        // grabber.start() blocks in format probing for as long as the process keeps its stdout
+        // open without writing (e.g. idb without a working companion). The watchdog kills the
+        // process to unblock it so the loop can fall back to screenshot polling.
+        val firstFrameSeen = java.util.concurrent.atomic.AtomicBoolean(false)
+        val watchdog = pluginScope.launch {
+            delay(STREAM_START_TIMEOUT_MILLIS)
+            if (!firstFrameSeen.get()) process.destroyForcibly()
+        }
         try {
             grabber.start()
             var frameIndex = 0
             while (currentCoroutineContext().isActive && mirroringEnabled) {
                 val frame = grabber.grabImage() ?: break
                 produced = true
+                firstFrameSeen.set(true)
                 frameIndex++
                 // Unselected devices decode (H.264 requires it) but convert/publish only a
                 // subset of frames to keep the multi-device cost down.
@@ -185,6 +197,7 @@ private class MirrorHostPlugin :
         } catch (e: Exception) {
             if (!produced) lastError = "${device.name}: video stream failed (${e.message}); falling back to screenshots"
         } finally {
+            watchdog.cancel()
             runCatching { grabber.close() }
             streamProcesses.remove(device.id)
             process.destroyForcibly()
