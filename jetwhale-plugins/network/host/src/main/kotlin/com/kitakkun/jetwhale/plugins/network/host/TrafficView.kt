@@ -323,23 +323,24 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
             )
         }
 
-        TabRow(selectedTabIndex = selectedTab.ordinal) {
-            Tab(
-                selected = selectedTab == DetailTab.Body,
-                onClick = { selectedTab = DetailTab.Body },
-                text = { Text(DetailTab.Body.title) },
-            )
-            Tab(
-                selected = selectedTab == DetailTab.Headers,
-                onClick = { selectedTab = DetailTab.Headers },
-                text = { Text(DetailTab.Headers.title) },
-            )
-            Tab(
-                selected = selectedTab == DetailTab.Query,
-                onClick = { selectedTab = DetailTab.Query },
-                enabled = queryParams.isNotEmpty(),
-                text = { Text(DetailTab.Query.title) },
-            )
+        // Only surface the Query tab when the URL actually has query params — a permanently
+        // disabled tab reads as broken. selectedTab only ever becomes Query while it is visible,
+        // and it resets to Body/Headers per transaction, so it can't get stuck on a hidden tab.
+        val tabs = remember(queryParams) {
+            buildList {
+                add(DetailTab.Body)
+                add(DetailTab.Headers)
+                if (queryParams.isNotEmpty()) add(DetailTab.Query)
+            }
+        }
+        TabRow(selectedTabIndex = tabs.indexOf(selectedTab).coerceAtLeast(0)) {
+            tabs.forEach { tab ->
+                Tab(
+                    selected = selectedTab == tab,
+                    onClick = { selectedTab = tab },
+                    text = { Text(tab.title) },
+                )
+            }
         }
 
         when (selectedTab) {
