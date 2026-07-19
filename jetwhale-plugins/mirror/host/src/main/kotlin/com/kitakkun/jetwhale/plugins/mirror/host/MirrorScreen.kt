@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -44,6 +45,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -244,6 +246,18 @@ private fun DirectKeyInputField(
         state = state,
         enabled = enabled,
         lineLimits = TextFieldLineLimits.SingleLine,
+        // Enter is routed through the IME-aware keyboard-action pipeline instead of raw key
+        // interception: a key handler fires before the IME and would steal the Enter that
+        // commits a Japanese conversion, but the keyboard action only fires for a "free" Enter.
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+        onKeyboardAction = {
+            if (state.text.isNotEmpty()) {
+                onSendText(state.text.toString())
+                state.clearText()
+            } else {
+                onSendKey(DeviceButton.ENTER)
+            }
+        },
         textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         modifier = Modifier
@@ -251,28 +265,17 @@ private fun DirectKeyInputField(
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(4.dp))
             .padding(horizontal = 8.dp, vertical = 5.dp)
             .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                // While the IME is composing, every key (including Enter, which commits the
-                // conversion) belongs to the IME — never intercept.
-                if (state.composition != null) return@onPreviewKeyEvent false
-                when {
-                    event.key == Key.Enter && state.text.isNotEmpty() -> {
-                        onSendText(state.text.toString())
-                        state.clearText()
-                        true
-                    }
-
-                    event.key == Key.Enter -> {
-                        onSendKey(DeviceButton.ENTER)
-                        true
-                    }
-
-                    event.key == Key.Backspace && state.text.isEmpty() -> {
-                        onSendKey(DeviceButton.BACKSPACE)
-                        true
-                    }
-
-                    else -> false
+                // Only Backspace on an empty, non-composing buffer is intercepted — the IME has
+                // nothing in flight then, so forwarding it to the device is safe.
+                if (event.type == KeyEventType.KeyDown &&
+                    event.key == Key.Backspace &&
+                    state.text.isEmpty() &&
+                    state.composition == null
+                ) {
+                    onSendKey(DeviceButton.BACKSPACE)
+                    true
+                } else {
+                    false
                 }
             },
         decorator = { innerTextField ->
