@@ -176,8 +176,7 @@ private fun JsonLeaf(label: String?, primitive: JsonPrimitive, colors: JsonColor
 // Raw (syntax-highlighted, pretty-printed)
 // ---------------------------------------------------------------------------------------
 
-private fun highlightedJson(element: JsonElement, colors: JsonColors): AnnotatedString =
-    buildAnnotatedString { appendJson(element, 0, colors) }
+private fun highlightedJson(element: JsonElement, colors: JsonColors): AnnotatedString = buildAnnotatedString { appendJson(element, 0, colors) }
 
 private fun AnnotatedString.Builder.appendJson(element: JsonElement, indent: Int, colors: JsonColors) {
     val pad = "  ".repeat(indent)

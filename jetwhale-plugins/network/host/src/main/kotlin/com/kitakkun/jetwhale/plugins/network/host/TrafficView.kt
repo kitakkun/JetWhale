@@ -227,13 +227,17 @@ private fun TransactionRow(tx: HttpTransaction, selected: Boolean, onClick: () -
 private fun StatusBadge(tx: HttpTransaction) {
     val (label, color) = when {
         tx.failure != null -> "ERR" to MaterialTheme.colorScheme.error
+
         tx.response == null -> "···" to MaterialTheme.colorScheme.outline
+
         tx.response.statusCode in 200..299 ->
             tx.response.statusCode.toString() to themeColor(Color(0xFF2E7D32), Color(0xFF66BB6A))
 
         tx.response.statusCode in 300..399 ->
             tx.response.statusCode.toString() to themeColor(Color(0xFF1565C0), Color(0xFF64B5F6))
+
         tx.response.statusCode >= 400 -> tx.response.statusCode.toString() to MaterialTheme.colorScheme.error
+
         else -> tx.response.statusCode.toString() to MaterialTheme.colorScheme.onSurface
     }
     Pill(label = label, color = color)
@@ -272,7 +276,9 @@ private enum class DetailTab(val title: String) {
 private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
     val queryParams = remember(tx.request.url) { parseQueryParams(tx.request.url) }
     val hasResponseBody = !tx.response?.body.isNullOrEmpty()
-    var selectedTab by remember(tx.txId) {
+    // Key on hasResponseBody too: the body often arrives after the row is first selected (same
+    // txId), and the default should follow it to Body once it exists.
+    var selectedTab by remember(tx.txId, hasResponseBody) {
         mutableStateOf(if (hasResponseBody) DetailTab.Body else DetailTab.Headers)
     }
 
@@ -348,13 +354,19 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
 private fun BodyTab(tx: HttpTransaction) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         when {
-            tx.failure != null || (tx.response != null && tx.response.body.isNullOrEmpty()) -> Text(
-                text = "No response body",
+            // The failure detail itself is shown above the tabs; here just note there is no body.
+            tx.failure != null -> Text(
+                text = "Request failed — no response body",
                 color = MaterialTheme.colorScheme.outline,
             )
 
             tx.response == null -> Text(
                 text = "Pending…",
+                color = MaterialTheme.colorScheme.outline,
+            )
+
+            tx.response.body.isNullOrEmpty() -> Text(
+                text = "No response body",
                 color = MaterialTheme.colorScheme.outline,
             )
 
