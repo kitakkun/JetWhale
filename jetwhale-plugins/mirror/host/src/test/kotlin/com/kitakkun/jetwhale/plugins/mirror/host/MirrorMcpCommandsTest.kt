@@ -37,6 +37,8 @@ class MirrorMcpCommandsTest {
         override suspend fun startRecording(outputFile: File): DeviceRecording = object : DeviceRecording {
             override suspend fun stop(): File = outputFile
         }
+
+        override suspend fun openVideoStreamProcess(): Process? = null
     }
 
     private val controller = FakeDeviceController()
