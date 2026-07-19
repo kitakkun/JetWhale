@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -241,7 +240,7 @@ private data class JsonColors(
 
 @Composable
 private fun rememberJsonColors(): JsonColors {
-    val dark = isSystemInDarkTheme()
+    val dark = isDarkTheme()
     val punctuation = MaterialTheme.colorScheme.onSurfaceVariant
     return remember(dark, punctuation) {
         JsonColors(

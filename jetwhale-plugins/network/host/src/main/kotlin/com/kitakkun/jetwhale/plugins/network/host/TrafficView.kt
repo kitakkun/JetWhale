@@ -5,7 +5,6 @@ import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -251,7 +250,7 @@ private fun MockChip() {
 @Composable
 private fun Pill(label: String, color: Color) {
     // 14% of a dark hue on a dark surface nearly vanishes, so give the fill more presence in dark mode.
-    val fillAlpha = if (isSystemInDarkTheme()) 0.22f else 0.14f
+    val fillAlpha = if (isDarkTheme()) 0.22f else 0.14f
     Surface(
         color = color.copy(alpha = fillAlpha),
         contentColor = color,
