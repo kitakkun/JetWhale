@@ -3,84 +3,64 @@ on:
   push:
     tags:
       - "*"
-  # Manual runs let us validate the build + Conveyor packaging without cutting a tag
-  # (which would also trigger the Maven publish). The release job below is tag-only, so a
-  # manual run builds and signs everything but creates no GitHub release.
+  # Manual runs build the installers without cutting a release (the release job below is
+  # tag-only), so the packaging can be validated without publishing anything.
   workflow_dispatch:
 permissions:
   contents: write
 jobs:
-  build-uber-jars:
-    name: Build Runnable Uber Jar
+  build:
+    name: Build Distributable Desktop Application
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: macOS-latest
             osArch: macos-arm64
+            installerTask: packageDmg
+            installerGlob: jetwhale-host/app/build/compose/binaries/main/dmg/*.dmg
+            installerExt: dmg
           - os: ubuntu-latest
             osArch: linux-x64
+            installerTask: packageDeb
+            installerGlob: jetwhale-host/app/build/compose/binaries/main/deb/*.deb
+            installerExt: deb
           - os: windows-latest
             osArch: windows-x64
+            installerTask: packageMsi
+            installerGlob: jetwhale-host/app/build/compose/binaries/main/msi/*.msi
+            installerExt: msi
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
       - uses: ./.github/actions/setup-java
-      - name: Build runnable uber jar
-        run: ./gradlew :jetwhale-host:app:packageUberJarForCurrentOS
-      # Rename to a predictable scheme including the FULL tag version (e.g. -alpha04),
-      # matching what the `downloadJetWhaleHost` Gradle task expects.
-      - name: Collect and rename uber jar
+      - name: Build installer and runnable uber jar
+        run: ./gradlew :jetwhale-host:app:${{ matrix.installerTask }} :jetwhale-host:app:packageUberJarForCurrentOS
+      # Rename assets to a predictable scheme that includes the FULL tag version (e.g. -alpha08),
+      # which the installer's own packageVersion drops. No manual renaming needed afterwards, and the
+      # uber-jar name matches what the `downloadJetWhaleHost` Gradle task expects. On a manual
+      # (workflow_dispatch) run GITHUB_REF_NAME is the branch, which is fine for a build-only test.
+      - name: Collect and rename release assets
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
           version="${GITHUB_REF_NAME}"
+          installer=$(ls ${{ matrix.installerGlob }} | head -n 1)
+          cp "$installer" "dist/jetwhale-debugger-${version}-${{ matrix.osArch }}.${{ matrix.installerExt }}"
           uberjar=$(ls jetwhale-host/app/build/compose/jars/*.jar | head -n 1)
           cp "$uberjar" "dist/jetwhale-host-${version}-${{ matrix.osArch }}.jar"
-      - name: Upload uber jar artifact
+      - name: Upload release assets
         uses: actions/upload-artifact@v4
         with:
-          name: uberjar-${{ matrix.osArch }}
+          name: ${{ matrix.osArch }}
           path: dist/*
-          if-no-files-found: error
-  build-packages:
-    name: Build Self-Updating Packages with Conveyor
-    runs-on: ubuntu-latest
-    # CONVEYOR_SIGNING_KEY is an environment secret on `Publish`.
-    environment: Publish
-    # Conveyor's GitHub integration hits the Releases API even for `make copied-site`, and that
-    # access needs write scope — with contents: read it fails with "Resource not accessible by
-    # integration". The actual draft release is still created by the `release` job.
-    permissions:
-      contents: write
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-java
-      - name: Build application jars
-        run: ./gradlew :jetwhale-host:app:jar
-      - name: Build download site with Conveyor
-        uses: hydraulic-software/conveyor/actions/build@v22.0
-        env:
-          # conveyor.conf reads this for app.site.github.oauth-token; a GitHub site base-url
-          # makes Conveyor require it even for `make copied-site`.
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          command: make copied-site
-          signing_key: ${{ secrets.CONVEYOR_SIGNING_KEY }}
-          agree_to_license: 1
-      - name: Upload site artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: conveyor-site
-          path: output/*
           if-no-files-found: error
   release:
     name: Create Draft Release and Attach Artifacts
     runs-on: ubuntu-latest
-    needs: [build-uber-jars, build-packages]
+    needs: build
     # Only cut a release for real tag pushes; manual (workflow_dispatch) runs are build-only tests.
     if: startsWith(github.ref, 'refs/tags/')
     steps:
