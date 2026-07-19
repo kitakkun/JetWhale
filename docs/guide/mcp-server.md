@@ -1,8 +1,9 @@
 # MCP Server <Badge type="warning" text="experimental" />
 
 The JetWhale host embeds an **MCP (Model Context Protocol) server**, so AI agents such as Claude
-can inspect and drive your debuggee apps directly — take screenshots, click, type, scroll, and read
-the accessibility tree.
+can inspect and drive your debugging sessions. The built-in tools operate on a **plugin's UI inside
+the host** — capture it, click, type, scroll, and read its semantics tree — so an agent can use any
+plugin the way you do (and, through a plugin's own capabilities, reach the debuggee app itself).
 
 ## Connecting an AI agent
 
@@ -24,15 +25,16 @@ claude mcp add --transport sse jetwhale http://localhost:7080/sse
 |------|--------------|
 | `jetwhale.listSessions` | Lists connected debug sessions; other tools take a `sessionId` from here |
 | `jetwhale.listPlugins` | Lists the plugins available in a session |
-| `jetwhale.screenshot` | Captures the debuggee's screen |
-| `jetwhale.click` | Clicks/taps at a position or element |
-| `jetwhale.type` | Types text |
-| `jetwhale.scroll` | Scrolls |
-| `jetwhale.drag` | Performs a drag gesture |
-| `jetwhale.getAccessibilityTree` | Returns the accessibility (semantics) tree of the current UI |
+| `jetwhale.screenshot` | Captures the current rendered frame of a plugin's Compose UI as a PNG |
+| `jetwhale.click` | Dispatches a mouse click at pixel coordinates in a plugin's UI |
+| `jetwhale.type` | Types text or a special key into a plugin's UI |
+| `jetwhale.scroll` | Dispatches a scroll event in a plugin's UI |
+| `jetwhale.drag` | Simulates a drag gesture in a plugin's UI |
+| `jetwhale.getAccessibilityTree` | Returns the Compose semantics (accessibility) tree of a plugin's UI |
 
-Because a single host can debug multiple apps at once, every tool that targets a device takes a
-required `sessionId` parameter — call `jetwhale.listSessions` first to find the session you want.
+Because a single host can debug multiple apps at once — each with several plugins — every tool that
+targets a plugin UI takes required `sessionId` **and** `pluginId` parameters: call
+`jetwhale.listSessions` first, then `jetwhale.listPlugins` to pick the plugin.
 
 ## Plugin-provided tools
 
