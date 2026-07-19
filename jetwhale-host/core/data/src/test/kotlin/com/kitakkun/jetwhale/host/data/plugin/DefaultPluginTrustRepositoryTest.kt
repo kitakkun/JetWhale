@@ -54,8 +54,7 @@ class DefaultPluginTrustRepositoryTest {
             else -> TrustRegistrySigner.Verification.INVALID
         }
 
-        private fun digest(payload: String): String =
-            "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
+        private fun digest(payload: String): String = "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
     @Test
