@@ -34,9 +34,13 @@ class MirrorHostPluginFactory : JetWhaleHostPluginFactory {
 
 private const val DEVICE_POLL_INTERVAL_MILLIS = 3_000L
 
-// The frame loop is paced by the screenshot capture itself (~100-300ms per adb/simctl round
-// trip); this small gap only keeps a failing capture from busy-looping.
-private const val FRAME_INTERVAL_MILLIS = 16L
+// The selected device's frame loop is paced by the screenshot capture itself (~100-300ms per
+// adb/simctl round trip); this small gap only keeps a failing capture from busy-looping.
+private const val SELECTED_FRAME_INTERVAL_MILLIS = 16L
+
+// Unselected devices stay visible but refresh slowly, so mirroring many devices at once does
+// not multiply the process-spawn/decode cost.
+private const val BACKGROUND_FRAME_INTERVAL_MILLIS = 500L
 
 // Back off after a failed capture so a dead device doesn't spam error processes.
 private const val FRAME_RETRY_INTERVAL_MILLIS = 1_000L
@@ -98,6 +102,7 @@ private class MirrorHostPlugin :
 
     // The mirror is a screenshot poll loop: cheap, tool-free, and identical for both platforms.
     private suspend fun mirrorLoop(device: MirrorDevice) {
+        var lastPngHash = 0
         while (currentCoroutineContext().isActive) {
             if (!mirroringEnabled) {
                 delay(DEVICE_POLL_INTERVAL_MILLIS)
@@ -105,8 +110,14 @@ private class MirrorHostPlugin :
             }
             try {
                 val png = device.controller.captureScreenshot()
-                frames[device.id] = SkiaImage.makeFromEncoded(png).toComposeImageBitmap()
-                delay(FRAME_INTERVAL_MILLIS)
+                // A static screen produces byte-identical PNGs; skip the decode and the
+                // recomposition it would trigger.
+                val pngHash = png.contentHashCode()
+                if (pngHash != lastPngHash) {
+                    frames[device.id] = SkiaImage.makeFromEncoded(png).toComposeImageBitmap()
+                    lastPngHash = pngHash
+                }
+                delay(if (device.id == selectedDeviceId) SELECTED_FRAME_INTERVAL_MILLIS else BACKGROUND_FRAME_INTERVAL_MILLIS)
             } catch (e: DeviceControlException) {
                 lastError = "${device.name}: ${e.message}"
                 delay(FRAME_RETRY_INTERVAL_MILLIS)
