@@ -54,6 +54,10 @@ jobs:
         run: ./gradlew :jetwhale-host:app:jar
       - name: Build download site with Conveyor
         uses: hydraulic-software/conveyor/actions/build@v22.0
+        env:
+          # conveyor.conf reads this for app.site.github.oauth-token; a GitHub site base-url
+          # makes Conveyor require it even for `make copied-site`.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           command: make copied-site
           signing_key: ${{ secrets.CONVEYOR_SIGNING_KEY }}
