@@ -88,10 +88,12 @@ compose.resources {
 val aboutLibrariesDir = layout.buildDirectory.dir("generated/aboutlibraries")
 
 kotlin {
-    // Vendor pin makes Conveyor bundle a maintained Corretto build
-    // instead of the stale OpenJDK GA archive it would pick by default.
+    // 21 (not the repo-wide 17): app-runtime dependencies such as aboutlibraries 14+ ship Java 21
+    // bytecode, and the Metro build plugins already require a 21 build JVM anyway. Published
+    // SDK/agent artifacts stay on 17 for consumer compatibility. Vendor pin makes Conveyor bundle
+    // a maintained Corretto build instead of the stale OpenJDK GA archive it would pick by default.
     jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(21))
         vendor.set(JvmVendorSpec.AMAZON)
     }
 

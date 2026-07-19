@@ -34,6 +34,14 @@ tasks.register<JavaExec>("runJetWhaleLocal") {
     classpath = jetwhaleHostRuntime
     mainClass.set("com.kitakkun.jetwhale.host.MainKt")
 
+    // The host app targets Java 21; without this the launcher defaults to the plugin module's
+    // 17 toolchain and fails on the host's class files.
+    javaLauncher.set(
+        project.extensions.getByType(JavaToolchainService::class.java).launcherFor {
+            languageVersion.set(JavaLanguageVersion.of(21))
+        },
+    )
+
     // Point the host at the dev plugins directory; this enables dev-mode loading + hot reload.
     // Supplied lazily via a CommandLineArgumentProvider so the task stays configuration-cache safe.
     val devDirProvider = devPluginsDir.map { it.asFile.absolutePath }
