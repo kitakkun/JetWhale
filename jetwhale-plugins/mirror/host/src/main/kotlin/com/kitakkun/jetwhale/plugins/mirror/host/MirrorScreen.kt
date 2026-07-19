@@ -227,10 +227,9 @@ private fun GlyphIcon(glyph: String, tint: Color? = null) {
 }
 
 /**
- * Sends keystrokes to the selected device as they are typed. Plain characters are committed by
- * the platform immediately and forwarded right away; IME composition (e.g. Japanese conversion)
- * keeps the text buffered in the field and is forwarded as one string once the conversion is
- * committed. Backspace/Enter on an empty buffer are sent as device keys.
+ * Buffers typed text — including IME composition such as Japanese conversion, which must never
+ * be interfered with mid-session — and sends the whole buffer to the selected device on Enter.
+ * Backspace/Enter on an empty buffer are sent as device keys instead.
  */
 @Composable
 private fun DirectKeyInputField(
@@ -241,14 +240,7 @@ private fun DirectKeyInputField(
     var value by remember { mutableStateOf(TextFieldValue("")) }
     BasicTextField(
         value = value,
-        onValueChange = { new ->
-            if (new.composition == null && new.text.isNotEmpty()) {
-                onSendText(new.text)
-                value = TextFieldValue("")
-            } else {
-                value = new
-            }
-        },
+        onValueChange = { value = it },
         enabled = enabled,
         singleLine = true,
         textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
@@ -258,15 +250,24 @@ private fun DirectKeyInputField(
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(4.dp))
             .padding(horizontal = 8.dp, vertical = 5.dp)
             .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown || value.text.isNotEmpty()) return@onPreviewKeyEvent false
-                when (event.key) {
-                    Key.Backspace -> {
-                        onSendKey(DeviceButton.BACKSPACE)
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                // While the IME is composing, every key (including Enter, which commits the
+                // conversion) belongs to the IME — never intercept.
+                if (value.composition != null) return@onPreviewKeyEvent false
+                when {
+                    event.key == Key.Enter && value.text.isNotEmpty() -> {
+                        onSendText(value.text)
+                        value = TextFieldValue("")
                         true
                     }
 
-                    Key.Enter -> {
+                    event.key == Key.Enter -> {
                         onSendKey(DeviceButton.ENTER)
+                        true
+                    }
+
+                    event.key == Key.Backspace && value.text.isEmpty() -> {
+                        onSendKey(DeviceButton.BACKSPACE)
                         true
                     }
 
@@ -277,7 +278,7 @@ private fun DirectKeyInputField(
             Box(contentAlignment = Alignment.CenterStart) {
                 if (value.text.isEmpty()) {
                     Text(
-                        "⌨ Type here to send keys",
+                        "⌨ Type, Enter to send",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
