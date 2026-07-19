@@ -1,5 +1,8 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.TooltipArea
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -13,17 +16,14 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -36,12 +36,18 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun MirrorScreen(
     devices: List<MirrorDevice>,
@@ -61,153 +67,225 @@ internal fun MirrorScreen(
     onToggleRecording: () -> Unit,
 ) {
     val selectedDevice = devices.firstOrNull { it.id == selectedDeviceId }
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Device Mirror") }) },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            MirrorToolbar(
-                mirroringEnabled = mirroringEnabled,
-                onToggleMirroring = onToggleMirroring,
-                onRefreshDevices = onRefreshDevices,
-            )
-            ControlButtonsRow(
-                platform = selectedDevice?.platform,
-                enabled = selectedDevice != null,
-                onPressButton = onPressButton,
-                onSaveScreenshot = onSaveScreenshot,
-                isRecording = isRecording,
-                onToggleRecording = onToggleRecording,
-            )
-            TextInputRow(enabled = selectedDevice != null, onInputText = onInputText)
-            errorMessage?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        MirrorToolbar(
+            platform = selectedDevice?.platform,
+            enabled = selectedDevice != null,
+            mirroringEnabled = mirroringEnabled,
+            onToggleMirroring = onToggleMirroring,
+            onRefreshDevices = onRefreshDevices,
+            onPressButton = onPressButton,
+            onSaveScreenshot = onSaveScreenshot,
+            isRecording = isRecording,
+            onToggleRecording = onToggleRecording,
+            onInputText = onInputText,
+        )
+        errorMessage?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+        if (devices.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "Boot an Android emulator or iOS simulator to start mirroring.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
-            if (devices.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        "Boot an Android emulator or iOS simulator to start mirroring.",
-                        style = MaterialTheme.typography.bodyMedium,
+        } else {
+            // All connected devices side by side; the highlighted one receives the
+            // button/text controls, while taps and swipes go to the frame under the cursor.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                devices.forEach { device ->
+                    DeviceMirrorPane(
+                        device = device,
+                        frames = frames,
+                        isSelected = device.id == selectedDeviceId,
+                        onSelect = { onSelectDevice(device.id) },
+                        onTap = onTap,
+                        onSwipe = onSwipe,
                     )
-                }
-            } else {
-                // All connected devices side by side; the highlighted one receives the
-                // button/text controls, while taps and swipes go to the frame under the cursor.
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    devices.forEach { device ->
-                        DeviceMirrorPane(
-                            device = device,
-                            frames = frames,
-                            isSelected = device.id == selectedDeviceId,
-                            onSelect = { onSelectDevice(device.id) },
-                            onTap = onTap,
-                            onSwipe = onSwipe,
-                        )
-                    }
                 }
             }
         }
     }
 }
 
+// One slim icon row: device controls on the left, the direct key-input field on the right.
 @Composable
 private fun MirrorToolbar(
+    platform: DevicePlatform?,
+    enabled: Boolean,
     mirroringEnabled: Boolean,
     onToggleMirroring: (Boolean) -> Unit,
     onRefreshDevices: () -> Unit,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        OutlinedButton(onClick = onRefreshDevices) { Text("Refresh") }
-        Text("Mirror", style = MaterialTheme.typography.labelMedium)
-        Switch(checked = mirroringEnabled, onCheckedChange = onToggleMirroring)
-    }
-}
-
-@Composable
-private fun ControlButtonsRow(
-    platform: DevicePlatform?,
-    enabled: Boolean,
     onPressButton: (DeviceButton) -> Unit,
     onSaveScreenshot: () -> Unit,
     isRecording: Boolean,
     onToggleRecording: () -> Unit,
+    onInputText: (String) -> Unit,
 ) {
     Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Button(onClick = onSaveScreenshot, enabled = enabled) { Text("Screenshot") }
-        Button(onClick = onToggleRecording, enabled = enabled || isRecording) {
-            Text(if (isRecording) "Stop Rec" else "Record")
+        ToolbarIconButton(onClick = onRefreshDevices, tooltip = "Refresh devices") {
+            GlyphIcon("⟳")
         }
-        val buttons = when (platform) {
-            DevicePlatform.IOS -> listOf(DeviceButton.HOME, DeviceButton.POWER, DeviceButton.BACKSPACE, DeviceButton.ENTER)
-            else -> DeviceButton.entries
+        ToolbarIconButton(onClick = { onToggleMirroring(!mirroringEnabled) }, tooltip = "Toggle mirroring") {
+            GlyphIcon(if (mirroringEnabled) "⏸" else "▶")
         }
-        buttons.forEach { button ->
-            OutlinedButton(onClick = { onPressButton(button) }, enabled = enabled) {
-                Text(
-                    when (button) {
-                        DeviceButton.HOME -> "Home"
-                        DeviceButton.BACK -> "Back"
-                        DeviceButton.POWER -> "Power"
-                        DeviceButton.VOLUME_UP -> "Vol +"
-                        DeviceButton.VOLUME_DOWN -> "Vol -"
-                        DeviceButton.BACKSPACE -> "⌫"
-                        DeviceButton.ENTER -> "⏎"
-                    },
-                )
+        ToolbarIconButton(onClick = onSaveScreenshot, enabled = enabled, tooltip = "Save screenshot") {
+            GlyphIcon("📷")
+        }
+        ToolbarIconButton(onClick = onToggleRecording, enabled = enabled || isRecording, tooltip = "Record screen") {
+            GlyphIcon(if (isRecording) "⏹" else "⏺", tint = if (isRecording) MaterialTheme.colorScheme.error else null)
+        }
+        ToolbarIconButton(onClick = { onPressButton(DeviceButton.HOME) }, enabled = enabled, tooltip = "Home") {
+            GlyphIcon("⌂")
+        }
+        if (platform != DevicePlatform.IOS) {
+            ToolbarIconButton(onClick = { onPressButton(DeviceButton.BACK) }, enabled = enabled, tooltip = "Back") {
+                GlyphIcon("←")
             }
+        }
+        ToolbarIconButton(onClick = { onPressButton(DeviceButton.POWER) }, enabled = enabled, tooltip = "Power") {
+            GlyphIcon("⏻")
+        }
+        if (platform != DevicePlatform.IOS) {
+            ToolbarIconButton(onClick = { onPressButton(DeviceButton.VOLUME_UP) }, enabled = enabled, tooltip = "Volume up") {
+                GlyphIcon("🔊")
+            }
+            ToolbarIconButton(onClick = { onPressButton(DeviceButton.VOLUME_DOWN) }, enabled = enabled, tooltip = "Volume down") {
+                GlyphIcon("🔉")
+            }
+        }
+        DirectKeyInputField(
+            enabled = enabled,
+            onSendText = onInputText,
+            onSendKey = onPressButton,
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ToolbarIconButton(
+    onClick: () -> Unit,
+    tooltip: String,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    TooltipArea(tooltip = { TooltipBubble(tooltip) }) {
+        IconButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier.size(28.dp),
+        ) {
+            content()
         }
     }
 }
 
 @Composable
-private fun TextInputRow(
+private fun TooltipBubble(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(4.dp))
+            .padding(horizontal = 6.dp, vertical = 3.dp),
+    )
+}
+
+@Composable
+private fun GlyphIcon(glyph: String, tint: Color? = null) {
+    Text(
+        text = glyph,
+        style = MaterialTheme.typography.bodyMedium,
+        color = tint ?: MaterialTheme.colorScheme.onSurface,
+    )
+}
+
+/**
+ * Sends keystrokes to the selected device as they are typed. Plain characters are committed by
+ * the platform immediately and forwarded right away; IME composition (e.g. Japanese conversion)
+ * keeps the text buffered in the field and is forwarded as one string once the conversion is
+ * committed. Backspace/Enter on an empty buffer are sent as device keys.
+ */
+@Composable
+private fun DirectKeyInputField(
     enabled: Boolean,
-    onInputText: (String) -> Unit,
+    onSendText: (String) -> Unit,
+    onSendKey: (DeviceButton) -> Unit,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        var text by remember { mutableStateOf("") }
-        OutlinedTextField(
-            value = text,
-            onValueChange = { text = it },
-            singleLine = true,
-            placeholder = { Text("Type text to send to the selected device") },
-            modifier = Modifier.weight(1f),
-        )
-        Button(
-            onClick = {
-                onInputText(text)
-                text = ""
+    var value by remember { mutableStateOf(TextFieldValue("")) }
+    BasicTextField(
+        value = value,
+        onValueChange = { new ->
+            if (new.composition == null && new.text.isNotEmpty()) {
+                onSendText(new.text)
+                value = TextFieldValue("")
+            } else {
+                value = new
+            }
+        },
+        enabled = enabled,
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        modifier = Modifier
+            .width(220.dp)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(4.dp))
+            .padding(horizontal = 8.dp, vertical = 5.dp)
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown || value.text.isNotEmpty()) return@onPreviewKeyEvent false
+                when (event.key) {
+                    Key.Backspace -> {
+                        onSendKey(DeviceButton.BACKSPACE)
+                        true
+                    }
+
+                    Key.Enter -> {
+                        onSendKey(DeviceButton.ENTER)
+                        true
+                    }
+
+                    else -> false
+                }
             },
-            enabled = enabled && text.isNotEmpty(),
-        ) {
-            Text("Send")
-        }
-    }
+        decorationBox = { innerTextField ->
+            Box(contentAlignment = Alignment.CenterStart) {
+                if (value.text.isEmpty()) {
+                    Text(
+                        "⌨ Type here to send keys",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                innerTextField()
+            }
+        },
+    )
 }
 
 @Composable
@@ -232,7 +310,7 @@ private fun DeviceMirrorPane(
     ) {
         Text(
             text = "${device.name} (${device.platform})",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
             color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         )
         val size = frameSize
