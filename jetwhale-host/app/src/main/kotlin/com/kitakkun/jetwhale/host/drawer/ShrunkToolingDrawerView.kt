@@ -68,6 +68,10 @@ fun ShrunkToolingDrawerView(
             Icon(
                 painter = painterResource(Res.drawable.sidebar_unfold),
                 contentDescription = null,
+                // Material Icon skips its 24.dp default for a painter that already reports an
+                // intrinsic size (an SVG does), so this SVG would render at its own size and look
+                // larger than the sibling ImageVector icons. Pin it to match, like the plugin icons.
+                modifier = Modifier.size(24.dp),
             )
         }
         Box {
