@@ -50,8 +50,10 @@ private const val BACKGROUND_FRAME_INTERVAL_MILLIS = 500L
 // Back off after a failed capture so a dead device doesn't spam error processes.
 private const val FRAME_RETRY_INTERVAL_MILLIS = 1_000L
 
-// Unselected devices publish only every Nth decoded stream frame (~2fps at 30fps input).
-private const val BACKGROUND_STREAM_FRAME_STRIDE = 15
+// Publish caps for decoded stream frames: decoding always keeps up with the stream, but
+// conversion + publication is throttled by wall-clock (~30fps selected, ~2fps unselected).
+private const val SELECTED_PUBLISH_GAP_MILLIS = 33L
+private const val BACKGROUND_PUBLISH_GAP_MILLIS = 500L
 
 // A stream that has not produced a frame by this deadline is treated as broken.
 private const val STREAM_START_TIMEOUT_MILLIS = 7_000L
@@ -170,6 +172,13 @@ private class MirrorHostPlugin :
         var produced = false
         val grabber = FFmpegFrameGrabber(process.inputStream, 0)
         grabber.format = "h264"
+        // Live-stream tuning: ffmpeg's defaults buffer input and probe the format for seconds,
+        // which shows up as a laggy, ever-delayed mirror. A raw H.264 stream needs almost no
+        // probing, and buffering is pure latency here.
+        grabber.setOption("fflags", "nobuffer")
+        grabber.setOption("flags", "low_delay")
+        grabber.setOption("probesize", "65536")
+        grabber.setOption("analyzeduration", "500000")
         val converter = Java2DFrameConverter()
         // grabber.start() blocks in format probing for as long as the process keeps its stdout
         // open without writing (e.g. idb without a working companion). The watchdog kills the
@@ -181,17 +190,21 @@ private class MirrorHostPlugin :
         }
         try {
             grabber.start()
-            var frameIndex = 0
+            var lastPublishNanos = 0L
             while (currentCoroutineContext().isActive && mirroringEnabled) {
                 val frame = grabber.grabImage() ?: break
                 produced = true
                 firstFrameSeen.set(true)
-                frameIndex++
-                // Unselected devices decode (H.264 requires it) but convert/publish only a
-                // subset of frames to keep the multi-device cost down.
-                if (device.id == selectedDeviceId || frameIndex % BACKGROUND_STREAM_FRAME_STRIDE == 0) {
+                // Decoding must keep up with the stream (or frames back up in the pipe and the
+                // mirror falls ever further behind), but converting/publishing every decoded
+                // frame is what actually costs: cap it by wall-clock instead, and give
+                // unselected devices a much lower cap.
+                val minPublishGapMillis = if (device.id == selectedDeviceId) SELECTED_PUBLISH_GAP_MILLIS else BACKGROUND_PUBLISH_GAP_MILLIS
+                val now = System.nanoTime()
+                if (now - lastPublishNanos >= minPublishGapMillis * 1_000_000) {
                     val image = converter.convert(frame) ?: continue
                     frames[device.id] = image.toComposeImageBitmap()
+                    lastPublishNanos = now
                 }
             }
         } catch (e: Exception) {
