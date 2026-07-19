@@ -135,24 +135,28 @@ trust unloads the plugin immediately.
 
 #### Registry signing (opt-in)
 
-The trust registry can additionally be protected by an HMAC-SHA256 signature whose key lives in the
-OS credential store (macOS Keychain, Windows Credential Manager, or Linux Secret Service) — never in
-the app data directory. This is **off by default**: the **Sign plugin trust registry** toggle in the
-plugin settings screen turns it on.
+The trust registry can additionally be protected by an HMAC-SHA256 signature. The signing key lives
+in your **OS credential store**, never in the app data directory. This is **off by default**; the
+**Sign plugin trust registry** toggle in the plugin settings screen turns it on.
 
 - **Off (default):** the credential store is **never accessed**. The registry is read and written
-  unsigned, so JetWhale never prompts you for Keychain access on startup. The SHA-256 content pinning
-  above still applies, so a swapped-out jar is still detected — but the `trusted-plugins.json` file
-  itself is not tamper-protected.
-- **On:** enabling it provisions a key and re-signs the current registry (a first credential-store
-  prompt). From then on the registry is signed on every write and **verified on every launch, which
-  reads the key back** — so the OS asks for credential-store access at each startup, not just once.
-  On macOS choose **Always Allow** at the Keychain prompt to suppress it on later launches (a plain
-  *Allow* re-prompts every launch, and a re-signed/updated app build can invalidate the grant and
-  ask again). A registry whose signature does not verify is rejected wholesale and every plugin is
-  treated as untrusted, so rewriting `trusted-plugins.json` alone cannot forge an approval. If the
-  credential store is unavailable (e.g. a headless Linux session), JetWhale logs a warning and falls
-  back to loading the registry without signature verification.
+  unsigned. The SHA-256 content pinning above still detects a swapped-out jar, but the
+  `trusted-plugins.json` file itself is not tamper-protected.
+- **On:** enabling it provisions a key and re-signs the current registry; from then on the registry
+  is signed on every write and verified on every launch (which reads the key back). A registry whose
+  signature does not verify is rejected wholesale and every plugin is treated as untrusted, so
+  rewriting `trusted-plugins.json` alone cannot forge an approval. If the credential store is
+  unavailable (e.g. a headless Linux session with no keyring), JetWhale logs a warning and loads the
+  registry unverified.
+
+Where the key is kept — and whether you're prompted — depends on the platform:
+
+- **macOS** — the login **Keychain**. Reading the key on each launch shows a Keychain access prompt;
+  choose **Always Allow** to suppress it on later launches. A plain *Allow* re-prompts every launch,
+  and a re-signed/updated app build can invalidate the grant and ask again.
+- **Windows** — encrypted with **DPAPI** under your user account. Access is transparent — no prompt.
+- **Linux** — the **Secret Service** (GNOME Keyring / KWallet). Whether a prompt appears depends on
+  your keyring setup; a headless session with no keyring falls back to unsigned.
 
 ::: warning Threat model
 Plugin trust is an entry-side defense: it stops JetWhale from executing jars you never vouched for,
