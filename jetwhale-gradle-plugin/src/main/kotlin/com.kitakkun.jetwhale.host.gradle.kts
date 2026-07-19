@@ -255,16 +255,16 @@ fun registerRunTask(name: String, taskDescription: String, hot: Boolean) = tasks
     classpath = files(hostJarProvider)
     mainClass.set("com.kitakkun.jetwhale.host.MainKt")
 
-    // Run the host on the JetBrains Runtime (provisioned via Gradle toolchains; add the foojay
-    // resolver to settings to auto-download it) so it can redefine structural changes in place.
-    if (hot) {
-        javaLauncher.set(
-            project.extensions.getByType(JavaToolchainService::class.java).launcherFor {
-                languageVersion.set(JavaLanguageVersion.of(21))
-                vendor.set(JvmVendorSpec.JETBRAINS)
-            },
-        )
-    }
+    // The host app targets Java 21, so both variants need a 21 launcher regardless of the plugin
+    // module's own toolchain. `hot` additionally runs on the JetBrains Runtime (provisioned via
+    // Gradle toolchains; add the foojay resolver to settings to auto-download it) so it can
+    // redefine structural changes in place.
+    javaLauncher.set(
+        project.extensions.getByType(JavaToolchainService::class.java).launcherFor {
+            languageVersion.set(JavaLanguageVersion.of(21))
+            if (hot) vendor.set(JvmVendorSpec.JETBRAINS)
+        },
+    )
 
     val devDirProvider = devPluginsDir.map { it.asFile.absolutePath }
     // An isolated, disposable app-data root for this plugin project. The host runs against it instead
