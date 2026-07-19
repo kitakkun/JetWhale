@@ -303,6 +303,12 @@ CompositionLocal — it is `true` only while the scene is being rendered for an 
 capture — and blank or mask the sensitive content while it is raised. The interactive window never
 observes the raised state, so there is no on-screen flicker.
 
+The `LocalJetWhaleDarkTheme` CompositionLocal tells your plugin whether the host is rendering it in
+a dark theme — the host provides the authoritative value from its actually-applied color scheme.
+Read it (`LocalJetWhaleDarkTheme.current`) to pick theme-appropriate colors instead of
+`isSystemInDarkTheme()`, which reflects the OS setting and can disagree with the host's own Theme
+option.
+
 ## Persistent storage
 
 Every host plugin instance gets a persistent key-value store via the protected `storage` property,

@@ -1,12 +1,16 @@
 package com.kitakkun.jetwhale.host.plugin
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.luminance
 import com.kitakkun.jetwhale.host.architecture.ExplicitScreenContextUsage
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.withScreenContext
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
+import com.kitakkun.jetwhale.host.sdk.LocalJetWhaleDarkTheme
 import com.kitakkun.jetwhale.host.ui.AppEnvironment
 import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
 import dev.zacsweers.metro.AppScope
@@ -33,8 +37,12 @@ class DefaultDynamicPluginBridgeProvider(
                     state2 = rememberSubscription(appearanceSettingsSubscriptionKey),
                 ) { theme, appearanceSettings ->
                     JetWhaleTheme(theme.colorScheme) {
-                        AppEnvironment(appearanceSettings.appLanguage) {
-                            content()
+                        CompositionLocalProvider(
+                            LocalJetWhaleDarkTheme provides (MaterialTheme.colorScheme.surface.luminance() < 0.5f),
+                        ) {
+                            AppEnvironment(appearanceSettings.appLanguage) {
+                                content()
+                            }
                         }
                     }
                 }

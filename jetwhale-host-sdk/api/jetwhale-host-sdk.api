@@ -1,3 +1,7 @@
+public final class com/kitakkun/jetwhale/host/sdk/DarkThemeKt {
+	public static final fun getLocalJetWhaleDarkTheme ()Landroidx/compose/runtime/ProvidableCompositionLocal;
+}
+
 public abstract interface annotation class com/kitakkun/jetwhale/host/sdk/ExperimentalJetWhaleApi : java/lang/annotation/Annotation {
 }
 
