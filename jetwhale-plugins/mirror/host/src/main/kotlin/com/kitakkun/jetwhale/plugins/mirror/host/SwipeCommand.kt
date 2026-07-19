@@ -21,13 +21,17 @@ internal class SwipeCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val device = resolveDevice(arguments[deviceId])
+        val coordinates = listOf(arguments[fromX], arguments[fromY], arguments[toX], arguments[toY])
+        if (coordinates.any { it < 0 }) throw JetWhaleMcpArgumentException("coordinates must be >= 0 (got $coordinates)")
+        val durationMillis = arguments[durationMillis] ?: 300
+        if (durationMillis <= 0) throw JetWhaleMcpArgumentException("durationMillis must be > 0 (got $durationMillis)")
         try {
             device.controller.swipe(
-                fromX = arguments[fromX],
-                fromY = arguments[fromY],
-                toX = arguments[toX],
-                toY = arguments[toY],
-                durationMillis = arguments[durationMillis] ?: 300,
+                fromX = coordinates[0],
+                fromY = coordinates[1],
+                toX = coordinates[2],
+                toY = coordinates[3],
+                durationMillis = durationMillis,
             )
         } catch (e: DeviceControlException) {
             throw JetWhaleMcpArgumentException(e.message ?: "swipe failed")

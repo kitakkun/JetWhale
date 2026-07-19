@@ -81,9 +81,11 @@ internal class AndroidDeviceController(
 
     override suspend fun inputText(text: String) {
         // `adb shell` re-parses arguments through the device shell, so shell metacharacters must
-        // be escaped; `input text` additionally requires spaces encoded as %s.
+        // be escaped; `input text` additionally treats % as an escape prefix (space is sent as
+        // %s), so literal percent signs must be escaped before spaces are encoded.
         val escaped = text
             .replace(Regex("""([\\'"`$&*()\[\]{}+|<>;?~#!])"""), """\\$1""")
+            .replace("%", "\\%")
             .replace(" ", "%s")
         runCommandChecked(adbPath, "-s", serial, "shell", "input", "text", escaped)
     }

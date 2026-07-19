@@ -18,8 +18,11 @@ internal class TapCommand(
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val device = resolveDevice(arguments[deviceId])
+        val x = arguments[x]
+        val y = arguments[y]
+        if (x < 0 || y < 0) throw JetWhaleMcpArgumentException("coordinates must be >= 0 (got x=$x, y=$y)")
         try {
-            device.controller.tap(arguments[x], arguments[y])
+            device.controller.tap(x, y)
         } catch (e: DeviceControlException) {
             throw JetWhaleMcpArgumentException(e.message ?: "tap failed")
         }
