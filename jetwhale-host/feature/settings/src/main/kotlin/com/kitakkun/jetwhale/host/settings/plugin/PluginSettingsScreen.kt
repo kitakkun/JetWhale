@@ -57,9 +57,13 @@ import com.kitakkun.jetwhale.host.settings.official_plugins
 import com.kitakkun.jetwhale.host.settings.plugin_security
 import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry
 import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint
+import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint_linux
+import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint_macos
+import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint_windows
 import com.kitakkun.jetwhale.host.settings.untrusted_jar_hint
 import com.kitakkun.jetwhale.host.settings.untrusted_plugins
 import org.jetbrains.compose.resources.stringResource
+import java.util.Locale
 
 @Composable
 fun PluginSettingsScreen(
@@ -274,8 +278,18 @@ fun PluginSettingsScreen(
                     isChecked = uiState.signPluginTrustRegistry,
                     onCheckedChange = onChangeSignPluginTrustRegistry,
                 )
+                // Append only the current OS's credential-store behavior — the prompt story differs
+                // per platform (macOS prompts, Windows DPAPI is silent, Linux depends on the keyring).
+                val osHint = remember {
+                    val os = System.getProperty("os.name").orEmpty().lowercase(Locale.ROOT)
+                    when {
+                        "mac" in os -> Res.string.sign_plugin_trust_registry_hint_macos
+                        "win" in os -> Res.string.sign_plugin_trust_registry_hint_windows
+                        else -> Res.string.sign_plugin_trust_registry_hint_linux
+                    }
+                }
                 Text(
-                    text = stringResource(Res.string.sign_plugin_trust_registry_hint),
+                    text = "${stringResource(Res.string.sign_plugin_trust_registry_hint)} ${stringResource(osHint)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
