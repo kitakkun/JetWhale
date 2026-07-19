@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.model.HostOs
 import com.kitakkun.jetwhale.host.model.OfficialPlugin
 import com.kitakkun.jetwhale.host.model.PluginInstallProgress
 import com.kitakkun.jetwhale.host.settings.Res
@@ -63,7 +64,6 @@ import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint_windo
 import com.kitakkun.jetwhale.host.settings.untrusted_jar_hint
 import com.kitakkun.jetwhale.host.settings.untrusted_plugins
 import org.jetbrains.compose.resources.stringResource
-import java.util.Locale
 
 @Composable
 fun PluginSettingsScreen(
@@ -280,13 +280,10 @@ fun PluginSettingsScreen(
                 )
                 // Append only the current OS's credential-store behavior — the prompt story differs
                 // per platform (macOS prompts, Windows DPAPI is silent, Linux depends on the keyring).
-                val osHint = remember {
-                    val os = System.getProperty("os.name").orEmpty().lowercase(Locale.ROOT)
-                    when {
-                        "mac" in os -> Res.string.sign_plugin_trust_registry_hint_macos
-                        "win" in os -> Res.string.sign_plugin_trust_registry_hint_windows
-                        else -> Res.string.sign_plugin_trust_registry_hint_linux
-                    }
+                val osHint = when (HostOs.current) {
+                    HostOs.MAC -> Res.string.sign_plugin_trust_registry_hint_macos
+                    HostOs.WINDOWS -> Res.string.sign_plugin_trust_registry_hint_windows
+                    else -> Res.string.sign_plugin_trust_registry_hint_linux
                 }
                 Text(
                     text = "${stringResource(Res.string.sign_plugin_trust_registry_hint)} ${stringResource(osHint)}",
