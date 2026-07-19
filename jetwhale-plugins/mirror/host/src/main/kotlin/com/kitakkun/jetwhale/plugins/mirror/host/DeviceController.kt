@@ -42,6 +42,13 @@ interface DeviceController {
 
     /** Starts recording the screen into [outputFile] (mp4/mov). Stop it via the returned handle. */
     suspend fun startRecording(outputFile: File): DeviceRecording
+
+    /**
+     * Opens a process that writes a raw H.264 stream of the device screen to stdout, or null
+     * when the platform/tooling cannot stream (the mirror then falls back to screenshot polling).
+     * The stream may end on its own (e.g. screenrecord's time limit); reopen to continue.
+     */
+    suspend fun openVideoStreamProcess(): Process?
 }
 
 /** One in-progress screen recording; [stop] finalizes and returns the video file. */
@@ -90,6 +97,11 @@ internal class AndroidDeviceController(
         runCommandChecked(adbPath, "-s", serial, "shell", "input", "text", escaped)
     }
 
+    override suspend fun openVideoStreamProcess(): Process? = withContext(Dispatchers.IO) {
+        // screenrecord caps a session at 180s; the caller reopens the stream when it ends.
+        ProcessBuilder(adbPath, "-s", serial, "exec-out", "screenrecord", "--output-format=h264", "--time-limit", "180", "-").start()
+    }
+
     override suspend fun startRecording(outputFile: File): DeviceRecording {
         // screenrecord writes on-device; the file is pulled after a clean SIGINT shutdown.
         val remotePath = "/sdcard/${outputFile.name}"
@@ -99,9 +111,11 @@ internal class AndroidDeviceController(
         return object : DeviceRecording {
             override suspend fun stop(): File = withContext(Dispatchers.IO) {
                 // SIGINT lets screenrecord finalize the mp4 moov atom; killing the local adb
-                // client instead would leave an unplayable file. Exit code is ignored: the
-                // process has already exited when the 180s time limit was hit.
-                runCommand(adbPath, "-s", serial, "shell", "pkill", "-INT", "screenrecord")
+                // client instead would leave an unplayable file. The -f pattern targets only
+                // the recorder instance, not the screenrecord that streams the live mirror.
+                // Exit code is ignored: the process has already exited when the 180s time
+                // limit was hit.
+                runCommand(adbPath, "-s", serial, "shell", "pkill", "-INT", "-f", remotePath)
                 process.waitFor(10, TimeUnit.SECONDS)
                 // The device flushes the file asynchronously after the process exits.
                 delay(500)
@@ -182,6 +196,14 @@ internal class IosDeviceController(
 
     override suspend fun inputText(text: String) {
         runCommandChecked(requireIdb(), "ui", "text", "--udid", udid, text)
+    }
+
+    override suspend fun openVideoStreamProcess(): Process? {
+        // simctl cannot stream; idb's video-stream is the only live H.264 source for simulators.
+        val idb = idbPath ?: return null
+        return withContext(Dispatchers.IO) {
+            ProcessBuilder(idb, "video-stream", "--udid", udid, "--format", "h264").start()
+        }
     }
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {

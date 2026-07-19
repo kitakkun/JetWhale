@@ -17,6 +17,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -24,6 +25,10 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import org.bytedeco.javacv.FFmpegFrameGrabber
+import org.bytedeco.javacv.Java2DFrameConverter
+import java.util.concurrent.ConcurrentHashMap
 import org.jetbrains.skia.Image as SkiaImage
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
@@ -45,6 +50,9 @@ private const val BACKGROUND_FRAME_INTERVAL_MILLIS = 500L
 // Back off after a failed capture so a dead device doesn't spam error processes.
 private const val FRAME_RETRY_INTERVAL_MILLIS = 1_000L
 
+// Unselected devices publish only every Nth decoded stream frame (~2fps at 30fps input).
+private const val BACKGROUND_STREAM_FRAME_STRIDE = 15
+
 @OptIn(ExperimentalJetWhaleApi::class)
 private class MirrorHostPlugin :
     JetWhaleHostPlugin(),
@@ -60,6 +68,10 @@ private class MirrorHostPlugin :
     // All connected devices are mirrored concurrently, one capture loop and frame slot each.
     private val frames: SnapshotStateMap<String, ImageBitmap> = mutableStateMapOf()
     private val mirrorJobs = mutableMapOf<String, Job>()
+
+    // Live decoder subprocesses; grabImage() blocks the IO thread, so cancellation must kill the
+    // process to unblock it.
+    private val streamProcesses = ConcurrentHashMap<String, Process>()
     private val refreshMutex = Mutex()
 
     private var lastError by mutableStateOf<String?>(null)
@@ -78,6 +90,11 @@ private class MirrorHostPlugin :
         }
     }
 
+    override fun onDispose() {
+        streamProcesses.values.forEach { it.destroyForcibly() }
+        streamProcesses.clear()
+    }
+
     private suspend fun refreshDevices(): List<MirrorDevice> = refreshMutex.withLock {
         val discovered = discovery.discoverDevices()
         devices.apply {
@@ -90,6 +107,7 @@ private class MirrorHostPlugin :
         val discoveredIds = discovered.map { it.id }.toSet()
         mirrorJobs.keys.filter { it !in discoveredIds }.forEach { id ->
             mirrorJobs.remove(id)?.cancel()
+            streamProcesses.remove(id)?.destroyForcibly()
             frames.remove(id)
         }
         discovered.forEach { device ->
@@ -100,13 +118,28 @@ private class MirrorHostPlugin :
         discovered
     }
 
-    // The mirror is a screenshot poll loop: cheap, tool-free, and identical for both platforms.
+    // Mirrors one device: preferably by decoding a live H.264 stream, falling back to screenshot
+    // polling when the platform/tooling cannot stream or the stream setup fails.
     private suspend fun mirrorLoop(device: MirrorDevice) {
+        var streamingBroken = false
         var lastPngHash = 0
         while (currentCoroutineContext().isActive) {
             if (!mirroringEnabled) {
                 delay(DEVICE_POLL_INTERVAL_MILLIS)
                 continue
+            }
+            if (!streamingBroken) {
+                val process = try {
+                    device.controller.openVideoStreamProcess()
+                } catch (_: DeviceControlException) {
+                    null
+                }
+                if (process != null) {
+                    // Returns when the stream ends (screenrecord's time limit) — reopen right
+                    // away; if it produced nothing, the stream path doesn't work on this device.
+                    if (decodeVideoStream(device, process)) continue
+                }
+                streamingBroken = true
             }
             try {
                 val png = device.controller.captureScreenshot()
@@ -123,6 +156,40 @@ private class MirrorHostPlugin :
                 delay(FRAME_RETRY_INTERVAL_MILLIS)
             }
         }
+    }
+
+    /**
+     * Decodes H.264 frames from [process]'s stdout into [frames] until the stream ends or the
+     * loop is cancelled. Returns whether at least one frame was decoded.
+     */
+    private suspend fun decodeVideoStream(device: MirrorDevice, process: Process): Boolean = withContext(Dispatchers.IO) {
+        streamProcesses[device.id] = process
+        var produced = false
+        val grabber = FFmpegFrameGrabber(process.inputStream, 0)
+        grabber.format = "h264"
+        val converter = Java2DFrameConverter()
+        try {
+            grabber.start()
+            var frameIndex = 0
+            while (currentCoroutineContext().isActive && mirroringEnabled) {
+                val frame = grabber.grabImage() ?: break
+                produced = true
+                frameIndex++
+                // Unselected devices decode (H.264 requires it) but convert/publish only a
+                // subset of frames to keep the multi-device cost down.
+                if (device.id == selectedDeviceId || frameIndex % BACKGROUND_STREAM_FRAME_STRIDE == 0) {
+                    val image = converter.convert(frame) ?: continue
+                    frames[device.id] = image.toComposeImageBitmap()
+                }
+            }
+        } catch (e: Exception) {
+            if (!produced) lastError = "${device.name}: video stream failed (${e.message}); falling back to screenshots"
+        } finally {
+            runCatching { grabber.close() }
+            streamProcesses.remove(device.id)
+            process.destroyForcibly()
+        }
+        produced
     }
 
     // Runs a device-control action from a UI callback, surfacing failures in the status bar.

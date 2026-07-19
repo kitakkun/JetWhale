@@ -25,11 +25,33 @@ dependencies {
     compileOnly(compose.desktop.currentOs)
     compileOnly(libs.material3)
     compileOnly(libs.kotlinxSerializationJson)
+    // H.264 mirror-stream decoding (adb screenrecord / idb video-stream). Bundled into the
+    // plugin jar; the ffmpeg natives are restricted to the build machine's platform to keep the
+    // artifact from carrying every OS's binaries.
+    implementation(libs.javacv) {
+        // javacv declares every bytedeco preset; only the ffmpeg bindings are used here.
+        isTransitive = false
+    }
+    implementation("org.bytedeco:javacpp:${libs.versions.javacv.get()}")
+    implementation(libs.bytedecoFfmpeg)
+    implementation("org.bytedeco:ffmpeg:${libs.versions.bytedecoFfmpeg.get()}:${currentFfmpegClassifier()}")
     testImplementation(projects.jetwhaleHostSdk)
     testImplementation(libs.kotlinTest)
     testImplementation(libs.kotlinxSerializationJson)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.material3)
+}
+
+fun currentFfmpegClassifier(): String {
+    val osName = System.getProperty("os.name").lowercase()
+    val arch = System.getProperty("os.arch").lowercase()
+    return when {
+        osName.contains("mac") && arch == "aarch64" -> "macosx-arm64"
+        osName.contains("mac") -> "macosx-x86_64"
+        osName.contains("windows") -> "windows-x86_64"
+        arch == "aarch64" -> "linux-arm64"
+        else -> "linux-x86_64"
+    }
 }
 
 jetwhalePublish {

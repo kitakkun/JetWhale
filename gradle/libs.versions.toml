@@ -11,6 +11,8 @@ kotlinxCollectionsImmutable = "0.5.1"
 kotlinxCoroutines = "1.11.0"
 byteBuddy = "1.18.11"
 javaKeyring = "1.0.4"
+javacv = "1.5.10"
+bytedecoFfmpeg = "6.1.1-1.5.10"
 kotlinxDatetime = "0.8.0"
 
 # android
@@ -58,6 +60,8 @@ kotlinTest = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotli
 # kotlinx
 kotlinxSerializationCore = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerializationJson" }
 kotlinxSerializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+javacv = { module = "org.bytedeco:javacv", version.ref = "javacv" }
+bytedecoFfmpeg = { module = "org.bytedeco:ffmpeg", version.ref = "bytedecoFfmpeg" }
 kotlinxCollectionsImmutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 kotlinxCoroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 byteBuddyAgent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "byteBuddy" }
