@@ -4,6 +4,9 @@ import com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleOfflineCapableMessenger
 import com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
+import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
+import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
+import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
@@ -32,6 +35,7 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.StringFormat
@@ -48,6 +52,42 @@ class JetWhaleNetworkKtorPluginTest {
         val recorder = RecordingMessenger(java.util.Collections.synchronizedList(mutableListOf()))
         agent.bindMessenger(recorder)
         return agent to recorder.events
+    }
+
+    // The agent's mock rules are set by the host over messaging in production; a unit test can't
+    // drive that internal path, so seed the state directly for the mock-serving case.
+    @Suppress("UNCHECKED_CAST")
+    private fun JetWhaleNetworkAgentPlugin.seedMockRules(rules: List<MockRule>) {
+        val field = JetWhaleNetworkAgentPlugin::class.java.getDeclaredField("mockRules").apply { isAccessible = true }
+        (field.get(this) as MutableStateFlow<List<MockRule>>).value = rules
+    }
+
+    @Test
+    fun `serves a mock response whose body reads back without a coroutine-job cast crash`() = runBlocking {
+        val (agent, _) = agentWithEvents()
+        agent.seedMockRules(
+            listOf(
+                MockRule(
+                    id = "1",
+                    matcher = MockMatcher(urlPattern = "/todos/1"),
+                    response = MockResponseSpec(statusCode = 200, body = "{\"ok\":true}"),
+                ),
+            ),
+        )
+        val client = HttpClient(
+            // The real engine must never be hit — the mock is served before proceed().
+            MockEngine { respond(content = "unmocked", status = HttpStatusCode.InternalServerError) },
+        ) {
+            install(agent.ktorClientPlugin())
+        }
+
+        val response = client.get("http://example/todos/1")
+
+        // Before the fix, the synthesized call carried the Send-pipeline's StandaloneCoroutine as its
+        // callContext Job, so reading the mocked body threw "StandaloneCoroutine cannot be cast to
+        // CompletableJob".
+        assertEquals(200, response.status.value)
+        assertEquals("{\"ok\":true}", response.bodyAsText())
     }
 
     @Test
