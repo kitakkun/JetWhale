@@ -50,10 +50,11 @@ jobs:
     runs-on: ubuntu-latest
     # CONVEYOR_SIGNING_KEY is an environment secret on `Publish`.
     environment: Publish
-    # `make copied-site` only reads release metadata to render the site; it never writes
-    # to the repo (the draft release is created by the `release` job). Keep this job read-only.
+    # Conveyor's GitHub integration hits the Releases API even for `make copied-site`, and that
+    # access needs write scope — with contents: read it fails with "Resource not accessible by
+    # integration". The actual draft release is still created by the `release` job.
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Check out code
         uses: actions/checkout@v4
