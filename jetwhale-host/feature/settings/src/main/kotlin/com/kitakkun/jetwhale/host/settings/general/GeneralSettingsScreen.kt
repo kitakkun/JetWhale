@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -110,9 +111,22 @@ fun GeneralSettingsScreen(
         }
         item {
             SettingOptionView(stringResource(Res.string.maintenance)) {
-                SettingsItemRow(stringResource(Res.string.application_data_directory)) {
-                    Card {
-                        Text(uiState.appDataPath)
+                // Not SettingsItemRow here: the path can be very long. The label keeps a min width so
+                // it can't be starved down to one character per line, and the path Card takes the
+                // remaining space (weight) and wraps within it.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = stringResource(Res.string.application_data_directory),
+                        modifier = Modifier.widthIn(min = 120.dp),
+                    )
+                    Card(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = uiState.appDataPath,
+                            modifier = Modifier.padding(8.dp),
+                        )
                     }
                     IconButton(onClick = onClickOpenAppDataPath) {
                         Icon(Icons.Default.FolderOpen, null)
