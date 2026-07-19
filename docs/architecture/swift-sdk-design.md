@@ -31,7 +31,8 @@ Kotlin API for Kotlin consumers is untouched.
 This is already possible: `JetWhaleMessenger` exposes a monomorphic boundary today —
 `sendRaw(messageType: String, payload: String): Boolean` and
 `suspend requestRaw(messageType, payload, timeout): String`
-(`jetwhale-protocol/core/.../JetWhaleMessenger.kt:32,40`). The typed `trySend`/`request` are just
+(`jetwhale-protocol/core/src/commonMain/kotlin/com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger.kt:32,40`).
+The typed `trySend`/`request` are just
 reified extensions over these. The Swift SDK builds directly on the raw pair and does its own
 `Codable` encode/decode, so generics and serialization never need to bridge.
 
@@ -150,9 +151,11 @@ The host counterpart plugin deserializes messages with **kotlinx.serialization**
 discriminator**. For a Swift `Codable` payload to be understood by the Kotlin host, two things must
 line up:
 
-- **`messageType`** must equal the discriminator the Kotlin side registers for that message
-  (today derived from the `@Serializable` class). The Swift `static let messageType` is the explicit
-  contract; the shared-message module on the Kotlin side must register the same string.
+- **`messageType`** must equal the discriminator the Kotlin side uses for that message — the
+  serializer's `descriptor.serialName` (the fully-qualified class name by default, overridable with
+  `@SerialName`). The Swift `static let messageType` is the explicit contract; the shared-message
+  module on the Kotlin side must carry the same string (pin it with `@SerialName` so a class rename
+  can't silently break the wire).
 - **JSON field names/shape** must match. Swift `Codable` and kotlinx.serialization both emit plain
   JSON objects; align field names (Swift `CodingKeys` where needed) and avoid Swift-only encoding
   quirks (e.g. `Data`→base64 must match the Kotlin `ByteArray` convention).
@@ -176,7 +179,8 @@ Kotlin and back) should gate releases.
 
 The Network Inspector core is transport-agnostic — `JetWhaleNetworkAgentPlugin` exposes
 `recordRequest`/`recordResponse`/`recordFailure`/`findMock`/`newTransactionId`
-(`network/agent/.../JetWhaleNetworkAgentPlugin.kt:79-94`), and its docstring invites new adapters.
+(`jetwhale-plugins/network/agent/src/commonMain/kotlin/com/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin.kt:79-94`),
+and its docstring invites new adapters.
 A Swift app uses **URLSession**, which has no global interceptor, so ship a Swift-native adapter:
 
 - capture via a `URLProtocol` subclass (or `URLSessionTaskDelegate` + `URLSessionTaskMetrics`),
