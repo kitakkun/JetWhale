@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -26,17 +25,21 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,7 +113,7 @@ internal fun MirrorScreen(
                     devices.forEach { device ->
                         DeviceMirrorPane(
                             device = device,
-                            frame = frames[device.id],
+                            frames = frames,
                             isSelected = device.id == selectedDeviceId,
                             onSelect = { onSelectDevice(device.id) },
                             onTap = onTap,
@@ -210,12 +213,18 @@ private fun TextInputRow(
 @Composable
 private fun DeviceMirrorPane(
     device: MirrorDevice,
-    frame: ImageBitmap?,
+    frames: Map<String, ImageBitmap>,
     isSelected: Boolean,
     onSelect: () -> Unit,
     onTap: (device: MirrorDevice, x: Int, y: Int) -> Unit,
     onSwipe: (device: MirrorDevice, fromX: Int, fromY: Int, toX: Int, toY: Int) -> Unit,
 ) {
+    // Composition only depends on the frame's dimensions (via derivedStateOf), which change on
+    // rotation at most; the pixels are read inside the draw phase, so a new frame triggers just a
+    // repaint of this pane instead of recomposing and re-laying-out the whole screen.
+    val frameSize by remember(device.id) {
+        derivedStateOf { frames[device.id]?.let { IntSize(it.width, it.height) } }
+    }
     Column(
         modifier = Modifier.fillMaxHeight(),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -226,7 +235,8 @@ private fun DeviceMirrorPane(
             style = MaterialTheme.typography.labelMedium,
             color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (frame == null) {
+        val size = frameSize
+        if (size == null) {
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -238,27 +248,34 @@ private fun DeviceMirrorPane(
             }
             return@Column
         }
-        // aspectRatio makes the image composable's bounds coincide exactly with the drawn frame,
-        // so pointer offsets scale linearly to device pixels.
-        Image(
-            bitmap = frame,
-            contentDescription = "Mirrored screen of ${device.name}",
+        // aspectRatio makes this pane's bounds coincide exactly with the drawn frame, so pointer
+        // offsets scale linearly to device pixels.
+        Box(
             modifier = Modifier
                 .weight(1f)
-                .aspectRatio(frame.width.toFloat() / frame.height.toFloat())
+                .aspectRatio(size.width.toFloat() / size.height.toFloat())
+                .drawBehind {
+                    frames[device.id]?.let { frame ->
+                        drawImage(
+                            image = frame,
+                            dstSize = IntSize(this.size.width.roundToInt(), this.size.height.roundToInt()),
+                        )
+                    }
+                }
                 .border(
                     width = 2.dp,
                     color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                     shape = RoundedCornerShape(4.dp),
                 )
-                .pointerInput(device.id, frame.width, frame.height) {
+                .pointerInput(device.id) {
                     detectTapGestures { offset ->
                         onSelect()
-                        val scale = frame.width.toFloat() / size.width
+                        val frame = frames[device.id] ?: return@detectTapGestures
+                        val scale = frame.width.toFloat() / this.size.width
                         onTap(device, (offset.x * scale).toInt(), (offset.y * scale).toInt())
                     }
                 }
-                .pointerInput(device.id, frame.width, frame.height) {
+                .pointerInput(device.id) {
                     var dragStart = Offset.Zero
                     var dragEnd = Offset.Zero
                     detectDragGestures(
@@ -269,7 +286,8 @@ private fun DeviceMirrorPane(
                         },
                         onDrag = { change, _ -> dragEnd = change.position },
                         onDragEnd = {
-                            val scale = frame.width.toFloat() / size.width
+                            val frame = frames[device.id] ?: return@detectDragGestures
+                            val scale = frame.width.toFloat() / this.size.width
                             onSwipe(
                                 device,
                                 (dragStart.x * scale).toInt(),
