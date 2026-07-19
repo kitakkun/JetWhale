@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -26,14 +27,10 @@ internal suspend fun runCommand(vararg command: String): CommandResult = withCon
         throw DeviceControlException("failed to launch '${command.first()}': ${e.message}", e)
     }
     // Drain stderr concurrently so neither pipe can fill up and deadlock the process.
-    var stderr = ""
-    val stderrThread = Thread {
-        stderr = process.errorStream.bufferedReader().readText()
-    }.apply { start() }
+    val stderr = async { process.errorStream.bufferedReader().readText() }
     val stdout = process.inputStream.readBytes()
     val exitCode = process.waitFor()
-    stderrThread.join()
-    CommandResult(exitCode = exitCode, stdout = stdout, stderr = stderr)
+    CommandResult(exitCode = exitCode, stdout = stdout, stderr = stderr.await())
 }
 
 /** Runs [command] and returns stdout text, throwing [DeviceControlException] on a non-zero exit. */
