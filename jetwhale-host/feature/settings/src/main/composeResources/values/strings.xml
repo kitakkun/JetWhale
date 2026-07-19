@@ -26,6 +26,9 @@
     <string name="untrusted_plugins">Unverified Plugins</string>
     <string name="untrusted_jar_hint">These JARs were found in the plugins directory but have not been approved (or their contents changed since approval), so they were not loaded. Only approve JARs you trust — a plugin runs with full access to this app.</string>
     <string name="approve_untrusted_plugin">Approve</string>
+    <string name="plugin_security">Security</string>
+    <string name="sign_plugin_trust_registry">Sign plugin trust registry</string>
+    <string name="sign_plugin_trust_registry_hint">Off by default. When on, JetWhale signs and verifies the trust registry with a key kept in your OS credential store (macOS Keychain, Windows Credential Manager, or Linux Secret Service), prompting once when first enabled; this protects the registry from tampering. When off, the credential store is never accessed. The SHA-256 content check on approved jars applies either way.</string>
     <string name="application_data_directory">Application Data Directory</string>
     <string name="server_status_stopped">Stopped</string>
     <string name="server_status_running">Running on port %1$d</string>

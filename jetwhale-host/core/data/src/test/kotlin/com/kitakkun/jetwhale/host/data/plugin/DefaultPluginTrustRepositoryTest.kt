@@ -1,6 +1,9 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
+import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.security.MessageDigest
@@ -32,8 +35,13 @@ class DefaultPluginTrustRepositoryTest {
         tempHome.deleteRecursively()
     }
 
-    // A fresh repository each time so we exercise the on-disk read path, not just the in-memory cache.
-    private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) = DefaultPluginTrustRepository(AppDataDirectoryProvider(), signer)
+    // A fresh repository each time so we exercise the on-disk read path, not just the in-memory
+    // cache. Signing defaults to enabled so the signer-backed behavior stays under test; the
+    // opt-in-off path is exercised explicitly below.
+    private fun newRepository(
+        signer: TrustRegistrySigner = FakeTrustRegistrySigner(),
+        settings: DebuggerSettingsRepository = FakeDebuggerSettingsRepository(signEnabled = true),
+    ) = DefaultPluginTrustRepository(AppDataDirectoryProvider(), signer, settings)
 
     /**
      * Deterministic stand-in for the keyring-backed signer: the "signature" is a digest of the
@@ -55,6 +63,48 @@ class DefaultPluginTrustRepositoryTest {
         }
 
         private fun digest(payload: String): String = "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
+    }
+
+    /**
+     * A signer that fails the test if it is ever consulted. Used to assert that with signing off no
+     * code path reaches the signer (and therefore the OS credential store).
+     */
+    private class ThrowingTrustRegistrySigner : TrustRegistrySigner {
+        override fun sign(payload: String): String? = error("signer must not be invoked when signing is disabled")
+
+        override fun verify(payload: String, signature: String?): TrustRegistrySigner.Verification =
+            error("signer must not be invoked when signing is disabled")
+    }
+
+    /** Minimal settings stand-in exposing only the opt-in flag the trust repository reads. */
+    private class FakeDebuggerSettingsRepository(signEnabled: Boolean) : DebuggerSettingsRepository {
+        private var signPluginTrustRegistry = signEnabled
+
+        override val signPluginTrustRegistryFlow: StateFlow<Boolean> = MutableStateFlow(signEnabled)
+        override val adbAutoPortMappingEnabledFlow: StateFlow<Boolean> = MutableStateFlow(false)
+        override val checkForUpdatesOnStartupFlow: StateFlow<Boolean> = MutableStateFlow(true)
+        override val persistDataFlow: StateFlow<Boolean> = MutableStateFlow(false)
+        override val serverPortFlow: StateFlow<Int> = MutableStateFlow(0)
+        override val mcpServerPortFlow: StateFlow<Int> = MutableStateFlow(0)
+        override val wssPortFlow: StateFlow<Int> = MutableStateFlow(0)
+        override val wssEnabledFlow: StateFlow<Boolean> = MutableStateFlow(true)
+
+        override suspend fun readSignPluginTrustRegistry(): Boolean = signPluginTrustRegistry
+        override suspend fun updateSignPluginTrustRegistry(enabled: Boolean) {
+            signPluginTrustRegistry = enabled
+        }
+
+        override suspend fun readServerPort(): Int = 0
+        override suspend fun readMcpServerPort(): Int = 0
+        override suspend fun readWssPort(): Int = 0
+        override suspend fun updatePersistData(enabled: Boolean) = Unit
+        override suspend fun updateAdbAutoPortMappingEnabled(enabled: Boolean) = Unit
+        override suspend fun readCheckForUpdatesOnStartup(): Boolean = true
+        override suspend fun updateCheckForUpdatesOnStartup(enabled: Boolean) = Unit
+        override suspend fun updateServerPort(port: Int) = Unit
+        override suspend fun updateMcpServerPort(port: Int) = Unit
+        override suspend fun updateWssPort(port: Int) = Unit
+        override suspend fun updateWssEnabled(enabled: Boolean) = Unit
     }
 
     @Test
@@ -113,6 +163,30 @@ class DefaultPluginTrustRepositoryTest {
         newRepository().trust("/plugins/a.jar", "hash-a")
 
         val reloaded = newRepository(FakeTrustRegistrySigner(available = false))
+        assertEquals("hash-a", reloaded.trustedEntry("/plugins/a.jar")?.sha256)
+    }
+
+    @Test
+    fun `the signer is never consulted when signing is disabled`() = runBlocking {
+        val settings = FakeDebuggerSettingsRepository(signEnabled = false)
+        newRepository(signer = ThrowingTrustRegistrySigner(), settings = settings)
+            .trust("/plugins/a.jar", "hash-a")
+
+        val reloaded = newRepository(signer = ThrowingTrustRegistrySigner(), settings = settings)
+        assertEquals("hash-a", reloaded.trustedEntry("/plugins/a.jar")?.sha256)
+    }
+
+    @Test
+    fun `a registry written unsigned still loads once signing is enabled`() = runBlocking {
+        // Approve while signing is off (registry written without a signature), then turn signing on:
+        // the previously unsigned registry is treated as an upgrade and still loads.
+        newRepository(settings = FakeDebuggerSettingsRepository(signEnabled = false))
+            .trust("/plugins/a.jar", "hash-a")
+
+        val reloaded = newRepository(
+            signer = FakeTrustRegistrySigner(keyPreexisted = false),
+            settings = FakeDebuggerSettingsRepository(signEnabled = true),
+        )
         assertEquals("hash-a", reloaded.trustedEntry("/plugins/a.jar")?.sha256)
     }
 }

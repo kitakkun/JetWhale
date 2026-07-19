@@ -40,6 +40,8 @@ import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.add_plugin_from_file
 import com.kitakkun.jetwhale.host.settings.approve_untrusted_plugin
+import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
+import com.kitakkun.jetwhale.host.settings.component.SwitchSettingsItemView
 import com.kitakkun.jetwhale.host.settings.dialog_ok
 import com.kitakkun.jetwhale.host.settings.failed_jar_path_hint
 import com.kitakkun.jetwhale.host.settings.failed_to_load_plugins
@@ -52,6 +54,9 @@ import com.kitakkun.jetwhale.host.settings.maven_install_install
 import com.kitakkun.jetwhale.host.settings.no_plugins_installed
 import com.kitakkun.jetwhale.host.settings.official_plugin_installed
 import com.kitakkun.jetwhale.host.settings.official_plugins
+import com.kitakkun.jetwhale.host.settings.plugin_security
+import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry
+import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint
 import com.kitakkun.jetwhale.host.settings.untrusted_jar_hint
 import com.kitakkun.jetwhale.host.settings.untrusted_plugins
 import org.jetbrains.compose.resources.stringResource
@@ -63,6 +68,7 @@ fun PluginSettingsScreen(
     onApproveUntrustedJar: (String) -> Unit,
     onClickInstallFromMaven: () -> Unit,
     onClickInstallOfficialPlugin: (OfficialPlugin) -> Unit,
+    onChangeSignPluginTrustRegistry: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showFailedJarsDialog by remember { mutableStateOf(false) }
@@ -258,6 +264,20 @@ fun PluginSettingsScreen(
                     uiState = officialPlugin,
                     installEnabled = !uiState.isInstalling,
                     onClickInstall = { onClickInstallOfficialPlugin(officialPlugin.plugin) },
+                )
+            }
+        }
+        item(key = "trust_registry_signing") {
+            SettingOptionView(label = stringResource(Res.string.plugin_security)) {
+                SwitchSettingsItemView(
+                    label = stringResource(Res.string.sign_plugin_trust_registry),
+                    isChecked = uiState.signPluginTrustRegistry,
+                    onCheckedChange = onChangeSignPluginTrustRegistry,
+                )
+                Text(
+                    text = stringResource(Res.string.sign_plugin_trust_registry_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

@@ -10,6 +10,7 @@ data class PluginSettingsScreenUiState(
     val officialPlugins: ImmutableList<OfficialPluginUiState>,
     val failedJars: ImmutableList<FailedPluginJar>,
     val untrustedJarPaths: ImmutableList<String>,
+    val signPluginTrustRegistry: Boolean,
     val isInstalling: Boolean = false,
     val installProgress: PluginInstallProgress? = null,
     val installError: String? = null,

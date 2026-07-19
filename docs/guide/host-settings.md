@@ -133,17 +133,30 @@ Installing a plugin through the file picker, the Maven dialog, or the official c
 approval; jars dropped into the directory by anything else must be approved manually. Revoking
 trust unloads the plugin immediately.
 
-The registry itself is protected by an HMAC-SHA256 signature whose key lives in the OS credential
-store (macOS Keychain, Windows Credential Manager, or Linux Secret Service) — never in the app data
-directory. A registry whose signature does not verify is rejected wholesale and every plugin is
-treated as untrusted, so rewriting `trusted-plugins.json` alone cannot forge an approval. If no
-credential store is available (e.g. a headless Linux session), JetWhale logs a warning and falls
-back to loading the registry without signature verification.
+#### Registry signing (opt-in)
+
+The trust registry can additionally be protected by an HMAC-SHA256 signature whose key lives in the
+OS credential store (macOS Keychain, Windows Credential Manager, or Linux Secret Service) — never in
+the app data directory. This is **off by default**: the **Sign plugin trust registry** toggle in the
+plugin settings screen turns it on.
+
+- **Off (default):** the credential store is **never accessed**. The registry is read and written
+  unsigned, so JetWhale never prompts you for Keychain access on startup. The SHA-256 content pinning
+  above still applies, so a swapped-out jar is still detected — but the `trusted-plugins.json` file
+  itself is not tamper-protected.
+- **On:** the first time you enable it JetWhale provisions a key, which triggers a single, deliberate
+  credential-store prompt. From then on the registry is signed on every write and verified on
+  startup. A registry whose signature does not verify is rejected wholesale and every plugin is
+  treated as untrusted, so rewriting `trusted-plugins.json` alone cannot forge an approval. If the
+  credential store is unavailable (e.g. a headless Linux session), JetWhale logs a warning and falls
+  back to loading the registry without signature verification.
 
 ::: warning Threat model
-This is an entry-side defense: it stops JetWhale from executing jars you never vouched for, and
-detects jars swapped out after approval. The registry signature raises the bar from "write one
-file" to "also compromise the OS credential store", but software already running with your user
-privileges can still potentially do that — or modify JetWhale itself. Protecting against an
+Plugin trust is an entry-side defense: it stops JetWhale from executing jars you never vouched for,
+and the SHA-256 pinning detects jars swapped out after approval regardless of this setting. With
+registry signing **off** (the default), an attacker who can write to `~/.jetwhale` can forge an
+approval by editing `trusted-plugins.json` directly. Turning signing **on** raises the bar from
+"write one file" to "also compromise the OS credential store" — but software already running with
+your user privileges can still potentially do that, or modify JetWhale itself. Protecting against an
 attacker who fully controls your user account is outside the scope of this mechanism.
 :::

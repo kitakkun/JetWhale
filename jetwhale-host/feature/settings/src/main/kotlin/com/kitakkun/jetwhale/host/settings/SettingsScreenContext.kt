@@ -24,6 +24,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstallProgressSubscriptionKey
 import com.kitakkun.jetwhale.host.model.ServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.SignPluginTrustRegistryMutationKey
 import com.kitakkun.jetwhale.host.model.SslCertificatesSubscriptionKey
 import com.kitakkun.jetwhale.host.model.TrustPluginMutationKey
 import com.kitakkun.jetwhale.host.model.UntrustedPluginJarPathsSubscriptionKey
@@ -46,6 +47,7 @@ class SettingsPresenterContext(
     val pluginInstallMutationKey: PluginInstallMutationKey,
     val pluginInstallFromMavenMutationKey: PluginInstallFromMavenMutationKey,
     val trustPluginMutationKey: TrustPluginMutationKey,
+    val signPluginTrustRegistryMutationKey: SignPluginTrustRegistryMutationKey,
     val officialPluginInstallMutationKey: OfficialPluginInstallMutationKey,
     val updateCheckMutationKey: UpdateCheckMutationKey,
     val updateInstallMutationKey: UpdateInstallMutationKey,

@@ -10,4 +10,7 @@ sealed interface PluginSettingsScreenAction {
 
     /** The user approved a surfaced untrusted jar: pin its hash and load it. */
     data class UntrustedJarApproved(val path: String) : PluginSettingsScreenAction
+
+    /** The user toggled opt-in signing of the plugin trust registry. */
+    data class ChangeSignPluginTrustRegistry(val enabled: Boolean) : PluginSettingsScreenAction
 }

@@ -26,6 +26,9 @@
     <string name="untrusted_plugins">未検証のプラグイン</string>
     <string name="untrusted_jar_hint">これらの JAR はプラグインディレクトリにありますが、承認されていない（または承認後に内容が変更された）ため読み込まれていません。プラグインはこのアプリの全権限で動作します。信頼できる JAR のみ承認してください。</string>
     <string name="approve_untrusted_plugin">承認</string>
+    <string name="plugin_security">セキュリティ</string>
+    <string name="sign_plugin_trust_registry">プラグイン信頼レジストリに署名する</string>
+    <string name="sign_plugin_trust_registry_hint">既定では無効です。有効にすると、JetWhale は OS の資格情報ストア（macOS キーチェーン、Windows 資格情報マネージャー、Linux Secret Service）に保管した鍵で信頼レジストリに署名・検証します。初回有効化時に一度だけ確認が表示され、レジストリの改ざんを防ぎます。無効の場合、資格情報ストアには一切アクセスしません。承認済み jar の SHA-256 検証はどちらの場合も有効です。</string>
     <string name="application_data_directory">アプリケーションデータディレクトリ</string>
     <string name="server_status_stopped">停止</string>
     <string name="server_status_running">ポート %1$d で実行中</string>
