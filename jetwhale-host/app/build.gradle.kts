@@ -81,6 +81,13 @@ compose.desktop {
     }
 }
 
+// Merging signed dependency jars (e.g. BouncyCastle) into an uber jar invalidates their
+// signatures; leftover META-INF signature files then make the JVM reject the jar at launch
+// with "Invalid signature file digest for Manifest main attributes".
+tasks.withType<org.gradle.jvm.tasks.Jar>().matching { it.name.contains("UberJar") }.configureEach {
+    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
+}
+
 compose.resources {
     packageOfResClass = "com.kitakkun.jetwhale.host"
 }
