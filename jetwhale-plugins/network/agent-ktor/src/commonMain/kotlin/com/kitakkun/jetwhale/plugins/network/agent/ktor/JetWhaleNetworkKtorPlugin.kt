@@ -24,6 +24,7 @@ import io.ktor.util.StringValues
 import io.ktor.util.date.GMTDate
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.InternalAPI
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -111,6 +112,12 @@ private fun JetWhaleNetworkAgentPlugin.recordRequest(request: HttpRequestBuilder
 @OptIn(InternalAPI::class) // HttpClientCall's constructor is needed to synthesize mock responses.
 private suspend fun serveMock(client: HttpClient, request: HttpRequestBuilder, mock: MockResponseSpec): HttpClientCall {
     if (mock.delayMs > 0) delay(mock.delayMs.milliseconds)
+    // Ktor completes the call context's Job when the response is done, so it must be a
+    // CompletableJob. The Send-pipeline coroutine's own Job is a StandaloneCoroutine, and handing
+    // that over crashes with "StandaloneCoroutine cannot be cast to CompletableJob" the moment the
+    // caller reads the mocked response — so give the call its own Job(parent), exactly as a real
+    // client engine builds its call context.
+    val parentContext = currentCoroutineContext()
     val responseData = HttpResponseData(
         statusCode = HttpStatusCode.fromValue(mock.statusCode),
         requestTime = GMTDate(),
@@ -119,7 +126,7 @@ private suspend fun serveMock(client: HttpClient, request: HttpRequestBuilder, m
         }.build(),
         version = HttpProtocolVersion.HTTP_1_1,
         body = ByteReadChannel(mock.body.encodeToByteArray()),
-        callContext = currentCoroutineContext(),
+        callContext = parentContext + Job(parentContext[Job]),
     )
     return HttpClientCall(client, request.build(), responseData)
 }

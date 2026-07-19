@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.scene.ComposeScenePointer
@@ -33,10 +34,6 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
     val catchThrowHost = LocalCatchThrowHost.current
     var frameNanoTime by remember(pluginComposeScene) { mutableLongStateOf(0L) }
     val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(pluginComposeScene) {
-        focusRequester.requestFocus()
-    }
 
     LaunchedEffect(pluginComposeScene) {
         while (true) {
@@ -67,6 +64,10 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
             }
             .focusRequester(focusRequester)
             .focusable()
+            // Re-acquire focus once the node is actually placed: on a session switch the swapped-in
+            // Canvas is not yet placed when composition runs, so a single-shot requestFocus is a
+            // silently-dropped no-op. Driving it from placement makes the request survive the swap.
+            .onPlaced { focusRequester.requestFocus() }
             // Key on the scene (not Unit): on hot reload the scene instance is replaced, and a
             // Unit-keyed pointerInput would keep dispatching to the old, now-closed scene — leaving
             // the freshly reloaded UI unresponsive to clicks.
