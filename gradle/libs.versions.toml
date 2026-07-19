@@ -34,7 +34,9 @@ mcpKotlinSdk = "0.14.0"
 logback = "1.5.38"
 kermit = "2.1.0"
 
-aboutLibraries = "15.0.4"
+# Pinned to the last release built for Java 17 (14.0.0+ ships class-file 65 / Java 21, which the
+# JDK 17 toolchain runtime cannot load).
+aboutLibraries = "13.2.1"
 spotless = "8.8.0"
 conveyor = "2.0"
 conveyorControl = "1.1"
