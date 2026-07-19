@@ -202,7 +202,9 @@ internal class IosDeviceController(
         // simctl cannot stream; idb's video-stream is the only live H.264 source for simulators.
         val idb = idbPath ?: return null
         return withContext(Dispatchers.IO) {
-            ProcessBuilder(idb, "video-stream", "--udid", udid, "--format", "h264").start()
+            // 30fps matches the publish cap on the decode side; streaming faster only costs
+            // encode/decode CPU for frames that would be dropped anyway.
+            ProcessBuilder(idb, "video-stream", "--udid", udid, "--format", "h264", "--fps", "30").start()
         }
     }
 
