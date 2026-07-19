@@ -7,6 +7,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import com.kitakkun.jetwhale.host.model.JetWhaleColorScheme
 import com.kitakkun.jetwhale.host.model.ThemeColorTokens
 
@@ -78,5 +79,26 @@ fun JetWhaleColorScheme.toMaterial3ColorScheme(): ColorScheme = when (this) {
                 onTertiaryFixedVariant = colors[ThemeColorTokens.OnTertiaryFixedVariant] ?: Color.Unspecified,
             )
         }
+    }
+}
+
+/**
+ * Whether this scheme renders dark, decided from the scheme itself rather than a luminance guess of
+ * the resolved surface: [JetWhaleColorScheme.Static.Light]/[JetWhaleColorScheme.Static.Dark] are
+ * definitive, and [JetWhaleColorScheme.Dynamic] follows the OS exactly as [toMaterial3ColorScheme]
+ * does. A [JetWhaleColorScheme.Static.Custom] scheme carries no light/dark label, so as a fallback
+ * it is judged by the luminance of its declared surface (or background) color.
+ */
+@Composable
+fun JetWhaleColorScheme.isDarkTheme(): Boolean = when (this) {
+    is JetWhaleColorScheme.Dynamic -> if (isSystemInDarkTheme()) darkColorScheme.isDarkTheme() else lightColorScheme.isDarkTheme()
+
+    is JetWhaleColorScheme.Static.Light -> false
+
+    is JetWhaleColorScheme.Static.Dark -> true
+
+    is JetWhaleColorScheme.Static.Custom -> {
+        val surfaceArgb = colors[ThemeColorTokens.Surface] ?: colors[ThemeColorTokens.Background]
+        surfaceArgb?.let { Color(it).luminance() < 0.5f } ?: false
     }
 }
