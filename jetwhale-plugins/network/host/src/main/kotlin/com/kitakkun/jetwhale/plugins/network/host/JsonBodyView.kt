@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,10 +68,11 @@ internal fun BodyBlock(label: String, body: String?, truncated: Boolean) {
             modifier = Modifier.fillMaxWidth(),
         ) {
             Box(Modifier.padding(10.dp)) {
+                val colors = rememberJsonColors()
                 if (json != null && mode == BodyMode.Tree) {
-                    Column { JsonTreeNode(json, label = label) }
+                    Column { JsonTreeNode(json, label = label, colors = colors) }
                 } else {
-                    val rendered = remember(json, body) { json?.let { highlightedJson(it) } }
+                    val rendered = remember(json, body, colors) { json?.let { highlightedJson(it, colors) } }
                     Text(
                         text = rendered ?: AnnotatedString(body + if (truncated) "\n… (truncated)" else ""),
                         style = MaterialTheme.typography.bodySmall,
@@ -89,15 +91,16 @@ private enum class BodyMode { Tree, Raw }
 // ---------------------------------------------------------------------------------------
 
 @Composable
-private fun JsonTreeNode(element: JsonElement, label: String?, depth: Int = 0) {
+private fun JsonTreeNode(element: JsonElement, label: String?, colors: JsonColors, depth: Int = 0) {
     when (element) {
         is JsonObject -> JsonBranch(
             label = label,
             isArray = false,
             size = element.size,
             depth = depth,
+            colors = colors,
         ) {
-            element.forEach { (key, value) -> JsonTreeNode(value, key, depth + 1) }
+            element.forEach { (key, value) -> JsonTreeNode(value, key, colors, depth + 1) }
         }
 
         is JsonArray -> JsonBranch(
@@ -105,11 +108,12 @@ private fun JsonTreeNode(element: JsonElement, label: String?, depth: Int = 0) {
             isArray = true,
             size = element.size,
             depth = depth,
+            colors = colors,
         ) {
-            element.forEachIndexed { index, value -> JsonTreeNode(value, "[$index]", depth + 1) }
+            element.forEachIndexed { index, value -> JsonTreeNode(value, "[$index]", colors, depth + 1) }
         }
 
-        else -> JsonLeaf(label, element as JsonPrimitive, depth)
+        else -> JsonLeaf(label, element as JsonPrimitive, colors, depth)
     }
 }
 
@@ -119,6 +123,7 @@ private fun JsonBranch(
     isArray: Boolean,
     size: Int,
     depth: Int,
+    colors: JsonColors,
     children: @Composable () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(depth < 1) }
@@ -133,14 +138,14 @@ private fun JsonBranch(
     ) {
         Text(
             text = if (expanded) "▾" else "▸",
-            color = JsonColors.punctuation,
+            color = colors.punctuation,
             style = MaterialTheme.typography.bodySmall,
             fontFamily = FontFamily.Monospace,
         )
         Text(
             buildAnnotatedString {
-                if (label != null) withStyle(SpanStyle(color = JsonColors.key)) { append(label) }
-                withStyle(SpanStyle(color = JsonColors.punctuation)) {
+                if (label != null) withStyle(SpanStyle(color = colors.key)) { append(label) }
+                withStyle(SpanStyle(color = colors.punctuation)) {
                     append(if (isArray) "  [$size]" else "  {$size}")
                 }
             },
@@ -152,14 +157,14 @@ private fun JsonBranch(
 }
 
 @Composable
-private fun JsonLeaf(label: String?, primitive: JsonPrimitive, depth: Int) {
+private fun JsonLeaf(label: String?, primitive: JsonPrimitive, colors: JsonColors, depth: Int) {
     Text(
         buildAnnotatedString {
             if (label != null) {
-                withStyle(SpanStyle(color = JsonColors.key)) { append(label) }
-                withStyle(SpanStyle(color = JsonColors.punctuation)) { append(": ") }
+                withStyle(SpanStyle(color = colors.key)) { append(label) }
+                withStyle(SpanStyle(color = colors.punctuation)) { append(": ") }
             }
-            append(primitiveAnnotated(primitive))
+            append(primitiveAnnotated(primitive, colors))
         },
         style = MaterialTheme.typography.bodySmall,
         fontFamily = FontFamily.Monospace,
@@ -171,12 +176,13 @@ private fun JsonLeaf(label: String?, primitive: JsonPrimitive, depth: Int) {
 // Raw (syntax-highlighted, pretty-printed)
 // ---------------------------------------------------------------------------------------
 
-private fun highlightedJson(element: JsonElement): AnnotatedString = buildAnnotatedString { appendJson(element, 0) }
+private fun highlightedJson(element: JsonElement, colors: JsonColors): AnnotatedString =
+    buildAnnotatedString { appendJson(element, 0, colors) }
 
-private fun AnnotatedString.Builder.appendJson(element: JsonElement, indent: Int) {
+private fun AnnotatedString.Builder.appendJson(element: JsonElement, indent: Int, colors: JsonColors) {
     val pad = "  ".repeat(indent)
     val pad1 = "  ".repeat(indent + 1)
-    fun punct(text: String) = withStyle(SpanStyle(color = JsonColors.punctuation)) { append(text) }
+    fun punct(text: String) = withStyle(SpanStyle(color = colors.punctuation)) { append(text) }
     when (element) {
         is JsonObject -> {
             if (element.isEmpty()) {
@@ -186,9 +192,9 @@ private fun AnnotatedString.Builder.appendJson(element: JsonElement, indent: Int
             punct("{\n")
             element.entries.forEachIndexed { index, (key, value) ->
                 append(pad1)
-                withStyle(SpanStyle(color = JsonColors.key)) { append("\"$key\"") }
+                withStyle(SpanStyle(color = colors.key)) { append("\"$key\"") }
                 punct(": ")
-                appendJson(value, indent + 1)
+                appendJson(value, indent + 1, colors)
                 if (index < element.size - 1) punct(",")
                 append("\n")
             }
@@ -204,7 +210,7 @@ private fun AnnotatedString.Builder.appendJson(element: JsonElement, indent: Int
             punct("[\n")
             element.forEachIndexed { index, value ->
                 append(pad1)
-                appendJson(value, indent + 1)
+                appendJson(value, indent + 1, colors)
                 if (index < element.size - 1) punct(",")
                 append("\n")
             }
@@ -212,26 +218,41 @@ private fun AnnotatedString.Builder.appendJson(element: JsonElement, indent: Int
             punct("]")
         }
 
-        else -> append(primitiveAnnotated(element as JsonPrimitive))
+        else -> append(primitiveAnnotated(element as JsonPrimitive, colors))
     }
 }
 
-private fun primitiveAnnotated(primitive: JsonPrimitive): AnnotatedString = buildAnnotatedString {
+private fun primitiveAnnotated(primitive: JsonPrimitive, colors: JsonColors): AnnotatedString = buildAnnotatedString {
     val color = when {
-        primitive is JsonNull -> JsonColors.keyword
-        primitive.isString -> JsonColors.string
-        primitive.content == "true" || primitive.content == "false" -> JsonColors.keyword
-        else -> JsonColors.number
+        primitive is JsonNull -> colors.keyword
+        primitive.isString -> colors.string
+        primitive.content == "true" || primitive.content == "false" -> colors.keyword
+        else -> colors.number
     }
     withStyle(SpanStyle(color = color)) { append(primitive.toString()) }
 }
 
-private object JsonColors {
-    val key = Color(0xFF0B6E99)
-    val string = Color(0xFF2E7D32)
-    val number = Color(0xFF1565C0)
-    val keyword = Color(0xFF8E24AA)
-    val punctuation = Color(0xFF8A8A8A)
+private data class JsonColors(
+    val key: Color,
+    val string: Color,
+    val number: Color,
+    val keyword: Color,
+    val punctuation: Color,
+)
+
+@Composable
+private fun rememberJsonColors(): JsonColors {
+    val dark = isSystemInDarkTheme()
+    val punctuation = MaterialTheme.colorScheme.onSurfaceVariant
+    return remember(dark, punctuation) {
+        JsonColors(
+            key = if (dark) Color(0xFF4FC3F7) else Color(0xFF0B6E99),
+            string = if (dark) Color(0xFF81C784) else Color(0xFF2E7D32),
+            number = if (dark) Color(0xFF64B5F6) else Color(0xFF1565C0),
+            keyword = if (dark) Color(0xFFCE93D8) else Color(0xFF8E24AA),
+            punctuation = punctuation,
+        )
+    }
 }
 
 private val lenientJson = Json {
