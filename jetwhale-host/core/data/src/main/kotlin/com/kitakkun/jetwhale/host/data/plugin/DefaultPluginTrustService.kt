@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
+import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginTrustRepository
 import com.kitakkun.jetwhale.host.model.PluginTrustService
@@ -24,11 +25,17 @@ class DefaultPluginTrustService(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
     private val pluginTrustRepository: PluginTrustRepository,
     private val pluginFactoryRepository: PluginFactoryRepository,
+    private val settingsRepository: DebuggerSettingsRepository,
 ) : PluginTrustService {
     override val untrustedJarPathsFlow: Flow<List<String>>
         field = MutableStateFlow(emptyList())
 
     override suspend fun loadTrustedPlugins() {
+        // Read the opt-in signing flag once, then load the registry from disk before consulting any
+        // trust decision. Reading it here (a Service combining repositories) keeps the trust
+        // repository free of any dependency on the settings repository.
+        val signingEnabled = settingsRepository.readSignPluginTrustRegistry()
+        pluginTrustRepository.load(signingEnabled)
         val untrusted = mutableListOf<String>()
         for (jarPath in appDataDirectoryProvider.getAllPluginJarFilePaths()) {
             if (isTrusted(jarPath)) {
@@ -45,18 +52,30 @@ class DefaultPluginTrustService(
         require(appDataDirectoryProvider.isManagedPluginJarPath(jarPath)) {
             "Refusing to trust a jar outside the managed plugins directory: $jarPath"
         }
-        pluginTrustRepository.trust(jarPath, computeSha256(jarPath))
+        val signingEnabled = settingsRepository.readSignPluginTrustRegistry()
+        pluginTrustRepository.trust(jarPath, computeSha256(jarPath), signingEnabled)
         untrustedJarPathsFlow.update { it - jarPath }
         pluginFactoryRepository.loadPlugin(jarPath)
     }
 
     override suspend fun revokeTrust(jarPath: String) {
-        pluginTrustRepository.revoke(jarPath)
+        val signingEnabled = settingsRepository.readSignPluginTrustRegistry()
+        pluginTrustRepository.revoke(jarPath, signingEnabled)
         // Unload everything this jar provided so revoking trust takes effect immediately, without a
         // restart. The jar file itself stays in the directory, so it becomes untrusted-but-present.
         pluginFactoryRepository.findPluginIdsByJarPath(jarPath).forEach { pluginFactoryRepository.unloadPlugin(it) }
         if (File(jarPath).exists()) {
             untrustedJarPathsFlow.update { if (jarPath in it) it else it + jarPath }
+        }
+    }
+
+    override suspend fun setSigningEnabled(enabled: Boolean) {
+        settingsRepository.updateSignPluginTrustRegistry(enabled)
+        // Turning signing on must sign the registry that already exists on disk. Otherwise the next
+        // startup would find an unsigned registry while signing is on and, once a signing key
+        // exists, reject it as tampered — silently dropping every approved plugin.
+        if (enabled) {
+            pluginTrustRepository.resign(signingEnabled = true)
         }
     }
 

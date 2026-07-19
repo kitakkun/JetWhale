@@ -40,4 +40,12 @@ interface PluginTrustService {
 
     /** Revokes approval for [jarPath], unloads the plugins it provided, and re-flags it as untrusted. */
     suspend fun revokeTrust(jarPath: String)
+
+    /**
+     * Turns trust-registry signing on or off and persists the choice. Enabling it re-signs the
+     * current registry (provisioning the signing key, a one-time credential-store prompt) so a later
+     * startup never encounters an unsigned registry while signing is on; disabling it just records
+     * the preference and leaves the credential store untouched.
+     */
+    suspend fun setSigningEnabled(enabled: Boolean)
 }

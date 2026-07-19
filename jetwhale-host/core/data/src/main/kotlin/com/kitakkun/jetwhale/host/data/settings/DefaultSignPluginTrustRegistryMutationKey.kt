@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.host.data.settings
 
-import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
+import com.kitakkun.jetwhale.host.model.PluginTrustService
 import com.kitakkun.jetwhale.host.model.SignPluginTrustRegistryMutationKey
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -13,11 +13,13 @@ import soil.query.buildMutationKey
 @ContributesBinding(AppScope::class, binding<SignPluginTrustRegistryMutationKey>())
 @Inject
 class DefaultSignPluginTrustRegistryMutationKey(
-    private val settingsRepository: DebuggerSettingsRepository,
+    private val pluginTrustService: PluginTrustService,
 ) : SignPluginTrustRegistryMutationKey,
     MutationKey<Unit, Boolean> by buildMutationKey(
         id = MutationId("sign_plugin_trust_registry"),
+        // Route through the service so enabling signing also re-signs the existing registry (one
+        // credential-store prompt), rather than only flipping the setting.
         mutate = { enabled: Boolean ->
-            settingsRepository.updateSignPluginTrustRegistry(enabled)
+            pluginTrustService.setSigningEnabled(enabled)
         },
     )

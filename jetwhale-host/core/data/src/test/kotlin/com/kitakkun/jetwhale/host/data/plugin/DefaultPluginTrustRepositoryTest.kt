@@ -1,9 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
-import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.security.MessageDigest
@@ -36,12 +33,9 @@ class DefaultPluginTrustRepositoryTest {
     }
 
     // A fresh repository each time so we exercise the on-disk read path, not just the in-memory
-    // cache. Signing defaults to enabled so the signer-backed behavior stays under test; the
-    // opt-in-off path is exercised explicitly below.
-    private fun newRepository(
-        signer: TrustRegistrySigner = FakeTrustRegistrySigner(),
-        settings: DebuggerSettingsRepository = FakeDebuggerSettingsRepository(signEnabled = true),
-    ) = DefaultPluginTrustRepository(AppDataDirectoryProvider(), signer, settings)
+    // cache. The caller decides whether signing is on by passing `signingEnabled` to load/trust; the
+    // repository holds no policy of its own.
+    private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) = DefaultPluginTrustRepository(AppDataDirectoryProvider(), signer)
 
     /**
      * Deterministic stand-in for the keyring-backed signer: the "signature" is a digest of the
@@ -72,49 +66,17 @@ class DefaultPluginTrustRepositoryTest {
     private class ThrowingTrustRegistrySigner : TrustRegistrySigner {
         override fun sign(payload: String): String? = error("signer must not be invoked when signing is disabled")
 
-        override fun verify(payload: String, signature: String?): TrustRegistrySigner.Verification =
-            error("signer must not be invoked when signing is disabled")
-    }
-
-    /** Minimal settings stand-in exposing only the opt-in flag the trust repository reads. */
-    private class FakeDebuggerSettingsRepository(signEnabled: Boolean) : DebuggerSettingsRepository {
-        private var signPluginTrustRegistry = signEnabled
-
-        override val signPluginTrustRegistryFlow: StateFlow<Boolean> = MutableStateFlow(signEnabled)
-        override val adbAutoPortMappingEnabledFlow: StateFlow<Boolean> = MutableStateFlow(false)
-        override val checkForUpdatesOnStartupFlow: StateFlow<Boolean> = MutableStateFlow(true)
-        override val persistDataFlow: StateFlow<Boolean> = MutableStateFlow(false)
-        override val serverPortFlow: StateFlow<Int> = MutableStateFlow(0)
-        override val mcpServerPortFlow: StateFlow<Int> = MutableStateFlow(0)
-        override val wssPortFlow: StateFlow<Int> = MutableStateFlow(0)
-        override val wssEnabledFlow: StateFlow<Boolean> = MutableStateFlow(true)
-
-        override suspend fun readSignPluginTrustRegistry(): Boolean = signPluginTrustRegistry
-        override suspend fun updateSignPluginTrustRegistry(enabled: Boolean) {
-            signPluginTrustRegistry = enabled
-        }
-
-        override suspend fun readServerPort(): Int = 0
-        override suspend fun readMcpServerPort(): Int = 0
-        override suspend fun readWssPort(): Int = 0
-        override suspend fun updatePersistData(enabled: Boolean) = Unit
-        override suspend fun updateAdbAutoPortMappingEnabled(enabled: Boolean) = Unit
-        override suspend fun readCheckForUpdatesOnStartup(): Boolean = true
-        override suspend fun updateCheckForUpdatesOnStartup(enabled: Boolean) = Unit
-        override suspend fun updateServerPort(port: Int) = Unit
-        override suspend fun updateMcpServerPort(port: Int) = Unit
-        override suspend fun updateWssPort(port: Int) = Unit
-        override suspend fun updateWssEnabled(enabled: Boolean) = Unit
+        override fun verify(payload: String, signature: String?): TrustRegistrySigner.Verification = error("signer must not be invoked when signing is disabled")
     }
 
     @Test
     fun `trusted entries survive a read back from disk`() = runBlocking {
         newRepository().apply {
-            trust("/plugins/a.jar", "hash-a")
-            trust("/plugins/b.jar", "hash-b")
+            trust("/plugins/a.jar", "hash-a", signingEnabled = true)
+            trust("/plugins/b.jar", "hash-b", signingEnabled = true)
         }
 
-        val reloaded = newRepository()
+        val reloaded = newRepository().apply { load(signingEnabled = true) }
         assertEquals("hash-a", reloaded.trustedEntry("/plugins/a.jar")?.sha256)
         assertEquals("hash-b", reloaded.trustedEntry("/plugins/b.jar")?.sha256)
     }
@@ -122,71 +84,77 @@ class DefaultPluginTrustRepositoryTest {
     @Test
     fun `revoke removes the entry and persists`() = runBlocking {
         newRepository().apply {
-            trust("/plugins/a.jar", "hash-a")
-            revoke("/plugins/a.jar")
+            trust("/plugins/a.jar", "hash-a", signingEnabled = true)
+            revoke("/plugins/a.jar", signingEnabled = true)
         }
 
-        assertNull(newRepository().trustedEntry("/plugins/a.jar"))
+        val reloaded = newRepository().apply { load(signingEnabled = true) }
+        assertNull(reloaded.trustedEntry("/plugins/a.jar"))
     }
 
     @Test
     fun `a tampered registry is rejected wholesale`() = runBlocking {
-        newRepository().trust("/plugins/a.jar", "hash-a")
+        newRepository().trust("/plugins/a.jar", "hash-a", signingEnabled = true)
 
         // Simulate a malicious process rewriting the file: swap in a different hash while leaving
         // the recorded signature untouched.
         val registryFile = AppDataDirectoryProvider().getTrustRegistryFile()
         registryFile.writeText(registryFile.readText().replace("hash-a", "forged-hash"))
 
-        assertNull(newRepository().trustedEntry("/plugins/a.jar"))
+        val reloaded = newRepository().apply { load(signingEnabled = true) }
+        assertNull(reloaded.trustedEntry("/plugins/a.jar"))
     }
 
     @Test
     fun `an unsigned registry is rejected when a signing key already exists`() = runBlocking {
-        newRepository(FakeTrustRegistrySigner(available = false)).trust("/plugins/a.jar", "hash-a")
+        newRepository(FakeTrustRegistrySigner(available = false)).trust("/plugins/a.jar", "hash-a", signingEnabled = true)
 
-        assertNull(newRepository(FakeTrustRegistrySigner(keyPreexisted = true)).trustedEntry("/plugins/a.jar"))
+        val reloaded = newRepository(FakeTrustRegistrySigner(keyPreexisted = true)).apply { load(signingEnabled = true) }
+        assertNull(reloaded.trustedEntry("/plugins/a.jar"))
     }
 
     @Test
     fun `an unsigned registry is accepted on first run with a new signing key`() = runBlocking {
         // Upgrade path: the registry predates registry signing, so no signature exists yet. The
         // key being brand new proves no signed registry could ever have been written.
-        newRepository(FakeTrustRegistrySigner(available = false)).trust("/plugins/a.jar", "hash-a")
+        newRepository(FakeTrustRegistrySigner(available = false)).trust("/plugins/a.jar", "hash-a", signingEnabled = true)
 
-        val reloaded = newRepository(FakeTrustRegistrySigner(keyPreexisted = false))
+        val reloaded = newRepository(FakeTrustRegistrySigner(keyPreexisted = false)).apply { load(signingEnabled = true) }
         assertEquals("hash-a", reloaded.trustedEntry("/plugins/a.jar")?.sha256)
     }
 
     @Test
     fun `registry is loaded without verification when the credential store is unavailable`() = runBlocking {
-        newRepository().trust("/plugins/a.jar", "hash-a")
+        newRepository().trust("/plugins/a.jar", "hash-a", signingEnabled = true)
 
-        val reloaded = newRepository(FakeTrustRegistrySigner(available = false))
+        val reloaded = newRepository(FakeTrustRegistrySigner(available = false)).apply { load(signingEnabled = true) }
         assertEquals("hash-a", reloaded.trustedEntry("/plugins/a.jar")?.sha256)
     }
 
     @Test
     fun `the signer is never consulted when signing is disabled`() = runBlocking {
-        val settings = FakeDebuggerSettingsRepository(signEnabled = false)
-        newRepository(signer = ThrowingTrustRegistrySigner(), settings = settings)
-            .trust("/plugins/a.jar", "hash-a")
+        newRepository(signer = ThrowingTrustRegistrySigner())
+            .trust("/plugins/a.jar", "hash-a", signingEnabled = false)
 
-        val reloaded = newRepository(signer = ThrowingTrustRegistrySigner(), settings = settings)
+        val reloaded = newRepository(signer = ThrowingTrustRegistrySigner()).apply { load(signingEnabled = false) }
         assertEquals("hash-a", reloaded.trustedEntry("/plugins/a.jar")?.sha256)
     }
 
     @Test
-    fun `a registry written unsigned still loads once signing is enabled`() = runBlocking {
-        // Approve while signing is off (registry written without a signature), then turn signing on:
-        // the previously unsigned registry is treated as an upgrade and still loads.
-        newRepository(settings = FakeDebuggerSettingsRepository(signEnabled = false))
-            .trust("/plugins/a.jar", "hash-a")
+    fun `resign signs a previously unsigned registry so it verifies with signing on`() = runBlocking {
+        // Approve while signing is off: the registry is written unsigned.
+        newRepository(signer = ThrowingTrustRegistrySigner())
+            .trust("/plugins/a.jar", "hash-a", signingEnabled = false)
 
-        val reloaded = newRepository(
-            signer = FakeTrustRegistrySigner(keyPreexisted = false),
-            settings = FakeDebuggerSettingsRepository(signEnabled = true),
-        )
+        // Re-sign the current registry (as setSigningEnabled(true) does), then a signing-on reload
+        // with a pre-existing key verifies the freshly written signature instead of rejecting the
+        // file as unsigned-but-signing-on.
+        newRepository(FakeTrustRegistrySigner(keyPreexisted = true)).apply {
+            load(signingEnabled = false)
+            resign(signingEnabled = true)
+        }
+
+        val reloaded = newRepository(FakeTrustRegistrySigner(keyPreexisted = true)).apply { load(signingEnabled = true) }
         assertEquals("hash-a", reloaded.trustedEntry("/plugins/a.jar")?.sha256)
     }
 }

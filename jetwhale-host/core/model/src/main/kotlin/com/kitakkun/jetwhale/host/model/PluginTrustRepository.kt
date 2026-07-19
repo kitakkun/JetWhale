@@ -25,9 +25,29 @@ interface PluginTrustRepository {
 
     suspend fun trustedEntry(jarPath: String): TrustedPluginEntry?
 
-    /** Records (or replaces) the trusted entry for a jar, pinning [sha256] as its approved content. */
-    suspend fun trust(jarPath: String, sha256: String)
+    /**
+     * Populates [trustedEntriesFlow] from disk. Call once before reading any trust decision. When
+     * [signingEnabled] is true the on-disk signature is verified (touching the OS credential store);
+     * when false the registry is read as-is and the credential store is never accessed.
+     */
+    suspend fun load(signingEnabled: Boolean)
 
-    /** Removes any trusted entry for [jarPath]. */
-    suspend fun revoke(jarPath: String)
+    /**
+     * Records (or replaces) the trusted entry for a jar, pinning [sha256] as its approved content.
+     * [signingEnabled] selects whether the rewritten registry is signed.
+     */
+    suspend fun trust(jarPath: String, sha256: String, signingEnabled: Boolean)
+
+    /**
+     * Removes any trusted entry for [jarPath]. [signingEnabled] selects whether the rewritten
+     * registry is signed.
+     */
+    suspend fun revoke(jarPath: String, signingEnabled: Boolean)
+
+    /**
+     * Re-persists the current in-memory entries so the registry on disk matches [signingEnabled].
+     * Used when signing is turned on to sign a previously-unsigned registry (a one-time credential
+     * store prompt), so a later startup never sees an unsigned registry while signing is on.
+     */
+    suspend fun resign(signingEnabled: Boolean)
 }

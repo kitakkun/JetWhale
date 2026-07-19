@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
-import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.PluginTrustRepository
 import com.kitakkun.jetwhale.host.model.TrustedPluginEntry
 import dev.zacsweers.metro.AppScope
@@ -11,7 +10,6 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
@@ -22,14 +20,14 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
 /**
- * JSON-file-backed trust registry stored at `~/.jetwhale/trusted-plugins.json`. Reads itself once on
- * construction so the trust decision is available before any plugin jar is loaded; every mutation
- * updates the in-memory snapshot and rewrites the file under a mutex.
+ * JSON-file-backed trust registry stored at `~/.jetwhale/trusted-plugins.json`. [load] reads it once
+ * (typically on startup, before any plugin jar is loaded); every mutation updates the in-memory
+ * snapshot and rewrites the file under a mutex.
  *
- * Registry signing is opt-in via [DebuggerSettingsRepository.readSignPluginTrustRegistry] and off by
- * default. When it is off, the signer is never invoked, so the OS credential store is never touched:
- * the registry is read and written unsigned. The SHA-256 content pinning of approved jars applies
- * regardless of this setting.
+ * Whether the registry is signed is decided by the caller and passed as `signingEnabled`: this
+ * repository owns no policy of its own. When signing is off the signer is never invoked, so the OS
+ * credential store is never touched — the registry is read and written unsigned. The SHA-256 content
+ * pinning of approved jars is enforced by [PluginTrustService] regardless of this flag.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
@@ -37,35 +35,38 @@ import java.nio.file.StandardCopyOption
 class DefaultPluginTrustRepository(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
     private val trustRegistrySigner: TrustRegistrySigner,
-    private val settingsRepository: DebuggerSettingsRepository,
 ) : PluginTrustRepository {
     private val writeMutex = Mutex()
 
     override val trustedEntriesFlow: Flow<Map<String, TrustedPluginEntry>>
-        field = MutableStateFlow(readFromDisk())
+        field = MutableStateFlow(emptyMap())
 
     override suspend fun trustedEntry(jarPath: String): TrustedPluginEntry? = trustedEntriesFlow.value[jarPath]
 
-    override suspend fun trust(jarPath: String, sha256: String): Unit = writeMutex.withLock {
+    override suspend fun load(signingEnabled: Boolean): Unit = writeMutex.withLock {
+        trustedEntriesFlow.value = readFromDisk(signingEnabled)
+    }
+
+    override suspend fun trust(jarPath: String, sha256: String, signingEnabled: Boolean): Unit = writeMutex.withLock {
         val updated = trustedEntriesFlow.value + (jarPath to TrustedPluginEntry(jarPath, sha256, System.currentTimeMillis()))
-        persist(updated)
+        persist(updated, signingEnabled)
         trustedEntriesFlow.value = updated
     }
 
-    override suspend fun revoke(jarPath: String): Unit = writeMutex.withLock {
+    override suspend fun revoke(jarPath: String, signingEnabled: Boolean): Unit = writeMutex.withLock {
         if (jarPath !in trustedEntriesFlow.value) return@withLock
         val updated = trustedEntriesFlow.value - jarPath
-        persist(updated)
+        persist(updated, signingEnabled)
         trustedEntriesFlow.value = updated
     }
 
-    private fun readFromDisk(): Map<String, TrustedPluginEntry> {
+    override suspend fun resign(signingEnabled: Boolean): Unit = writeMutex.withLock {
+        persist(trustedEntriesFlow.value, signingEnabled)
+    }
+
+    private fun readFromDisk(signingEnabled: Boolean): Map<String, TrustedPluginEntry> {
         val file = appDataDirectoryProvider.getTrustRegistryFile()
         if (!file.exists()) return emptyMap()
-        // Read the opt-in flag synchronously so the trust decision (and whether it involves the
-        // credential store at all) is settled before this initial load returns, preserving the
-        // "trust decision available before any plugin jar is loaded" contract.
-        val signRegistry = runBlocking { settingsRepository.readSignPluginTrustRegistry() }
         return try {
             val registry = json.decodeFromString<TrustRegistryFile>(file.readText())
             // When signing is enabled, verify the HMAC over the exact re-encoding of the entries map
@@ -73,7 +74,7 @@ class DefaultPluginTrustRepository(
             // something other than this app (or the key store was reset): fail safe, trust nothing.
             // When signing is disabled the signer is never consulted, so the credential store stays
             // untouched and entries are loaded as-is.
-            if (signRegistry) {
+            if (signingEnabled) {
                 val verification = trustRegistrySigner.verify(json.encodeToString(registry.entries), registry.signature)
                 when (verification) {
                     TrustRegistrySigner.Verification.VALID -> Unit
@@ -105,7 +106,7 @@ class DefaultPluginTrustRepository(
         }
     }
 
-    private suspend fun persist(entries: Map<String, TrustedPluginEntry>) {
+    private fun persist(entries: Map<String, TrustedPluginEntry>, signingEnabled: Boolean) {
         val file = appDataDirectoryProvider.getTrustRegistryFile()
         file.parentFile?.mkdirs()
         val storedEntries = entries.mapValues { (_, entry) ->
@@ -116,10 +117,9 @@ class DefaultPluginTrustRepository(
         }
         // Only invoke the signer when signing is enabled; otherwise the registry is written unsigned
         // and the credential store is never touched.
-        val signRegistry = settingsRepository.readSignPluginTrustRegistry()
         val registry = TrustRegistryFile(
             entries = storedEntries,
-            signature = if (signRegistry) trustRegistrySigner.sign(json.encodeToString(storedEntries)) else null,
+            signature = if (signingEnabled) trustRegistrySigner.sign(json.encodeToString(storedEntries)) else null,
         )
         // Write to a sibling temp file and move it into place so an interrupted write can never
         // leave a truncated registry behind (which would fail-safe but wipe all trust decisions).
