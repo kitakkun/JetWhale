@@ -108,7 +108,7 @@ public class JetWhalePluginPeer(
     /**
      * The sending face handed to plugin code. Valid for the lifetime of this peer. It is the live
      * transport: while bound it simply sends. Host plugins use it through the shared
-     * [JetWhaleConnectedMessenger] face; the agent's connection-independent buffering messenger binds
+     * [JetWhaleMessenger] face; the agent's connection-independent buffering messenger binds
      * to it through the low-level [JetWhaleTransportMessenger.trySendRaw], which is why this peer
      * exposes the tri-state enqueue rather than any offline-policy vocabulary (cross-connection
      * buffering lives in the agent-side messenger that wraps this).

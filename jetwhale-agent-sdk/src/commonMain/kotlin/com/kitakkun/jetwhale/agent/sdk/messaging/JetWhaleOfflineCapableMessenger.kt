@@ -1,8 +1,8 @@
 package com.kitakkun.jetwhale.agent.sdk.messaging
 
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleConnectedMessenger
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleConnectionClosedException
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleEvent
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
 import kotlinx.serialization.serializer
 
 /**
@@ -24,19 +24,20 @@ public enum class OfflineSendPolicy {
 }
 
 /**
- * The **agent-side** sending face of a plugin connection. Extends the always-connected
- * [JetWhaleConnectedMessenger] with an offline-buffering vocabulary: the agent's messenger is
+ * The **agent-side** sending face of a plugin connection. Extends the plain shared
+ * [JetWhaleMessenger] with an **offline-policy surface**: the agent's messenger is
  * connection-independent (it outlives any single connection), so app code may send while
- * disconnected and choose what happens then via [OfflineSendPolicy].
+ * disconnected and choose what happens then via [OfflineSendPolicy] — drop, queue-and-flush, or
+ * fail. This offline-buffering vocabulary is what the "offline-capable" in the name refers to.
  *
- * Host plugins do not see this type — they see the always-connected [JetWhaleConnectedMessenger],
- * where there is nothing to buffer across.
+ * Host plugins do not see this type — they see the plain [JetWhaleMessenger], and their host
+ * binding keeps them connected for the instance's lifetime, so there is nothing to buffer across.
  *
  * The interface itself is the *raw* (string) layer. Plugin authors use the typed
  * `trySend` / [sendOrQueue] / [sendOrFail] / `request` extensions, which capture the message
  * serializer at the call site via reified type parameters.
  */
-public interface JetWhaleMessenger : JetWhaleConnectedMessenger {
+public interface JetWhaleOfflineCapableMessenger : JetWhaleMessenger {
     /**
      * Raw fire-and-forget shape. Prefer the typed `trySend` / [sendOrQueue] / [sendOrFail]
      * extensions. [policy] decides what happens when the connection is unavailable.
@@ -47,7 +48,7 @@ public interface JetWhaleMessenger : JetWhaleConnectedMessenger {
      */
     public fun sendRaw(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean
 
-    /** The always-connected send maps to a best-effort [OfflineSendPolicy.DROP]. */
+    /** The plain [JetWhaleMessenger] send maps to a best-effort [OfflineSendPolicy.DROP]. */
     override fun sendRaw(messageType: String, payload: String): Boolean = sendRaw(messageType, payload, OfflineSendPolicy.DROP)
 }
 
@@ -58,7 +59,7 @@ public interface JetWhaleMessenger : JetWhaleConnectedMessenger {
  * `trySend`. Buffering exists only on the agent's connection-independent messenger. Only
  * [JetWhaleEvent] types are accepted.
  */
-public inline fun <reified E : JetWhaleEvent> JetWhaleMessenger.sendOrQueue(event: E) {
+public inline fun <reified E : JetWhaleEvent> JetWhaleOfflineCapableMessenger.sendOrQueue(event: E) {
     val eventSerializer = serializer<E>()
     sendRaw(
         messageType = eventSerializer.descriptor.serialName,
@@ -74,7 +75,7 @@ public inline fun <reified E : JetWhaleEvent> JetWhaleMessenger.sendOrQueue(even
  *
  * @throws JetWhaleConnectionClosedException when there is no live connection.
  */
-public inline fun <reified E : JetWhaleEvent> JetWhaleMessenger.sendOrFail(event: E) {
+public inline fun <reified E : JetWhaleEvent> JetWhaleOfflineCapableMessenger.sendOrFail(event: E) {
     val eventSerializer = serializer<E>()
     sendRaw(
         messageType = eventSerializer.descriptor.serialName,

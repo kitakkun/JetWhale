@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.agent.runtime
 
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
-import com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleMessenger
+import com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleOfflineCapableMessenger
 import com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleRequest
@@ -28,7 +28,7 @@ private data class State(val value: String)
 private class FakeMessenger(
     private val scope: CoroutineScope,
     private val cannedReply: String,
-) : JetWhaleMessenger {
+) : JetWhaleOfflineCapableMessenger {
     override val payloadFormat: StringFormat = Json
 
     val requested: MutableList<String> = mutableListOf()

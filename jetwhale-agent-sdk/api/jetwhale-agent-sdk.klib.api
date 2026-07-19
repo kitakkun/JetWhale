@@ -18,9 +18,9 @@ final enum class com.kitakkun.jetwhale.agent.sdk.messaging/OfflineSendPolicy : k
     final fun values(): kotlin/Array<com.kitakkun.jetwhale.agent.sdk.messaging/OfflineSendPolicy> // com.kitakkun.jetwhale.agent.sdk.messaging/OfflineSendPolicy.values|values#static(){}[0]
 }
 
-abstract interface com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleMessenger : com.kitakkun.jetwhale.protocol.messaging/JetWhaleConnectedMessenger { // com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleMessenger|null[0]
-    abstract fun sendRaw(kotlin/String, kotlin/String, com.kitakkun.jetwhale.agent.sdk.messaging/OfflineSendPolicy): kotlin/Boolean // com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleMessenger.sendRaw|sendRaw(kotlin.String;kotlin.String;com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy){}[0]
-    open fun sendRaw(kotlin/String, kotlin/String): kotlin/Boolean // com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleMessenger.sendRaw|sendRaw(kotlin.String;kotlin.String){}[0]
+abstract interface com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleOfflineCapableMessenger : com.kitakkun.jetwhale.protocol.messaging/JetWhaleMessenger { // com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleOfflineCapableMessenger|null[0]
+    abstract fun sendRaw(kotlin/String, kotlin/String, com.kitakkun.jetwhale.agent.sdk.messaging/OfflineSendPolicy): kotlin/Boolean // com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleOfflineCapableMessenger.sendRaw|sendRaw(kotlin.String;kotlin.String;com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy){}[0]
+    open fun sendRaw(kotlin/String, kotlin/String): kotlin/Boolean // com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleOfflineCapableMessenger.sendRaw|sendRaw(kotlin.String;kotlin.String){}[0]
 }
 
 abstract class com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin|null[0]
@@ -31,13 +31,13 @@ abstract class com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kita
     abstract val pluginVersion // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginVersion|{}pluginVersion[0]
         abstract fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
     final val messenger // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.messenger|{}messenger[0]
-        final fun <get-messenger>(): com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleMessenger // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.messenger.<get-messenger>|<get-messenger>(){}[0]
+        final fun <get-messenger>(): com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleOfflineCapableMessenger // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.messenger.<get-messenger>|<get-messenger>(){}[0]
     open val offlineEventBufferCapacity // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.offlineEventBufferCapacity|{}offlineEventBufferCapacity[0]
         open fun <get-offlineEventBufferCapacity>(): kotlin/Int // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.offlineEventBufferCapacity.<get-offlineEventBufferCapacity>|<get-offlineEventBufferCapacity>(){}[0]
     open val prepareTimeoutMillis // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.prepareTimeoutMillis|{}prepareTimeoutMillis[0]
         open fun <get-prepareTimeoutMillis>(): kotlin/Long // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.prepareTimeoutMillis.<get-prepareTimeoutMillis>|<get-prepareTimeoutMillis>(){}[0]
 
-    final fun bindMessenger(com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleMessenger) // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.bindMessenger|bindMessenger(com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleMessenger){}[0]
+    final fun bindMessenger(com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleOfflineCapableMessenger) // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.bindMessenger|bindMessenger(com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleOfflineCapableMessenger){}[0]
     final fun dispatchActivate() // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.dispatchActivate|dispatchActivate(){}[0]
     final fun dispatchDeactivate() // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.dispatchDeactivate|dispatchDeactivate(){}[0]
     final fun offlineEventBufferCapacity(): kotlin/Int // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.offlineEventBufferCapacity|offlineEventBufferCapacity(){}[0]
@@ -52,7 +52,7 @@ abstract class com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kita
     open suspend fun onPrepare() // com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin.onPrepare|onPrepare(){}[0]
 }
 
-final class com.kitakkun.jetwhale.agent.sdk.messaging/BufferedMessenger : com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleMessenger { // com.kitakkun.jetwhale.agent.sdk.messaging/BufferedMessenger|null[0]
+final class com.kitakkun.jetwhale.agent.sdk.messaging/BufferedMessenger : com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleOfflineCapableMessenger { // com.kitakkun.jetwhale.agent.sdk.messaging/BufferedMessenger|null[0]
     constructor <init>(kotlinx.coroutines/CoroutineScope, kotlinx.serialization/StringFormat, kotlin/Int, kotlin/Function1<kotlin/String, kotlin/Unit> = ...) // com.kitakkun.jetwhale.agent.sdk.messaging/BufferedMessenger.<init>|<init>(kotlinx.coroutines.CoroutineScope;kotlinx.serialization.StringFormat;kotlin.Int;kotlin.Function1<kotlin.String,kotlin.Unit>){}[0]
 
     final val payloadFormat // com.kitakkun.jetwhale.agent.sdk.messaging/BufferedMessenger.payloadFormat|{}payloadFormat[0]
@@ -66,5 +66,5 @@ final class com.kitakkun.jetwhale.agent.sdk.messaging/BufferedMessenger : com.ki
     final suspend fun requestRaw(kotlin/String, kotlin/String, kotlin.time/Duration?): kotlin/String // com.kitakkun.jetwhale.agent.sdk.messaging/BufferedMessenger.requestRaw|requestRaw(kotlin.String;kotlin.String;kotlin.time.Duration?){}[0]
 }
 
-final inline fun <#A: reified com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent> (com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleMessenger).com.kitakkun.jetwhale.agent.sdk.messaging/sendOrFail(#A) // com.kitakkun.jetwhale.agent.sdk.messaging/sendOrFail|sendOrFail@com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleMessenger(0:0){0§<com.kitakkun.jetwhale.protocol.messaging.JetWhaleEvent>}[0]
-final inline fun <#A: reified com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent> (com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleMessenger).com.kitakkun.jetwhale.agent.sdk.messaging/sendOrQueue(#A) // com.kitakkun.jetwhale.agent.sdk.messaging/sendOrQueue|sendOrQueue@com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleMessenger(0:0){0§<com.kitakkun.jetwhale.protocol.messaging.JetWhaleEvent>}[0]
+final inline fun <#A: reified com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent> (com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleOfflineCapableMessenger).com.kitakkun.jetwhale.agent.sdk.messaging/sendOrFail(#A) // com.kitakkun.jetwhale.agent.sdk.messaging/sendOrFail|sendOrFail@com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleOfflineCapableMessenger(0:0){0§<com.kitakkun.jetwhale.protocol.messaging.JetWhaleEvent>}[0]
+final inline fun <#A: reified com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent> (com.kitakkun.jetwhale.agent.sdk.messaging/JetWhaleOfflineCapableMessenger).com.kitakkun.jetwhale.agent.sdk.messaging/sendOrQueue(#A) // com.kitakkun.jetwhale.agent.sdk.messaging/sendOrQueue|sendOrQueue@com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleOfflineCapableMessenger(0:0){0§<com.kitakkun.jetwhale.protocol.messaging.JetWhaleEvent>}[0]

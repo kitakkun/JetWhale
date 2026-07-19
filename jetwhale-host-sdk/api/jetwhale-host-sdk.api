@@ -260,10 +260,10 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor {
 public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMessagingHostPlugin : com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin {
 	public static final field $stable I
 	public fun <init> ()V
-	public final fun bindMessenger (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleConnectedMessenger;)V
+	public final fun bindMessenger (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;)V
 	protected fun configure (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessageHandlers;)V
 	public final fun dispatchPrepare (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	protected final fun getMessenger ()Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleConnectedMessenger;
+	protected final fun getMessenger ()Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;
 	protected fun getPrepareTimeoutMillis ()J
 	protected fun onPrepare (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun prepareTimeoutMillis ()J

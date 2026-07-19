@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.host.sdk
 
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleConnectedMessenger
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
 
 /**
  * Base class for a host plugin that exchanges messages with its agent counterpart (a
@@ -17,7 +17,7 @@ import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
  * Combine with [JetWhaleHostPluginUi] to also render a UI.
  */
 public abstract class JetWhaleMessagingHostPlugin : JetWhaleHostPlugin() {
-    private var boundMessenger: JetWhaleConnectedMessenger? = null
+    private var boundMessenger: JetWhaleMessenger? = null
 
     /**
      * Sends messages to the agent counterpart: `trySend(event)` for fire-and-forget events,
@@ -27,7 +27,7 @@ public abstract class JetWhaleMessagingHostPlugin : JetWhaleHostPlugin() {
      * here (no `sendOrQueue` / `sendOrFail` / send policy): offline buffering is an agent-side
      * concept, and a host plugin has nothing to buffer across.
      */
-    protected val messenger: JetWhaleConnectedMessenger
+    protected val messenger: JetWhaleMessenger
         get() = checkNotNull(boundMessenger) {
             "messenger is only available after the plugin instance has been bound (in or after onCreate())."
         }
@@ -70,7 +70,7 @@ public abstract class JetWhaleMessagingHostPlugin : JetWhaleHostPlugin() {
 
     /** Binds the session-scoped messenger. Called once, before [onCreate]. */
     @InternalJetWhaleHostApi
-    public fun bindMessenger(messenger: JetWhaleConnectedMessenger) {
+    public fun bindMessenger(messenger: JetWhaleMessenger) {
         boundMessenger = messenger
     }
 

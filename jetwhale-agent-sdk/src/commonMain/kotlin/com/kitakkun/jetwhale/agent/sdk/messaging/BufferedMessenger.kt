@@ -18,7 +18,7 @@ import kotlinx.serialization.StringFormat
 import kotlin.time.Duration
 
 /**
- * A connection-independent [JetWhaleMessenger] that outlives any single connection. Plugin code holds
+ * A connection-independent [JetWhaleOfflineCapableMessenger] that outlives any single connection. Plugin code holds
  * one of these for its whole lifetime and the runtime [bind]s/[unbind]s the live transport (a peer's
  * messenger) underneath as connections come and go.
  *
@@ -45,7 +45,7 @@ public class BufferedMessenger(
     override val payloadFormat: StringFormat,
     private val bufferCapacity: Int,
     private val logger: (String) -> Unit = {},
-) : JetWhaleMessenger {
+) : JetWhaleOfflineCapableMessenger {
     private data class BufferedEvent(val messageType: String, val payload: String)
 
     private val scope: CoroutineScope =

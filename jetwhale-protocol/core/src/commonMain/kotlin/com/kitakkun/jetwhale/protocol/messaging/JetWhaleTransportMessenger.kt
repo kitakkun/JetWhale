@@ -15,13 +15,13 @@ public enum class RawSendOutcome {
 /**
  * The low-level, always-connected transport surface an agent-side buffering messenger binds to.
  *
- * It extends the shared [JetWhaleConnectedMessenger] with a single non-suspending, tri-state
- * enqueue: unlike [JetWhaleConnectedMessenger.sendRaw] (which collapses every failure to `false`),
+ * It extends the shared [JetWhaleMessenger] with a single non-suspending, tri-state
+ * enqueue: unlike [JetWhaleMessenger.sendRaw] (which collapses every failure to `false`),
  * [trySendRaw] tells a full buffer apart from a closed connection. An agent's connection-independent
  * messenger needs that distinction to implement its offline send policies (drop vs. fail). Host
- * plugins never see this type — they use only [JetWhaleConnectedMessenger].
+ * plugins never see this type — they use only [JetWhaleMessenger].
  */
-public interface JetWhaleTransportMessenger : JetWhaleConnectedMessenger {
+public interface JetWhaleTransportMessenger : JetWhaleMessenger {
     /**
      * Non-suspending enqueue of a fire-and-forget event, reporting whether it was accepted, dropped
      * because the outgoing buffer is full, or rejected because the connection is closed.

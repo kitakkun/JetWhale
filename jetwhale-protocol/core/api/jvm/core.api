@@ -122,12 +122,6 @@ public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$Plu
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public abstract interface class com/kitakkun/jetwhale/protocol/messaging/JetWhaleConnectedMessenger {
-	public abstract fun getPayloadFormat ()Lkotlinx/serialization/StringFormat;
-	public abstract fun requestRaw-5_5nbZA (Ljava/lang/String;Ljava/lang/String;Lkotlin/time/Duration;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun sendRaw (Ljava/lang/String;Ljava/lang/String;)Z
-}
-
 public final class com/kitakkun/jetwhale/protocol/messaging/JetWhaleConnectionClosedException : com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessagingException {
 	public fun <init> ()V
 	public fun <init> (Ljava/lang/String;)V
@@ -149,6 +143,12 @@ public final class com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessageMarke
 public class com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessagingException : java/lang/RuntimeException {
 	public fun <init> (Ljava/lang/String;Ljava/lang/Throwable;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger {
+	public abstract fun getPayloadFormat ()Lkotlinx/serialization/StringFormat;
+	public abstract fun requestRaw-5_5nbZA (Ljava/lang/String;Ljava/lang/String;Lkotlin/time/Duration;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun sendRaw (Ljava/lang/String;Ljava/lang/String;)Z
 }
 
 public final class com/kitakkun/jetwhale/protocol/messaging/JetWhalePluginPeer {
@@ -180,7 +180,7 @@ public final class com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequestExcep
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/Throwable;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 }
 
-public abstract interface class com/kitakkun/jetwhale/protocol/messaging/JetWhaleTransportMessenger : com/kitakkun/jetwhale/protocol/messaging/JetWhaleConnectedMessenger {
+public abstract interface class com/kitakkun/jetwhale/protocol/messaging/JetWhaleTransportMessenger : com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger {
 	public abstract fun trySendRaw (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/messaging/RawSendOutcome;
 }
 

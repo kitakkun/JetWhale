@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.agent.sdk
 
-import com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleMessenger
+import com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleOfflineCapableMessenger
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 
@@ -41,14 +41,14 @@ public abstract class JetWhaleAgentPlugin {
      */
     protected open val offlineEventBufferCapacity: Int = 0
 
-    private var boundMessenger: JetWhaleMessenger? = null
+    private var boundMessenger: JetWhaleOfflineCapableMessenger? = null
 
     /**
      * Sends messages to the host counterpart. Available from [onActivate] onwards (and inside handlers
      * and any code reached after it), for the whole life of the plugin — including while the host is
      * disconnected (see [offlineEventBufferCapacity]).
      */
-    protected val messenger: JetWhaleMessenger
+    protected val messenger: JetWhaleOfflineCapableMessenger
         get() = checkNotNull(boundMessenger) {
             "messenger is not bound: the plugin has not been registered with the JetWhale agent runtime."
         }
@@ -102,7 +102,7 @@ public abstract class JetWhaleAgentPlugin {
 
     /** Binds the connection-independent messenger. Called once when the plugin is registered. */
     @InternalJetWhaleApi
-    public fun bindMessenger(messenger: JetWhaleMessenger) {
+    public fun bindMessenger(messenger: JetWhaleOfflineCapableMessenger) {
         boundMessenger = messenger
     }
 
