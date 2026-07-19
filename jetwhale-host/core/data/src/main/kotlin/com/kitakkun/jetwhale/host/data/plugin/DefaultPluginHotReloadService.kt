@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginHotReloadService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.model.PluginSessionReconciliationService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -57,6 +58,7 @@ class DefaultPluginHotReloadService(
     private val pluginComposeSceneService: PluginComposeSceneService,
     private val debugSessionRepository: DebugSessionRepository,
     private val enabledPluginsRepository: EnabledPluginsRepository,
+    private val reconciliationService: PluginSessionReconciliationService,
 ) : PluginHotReloadService {
     private val logger = Logger.getLogger(DefaultPluginHotReloadService::class.java.name)
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
@@ -203,14 +205,9 @@ class DefaultPluginHotReloadService(
     private suspend fun reinitializeInstances(pluginId: String) {
         if (!enabledPluginsRepository.isPluginEnabled(pluginId)) return
 
-        // A host-only plugin (requiresAgent = false) is available for every active session, not just
-        // the sessions whose agent advertised it.
-        val requiresAgent = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
-        val activeSessionIds = debugSessionRepository.debugSessionsFlow.first()
-            .filter { it.isActive }
-            .filter { session -> !requiresAgent || session.installedPlugins.any { it.pluginId == pluginId } }
-            .map { it.id }
-            .toSet()
+        // The target-session rule (host-only vs agent-backed) lives in the reconciliation service.
+        val activeSessions = debugSessionRepository.debugSessionsFlow.first().filter { it.isActive }
+        val activeSessionIds = reconciliationService.targetSessionIds(pluginId, activeSessions)
 
         if (activeSessionIds.isEmpty()) return
 

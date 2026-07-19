@@ -10,9 +10,9 @@ import io.ktor.server.websocket.sendSerialized
 import io.ktor.util.logging.Logger
 
 @Inject
-class ProtocolNegotiationStrategy : NegotiationStrategy<ProtocolVersionNegotiationResult> {
+class ProtocolNegotiationStrategy : NegotiationStrategy<Unit> {
     context(logger: Logger)
-    override suspend fun DefaultWebSocketServerSession.negotiate(): ProtocolVersionNegotiationResult {
+    override suspend fun DefaultWebSocketServerSession.negotiate() {
         val protocolVersionNegotiationRequest = receiveDeserialized<JetWhaleAgentNegotiationRequest.ProtocolVersion>()
         logger.info("Received protocol version negotiation request: $protocolVersionNegotiationRequest")
 
@@ -32,7 +32,6 @@ class ProtocolNegotiationStrategy : NegotiationStrategy<ProtocolVersionNegotiati
         logger.info("Accepted protocol version: ${requestedVersion.version}")
 
         sendSerialized(JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept(requestedVersion))
-        return ProtocolVersionNegotiationResult(negotiatedVersion = requestedVersion)
     }
 
     companion object {

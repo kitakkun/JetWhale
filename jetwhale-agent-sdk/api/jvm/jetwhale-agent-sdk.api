@@ -1,12 +1,12 @@
 public abstract class com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
 	public fun <init> ()V
-	public final fun bindMessenger (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;)V
+	public final fun bindMessenger (Lcom/kitakkun/jetwhale/agent/sdk/messaging/JetWhaleOfflineCapableMessenger;)V
 	protected fun configure (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessageHandlers;)V
 	public final fun dispatchActivate ()V
 	public final fun dispatchDeactivate ()V
 	public final fun dispatchDisconnected (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun dispatchPrepare (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	protected final fun getMessenger ()Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;
+	protected final fun getMessenger ()Lcom/kitakkun/jetwhale/agent/sdk/messaging/JetWhaleOfflineCapableMessenger;
 	protected fun getOfflineEventBufferCapacity ()I
 	public abstract fun getPluginId ()Ljava/lang/String;
 	public abstract fun getPluginVersion ()Ljava/lang/String;
@@ -18,5 +18,36 @@ public abstract class com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
 	protected fun onPrepare (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun prepareTimeoutMillis ()J
 	public final fun registerHandlers (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessageHandlers;)V
+}
+
+public final class com/kitakkun/jetwhale/agent/sdk/messaging/BufferedMessenger : com/kitakkun/jetwhale/agent/sdk/messaging/JetWhaleOfflineCapableMessenger {
+	public fun <init> (Lkotlinx/coroutines/CoroutineScope;Lkotlinx/serialization/StringFormat;ILkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Lkotlinx/coroutines/CoroutineScope;Lkotlinx/serialization/StringFormat;ILkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun bind (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleTransportMessenger;)V
+	public final fun close ()V
+	public fun getPayloadFormat ()Lkotlinx/serialization/StringFormat;
+	public fun requestRaw-5_5nbZA (Ljava/lang/String;Ljava/lang/String;Lkotlin/time/Duration;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun sendRaw (Ljava/lang/String;Ljava/lang/String;)Z
+	public fun sendRaw (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/agent/sdk/messaging/OfflineSendPolicy;)Z
+	public final fun startFlush ()V
+	public final fun unbind ()V
+}
+
+public abstract interface class com/kitakkun/jetwhale/agent/sdk/messaging/JetWhaleOfflineCapableMessenger : com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger {
+	public fun sendRaw (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun sendRaw (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/agent/sdk/messaging/OfflineSendPolicy;)Z
+}
+
+public final class com/kitakkun/jetwhale/agent/sdk/messaging/JetWhaleOfflineCapableMessenger$DefaultImpls {
+	public static fun sendRaw (Lcom/kitakkun/jetwhale/agent/sdk/messaging/JetWhaleOfflineCapableMessenger;Ljava/lang/String;Ljava/lang/String;)Z
+}
+
+public final class com/kitakkun/jetwhale/agent/sdk/messaging/OfflineSendPolicy : java/lang/Enum {
+	public static final field DROP Lcom/kitakkun/jetwhale/agent/sdk/messaging/OfflineSendPolicy;
+	public static final field FAIL Lcom/kitakkun/jetwhale/agent/sdk/messaging/OfflineSendPolicy;
+	public static final field QUEUE Lcom/kitakkun/jetwhale/agent/sdk/messaging/OfflineSendPolicy;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/agent/sdk/messaging/OfflineSendPolicy;
+	public static fun values ()[Lcom/kitakkun/jetwhale/agent/sdk/messaging/OfflineSendPolicy;
 }
 

@@ -20,6 +20,8 @@ kotlin {
 dependencies {
     commonMainApi(projects.jetwhaleProtocol.core)
     commonMainImplementation(libs.kotlinxCoroutinesCore)
+
+    commonTestImplementation(libs.kotlinTest)
 }
 
 jetwhalePublish {

@@ -11,23 +11,25 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
+import com.kitakkun.jetwhale.protocol.messaging.configurePeerGuarded
+import com.kitakkun.jetwhale.protocol.messaging.launchPeerPreparation
+import com.kitakkun.jetwhale.protocol.messaging.replyPeerUnavailable
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Level
 import java.util.logging.Logger
 
 private data class PluginInstanceKey(val pluginId: String, val sessionId: String)
@@ -40,6 +42,8 @@ private class LoadedInstance(
     val plugin: JetWhaleHostPlugin,
     // null for a pure (non-messaging) plugin: no peer is created for it.
     val peer: JetWhalePluginPeer?,
+    /** The preparation job; joined before the peer is closed so its ready-gate open cannot outrace disposal. null for a pure plugin. */
+    val prepareJob: Job?,
     /** Backs the plugin's `pluginScope`; cancelled when the instance is disposed. */
     val instanceScope: CoroutineScope,
 )
@@ -104,23 +108,34 @@ class DefaultPluginInstanceService(
         // name or reach another plugin's data.
         plugin.bindStorage(pluginDataStoreRepository.storageFor(pluginId))
 
+        val descriptor = "plugin '$pluginId' in session '$sessionId'"
+
         // User code below (registerHandlers, onCreate) is guarded: this runs inside the map's
         // computeIfAbsent, and a throwing plugin must neither leak the just-created peer/scope nor
         // abort loading for the caller.
         // Only messaging plugins get a peer; a pure plugin pays none of the messaging cost.
         val peer = if (plugin is JetWhaleMessagingHostPlugin) {
-            JetWhalePluginPeer(
+            val newPeer = JetWhalePluginPeer(
                 pluginId = pluginId,
                 parentScope = scope,
                 sendFrame = { frame -> frameSender.sendFrame(sessionId, frame) },
                 awaitReady = true,
-            ).also { peer ->
-                try {
-                    peer.configure { plugin.registerHandlers(this) }
-                } catch (e: Throwable) {
-                    logger.warning("Handler registration for plugin '$pluginId' in session '$sessionId' failed: ${e.message}")
-                }
-                plugin.bindMessenger(peer.messenger)
+            )
+            val configured = configurePeerGuarded(
+                peer = newPeer,
+                descriptor = descriptor,
+                registerHandlers = { plugin.registerHandlers(this) },
+                warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
+            )
+            if (configured) {
+                plugin.bindMessenger(newPeer.messenger)
+                newPeer
+            } else {
+                // Registration failed: discard the half-configured peer (mirrors the agent's bail-out).
+                // The instance still loads, but without messaging — subsequent frames fast-fail via the
+                // no-peer path in routeFrame.
+                scope.launch { newPeer.close() }
+                null
             }
         } else {
             null
@@ -130,25 +145,19 @@ class DefaultPluginInstanceService(
         } catch (e: Throwable) {
             logger.warning("onCreate for plugin '$pluginId' in session '$sessionId' failed: ${e.message}")
         }
-        if (peer != null && plugin is JetWhaleMessagingHostPlugin) {
-            // markReady() also runs on prepare timeout/failure: a degraded plugin beats a frozen one.
-            instanceScope.launch {
-                try {
-                    withTimeout(plugin.prepareTimeoutMillis()) {
-                        plugin.dispatchPrepare()
-                    }
-                } catch (e: TimeoutCancellationException) {
-                    logger.warning("onPrepare for plugin '$pluginId' in session '$sessionId' did not complete in time; proceeding.")
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Throwable) {
-                    logger.warning("onPrepare for plugin '$pluginId' in session '$sessionId' failed: ${e.message}; proceeding.")
-                } finally {
-                    peer.markReady()
-                }
-            }
+        val prepareJob = if (peer != null && plugin is JetWhaleMessagingHostPlugin) {
+            instanceScope.launchPeerPreparation(
+                peer = peer,
+                descriptor = descriptor,
+                prepareTimeoutMillis = plugin.prepareTimeoutMillis(),
+                dispatchPrepare = { plugin.dispatchPrepare() },
+                warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
+                onReady = {},
+            )
+        } else {
+            null
         }
-        return LoadedInstance(plugin, peer, instanceScope)
+        return LoadedInstance(plugin, peer, prepareJob, instanceScope)
     }
 
     override suspend fun routeFrame(sessionId: String, frame: PluginFrame) {
@@ -157,31 +166,15 @@ class DefaultPluginInstanceService(
             peer.onFrame(frame)
             return
         }
-        // No instance for this frame in this session. If it expects a reply, fail it fast so the
-        // agent-side requester does not wait for the timeout instead of silently dropping it.
-        // Launch, don't await: sendFrame is a suspending socket write and routeFrame runs on the
-        // server's single frame collector, so awaiting here would stall delivery for every other
-        // session while this one failure reply is in flight.
-        if (frame is PluginFrame.Request) {
-            scope.launch {
-                // Best effort: the session may already be half-closed; a failed failure-reply must
-                // not escalate through the supervisor.
-                try {
-                    frameSender.sendFrame(
-                        sessionId = sessionId,
-                        frame = PluginFrame.Reply.Failure(
-                            pluginId = frame.pluginId,
-                            inReplyTo = frame.correlationId,
-                            errorMessage = "Plugin '${frame.pluginId}' is not loaded in session '$sessionId'.",
-                        ),
-                    )
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Throwable) {
-                    logger.warning("Failed to send fast-fail reply for plugin '${frame.pluginId}' in session '$sessionId': ${e.message}")
-                }
-            }
-        }
+        // No instance for this frame in this session: fast-fail a request so the agent-side
+        // requester does not wait out the timeout.
+        replyPeerUnavailable(
+            scope = scope,
+            frame = frame,
+            errorMessage = "Plugin '${frame.pluginId}' is not loaded in session '$sessionId'.",
+            send = { failureFrame -> frameSender.sendFrame(sessionId = sessionId, frame = failureFrame) },
+            warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
+        )
     }
 
     override fun unloadPluginInstanceForSession(sessionId: String) {
@@ -207,7 +200,14 @@ class DefaultPluginInstanceService(
         } finally {
             removed.instanceScope.cancel()
             // close() suspends (it fails pending requests under a mutex), so run it off the caller.
-            removed.peer?.let { peer -> scope.launch { peer.close() } }
+            // Join the prepare job first so its finally (which opens the ready gate) cannot run after
+            // close() and resurrect dispatch on a peer that is being torn down.
+            removed.peer?.let { peer ->
+                scope.launch {
+                    removed.prepareJob?.cancelAndJoin()
+                    peer.close()
+                }
+            }
         }
         if (emitEvent) emitEvent(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
     }

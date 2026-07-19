@@ -1,13 +1,13 @@
 package com.kitakkun.jetwhale.plugins.network.agent.ktor
 
+import com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleOfflineCapableMessenger
+import com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import com.kitakkun.jetwhale.protocol.messaging.DefaultJetWhaleMessagingFormat
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessenger
-import com.kitakkun.jetwhale.protocol.messaging.OfflineSendPolicy
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.mock.MockEngine
@@ -147,7 +147,7 @@ class JetWhaleNetworkKtorPluginTest {
 }
 
 /** Records every event the plugin sends, decoded back to its typed form. */
-private class RecordingMessenger(val events: MutableList<Any>) : JetWhaleMessenger {
+private class RecordingMessenger(val events: MutableList<Any>) : JetWhaleOfflineCapableMessenger {
     override val payloadFormat: StringFormat = DefaultJetWhaleMessagingFormat
 
     override fun sendRaw(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean {

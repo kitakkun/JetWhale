@@ -1,105 +1,60 @@
 package com.kitakkun.jetwhale.protocol.messaging
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.StringFormat
 import kotlinx.serialization.serializer
 import kotlin.time.Duration
 
 /**
- * What a [send][trySend] should do when the connection is not currently available. Only events
- * (fire-and-forget) carry a policy; requests always fail when offline (see [request]).
- */
-public enum class OfflineSendPolicy {
-    /** Drop the event silently. The send reports `false` so the caller can react if it cares. */
-    DROP,
-
-    /**
-     * Hold the event in a bounded offline buffer and flush it, in order, once the connection is
-     * (re)established. Beyond a buffer with no capacity this degrades to [DROP].
-     */
-    QUEUE,
-
-    /** Throw [JetWhaleConnectionClosedException] so the caller learns the event could not be sent. */
-    FAIL,
-}
-
-/**
- * The sending face of a plugin connection. Symmetric: the host-side and agent-side messengers are
- * the same type with the same semantics.
+ * The plain shared sending face of a plugin connection: fire-and-forget events and request-reply.
+ *
+ * This is the common base both ends build on. It makes **no claim about connection state** and
+ * carries **no offline-buffering vocabulary** — it is simply the two send shapes a transport needs.
+ * Whether the face is always connected (the host binding guarantees this for a host plugin's
+ * lifetime) or connection-independent (the agent's [JetWhaleOfflineCapableMessenger] layers an
+ * offline send policy and `sendOrQueue` / `sendOrFail` on top) is decided by the concrete messenger,
+ * not by this base.
  *
  * The interface itself is the *raw* (string) layer — the two shapes a transport needs. Plugin
- * authors use the typed [trySend] / [sendOrQueue] / [sendOrFail] / [request] extensions, which
- * capture the message serializer at the call site via reified type parameters.
+ * authors use the typed [trySend] / [request] extensions, which capture the message serializer at
+ * the call site via reified type parameters.
  */
 public interface JetWhaleMessenger {
     /** Format used to (de)serialize message payloads. */
     public val payloadFormat: StringFormat
 
     /**
-     * Raw fire-and-forget shape. Prefer the typed [trySend] / [sendOrQueue] / [sendOrFail]
-     * extensions. [policy] decides what happens when the connection is unavailable.
+     * Raw fire-and-forget shape. Prefer the typed [trySend] extension. Hands the event to the live
+     * connection.
      *
-     * @return `true` if the event was sent or buffered, `false` if it was dropped.
-     * @throws JetWhaleConnectionClosedException when [policy] is [OfflineSendPolicy.FAIL] and the
-     *   connection is unavailable.
+     * @return `true` if the event was handed to the connection, `false` if it could not be (e.g. the
+     *   connection is closing).
      */
-    public fun sendRaw(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean
+    public fun sendRaw(messageType: String, payload: String): Boolean
 
     /**
      * Raw request-response shape. Prefer the typed [request] extension. [timeout] overrides the
      * connection's default request timeout for this call; `null` uses the default.
      * @throws JetWhaleRequestException on handler failure or timeout
-     * @throws JetWhaleConnectionClosedException when offline, or when the connection closes while waiting
+     * @throws JetWhaleConnectionClosedException when the connection closes while waiting
      */
     public suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String
 }
 
 /**
- * Sends a fire-and-forget event if the connection is available, otherwise **drops it** and returns
- * `false`. Use this for events that are only meaningful live (a momentary signal). Only
- * [JetWhaleEvent] types are accepted: passing a [JetWhaleRequest] is a compile-time error.
+ * Sends a fire-and-forget event to the connection. Only [JetWhaleEvent] types are accepted: passing
+ * a [JetWhaleRequest] is a compile-time error.
  *
- * @return `true` if the event was handed to the live connection, `false` if there was none.
+ * On the host's always-connected binding this hands the event to the live connection. On the agent's
+ * `JetWhaleOfflineCapableMessenger` the same call **drops** the event if the connection is currently
+ * unavailable (use `sendOrQueue` / `sendOrFail` there to choose otherwise).
+ *
+ * @return `true` if the event was handed to the connection, `false` if there was none.
  */
 public inline fun <reified E : JetWhaleEvent> JetWhaleMessenger.trySend(event: E): Boolean {
     val eventSerializer = serializer<E>()
     return sendRaw(
         messageType = eventSerializer.descriptor.serialName,
         payload = payloadFormat.encodeToString(eventSerializer, event),
-        policy = OfflineSendPolicy.DROP,
-    )
-}
-
-/**
- * Sends a fire-and-forget event, **buffering it** while the connection is unavailable and flushing
- * it (in order) on reconnect. Use this for streams you must not lose across a disconnect (e.g.
- * captured traffic). The buffer is bounded and opt-in — without capacity this behaves like
- * [trySend]. Buffering exists only on the agent's connection-independent messenger; a host plugin's
- * messenger lives exactly as long as its connection, so there is nothing to buffer across and this
- * degrades to [trySend] there. Only [JetWhaleEvent] types are accepted.
- */
-public inline fun <reified E : JetWhaleEvent> JetWhaleMessenger.sendOrQueue(event: E) {
-    val eventSerializer = serializer<E>()
-    sendRaw(
-        messageType = eventSerializer.descriptor.serialName,
-        payload = payloadFormat.encodeToString(eventSerializer, event),
-        policy = OfflineSendPolicy.QUEUE,
-    )
-}
-
-/**
- * Sends a fire-and-forget event, **throwing** [JetWhaleConnectionClosedException] if the connection
- * is unavailable. Use this when sending offline is a programming error you want surfaced. Only
- * [JetWhaleEvent] types are accepted.
- *
- * @throws JetWhaleConnectionClosedException when there is no live connection.
- */
-public inline fun <reified E : JetWhaleEvent> JetWhaleMessenger.sendOrFail(event: E) {
-    val eventSerializer = serializer<E>()
-    sendRaw(
-        messageType = eventSerializer.descriptor.serialName,
-        payload = payloadFormat.encodeToString(eventSerializer, event),
-        policy = OfflineSendPolicy.FAIL,
     )
 }
 
@@ -139,20 +94,3 @@ public suspend inline fun <reified REQ : JetWhaleRequest<R>, reified R : Any> Je
         )
     }
 }
-
-/** Base type for messaging failures. */
-public open class JetWhaleMessagingException(
-    message: String,
-    cause: Throwable? = null,
-) : RuntimeException(message, cause)
-
-/** A request failed: remote handler error, no handler registered, undecodable reply, or timeout. */
-public class JetWhaleRequestException(
-    message: String,
-    cause: Throwable? = null,
-) : JetWhaleMessagingException(message, cause)
-
-/** The connection closed while a request was waiting for its reply. */
-public class JetWhaleConnectionClosedException(
-    message: String = "The connection was closed",
-) : JetWhaleMessagingException(message)

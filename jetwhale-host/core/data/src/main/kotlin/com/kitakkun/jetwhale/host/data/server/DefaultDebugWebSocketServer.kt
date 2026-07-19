@@ -1,14 +1,13 @@
 package com.kitakkun.jetwhale.host.data.server
 
-import androidx.compose.ui.util.fastMap
 import com.kitakkun.jetwhale.host.model.ADBAutoWiringService
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
-import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
-import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.model.PluginReconciliationEvent
+import com.kitakkun.jetwhale.host.model.PluginSessionReconciliationService
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import dev.zacsweers.metro.AppScope
@@ -18,11 +17,8 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @Inject
@@ -33,8 +29,7 @@ class DefaultDebugWebSocketServer(
     private val sessionRepository: DebugSessionRepository,
     private val pluginInstanceService: PluginInstanceService,
     private val settingsRepository: DebuggerSettingsRepository,
-    private val enabledPluginsRepository: EnabledPluginsRepository,
-    private val pluginFactoryRepository: PluginFactoryRepository,
+    private val reconciliationService: PluginSessionReconciliationService,
     private val ktorWebSocketServer: KtorWebSocketServer,
 ) : DebugWebSocketServer {
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
@@ -116,61 +111,19 @@ class DefaultDebugWebSocketServer(
     }
 
     private suspend fun monitorEnabledPluginChanges() {
-        coroutineScope {
-            launch {
-                combine(
-                    enabledPluginsRepository.enabledPluginIdsFlow,
-                    sessionRepository.debugSessionsFlow.map { sessions ->
-                        sessions.filter { it.isActive }
-                    },
-                ) { enabledPluginIds, activeSessions ->
-                    enabledPluginIds to activeSessions
-                }.collect { (enabledPluginIds, activeSessions) ->
-                    enabledPluginIds.forEach { pluginId ->
-                        // A host-only plugin (requiresAgent = false) has no agent counterpart, so it is
-                        // available for every active session regardless of negotiation; an agent-backed
-                        // plugin is only for sessions whose agent advertised it.
-                        val requiresAgent = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
-                        val targetSessionIds = if (requiresAgent) {
-                            activeSessions
-                                .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
-                                .fastMap { it.id }
-                                .toSet()
-                        } else {
-                            activeSessions.fastMap { it.id }.toSet()
-                        }
-                        // Initialize plugin instances for the target sessions so the plugin is activated
-                        // immediately after being enabled.
-                        val pluginActivatedSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
-                            pluginId = pluginId,
-                            sessionIds = targetSessionIds,
-                        )
-                        // Plugin instances are also initialized when a new session is created, so some
-                        // sessions may already have the instance. Only notify the agent for the sessions
-                        // initialized in this step, and only for agent-backed plugins (host-only plugins
-                        // have no agent to activate).
-                        if (requiresAgent) {
-                            pluginActivatedSessionIds.forEach { sessionId ->
-                                ktorWebSocketServer.sendToSession(
-                                    sessionId = sessionId,
-                                    event = JetWhaleDebuggerEvent.PluginActivated(pluginId = pluginId),
-                                )
-                            }
-                        }
-                    }
+        // Thin subscriber: the reconciliation service owns the enabled-plugin x session mapping and
+        // the instance lifecycle; this only forwards the resulting notifications to the agents.
+        reconciliationService.reconciliationEvents().collect { event ->
+            when (event) {
+                is PluginReconciliationEvent.Activated -> event.sessionIds.forEach { sessionId ->
+                    ktorWebSocketServer.sendToSession(
+                        sessionId = sessionId,
+                        event = JetWhaleDebuggerEvent.PluginActivated(pluginId = event.pluginId),
+                    )
                 }
-            }
 
-            launch {
-                enabledPluginsRepository.disabledPluginIdFlow.collect { pluginId ->
-                    // Host-only plugins have no agent to deactivate.
-                    val requiresAgent = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
-                    if (requiresAgent) {
-                        ktorWebSocketServer.broadcastToSessions(JetWhaleDebuggerEvent.PluginDeactivated(pluginId = pluginId))
-                    }
-                    // Unload plugin instances for all sessions to ensure that the plugin is deactivated in all sessions immediately after being disabled.
-                    pluginInstanceService.unloadPluginInstancesForPlugin(pluginId)
-                }
+                is PluginReconciliationEvent.Deactivated ->
+                    ktorWebSocketServer.broadcastToSessions(JetWhaleDebuggerEvent.PluginDeactivated(pluginId = event.pluginId))
             }
         }
     }

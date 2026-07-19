@@ -1,5 +1,8 @@
-package com.kitakkun.jetwhale.protocol.messaging
+package com.kitakkun.jetwhale.agent.sdk.messaging
 
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleConnectionClosedException
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleTransportMessenger
+import com.kitakkun.jetwhale.protocol.messaging.RawSendOutcome
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,13 +29,18 @@ class BufferedMessengerTest {
     }
 
     /** A live transport that records the payloads forwarded to it, in order. */
-    private class Recorder : JetWhaleMessenger {
+    private class Recorder : JetWhaleTransportMessenger {
         override val payloadFormat: StringFormat = Json
         val received: CopyOnWriteArrayList<String> = CopyOnWriteArrayList()
 
-        override fun sendRaw(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean {
+        override fun sendRaw(messageType: String, payload: String): Boolean {
             received += payload
             return true
+        }
+
+        override fun trySendRaw(messageType: String, payload: String): RawSendOutcome {
+            received += payload
+            return RawSendOutcome.SENT
         }
 
         override suspend fun requestRaw(messageType: String, payload: String, timeout: kotlin.time.Duration?): String = "reply:$payload"
