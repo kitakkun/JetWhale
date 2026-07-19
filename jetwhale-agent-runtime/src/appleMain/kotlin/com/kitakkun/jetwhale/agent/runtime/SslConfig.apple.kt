@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.agent.runtime
 
 import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.engine.darwin.DarwinClientEngineConfig
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.UByteVar
 import kotlinx.cinterop.allocArrayOf
@@ -26,22 +27,22 @@ import platform.Security.SecTrustEvaluateWithError
 import platform.Security.SecTrustSetAnchorCertificates
 import platform.Security.SecTrustSetAnchorCertificatesOnly
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 internal actual fun HttpClientEngineConfig.disableCertificateVerification() {
     check(this is DarwinClientEngineConfig) { "Expected DarwinClientEngineConfig but got ${this::class.simpleName}" }
     handleChallenge { _, _, challenge, completionHandler ->
         val serverTrust = challenge.protectionSpace.serverTrust
         if (challenge.protectionSpace.authenticationMethod != NSURLAuthenticationMethodServerTrust || serverTrust == null) {
-            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, null)
+            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling.convert(), null)
             return@handleChallenge
         }
         // Accept the presented server trust unconditionally: this path only fetches the CA over the
         // wss port (trust-on-first-use), and the fetched CA still pins the subsequent wss session.
-        completionHandler(NSURLSessionAuthChallengeUseCredential, NSURLCredential.create(trust = serverTrust))
+        completionHandler(NSURLSessionAuthChallengeUseCredential.convert(), NSURLCredential.create(trust = serverTrust))
     }
 }
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWhaleSslConfiguration) {
     if (sslConfiguration.trustedCertificates.isEmpty()) return
 
@@ -63,7 +64,7 @@ internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWha
     handleChallenge { _, _, challenge, completionHandler ->
         val serverTrust = challenge.protectionSpace.serverTrust
         if (challenge.protectionSpace.authenticationMethod != NSURLAuthenticationMethodServerTrust || serverTrust == null) {
-            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, null)
+            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling.convert(), null)
             return@handleChallenge
         }
 
@@ -78,16 +79,16 @@ internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWha
         }
 
         if (trusted) {
-            completionHandler(NSURLSessionAuthChallengeUseCredential, NSURLCredential.create(trust = serverTrust))
+            completionHandler(NSURLSessionAuthChallengeUseCredential.convert(), NSURLCredential.create(trust = serverTrust))
         } else {
             JetWhaleLogger.w("Server certificate is not signed by a trusted JetWhale CA; cancelling the connection.")
-            completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null)
+            completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge.convert(), null)
         }
     }
 }
 
 /** Decodes a PEM certificate (base64 DER between BEGIN/END markers) into a [SecCertificateRef]. */
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 private fun pemToSecCertificate(pem: String): SecCertificateRef? {
     val base64 = pem.lineSequence()
         .filterNot { it.contains("-----") }
