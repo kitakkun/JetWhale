@@ -144,9 +144,12 @@ plugin settings screen turns it on.
   unsigned, so JetWhale never prompts you for Keychain access on startup. The SHA-256 content pinning
   above still applies, so a swapped-out jar is still detected — but the `trusted-plugins.json` file
   itself is not tamper-protected.
-- **On:** the first time you enable it JetWhale provisions a key, which triggers a single, deliberate
-  credential-store prompt. From then on the registry is signed on every write and verified on
-  startup. A registry whose signature does not verify is rejected wholesale and every plugin is
+- **On:** enabling it provisions a key and re-signs the current registry (a first credential-store
+  prompt). From then on the registry is signed on every write and **verified on every launch, which
+  reads the key back** — so the OS asks for credential-store access at each startup, not just once.
+  On macOS choose **Always Allow** at the Keychain prompt to suppress it on later launches (a plain
+  *Allow* re-prompts every launch, and a re-signed/updated app build can invalidate the grant and
+  ask again). A registry whose signature does not verify is rejected wholesale and every plugin is
   treated as untrusted, so rewriting `trusted-plugins.json` alone cannot forge an approval. If the
   credential store is unavailable (e.g. a headless Linux session), JetWhale logs a warning and falls
   back to loading the registry without signature verification.
