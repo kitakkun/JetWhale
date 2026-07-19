@@ -13,6 +13,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -30,12 +31,28 @@ class DefaultPluginTrustService(
     override val untrustedJarPathsFlow: Flow<List<String>>
         field = MutableStateFlow(emptyList())
 
+    override val verifyingTrustRegistryFlow: StateFlow<Boolean>
+        field = MutableStateFlow(false)
+
     override suspend fun loadTrustedPlugins() {
         // Read the opt-in signing flag once, then load the registry from disk before consulting any
         // trust decision. Reading it here (a Service combining repositories) keeps the trust
         // repository free of any dependency on the settings repository.
         val signingEnabled = settingsRepository.readSignPluginTrustRegistry()
-        pluginTrustRepository.load(signingEnabled)
+        // When signing is on, loading verifies the registry against a key in the OS credential store,
+        // which on macOS raises a blocking Keychain prompt. Flag it so the UI can explain the prompt,
+        // and run the read off the UI thread so the status renders before the prompt appears. When
+        // signing is off the credential store is never touched, so the flag stays false.
+        if (signingEnabled) {
+            verifyingTrustRegistryFlow.value = true
+        }
+        try {
+            withContext(Dispatchers.IO) {
+                pluginTrustRepository.load(signingEnabled)
+            }
+        } finally {
+            verifyingTrustRegistryFlow.value = false
+        }
         val untrusted = mutableListOf<String>()
         for (jarPath in appDataDirectoryProvider.getAllPluginJarFilePaths()) {
             if (isTrusted(jarPath)) {

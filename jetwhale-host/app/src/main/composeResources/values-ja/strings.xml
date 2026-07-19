@@ -13,6 +13,7 @@
     <string name="session_secure_connection">暗号化された接続 (wss)</string>
     <string name="session_local_connection">ローカル接続 (ADB)</string>
     <string name="initializing">初期化中...</string>
+    <string name="unlocking_trust_registry">信頼レジストリを検証中…</string>
     <string name="shutting_down">シャットダウン中...</string>
     <string name="plugin_popped_out_message">このプラグインはポップアウトされています。別のウィンドウを確認してください。</string>
     <string name="bring_back_to_main_window">メインウィンドウに戻す</string>

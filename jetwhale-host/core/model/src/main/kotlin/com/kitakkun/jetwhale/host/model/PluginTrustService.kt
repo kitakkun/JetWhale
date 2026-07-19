@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.model
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * The security boundary in front of dynamic plugin loading.
@@ -24,6 +25,14 @@ interface PluginTrustService {
      * These are not loaded; the UI surfaces them so the user can review and approve them.
      */
     val untrustedJarPathsFlow: Flow<List<String>>
+
+    /**
+     * True while [loadTrustedPlugins] is reading the OS credential store to verify the signed trust
+     * registry. Only ever true when registry signing is enabled — on macOS the read raises a blocking
+     * Keychain prompt, and the UI observes this flag to show that prompt with visible context. When
+     * signing is off the credential store is never touched, so this stays false.
+     */
+    val verifyingTrustRegistryFlow: StateFlow<Boolean>
 
     /**
      * Loads every trusted jar from the plugins directory and records the rest as untrusted (see

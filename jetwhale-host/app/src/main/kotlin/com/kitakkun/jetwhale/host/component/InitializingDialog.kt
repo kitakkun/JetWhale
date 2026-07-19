@@ -13,10 +13,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.initializing
+import com.kitakkun.jetwhale.host.unlocking_trust_registry
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun InitializingDialog() {
+fun InitializingDialog(verifyingTrustRegistry: Boolean) {
     Dialog(onDismissRequest = {}) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -28,6 +29,15 @@ fun InitializingDialog() {
                 color = MaterialTheme.colorScheme.inverseOnSurface,
             )
             CircularWavyProgressIndicator()
+            // Shown only while the signed trust registry is being verified against the OS credential
+            // store, so the (blocking) Keychain prompt appears with in-app context explaining it.
+            if (verifyingTrustRegistry) {
+                Text(
+                    text = stringResource(Res.string.unlocking_trust_registry),
+                    color = MaterialTheme.colorScheme.inverseOnSurface,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
         }
     }
 }

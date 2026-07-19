@@ -82,6 +82,11 @@ fun main(args: Array<String>) = runBlocking {
             .applicationStateFlow
             .collectAsState()
 
+        val verifyingTrustRegistry by appGraph
+            .pluginTrustService
+            .verifyingTrustRegistryFlow
+            .collectAsState()
+
         LaunchedEffect(Unit) {
             appGraph
                 .applicationLifecycleOwner
@@ -132,7 +137,8 @@ fun main(args: Array<String>) = runBlocking {
             },
         ) {
             when (applicationState) {
-                ApplicationLifecycleOwner.ApplicationState.INITIALIZING -> InitializingDialog()
+                ApplicationLifecycleOwner.ApplicationState.INITIALIZING ->
+                    InitializingDialog(verifyingTrustRegistry = verifyingTrustRegistry)
 
                 ApplicationLifecycleOwner.ApplicationState.STOPPING -> ShuttingDownDialog()
 
