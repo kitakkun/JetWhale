@@ -25,6 +25,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
@@ -224,10 +226,17 @@ private fun TransactionRow(tx: HttpTransaction, selected: Boolean, onClick: () -
 private fun StatusBadge(tx: HttpTransaction) {
     val (label, color) = when {
         tx.failure != null -> "ERR" to MaterialTheme.colorScheme.error
+
         tx.response == null -> "···" to MaterialTheme.colorScheme.outline
-        tx.response.statusCode in 200..299 -> tx.response.statusCode.toString() to Color(0xFF2E7D32)
-        tx.response.statusCode in 300..399 -> tx.response.statusCode.toString() to Color(0xFF1565C0)
+
+        tx.response.statusCode in 200..299 ->
+            tx.response.statusCode.toString() to themeColor(Color(0xFF2E7D32), Color(0xFF66BB6A))
+
+        tx.response.statusCode in 300..399 ->
+            tx.response.statusCode.toString() to themeColor(Color(0xFF1565C0), Color(0xFF64B5F6))
+
         tx.response.statusCode >= 400 -> tx.response.statusCode.toString() to MaterialTheme.colorScheme.error
+
         else -> tx.response.statusCode.toString() to MaterialTheme.colorScheme.onSurface
     }
     Pill(label = label, color = color)
@@ -235,13 +244,15 @@ private fun StatusBadge(tx: HttpTransaction) {
 
 @Composable
 private fun MockChip() {
-    Pill(label = "MOCK", color = Color(0xFF8E24AA))
+    Pill(label = "MOCK", color = themeColor(Color(0xFF8E24AA), Color(0xFFCE93D8)))
 }
 
 @Composable
 private fun Pill(label: String, color: Color) {
+    // 14% of a dark hue on a dark surface nearly vanishes, so give the fill more presence in dark mode.
+    val fillAlpha = if (isDarkTheme()) 0.22f else 0.14f
     Surface(
-        color = color.copy(alpha = 0.14f),
+        color = color.copy(alpha = fillAlpha),
         contentColor = color,
         shape = RoundedCornerShape(6.dp),
     ) {
@@ -254,8 +265,22 @@ private fun Pill(label: String, color: Color) {
     }
 }
 
+private enum class DetailTab(val title: String) {
+    Body("Body"),
+    Headers("Headers"),
+    Query("Query"),
+}
+
 @Composable
 private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
+    val queryParams = remember(tx.request.url) { parseQueryParams(tx.request.url) }
+    val hasResponseBody = !tx.response?.body.isNullOrEmpty()
+    // Key on hasResponseBody too: the body often arrives after the row is first selected (same
+    // txId), and the default should follow it to Body once it exists.
+    var selectedTab by remember(tx.txId, hasResponseBody) {
+        mutableStateOf(if (hasResponseBody) DetailTab.Body else DetailTab.Headers)
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -280,46 +305,106 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-
-        SectionTitle("Request")
-        QueryParamBlock(tx.request.url)
-        HeaderBlock(tx.request.headers)
-        BodyBlock(label = "body", body = tx.request.body, truncated = tx.request.bodyTruncated)
-
-        SectionTitle("Response")
         when {
             tx.failure != null -> Text(
                 text = "Failed: ${tx.failure.message}",
                 color = MaterialTheme.colorScheme.error,
             )
 
-            tx.response != null -> {
-                Text(
-                    text = "${tx.response.statusCode} ${tx.response.statusDescription}  •  ${tx.response.durationMs}ms",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                HeaderBlock(tx.response.headers)
-                BodyBlock(label = "body", body = tx.response.body, truncated = tx.response.bodyTruncated)
-            }
+            tx.response != null -> Text(
+                text = "${tx.response.statusCode} ${tx.response.statusDescription}  •  ${tx.response.durationMs}ms",
+                style = MaterialTheme.typography.bodyMedium,
+            )
 
             else -> Text(
                 text = "Pending…",
                 color = MaterialTheme.colorScheme.outline,
             )
         }
+
+        // Only surface the Query tab when the URL actually has query params — a permanently
+        // disabled tab reads as broken. selectedTab only ever becomes Query while it is visible,
+        // and it resets to Body/Headers per transaction, so it can't get stuck on a hidden tab.
+        val tabs = remember(queryParams) {
+            buildList {
+                add(DetailTab.Body)
+                add(DetailTab.Headers)
+                if (queryParams.isNotEmpty()) add(DetailTab.Query)
+            }
+        }
+        TabRow(selectedTabIndex = tabs.indexOf(selectedTab).coerceAtLeast(0)) {
+            tabs.forEach { tab ->
+                Tab(
+                    selected = selectedTab == tab,
+                    onClick = { selectedTab = tab },
+                    text = { Text(tab.title) },
+                )
+            }
+        }
+
+        when (selectedTab) {
+            DetailTab.Body -> BodyTab(tx)
+            DetailTab.Headers -> HeadersTab(tx)
+            DetailTab.Query -> QueryParamBlock(queryParams)
+        }
     }
 }
 
 @Composable
-private fun QueryParamBlock(url: String) {
-    val params = remember(url) { parseQueryParams(url) }
-    if (params.isEmpty()) return
+private fun BodyTab(tx: HttpTransaction) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        when {
+            // The failure detail itself is shown above the tabs; here just note there is no body.
+            tx.failure != null -> Text(
+                text = "Request failed — no response body",
+                color = MaterialTheme.colorScheme.outline,
+            )
+
+            tx.response == null -> Text(
+                text = "Pending…",
+                color = MaterialTheme.colorScheme.outline,
+            )
+
+            tx.response.body.isNullOrEmpty() -> Text(
+                text = "No response body",
+                color = MaterialTheme.colorScheme.outline,
+            )
+
+            else -> BodyBlock(label = "body", body = tx.response.body, truncated = tx.response.bodyTruncated)
+        }
+        if (!tx.request.body.isNullOrEmpty()) {
+            MinorLabel("Request body")
+            BodyBlock(label = "body", body = tx.request.body, truncated = tx.request.bodyTruncated)
+        }
+    }
+}
+
+@Composable
+private fun HeadersTab(tx: HttpTransaction) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionTitle("Request")
+        if (tx.request.headers.isEmpty()) {
+            EmptyHint("No request headers")
+        } else {
+            HeaderBlock(tx.request.headers)
+        }
+
+        SectionTitle("Response")
+        when {
+            tx.response == null -> EmptyHint("No response yet")
+            tx.response.headers.isEmpty() -> EmptyHint("No response headers")
+            else -> HeaderBlock(tx.response.headers)
+        }
+    }
+}
+
+@Composable
+private fun QueryParamBlock(params: List<Pair<String, String>>) {
+    if (params.isEmpty()) {
+        EmptyHint("No query parameters")
+        return
+    }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            text = "Query",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
         params.forEach { (key, value) ->
             Text(
                 text = "$key = $value",
@@ -328,6 +413,24 @@ private fun QueryParamBlock(url: String) {
             )
         }
     }
+}
+
+@Composable
+private fun MinorLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.primary,
+    )
+}
+
+@Composable
+private fun EmptyHint(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.outline,
+    )
 }
 
 @Composable
