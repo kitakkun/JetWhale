@@ -20,8 +20,15 @@ interface MdnsRegistrar {
      */
     fun register(instanceName: String, wsPort: Int, wssPort: Int?)
 
-    /** Unregisters the currently registered service, if any. */
+    /** Unregisters the currently registered service, if any, keeping the stack alive for re-use. */
     fun unregister()
+
+    /**
+     * Unregisters and releases the underlying mDNS stack (sockets/threads). Idempotent. A subsequent
+     * [register] transparently recreates the stack. May block, so callers should invoke it off any
+     * latency-sensitive thread.
+     */
+    fun close()
 }
 
 /** jmDNS-backed [MdnsRegistrar]. The [JmDNS] instance is created lazily on the first registration. */
@@ -67,6 +74,18 @@ class JmDnsRegistrar : MdnsRegistrar {
             }
         }
         registeredService = null
+    }
+
+    override fun close() {
+        unregister()
+        // Idempotent: once closed, jmdns is null and a later register() recreates it on demand.
+        val instance = jmdns ?: return
+        jmdns = null
+        try {
+            instance.close()
+        } catch (e: Exception) {
+            logger.warn("Failed to close jmDNS", e)
+        }
     }
 
     companion object {
