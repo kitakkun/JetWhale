@@ -12,7 +12,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.scene.DialogSceneStrategy
 import com.kitakkun.jetwhale.host.LocalComposeWindow
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
@@ -29,7 +28,7 @@ fun EntryProviderScope<NavKey>.infoEntry(
     onClickOSSLicenses: () -> Unit,
 ) {
     entry<InfoNavKey>(
-        metadata = DialogSceneStrategy.dialog(),
+        metadata = StableDialogSceneStrategy.dialog(),
     ) {
         InfoScreen(
             onClickOSSLicenses = onClickOSSLicenses,
@@ -116,7 +115,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     onOpenLogViewer: () -> Unit,
 ) {
     entry<SettingsNavKey>(
-        metadata = DialogSceneStrategy.dialog(
+        metadata = StableDialogSceneStrategy.dialog(
             dialogProperties = DialogProperties(
                 usePlatformDefaultWidth = false,
             ),
@@ -141,7 +140,7 @@ fun EntryProviderScope<NavKey>.licensesEntry(
     onClickBack: () -> Unit,
 ) {
     entry<LicensesNavKey>(
-        metadata = DialogSceneStrategy.dialog(
+        metadata = StableDialogSceneStrategy.dialog(
             dialogProperties = DialogProperties(
                 usePlatformDefaultWidth = false,
             ),

@@ -3,7 +3,6 @@ package com.kitakkun.jetwhale.host.navigation
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.key
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -34,100 +33,81 @@ internal data class WindowEntry<T : Any>(
     val properties: WindowProperties,
 )
 
+// An OverlayScene that renders a single window. Each window is its own scene (like the built-in
+// DialogScene), so its identity is only its own content key: it is independent of the entries drawn
+// below it (overlaidEntries) and of every other window, and NavDisplay never tears it down on unrelated
+// navigation. Because the scene stays alive, the per-window [rememberWindowState] survives too, so each
+// window keeps its position and size.
 internal class WindowOverlayScene<T : Any>(
-    private val windowEntries: List<WindowEntry<T>>,
+    private val windowEntry: WindowEntry<T>,
     override val previousEntries: List<NavEntry<T>>,
     override val overlaidEntries: List<NavEntry<T>>,
     private val onCloseRequest: (NavEntry<T>) -> Unit,
 ) : OverlayScene<T> {
-    override val key: Any = windowEntries.map { it.entry.contentKey }.joinToString(separator = "_")
+    override val key: Any = windowEntry.entry.contentKey
 
     override val content: @Composable () -> Unit = {
-        windowEntries.forEach { windowEntry ->
-            key(windowEntry.entry.contentKey) {
-                val windowState = rememberWindowState(
-                    placement = windowEntry.properties.windowPlacement,
-                    width = windowEntry.properties.width,
-                    height = windowEntry.properties.height,
-                )
+        val windowState = rememberWindowState(
+            placement = windowEntry.properties.windowPlacement,
+            width = windowEntry.properties.width,
+            height = windowEntry.properties.height,
+        )
 
-                Window(
-                    state = windowState,
-                    icon = painterResource(Res.drawable.app_icon),
-                    onCloseRequest = { onCloseRequest(windowEntry.entry) },
-                    onPreviewKeyEvent = { keyEvent ->
-                        if (keyEvent.type == KeyEventType.KeyDown && keyEvent.isShortcutModifierPressed && keyEvent.key == Key.W) {
-                            onCloseRequest(windowEntry.entry)
-                            true
-                        } else {
-                            false
-                        }
-                    },
-                ) {
-                    CompositionLocalProvider(LocalComposeWindow provides this.window) {
-                        Surface {
-                            windowEntry.entry.Content()
-                        }
-                    }
+        Window(
+            state = windowState,
+            icon = painterResource(Res.drawable.app_icon),
+            onCloseRequest = { onCloseRequest(windowEntry.entry) },
+            onPreviewKeyEvent = { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyDown && keyEvent.isShortcutModifierPressed && keyEvent.key == Key.W) {
+                    onCloseRequest(windowEntry.entry)
+                    true
+                } else {
+                    false
+                }
+            },
+        ) {
+            CompositionLocalProvider(LocalComposeWindow provides this.window) {
+                Surface {
+                    windowEntry.entry.Content()
                 }
             }
         }
     }
 
-    override val entries: List<NavEntry<T>> = windowEntries.map { it.entry }
+    override val entries: List<NavEntry<T>> = listOf(windowEntry.entry)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
+        if (other !is WindowOverlayScene<*>) return false
 
-        other as WindowOverlayScene<*>
-
-        if (windowEntries != other.windowEntries) return false
-        if (previousEntries != other.previousEntries) return false
-        if (overlaidEntries != other.overlaidEntries) return false
-        if (key != other.key) return false
-        if (content != other.content) return false
-        if (entries != other.entries) return false
-
-        return true
+        return key == other.key
     }
 
-    override fun hashCode(): Int {
-        var result = windowEntries.hashCode()
-        result = 31 * result + previousEntries.hashCode()
-        result = 31 * result + overlaidEntries.hashCode()
-        result = 31 * result + key.hashCode()
-        result = 31 * result + content.hashCode()
-        result = 31 * result + entries.hashCode()
-        return result
-    }
+    override fun hashCode(): Int = key.hashCode()
 }
 
 class WindowSceneStrategy<T : Any>(
     private val onCloseRequestForContentKey: (Any) -> Unit,
 ) : SceneStrategy<T> {
     override fun SceneStrategyScope<T>.calculateScene(entries: List<NavEntry<T>>): Scene<T>? {
-        if (entries.isEmpty()) return null
+        // Render one window per scene. The framework re-runs the scene strategies over overlaidEntries, so
+        // returning the topmost window here and leaving the rest below lets each window become its own
+        // independent overlay scene, stacked in order.
+        val windowIndex = entries.indexOfLast { it.metadata[WINDOW_KEY] is WindowProperties }
+        if (windowIndex == -1) return null
 
-        val windowEntries = entries.mapNotNull { entry ->
-            val windowProperties = entry.metadata[WINDOW_KEY] as? WindowProperties ?: return@mapNotNull null
-            WindowEntry(entry, windowProperties)
-        }
+        val entry = entries[windowIndex]
+        val properties = entry.metadata[WINDOW_KEY] as WindowProperties
+        val overlaidEntries = entries.filterIndexed { index, _ -> index != windowIndex }
 
-        if (windowEntries.isEmpty()) return null
-
-        val nonWindowEntries = entries.filterNot { entry ->
-            entry.metadata[WINDOW_KEY] is WindowProperties
-        }
-
-        val onCloseRequest: (NavEntry<T>) -> Unit = { entry ->
-            onCloseRequestForContentKey(entry.contentKey)
+        val onCloseRequest: (NavEntry<T>) -> Unit = { closedEntry ->
+            onCloseRequestForContentKey(closedEntry.contentKey)
         }
 
         return WindowOverlayScene(
-            windowEntries = windowEntries,
-            previousEntries = nonWindowEntries,
-            overlaidEntries = nonWindowEntries,
+            windowEntry = WindowEntry(entry, properties),
+            previousEntries = overlaidEntries,
+            overlaidEntries = overlaidEntries,
             onCloseRequest = onCloseRequest,
         )
     }
