@@ -15,7 +15,6 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
-import androidx.navigation3.scene.DialogSceneStrategy
 import androidx.navigation3.ui.NavDisplay
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 
@@ -27,7 +26,7 @@ fun JetWhaleNavDisplay(
     modifier: Modifier = Modifier,
 ) {
     val listDetailSceneStrategy = rememberListDetailSceneStrategy<NavKey>()
-    val dialogSceneStrategy = remember { DialogSceneStrategy<NavKey>() }
+    val dialogSceneStrategy = remember { StableDialogSceneStrategy<NavKey>() }
     val windowSceneStrategy = remember(backStack) {
         WindowSceneStrategy<NavKey> { contentKey ->
             backStack.removeAll { it.toString() == contentKey.toString() }
