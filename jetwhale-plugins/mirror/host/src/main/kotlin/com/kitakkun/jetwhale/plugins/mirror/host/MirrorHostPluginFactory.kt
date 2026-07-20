@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asComposeImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
@@ -28,6 +29,14 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.bytedeco.javacv.FFmpegFrameGrabber
 import org.bytedeco.javacv.Java2DFrameConverter
+import org.jetbrains.skia.Bitmap
+import org.jetbrains.skia.ColorAlphaType
+import org.jetbrains.skia.ColorType
+import org.jetbrains.skia.ImageInfo
+import java.awt.image.BufferedImage
+import java.awt.image.DataBufferInt
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.concurrent.ConcurrentHashMap
 import org.jetbrains.skia.Image as SkiaImage
 
@@ -51,11 +60,10 @@ private const val BACKGROUND_FRAME_INTERVAL_MILLIS = 500L
 private const val FRAME_RETRY_INTERVAL_MILLIS = 1_000L
 
 // Publish caps for decoded stream frames: decoding always keeps up with the stream, but
-// conversion + publication is throttled by wall-clock (~30fps selected, ~2fps unselected).
-// The selected gap stays comfortably below the 33.3ms source frame interval so timing jitter
-// cannot push a frame past the cap and momentarily halve the effective rate; publication still
-// cannot exceed the 30fps source, so the smaller gap costs no extra convert/publish work.
-private const val SELECTED_PUBLISH_GAP_MILLIS = 25L
+// conversion + publication is throttled by wall-clock (~60fps selected, ~2fps unselected).
+// 16ms sits just under the 16.6ms interval of the 60fps source so every source frame can pass;
+// publication cannot exceed the source rate, so the gap never drives extra convert/publish work.
+private const val SELECTED_PUBLISH_GAP_MILLIS = 16L
 private const val BACKGROUND_PUBLISH_GAP_MILLIS = 500L
 
 // A stream that has not produced a frame by this deadline is treated as broken.
@@ -194,6 +202,10 @@ private class MirrorHostPlugin :
         try {
             grabber.start()
             var lastPublishNanos = 0L
+            // Reused across frames so publishing does not allocate a full-resolution buffer every
+            // frame (~12MB at 1440p). The decode loop is per-device, so these are never shared.
+            var argbScratch: BufferedImage? = null
+            var pixelScratch: ByteArray? = null
             while (currentCoroutineContext().isActive && mirroringEnabled) {
                 val frame = grabber.grabImage() ?: break
                 produced = true
@@ -206,7 +218,35 @@ private class MirrorHostPlugin :
                 val now = System.nanoTime()
                 if (now - lastPublishNanos >= minPublishGapMillis * 1_000_000) {
                     val image = converter.convert(frame) ?: continue
-                    frames[device.id] = image.toComposeImageBitmap()
+                    // BufferedImage.toComposeImageBitmap() converts pixel-by-pixel (~40ms at 1440p),
+                    // which alone caps the mirror near 20fps. Copy the pixels straight into a Skia
+                    // bitmap as BGRA instead: an INT_ARGB image's native-order ints already lay out
+                    // as B,G,R,A bytes on a little-endian host, so the publish drops to a few ms.
+                    val w = image.width
+                    val h = image.height
+                    val argb = if (image.type == BufferedImage.TYPE_INT_ARGB) {
+                        image
+                    } else {
+                        val scratch = argbScratch?.takeIf { it.width == w && it.height == h }
+                            ?: BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB).also { argbScratch = it }
+                        scratch.createGraphics().apply {
+                            drawImage(image, 0, 0, null)
+                            dispose()
+                        }
+                        scratch
+                    }
+                    val pixels = (argb.raster.dataBuffer as DataBufferInt).data
+                    val bytes = pixelScratch?.takeIf { it.size == pixels.size * 4 }
+                        ?: ByteArray(pixels.size * 4).also { pixelScratch = it }
+                    ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().put(pixels)
+                    // installPixels copies into the bitmap's own storage, so reusing bytes is safe.
+                    val info = ImageInfo(w, h, ColorType.BGRA_8888, ColorAlphaType.OPAQUE)
+                    val bitmap = Bitmap().apply {
+                        allocPixels(info)
+                        installPixels(info, bytes, w * 4)
+                        setImmutable()
+                    }
+                    frames[device.id] = bitmap.asComposeImageBitmap()
                     lastPublishNanos = now
                 }
             }
