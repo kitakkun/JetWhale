@@ -9,6 +9,7 @@ import dev.zacsweers.metro.SingleIn
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
+import java.util.logging.Logger
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -30,6 +31,8 @@ import javax.crypto.spec.SecretKeySpec
 @ContributesBinding(AppScope::class)
 @Inject
 class KeyringTrustRegistrySigner : TrustRegistrySigner {
+    private val logger = Logger.getLogger(KeyringTrustRegistrySigner::class.java.name)
+
     private sealed interface KeyState {
         /** A usable key is present. */
         data class Present(val key: ByteArray) : KeyState
@@ -67,14 +70,14 @@ class KeyringTrustRegistrySigner : TrustRegistrySigner {
                 // An item exists but is not a valid key. Do NOT provision over it during a read; treat
                 // it as present-but-unusable so verification fails safe (INVALID) instead of silently
                 // downgrading to unsigned.
-                println("Stored plugin trust registry key is corrupted; the registry will not verify.")
+                logger.warning("Stored plugin trust registry key is corrupted; the registry will not verify.")
                 KeyState.Corrupt
             } else {
                 KeyState.Present(decoded)
             }
         }
     } catch (e: Exception) {
-        println("OS credential store unavailable, plugin trust registry cannot be signature-checked: ${e.message}")
+        logger.warning("OS credential store unavailable, plugin trust registry cannot be signature-checked: ${e.message}")
         KeyState.Unavailable
     }
 

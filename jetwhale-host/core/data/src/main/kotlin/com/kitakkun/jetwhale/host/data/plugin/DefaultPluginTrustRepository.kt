@@ -18,6 +18,7 @@ import java.io.File
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.util.logging.Logger
 
 /**
  * JSON-file-backed trust registry stored at `~/.jetwhale/trusted-plugins.json`. [load] reads it once
@@ -37,6 +38,7 @@ class DefaultPluginTrustRepository(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
     private val trustRegistrySigner: TrustRegistrySigner,
 ) : PluginTrustRepository {
+    private val logger = Logger.getLogger(DefaultPluginTrustRepository::class.java.name)
     private val writeMutex = Mutex()
 
     override val trustedEntriesFlow: Flow<Map<String, TrustedPluginEntry>>
@@ -83,12 +85,12 @@ class DefaultPluginTrustRepository(
                 -> Unit
 
                 TrustRegistrySigner.Verification.INVALID -> {
-                    println("Plugin trust registry failed signature verification, treating all plugins as untrusted.")
+                    logger.warning("Plugin trust registry failed signature verification, treating all plugins as untrusted.")
                     return emptyMap()
                 }
 
                 TrustRegistrySigner.Verification.UNAVAILABLE -> {
-                    println("OS credential store unavailable; loading plugin trust registry without signature verification.")
+                    logger.warning("OS credential store unavailable; loading plugin trust registry without signature verification.")
                 }
             }
             registry.entries.mapValues { (path, entry) ->
@@ -103,7 +105,7 @@ class DefaultPluginTrustRepository(
         } catch (e: Throwable) {
             // A corrupt or unreadable registry must fail safe: treat everything as untrusted rather
             // than risk loading a jar we cannot prove was approved.
-            println("Failed to read plugin trust registry, treating all plugins as untrusted: ${e.message}")
+            logger.warning("Failed to read plugin trust registry, treating all plugins as untrusted: ${e.message}")
             emptyMap()
         }
     }

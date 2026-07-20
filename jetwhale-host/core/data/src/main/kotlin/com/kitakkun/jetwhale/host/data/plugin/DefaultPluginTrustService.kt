@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.security.MessageDigest
+import java.util.logging.Logger
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
@@ -27,6 +28,8 @@ class DefaultPluginTrustService(
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val trustRegistrySigner: TrustRegistrySigner,
 ) : PluginTrustService {
+    private val logger = Logger.getLogger(DefaultPluginTrustService::class.java.name)
+
     override val untrustedJarPathsFlow: Flow<List<String>>
         field = MutableStateFlow(emptyList())
 
@@ -56,7 +59,7 @@ class DefaultPluginTrustService(
             if (isTrusted(jarPath)) {
                 pluginFactoryRepository.loadPlugin(jarPath)
             } else {
-                println("Skipping untrusted plugin jar (not approved or content changed): $jarPath")
+                logger.warning("Skipping untrusted plugin jar (not approved or content changed): $jarPath")
                 untrusted += jarPath
             }
         }
@@ -110,7 +113,7 @@ class DefaultPluginTrustService(
         } catch (e: Exception) {
             // A jar we cannot read is a jar we cannot verify: fail safe as untrusted instead of
             // letting an IO error abort loading of every other plugin.
-            println("Failed to hash plugin jar, treating as untrusted: $jarPath (${e.message})")
+            logger.warning("Failed to hash plugin jar, treating as untrusted: $jarPath (${e.message})")
             return false
         }
         return entry.sha256 == currentSha256
