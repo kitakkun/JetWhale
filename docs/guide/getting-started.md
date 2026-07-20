@@ -115,6 +115,65 @@ startJetWhale {
 }
 ```
 
+## Zero-config connection (recommended)
+
+A physical device on the LAN cannot reach the host over `localhost`, and hardcoding the build
+machine's IP is brittle. Apply the JetWhale Gradle plugin to your app module and it captures the
+build machine's LAN addresses at build time and injects them as connection candidates — so
+`startJetWhale {}` connects with no host/IP written anywhere:
+
+```kotlin
+// build.gradle.kts of the app being debugged
+plugins {
+    id("com.kitakkun.jetwhale.agent")
+}
+```
+
+```kotlin
+import com.kitakkun.jetwhale.generated.applyJetWhaleBuildEnvironment
+import com.kitakkun.jetwhale.agent.runtime.startJetWhale
+
+fun initializeJetWhale() {
+    // Registers the build machine's captured LAN addresses. Call once, before startJetWhale.
+    applyJetWhaleBuildEnvironment()
+
+    startJetWhale {
+        connection {
+            port = 5443            // no host: candidates are used
+            ssl { trustServerCertificate() }
+        }
+        plugins { /* ... */ }
+    }
+}
+```
+
+### How candidates are resolved
+
+On each (re)connection attempt the agent tries an ordered list of addresses, each with a short
+per-candidate timeout, and connects to the first that answers (logged at INFO):
+
+1. An explicit `host` you set in `connection { }` (when set — it always wins).
+2. The build machine's injected LAN addresses (IPv4s, then hostname).
+3. `localhost` — the fallback for emulators, simulators, and ADB-forwarded devices.
+
+So the same build runs on a physical device (reaches the build machine) and an emulator (falls
+through to localhost) with no code change.
+
+### Staleness and CI
+
+Addresses are captured when the app is built, so they are correct as long as the build machine keeps
+the same addresses — the norm when one machine both builds and debugs. When they change, the agent
+simply falls through to the next candidate. Disable injection for CI or release builds:
+
+```kotlin
+jetwhale {
+    injectBuildHostCandidates = false
+}
+```
+
+With injection disabled (or on a build that never applied the plugin), `applyJetWhaleBuildEnvironment()`
+is generated as a no-op, so the call site keeps compiling.
+
 ## Secure connections (wss)
 
 By default the agent connects over plain **ws** (port **5080**). The host can additionally serve

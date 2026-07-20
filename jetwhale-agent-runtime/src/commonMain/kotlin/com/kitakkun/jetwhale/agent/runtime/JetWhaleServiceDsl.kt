@@ -33,8 +33,11 @@ public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
             ),
         )
     service.startService(
-        host = configuration.connection.host,
-        port = configuration.connection.port,
+        candidates = buildHostCandidates(
+            configuredHost = configuration.connection.host,
+            configuredPort = configuration.connection.port,
+            hostExplicitlySet = configuration.connection.hostExplicitlySet,
+        ),
     )
 }
 
@@ -172,7 +175,16 @@ private class JetWhaleAppConfiguration : JetWhaleAppConfigurationScope {
 }
 
 private class JetWhaleConnectionConfiguration : JetWhaleConnectionConfigurationScope {
+    // Tracks whether the app set an explicit host so it can take precedence over build-injected
+    // candidates. The default "localhost" is not treated as an explicit choice.
+    var hostExplicitlySet: Boolean = false
+        private set
+
     override var host: String = "localhost"
+        set(value) {
+            field = value
+            hostExplicitlySet = true
+        }
     override var port: Int = 8080
     val sslConfiguration: JetWhaleSslConfiguration = JetWhaleSslConfiguration()
 
