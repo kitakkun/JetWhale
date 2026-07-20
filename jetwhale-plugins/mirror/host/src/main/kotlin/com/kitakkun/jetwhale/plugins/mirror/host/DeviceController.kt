@@ -202,9 +202,10 @@ internal class IosDeviceController(
         // simctl cannot stream; idb's video-stream is the only live H.264 source for simulators.
         val idb = idbPath ?: return null
         return withContext(Dispatchers.IO) {
-            // 60fps matches the publish cap on the decode side; idb honours the requested rate
-            // (measured ~50fps effective), and the Skia publish path keeps up well past 60fps.
-            ProcessBuilder(idb, "video-stream", "--udid", udid, "--format", "h264", "--fps", "60").start()
+            // 30fps matches the publish cap on the decode side. idb honours higher rates, but
+            // publishing every frame at 60fps means ~700MB/s of GPU upload and Skia-bitmap churn,
+            // whose batched frees stall the render loop periodically; 30fps stays smooth.
+            ProcessBuilder(idb, "video-stream", "--udid", udid, "--format", "h264", "--fps", "30").start()
         }
     }
 
