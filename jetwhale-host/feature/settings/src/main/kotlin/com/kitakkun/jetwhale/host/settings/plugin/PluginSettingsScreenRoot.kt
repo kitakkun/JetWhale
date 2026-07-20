@@ -19,46 +19,54 @@ fun PluginSettingsScreenRoot() {
     var showMavenDialog by remember { mutableStateOf(false) }
 
     SoilDataBoundary(
-        state1 = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
-        state2 = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey),
-        state3 = rememberSubscription(screenContext.untrustedPluginJarPathsSubscriptionKey),
-        state4 = rememberSubscription(screenContext.pluginInstallProgressSubscriptionKey),
-    ) { loadedPlugins, failedJars, untrustedJars, installProgress ->
-        val screenChannel = rememberScreenChannel<PluginSettingsScreenAction, Nothing>()
-        val uiState = context(screenContext.presenterContext) {
-            pluginSettingsScreenPresenter(
-                screenChannel = screenChannel,
-                loadedPlugins = loadedPlugins,
-                failedJars = failedJars,
-                untrustedJarPaths = untrustedJars.paths,
-                installProgress = installProgress,
-            )
-        }
+        state = rememberSubscription(screenContext.signPluginTrustRegistrySubscriptionKey),
+    ) { signingState ->
+        SoilDataBoundary(
+            state1 = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
+            state2 = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey),
+            state3 = rememberSubscription(screenContext.untrustedPluginJarPathsSubscriptionKey),
+            state4 = rememberSubscription(screenContext.pluginInstallProgressSubscriptionKey),
+        ) { loadedPlugins, failedJars, untrustedJars, installProgress ->
+            val screenChannel = rememberScreenChannel<PluginSettingsScreenAction, Nothing>()
+            val uiState = context(screenContext.presenterContext) {
+                pluginSettingsScreenPresenter(
+                    screenChannel = screenChannel,
+                    loadedPlugins = loadedPlugins,
+                    failedJars = failedJars,
+                    untrustedJarPaths = untrustedJars.paths,
+                    installProgress = installProgress,
+                    signPluginTrustRegistry = signingState.enabled,
+                )
+            }
 
-        PluginSettingsScreen(
-            uiState = uiState,
-            onClickAddPlugin = {
-                val selectedJar = selectJarFile() ?: return@PluginSettingsScreen
-                screenChannel.send(PluginSettingsScreenAction.PluginJarSelected(selectedJar.path))
-            },
-            onApproveUntrustedJar = { path ->
-                screenChannel.send(PluginSettingsScreenAction.UntrustedJarApproved(path))
-            },
-            onClickInstallFromMaven = {
-                showMavenDialog = true
-            },
-            onClickInstallOfficialPlugin = { plugin ->
-                screenChannel.send(PluginSettingsScreenAction.InstallOfficialPlugin(plugin))
-            },
-        )
-
-        if (showMavenDialog) {
-            MavenPluginInstallDialog(
-                onDismissRequest = { showMavenDialog = false },
-                onInstall = { coordinates ->
-                    screenChannel.send(PluginSettingsScreenAction.InstallFromMaven(coordinates))
+            PluginSettingsScreen(
+                uiState = uiState,
+                onClickAddPlugin = {
+                    val selectedJar = selectJarFile() ?: return@PluginSettingsScreen
+                    screenChannel.send(PluginSettingsScreenAction.PluginJarSelected(selectedJar.path))
+                },
+                onApproveUntrustedJar = { path ->
+                    screenChannel.send(PluginSettingsScreenAction.UntrustedJarApproved(path))
+                },
+                onClickInstallFromMaven = {
+                    showMavenDialog = true
+                },
+                onClickInstallOfficialPlugin = { plugin ->
+                    screenChannel.send(PluginSettingsScreenAction.InstallOfficialPlugin(plugin))
+                },
+                onChangeSignPluginTrustRegistry = { enabled ->
+                    screenChannel.send(PluginSettingsScreenAction.ChangeSignPluginTrustRegistry(enabled))
                 },
             )
+
+            if (showMavenDialog) {
+                MavenPluginInstallDialog(
+                    onDismissRequest = { showMavenDialog = false },
+                    onInstall = { coordinates ->
+                        screenChannel.send(PluginSettingsScreenAction.InstallFromMaven(coordinates))
+                    },
+                )
+            }
         }
     }
 }

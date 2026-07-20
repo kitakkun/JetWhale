@@ -10,11 +10,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.security.MessageDigest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class DefaultPluginTrustServiceTest {
     private var originalUserHome: String? = null
@@ -23,6 +26,7 @@ class DefaultPluginTrustServiceTest {
 
     private lateinit var trustRepository: FakePluginTrustRepository
     private lateinit var factoryRepository: FakePluginFactoryRepository
+    private lateinit var signer: FakeTrustRegistrySigner
     private lateinit var service: DefaultPluginTrustService
 
     @BeforeTest
@@ -37,7 +41,8 @@ class DefaultPluginTrustServiceTest {
 
         trustRepository = FakePluginTrustRepository()
         factoryRepository = FakePluginFactoryRepository()
-        service = DefaultPluginTrustService(AppDataDirectoryProvider(), trustRepository, factoryRepository)
+        signer = FakeTrustRegistrySigner(keyPresent = false)
+        service = DefaultPluginTrustService(AppDataDirectoryProvider(), trustRepository, factoryRepository, signer)
     }
 
     @AfterTest
@@ -98,11 +103,78 @@ class DefaultPluginTrustServiceTest {
         assertEquals(listOf(readable.absolutePath), factoryRepository.loadedJarPaths)
     }
 
+    @Test
+    fun `loadTrustedPlugins reflects signing key presence in signingEnabledFlow`() = runBlocking {
+        signer.provisionKey()
+
+        service.loadTrustedPlugins()
+
+        assertTrue(service.signingEnabledFlow.value)
+    }
+
+    @Test
+    fun `loadTrustedPlugins reports signing off when no key exists`() = runBlocking {
+        service.loadTrustedPlugins()
+
+        assertFalse(service.signingEnabledFlow.value)
+    }
+
+    @Test
+    fun `setSigningEnabled true provisions a key, re-signs, and reports enabled`() = runBlocking {
+        service.setSigningEnabled(true)
+
+        assertTrue(signer.hasKey())
+        assertEquals(1, trustRepository.resignCount)
+        assertTrue(service.signingEnabledFlow.value)
+    }
+
+    @Test
+    fun `setSigningEnabled false deletes the key, re-signs, and reports disabled`() = runBlocking {
+        service.setSigningEnabled(true)
+
+        service.setSigningEnabled(false)
+
+        assertFalse(signer.hasKey())
+        assertEquals(2, trustRepository.resignCount)
+        assertFalse(service.signingEnabledFlow.value)
+    }
+
+    @Test
+    fun `enabling signing re-signs a previously unsigned registry so it still loads`() = runBlocking {
+        // End-to-end migration over a real disk-backed registry: approve while signing is off (no
+        // key), turn signing on, then confirm a fresh signing-on startup still trusts and loads it.
+        val jar = File(pluginsDir, "plugin.jar").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+        val diskSigner = FakeTrustRegistrySigner(keyPresent = false)
+
+        val diskRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(), diskSigner)
+        val diskFactory = FakePluginFactoryRepository()
+        val diskService = DefaultPluginTrustService(AppDataDirectoryProvider(), diskRepository, diskFactory, diskSigner)
+
+        // Approve with signing off: the registry is written unsigned.
+        diskService.trustAndLoad(jar.absolutePath)
+        // Turn signing on: a key is provisioned and the existing registry is re-signed.
+        diskService.setSigningEnabled(true)
+
+        // Fresh start with the same (now-present) key. Without the re-sign the unsigned registry would
+        // verify INVALID and drop every plugin; re-signing lets it verify and load.
+        val reloadedRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(), diskSigner)
+        val reloadedFactory = FakePluginFactoryRepository()
+        val reloadedService = DefaultPluginTrustService(AppDataDirectoryProvider(), reloadedRepository, reloadedFactory, diskSigner)
+        reloadedService.loadTrustedPlugins()
+
+        assertEquals(listOf(jar.absolutePath), reloadedFactory.loadedJarPaths)
+    }
+
     private class FakePluginTrustRepository : PluginTrustRepository {
         val entries = mutableMapOf<String, TrustedPluginEntry>()
+        var resignCount = 0
+
         override val trustedEntriesFlow: Flow<Map<String, TrustedPluginEntry>> = MutableStateFlow(emptyMap())
 
         override suspend fun trustedEntry(jarPath: String): TrustedPluginEntry? = entries[jarPath]
+
+        // The in-memory map is already the source of truth, so there is nothing to read from disk.
+        override suspend fun load() = Unit
 
         override suspend fun trust(jarPath: String, sha256: String) {
             entries[jarPath] = TrustedPluginEntry(jarPath, sha256, 0L)
@@ -110,6 +182,10 @@ class DefaultPluginTrustServiceTest {
 
         override suspend fun revoke(jarPath: String) {
             entries.remove(jarPath)
+        }
+
+        override suspend fun resign() {
+            resignCount++
         }
     }
 
@@ -130,5 +206,35 @@ class DefaultPluginTrustServiceTest {
         override suspend fun reloadPlugin(pluginJarPath: String): List<String> = emptyList()
 
         override fun tryRedefinePlugin(pluginJarPath: String): List<String> = emptyList()
+    }
+
+    /**
+     * Deterministic stand-in for the keyring-backed signer. "Signing enabled" is modeled by whether a
+     * key is present; [provisionKey]/[deleteKey] flip it. The "signature" is a digest of the payload,
+     * so it only verifies against the exact payload it was produced for.
+     */
+    private class FakeTrustRegistrySigner(keyPresent: Boolean) : TrustRegistrySigner {
+        private var keyPresent = keyPresent
+
+        override fun hasKey(): Boolean = keyPresent
+
+        override fun sign(payload: String): String? = if (keyPresent) digest(payload) else null
+
+        override fun verify(payload: String, signature: String?): TrustRegistrySigner.Verification = when {
+            !keyPresent -> TrustRegistrySigner.Verification.DISABLED
+            signature == null -> TrustRegistrySigner.Verification.INVALID
+            signature == digest(payload) -> TrustRegistrySigner.Verification.VALID
+            else -> TrustRegistrySigner.Verification.INVALID
+        }
+
+        override fun provisionKey() {
+            keyPresent = true
+        }
+
+        override fun deleteKey() {
+            keyPresent = false
+        }
+
+        private fun digest(payload: String): String = "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 }

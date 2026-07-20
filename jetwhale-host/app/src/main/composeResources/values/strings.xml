@@ -13,6 +13,7 @@
     <string name="session_secure_connection">Secure connection (wss)</string>
     <string name="session_local_connection">Local connection (ADB)</string>
     <string name="initializing">Initializing...</string>
+    <string name="unlocking_trust_registry">Unlocking trust registry…</string>
     <string name="shutting_down">Shutting down...</string>
     <string name="plugin_popped_out_message">This plugin is popped out. Please check the separate window.</string>
     <string name="bring_back_to_main_window">Bring back to main window</string>

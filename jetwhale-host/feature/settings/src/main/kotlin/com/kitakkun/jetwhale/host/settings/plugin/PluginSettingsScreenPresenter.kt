@@ -22,10 +22,12 @@ fun pluginSettingsScreenPresenter(
     failedJars: ImmutableList<FailedPluginJar>,
     untrustedJarPaths: ImmutableList<String>,
     installProgress: PluginInstallProgress?,
+    signPluginTrustRegistry: Boolean,
 ): PluginSettingsScreenUiState {
     val pluginInstallMutation = rememberMutation(presenterContext.pluginInstallMutationKey)
     val pluginInstallFromMavenMutation = rememberMutation(presenterContext.pluginInstallFromMavenMutationKey)
     val trustPluginMutation = rememberMutation(presenterContext.trustPluginMutationKey)
+    val signPluginTrustRegistryMutation = rememberMutation(presenterContext.signPluginTrustRegistryMutationKey)
     val officialPluginInstallMutation = rememberMutation(presenterContext.officialPluginInstallMutationKey)
 
     ActionEffect(screenChannel) { action ->
@@ -44,6 +46,10 @@ fun pluginSettingsScreenPresenter(
 
             is PluginSettingsScreenAction.UntrustedJarApproved -> {
                 trustPluginMutation.mutateAsync(TrustPluginRequest(action.path))
+            }
+
+            is PluginSettingsScreenAction.ChangeSignPluginTrustRegistry -> {
+                signPluginTrustRegistryMutation.mutateAsync(action.enabled)
             }
         }
     }
@@ -71,6 +77,7 @@ fun pluginSettingsScreenPresenter(
         }.toPersistentList(),
         failedJars = failedJars,
         untrustedJarPaths = untrustedJarPaths,
+        signPluginTrustRegistry = signPluginTrustRegistry,
         isInstalling = isInstalling,
         installProgress = installProgress,
         installError = installError,

@@ -34,12 +34,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.model.HostOs
 import com.kitakkun.jetwhale.host.model.OfficialPlugin
 import com.kitakkun.jetwhale.host.model.PluginInstallProgress
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.add_plugin_from_file
 import com.kitakkun.jetwhale.host.settings.approve_untrusted_plugin
+import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
+import com.kitakkun.jetwhale.host.settings.component.SwitchSettingsItemView
 import com.kitakkun.jetwhale.host.settings.dialog_ok
 import com.kitakkun.jetwhale.host.settings.failed_jar_path_hint
 import com.kitakkun.jetwhale.host.settings.failed_to_load_plugins
@@ -52,6 +55,12 @@ import com.kitakkun.jetwhale.host.settings.maven_install_install
 import com.kitakkun.jetwhale.host.settings.no_plugins_installed
 import com.kitakkun.jetwhale.host.settings.official_plugin_installed
 import com.kitakkun.jetwhale.host.settings.official_plugins
+import com.kitakkun.jetwhale.host.settings.plugin_security
+import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry
+import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint
+import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint_linux
+import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint_macos
+import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint_windows
 import com.kitakkun.jetwhale.host.settings.untrusted_jar_hint
 import com.kitakkun.jetwhale.host.settings.untrusted_plugins
 import org.jetbrains.compose.resources.stringResource
@@ -63,6 +72,7 @@ fun PluginSettingsScreen(
     onApproveUntrustedJar: (String) -> Unit,
     onClickInstallFromMaven: () -> Unit,
     onClickInstallOfficialPlugin: (OfficialPlugin) -> Unit,
+    onChangeSignPluginTrustRegistry: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showFailedJarsDialog by remember { mutableStateOf(false) }
@@ -258,6 +268,27 @@ fun PluginSettingsScreen(
                     uiState = officialPlugin,
                     installEnabled = !uiState.isInstalling,
                     onClickInstall = { onClickInstallOfficialPlugin(officialPlugin.plugin) },
+                )
+            }
+        }
+        item(key = "trust_registry_signing") {
+            SettingOptionView(label = stringResource(Res.string.plugin_security)) {
+                SwitchSettingsItemView(
+                    label = stringResource(Res.string.sign_plugin_trust_registry),
+                    isChecked = uiState.signPluginTrustRegistry,
+                    onCheckedChange = onChangeSignPluginTrustRegistry,
+                )
+                // Append only the current OS's credential-store behavior — the prompt story differs
+                // per platform (macOS prompts, Windows DPAPI is silent, Linux depends on the keyring).
+                val osHint = when (HostOs.current) {
+                    HostOs.MAC -> Res.string.sign_plugin_trust_registry_hint_macos
+                    HostOs.WINDOWS -> Res.string.sign_plugin_trust_registry_hint_windows
+                    else -> Res.string.sign_plugin_trust_registry_hint_linux
+                }
+                Text(
+                    text = "${stringResource(Res.string.sign_plugin_trust_registry_hint)} ${stringResource(osHint)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

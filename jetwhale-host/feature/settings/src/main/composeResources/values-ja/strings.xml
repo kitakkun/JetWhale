@@ -26,6 +26,12 @@
     <string name="untrusted_plugins">未検証のプラグイン</string>
     <string name="untrusted_jar_hint">これらの JAR はプラグインディレクトリにありますが、承認されていない（または承認後に内容が変更された）ため読み込まれていません。プラグインはこのアプリの全権限で動作します。信頼できる JAR のみ承認してください。</string>
     <string name="approve_untrusted_plugin">承認</string>
+    <string name="plugin_security">セキュリティ</string>
+    <string name="sign_plugin_trust_registry">信頼済みプラグインレジストリに署名する</string>
+    <string name="sign_plugin_trust_registry_hint">既定では無効です。有効にすると、OS の資格情報ストアに署名鍵を保管し、それで信頼済みプラグインレジストリに署名・検証します。これによりレジストリファイルの改ざんを防ぎ、無効化にも資格情報ストアへのアクセスが必要になります。無効の場合は鍵が存在せず、確認は表示されません。承認済み jar の SHA-256 検証はどちらの場合も有効です。</string>
+    <string name="sign_plugin_trust_registry_hint_macos">macOS ではこのストアは Keychain のため、起動のたびにアクセス確認が表示されます（「常に許可」を選ぶと以降は出ません）。</string>
+    <string name="sign_plugin_trust_registry_hint_windows">Windows ではアカウントの DPAPI で保護され、プロンプトは表示されません。</string>
+    <string name="sign_plugin_trust_registry_hint_linux">Linux では Secret Service（GNOME Keyring / KWallet）に保管され、キーリングの設定によっては確認が表示されることがあります。</string>
     <string name="application_data_directory">アプリケーションデータディレクトリ</string>
     <string name="server_status_stopped">停止</string>
     <string name="server_status_running">ポート %1$d で実行中</string>

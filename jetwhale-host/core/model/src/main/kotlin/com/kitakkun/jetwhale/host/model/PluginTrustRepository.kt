@@ -25,9 +25,23 @@ interface PluginTrustRepository {
 
     suspend fun trustedEntry(jarPath: String): TrustedPluginEntry?
 
+    /**
+     * Populates [trustedEntriesFlow] from disk. Call once before reading any trust decision. The
+     * registry is signed (and verified) iff a signing key exists in the OS credential store; that
+     * decision is owned by the signer, not by this repository.
+     */
+    suspend fun load()
+
     /** Records (or replaces) the trusted entry for a jar, pinning [sha256] as its approved content. */
     suspend fun trust(jarPath: String, sha256: String)
 
     /** Removes any trusted entry for [jarPath]. */
     suspend fun revoke(jarPath: String)
+
+    /**
+     * Re-persists the current in-memory entries so the on-disk registry matches the current signing
+     * key state. Called after enabling signing (to sign a previously-unsigned registry) or disabling
+     * it (to strip the signature).
+     */
+    suspend fun resign()
 }

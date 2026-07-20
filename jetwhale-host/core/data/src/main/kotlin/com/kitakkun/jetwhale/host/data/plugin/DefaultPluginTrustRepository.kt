@@ -18,11 +18,18 @@ import java.io.File
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.util.logging.Logger
 
 /**
- * JSON-file-backed trust registry stored at `~/.jetwhale/trusted-plugins.json`. Reads itself once on
- * construction so the trust decision is available before any plugin jar is loaded; every mutation
- * updates the in-memory snapshot and rewrites the file under a mutex.
+ * JSON-file-backed trust registry stored at `~/.jetwhale/trusted-plugins.json`. [load] reads it once
+ * (typically on startup, before any plugin jar is loaded); every mutation updates the in-memory
+ * snapshot and rewrites the file under a mutex.
+ *
+ * The registry is signed iff a signing key exists in the OS credential store — that decision is owned
+ * entirely by [TrustRegistrySigner], not by any writable flag. With no key, [TrustRegistrySigner.sign]
+ * returns `null` (the registry is written unsigned) and [TrustRegistrySigner.verify] reports
+ * [TrustRegistrySigner.Verification.DISABLED] (the registry is loaded unverified) — both prompt-free.
+ * The SHA-256 content pinning of approved jars is enforced by [PluginTrustService] regardless.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
@@ -31,12 +38,17 @@ class DefaultPluginTrustRepository(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
     private val trustRegistrySigner: TrustRegistrySigner,
 ) : PluginTrustRepository {
+    private val logger = Logger.getLogger(DefaultPluginTrustRepository::class.java.name)
     private val writeMutex = Mutex()
 
     override val trustedEntriesFlow: Flow<Map<String, TrustedPluginEntry>>
-        field = MutableStateFlow(readFromDisk())
+        field = MutableStateFlow(emptyMap())
 
     override suspend fun trustedEntry(jarPath: String): TrustedPluginEntry? = trustedEntriesFlow.value[jarPath]
+
+    override suspend fun load(): Unit = writeMutex.withLock {
+        trustedEntriesFlow.value = readFromDisk()
+    }
 
     override suspend fun trust(jarPath: String, sha256: String): Unit = writeMutex.withLock {
         val updated = trustedEntriesFlow.value + (jarPath to TrustedPluginEntry(jarPath, sha256, System.currentTimeMillis()))
@@ -51,25 +63,34 @@ class DefaultPluginTrustRepository(
         trustedEntriesFlow.value = updated
     }
 
+    override suspend fun resign(): Unit = writeMutex.withLock {
+        persist(trustedEntriesFlow.value)
+    }
+
     private fun readFromDisk(): Map<String, TrustedPluginEntry> {
         val file = appDataDirectoryProvider.getTrustRegistryFile()
         if (!file.exists()) return emptyMap()
         return try {
             val registry = json.decodeFromString<TrustRegistryFile>(file.readText())
             // Verify the HMAC over the exact re-encoding of the entries map — the same string
-            // persist() signed. An INVALID result means the file was modified by something other
-            // than this app (or the key store was reset): fail safe, trust nothing.
-            val verification = trustRegistrySigner.verify(json.encodeToString(registry.entries), registry.signature)
-            when (verification) {
-                TrustRegistrySigner.Verification.VALID -> Unit
+            // persist() signed. The signer's answer depends only on whether a key exists:
+            //  - DISABLED   → no key, so signing is off: load the registry unverified (prompt-free).
+            //  - VALID      → the signature matches: load.
+            //  - INVALID    → a key exists but the signature is missing/forged (the file was rewritten
+            //                 by something that could not sign it): fail safe, trust nothing.
+            //  - UNAVAILABLE→ a key may exist but the store could not be read: load with a warning.
+            when (trustRegistrySigner.verify(json.encodeToString(registry.entries), registry.signature)) {
+                TrustRegistrySigner.Verification.VALID,
+                TrustRegistrySigner.Verification.DISABLED,
+                -> Unit
 
                 TrustRegistrySigner.Verification.INVALID -> {
-                    println("Plugin trust registry failed signature verification, treating all plugins as untrusted.")
+                    logger.warning("Plugin trust registry failed signature verification, treating all plugins as untrusted.")
                     return emptyMap()
                 }
 
                 TrustRegistrySigner.Verification.UNAVAILABLE -> {
-                    println("OS credential store unavailable; loading plugin trust registry without signature verification.")
+                    logger.warning("OS credential store unavailable; loading plugin trust registry without signature verification.")
                 }
             }
             registry.entries.mapValues { (path, entry) ->
@@ -84,7 +105,7 @@ class DefaultPluginTrustRepository(
         } catch (e: Throwable) {
             // A corrupt or unreadable registry must fail safe: treat everything as untrusted rather
             // than risk loading a jar we cannot prove was approved.
-            println("Failed to read plugin trust registry, treating all plugins as untrusted: ${e.message}")
+            logger.warning("Failed to read plugin trust registry, treating all plugins as untrusted: ${e.message}")
             emptyMap()
         }
     }
@@ -98,6 +119,8 @@ class DefaultPluginTrustRepository(
                 trustedAtEpochMillis = entry.trustedAtEpochMillis,
             )
         }
+        // sign() returns the signature when a key exists, or null when it does not (signing off) —
+        // so the registry is signed iff a key exists, with no separate flag to keep in sync.
         val registry = TrustRegistryFile(
             entries = storedEntries,
             signature = trustRegistrySigner.sign(json.encodeToString(storedEntries)),

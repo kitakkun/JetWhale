@@ -133,17 +133,43 @@ Installing a plugin through the file picker, the Maven dialog, or the official c
 approval; jars dropped into the directory by anything else must be approved manually. Revoking
 trust unloads the plugin immediately.
 
-The registry itself is protected by an HMAC-SHA256 signature whose key lives in the OS credential
-store (macOS Keychain, Windows Credential Manager, or Linux Secret Service) — never in the app data
-directory. A registry whose signature does not verify is rejected wholesale and every plugin is
-treated as untrusted, so rewriting `trusted-plugins.json` alone cannot forge an approval. If no
-credential store is available (e.g. a headless Linux session), JetWhale logs a warning and falls
-back to loading the registry without signature verification.
+#### Registry signing (opt-in)
+
+The trust registry can additionally be protected by an HMAC-SHA256 signature. Whether it is signed is
+defined by one fact: **does a signing key exist in your OS credential store?** There is no on/off flag
+kept on disk — the **Sign plugin trust registry** toggle in the plugin settings screen *creates* that
+key (on) or *deletes* it (off). The key lives only in the credential store, never in the app data
+directory. This is **off by default** (no key).
+
+- **Off (default — no key):** JetWhale does not sign the registry, and on startup the only
+  credential-store interaction is a **prompt-free check that no key exists** — you are never prompted.
+  The registry is read and written unsigned. The SHA-256 content pinning above still detects a
+  swapped-out jar, but `trusted-plugins.json` itself is not tamper-protected.
+- **On (key present):** enabling it provisions a key and re-signs the current registry; from then on
+  the registry is signed on every write and verified on every launch (which reads the key back). Once
+  a key exists, a registry whose signature is missing or does not match is rejected wholesale and
+  every plugin is treated as untrusted — so rewriting `trusted-plugins.json`, or stripping its
+  signature, cannot forge an approval. If the credential store is unavailable (e.g. a headless Linux
+  session with no keyring), JetWhale logs a warning and loads the registry unverified.
+
+Where the key is kept — and whether you're prompted — depends on the platform:
+
+- **macOS** — the login **Keychain**. Reading the key on each launch shows a Keychain access prompt;
+  choose **Always Allow** to suppress it on later launches. A plain *Allow* re-prompts every launch,
+  and a re-signed/updated app build can invalidate the grant and ask again.
+- **Windows** — encrypted with **DPAPI** under your user account. Access is transparent — no prompt.
+- **Linux** — the **Secret Service** (GNOME Keyring / KWallet). Whether a prompt appears depends on
+  your keyring setup; a headless session with no keyring falls back to unsigned.
 
 ::: warning Threat model
-This is an entry-side defense: it stops JetWhale from executing jars you never vouched for, and
-detects jars swapped out after approval. The registry signature raises the bar from "write one
-file" to "also compromise the OS credential store", but software already running with your user
-privileges can still potentially do that — or modify JetWhale itself. Protecting against an
-attacker who fully controls your user account is outside the scope of this mechanism.
+Plugin trust is an entry-side defense: it stops JetWhale from executing jars you never vouched for,
+and the SHA-256 pinning detects jars swapped out after approval regardless of this setting. With
+registry signing **off** (the default), an attacker who can write to `~/.jetwhale` can forge an
+approval by editing `trusted-plugins.json` directly. Turning signing **on** genuinely raises the bar
+to **compromising the OS credential store**: a file-writing attacker cannot forge an accepted
+registry (with a key present, any unsigned or re-signed file is rejected), and cannot even turn
+signing back off, because deleting the key requires credential-store access — not just a file write.
+What stays outside scope is an attacker who can already reach the credential store, or who runs code
+as you and modifies JetWhale itself; protecting against full control of your user account is not a
+goal of this mechanism.
 :::

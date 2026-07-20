@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.model
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * The security boundary in front of dynamic plugin loading.
@@ -26,6 +27,21 @@ interface PluginTrustService {
     val untrustedJarPathsFlow: Flow<List<String>>
 
     /**
+     * True while [loadTrustedPlugins] is reading the OS credential store to verify the signed trust
+     * registry. Only ever true when registry signing is enabled — on macOS the read raises a blocking
+     * Keychain prompt, and the UI observes this flag to show that prompt with visible context. When
+     * signing is off the credential store is never touched, so this stays false.
+     */
+    val verifyingTrustRegistryFlow: StateFlow<Boolean>
+
+    /**
+     * Whether trust-registry signing is currently enabled, which is defined purely by the existence
+     * of a signing key in the OS credential store (never a writable flag). Set on startup — prompt-
+     * free when no key exists — and updated by [setSigningEnabled]. The settings toggle observes this.
+     */
+    val signingEnabledFlow: StateFlow<Boolean>
+
+    /**
      * Loads every trusted jar from the plugins directory and records the rest as untrusted (see
      * [untrustedJarPathsFlow]). Call once on startup in place of loading the directory wholesale.
      */
@@ -40,4 +56,12 @@ interface PluginTrustService {
 
     /** Revokes approval for [jarPath], unloads the plugins it provided, and re-flags it as untrusted. */
     suspend fun revokeTrust(jarPath: String)
+
+    /**
+     * Turns trust-registry signing on or off. Enabling it provisions a signing key in the OS
+     * credential store and re-signs the current registry, so a later startup finds a signed registry.
+     * Disabling it deletes the key (which requires credential-store access — a file-writing attacker
+     * cannot do it) and re-writes the registry unsigned. Updates [signingEnabledFlow] to match.
+     */
+    suspend fun setSigningEnabled(enabled: Boolean)
 }
