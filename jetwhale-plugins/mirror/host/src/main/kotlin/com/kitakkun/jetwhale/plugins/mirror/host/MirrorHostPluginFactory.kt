@@ -52,7 +52,10 @@ private const val FRAME_RETRY_INTERVAL_MILLIS = 1_000L
 
 // Publish caps for decoded stream frames: decoding always keeps up with the stream, but
 // conversion + publication is throttled by wall-clock (~30fps selected, ~2fps unselected).
-private const val SELECTED_PUBLISH_GAP_MILLIS = 33L
+// The selected gap stays comfortably below the 33.3ms source frame interval so timing jitter
+// cannot push a frame past the cap and momentarily halve the effective rate; publication still
+// cannot exceed the 30fps source, so the smaller gap costs no extra convert/publish work.
+private const val SELECTED_PUBLISH_GAP_MILLIS = 25L
 private const val BACKGROUND_PUBLISH_GAP_MILLIS = 500L
 
 // A stream that has not produced a frame by this deadline is treated as broken.
