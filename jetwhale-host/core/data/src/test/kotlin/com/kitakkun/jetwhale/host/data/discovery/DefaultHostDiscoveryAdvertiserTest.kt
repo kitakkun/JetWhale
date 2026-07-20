@@ -21,6 +21,7 @@ class DefaultHostDiscoveryAdvertiserTest {
     private class FakeMdnsRegistrar : MdnsRegistrar {
         val registrations: MutableList<Triple<String, Int, Int?>> = mutableListOf()
         var unregisterCount: Int = 0
+        var closeCount: Int = 0
 
         override fun register(instanceName: String, wsPort: Int, wssPort: Int?) {
             registrations.add(Triple(instanceName, wsPort, wssPort))
@@ -28,6 +29,10 @@ class DefaultHostDiscoveryAdvertiserTest {
 
         override fun unregister() {
             unregisterCount++
+        }
+
+        override fun close() {
+            closeCount++
         }
     }
 
@@ -47,7 +52,9 @@ class DefaultHostDiscoveryAdvertiserTest {
         statusProvider.mutableStatusFlow.value = DebugWebSocketServerStatus.Stopped
         awaitUntil { registrar.unregisterCount == 1 }
 
+        // stop() must fully close the mDNS stack (not just unregister) so it does not leak.
         advertiser.stop()
+        awaitUntil { registrar.closeCount == 1 }
     }
 
     @Test

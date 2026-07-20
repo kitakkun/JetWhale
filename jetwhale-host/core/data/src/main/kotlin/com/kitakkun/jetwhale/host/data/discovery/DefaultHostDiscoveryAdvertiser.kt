@@ -59,7 +59,10 @@ class DefaultHostDiscoveryAdvertiser(
     override fun stop() {
         observeJob?.cancel()
         observeJob = null
-        unregister()
+        advertisedPorts = null
+        // Fully release the mDNS stack (not just unregister) so sockets/threads do not leak across
+        // debug server restarts. JmDNS.close() can block, so run it off the caller's thread.
+        coroutineScope.launch { registrar.close() }
     }
 
     private fun advertise(wsPort: Int, wssPort: Int?) {

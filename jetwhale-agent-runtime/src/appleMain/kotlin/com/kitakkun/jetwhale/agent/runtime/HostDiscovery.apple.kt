@@ -37,7 +37,13 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): List<Di
 
     withTimeoutOrNull(timeoutMillis) {
         suspendCancellableCoroutine<Unit> { continuation ->
-            lateinit var browser: NSNetServiceBrowser
+            // browser is created asynchronously on the main queue, and cancellation also stops it on
+            // the main queue. Both mutate these fields only from that single serial queue, so creation
+            // and stop can never race: whichever runs first wins, and the other observes the result
+            // (a browser created after cancellation is stopped immediately; a cancellation before
+            // creation flips [cancelled] so no browser is ever started).
+            var browser: NSNetServiceBrowser? = null
+            var cancelled = false
 
             val serviceDelegate = object : NSObject(), NSNetServiceDelegateProtocol {
                 override fun netServiceDidResolveAddress(sender: NSNetService) {
@@ -64,6 +70,8 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): List<Di
             }
 
             dispatch_async(dispatch_get_main_queue()) {
+                // Already cancelled before we got scheduled: do not start a browser that would leak.
+                if (cancelled) return@dispatch_async
                 browser = NSNetServiceBrowser().apply {
                     delegate = browserDelegate
                     searchForServicesOfType(SERVICE_TYPE_DOT, inDomain = SEARCH_DOMAIN)
@@ -72,7 +80,10 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): List<Di
 
             continuation.invokeOnCancellation {
                 dispatch_async(dispatch_get_main_queue()) {
-                    browser.stop()
+                    cancelled = true
+                    // No-op when the browser was never created (cancelled before init).
+                    browser?.stop()
+                    browser = null
                 }
             }
         }

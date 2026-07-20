@@ -8,6 +8,10 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Collections
 import kotlin.coroutines.resume
 
+// NsdManager requires the DNS-SD service type terminated with a dot; the bare "_jetwhale._tcp" makes
+// discovery silently find nothing.
+private const val NSD_SERVICE_TYPE = "$JETWHALE_SERVICE_TYPE."
+
 /**
  * Android mDNS host discovery via [NsdManager]. The application [Context] is obtained reflectively
  * (`ActivityThread.currentApplication()`) so the discovery DSL needs no Context wiring from the app.
@@ -73,7 +77,10 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): List<Di
                 }
             }
 
-            nsdManager.discoverServices(JETWHALE_SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, discoveryListener)
+            // NsdManager requires the DNS-SD service type WITH a trailing dot ("_jetwhale._tcp.");
+            // without it discovery finds nothing. (Per-platform format differs: jmDNS/JVM wants the
+            // fully-qualified "_jetwhale._tcp.local.", Apple's NSNetServiceBrowser wants "_jetwhale._tcp.".)
+            nsdManager.discoverServices(NSD_SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, discoveryListener)
 
             continuation.invokeOnCancellation {
                 try {
