@@ -202,53 +202,64 @@ private class MirrorHostPlugin :
         try {
             grabber.start()
             var lastPublishNanos = 0L
+            var lastPublishedHash = 0
+            var hasPublished = false
             // Reused across frames so publishing does not allocate a full-resolution buffer every
             // frame (~12MB at 1440p). The decode loop is per-device, so these are never shared.
             var argbScratch: BufferedImage? = null
             var pixelScratch: ByteArray? = null
             while (currentCoroutineContext().isActive && mirroringEnabled) {
+                // Grab (hence decode) every frame so the pipe drains at decode speed; only the far
+                // more expensive convert/publish is rate-limited. Frames arriving within a publish
+                // gap are decoded and dropped, so after any stall the mirror snaps to the current
+                // frame instead of replaying a backlog rather than falling ever further behind.
                 val frame = grabber.grabImage() ?: break
                 produced = true
                 firstFrameSeen.set(true)
-                // Decoding must keep up with the stream (or frames back up in the pipe and the
-                // mirror falls ever further behind), but converting/publishing every decoded
-                // frame is what actually costs: cap it by wall-clock instead, and give
-                // unselected devices a much lower cap.
                 val minPublishGapMillis = if (device.id == selectedDeviceId) SELECTED_PUBLISH_GAP_MILLIS else BACKGROUND_PUBLISH_GAP_MILLIS
                 val now = System.nanoTime()
-                if (now - lastPublishNanos >= minPublishGapMillis * 1_000_000) {
-                    val image = converter.convert(frame) ?: continue
-                    // BufferedImage.toComposeImageBitmap() converts pixel-by-pixel (~40ms at 1440p),
-                    // which alone caps the mirror near 20fps. Copy the pixels straight into a Skia
-                    // bitmap as BGRA instead: an INT_ARGB image's native-order ints already lay out
-                    // as B,G,R,A bytes on a little-endian host, so the publish drops to a few ms.
-                    val w = image.width
-                    val h = image.height
-                    val argb = if (image.type == BufferedImage.TYPE_INT_ARGB) {
-                        image
-                    } else {
-                        val scratch = argbScratch?.takeIf { it.width == w && it.height == h }
-                            ?: BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB).also { argbScratch = it }
-                        scratch.createGraphics().apply {
-                            drawImage(image, 0, 0, null)
-                            dispose()
-                        }
-                        scratch
+                if (now - lastPublishNanos < minPublishGapMillis * 1_000_000) continue
+                lastPublishNanos = now
+
+                val image = converter.convert(frame) ?: continue
+                val w = image.width
+                val h = image.height
+                val argb = if (image.type == BufferedImage.TYPE_INT_ARGB) {
+                    image
+                } else {
+                    val scratch = argbScratch?.takeIf { it.width == w && it.height == h }
+                        ?: BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB).also { argbScratch = it }
+                    scratch.createGraphics().apply {
+                        drawImage(image, 0, 0, null)
+                        dispose()
                     }
-                    val pixels = (argb.raster.dataBuffer as DataBufferInt).data
-                    val bytes = pixelScratch?.takeIf { it.size == pixels.size * 4 }
-                        ?: ByteArray(pixels.size * 4).also { pixelScratch = it }
-                    ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().put(pixels)
-                    // installPixels copies into the bitmap's own storage, so reusing bytes is safe.
-                    val info = ImageInfo(w, h, ColorType.BGRA_8888, ColorAlphaType.OPAQUE)
-                    val bitmap = Bitmap().apply {
-                        allocPixels(info)
-                        installPixels(info, bytes, w * 4)
-                        setImmutable()
-                    }
-                    frames[device.id] = bitmap.asComposeImageBitmap()
-                    lastPublishNanos = now
+                    scratch
                 }
+                val pixels = (argb.raster.dataBuffer as DataBufferInt).data
+                // A static screen decodes to identical pixels; skip the Skia allocation and GPU
+                // upload they would cost. This keeps an idle mirror from churning native memory
+                // (whose batched frees stall the render loop) and leaves the published frame in
+                // place so Compose does not even redraw.
+                val hash = pixels.contentHashCode()
+                if (hasPublished && hash == lastPublishedHash) continue
+                lastPublishedHash = hash
+                hasPublished = true
+
+                // BufferedImage.toComposeImageBitmap() converts pixel-by-pixel (~40ms at 1440p) and
+                // alone caps the mirror near 20fps. Copy the pixels straight into a Skia bitmap as
+                // BGRA instead: an INT_ARGB image's native-order ints already lay out as B,G,R,A
+                // bytes on a little-endian host, so the publish drops to a few ms.
+                val bytes = pixelScratch?.takeIf { it.size == pixels.size * 4 }
+                    ?: ByteArray(pixels.size * 4).also { pixelScratch = it }
+                ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().put(pixels)
+                // installPixels copies into the bitmap's own storage, so reusing bytes is safe.
+                val info = ImageInfo(w, h, ColorType.BGRA_8888, ColorAlphaType.OPAQUE)
+                val bitmap = Bitmap().apply {
+                    allocPixels(info)
+                    installPixels(info, bytes, w * 4)
+                    setImmutable()
+                }
+                frames[device.id] = bitmap.asComposeImageBitmap()
             }
         } catch (e: Exception) {
             if (!produced) lastError = "${device.name}: video stream failed (${e.message}); falling back to screenshots"
