@@ -27,8 +27,7 @@ class DefaultSettingsSubscriptionKey(
             defaultDebuggerSettingsRepository.mcpServerPortFlow,
             defaultDebuggerSettingsRepository.wssPortFlow,
             defaultDebuggerSettingsRepository.wssEnabledFlow,
-            defaultDebuggerSettingsRepository.signPluginTrustRegistryFlow,
-        ) { adbAutoPortMappingEnabled, checkForUpdatesOnStartup, persistData, serverPort, mcpServerPort, wssPort, wssEnabled, signPluginTrustRegistry ->
+        ) { adbAutoPortMappingEnabled, checkForUpdatesOnStartup, persistData, serverPort, mcpServerPort, wssPort, wssEnabled ->
             DebuggerBehaviorSettings(
                 adbAutoPortMappingEnabled = adbAutoPortMappingEnabled,
                 checkForUpdatesOnStartup = checkForUpdatesOnStartup,
@@ -37,15 +36,14 @@ class DefaultSettingsSubscriptionKey(
                 mcpServerPort = mcpServerPort,
                 wssPort = wssPort,
                 wssEnabled = wssEnabled,
-                signPluginTrustRegistry = signPluginTrustRegistry,
             )
         }
     },
 )
 
-/** Eight-flow overload of [combine], which kotlinx.coroutines only provides up to five flows. */
+/** Seven-flow overload of [combine], which kotlinx.coroutines only provides up to five flows. */
 @Suppress("UNCHECKED_CAST")
-private inline fun <reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, reified T8, R> combine(
+private inline fun <reified T1, reified T2, reified T3, reified T4, reified T5, reified T6, reified T7, R> combine(
     flow1: Flow<T1>,
     flow2: Flow<T2>,
     flow3: Flow<T3>,
@@ -53,9 +51,8 @@ private inline fun <reified T1, reified T2, reified T3, reified T4, reified T5, 
     flow5: Flow<T5>,
     flow6: Flow<T6>,
     flow7: Flow<T7>,
-    flow8: Flow<T8>,
-    crossinline transform: suspend (T1, T2, T3, T4, T5, T6, T7, T8) -> R,
-): Flow<R> = combine(flow1, flow2, flow3, flow4, flow5, flow6, flow7, flow8) { args: Array<*> ->
+    crossinline transform: suspend (T1, T2, T3, T4, T5, T6, T7) -> R,
+): Flow<R> = combine(flow1, flow2, flow3, flow4, flow5, flow6, flow7) { args: Array<*> ->
     transform(
         args[0] as T1,
         args[1] as T2,
@@ -64,6 +61,5 @@ private inline fun <reified T1, reified T2, reified T3, reified T4, reified T5, 
         args[4] as T5,
         args[5] as T6,
         args[6] as T7,
-        args[7] as T8,
     )
 }

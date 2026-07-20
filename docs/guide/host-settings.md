@@ -135,19 +135,22 @@ trust unloads the plugin immediately.
 
 #### Registry signing (opt-in)
 
-The trust registry can additionally be protected by an HMAC-SHA256 signature. The signing key lives
-in your **OS credential store**, never in the app data directory. This is **off by default**; the
-**Sign plugin trust registry** toggle in the plugin settings screen turns it on.
+The trust registry can additionally be protected by an HMAC-SHA256 signature. Whether it is signed is
+defined by one fact: **does a signing key exist in your OS credential store?** There is no on/off flag
+kept on disk — the **Sign plugin trust registry** toggle in the plugin settings screen *creates* that
+key (on) or *deletes* it (off). The key lives only in the credential store, never in the app data
+directory. This is **off by default** (no key).
 
-- **Off (default):** the credential store is **never accessed**. The registry is read and written
-  unsigned. The SHA-256 content pinning above still detects a swapped-out jar, but the
-  `trusted-plugins.json` file itself is not tamper-protected.
-- **On:** enabling it provisions a key and re-signs the current registry; from then on the registry
-  is signed on every write and verified on every launch (which reads the key back). A registry whose
-  signature does not verify is rejected wholesale and every plugin is treated as untrusted, so
-  rewriting `trusted-plugins.json` alone cannot forge an approval. If the credential store is
-  unavailable (e.g. a headless Linux session with no keyring), JetWhale logs a warning and loads the
-  registry unverified.
+- **Off (default — no key):** JetWhale does not sign the registry, and on startup the only
+  credential-store interaction is a **prompt-free check that no key exists** — you are never prompted.
+  The registry is read and written unsigned. The SHA-256 content pinning above still detects a
+  swapped-out jar, but `trusted-plugins.json` itself is not tamper-protected.
+- **On (key present):** enabling it provisions a key and re-signs the current registry; from then on
+  the registry is signed on every write and verified on every launch (which reads the key back). Once
+  a key exists, a registry whose signature is missing or does not match is rejected wholesale and
+  every plugin is treated as untrusted — so rewriting `trusted-plugins.json`, or stripping its
+  signature, cannot forge an approval. If the credential store is unavailable (e.g. a headless Linux
+  session with no keyring), JetWhale logs a warning and loads the registry unverified.
 
 Where the key is kept — and whether you're prompted — depends on the platform:
 
@@ -162,8 +165,11 @@ Where the key is kept — and whether you're prompted — depends on the platfor
 Plugin trust is an entry-side defense: it stops JetWhale from executing jars you never vouched for,
 and the SHA-256 pinning detects jars swapped out after approval regardless of this setting. With
 registry signing **off** (the default), an attacker who can write to `~/.jetwhale` can forge an
-approval by editing `trusted-plugins.json` directly. Turning signing **on** raises the bar from
-"write one file" to "also compromise the OS credential store" — but software already running with
-your user privileges can still potentially do that, or modify JetWhale itself. Protecting against an
-attacker who fully controls your user account is outside the scope of this mechanism.
+approval by editing `trusted-plugins.json` directly. Turning signing **on** genuinely raises the bar
+to **compromising the OS credential store**: a file-writing attacker cannot forge an accepted
+registry (with a key present, any unsigned or re-signed file is rejected), and cannot even turn
+signing back off, because deleting the key requires credential-store access — not just a file write.
+What stays outside scope is an attacker who can already reach the credential store, or who runs code
+as you and modifies JetWhale itself; protecting against full control of your user account is not a
+goal of this mechanism.
 :::

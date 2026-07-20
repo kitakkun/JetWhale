@@ -8,5 +8,4 @@ data class DebuggerBehaviorSettings(
     val mcpServerPort: Int,
     val wssPort: Int,
     val wssEnabled: Boolean,
-    val signPluginTrustRegistry: Boolean,
 )

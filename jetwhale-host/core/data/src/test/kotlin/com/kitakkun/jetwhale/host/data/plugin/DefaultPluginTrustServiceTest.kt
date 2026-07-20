@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
-import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -9,7 +8,6 @@ import com.kitakkun.jetwhale.host.model.PluginTrustRepository
 import com.kitakkun.jetwhale.host.model.TrustedPluginEntry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.security.MessageDigest
@@ -18,6 +16,8 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class DefaultPluginTrustServiceTest {
     private var originalUserHome: String? = null
@@ -26,7 +26,7 @@ class DefaultPluginTrustServiceTest {
 
     private lateinit var trustRepository: FakePluginTrustRepository
     private lateinit var factoryRepository: FakePluginFactoryRepository
-    private lateinit var settingsRepository: FakeDebuggerSettingsRepository
+    private lateinit var signer: FakeTrustRegistrySigner
     private lateinit var service: DefaultPluginTrustService
 
     @BeforeTest
@@ -41,8 +41,8 @@ class DefaultPluginTrustServiceTest {
 
         trustRepository = FakePluginTrustRepository()
         factoryRepository = FakePluginFactoryRepository()
-        settingsRepository = FakeDebuggerSettingsRepository(signingEnabled = false)
-        service = DefaultPluginTrustService(AppDataDirectoryProvider(), trustRepository, factoryRepository, settingsRepository)
+        signer = FakeTrustRegistrySigner(keyPresent = false)
+        service = DefaultPluginTrustService(AppDataDirectoryProvider(), trustRepository, factoryRepository, signer)
     }
 
     @AfterTest
@@ -104,43 +104,62 @@ class DefaultPluginTrustServiceTest {
     }
 
     @Test
-    fun `setSigningEnabled true persists the flag and re-signs the registry`() = runBlocking {
-        service.setSigningEnabled(true)
+    fun `loadTrustedPlugins reflects signing key presence in signingEnabledFlow`() = runBlocking {
+        signer.provisionKey()
 
-        assertEquals(true, settingsRepository.readSignPluginTrustRegistry())
-        assertEquals(1, trustRepository.resignCount)
-        assertEquals(true, trustRepository.lastSigningEnabled)
+        service.loadTrustedPlugins()
+
+        assertTrue(service.signingEnabledFlow.value)
     }
 
     @Test
-    fun `setSigningEnabled false persists the flag without re-signing`() = runBlocking {
+    fun `loadTrustedPlugins reports signing off when no key exists`() = runBlocking {
+        service.loadTrustedPlugins()
+
+        assertFalse(service.signingEnabledFlow.value)
+    }
+
+    @Test
+    fun `setSigningEnabled true provisions a key, re-signs, and reports enabled`() = runBlocking {
+        service.setSigningEnabled(true)
+
+        assertTrue(signer.hasKey())
+        assertEquals(1, trustRepository.resignCount)
+        assertTrue(service.signingEnabledFlow.value)
+    }
+
+    @Test
+    fun `setSigningEnabled false deletes the key, re-signs, and reports disabled`() = runBlocking {
+        service.setSigningEnabled(true)
+
         service.setSigningEnabled(false)
 
-        assertEquals(false, settingsRepository.readSignPluginTrustRegistry())
-        assertEquals(0, trustRepository.resignCount)
+        assertFalse(signer.hasKey())
+        assertEquals(2, trustRepository.resignCount)
+        assertFalse(service.signingEnabledFlow.value)
     }
 
     @Test
     fun `enabling signing re-signs a previously unsigned registry so it still loads`() = runBlocking {
-        // End-to-end migration over a real disk-backed registry: approve while signing is off, then
-        // turn signing on and confirm a fresh signing-on startup still trusts and loads the jar.
+        // End-to-end migration over a real disk-backed registry: approve while signing is off (no
+        // key), turn signing on, then confirm a fresh signing-on startup still trusts and loads it.
         val jar = File(pluginsDir, "plugin.jar").apply { writeBytes(byteArrayOf(1, 2, 3)) }
-        val settings = FakeDebuggerSettingsRepository(signingEnabled = false)
+        val diskSigner = FakeTrustRegistrySigner(keyPresent = false)
 
-        val diskRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(), DeterministicTrustRegistrySigner())
+        val diskRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(), diskSigner)
         val diskFactory = FakePluginFactoryRepository()
-        val diskService = DefaultPluginTrustService(AppDataDirectoryProvider(), diskRepository, diskFactory, settings)
+        val diskService = DefaultPluginTrustService(AppDataDirectoryProvider(), diskRepository, diskFactory, diskSigner)
 
         // Approve with signing off: the registry is written unsigned.
         diskService.trustAndLoad(jar.absolutePath)
-        // Turn signing on: the setting flips and the existing registry is re-signed.
+        // Turn signing on: a key is provisioned and the existing registry is re-signed.
         diskService.setSigningEnabled(true)
 
-        // Fresh start with signing on and a pre-existing key. Without the re-sign the unsigned
-        // registry would verify INVALID and drop every plugin; re-signing lets it verify and load.
-        val reloadedRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(), DeterministicTrustRegistrySigner(keyPreexisted = true))
+        // Fresh start with the same (now-present) key. Without the re-sign the unsigned registry would
+        // verify INVALID and drop every plugin; re-signing lets it verify and load.
+        val reloadedRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(), diskSigner)
         val reloadedFactory = FakePluginFactoryRepository()
-        val reloadedService = DefaultPluginTrustService(AppDataDirectoryProvider(), reloadedRepository, reloadedFactory, settings)
+        val reloadedService = DefaultPluginTrustService(AppDataDirectoryProvider(), reloadedRepository, reloadedFactory, diskSigner)
         reloadedService.loadTrustedPlugins()
 
         assertEquals(listOf(jar.absolutePath), reloadedFactory.loadedJarPaths)
@@ -148,9 +167,6 @@ class DefaultPluginTrustServiceTest {
 
     private class FakePluginTrustRepository : PluginTrustRepository {
         val entries = mutableMapOf<String, TrustedPluginEntry>()
-
-        /** Last `signingEnabled` value passed to a persisting call, or null if none was persisted. */
-        var lastSigningEnabled: Boolean? = null
         var resignCount = 0
 
         override val trustedEntriesFlow: Flow<Map<String, TrustedPluginEntry>> = MutableStateFlow(emptyMap())
@@ -158,21 +174,18 @@ class DefaultPluginTrustServiceTest {
         override suspend fun trustedEntry(jarPath: String): TrustedPluginEntry? = entries[jarPath]
 
         // The in-memory map is already the source of truth, so there is nothing to read from disk.
-        override suspend fun load(signingEnabled: Boolean) = Unit
+        override suspend fun load() = Unit
 
-        override suspend fun trust(jarPath: String, sha256: String, signingEnabled: Boolean) {
+        override suspend fun trust(jarPath: String, sha256: String) {
             entries[jarPath] = TrustedPluginEntry(jarPath, sha256, 0L)
-            lastSigningEnabled = signingEnabled
         }
 
-        override suspend fun revoke(jarPath: String, signingEnabled: Boolean) {
+        override suspend fun revoke(jarPath: String) {
             entries.remove(jarPath)
-            lastSigningEnabled = signingEnabled
         }
 
-        override suspend fun resign(signingEnabled: Boolean) {
+        override suspend fun resign() {
             resignCount++
-            lastSigningEnabled = signingEnabled
         }
     }
 
@@ -196,54 +209,32 @@ class DefaultPluginTrustServiceTest {
     }
 
     /**
-     * Deterministic stand-in for the keyring-backed signer: the "signature" is a digest of the
-     * payload, so a signature only verifies against the exact payload it was produced for.
+     * Deterministic stand-in for the keyring-backed signer. "Signing enabled" is modeled by whether a
+     * key is present; [provisionKey]/[deleteKey] flip it. The "signature" is a digest of the payload,
+     * so it only verifies against the exact payload it was produced for.
      */
-    private class DeterministicTrustRegistrySigner(
-        private val keyPreexisted: Boolean = true,
-    ) : TrustRegistrySigner {
-        override fun sign(payload: String): String? = digest(payload)
+    private class FakeTrustRegistrySigner(keyPresent: Boolean) : TrustRegistrySigner {
+        private var keyPresent = keyPresent
+
+        override fun hasKey(): Boolean = keyPresent
+
+        override fun sign(payload: String): String? = if (keyPresent) digest(payload) else null
 
         override fun verify(payload: String, signature: String?): TrustRegistrySigner.Verification = when {
-            signature == null -> if (keyPreexisted) TrustRegistrySigner.Verification.INVALID else TrustRegistrySigner.Verification.VALID
+            !keyPresent -> TrustRegistrySigner.Verification.DISABLED
+            signature == null -> TrustRegistrySigner.Verification.INVALID
             signature == digest(payload) -> TrustRegistrySigner.Verification.VALID
             else -> TrustRegistrySigner.Verification.INVALID
         }
 
-        private fun digest(payload: String): String = "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
-    }
-
-    /**
-     * Settings stand-in backing the opt-in flag with a [MutableStateFlow] so the flow and the
-     * suspend read stay consistent: [updateSignPluginTrustRegistry] flows through the same state.
-     */
-    private class FakeDebuggerSettingsRepository(signingEnabled: Boolean) : DebuggerSettingsRepository {
-        private val signPluginTrustRegistry = MutableStateFlow(signingEnabled)
-
-        override val signPluginTrustRegistryFlow: StateFlow<Boolean> = signPluginTrustRegistry
-        override val adbAutoPortMappingEnabledFlow: StateFlow<Boolean> = MutableStateFlow(false)
-        override val checkForUpdatesOnStartupFlow: StateFlow<Boolean> = MutableStateFlow(true)
-        override val persistDataFlow: StateFlow<Boolean> = MutableStateFlow(false)
-        override val serverPortFlow: StateFlow<Int> = MutableStateFlow(0)
-        override val mcpServerPortFlow: StateFlow<Int> = MutableStateFlow(0)
-        override val wssPortFlow: StateFlow<Int> = MutableStateFlow(0)
-        override val wssEnabledFlow: StateFlow<Boolean> = MutableStateFlow(true)
-
-        override suspend fun readSignPluginTrustRegistry(): Boolean = signPluginTrustRegistry.value
-        override suspend fun updateSignPluginTrustRegistry(enabled: Boolean) {
-            signPluginTrustRegistry.value = enabled
+        override fun provisionKey() {
+            keyPresent = true
         }
 
-        override suspend fun readServerPort(): Int = 0
-        override suspend fun readMcpServerPort(): Int = 0
-        override suspend fun readWssPort(): Int = 0
-        override suspend fun updatePersistData(enabled: Boolean) = Unit
-        override suspend fun updateAdbAutoPortMappingEnabled(enabled: Boolean) = Unit
-        override suspend fun readCheckForUpdatesOnStartup(): Boolean = true
-        override suspend fun updateCheckForUpdatesOnStartup(enabled: Boolean) = Unit
-        override suspend fun updateServerPort(port: Int) = Unit
-        override suspend fun updateMcpServerPort(port: Int) = Unit
-        override suspend fun updateWssPort(port: Int) = Unit
-        override suspend fun updateWssEnabled(enabled: Boolean) = Unit
+        override fun deleteKey() {
+            keyPresent = false
+        }
+
+        private fun digest(payload: String): String = "signed:" + MessageDigest.getInstance("SHA-256").digest(payload.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 }

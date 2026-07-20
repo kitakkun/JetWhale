@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
-import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginTrustRepository
 import com.kitakkun.jetwhale.host.model.PluginTrustService
@@ -26,7 +25,7 @@ class DefaultPluginTrustService(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
     private val pluginTrustRepository: PluginTrustRepository,
     private val pluginFactoryRepository: PluginFactoryRepository,
-    private val settingsRepository: DebuggerSettingsRepository,
+    private val trustRegistrySigner: TrustRegistrySigner,
 ) : PluginTrustService {
     override val untrustedJarPathsFlow: Flow<List<String>>
         field = MutableStateFlow(emptyList())
@@ -34,22 +33,21 @@ class DefaultPluginTrustService(
     override val verifyingTrustRegistryFlow: StateFlow<Boolean>
         field = MutableStateFlow(false)
 
+    override val signingEnabledFlow: StateFlow<Boolean>
+        field = MutableStateFlow(false)
+
     override suspend fun loadTrustedPlugins() {
-        // Read the opt-in signing flag once, then load the registry from disk before consulting any
-        // trust decision. Reading it here (a Service combining repositories) keeps the trust
-        // repository free of any dependency on the settings repository.
-        val signingEnabled = settingsRepository.readSignPluginTrustRegistry()
-        // When signing is on, loading verifies the registry against a key in the OS credential store,
-        // which on macOS raises a blocking Keychain prompt. Flag it so the UI can explain the prompt,
-        // and run the read off the UI thread so the status renders before the prompt appears. When
-        // signing is off the credential store is never touched, so the flag stays false.
-        if (signingEnabled) {
-            verifyingTrustRegistryFlow.value = true
-        }
+        // "Signing enabled" is defined by the presence of a key in the OS credential store, not a
+        // writable flag. Show the "unlocking" status around the credential-store read so the macOS
+        // Keychain prompt (if any) has visible context; a user with no key hits only a prompt-free
+        // not-found check, which resolves instantly so the status never actually renders. The signer
+        // caches the key, so load()'s verification below does not read it a second time.
+        verifyingTrustRegistryFlow.value = true
         try {
-            withContext(Dispatchers.IO) {
-                pluginTrustRepository.load(signingEnabled)
-            }
+            val signingEnabled = withContext(Dispatchers.IO) { trustRegistrySigner.hasKey() }
+            signingEnabledFlow.value = signingEnabled
+            verifyingTrustRegistryFlow.value = signingEnabled
+            withContext(Dispatchers.IO) { pluginTrustRepository.load() }
         } finally {
             verifyingTrustRegistryFlow.value = false
         }
@@ -69,15 +67,14 @@ class DefaultPluginTrustService(
         require(appDataDirectoryProvider.isManagedPluginJarPath(jarPath)) {
             "Refusing to trust a jar outside the managed plugins directory: $jarPath"
         }
-        val signingEnabled = settingsRepository.readSignPluginTrustRegistry()
-        pluginTrustRepository.trust(jarPath, computeSha256(jarPath), signingEnabled)
+        // trust() signs the registry iff a key exists, so no signing flag is threaded through here.
+        pluginTrustRepository.trust(jarPath, computeSha256(jarPath))
         untrustedJarPathsFlow.update { it - jarPath }
         pluginFactoryRepository.loadPlugin(jarPath)
     }
 
     override suspend fun revokeTrust(jarPath: String) {
-        val signingEnabled = settingsRepository.readSignPluginTrustRegistry()
-        pluginTrustRepository.revoke(jarPath, signingEnabled)
+        pluginTrustRepository.revoke(jarPath)
         // Unload everything this jar provided so revoking trust takes effect immediately, without a
         // restart. The jar file itself stays in the directory, so it becomes untrusted-but-present.
         pluginFactoryRepository.findPluginIdsByJarPath(jarPath).forEach { pluginFactoryRepository.unloadPlugin(it) }
@@ -86,14 +83,21 @@ class DefaultPluginTrustService(
         }
     }
 
-    override suspend fun setSigningEnabled(enabled: Boolean) {
-        settingsRepository.updateSignPluginTrustRegistry(enabled)
-        // Turning signing on must sign the registry that already exists on disk. Otherwise the next
-        // startup would find an unsigned registry while signing is on and, once a signing key
-        // exists, reject it as tampered — silently dropping every approved plugin.
+    override suspend fun setSigningEnabled(enabled: Boolean): Unit = withContext(Dispatchers.IO) {
         if (enabled) {
-            pluginTrustRepository.resign(signingEnabled = true)
+            // Provision a key, then re-sign the current registry so a later startup finds it signed.
+            trustRegistrySigner.provisionKey()
+        } else {
+            // Deleting the key (needs credential-store access) is what actually turns signing off; an
+            // attacker who can only write files cannot do this.
+            trustRegistrySigner.deleteKey()
         }
+        // Re-persist so the on-disk registry matches the new key state: signed after provisioning, or
+        // unsigned after deletion (sign() returns null with no key).
+        pluginTrustRepository.resign()
+        // The flow reflects reality — the key that now does (or does not) exist — rather than the
+        // requested value, so a failed provision/delete cannot leave the toggle lying.
+        signingEnabledFlow.value = trustRegistrySigner.hasKey()
     }
 
     /** True only if [jarPath] has a trusted entry whose pinned hash matches the jar's current bytes. */

@@ -76,13 +76,6 @@ class DefaultDebuggerSettingsRepository(
             started = SharingStarted.Eagerly,
             initialValue = DEFAULT_WSS_ENABLED,
         )
-    override val signPluginTrustRegistryFlow = dataStore.data
-        .map { it[KEY_SIGN_PLUGIN_TRUST_REGISTRY] ?: DEFAULT_SIGN_PLUGIN_TRUST_REGISTRY }
-        .stateIn(
-            scope = coroutineScope,
-            started = SharingStarted.Eagerly,
-            initialValue = DEFAULT_SIGN_PLUGIN_TRUST_REGISTRY,
-        )
 
     override suspend fun updateAdbAutoPortMappingEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
@@ -134,14 +127,6 @@ class DefaultDebuggerSettingsRepository(
         }
     }
 
-    override suspend fun readSignPluginTrustRegistry(): Boolean = dataStore.data.first()[KEY_SIGN_PLUGIN_TRUST_REGISTRY] ?: DEFAULT_SIGN_PLUGIN_TRUST_REGISTRY
-
-    override suspend fun updateSignPluginTrustRegistry(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[KEY_SIGN_PLUGIN_TRUST_REGISTRY] = enabled
-        }
-    }
-
     companion object Companion {
         private val KEY_ADB_AUTO_PORT_MAPPING_ENABLED = booleanPreferencesKey("adb_auto_port_mapping_enabled")
         private val KEY_CHECK_FOR_UPDATES_ON_STARTUP = booleanPreferencesKey("check_for_updates_on_startup")
@@ -151,11 +136,9 @@ class DefaultDebuggerSettingsRepository(
         private val KEY_MCP_SERVER_PORT = intPreferencesKey("mcp_server_port")
         private val KEY_WSS_PORT = intPreferencesKey("wss_port")
         private val KEY_WSS_ENABLED = booleanPreferencesKey("wss_enabled")
-        private val KEY_SIGN_PLUGIN_TRUST_REGISTRY = booleanPreferencesKey("sign_plugin_trust_registry")
         private const val DEFAULT_SERVER_PORT = 5080
         private const val DEFAULT_MCP_SERVER_PORT = 7080
         private const val DEFAULT_WSS_PORT = 5443
         private const val DEFAULT_WSS_ENABLED = true
-        private const val DEFAULT_SIGN_PLUGIN_TRUST_REGISTRY = false
     }
 }

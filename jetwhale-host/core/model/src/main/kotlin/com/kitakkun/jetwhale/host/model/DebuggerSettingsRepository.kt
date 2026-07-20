@@ -10,7 +10,6 @@ interface DebuggerSettingsRepository {
     val mcpServerPortFlow: StateFlow<Int>
     val wssPortFlow: StateFlow<Int>
     val wssEnabledFlow: StateFlow<Boolean>
-    val signPluginTrustRegistryFlow: StateFlow<Boolean>
     suspend fun readServerPort(): Int
     suspend fun readMcpServerPort(): Int
     suspend fun readWssPort(): Int
@@ -22,6 +21,4 @@ interface DebuggerSettingsRepository {
     suspend fun updateMcpServerPort(port: Int)
     suspend fun updateWssPort(port: Int)
     suspend fun updateWssEnabled(enabled: Boolean)
-    suspend fun readSignPluginTrustRegistry(): Boolean
-    suspend fun updateSignPluginTrustRegistry(enabled: Boolean)
 }

@@ -35,6 +35,13 @@ interface PluginTrustService {
     val verifyingTrustRegistryFlow: StateFlow<Boolean>
 
     /**
+     * Whether trust-registry signing is currently enabled, which is defined purely by the existence
+     * of a signing key in the OS credential store (never a writable flag). Set on startup — prompt-
+     * free when no key exists — and updated by [setSigningEnabled]. The settings toggle observes this.
+     */
+    val signingEnabledFlow: StateFlow<Boolean>
+
+    /**
      * Loads every trusted jar from the plugins directory and records the rest as untrusted (see
      * [untrustedJarPathsFlow]). Call once on startup in place of loading the directory wholesale.
      */
@@ -51,10 +58,10 @@ interface PluginTrustService {
     suspend fun revokeTrust(jarPath: String)
 
     /**
-     * Turns trust-registry signing on or off and persists the choice. Enabling it re-signs the
-     * current registry (provisioning the signing key, a one-time credential-store prompt) so a later
-     * startup never encounters an unsigned registry while signing is on; disabling it just records
-     * the preference and leaves the credential store untouched.
+     * Turns trust-registry signing on or off. Enabling it provisions a signing key in the OS
+     * credential store and re-signs the current registry, so a later startup finds a signed registry.
+     * Disabling it deletes the key (which requires credential-store access — a file-writing attacker
+     * cannot do it) and re-writes the registry unsigned. Updates [signingEnabledFlow] to match.
      */
     suspend fun setSigningEnabled(enabled: Boolean)
 }

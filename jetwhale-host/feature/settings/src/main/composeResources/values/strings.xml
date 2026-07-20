@@ -28,7 +28,7 @@
     <string name="approve_untrusted_plugin">Approve</string>
     <string name="plugin_security">Security</string>
     <string name="sign_plugin_trust_registry">Sign plugin trust registry</string>
-    <string name="sign_plugin_trust_registry_hint">Off by default. When on, JetWhale signs the trust registry with a key from your OS credential store and verifies it on each launch, so the registry file can't be tampered with. When off, the store is never accessed. The SHA-256 check on approved jars applies either way.</string>
+    <string name="sign_plugin_trust_registry_hint">Off by default. When on, JetWhale keeps a signing key in your OS credential store and signs &amp; verifies the trust registry with it, so the file can't be tampered with — and disabling it again needs credential-store access. When off, no key exists and you're never prompted. The SHA-256 check on approved jars applies either way.</string>
     <string name="sign_plugin_trust_registry_hint_macos">On macOS that store is the Keychain, so it prompts for access on each launch — choose Always Allow to skip it.</string>
     <string name="sign_plugin_trust_registry_hint_windows">On Windows it's DPAPI-protected under your account, with no prompt.</string>
     <string name="sign_plugin_trust_registry_hint_linux">On Linux it's the Secret Service (GNOME Keyring / KWallet); a prompt may appear depending on your keyring.</string>

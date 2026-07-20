@@ -19,8 +19,8 @@ fun PluginSettingsScreenRoot() {
     var showMavenDialog by remember { mutableStateOf(false) }
 
     SoilDataBoundary(
-        state = rememberSubscription(screenContext.settingsSubscriptionKey),
-    ) { settings ->
+        state = rememberSubscription(screenContext.signPluginTrustRegistrySubscriptionKey),
+    ) { signingState ->
         SoilDataBoundary(
             state1 = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
             state2 = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey),
@@ -35,7 +35,7 @@ fun PluginSettingsScreenRoot() {
                     failedJars = failedJars,
                     untrustedJarPaths = untrustedJars.paths,
                     installProgress = installProgress,
-                    signPluginTrustRegistry = settings.signPluginTrustRegistry,
+                    signPluginTrustRegistry = signingState.enabled,
                 )
             }
 
