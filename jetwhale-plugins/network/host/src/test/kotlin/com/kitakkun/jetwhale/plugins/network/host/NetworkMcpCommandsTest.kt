@@ -7,6 +7,9 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -26,7 +29,9 @@ class NetworkMcpCommandsTest {
 
     private fun listCommand(data: List<HttpTransaction> = transactions) = ListTransactionsCommand(transactions = { data }, redactForMcp = { it })
 
-    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, String>): String = runBlocking { command.execute(JetWhaleMcpArguments(args.toMap())) }
+    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, String>): String = executeJson(command, *args.map { (key, value) -> key to JsonPrimitive(value) }.toTypedArray())
+
+    private fun executeJson(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
 
     private fun txIdsOf(result: String): List<String> = Json.parseToJsonElement(result).jsonObject
         .getValue("transactions").jsonArray

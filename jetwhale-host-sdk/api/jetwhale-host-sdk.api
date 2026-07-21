@@ -176,7 +176,7 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpArgumentException :
 
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpArguments {
 	public static final field $stable I
-	public fun <init> (Ljava/util/Map;)V
+	public fun <init> (Lkotlinx/serialization/json/JsonObject;)V
 	public final fun get (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter;)Ljava/lang/Object;
 }
 
@@ -202,12 +202,28 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand {
 	public static synthetic fun int$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	protected final fun intOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	public static synthetic fun intOrNull$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	protected final fun jsonArray (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	public static synthetic fun jsonArray$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	protected final fun jsonArrayOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	public static synthetic fun jsonArrayOrNull$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	protected final fun jsonObject (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	public static synthetic fun jsonObject$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	protected final fun jsonObjectOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	public static synthetic fun jsonObjectOrNull$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	protected final fun long (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	public static synthetic fun long$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	protected final fun longOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	public static synthetic fun longOrNull$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	protected final fun string (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	public static synthetic fun string$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	protected final fun stringList (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	public static synthetic fun stringList$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	protected final fun stringListOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	public static synthetic fun stringListOrNull$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	protected final fun stringMap (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	public static synthetic fun stringMap$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	protected final fun stringMapOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	public static synthetic fun stringMapOrNull$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	protected final fun stringOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	public static synthetic fun stringOrNull$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	public final fun toDescriptor ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor;
@@ -216,9 +232,11 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand {
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameter {
 	public static final field $stable I
 	public final fun getDescription ()Ljava/lang/String;
+	public final fun getItemsType ()Ljava/lang/String;
 	public final fun getName ()Ljava/lang/String;
 	public final fun getRequired ()Z
 	public final fun getType ()Ljava/lang/String;
+	public final fun getValueType ()Ljava/lang/String;
 }
 
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration : kotlin/properties/PropertyDelegateProvider {
@@ -229,17 +247,21 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaratio
 
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor {
 	public static final field $stable I
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Z)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()Z
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Z)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getDescription ()Ljava/lang/String;
+	public final fun getItemsType ()Ljava/lang/String;
 	public final fun getRequired ()Z
 	public final fun getType ()Ljava/lang/String;
+	public final fun getValueType ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
