@@ -5,11 +5,21 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
+import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
+import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
+import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
+import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -26,7 +36,9 @@ class NetworkMcpCommandsTest {
 
     private fun listCommand(data: List<HttpTransaction> = transactions) = ListTransactionsCommand(transactions = { data }, redactForMcp = { it })
 
-    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, String>): String = runBlocking { command.execute(JetWhaleMcpArguments(args.toMap())) }
+    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, String>): String = executeJson(command, *args.map { (key, value) -> key to JsonPrimitive(value) }.toTypedArray())
+
+    private fun executeJson(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
 
     private fun txIdsOf(result: String): List<String> = Json.parseToJsonElement(result).jsonObject
         .getValue("transactions").jsonArray
@@ -101,6 +113,90 @@ class NetworkMcpCommandsTest {
             execute(addMockRule, "urlPattern" to "/x", "matchType" to "GLOB")
         }
         assertTrue("invalid matchType" in badMatchType.message!!, badMatchType.message!!)
+    }
+
+    @Test
+    fun `addMockRule carries response headers through to the host`() {
+        var synced: List<MockRule>? = null
+        val command = AddMockRuleCommand(mockRules = { emptyList() }, syncMockRules = {
+            synced = it
+            null
+        })
+        val result = executeJson(
+            command,
+            "urlPattern" to JsonPrimitive("/x"),
+            "headers" to buildJsonObject {
+                put("Content-Type", "application/json")
+                put("X-Trace", "abc")
+            },
+        )
+        val rule = synced!!.single()
+        assertEquals(mapOf("Content-Type" to "application/json", "X-Trace" to "abc"), rule.response.headers)
+        assertTrue("application/json" in result, result)
+    }
+
+    @Test
+    fun `addMockRule contentType convenience fills in the Content-Type header`() {
+        var synced: List<MockRule>? = null
+        val command = AddMockRuleCommand(mockRules = { emptyList() }, syncMockRules = {
+            synced = it
+            null
+        })
+        executeJson(
+            command,
+            "urlPattern" to JsonPrimitive("/x"),
+            "contentType" to JsonPrimitive("application/json"),
+        )
+        assertEquals(mapOf("Content-Type" to "application/json"), synced!!.single().response.headers)
+    }
+
+    @Test
+    fun `addMockRule explicit headers win over the contentType convenience`() {
+        var synced: List<MockRule>? = null
+        val command = AddMockRuleCommand(mockRules = { emptyList() }, syncMockRules = {
+            synced = it
+            null
+        })
+        executeJson(
+            command,
+            "urlPattern" to JsonPrimitive("/x"),
+            "contentType" to JsonPrimitive("text/plain"),
+            "headers" to buildJsonObject { put("Content-Type", "application/json") },
+        )
+        assertEquals(mapOf("Content-Type" to "application/json"), synced!!.single().response.headers)
+    }
+
+    @Test
+    fun `setMockRules replaces the entire rule set`() {
+        var synced: List<MockRule>? = null
+        val command = SetMockRulesCommand(syncMockRules = {
+            synced = it
+            null
+        })
+        val edited = listOf(
+            MockRule(
+                id = "r1",
+                name = "edited",
+                enabled = false,
+                matcher = MockMatcher(urlPattern = "/a", matchType = MockMatchType.EXACT),
+                response = MockResponseSpec(statusCode = 201, headers = mapOf("Content-Type" to "application/json")),
+            ),
+        )
+        val result = executeJson(command, "rules" to Json.encodeToJsonElement(edited))
+        assertEquals(edited, synced)
+        assertTrue("edited" in result, result)
+    }
+
+    @Test
+    fun `setMockRules with a malformed rule throws a caller-facing argument exception`() {
+        val command = SetMockRulesCommand(syncMockRules = { null })
+        val exception = assertFailsWith<JetWhaleMcpArgumentException> {
+            executeJson(
+                command,
+                "rules" to Json.parseToJsonElement("""[{"name":"missing id and matcher"}]"""),
+            )
+        }
+        assertTrue("invalid rules" in exception.message!!, exception.message!!)
     }
 
     @Test

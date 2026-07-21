@@ -36,7 +36,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.util.concurrent.atomic.AtomicBoolean
@@ -183,6 +182,12 @@ class DefaultMcpServerService(
                 buildJsonObject {
                     put("type", param.type)
                     put("description", param.description)
+                    param.itemsType?.let { itemsType ->
+                        put("items", buildJsonObject { put("type", itemsType) })
+                    }
+                    param.valueType?.let { valueType ->
+                        put("additionalProperties", buildJsonObject { put("type", valueType) })
+                    }
                 }
             }
             val inputSchema = ToolSchema(
@@ -194,9 +199,9 @@ class DefaultMcpServerService(
                 description = descriptor.description,
                 inputSchema = inputSchema,
             ) { request ->
-                val arguments = request.arguments?.mapValues { (_, v) ->
-                    (v as? JsonPrimitive)?.content ?: v.toString()
-                } ?: emptyMap()
+                // Forward the arguments as raw JSON so structured (object/array) parameters keep
+                // their shape; the command's parameter DSL decodes each value by its declared type.
+                val arguments = request.arguments ?: emptyMap()
                 val result = toolRegistry.dispatch(toolName, arguments)
                 CallToolResult(content = listOf(TextContent(result ?: "null")))
             }

@@ -46,13 +46,19 @@ public data class JetWhaleMcpToolDescriptor(
 /**
  * Describes a single parameter of an MCP tool.
  *
- * @param type        JSON Schema primitive type: "string", "number", "boolean", "integer".
+ * @param type        JSON Schema type: "string", "number", "boolean", "integer", "object", "array".
  * @param description Human-readable description of the parameter.
  * @param required    Whether the parameter is required. Defaults to true.
+ * @param itemsType   For [type] "array": the JSON Schema type of each element, or null when the
+ *                    element type is unconstrained.
+ * @param valueType   For [type] "object": the JSON Schema type of each value, or null when the
+ *                    value type is unconstrained.
  */
 @ExperimentalJetWhaleApi
 public data class JetWhaleMcpParameterDescriptor(
     val type: String,
     val description: String,
     val required: Boolean = true,
+    val itemsType: String? = null,
+    val valueType: String? = null,
 )

@@ -157,5 +157,6 @@ private class NetworkHostPlugin :
         SetMockingEnabledCommand(syncMockingEnabled = ::syncMockingEnabled),
         AddMockRuleCommand(mockRules = { mockRules.toList() }, syncMockRules = ::syncMockRules),
         RemoveMockRuleCommand(mockRules = { mockRules.toList() }, syncMockRules = ::syncMockRules),
+        SetMockRulesCommand(syncMockRules = ::syncMockRules),
     )
 }
