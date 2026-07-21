@@ -17,6 +17,7 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.WindowInfoUpdater
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.LocalIsScreenshotCapture
 import com.kitakkun.jetwhale.host.sdk.LocalJetWhalePluginStorage
@@ -35,7 +36,13 @@ class DefaultPluginComposeSceneService(
     private val pluginBridgeProvider: DynamicPluginBridgeProvider,
     private val pluginInstanceService: PluginInstanceService,
 ) : PluginComposeSceneService {
-    private val pluginScenes = mutableMapOf<String, PluginComposeScene>()
+    /** A scene together with the plugin instance it composes, so a replaced instance invalidates it. */
+    private class CachedScene(
+        val pluginInstance: JetWhaleHostPlugin,
+        val scene: PluginComposeScene,
+    )
+
+    private val pluginScenes = mutableMapOf<String, CachedScene>()
 
     override suspend fun getOrCreatePluginScene(
         pluginId: String,
@@ -48,39 +55,46 @@ class DefaultPluginComposeSceneService(
             error("Plugin instance not found for pluginId=$pluginId, sessionId=$sessionId")
         }
         return withContext(Dispatchers.Main) {
-            pluginScenes.getOrPut("$pluginId:$sessionId") {
-                val windowUpdatableContext = DynamicWindowInfoPlatformContext()
-                val composeScene = CanvasLayersComposeScene(platformContext = windowUpdatableContext)
-                val isScreenshotCapture = mutableStateOf(false)
+            val sceneKey = "$pluginId:$sessionId"
+            val cached = pluginScenes[sceneKey]
+            if (cached != null && cached.pluginInstance === pluginInstance) return@withContext cached.scene
+            // A reinstalled or reloaded plugin is served by a new instance from a new classloader; a
+            // scene still composing the previous one would keep rendering discarded code.
+            cached?.scene?.composeScene?.close()
 
-                composeScene.setContent {
-                    // Expose the plugin's own pluginId-scoped storage so rememberPersistent can reach it.
-                    CompositionLocalProvider(
-                        LocalJetWhalePluginStorage provides pluginInstance.boundStorageForRuntime(),
-                        LocalIsScreenshotCapture provides isScreenshotCapture.value,
-                    ) {
-                        pluginBridgeProvider.PluginEntryPoint {
-                            // Headless plugins (not a JetWhaleHostPluginUi) render no content.
-                            val ui = pluginInstance as? JetWhaleHostPluginUi ?: return@PluginEntryPoint
-                            ui.Content()
-                        }
+            val windowUpdatableContext = DynamicWindowInfoPlatformContext()
+            val composeScene = CanvasLayersComposeScene(platformContext = windowUpdatableContext)
+            val isScreenshotCapture = mutableStateOf(false)
+
+            composeScene.setContent {
+                // Expose the plugin's own pluginId-scoped storage so rememberPersistent can reach it.
+                CompositionLocalProvider(
+                    LocalJetWhalePluginStorage provides pluginInstance.boundStorageForRuntime(),
+                    LocalIsScreenshotCapture provides isScreenshotCapture.value,
+                ) {
+                    pluginBridgeProvider.PluginEntryPoint {
+                        // Headless plugins (not a JetWhaleHostPluginUi) render no content.
+                        val ui = pluginInstance as? JetWhaleHostPluginUi ?: return@PluginEntryPoint
+                        ui.Content()
                     }
                 }
-
-                PluginComposeScene(
-                    composeScene = composeScene,
-                    windowInfoUpdater = windowUpdatableContext,
-                    semanticsOwners = windowUpdatableContext.semanticsOwners,
-                    isScreenshotCapture = isScreenshotCapture,
-                )
             }
+
+            val scene = PluginComposeScene(
+                composeScene = composeScene,
+                windowInfoUpdater = windowUpdatableContext,
+                semanticsOwners = windowUpdatableContext.semanticsOwners,
+                isScreenshotCapture = isScreenshotCapture,
+            )
+            pluginScenes[sceneKey] = CachedScene(pluginInstance, scene)
+            scene
         }
     }
 
     override fun disposePluginSceneForSession(sessionId: String) {
         val keysToRemove = pluginScenes.keys.filter { it.endsWith(":$sessionId") }
         for (key in keysToRemove) {
-            pluginScenes[key]?.composeScene?.close()
+            pluginScenes[key]?.scene?.composeScene?.close()
             pluginScenes.remove(key)
         }
     }
@@ -88,14 +102,14 @@ class DefaultPluginComposeSceneService(
     override fun disposePluginScenesForPlugin(pluginId: String) {
         val keysToRemove = pluginScenes.keys.filter { it.startsWith("$pluginId:") }
         for (key in keysToRemove) {
-            pluginScenes[key]?.composeScene?.close()
+            pluginScenes[key]?.scene?.composeScene?.close()
             pluginScenes.remove(key)
         }
     }
 
     override fun disposeAllPluginScenes() {
-        for (scene in pluginScenes.values) {
-            scene.composeScene.close()
+        for (cached in pluginScenes.values) {
+            cached.scene.composeScene.close()
         }
         pluginScenes.clear()
     }

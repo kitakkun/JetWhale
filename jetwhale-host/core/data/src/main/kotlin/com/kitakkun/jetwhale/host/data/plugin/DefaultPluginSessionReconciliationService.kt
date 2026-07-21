@@ -46,7 +46,13 @@ class DefaultPluginSessionReconciliationService(
             combine(
                 enabledPluginsRepository.enabledPluginIdsFlow,
                 sessionRepository.debugSessionsFlow.map { sessions -> sessions.filter { it.isActive } },
-            ) { enabledPluginIds, activeSessions -> enabledPluginIds to activeSessions }
+                // Loading a plugin is a reconciliation trigger in its own right. The enabled set only
+                // ever grows (nothing removes an id when a jar is deleted or its trust revoked), so
+                // installing a jar whose pluginId is already enabled changes neither of the flows
+                // above — without this the freshly loaded plugin would never get an instance, and
+                // opening it would fail until the next enable toggle, session, or app restart.
+                pluginFactoryRepository.loadedPluginsFlow,
+            ) { enabledPluginIds, activeSessions, _ -> enabledPluginIds to activeSessions }
                 .collect { (enabledPluginIds, activeSessions) ->
                     enabledPluginIds.forEach { pluginId ->
                         val activatedSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
