@@ -35,6 +35,15 @@ public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
     service.startService(
         host = configuration.connection.host,
         port = configuration.connection.port,
+        discovery = configuration.connection.discoveryConfiguration?.let { filter ->
+            HostDiscoveryConfig(
+                hostName = filter.hostName,
+                addresses = filter.addresses,
+                // Prefer the advertised wss port when SSL is configured, so a discovered LAN host is
+                // reached over the encrypted connector rather than plain ws.
+                preferWss = configuration.connection.sslConfiguration.isEnabled,
+            )
+        },
     )
 }
 
@@ -82,12 +91,54 @@ public interface JetWhaleConnectionConfigurationScope {
     public var port: Int
 
     /**
+     * Enables zero-config host discovery over mDNS/DNS-SD (Bonjour). When enabled, the agent browses
+     * the local network for a `_jetwhale._tcp` service the host advertises while its debug server
+     * runs, resolves that host's address and port, and connects to it instead of [host]/[port].
+     *
+     * The wss port advertised by the host is used when `ssl {}` is configured, otherwise the plain-ws
+     * port. When no host is discovered within a short timeout, or the platform does not support mDNS
+     * (JS/Wasm/Linux/Windows), the connection falls back to the configured [host]/[port] with a
+     * warning log, so an explicit host stays a valid override (e.g. `localhost` for emulator/ADB).
+     *
+     * iOS requires `_jetwhale._tcp` to be listed under `NSBonjourServices` in `Info.plist` alongside
+     * `NSLocalNetworkUsageDescription`, otherwise the OS blocks the browse.
+     *
+     * When several JetWhale hosts advertise on the network, constrain the selection with [configure]
+     * (see [JetWhaleHostDiscoveryScope]); with no filter the first discovered host is used and an
+     * explicit warning listing all discovered hosts is logged when more than one is found.
+     *
+     * @param configure Optional filter for which discovered host to connect to.
+     */
+    public fun discoverHost(configure: JetWhaleHostDiscoveryScope.() -> Unit = {})
+
+    /**
      * Configures SSL settings for the connection. When at least one trusted certificate is
      * registered, the connection is established over wss instead of plain ws.
      *
      * @param configure A lambda function to configure SSL settings.
      */
     public fun ssl(configure: JetWhaleSslConfigurationScope.() -> Unit)
+}
+
+@JetWhaleDsl
+public interface JetWhaleHostDiscoveryScope {
+    /**
+     * Restricts discovery to a host whose advertised hostname matches [name] exactly, compared
+     * case-insensitively. The compared value is the host machine's hostname (the mDNS instance name,
+     * or the `hostName` TXT record when the instance name was uniquified on collision).
+     *
+     * @param name The host machine's hostname to match.
+     */
+    public fun hostName(name: String)
+
+    /**
+     * Adds an IP address to the allowlist: a discovered host is only accepted when it resolves to one
+     * of the added addresses. Repeatable. Use this to pin discovery to a specific machine, e.g. your
+     * build machine's LAN IP.
+     *
+     * @param ip The IP address a discovered host must resolve to.
+     */
+    public fun address(ip: String)
 }
 
 @JetWhaleDsl
@@ -176,8 +227,31 @@ private class JetWhaleConnectionConfiguration : JetWhaleConnectionConfigurationS
     override var port: Int = 8080
     val sslConfiguration: JetWhaleSslConfiguration = JetWhaleSslConfiguration()
 
+    var discoveryConfiguration: JetWhaleHostDiscoveryConfiguration? = null
+        private set
+
+    override fun discoverHost(configure: JetWhaleHostDiscoveryScope.() -> Unit) {
+        discoveryConfiguration = JetWhaleHostDiscoveryConfiguration().apply(configure)
+    }
+
     override fun ssl(configure: JetWhaleSslConfigurationScope.() -> Unit) {
         sslConfiguration.configure()
+    }
+}
+
+internal class JetWhaleHostDiscoveryConfiguration : JetWhaleHostDiscoveryScope {
+    var hostName: String? = null
+        private set
+
+    private val mutableAddresses: MutableList<String> = mutableListOf()
+    val addresses: List<String> get() = mutableAddresses
+
+    override fun hostName(name: String) {
+        hostName = name
+    }
+
+    override fun address(ip: String) {
+        mutableAddresses.add(ip)
     }
 }
 

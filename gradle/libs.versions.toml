@@ -41,6 +41,7 @@ conveyor = "2.0"
 conveyorControl = "1.1"
 
 bouncyCastle = "1.83"
+jmdns = "3.6.1"
 
 [libraries]
 # Gradle Plugins
@@ -126,6 +127,9 @@ aboutLibrariesCore = { module = "com.mikepenz:aboutlibraries-core", version.ref 
 # certs
 bouncyCastleBcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncyCastle" }
 bouncyCastleBcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncyCastle" }
+
+# mDNS / DNS-SD service discovery (host advertising, JVM agent discovery)
+jmdns = { module = "org.jmdns:jmdns", version.ref = "jmdns" }
 
 [bundles]
 gradlePlugins = [

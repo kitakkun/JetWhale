@@ -115,6 +115,78 @@ startJetWhale {
 }
 ```
 
+## Zero-config host discovery (recommended for physical devices)
+
+A physical iPhone or Android device on the same Wi-Fi cannot reach the host over `localhost`. Rather
+than hardcoding the host machine's LAN IP (which changes between machines and networks), call
+`discoverHost()` and let the agent find the host over mDNS/Bonjour:
+
+```kotlin
+startJetWhale {
+    connection {
+        // Browse the LAN for the host advertised as `_jetwhale._tcp` and connect to it.
+        discoverHost()
+
+        // Fallback used when nothing is discovered in time (or the platform lacks mDNS):
+        // keeps emulators/simulators and ADB-forwarded devices working over localhost.
+        host = "localhost"
+        port = 5443
+
+        ssl { trustServerCertificate() }
+    }
+    plugins { /* ... */ }
+}
+```
+
+While its debug server runs, the host advertises a `_jetwhale._tcp.local.` service whose TXT records
+carry the `wsPort` and `wssPort` (the latter only when wss is enabled), the host machine's `hostName`,
+and a protocol marker `v=1`. The agent picks the **wss** port when an `ssl { }` block is configured,
+otherwise the **ws** port.
+
+### Constraining discovery
+
+When several JetWhale hosts run on the same network, first-match is ambiguous (the agent logs a
+warning listing all discovered hosts). Constrain the selection with a `discoverHost { }` block:
+
+```kotlin
+connection {
+    discoverHost {
+        // Match only the host whose machine hostname equals this (exact, case-insensitive).
+        hostName("my-macbook")
+
+        // ...or only accept hosts resolving to specific IPs (repeatable allowlist), e.g. to pin
+        // discovery to your build machine.
+        address("192.168.3.26")
+    }
+    host = "localhost"
+    port = 5443
+    ssl { trustServerCertificate() }
+}
+```
+
+- **`hostName(name)`** — matches the advertised hostname exactly, compared case-insensitively. The
+  compared value is the host machine's hostname (from the `hostName` TXT record, falling back to the
+  mDNS instance name).
+- **`address(ip)`** — an allowlist of resolved IPs; repeatable. A host is accepted only when it
+  resolves to one of them. (On iOS/macOS the agent connects by the resolved `.local.` hostname, so
+  prefer `hostName` there.)
+
+When both are set, a host must satisfy both.
+
+Discovery is best-effort: if no matching host is found within a few seconds — or on a platform
+without mDNS support (**JS/Wasm, Linux, Windows**) — the agent logs a warning and falls back to the
+configured `host`/`port`. So keep an explicit `host`/`port` as the fallback.
+
+| Platform | Discovery backend |
+|----------|-------------------|
+| **JVM (Desktop)** | jmDNS |
+| **Android** | `NsdManager` (`android.net.nsd`) |
+| **iOS / macOS** | `NSNetServiceBrowser` (Network.framework / Bonjour) |
+| **JS / Wasm / Linux / Windows** | Not supported — falls back to the configured host |
+
+On **iOS**, browsing for the service also requires listing it under `NSBonjourServices` in
+`Info.plist` (see [iOS Local Network permission](#ios-local-network-permission)).
+
 ## Secure connections (wss)
 
 By default the agent connects over plain **ws** (port **5080**). The host can additionally serve
@@ -184,10 +256,17 @@ behind a user permission, so add a usage-description string to the app's `Info.p
 ```xml
 <key>NSLocalNetworkUsageDescription</key>
 <string>JetWhale connects to the debugger host running on your local network.</string>
+<!-- Required when using discoverHost(): iOS blocks the Bonjour browse without it. -->
+<key>NSBonjourServices</key>
+<array>
+    <string>_jetwhale._tcp</string>
+</array>
 ```
 
 iOS prompts the user to allow local-network access on the first connection. `NSBonjourServices` is
-not required — the agent dials the host by address, not via Bonjour discovery. Because the CA fetch
+required whenever you use [`discoverHost()`](#zero-config-host-discovery-recommended-for-physical-devices):
+iOS silently blocks browsing for a service type that is not declared. If you dial the host by an
+explicit address instead of discovering it, `NSBonjourServices` can be omitted. Because the CA fetch
 falls back to `https` over the wss port, no App Transport Security exception for plain HTTP is needed.
 
 ## 4. Connect a device

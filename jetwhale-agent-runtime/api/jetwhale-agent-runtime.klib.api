@@ -64,7 +64,13 @@ abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigu
         abstract fun <get-port>(): kotlin/Int // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.port.<get-port>|<get-port>(){}[0]
         abstract fun <set-port>(kotlin/Int) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.port.<set-port>|<set-port>(kotlin.Int){}[0]
 
+    abstract fun discoverHost(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleHostDiscoveryScope, kotlin/Unit> = ...) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.discoverHost|discoverHost(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleHostDiscoveryScope,kotlin.Unit>){}[0]
     abstract fun ssl(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleSslConfigurationScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.ssl|ssl(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleSslConfigurationScope,kotlin.Unit>){}[0]
+}
+
+abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleHostDiscoveryScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleHostDiscoveryScope|null[0]
+    abstract fun address(kotlin/String) // com.kitakkun.jetwhale.agent.runtime/JetWhaleHostDiscoveryScope.address|address(kotlin.String){}[0]
+    abstract fun hostName(kotlin/String) // com.kitakkun.jetwhale.agent.runtime/JetWhaleHostDiscoveryScope.hostName|hostName(kotlin.String){}[0]
 }
 
 abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope|null[0]
