@@ -15,6 +15,7 @@ import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.HttpResponseData
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpProtocolVersion
@@ -123,6 +124,12 @@ private suspend fun serveMock(client: HttpClient, request: HttpRequestBuilder, m
         requestTime = GMTDate(),
         headers = HeadersBuilder().apply {
             mock.headers.forEach { (key, value) -> append(key, value) }
+            // A mock without a Content-Type synthesizes a response whose header is null, which makes
+            // a client using ContentNegotiation reject the body. Default it so headerless JSON mocks
+            // stay usable, without overriding a Content-Type the mock already sets.
+            if (mock.headers.keys.none { it.equals(HttpHeaders.ContentType, ignoreCase = true) }) {
+                append(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            }
         }.build(),
         version = HttpProtocolVersion.HTTP_1_1,
         body = ByteReadChannel(mock.body.encodeToByteArray()),

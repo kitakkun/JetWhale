@@ -91,6 +91,59 @@ class JetWhaleNetworkKtorPluginTest {
     }
 
     @Test
+    fun `defaults a headerless mock's Content-Type to application json`() = runBlocking {
+        val (agent, _) = agentWithEvents()
+        agent.seedMockRules(
+            listOf(
+                MockRule(
+                    id = "1",
+                    matcher = MockMatcher(urlPattern = "/todos/1"),
+                    response = MockResponseSpec(statusCode = 200, body = "{\"ok\":true}"),
+                ),
+            ),
+        )
+        val client = HttpClient(
+            MockEngine { respond(content = "unmocked", status = HttpStatusCode.InternalServerError) },
+        ) {
+            install(agent.ktorClientPlugin())
+        }
+
+        val response = client.get("http://example/todos/1")
+
+        // Without the default, a headerless mock synthesizes Content-Type: null and a
+        // ContentNegotiation client rejects the body with NoTransformationFoundException.
+        assertEquals("application/json", response.headers[HttpHeaders.ContentType])
+    }
+
+    @Test
+    fun `preserves an explicit Content-Type on a mock`() = runBlocking {
+        val (agent, _) = agentWithEvents()
+        agent.seedMockRules(
+            listOf(
+                MockRule(
+                    id = "1",
+                    matcher = MockMatcher(urlPattern = "/plain"),
+                    response = MockResponseSpec(
+                        statusCode = 200,
+                        headers = mapOf("content-type" to "text/plain"),
+                        body = "hello",
+                    ),
+                ),
+            ),
+        )
+        val client = HttpClient(
+            MockEngine { respond(content = "unmocked", status = HttpStatusCode.InternalServerError) },
+        ) {
+            install(agent.ktorClientPlugin())
+        }
+
+        val response = client.get("http://example/plain")
+
+        // A Content-Type the mock already sets (even lower-cased) is never overridden by the default.
+        assertEquals("text/plain", response.headers[HttpHeaders.ContentType])
+    }
+
+    @Test
     fun `returns an SSE response without buffering its body`() = runBlocking {
         val (agent, events) = agentWithEvents()
         // A channel that receives data but is never closed — save() would suspend on it forever.
