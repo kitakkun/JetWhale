@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.util.concurrent.atomic.AtomicBoolean
@@ -178,17 +179,9 @@ class DefaultMcpServerService(
                 put("type", "string")
                 put("description", "Session ID of the target device (from jetwhale.listSessions)")
             }
+            // The parameter's schema describes its type; only the description has to be merged in.
             val pluginProperties = descriptor.parameters.mapValues { (_, param) ->
-                buildJsonObject {
-                    put("type", param.type)
-                    put("description", param.description)
-                    param.itemsType?.let { itemsType ->
-                        put("items", buildJsonObject { put("type", itemsType) })
-                    }
-                    param.valueType?.let { valueType ->
-                        put("additionalProperties", buildJsonObject { put("type", valueType) })
-                    }
-                }
+                JsonObject(param.schema + ("description" to JsonPrimitive(param.description)))
             }
             val inputSchema = ToolSchema(
                 properties = JsonObject(mapOf("sessionId" to sessionIdProperty) + pluginProperties),

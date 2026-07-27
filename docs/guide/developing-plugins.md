@@ -292,6 +292,44 @@ Things to know:
   a command can `request` the agent directly.
 - The MCP APIs are marked `@ExperimentalJetWhaleApi` and may change between releases.
 
+### Structured parameters
+
+Beyond scalars (`string`, `int`, `long`, `boolean`, `enum`), a parameter can take structured input.
+When the shape is known, declare it as a `@Serializable` type with `serializable<T>()`:
+
+```kotlin
+private val rules by serializable<List<MockRule>>("The mock rules to apply.")
+```
+
+The argument is decoded for you, and the parameter's JSON Schema is derived from the type's
+serializer — nested objects, enum entries, and which properties are required (those without a
+default value) are all advertised to the AI agent. You never have to restate the shape in the tool's
+description, so it cannot drift from the model. A payload that doesn't fit the type raises a
+`JetWhaleMcpArgumentException` naming the parameter.
+
+Document individual properties with `@McpDescription`; the text lands in the schema next to the
+field it describes:
+
+```kotlin
+@Serializable
+data class MockMatcher(
+    @McpDescription("HTTP method to match (case-insensitive). Matches any method if omitted.")
+    val method: String? = null,
+    @McpDescription("URL pattern to match, interpreted per matchType.")
+    val urlPattern: String,
+)
+```
+
+A sealed hierarchy is advertised as a `oneOf` over its subclasses, each pinning the class
+discriminator (`"type"` by default, or whatever `@JsonClassDiscriminator` sets) to a `const` — the
+same flattened shape `Json` reads and writes, so the agent can construct any variant from the schema
+alone. Open polymorphic types have no statically known subclasses and fall back to an unconstrained
+`object`.
+
+`stringList` and `stringMap` cover the common flat containers. For payloads whose shape is not known
+ahead of time, `jsonObject` and `jsonArray` hand back the raw `JsonElement` — but they can only
+advertise `object` / `array`, so reach for `serializable` whenever the shape is known.
+
 The Network Inspector's own tools (`com.kitakkun.jetwhale.network.*`) are a complete in-repo
 example — see `jetwhale-plugins/network/host`.
 
