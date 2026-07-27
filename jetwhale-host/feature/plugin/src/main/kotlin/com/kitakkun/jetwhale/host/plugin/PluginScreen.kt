@@ -18,6 +18,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
@@ -47,6 +48,9 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
 
     Canvas(
         modifier = Modifier.fillMaxSize()
+            // The plugin's scene is nested and windowless, so its Modifier.pointerHoverIcon requests
+            // surface here instead; this Canvas is the innermost node that sits in a real window.
+            .pointerHoverIcon(pluginComposeScene.pointerIcon.value)
             .onSizeChanged {
                 try {
                     pluginComposeScene.composeScene.density = density

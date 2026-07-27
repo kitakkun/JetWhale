@@ -28,6 +28,9 @@ fun NetworkInspectorScreen(
     onMockRulesChanged: (List<MockRule>) -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(0) }
+    // Hoisted out of TrafficTab so the selection survives a round trip through the Mocks tab, which
+    // swaps the tab content composable out of the composition entirely.
+    var selectedTxId by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = selectedTab) {
             Tab(
@@ -44,6 +47,8 @@ fun NetworkInspectorScreen(
         when (selectedTab) {
             0 -> TrafficTab(
                 transactions = transactions,
+                selectedTxId = selectedTxId,
+                onSelectTx = { selectedTxId = it },
                 onClear = onClearTransactions,
                 onCreateMock = { tx ->
                     tx.response?.let { response ->
