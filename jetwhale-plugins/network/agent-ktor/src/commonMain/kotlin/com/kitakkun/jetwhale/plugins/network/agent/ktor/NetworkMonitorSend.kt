@@ -183,13 +183,16 @@ private fun HttpResponse.isWebSocketUpgrade(): Boolean = status == HttpStatusCod
 private fun HttpRequestBuilder.capturedRequestHeaders(): Map<String, List<String>> = buildMap {
     putAll(headers.build().toCapturedMap())
     val content = body as? OutgoingContent ?: return@buildMap
-    content.contentType?.let { type ->
-        if (!containsKey("Content-Type")) put("Content-Type", listOf(type.toString()))
-    }
-    content.contentLength?.let { length ->
-        if (!containsKey("Content-Length")) put("Content-Length", listOf(length.toString()))
-    }
-    content.headers.entries().forEach { (key, value) ->
-        if (!containsKey(key)) put(key, value)
-    }
+    content.contentType?.let { putIfAbsentIgnoringCase("Content-Type", listOf(it.toString())) }
+    content.contentLength?.let { putIfAbsentIgnoringCase("Content-Length", listOf(it.toString())) }
+    content.headers.entries().forEach { (key, value) -> putIfAbsentIgnoringCase(key, value) }
+}
+
+/**
+ * Adds a body-derived header only when the request doesn't already carry it. The comparison ignores
+ * case because header names are case-insensitive but this map keeps whatever spelling the request
+ * used, so a case-sensitive check would let `content-length` and `Content-Length` both through.
+ */
+private fun MutableMap<String, List<String>>.putIfAbsentIgnoringCase(name: String, values: List<String>) {
+    if (keys.none { it.equals(name, ignoreCase = true) }) put(name, values)
 }

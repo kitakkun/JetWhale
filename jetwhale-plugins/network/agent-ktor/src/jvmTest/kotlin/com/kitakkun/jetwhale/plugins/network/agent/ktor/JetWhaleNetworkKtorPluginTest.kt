@@ -15,10 +15,16 @@ import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.post
 import io.ktor.client.request.prepareGet
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.OutgoingContent
 import io.ktor.http.headersOf
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
@@ -215,6 +221,27 @@ class JetWhaleNetworkKtorPluginTest {
     }
 
     @Test
+    fun `keeps a single entry when the request and the body spell a header differently`() = runBlocking {
+        val (agent, events) = agentWithEvents()
+        val client = HttpClient(MockEngine { respond(content = "ok", status = HttpStatusCode.OK) }) {
+            install(agent.ktorClientPlugin())
+        }
+
+        client.post("http://example/echo") {
+            header("X-Trace", "from-request")
+            setBody(TracedContent("hi"))
+        }
+
+        // Header names are case-insensitive, so a body-level header must not be added again under
+        // the request's spelling — the inspector would show the same header twice.
+        val headers = (events.first() as RequestSent).request.headers
+        assertEquals(
+            listOf("X-Trace" to listOf("from-request")),
+            headers.entries.filter { it.key.equals("x-trace", ignoreCase = true) }.map { it.key to it.value },
+        )
+    }
+
+    @Test
     fun `a plugin installed before the monitor wraps it`() = runBlocking {
         val (agent, events) = agentWithEvents()
         val trace = mutableListOf<String>()
@@ -295,6 +322,13 @@ class JetWhaleNetworkKtorPluginTest {
         assertEquals(1, events.filterIsInstance<RequestSent>().size)
         assertEquals(1, events.filterIsInstance<ResponseReceived>().size)
     }
+}
+
+/** A body that carries its own header, spelled differently from the one the request sets. */
+private class TracedContent(private val text: String) : OutgoingContent.ByteArrayContent() {
+    override val contentType: ContentType = ContentType.Text.Plain
+    override val headers: Headers = headersOf("x-trace", "from-body")
+    override fun bytes(): ByteArray = text.encodeToByteArray()
 }
 
 /** A Send-hook plugin that appends the number of events recorded so far when it is entered and left. */
