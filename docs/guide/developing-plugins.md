@@ -368,6 +368,106 @@ Read it (`LocalJetWhaleDarkTheme.current`) to pick theme-appropriate colors inst
 `isSystemInDarkTheme()`, which reflects the OS setting and can disagree with the host's own Theme
 option.
 
+## Web-based UI <Badge type="warning" text="experimental" />
+
+A host plugin's UI can be a web page (React, Vue, plain HTML — anything that builds to static assets
+or runs on a dev server) instead of Compose. The page is shown by an embedded Chromium browser and
+talks to its agent counterpart through an injected `window.jetwhale` bridge.
+
+The recommended form is a **pure web plugin**: no plugin code to write or compile. You ship only a
+manifest plus your built web assets — the host provides the plugin implementation and wires the
+bridge to the agent for you.
+
+### Pure web plugin (no Kotlin)
+
+Declare a `web` block in the manifest instead of a `factoryClass`, and put your built output under
+`src/main/resources/<resourceRoot>/`:
+
+```json
+{
+  "plugins": [
+    {
+      "pluginId": "com.example.myplugin",
+      "pluginName": "My Web Plugin",
+      "version": "1.0.0",
+      "web": {
+        "entry": "index.html",
+        "resourceRoot": "web/myplugin",
+        "devServerUrlProperty": "myplugin.devServer"
+      },
+      "agentVersionRange": { "min": "1.0.0", "max": "1.0.0" }
+    }
+  ]
+}
+```
+
+- **Bundled assets** are served over a loopback `http://127.0.0.1` origin (so `fetch()` and relative
+  URLs behave as on a real web server), then the browser opens `entry`. Copy a Vite `dist/` (etc.)
+  into `src/main/resources/web/myplugin/`.
+- **Dev server / HMR:** set `devServerUrlProperty` and launch with e.g.
+  `-Dmyplugin.devServer=http://localhost:5173` to load a running dev server instead of the bundle.
+
+That is the whole plugin — only the manifest and the assets. It still needs an agent counterpart
+advertising the same `pluginId` to appear (like any messaging plugin).
+
+Because there is no code to compile, you do not need Gradle or any JVM tooling: zip the two entries
+and install the archive directly. Lay the files out as they sit inside the archive —
+
+```
+myplugin/
+├── META-INF/jetwhale/plugin-manifest.json
+└── web/myplugin/            # matches "resourceRoot"
+    ├── index.html           # matches "entry"
+    └── assets/…
+```
+
+— then `cd myplugin && zip -r ../myplugin.zip .` and install `myplugin.zip` from **Settings →
+Plugins** (the picker accepts `.jar` and `.zip`). A Kotlin-authored plugin still ships as the usual
+`.jar`; a `.zip` is just a plugin archive with no compiled classes.
+
+### The `window.jetwhale` bridge
+
+The page reaches the agent through a bridge injected once the document loads (a `jetwhale:ready`
+event also fires on `window`):
+
+```js
+// fire-and-forget event to the agent
+window.jetwhale.send("example/note", JSON.stringify({ text: "hi" }));
+
+// request-reply; resolves with the agent's reply payload (a JSON string)
+window.jetwhale.request("example/ping", "{}")
+  .then(reply => console.log(reply))
+  .catch(err => console.error(err.message));
+
+// every agent event arrives here as (wireType, payloadJson)
+window.jetwhale.onMessage((type, payloadJson) => { /* ... */ });
+```
+
+`type` is the message's wire name — its `@SerialName` (or fully-qualified name). For TypeScript, copy
+`jetwhale.d.ts` (next to the example page) into your project for a typed `window.jetwhale`.
+
+### Advanced: Kotlin-authored web plugin
+
+Write plugin code only when you need custom Kotlin logic (MCP tools, storage migrations, transforming
+messages). Implement `JetWhaleWebHostPluginUi` and call `JetWhaleWebView` from `Content`, passing the
+plugin's `messenger`, a `JetWhaleWebBridge`, and a `JetWhaleWebSource`
+(`BundledAsset(classLoader = javaClass.classLoader, …)` or `DevServer(url)`). Forward agent messages
+to the page with `bridge.emit(type, payloadJson)` from a `configure { … }` handler.
+
+### Things to know
+
+- The APIs are `@ExperimentalJetWhaleApi` and may change between releases.
+- The Chromium runtime is downloaded and initialized **the first time any web plugin is shown** (a
+  one-time download); plugins that never open one are unaffected.
+- A web plugin **cannot be captured by `jetwhale.screenshot`**, and Compose overlays the host draws
+  may be occluded by the browser surface.
+- Agent → web-UI **events** are delivered generically. Agent-initiated **requests** to the UI need a
+  Kotlin `onRawRequest` handler (advanced) — the pure form forwards events only.
+
+A complete in-repo example — a pure web manifest, its bundled page + `jetwhale.d.ts`, and its agent
+counterpart — lives in `jetwhale-plugins/example` (`plugin-manifest.json` `com.kitakkun.jetwhale.example.web`,
+`resources/web/example/`, `ExampleWebAgentPlugin`).
+
 ## Persistent storage
 
 Every host plugin instance gets a persistent key-value store via the protected `storage` property,

@@ -70,6 +70,14 @@ compose.desktop {
             jvmArgs(
                 "-Dapple.awt.application.appearance=system",
             )
+            // KCEF (the embedded Chromium used by experimental web plugins) reflects into internal
+            // AWT classes and needs these opened. See DatL4g/KCEF COMPOSE.md#flags.
+            jvmArgs("--add-opens", "java.desktop/sun.awt=ALL-UNNAMED")
+            jvmArgs("--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED")
+            if (System.getProperty("os.name").contains("Mac")) {
+                jvmArgs("--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED")
+                jvmArgs("--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
+            }
 
             macOS {
                 iconFile.set(file("src/main/resources/icon.icns"))
@@ -81,6 +89,18 @@ compose.desktop {
                 iconFile.set(file("src/main/resources/icon.png"))
             }
         }
+    }
+}
+
+// Development runs (compose `run`, `runJetWhale`, `runJetWhaleHot`) launch via JavaExec, which does
+// not inherit the packaged-app jvmArgs above — open the same internal AWT packages KCEF needs so the
+// embedded browser works when running from source too.
+tasks.withType<JavaExec>().configureEach {
+    jvmArgs("--add-opens", "java.desktop/sun.awt=ALL-UNNAMED")
+    jvmArgs("--add-opens", "java.desktop/java.awt.peer=ALL-UNNAMED")
+    if (System.getProperty("os.name").contains("Mac")) {
+        jvmArgs("--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED")
+        jvmArgs("--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
     }
 }
 

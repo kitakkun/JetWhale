@@ -78,14 +78,14 @@ class AppDataDirectoryProvider {
     }
 
     /**
-     * True only for a `.jar` file directly inside the managed plugins directory. Paths are compared
-     * canonically so `..` segments or symlinked aliases cannot smuggle in a jar from elsewhere. This
-     * is the precondition for trusting a jar: the plugins directory is the security boundary, and
-     * only files placed there through the explicit install flow may be approved.
+     * True only for a plugin archive (`.jar` or `.zip`) directly inside the managed plugins directory.
+     * Paths are compared canonically so `..` segments or symlinked aliases cannot smuggle in an archive
+     * from elsewhere. This is the precondition for trusting an archive: the plugins directory is the
+     * security boundary, and only files placed there through the explicit install flow may be approved.
      */
     fun isManagedPluginJarPath(jarPath: String): Boolean {
         val file = File(jarPath)
-        if (file.extension != "jar") return false
+        if (!isPluginArchive(file)) return false
         return try {
             file.canonicalFile.parentFile == File(pluginDir).canonicalFile
         } catch (e: java.io.IOException) {
@@ -119,7 +119,7 @@ class AppDataDirectoryProvider {
 
     fun getAllPluginJarFilePaths(): List<String> {
         val pluginDirectory = File(pluginDir)
-        return pluginDirectory.listFiles { file -> file.extension == "jar" }?.map { it.absolutePath } ?: emptyList()
+        return pluginDirectory.listFiles { file -> isPluginArchive(file) }?.map { it.absolutePath } ?: emptyList()
     }
 
     fun getPluginDirectory(): File = File(pluginDir)
@@ -146,7 +146,7 @@ class AppDataDirectoryProvider {
     fun getDevPluginJarFilePaths(): List<String> {
         val devDir = getDevPluginsDir() ?: return emptyList()
         val devDirectory = File(devDir)
-        return devDirectory.listFiles { file -> file.extension == "jar" }?.map { it.absolutePath } ?: emptyList()
+        return devDirectory.listFiles { file -> isPluginArchive(file) }?.map { it.absolutePath } ?: emptyList()
     }
 
     companion object {
@@ -157,5 +157,15 @@ class AppDataDirectoryProvider {
          * plugin-developer Gradle tasks to an isolated per-project sandbox directory.
          */
         const val APP_DATA_DIR_PROPERTY = "jetwhale.appDataDir"
+
+        /**
+         * Extensions accepted as plugin archives. Both are ZIP containers read via `URLClassLoader`: a
+         * `.jar` for a Kotlin-authored (compiled) plugin, a `.zip` for a pure web plugin (manifest +
+         * bundled assets, no code to compile).
+         */
+        val PLUGIN_ARCHIVE_EXTENSIONS = setOf("jar", "zip")
+
+        /** True for a file whose extension marks it as a plugin archive (see [PLUGIN_ARCHIVE_EXTENSIONS]). */
+        fun isPluginArchive(file: File): Boolean = file.extension.lowercase() in PLUGIN_ARCHIVE_EXTENSIONS
     }
 }

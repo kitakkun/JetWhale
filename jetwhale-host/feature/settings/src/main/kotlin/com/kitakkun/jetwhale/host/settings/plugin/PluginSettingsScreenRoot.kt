@@ -72,7 +72,7 @@ fun PluginSettingsScreenRoot() {
 }
 
 private fun selectJarFile(parent: Frame? = null): File? {
-    val dialog = FileDialog(parent, "Select Plugin Jar", FileDialog.LOAD).apply {
+    val dialog = FileDialog(parent, "Select Plugin (JAR or ZIP)", FileDialog.LOAD).apply {
         isVisible = true
     }
 

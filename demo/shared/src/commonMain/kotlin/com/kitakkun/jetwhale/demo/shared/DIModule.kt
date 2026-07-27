@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.demo.shared
 
 import com.kitakkun.jetwhale.plugins.example.agent.ExampleAgentPlugin
+import com.kitakkun.jetwhale.plugins.example.agent.ExampleWebAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.agent.ktor.ktorClientPlugin
 import io.ktor.client.HttpClient
@@ -10,6 +11,9 @@ import io.ktor.client.request.header
 
 object DIModule {
     val exampleAgentPlugin: ExampleAgentPlugin by lazy { ExampleAgentPlugin() }
+
+    /** Agent counterpart of the experimental web-based host plugin. */
+    val exampleWebAgentPlugin: ExampleWebAgentPlugin by lazy { ExampleWebAgentPlugin() }
 
     val networkAgentPlugin: JetWhaleNetworkAgentPlugin by lazy { JetWhaleNetworkAgentPlugin() }
 

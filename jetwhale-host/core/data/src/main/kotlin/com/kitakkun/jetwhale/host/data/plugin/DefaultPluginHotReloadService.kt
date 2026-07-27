@@ -109,7 +109,7 @@ class DefaultPluginHotReloadService(
                 }
 
                 val changedJarNames = key.pollEvents()
-                    .mapNotNull { (it.context() as? Path)?.takeIf { path -> path.extension == "jar" }?.name }
+                    .mapNotNull { (it.context() as? Path)?.takeIf { path -> path.isPluginArchive() }?.name }
                     .toSet()
 
                 // A single build can fire several events (write + close); coalesce and let the file
@@ -138,7 +138,7 @@ class DefaultPluginHotReloadService(
         var pending: WatchKey? = service.poll()
         while (pending != null) {
             pending.pollEvents()
-                .mapNotNullTo(names) { (it.context() as? Path)?.takeIf { path -> path.extension == "jar" }?.name }
+                .mapNotNullTo(names) { (it.context() as? Path)?.takeIf { path -> path.isPluginArchive() }?.name }
             pending.reset()
             pending = service.poll()
         }
@@ -231,3 +231,7 @@ class DefaultPluginHotReloadService(
         private const val DEBOUNCE_MILLIS = 300L
     }
 }
+
+/** True for a watched path whose extension marks it as a plugin archive (a `.jar` or a web `.zip`). */
+private fun Path.isPluginArchive(): Boolean =
+    extension.lowercase() in AppDataDirectoryProvider.PLUGIN_ARCHIVE_EXTENSIONS

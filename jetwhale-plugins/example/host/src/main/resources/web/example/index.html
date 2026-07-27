@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Example Web Host Plugin</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 16px;
+      line-height: 1.4;
+    }
+    h1 { font-size: 1.1rem; margin: 0 0 12px; }
+    button {
+      font: inherit;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid currentColor;
+      background: transparent;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: default; }
+    ul { list-style: none; padding: 0; margin: 12px 0 0; }
+    li { padding: 4px 0; border-bottom: 1px solid rgba(128,128,128,0.25); font-family: ui-monospace, monospace; font-size: 0.85rem; }
+    .status { opacity: 0.7; font-size: 0.8rem; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Example Web Host Plugin</h1>
+  <button id="ping" disabled>Send ping to debuggee</button>
+  <div class="status" id="status">Waiting for the JetWhale bridge…</div>
+  <ul id="logs"></ul>
+
+  <script>
+    // Message types are the wire serialNames from the shared example protocol (see ExampleMessages.kt).
+    var PING = "example/ping";
+
+    function log(message) {
+      var li = document.createElement("li");
+      li.textContent = message;
+      document.getElementById("logs").appendChild(li);
+    }
+
+    function wireUp() {
+      document.getElementById("status").textContent = "Bridge ready.";
+      var pingButton = document.getElementById("ping");
+      pingButton.disabled = false;
+
+      pingButton.addEventListener("click", function () {
+        log("Request: Ping");
+        // Ping is a data object, so its payload serializes to an empty JSON object.
+        window.jetwhale.request(PING, "{}")
+          .then(function () { log("Reply: Pong"); })
+          .catch(function (error) { log("Error: " + error.message); });
+      });
+
+      // Agent -> web UI events forwarded by the plugin via JetWhaleWebBridge.emit(...).
+      window.jetwhale.onMessage(function (type, payload) {
+        log("Event: " + type + " " + payload);
+      });
+    }
+
+    if (window.jetwhale && window.jetwhale.__ready) {
+      wireUp();
+    } else {
+      window.addEventListener("jetwhale:ready", wireUp);
+    }
+  </script>
+</body>
+</html>

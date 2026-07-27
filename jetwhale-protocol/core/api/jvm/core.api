@@ -132,6 +132,8 @@ public abstract interface class com/kitakkun/jetwhale/protocol/messaging/JetWhal
 }
 
 public final class com/kitakkun/jetwhale/protocol/messaging/JetWhaleMessageHandlers {
+	public final fun onRawEvent (Lkotlin/jvm/functions/Function3;)V
+	public final fun onRawRequest (Lkotlin/jvm/functions/Function3;)V
 	public final fun registerEvent (Lkotlinx/serialization/KSerializer;Lkotlin/jvm/functions/Function2;)V
 	public final fun registerRequest (Lkotlinx/serialization/KSerializer;Lkotlinx/serialization/KSerializer;Lkotlin/jvm/functions/Function2;)V
 }

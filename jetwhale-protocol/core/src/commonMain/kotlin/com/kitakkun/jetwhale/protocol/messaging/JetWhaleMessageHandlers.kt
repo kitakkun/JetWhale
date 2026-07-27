@@ -31,9 +31,32 @@ public class JetWhaleMessageHandlers internal constructor() {
     private val eventEntries = mutableMapOf<String, EventEntry>()
     private val requestEntries = mutableMapOf<String, RequestEntry>()
 
+    private var rawEventEntry: (suspend (messageType: String, payload: String) -> Unit)? = null
+    private var rawRequestEntry: (suspend (messageType: String, payload: String) -> String)? = null
+
     /** Registers a handler for the event type [E]. One handler per type. */
     public inline fun <reified E : JetWhaleEvent> onEvent(noinline handler: suspend (E) -> Unit) {
         registerEvent(serializer<E>(), handler)
+    }
+
+    /**
+     * Registers a **raw** fallback for inbound events with no typed [onEvent] handler: it receives the
+     * wire message type and the undecoded payload string. Use it to forward messages generically
+     * without a Kotlin type per message (e.g. bridging to a web UI). One per plugin.
+     */
+    public fun onRawEvent(handler: suspend (messageType: String, payload: String) -> Unit) {
+        check(rawEventEntry == null) { "A raw event handler is already registered." }
+        rawEventEntry = handler
+    }
+
+    /**
+     * Registers a **raw** fallback for inbound requests with no typed [onRequest] handler: it receives
+     * the wire message type and the undecoded payload string and must return the raw reply payload
+     * string. One per plugin.
+     */
+    public fun onRawRequest(handler: suspend (messageType: String, payload: String) -> String) {
+        check(rawRequestEntry == null) { "A raw request handler is already registered." }
+        rawRequestEntry = handler
     }
 
     /**
@@ -73,4 +96,8 @@ public class JetWhaleMessageHandlers internal constructor() {
     internal fun eventEntryFor(messageType: String): EventEntry? = eventEntries[messageType]
 
     internal fun requestEntryFor(messageType: String): RequestEntry? = requestEntries[messageType]
+
+    internal fun rawEventHandler(): (suspend (messageType: String, payload: String) -> Unit)? = rawEventEntry
+
+    internal fun rawRequestHandler(): (suspend (messageType: String, payload: String) -> String)? = rawRequestEntry
 }

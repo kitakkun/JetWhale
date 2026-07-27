@@ -62,6 +62,16 @@ class DefaultPluginTrustServiceTest {
     }
 
     @Test
+    fun `trustAndLoad accepts a zip (web plugin) inside the plugins directory`() = runBlocking {
+        val zip = File(pluginsDir, "webplugin.zip").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+
+        service.trustAndLoad(zip.absolutePath)
+
+        assertEquals(listOf(zip.absolutePath), factoryRepository.loadedJarPaths)
+        assertEquals(setOf(zip.absolutePath), trustRepository.entries.keys)
+    }
+
+    @Test
     fun `trustAndLoad rejects a jar outside the plugins directory`() = runBlocking {
         val outsideJar = File(tempHome, "evil.jar").apply { writeBytes(byteArrayOf(1)) }
 
@@ -80,10 +90,10 @@ class DefaultPluginTrustServiceTest {
     }
 
     @Test
-    fun `trustAndLoad rejects a non-jar file`() = runBlocking {
-        val notAJar = File(pluginsDir, "plugin.zip").apply { writeBytes(byteArrayOf(1)) }
+    fun `trustAndLoad rejects a non-archive file`() = runBlocking {
+        val notAnArchive = File(pluginsDir, "plugin.txt").apply { writeBytes(byteArrayOf(1)) }
 
-        assertFailsWith<IllegalArgumentException> { service.trustAndLoad(notAJar.absolutePath) }
+        assertFailsWith<IllegalArgumentException> { service.trustAndLoad(notAnArchive.absolutePath) }
         assertEquals(emptyList(), factoryRepository.loadedJarPaths)
     }
 
