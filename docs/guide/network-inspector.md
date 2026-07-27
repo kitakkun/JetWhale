@@ -48,6 +48,26 @@ startJetWhale {
 }
 ```
 
+#### Attaching to a client you didn't build
+
+When the `HttpClient` comes from a DI container or a library, use the `HttpSend` interceptor
+instead — it attaches to an already-built client, so the construction site stays untouched:
+
+```kotlin
+import com.kitakkun.jetwhale.plugins.network.agent.ktor.ktorSendInterceptor
+import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.plugin
+
+val networkAgent = JetWhaleNetworkAgentPlugin()
+val client = HttpClient()
+
+client.plugin(HttpSend).intercept(networkAgent.ktorSendInterceptor(client))
+```
+
+Pass the same client the interceptor is registered on — it is used to synthesize mocked responses.
+Register it once per client at setup: `HttpSend` neither rejects duplicates nor offers a way to
+remove an interceptor, so registering twice records every transaction twice.
+
 ### OkHttp
 
 ```kotlin
