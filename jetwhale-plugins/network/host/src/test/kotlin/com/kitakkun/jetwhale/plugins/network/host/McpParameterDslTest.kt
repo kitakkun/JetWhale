@@ -4,12 +4,20 @@ import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
+import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
+import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
+import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -20,6 +28,14 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalJetWhaleApi::class)
 class McpParameterDslTest {
     private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
+
+    private fun JetWhaleMcpCommand.schemaOf(parameter: String): JsonObject = toDescriptor().parameters.getValue(parameter).schema
+
+    private fun JsonObject.obj(key: String): JsonObject = get(key) as JsonObject
+
+    private fun JsonObject.property(name: String): JsonObject = obj("properties").obj(name)
+
+    private fun JsonObject.strings(key: String): List<String> = (get(key) as JsonArray).map { (it as JsonPrimitive).content }
 
     private class StringMapCommand : JetWhaleMcpCommand() {
         override val name = "test.stringMap"
@@ -54,6 +70,29 @@ class McpParameterDslTest {
         override val description = "echoes a raw json array"
         val payload by jsonArray("A raw JSON array.")
         override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[payload].size.toString()
+    }
+
+    private class EnumCommand : JetWhaleMcpCommand() {
+        override val name = "test.enum"
+        override val description = "echoes an enum"
+        val matchType by enum("How the pattern is compared.", MockMatchType.entries)
+        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[matchType].name
+    }
+
+    private class SerializableCommand : JetWhaleMcpCommand() {
+        override val name = "test.serializable"
+        override val description = "echoes serializable mock rules"
+        val rules by serializable<List<MockRule>>("The mock rules to apply.")
+        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[rules].joinToString(",") { "${it.id}:${it.matcher.matchType}" }
+    }
+
+    // PluginFrame is a sealed interface whose subclasses (including those of the nested sealed
+    // Reply) kotlinx flattens into one set of leaves.
+    private class SealedCommand : JetWhaleMcpCommand() {
+        override val name = "test.sealed"
+        override val description = "echoes a plugin frame"
+        val frame by serializable<PluginFrame>("A plugin frame.")
+        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[frame].let { "${it::class.simpleName}:${it.pluginId}" }
     }
 
     @Test
@@ -120,23 +159,112 @@ class McpParameterDslTest {
     }
 
     @Test
-    fun `the descriptor emits object and array types with element schemas`() {
-        val mapDescriptor = StringMapCommand().toDescriptor().parameters.getValue("headers")
-        assertEquals("object", mapDescriptor.type)
-        assertEquals("string", mapDescriptor.valueType)
-        assertNull(mapDescriptor.itemsType)
+    fun `the descriptor emits object and array schemas with element schemas`() {
+        assertEquals(
+            """{"type":"object","additionalProperties":{"type":"string"}}""",
+            StringMapCommand().schemaOf("headers").toString(),
+        )
+        assertEquals(
+            """{"type":"array","items":{"type":"string"}}""",
+            StringListCommand().schemaOf("items").toString(),
+        )
+        assertEquals("""{"type":"object"}""", JsonObjectCommand().schemaOf("payload").toString())
+        assertEquals("""{"type":"array"}""", JsonArrayCommand().schemaOf("payload").toString())
+    }
 
-        val listDescriptor = StringListCommand().toDescriptor().parameters.getValue("items")
-        assertEquals("array", listDescriptor.type)
-        assertEquals("string", listDescriptor.itemsType)
-        assertNull(listDescriptor.valueType)
+    @Test
+    fun `an enum parameter advertises its entry names`() {
+        assertEquals(
+            """{"type":"string","enum":["CONTAINS","EXACT","REGEX"]}""",
+            EnumCommand().schemaOf("matchType").toString(),
+        )
+    }
 
-        val rawObject = JsonObjectCommand().toDescriptor().parameters.getValue("payload")
-        assertEquals("object", rawObject.type)
-        assertNull(rawObject.valueType)
+    @Test
+    fun `serializable decodes a nested value`() {
+        val rule = MockRule(
+            id = "rule-1",
+            matcher = MockMatcher(urlPattern = "/api", matchType = MockMatchType.EXACT),
+            response = MockResponseSpec(),
+        )
+        val result = execute(SerializableCommand(), "rules" to Json.encodeToJsonElement(listOf(rule)))
+        assertEquals("rule-1:EXACT", result)
+    }
 
-        val rawArray = JsonArrayCommand().toDescriptor().parameters.getValue("payload")
-        assertEquals("array", rawArray.type)
-        assertNull(rawArray.itemsType)
+    @Test
+    fun `serializable tolerates unknown keys so a round-tripped value still decodes`() {
+        val payload = buildJsonArray {
+            add(
+                buildJsonObject {
+                    put("id", "rule-1")
+                    put("annotatedByTheAgent", "ignore me")
+                    put("matcher", buildJsonObject { put("urlPattern", "/api") })
+                    put("response", buildJsonObject { })
+                },
+            )
+        }
+        assertEquals("rule-1:CONTAINS", execute(SerializableCommand(), "rules" to payload))
+    }
+
+    @Test
+    fun `the derived schema advertises nested objects and enum entries`() {
+        val schema = SerializableCommand().schemaOf("rules")
+        assertEquals("array", (schema.getValue("type") as JsonPrimitive).content)
+
+        val rule = schema.obj("items")
+        assertEquals("object", (rule.getValue("type") as JsonPrimitive).content)
+        assertEquals("string", (rule.property("id").getValue("type") as JsonPrimitive).content)
+
+        val matchType = rule.property("matcher").property("matchType")
+        assertEquals(listOf("CONTAINS", "EXACT", "REGEX"), matchType.strings("enum"))
+    }
+
+    @Test
+    fun `the derived schema requires only properties without defaults`() {
+        val rule = SerializableCommand().schemaOf("rules").obj("items")
+        assertEquals(listOf("id", "matcher", "response"), rule.strings("required"))
+        assertEquals(listOf("urlPattern"), rule.property("matcher").strings("required"))
+        // Every property of MockResponseSpec has a default, so nothing is required.
+        assertNull(rule.property("response")["required"])
+    }
+
+    @Test
+    fun `the derived schema maps a Map property to additionalProperties`() {
+        val headers = SerializableCommand().schemaOf("rules").obj("items").property("response").property("headers")
+        assertEquals("object", (headers.getValue("type") as JsonPrimitive).content)
+        assertEquals("string", (headers.obj("additionalProperties").getValue("type") as JsonPrimitive).content)
+    }
+
+    @Test
+    fun `McpDescription surfaces as a property description in the derived schema`() {
+        val rule = SerializableCommand().schemaOf("rules").obj("items")
+        assertEquals(
+            "Human-readable rule name shown in the UI.",
+            (rule.property("name").getValue("description") as JsonPrimitive).content,
+        )
+        // A class-level annotation describes the nested object itself.
+        assertEquals(
+            "Which requests the rule applies to.",
+            (rule.property("matcher").getValue("description") as JsonPrimitive).content,
+        )
+    }
+
+    // The oneOf shape itself is covered by McpJsonSchemaTest; this checks that a value written in
+    // that shape actually decodes back through the DSL.
+    @Test
+    fun `serializable decodes a sealed value through its class discriminator`() {
+        val frame = PluginFrame.Notification(pluginId = "plugin-1", messageType = "m", payload = "{}")
+        assertEquals(
+            "Notification:plugin-1",
+            execute(SealedCommand(), "frame" to Json.encodeToJsonElement(PluginFrame.serializer(), frame)),
+        )
+    }
+
+    @Test
+    fun `a payload that does not fit the serializable type throws a caller-facing exception`() {
+        val exception = assertFailsWith<JetWhaleMcpArgumentException> {
+            execute(SerializableCommand(), "rules" to buildJsonArray { add(buildJsonObject { put("id", "rule-1") }) })
+        }
+        assertTrue("invalid rules" in exception.message!!, exception.message!!)
     }
 }
