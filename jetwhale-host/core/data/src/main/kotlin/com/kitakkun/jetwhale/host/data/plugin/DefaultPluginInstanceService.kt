@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
+import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -8,6 +9,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
@@ -18,6 +20,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -39,6 +42,8 @@ private data class PluginInstanceKey(val pluginId: String, val sessionId: String
  * frames are sent to this instance's session; inbound frames are routed to it by the server.
  */
 private class LoadedInstance(
+    /** The factory that produced [plugin]; identifies the classloader generation this instance belongs to. */
+    val factory: JetWhaleHostPluginFactory,
     val plugin: JetWhaleHostPlugin,
     // null for a pure (non-messaging) plugin: no peer is created for it.
     val peer: JetWhalePluginPeer?,
@@ -76,13 +81,32 @@ class DefaultPluginInstanceService(
     override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
         val loaded = pluginFactoryRepository.loadedPlugins[pluginId] ?: return emptySet()
 
+        // Reinstalling or reloading a jar yields a new factory behind a new classloader; instances the
+        // previous factory produced hold classes from a classloader that is already closed, so drop
+        // them and let the loop below rebuild them from the current code.
+        loadedPlugins.entries
+            .filter { (key, instance) -> key.pluginId == pluginId && instance.factory !== loaded.factory }
+            .map { it.key }
+            .forEach { disposeInstance(it) }
+
         val newlyInitializedSessions = mutableSetOf<String>()
         for (sessionId in sessionIds) {
             val key = PluginInstanceKey(pluginId, sessionId)
-            loadedPlugins.computeIfAbsent(key) {
-                newlyInitializedSessions += sessionId
-                createInstance(pluginId, sessionId, loaded.factory.createPlugin(), loaded.manifest.requiresAgent)
+            var created = false
+            try {
+                loadedPlugins.computeIfAbsent(key) {
+                    created = true
+                    createInstance(pluginId, sessionId, loaded)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                // A factory (or plugin constructor) that throws must not abort the caller's
+                // reconciliation loop — every other plugin and session still needs its instance.
+                logger.log(Level.WARNING, "Creating an instance of plugin '$pluginId' for session '$sessionId' failed", e)
+                continue
             }
+            if (created) newlyInitializedSessions += sessionId
         }
 
         newlyInitializedSessions.forEach { sessionId ->
@@ -91,8 +115,9 @@ class DefaultPluginInstanceService(
         return newlyInitializedSessions
     }
 
-    private fun createInstance(pluginId: String, sessionId: String, plugin: JetWhaleHostPlugin, requiresAgent: Boolean): LoadedInstance {
-        if (!requiresAgent && plugin is JetWhaleMessagingHostPlugin) {
+    private fun createInstance(pluginId: String, sessionId: String, loaded: LoadedHostPlugin): LoadedInstance {
+        val plugin = loaded.factory.createPlugin()
+        if (!loaded.manifest.requiresAgent && plugin is JetWhaleMessagingHostPlugin) {
             // A messaging plugin without an agent counterpart waits out its prepare timeout on every
             // session and gets "not active" failures for every request — surface the misconfiguration
             // instead of degrading silently.
@@ -157,7 +182,7 @@ class DefaultPluginInstanceService(
         } else {
             null
         }
-        return LoadedInstance(plugin, peer, prepareJob, instanceScope)
+        return LoadedInstance(loaded.factory, plugin, peer, prepareJob, instanceScope)
     }
 
     override suspend fun routeFrame(sessionId: String, frame: PluginFrame) {
