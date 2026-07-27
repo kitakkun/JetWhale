@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
+import com.kitakkun.jetwhale.host.sdk.DefaultArgumentJson
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
@@ -10,9 +11,11 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNamingStrategy
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
@@ -25,7 +28,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-@OptIn(ExperimentalJetWhaleApi::class)
+@OptIn(ExperimentalJetWhaleApi::class, ExperimentalSerializationApi::class)
 class McpParameterDslTest {
     private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
 
@@ -84,6 +87,17 @@ class McpParameterDslTest {
         override val description = "echoes serializable mock rules"
         val rules by serializable<List<MockRule>>("The mock rules to apply.")
         override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[rules].joinToString(",") { "${it.id}:${it.matcher.matchType}" }
+    }
+
+    // Both the advertised schema and the decoder come from this format, so they cannot disagree.
+    private class SnakeCaseCommand :
+        JetWhaleMcpCommand(
+            Json(from = DefaultArgumentJson) { namingStrategy = JsonNamingStrategy.SnakeCase },
+        ) {
+        override val name = "test.snakeCase"
+        override val description = "echoes mock rules named in snake_case"
+        val rules by serializable<List<MockRule>>("The mock rules to apply.")
+        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[rules].single().matcher.urlPattern
     }
 
     // PluginFrame is a sealed interface whose subclasses (including those of the nested sealed
@@ -258,6 +272,44 @@ class McpParameterDslTest {
             "Notification:plugin-1",
             execute(SealedCommand(), "frame" to Json.encodeToJsonElement(PluginFrame.serializer(), frame)),
         )
+    }
+
+    @Test
+    fun `the default format accepts an enum entry written in the wrong case`() {
+        val payload = buildJsonArray {
+            add(
+                buildJsonObject {
+                    put("id", "rule-1")
+                    put(
+                        "matcher",
+                        buildJsonObject {
+                            put("urlPattern", "/api")
+                            put("matchType", "exact")
+                        },
+                    )
+                    put("response", buildJsonObject { })
+                },
+            )
+        }
+        assertEquals("rule-1:EXACT", execute(SerializableCommand(), "rules" to payload))
+    }
+
+    @Test
+    fun `a custom format drives both the advertised names and the decoding`() {
+        val command = SnakeCaseCommand()
+        val matcher = command.schemaOf("rules").obj("items").property("matcher")
+        assertEquals(listOf("method", "url_pattern", "match_type"), matcher.obj("properties").keys.toList())
+
+        val payload = buildJsonArray {
+            add(
+                buildJsonObject {
+                    put("id", "rule-1")
+                    put("matcher", buildJsonObject { put("url_pattern", "/api") })
+                    put("response", buildJsonObject { })
+                },
+            )
+        }
+        assertEquals("/api", execute(command, "rules" to payload))
     }
 
     @Test

@@ -2,6 +2,10 @@ public final class com/kitakkun/jetwhale/host/sdk/DarkThemeKt {
 	public static final fun getLocalJetWhaleDarkTheme ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 }
 
+public final class com/kitakkun/jetwhale/host/sdk/DefaultArgumentJsonKt {
+	public static final fun getDefaultArgumentJson ()Lkotlinx/serialization/json/Json;
+}
+
 public abstract interface annotation class com/kitakkun/jetwhale/host/sdk/ExperimentalJetWhaleApi : java/lang/annotation/Annotation {
 }
 
@@ -187,6 +191,8 @@ public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCapabl
 public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand {
 	public static final field $stable I
 	public fun <init> ()V
+	public fun <init> (Lkotlinx/serialization/json/Json;)V
+	public synthetic fun <init> (Lkotlinx/serialization/json/Json;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	protected final fun boolean (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	public static synthetic fun boolean$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	protected final fun booleanOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
@@ -197,6 +203,7 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand {
 	public static synthetic fun enumOrNull$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	public abstract fun execute (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpArguments;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun getDescription ()Ljava/lang/String;
+	protected final fun getJson ()Lkotlinx/serialization/json/Json;
 	public abstract fun getName ()Ljava/lang/String;
 	protected final fun int (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	public static synthetic fun int$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;

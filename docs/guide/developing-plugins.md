@@ -330,6 +330,27 @@ alone. Open polymorphic types have no statically known subclasses and fall back 
 ahead of time, `jsonObject` and `jsonArray` hand back the raw `JsonElement` — but they can only
 advertise `object` / `array`, so reach for `serializable` whenever the shape is known.
 
+### Choosing the format
+
+Arguments are decoded with `DefaultArgumentJson`, tuned for input written by an AI agent: unknown
+keys are ignored, a scalar of the wrong JSON type is accepted where the value is unambiguous, enum
+entries match case-insensitively, and trailing commas and comments are tolerated. (`coerceInputValues`
+is deliberately off — it would swap an unrecognized enum entry for the property's default, turning a
+caller mistake into a silently different result.)
+
+Pass your own instance to the command's constructor when you need a `SerializersModule` (for
+contextual or open polymorphic types), a different class discriminator, or a naming strategy:
+
+```kotlin
+class InspectWidgetCommand : JetWhaleMcpCommand(
+    Json(from = DefaultArgumentJson) { serializersModule = widgetModule },
+) { /* ... */ }
+```
+
+The schema is derived from the same instance, so the names and discriminator advertised to the
+agent are the ones the command actually decodes. The format is also available to `execute` as the
+protected `json` property, for encoding the result.
+
 The Network Inspector's own tools (`com.kitakkun.jetwhale.network.*`) are a complete in-repo
 example — see `jetwhale-plugins/network/host`.
 

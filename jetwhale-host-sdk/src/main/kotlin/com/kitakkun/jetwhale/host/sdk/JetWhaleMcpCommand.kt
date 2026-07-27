@@ -46,9 +46,19 @@ import kotlin.reflect.KProperty
  * Expose commands through [JetWhaleMcpCapablePlugin]. A [JetWhaleMcpArgumentException] (thrown
  * by the argument accessors, or by [execute] directly for domain-level caller mistakes) is
  * rendered as an `{"error": ...}` payload instead of failing the MCP server.
+ *
+ * @param json Format used to decode [serializable] arguments and to derive their schema; also
+ *   available to [execute] for encoding results. Defaults to [DefaultArgumentJson]. Pass a custom
+ *   instance to register a [kotlinx.serialization.modules.SerializersModule] (needed for contextual
+ *   or open polymorphic types) or to change the class discriminator or naming strategy — the
+ *   derived schema follows the instance, so the two cannot drift apart.
  */
 @ExperimentalJetWhaleApi
-public abstract class JetWhaleMcpCommand {
+public abstract class JetWhaleMcpCommand(
+    // A constructor parameter rather than an open val: parameters are declared as property
+    // initializers, which run before a subclass' own property overrides would be assigned.
+    protected val json: Json = DefaultArgumentJson,
+) {
     /** Globally unique tool name; by convention prefixed with the pluginId. */
     public abstract val name: String
 
@@ -127,10 +137,10 @@ public abstract class JetWhaleMcpCommand {
     protected inline fun <reified T : Any> serializableOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T?> = serializableOrNull(serializer<T>(), description, name)
 
     /** Explicit-serializer form of [serializable], for types whose serializer cannot be resolved from the type argument. */
-    protected fun <T : Any> serializable(serializer: KSerializer<T>, description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T> = requiredStructured(name, serializer.descriptor.toJsonSchema(), description) { paramName, element -> decode(paramName, serializer, element) }
+    protected fun <T : Any> serializable(serializer: KSerializer<T>, description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T> = requiredStructured(name, serializer.descriptor.toJsonSchema(json), description) { paramName, element -> decode(paramName, serializer, element) }
 
     /** Explicit-serializer form of [serializableOrNull]. */
-    protected fun <T : Any> serializableOrNull(serializer: KSerializer<T>, description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T?> = optionalStructured(name, serializer.descriptor.toJsonSchema(), description) { paramName, element -> decode(paramName, serializer, element) }
+    protected fun <T : Any> serializableOrNull(serializer: KSerializer<T>, description: String, name: String? = null): JetWhaleMcpParameterDeclaration<T?> = optionalStructured(name, serializer.descriptor.toJsonSchema(json), description) { paramName, element -> decode(paramName, serializer, element) }
 
     /** A JSON array of strings, e.g. `["a", "b"]`. */
     protected fun stringList(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<List<String>> = requiredStructured(name, STRING_LIST_SCHEMA, description, parse = ::parseStringList)
@@ -240,7 +250,7 @@ public abstract class JetWhaleMcpCommand {
     // SerializationException is an IllegalArgumentException, so this covers both a malformed
     // payload and a value that does not fit the target type.
     private fun <T : Any> decode(name: String, serializer: KSerializer<T>, element: JsonElement): T = try {
-        argumentJson.decodeFromJsonElement(serializer, element)
+        json.decodeFromJsonElement(serializer, element)
     } catch (e: IllegalArgumentException) {
         throw JetWhaleMcpArgumentException("invalid $name: ${e.message}")
     }
@@ -248,10 +258,6 @@ public abstract class JetWhaleMcpCommand {
     private fun invalid(name: String, value: String, expected: String): Nothing = throw JetWhaleMcpArgumentException("invalid $name: $value (expected $expected)")
 
     private companion object {
-        // Tolerate extra fields so a value the agent read back from another tool round-trips even
-        // if it carries annotations of its own.
-        val argumentJson = Json { ignoreUnknownKeys = true }
-
         val STRING_SCHEMA = buildJsonObject { put("type", "string") }
         val INTEGER_SCHEMA = buildJsonObject { put("type", "integer") }
         val BOOLEAN_SCHEMA = buildJsonObject { put("type", "boolean") }
