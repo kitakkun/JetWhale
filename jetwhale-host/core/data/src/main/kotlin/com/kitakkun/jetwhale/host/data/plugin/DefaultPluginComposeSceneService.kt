@@ -1,10 +1,12 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.CanvasLayersComposeScene
@@ -85,6 +87,7 @@ class DefaultPluginComposeSceneService(
                 windowInfoUpdater = windowUpdatableContext,
                 semanticsOwners = windowUpdatableContext.semanticsOwners,
                 isScreenshotCapture = isScreenshotCapture,
+                pointerIcon = windowUpdatableContext.pointerIcon,
             )
             pluginScenes[sceneKey] = CachedScene(pluginInstance, scene)
             scene
@@ -135,6 +138,14 @@ private class DynamicWindowInfoPlatformContext(
 
         override fun onSemanticsChange(semanticsOwner: SemanticsOwner) = Unit
         override fun onLayoutChange(semanticsOwner: SemanticsOwner, semanticsNodeId: Int) = Unit
+    }
+
+    // A nested ComposeScene owns no window, and PlatformContext.setPointerIcon is a no-op by
+    // default, so Modifier.pointerHoverIcon inside a plugin would otherwise never reach a cursor.
+    // Publish the request instead; the renderer applies it to the window it does own.
+    val pointerIcon: MutableState<PointerIcon> = mutableStateOf(PointerIcon.Default)
+    override fun setPointerIcon(pointerIcon: PointerIcon) {
+        this.pointerIcon.value = pointerIcon
     }
 
     override val currentIntSize: IntSize get() = windowInfo.containerSize

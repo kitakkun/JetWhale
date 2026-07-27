@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.semantics.SemanticsOwner
@@ -34,6 +35,7 @@ fun createTestScene(content: @Composable () -> Unit = {}): PluginComposeScene {
         windowInfoUpdater = platformContext,
         semanticsOwners = platformContext.semanticsOwners,
         isScreenshotCapture = isScreenshotCapture,
+        pointerIcon = platformContext.pointerIcon,
     )
 }
 
@@ -50,6 +52,11 @@ private class TestPlatformContext(
     WindowInfoUpdater {
 
     val semanticsOwners = mutableSetOf<SemanticsOwner>()
+
+    val pointerIcon = mutableStateOf(PointerIcon.Default)
+    override fun setPointerIcon(pointerIcon: PointerIcon) {
+        this.pointerIcon.value = pointerIcon
+    }
 
     override val semanticsOwnerListener = object : PlatformContext.SemanticsOwnerListener {
         override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
