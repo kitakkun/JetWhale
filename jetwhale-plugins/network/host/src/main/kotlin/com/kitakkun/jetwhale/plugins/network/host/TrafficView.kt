@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -30,11 +32,13 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,20 +47,35 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.splitpane.ExperimentalSplitPaneApi
+import org.jetbrains.compose.splitpane.HorizontalSplitPane
+import org.jetbrains.compose.splitpane.SplitPaneState
+import java.awt.Cursor
 import java.net.URLDecoder
 
+/** Storage key for the Traffic tab's list/detail split position. */
+private const val SPLIT_POSITION_KEY = "traffic.splitPosition"
+private const val DEFAULT_SPLIT_POSITION = 0.42f
+private val ListMinWidth = 240.dp
+private val DetailMinWidth = 280.dp
+
+@OptIn(ExperimentalSplitPaneApi::class)
 @Composable
 internal fun TrafficTab(
     transactions: List<HttpTransaction>,
+    selectedTxId: String?,
+    onSelectTx: (String) -> Unit,
     onClear: () -> Unit,
     onCreateMock: (HttpTransaction) -> Unit,
 ) {
-    var selectedTxId by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
     val visible = remember(transactions, query) {
         val matched = if (query.isBlank()) {
@@ -77,8 +96,23 @@ internal fun TrafficTab(
         if (visible.isEmpty()) return
         val current = visible.indexOfFirst { it.txId == selectedTxId }
         val next = (if (current < 0) 0 else current + delta).coerceIn(0, visible.lastIndex)
-        selectedTxId = visible[next].txId
+        onSelectTx(visible[next].txId)
         scope.launch { listState.animateScrollToItem(next) }
+    }
+
+    var storedSplitPosition by rememberPersistent(SPLIT_POSITION_KEY, DEFAULT_SPLIT_POSITION)
+    val splitPaneState = remember { SplitPaneState(DEFAULT_SPLIT_POSITION, moveEnabled = true) }
+    // rememberPersistent hydrates from disk asynchronously, i.e. after SplitPaneState has already
+    // been constructed, so the two are mirrored in both directions rather than seeded once. Both are
+    // backed by mutableStateOf with structural equality, so echoing an unchanged value back does not
+    // re-emit and the mirroring settles immediately.
+    LaunchedEffect(splitPaneState) {
+        launch {
+            snapshotFlow { storedSplitPosition }
+                .collect { splitPaneState.positionPercentage = it }
+        }
+        snapshotFlow { splitPaneState.positionPercentage }
+            .collect { storedSplitPosition = it }
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -105,64 +139,83 @@ internal fun TrafficTab(
             modifier = Modifier.padding(horizontal = 8.dp),
         )
         HorizontalDivider()
-        Row(Modifier.fillMaxSize()) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .focusable()
-                    .onPreviewKeyEvent { event ->
-                        if (event.type != KeyEventType.KeyDown) {
-                            false
-                        } else {
-                            when (event.key) {
-                                Key.DirectionDown -> {
-                                    moveSelection(1)
-                                    true
-                                }
+        HorizontalSplitPane(
+            modifier = Modifier.fillMaxSize(),
+            splitPaneState = splitPaneState,
+        ) {
+            first(minSize = ListMinWidth) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .focusable()
+                        .onPreviewKeyEvent { event ->
+                            if (event.type != KeyEventType.KeyDown) {
+                                false
+                            } else {
+                                when (event.key) {
+                                    Key.DirectionDown -> {
+                                        moveSelection(1)
+                                        true
+                                    }
 
-                                Key.DirectionUp -> {
-                                    moveSelection(-1)
-                                    true
-                                }
+                                    Key.DirectionUp -> {
+                                        moveSelection(-1)
+                                        true
+                                    }
 
-                                else -> false
+                                    else -> false
+                                }
                             }
+                        },
+                ) {
+                    items(visible, key = { it.txId }) { tx ->
+                        ContextMenuArea(items = { transactionContextMenuItems(tx) }) {
+                            TransactionRow(
+                                tx = tx,
+                                selected = tx.txId == selectedTxId,
+                                onClick = { onSelectTx(tx.txId) },
+                            )
                         }
-                    },
-            ) {
-                items(visible, key = { it.txId }) { tx ->
-                    ContextMenuArea(items = { transactionContextMenuItems(tx) }) {
-                        TransactionRow(
-                            tx = tx,
-                            selected = tx.txId == selectedTxId,
-                            onClick = { selectedTxId = tx.txId },
-                        )
+                        HorizontalDivider()
                     }
-                    HorizontalDivider()
                 }
             }
-            VerticalDivider()
-            Column(
-                modifier = Modifier
-                    .weight(1.4f)
-                    .fillMaxHeight()
-                    .verticalScroll(rememberScrollState())
-                    .padding(14.dp),
-            ) {
-                val tx = transactions.firstOrNull { it.txId == selectedTxId }
-                if (tx == null) {
-                    Text(
-                        text = "Select a request to see details",
-                        color = MaterialTheme.colorScheme.outline,
-                    )
-                } else {
-                    // Detail pane values (URL, headers, bodies) are read-only reference data
-                    // developers frequently copy, so make the whole pane text-selectable.
-                    SelectionContainer {
-                        TransactionDetail(tx = tx, onCreateMock = { onCreateMock(tx) })
+            second(minSize = DetailMinWidth) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(14.dp),
+                ) {
+                    val tx = transactions.firstOrNull { it.txId == selectedTxId }
+                    if (tx == null) {
+                        Text(
+                            text = "Select a request to see details",
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    } else {
+                        // Detail pane values (URL, headers, bodies) are read-only reference data
+                        // developers frequently copy, so make the whole pane text-selectable.
+                        SelectionContainer {
+                            TransactionDetail(tx = tx, onCreateMock = { onCreateMock(tx) })
+                        }
                     }
+                }
+            }
+            // Both parts must be declared: the DSL falls back to the default splitter — which draws
+            // nothing at all — unless visiblePart *and* handle are set. The handle is a wider,
+            // invisible hit area laid over the 1px divider so it stays comfortable to grab.
+            splitter {
+                visiblePart { VerticalDivider(Modifier.fillMaxHeight()) }
+                handle {
+                    Box(
+                        Modifier
+                            .markAsHandle()
+                            .pointerHoverIcon(PointerIcon(Cursor(Cursor.E_RESIZE_CURSOR)))
+                            .width(8.dp)
+                            .fillMaxHeight(),
+                    )
                 }
             }
         }
