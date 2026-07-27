@@ -9,3 +9,10 @@
 open annotation class com.kitakkun.jetwhale.annotations/InternalJetWhaleApi : kotlin/Annotation { // com.kitakkun.jetwhale.annotations/InternalJetWhaleApi|null[0]
     constructor <init>() // com.kitakkun.jetwhale.annotations/InternalJetWhaleApi.<init>|<init>(){}[0]
 }
+
+open annotation class com.kitakkun.jetwhale.annotations/McpDescription : kotlin/Annotation { // com.kitakkun.jetwhale.annotations/McpDescription|null[0]
+    constructor <init>(kotlin/String) // com.kitakkun.jetwhale.annotations/McpDescription.<init>|<init>(kotlin.String){}[0]
+
+    final val value // com.kitakkun.jetwhale.annotations/McpDescription.value|{}value[0]
+        final fun <get-value>(): kotlin/String // com.kitakkun.jetwhale.annotations/McpDescription.value.<get-value>|<get-value>(){}[0]
+}

@@ -179,11 +179,9 @@ class DefaultMcpServerService(
                 put("type", "string")
                 put("description", "Session ID of the target device (from jetwhale.listSessions)")
             }
+            // The parameter's schema describes its type; only the description has to be merged in.
             val pluginProperties = descriptor.parameters.mapValues { (_, param) ->
-                buildJsonObject {
-                    put("type", param.type)
-                    put("description", param.description)
-                }
+                JsonObject(param.schema + ("description" to JsonPrimitive(param.description)))
             }
             val inputSchema = ToolSchema(
                 properties = JsonObject(mapOf("sessionId" to sessionIdProperty) + pluginProperties),
@@ -194,9 +192,9 @@ class DefaultMcpServerService(
                 description = descriptor.description,
                 inputSchema = inputSchema,
             ) { request ->
-                val arguments = request.arguments?.mapValues { (_, v) ->
-                    (v as? JsonPrimitive)?.content ?: v.toString()
-                } ?: emptyMap()
+                // Forward the arguments as raw JSON so structured (object/array) parameters keep
+                // their shape; the command's parameter DSL decodes each value by its declared type.
+                val arguments = request.arguments ?: emptyMap()
                 val result = toolRegistry.dispatch(toolName, arguments)
                 CallToolResult(content = listOf(TextContent(result ?: "null")))
             }

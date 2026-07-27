@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.host.sdk
 
+import kotlinx.serialization.json.JsonObject
+
 /**
  * Optional interface that a [JetWhaleHostPlugin] can implement to advertise plugin-specific MCP
  * tools to the MCP server, as a list of [JetWhaleMcpCommand]s.
@@ -46,13 +48,16 @@ public data class JetWhaleMcpToolDescriptor(
 /**
  * Describes a single parameter of an MCP tool.
  *
- * @param type        JSON Schema primitive type: "string", "number", "boolean", "integer".
+ * @param schema      JSON Schema fragment for the values the parameter accepts, e.g.
+ *                    `{"type":"string"}` or a full nested object schema. It carries no
+ *                    "description" of its own; the MCP server merges [description] in when it
+ *                    assembles the tool's input schema.
  * @param description Human-readable description of the parameter.
  * @param required    Whether the parameter is required. Defaults to true.
  */
 @ExperimentalJetWhaleApi
 public data class JetWhaleMcpParameterDescriptor(
-    val type: String,
+    val schema: JsonObject,
     val description: String,
     val required: Boolean = true,
 )

@@ -32,6 +32,12 @@ internal class AddMockRuleCommand(
     private val ruleName by stringOrNull("Human-readable rule name shown in the UI.", name = "name")
     private val statusCode by intOrNull("Status code of the mocked response. Defaults to 200.")
     private val body by stringOrNull("Body of the mocked response. Defaults to empty.")
+    private val headers by stringMapOrNull(
+        "Response headers as a JSON object of string values, e.g. {\"Content-Type\":\"application/json\"}. Defaults to none.",
+    )
+    private val contentType by stringOrNull(
+        "Convenience for the Content-Type response header. Ignored if headers already sets Content-Type.",
+    )
     private val delayMs by longOrNull("Artificial delay before the mocked response is delivered, in milliseconds. Defaults to 0.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
@@ -46,6 +52,7 @@ internal class AddMockRuleCommand(
             ),
             response = MockResponseSpec(
                 statusCode = arguments[statusCode] ?: 200,
+                headers = resolveHeaders(arguments[headers], arguments[contentType]),
                 body = arguments[body] ?: "",
                 delayMs = arguments[delayMs] ?: 0L,
             ),
@@ -54,5 +61,12 @@ internal class AddMockRuleCommand(
             null -> Json.encodeToJsonElement(rule).toString()
             else -> syncErrorJson(failure)
         }
+    }
+
+    // The explicit headers map wins; contentType only fills in a Content-Type when absent.
+    private fun resolveHeaders(headers: Map<String, String>?, contentType: String?): Map<String, String> {
+        val base = headers ?: emptyMap()
+        if (contentType == null || base.keys.any { it.equals("Content-Type", ignoreCase = true) }) return base
+        return base + ("Content-Type" to contentType)
     }
 }
