@@ -1,20 +1,17 @@
 package com.kitakkun.jetwhale.plugins.network.agent.ktor
 
-import com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleOfflineCapableMessenger
-import com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy
-import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
-import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
-import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
-import com.kitakkun.jetwhale.protocol.messaging.DefaultJetWhaleMessagingFormat
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.api.ClientPlugin
+import io.ktor.client.plugins.api.Send
+import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.client.request.get
@@ -33,34 +30,13 @@ import io.ktor.utils.io.writeStringUtf8
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import kotlinx.serialization.StringFormat
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 class JetWhaleNetworkKtorPluginTest {
-
-    @OptIn(InternalJetWhaleApi::class)
-    private fun agentWithEvents(): Pair<JetWhaleNetworkAgentPlugin, MutableList<Any>> {
-        val agent = JetWhaleNetworkAgentPlugin()
-        val recorder = RecordingMessenger(java.util.Collections.synchronizedList(mutableListOf()))
-        agent.bindMessenger(recorder)
-        return agent to recorder.events
-    }
-
-    // The agent's mock rules are set by the host over messaging in production; a unit test can't
-    // drive that internal path, so seed the state directly for the mock-serving case.
-    @Suppress("UNCHECKED_CAST")
-    private fun JetWhaleNetworkAgentPlugin.seedMockRules(rules: List<MockRule>) {
-        val field = JetWhaleNetworkAgentPlugin::class.java.getDeclaredField("mockRules").apply { isAccessible = true }
-        (field.get(this) as MutableStateFlow<List<MockRule>>).value = rules
-    }
 
     @Test
     fun `serves a mock response whose body reads back without a coroutine-job cast crash`() = runBlocking {
@@ -237,21 +213,96 @@ class JetWhaleNetworkKtorPluginTest {
             server.stop()
         }
     }
-}
 
-/** Records every event the plugin sends, decoded back to its typed form. */
-private class RecordingMessenger(val events: MutableList<Any>) : JetWhaleOfflineCapableMessenger {
-    override val payloadFormat: StringFormat = DefaultJetWhaleMessagingFormat
-
-    override fun sendRaw(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean {
-        events += when (messageType) {
-            "network/request_sent" -> payloadFormat.decodeFromString(RequestSent.serializer(), payload)
-            "network/response_received" -> payloadFormat.decodeFromString(ResponseReceived.serializer(), payload)
-            "network/request_failed" -> payloadFormat.decodeFromString(RequestFailed.serializer(), payload)
-            else -> error("Unexpected message type: $messageType")
+    @Test
+    fun `a plugin installed before the monitor wraps it`() = runBlocking {
+        val (agent, events) = agentWithEvents()
+        val trace = mutableListOf<String>()
+        val client = HttpClient(MockEngine { respond(content = "hello", status = HttpStatusCode.OK) }) {
+            install(tracingPlugin(trace) { events.size })
+            install(agent.ktorClientPlugin())
         }
-        return true
+
+        client.get("http://example/plain").bodyAsText()
+
+        // HttpSend wraps interceptors in reverse registration order, so the plugin installed first
+        // is the outermost one: nothing is recorded when it starts, and by the time it regains
+        // control the monitor has already recorded both the request and the response.
+        assertEquals(listOf("enter@0", "exit@2"), trace)
     }
 
-    override suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String = error("The network agent plugin never requests the host in these tests.")
+    @Test
+    fun `a plugin installed after the monitor runs inside it`() = runBlocking {
+        val (agent, events) = agentWithEvents()
+        val trace = mutableListOf<String>()
+        val client = HttpClient(MockEngine { respond(content = "hello", status = HttpStatusCode.OK) }) {
+            install(agent.ktorClientPlugin())
+            install(tracingPlugin(trace) { events.size })
+        }
+
+        client.get("http://example/plain").bodyAsText()
+
+        // Installed second means innermost: the monitor has already recorded the request when the
+        // tracer starts, and records the response only after the tracer returns.
+        assertEquals(listOf("enter@1", "exit@1"), trace)
+    }
+
+    @Test
+    fun `records each redirect hop as its own transaction`() = runBlocking {
+        val (agent, events) = agentWithEvents()
+        val client = HttpClient(
+            MockEngine { request ->
+                if (request.url.encodedPath == "/from") {
+                    respond(
+                        content = "",
+                        status = HttpStatusCode.Found,
+                        headers = headersOf(HttpHeaders.Location, "http://example/to"),
+                    )
+                } else {
+                    respond(content = "arrived", status = HttpStatusCode.OK)
+                }
+            },
+        ) {
+            install(agent.ktorClientPlugin())
+        }
+
+        assertEquals("arrived", client.get("http://example/from").bodyAsText())
+
+        // HttpRedirect is installed before any user plugin, so the monitor always sits inside it
+        // and sees every hop separately — install order in the config block can't change this.
+        assertEquals(
+            listOf("http://example/from", "http://example/to"),
+            events.filterIsInstance<RequestSent>().map { it.request.url },
+        )
+        assertEquals(
+            listOf(302, 200),
+            events.filterIsInstance<ResponseReceived>().map { it.response.statusCode },
+        )
+    }
+
+    @Test
+    fun `installing the plugin twice records the transaction once`() = runBlocking {
+        val (agent, events) = agentWithEvents()
+        val client = HttpClient(MockEngine { respond(content = "hello", status = HttpStatusCode.OK) }) {
+            // createClientPlugin keys on the plugin name and AttributeKey is a data class, so both
+            // calls produce the same key and HttpClientConfig keeps only the first installation.
+            install(agent.ktorClientPlugin())
+            install(agent.ktorClientPlugin())
+        }
+
+        client.get("http://example/plain").bodyAsText()
+
+        assertEquals(1, events.filterIsInstance<RequestSent>().size)
+        assertEquals(1, events.filterIsInstance<ResponseReceived>().size)
+    }
+}
+
+/** A Send-hook plugin that appends the number of events recorded so far when it is entered and left. */
+private fun tracingPlugin(trace: MutableList<String>, recordedCount: () -> Int): ClientPlugin<Unit> = createClientPlugin("Tracer") {
+    on(Send) { request ->
+        trace += "enter@${recordedCount()}"
+        val call = proceed(request)
+        trace += "exit@${recordedCount()}"
+        call
+    }
 }
