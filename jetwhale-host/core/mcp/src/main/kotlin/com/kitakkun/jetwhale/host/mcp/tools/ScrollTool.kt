@@ -55,8 +55,12 @@ class ScrollMcpTool(
                 ?: return@addTool errorResult("Missing required argument: x")
             val y = request.arguments?.get("y")?.jsonFloat
                 ?: return@addTool errorResult("Missing required argument: y")
-            val deltaX = request.arguments?.get("deltaX")?.jsonFloat ?: 0f
-            val deltaY = request.arguments?.get("deltaY")?.jsonFloat ?: 0f
+            val deltaX = request.arguments?.get("deltaX")?.let {
+                it.jsonFloat ?: return@addTool errorResult("deltaX must be a number")
+            } ?: 0f
+            val deltaY = request.arguments?.get("deltaY")?.let {
+                it.jsonFloat ?: return@addTool errorResult("deltaY must be a number")
+            } ?: 0f
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
             withContext(Dispatchers.Main) { dispatchScroll(scene, x, y, deltaX, deltaY) }

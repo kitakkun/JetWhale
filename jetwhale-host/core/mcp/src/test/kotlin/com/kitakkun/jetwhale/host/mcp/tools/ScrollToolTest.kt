@@ -166,6 +166,55 @@ class ScrollToolTest {
         assertTrue(receivedDeltas[0].y > 0, "Provided deltaY should be dispatched, but was ${receivedDeltas[0].y}")
     }
 
+    @Test
+    fun `scroll returns an error when a delta is present but not a number`() = runBlocking {
+        val receivedDeltas = mutableListOf<Offset>()
+        val scene = createTestScene {
+            Box(
+                modifier = Modifier
+                    .size(200.dp)
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                if (event.type == PointerEventType.Scroll) {
+                                    event.changes.firstOrNull()?.scrollDelta?.let { receivedDeltas += it }
+                                }
+                            }
+                        }
+                    },
+            )
+        }
+        renderTestScene(scene)
+
+        val server = Server(
+            serverInfo = Implementation(name = "test", version = "1.0.0"),
+            options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
+        )
+        ScrollMcpTool(FakePluginComposeSceneService(scene)).register(server)
+        val handler = server.tools.getValue("jetwhale.scroll").handler
+
+        // deltaX is present but non-numeric; it must be rejected instead of silently treated as 0.
+        val request = CallToolRequest(
+            CallToolRequestParams(
+                name = "jetwhale.scroll",
+                arguments = buildJsonObject {
+                    put("pluginId", "plugin")
+                    put("sessionId", "session")
+                    put("x", 100)
+                    put("y", 100)
+                    put("deltaX", "abc")
+                    put("deltaY", 50)
+                },
+            ),
+        )
+
+        val result = handler(noOpClientConnection(), request)
+
+        assertEquals(true, result.isError, "Expected an error result for a non-numeric deltaX")
+        assertTrue(receivedDeltas.isEmpty(), "No scroll event should be dispatched, but got $receivedDeltas")
+    }
+
     private class FakePluginComposeSceneService(
         private val scene: PluginComposeScene,
     ) : PluginComposeSceneService {
