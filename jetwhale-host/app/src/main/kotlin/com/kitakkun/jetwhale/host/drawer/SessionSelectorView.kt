@@ -39,10 +39,9 @@ import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Two-level session selector. Only active sessions are shown; disconnected sessions are hidden
- * entirely while remaining in the repository. Sessions are grouped by device, and within the
- * selected device the concrete app (session) can be picked. Each entry keeps the transport-security
- * lock indicator so the connection type stays visible per session.
+ * Two-level session selector over the connected sessions. Sessions are grouped by device, and within
+ * the selected device the concrete app (session) can be picked. Each entry keeps the
+ * transport-security lock indicator so the connection type stays visible per session.
  */
 @Composable
 fun SessionSelectorView(
@@ -50,9 +49,8 @@ fun SessionSelectorView(
     sessions: ImmutableList<DebugSession>,
     onSelectSession: (DebugSession) -> Unit,
 ) {
-    val activeSessions = remember(sessions) { sessions.filter { it.isActive } }
-    val devices = remember(activeSessions) {
-        activeSessions.groupBy { it.groupingDeviceId }.entries.toList()
+    val devices = remember(sessions) {
+        sessions.groupBy { it.groupingDeviceId }.entries.toList()
     }
     val selectedDeviceId = selectedSession?.groupingDeviceId
     val appsForSelectedDevice = remember(devices, selectedDeviceId) {

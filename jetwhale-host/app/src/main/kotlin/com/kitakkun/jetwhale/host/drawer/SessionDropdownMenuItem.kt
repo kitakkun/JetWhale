@@ -57,13 +57,11 @@ fun SessionSecurityIcon(
 fun SessionDropdownMenuItem(
     displayName: String,
     selected: Boolean,
-    isActive: Boolean,
     transportSecurity: SessionTransportSecurity,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     DropdownMenuItem(
-        enabled = isActive,
         leadingIcon = {
             if (selected) {
                 Icon(
@@ -78,7 +76,8 @@ fun SessionDropdownMenuItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SessionSecurityIcon(transportSecurity)
-                Badge(containerColor = if (isActive) Color.Green else Color.LightGray)
+                // Every listed session is connected, so the badge only ever reads as connected.
+                Badge(containerColor = Color.Green)
             }
         },
         text = { Text(displayName) },

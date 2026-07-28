@@ -15,7 +15,6 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @Inject
@@ -39,25 +38,25 @@ class DefaultPluginSessionReconciliationService(
     }
 
     override fun reconciliationEvents(): Flow<PluginReconciliationEvent> = channelFlow {
-        // Enable/session reconciliation: whenever the enabled set or the active sessions change,
+        // Enable/session reconciliation: whenever the enabled set or the connected sessions change,
         // (re)initialize instances for the sessions each enabled plugin should target. Instances are
         // also (re)initialized as sessions come and go because this reacts to the session flow too.
         launch {
             combine(
                 enabledPluginsRepository.enabledPluginIdsFlow,
-                sessionRepository.debugSessionsFlow.map { sessions -> sessions.filter { it.isActive } },
+                sessionRepository.debugSessionsFlow,
                 // Loading a plugin is a reconciliation trigger in its own right. The enabled set only
                 // ever grows (nothing removes an id when a jar is deleted or its trust revoked), so
                 // installing a jar whose pluginId is already enabled changes neither of the flows
                 // above — without this the freshly loaded plugin would never get an instance, and
                 // opening it would fail until the next enable toggle, session, or app restart.
                 pluginFactoryRepository.loadedPluginsFlow,
-            ) { enabledPluginIds, activeSessions, _ -> enabledPluginIds to activeSessions }
-                .collect { (enabledPluginIds, activeSessions) ->
+            ) { enabledPluginIds, connectedSessions, _ -> enabledPluginIds to connectedSessions }
+                .collect { (enabledPluginIds, connectedSessions) ->
                     enabledPluginIds.forEach { pluginId ->
                         val activatedSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
                             pluginId = pluginId,
-                            sessionIds = targetSessionIds(pluginId, activeSessions),
+                            sessionIds = targetSessionIds(pluginId, connectedSessions),
                         )
                         // Only newly-initialized sessions are notified (some may already have the
                         // instance from an earlier reconciliation), and only for agent-backed plugins

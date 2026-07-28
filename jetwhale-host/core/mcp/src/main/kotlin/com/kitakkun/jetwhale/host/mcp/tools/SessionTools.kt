@@ -23,7 +23,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
 /**
- * Returns a JSON string listing all currently known debug sessions.
+ * Returns a JSON string listing the debug sessions currently connected to the host.
  */
 suspend fun listSessions(debugSessionRepository: DebugSessionRepository): String {
     val sessions = debugSessionRepository.debugSessionsFlow.firstOrNull() ?: return "[]"
@@ -64,7 +64,6 @@ suspend fun listPlugins(
 private fun DebugSession.toSessionInfo() = SessionInfo(
     sessionId = id,
     sessionName = name,
-    isActive = isActive,
     installedPlugins = installedPlugins.map { it.pluginId },
     appName = appName,
     deviceId = deviceId,
@@ -79,7 +78,7 @@ class ListSessionsMcpTool(
     override fun register(server: Server) {
         server.addTool(
             name = "jetwhale.listSessions",
-            description = "Lists all active debug sessions currently connected to JetWhale.",
+            description = "Lists the debug sessions currently connected to JetWhale.",
             inputSchema = ToolSchema(),
         ) { _ ->
             val json = listSessions(debugSessionRepository)
@@ -121,7 +120,6 @@ class ListPluginsMcpTool(
 data class SessionInfo(
     val sessionId: String,
     val sessionName: String?,
-    val isActive: Boolean,
     val installedPlugins: List<String>,
     val appName: String? = null,
     val deviceId: String? = null,

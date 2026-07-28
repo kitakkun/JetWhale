@@ -6,7 +6,6 @@ import kotlinx.collections.immutable.ImmutableList
 data class DebugSession(
     val id: String,
     val name: String?,
-    val isActive: Boolean,
     /** Security of the transport carrying this session. */
     val transportSecurity: SessionTransportSecurity,
     val installedPlugins: ImmutableList<JetWhalePluginInfo>,
@@ -39,4 +38,8 @@ data class DebugSession(
      */
     val appDisplayName: String
         get() = appName ?: displayName
+
+    /** Device and app labels joined, for places that identify a session on a single line. */
+    val deviceAndAppDisplayName: String
+        get() = "$deviceDisplayName · $appDisplayName"
 }

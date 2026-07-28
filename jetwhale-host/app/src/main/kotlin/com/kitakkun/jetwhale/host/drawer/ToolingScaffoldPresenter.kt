@@ -26,8 +26,21 @@ sealed interface ToolingScaffoldScreenAction {
 }
 
 sealed interface ToolingScaffoldScreenActionResult {
-    data class SessionClosed(val closedSessionIds: List<String>) : ToolingScaffoldScreenActionResult
+    /** Carries the sessions themselves, since they are gone from the session list by the time this is handled. */
+    data class SessionClosed(val closedSessions: ImmutableList<DebugSession>) : ToolingScaffoldScreenActionResult
     data class SetPluginEnabledFailed(val error: Throwable) : ToolingScaffoldScreenActionResult
+}
+
+/**
+ * The sessions present in [previous] but missing from [current], i.e. the ones that disconnected
+ * since the last session-list update.
+ */
+internal fun closedSessions(
+    previous: List<DebugSession>,
+    current: List<DebugSession>,
+): List<DebugSession> {
+    val currentIds = current.mapTo(mutableSetOf()) { it.id }
+    return previous.filterNot { it.id in currentIds }
 }
 
 @Composable
@@ -75,15 +88,19 @@ fun toolingScaffoldPresenter(
     }
 
     LaunchedEffect(debugSessions) {
-        if (selectedSession?.isActive != true) {
-            selectedSessionId = debugSessions.firstOrNull { it.isActive }?.id.orEmpty()
+        if (selectedSession == null) {
+            selectedSessionId = debugSessions.firstOrNull()?.id.orEmpty()
         }
     }
 
+    // Comparing against the previous session list keeps a disconnect reported exactly once, instead
+    // of re-reporting every session that has ever closed on each session-list update.
+    var knownSessions by remember { mutableStateOf<List<DebugSession>>(emptyList()) }
     LaunchedEffect(debugSessions) {
-        val inactiveSessionIds = debugSessions.filterNot { it.isActive }.map { it.id }
-        if (inactiveSessionIds.isEmpty()) return@LaunchedEffect
-        screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(inactiveSessionIds))
+        val closedSessions = closedSessions(previous = knownSessions, current = debugSessions)
+        knownSessions = debugSessions
+        if (closedSessions.isEmpty()) return@LaunchedEffect
+        screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(closedSessions.toImmutableList()))
     }
 
     ActionEffect(screenChannel) { action ->

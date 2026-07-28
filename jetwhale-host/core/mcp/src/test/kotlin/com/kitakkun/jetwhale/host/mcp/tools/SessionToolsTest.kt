@@ -33,7 +33,6 @@ class SessionToolsTest {
         val session = DebugSession(
             id = "session-id-123",
             name = "TestDevice",
-            isActive = true,
             transportSecurity = SessionTransportSecurity.PLAINTEXT,
             installedPlugins = persistentListOf(JetWhalePluginInfo("com.example.plugin", "1.0")),
         )
@@ -41,24 +40,7 @@ class SessionToolsTest {
             every { debugSessionsFlow } returns flowOf(persistentListOf(session))
         }
 
-        val expected = """[{"sessionId":"session-id-123","sessionName":"TestDevice","isActive":true,"installedPlugins":["com.example.plugin"]}]"""
-        assertEquals(expected, listSessions(repo))
-    }
-
-    @Test
-    fun `listSessions reflects isActive = false correctly`() = runBlocking {
-        val session = DebugSession(
-            id = "session-id-456",
-            name = "InactiveDevice",
-            isActive = false,
-            transportSecurity = SessionTransportSecurity.PLAINTEXT,
-            installedPlugins = persistentListOf(),
-        )
-        val repo = mock<DebugSessionRepository> {
-            every { debugSessionsFlow } returns flowOf(persistentListOf(session))
-        }
-
-        val expected = """[{"sessionId":"session-id-456","sessionName":"InactiveDevice","isActive":false,"installedPlugins":[]}]"""
+        val expected = """[{"sessionId":"session-id-123","sessionName":"TestDevice","installedPlugins":["com.example.plugin"]}]"""
         assertEquals(expected, listSessions(repo))
     }
 
@@ -77,7 +59,6 @@ class SessionToolsTest {
         val session = DebugSession(
             id = "session-abc",
             name = "Device",
-            isActive = true,
             transportSecurity = SessionTransportSecurity.PLAINTEXT,
             installedPlugins = persistentListOf(JetWhalePluginInfo("com.example.plugin", "1.0")),
         )

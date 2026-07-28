@@ -40,7 +40,6 @@ class DefaultDebugSessionRepository : DebugSessionRepository {
                     DebugSession(
                         id = sessionId,
                         name = sessionName,
-                        isActive = true,
                         transportSecurity = transportSecurity,
                         installedPlugins = installedPlugins.toImmutableList(),
                         appName = appMetadata.appName,
@@ -55,19 +54,11 @@ class DefaultDebugSessionRepository : DebugSessionRepository {
 
     override fun unregisterDebugSession(sessionId: String) {
         mutableDebugSessions.update { sessions ->
-            sessions.toMutableMap().apply {
-                this[sessionId]?.let {
-                    this[sessionId] = it.copy(isActive = false)
-                }
-            }.toPersistentMap()
+            sessions.toMutableMap().apply { remove(sessionId) }.toPersistentMap()
         }
     }
 
-    override fun markAllSessionsInactive() {
-        mutableDebugSessions.update { sessions ->
-            sessions.mapValues { (_, session) ->
-                session.copy(isActive = false)
-            }.toPersistentMap()
-        }
+    override fun unregisterAllDebugSessions() {
+        mutableDebugSessions.update { persistentMapOf() }
     }
 }

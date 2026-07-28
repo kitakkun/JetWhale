@@ -52,7 +52,7 @@ class DefaultDebugWebSocketServer(
         serverMonitoringJob?.cancel()
         serverMonitoringJob = null
         ktorWebSocketServer.stop()
-        sessionRepository.markAllSessionsInactive()
+        sessionRepository.unregisterAllDebugSessions()
         pluginInstanceService.clearAllPluginInstances()
         mutableServerStoppedFlow.emit(Unit)
     }

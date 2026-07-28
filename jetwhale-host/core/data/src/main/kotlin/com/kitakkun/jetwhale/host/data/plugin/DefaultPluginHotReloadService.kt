@@ -199,15 +199,15 @@ class DefaultPluginHotReloadService(
     }
 
     /**
-     * Recreates plugin instances for the active sessions that have the plugin installed, so that the
+     * Recreates plugin instances for the connected sessions that have the plugin installed, so that the
      * UI can immediately render the freshly loaded code. Only runs when the plugin is enabled.
      */
     private suspend fun reinitializeInstances(pluginId: String) {
         if (!enabledPluginsRepository.isPluginEnabled(pluginId)) return
 
         // The target-session rule (host-only vs agent-backed) lives in the reconciliation service.
-        val activeSessions = debugSessionRepository.debugSessionsFlow.first().filter { it.isActive }
-        val activeSessionIds = reconciliationService.targetSessionIds(pluginId, activeSessions)
+        val connectedSessions = debugSessionRepository.debugSessionsFlow.first()
+        val activeSessionIds = reconciliationService.targetSessionIds(pluginId, connectedSessions)
 
         if (activeSessionIds.isEmpty()) return
 

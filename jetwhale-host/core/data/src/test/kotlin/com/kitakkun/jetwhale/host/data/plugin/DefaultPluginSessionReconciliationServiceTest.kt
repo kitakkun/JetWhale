@@ -33,10 +33,9 @@ class DefaultPluginSessionReconciliationServiceTest {
     private val pluginId = "com.example.plugin"
     private val sessionId = "session-1"
 
-    private val activeSession = DebugSession(
+    private val connectedSession = DebugSession(
         id = sessionId,
         name = "test",
-        isActive = true,
         transportSecurity = SessionTransportSecurity.LOOPBACK,
         installedPlugins = persistentListOf(JetWhalePluginInfo(pluginId, "1.0.0")),
     )
@@ -63,7 +62,7 @@ class DefaultPluginSessionReconciliationServiceTest {
         val factoryRepository = FakePluginFactoryRepository()
         val instanceService = FakePluginInstanceService(factoryRepository)
         val service = DefaultPluginSessionReconciliationService(
-            sessionRepository = FakeDebugSessionRepository(MutableStateFlow(persistentListOf(activeSession))),
+            sessionRepository = FakeDebugSessionRepository(MutableStateFlow(persistentListOf(connectedSession))),
             enabledPluginsRepository = FakeEnabledPluginsRepository(setOf(pluginId)),
             pluginFactoryRepository = factoryRepository,
             pluginInstanceService = instanceService,
@@ -93,7 +92,7 @@ class DefaultPluginSessionReconciliationServiceTest {
         ) = Unit
 
         override fun unregisterDebugSession(sessionId: String) = Unit
-        override fun markAllSessionsInactive() = Unit
+        override fun unregisterAllDebugSessions() = Unit
     }
 
     private class FakeEnabledPluginsRepository(enabled: Set<String>) : EnabledPluginsRepository {
