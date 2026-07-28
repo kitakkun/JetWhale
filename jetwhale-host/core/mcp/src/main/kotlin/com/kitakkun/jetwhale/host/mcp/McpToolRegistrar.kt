@@ -87,13 +87,14 @@ class McpToolRegistrar(
                     value.jsonContent ?: value.toString()
                 },
             )
-            // A thrown handler is the only failure signal available here, and it has to reach the
-            // repository before it propagates on to the MCP layer.
+            // A tool fails in two ways: the handler throws, or it returns a result flagged with
+            // `isError`, which is how the protocol wants a tool-level failure reported. Both have to
+            // reach the repository before the call leaves here.
             var failed = true
             var response = ""
             try {
                 handler(request).also {
-                    failed = false
+                    failed = it.isError == true
                     response = it.renderForHistory()
                 }
             } catch (throwable: Throwable) {
@@ -113,10 +114,17 @@ class McpToolRegistrar(
  * Only text blocks carry something a reader can use; every other block type is a binary payload (a
  * screenshot, audio, an embedded resource) that is named rather than inlined, so history does not
  * fill up with base64.
+ *
+ * A structured payload follows the blocks on its own line. It is the whole answer for a tool that
+ * replies only in `structuredContent`, and it reads as the machine-readable detail behind the prose
+ * for a tool that sends both.
  */
-private fun CallToolResult.renderForHistory(): String = content.joinToString(separator = "\n") { block ->
-    when (block) {
-        is TextContent -> block.text
-        else -> "<${block.type.value}>"
+private fun CallToolResult.renderForHistory(): String {
+    val renderedBlocks = content.map { block ->
+        when (block) {
+            is TextContent -> block.text
+            else -> "<${block.type.value}>"
+        }
     }
+    return (renderedBlocks + listOfNotNull(structuredContent?.toString())).joinToString(separator = "\n")
 }
