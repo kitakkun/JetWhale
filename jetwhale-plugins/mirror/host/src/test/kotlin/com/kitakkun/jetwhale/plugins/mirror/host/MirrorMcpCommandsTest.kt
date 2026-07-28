@@ -5,6 +5,9 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -41,12 +44,14 @@ class MirrorMcpCommandsTest {
         override suspend fun openVideoStreamProcess(): Process? = null
     }
 
+    private fun args(vararg pairs: Pair<String, JsonElement>) = JetWhaleMcpArguments(JsonObject(pairs.toMap()))
+
     private val controller = FakeDeviceController()
     private val device = MirrorDevice(id = "emulator-5554", name = "Pixel 7", platform = DevicePlatform.ANDROID, controller = controller)
 
     @Test
     fun `tap forwards coordinates to the device`() = runBlocking {
-        val result = TapCommand(resolveDevice = { device }).execute(JetWhaleMcpArguments(mapOf("x" to "10", "y" to "20")))
+        val result = TapCommand(resolveDevice = { device }).execute(args("x" to JsonPrimitive(10), "y" to JsonPrimitive(20)))
         assertEquals(listOf(10 to 20), controller.taps)
         assertTrue(Json.parseToJsonElement(result).jsonObject["ok"]!!.jsonPrimitive.content.toBoolean())
     }
@@ -54,7 +59,7 @@ class MirrorMcpCommandsTest {
     @Test
     fun `tap rejects negative coordinates`(): Unit = runBlocking {
         assertFailsWith<JetWhaleMcpArgumentException> {
-            TapCommand(resolveDevice = { device }).execute(JetWhaleMcpArguments(mapOf("x" to "-1", "y" to "20")))
+            TapCommand(resolveDevice = { device }).execute(args("x" to JsonPrimitive(-1), "y" to JsonPrimitive(20)))
         }
         assertTrue(controller.taps.isEmpty())
     }
@@ -62,7 +67,7 @@ class MirrorMcpCommandsTest {
     @Test
     fun `swipe defaults duration to 300ms`() = runBlocking {
         SwipeCommand(resolveDevice = { device }).execute(
-            JetWhaleMcpArguments(mapOf("fromX" to "0", "fromY" to "1", "toX" to "2", "toY" to "3")),
+            args("fromX" to JsonPrimitive(0), "fromY" to JsonPrimitive(1), "toX" to JsonPrimitive(2), "toY" to JsonPrimitive(3)),
         )
         assertEquals(listOf(listOf(0, 1, 2, 3, 300)), controller.swipes)
     }
@@ -71,7 +76,7 @@ class MirrorMcpCommandsTest {
     fun `swipe rejects negative coordinates`(): Unit = runBlocking {
         assertFailsWith<JetWhaleMcpArgumentException> {
             SwipeCommand(resolveDevice = { device }).execute(
-                JetWhaleMcpArguments(mapOf("fromX" to "0", "fromY" to "-5", "toX" to "2", "toY" to "3")),
+                args("fromX" to JsonPrimitive(0), "fromY" to JsonPrimitive(-5), "toX" to JsonPrimitive(2), "toY" to JsonPrimitive(3)),
             )
         }
         assertTrue(controller.swipes.isEmpty())
@@ -81,7 +86,7 @@ class MirrorMcpCommandsTest {
     fun `swipe rejects non-positive duration`(): Unit = runBlocking {
         assertFailsWith<JetWhaleMcpArgumentException> {
             SwipeCommand(resolveDevice = { device }).execute(
-                JetWhaleMcpArguments(mapOf("fromX" to "0", "fromY" to "1", "toX" to "2", "toY" to "3", "durationMillis" to "0")),
+                args("fromX" to JsonPrimitive(0), "fromY" to JsonPrimitive(1), "toX" to JsonPrimitive(2), "toY" to JsonPrimitive(3), "durationMillis" to JsonPrimitive(0)),
             )
         }
         assertTrue(controller.swipes.isEmpty())
@@ -89,7 +94,7 @@ class MirrorMcpCommandsTest {
 
     @Test
     fun `listDevices reports ids, platforms, and the selection`() = runBlocking {
-        val result = ListDevicesCommand(refreshDevices = { listOf(device) }, selectedDeviceId = { device.id }).execute(JetWhaleMcpArguments(emptyMap()))
+        val result = ListDevicesCommand(refreshDevices = { listOf(device) }, selectedDeviceId = { device.id }).execute(args())
         val devices = Json.parseToJsonElement(result).jsonObject["devices"]!!.jsonArray
         val entry = devices.single().jsonObject
         assertEquals("emulator-5554", entry["deviceId"]!!.jsonPrimitive.content)
@@ -100,7 +105,7 @@ class MirrorMcpCommandsTest {
     @Test
     fun `stopRecording returns the finished file path`() = runBlocking {
         val file = File("/tmp/jetwhale-mirror-test.mp4")
-        val result = StopRecordingCommand(stopRecording = { file }).execute(JetWhaleMcpArguments(emptyMap()))
+        val result = StopRecordingCommand(stopRecording = { file }).execute(args())
         assertEquals(file.absolutePath, Json.parseToJsonElement(result).jsonObject["path"]!!.jsonPrimitive.content)
     }
 
@@ -108,7 +113,7 @@ class MirrorMcpCommandsTest {
     fun `unknown device id surfaces as an argument error`(): Unit = runBlocking {
         assertFailsWith<JetWhaleMcpArgumentException> {
             TapCommand(resolveDevice = { throw JetWhaleMcpArgumentException("unknown deviceId") })
-                .execute(JetWhaleMcpArguments(mapOf("deviceId" to "nope", "x" to "1", "y" to "1")))
+                .execute(args("deviceId" to JsonPrimitive("nope"), "x" to JsonPrimitive(1), "y" to JsonPrimitive(1)))
         }
     }
 }
