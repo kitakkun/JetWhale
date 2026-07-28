@@ -113,8 +113,8 @@ private fun txId(index: Int) = "tx-$index"
  * Long enough to overflow the list pane at any plausible split position, and index-tagged so each
  * row is individually addressable.
  */
-private fun url(index: Int) = "https://api.example.com/v1/organizations/acme-corp/projects/atlas/" +
-    "deployments/$index?environment=production&include=metrics%2Ctraces&page=3"
+private fun url(index: Int) = "https://example.com/a/deliberately/long/path/that/no/list/pane/" +
+    "is/wide/enough/to/show/items/$index?first=1&second=2&third=3"
 
 /** Built newest-first so that [TOP_ROW] is index 0 once [TrafficTab] reverses the list. */
 private fun transaction(index: Int, rows: Int) = HttpTransaction(
