@@ -1,0 +1,105 @@
+package com.kitakkun.jetwhale.host.architecture
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import soil.plant.compose.reacty.AwaitHost
+import soil.plant.compose.reacty.Catch
+import soil.plant.compose.reacty.CatchScope
+import soil.plant.compose.reacty.LocalAwaitHost
+import soil.query.core.DataModel
+import soil.query.core.Reply
+import soil.query.core.getOrThrow
+import soil.query.core.isNone
+import soil.query.core.uuid
+
+@PublishedApi
+internal data class Sextuple<out A, out B, out C, out D, out E, out F>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D,
+    val fifth: E,
+    val sixth: F,
+)
+
+@PublishedApi
+internal inline fun <T1, T2, T3, T4, T5, T6, R> Reply.Companion.combine(
+    r1: Reply<T1>,
+    r2: Reply<T2>,
+    r3: Reply<T3>,
+    r4: Reply<T4>,
+    r5: Reply<T5>,
+    r6: Reply<T6>,
+    transform: (T1, T2, T3, T4, T5, T6) -> R,
+): Reply<R> = when {
+    r1.isNone || r2.isNone || r3.isNone || r4.isNone || r5.isNone || r6.isNone -> none()
+
+    else -> some(
+        transform(
+            r1.getOrThrow(),
+            r2.getOrThrow(),
+            r3.getOrThrow(),
+            r4.getOrThrow(),
+            r5.getOrThrow(),
+            r6.getOrThrow(),
+        ),
+    )
+}
+
+@Composable
+inline fun <T1, T2, T3, T4, T5, T6> Await(
+    state1: DataModel<T1>,
+    state2: DataModel<T2>,
+    state3: DataModel<T3>,
+    state4: DataModel<T4>,
+    state5: DataModel<T5>,
+    state6: DataModel<T6>,
+    key: Any? = null,
+    host: AwaitHost = LocalAwaitHost.current,
+    errorPredicate: (DataModel<*>) -> Boolean = { it.reply.isNone },
+    errorFallback: @Composable CatchScope.(err: Throwable) -> Unit = { Throw(error = it) },
+    crossinline content: @Composable (T1, T2, T3, T4, T5, T6) -> Unit,
+) {
+    val id = remember(key) { key ?: uuid() }
+    when (
+        val reply = Reply.combine(
+            state1.reply,
+            state2.reply,
+            state3.reply,
+            state4.reply,
+            state5.reply,
+            state6.reply,
+            ::Sextuple,
+        )
+    ) {
+        is Reply.Some -> content(
+            reply.value.first,
+            reply.value.second,
+            reply.value.third,
+            reply.value.fourth,
+            reply.value.fifth,
+            reply.value.sixth,
+        )
+
+        is Reply.None -> Catch(
+            state1,
+            state2,
+            state3,
+            state4,
+            state5,
+            state6,
+            filter = errorPredicate,
+            content = errorFallback,
+        )
+    }
+    LaunchedEffect(id, state1, state2, state3, state4, state5, state6) {
+        host[id] = listOf(state1, state2, state3, state4, state5, state6).any { it.isAwaited() }
+    }
+    DisposableEffect(id) {
+        onDispose {
+            host.remove(id)
+        }
+    }
+}

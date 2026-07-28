@@ -103,3 +103,65 @@ fun <T1, T2, T3, T4> SoilDataBoundary(
         }
     }
 }
+
+@Composable
+context(_: ScreenContext)
+fun <T1, T2, T3, T4, T5> SoilDataBoundary(
+    state1: DataModel<T1>,
+    state2: DataModel<T2>,
+    state3: DataModel<T3>,
+    state4: DataModel<T4>,
+    state5: DataModel<T5>,
+    fallback: SoilFallback = SoilFallbackDefaults.default(),
+    content: @Composable (T1, T2, T3, T4, T5) -> Unit,
+) {
+    ErrorBoundary(
+        fallback = { fallback.errorFallback(it) },
+        onReset = rememberQueriesErrorReset(),
+    ) {
+        Suspense(
+            fallback = { fallback.suspenseFallback() },
+        ) {
+            Await(
+                state1 = state1,
+                state2 = state2,
+                state3 = state3,
+                state4 = state4,
+                state5 = state5,
+                content = content,
+            )
+        }
+    }
+}
+
+@Composable
+context(_: ScreenContext)
+fun <T1, T2, T3, T4, T5, T6> SoilDataBoundary(
+    state1: DataModel<T1>,
+    state2: DataModel<T2>,
+    state3: DataModel<T3>,
+    state4: DataModel<T4>,
+    state5: DataModel<T5>,
+    state6: DataModel<T6>,
+    fallback: SoilFallback = SoilFallbackDefaults.default(),
+    content: @Composable (T1, T2, T3, T4, T5, T6) -> Unit,
+) {
+    ErrorBoundary(
+        fallback = { fallback.errorFallback(it) },
+        onReset = rememberQueriesErrorReset(),
+    ) {
+        Suspense(
+            fallback = { fallback.suspenseFallback() },
+        ) {
+            Await(
+                state1 = state1,
+                state2 = state2,
+                state3 = state3,
+                state4 = state4,
+                state5 = state5,
+                state6 = state6,
+                content = content,
+            )
+        }
+    }
+}
