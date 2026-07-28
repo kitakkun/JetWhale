@@ -23,6 +23,7 @@ import io.modelcontextprotocol.kotlin.sdk.client.mcpSse
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.ImageContent
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import io.modelcontextprotocol.kotlin.sdk.types.Tool
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
@@ -30,12 +31,14 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -672,6 +675,71 @@ class DefaultMcpServerServiceTest {
         assertEquals("image/png", image.mimeType)
     }
 
+    @OptIn(ExperimentalJetWhaleApi::class)
+    @Test
+    fun `a declared output schema reaches the agent on the listed tool`() = runBlocking {
+        val toolName = "com.example.test.measures"
+        val tool = describePluginTool(DeclaredOutputPlugin(toolName), toolName)
+
+        val outputSchema = assertNotNull(tool.outputSchema, "Expected an output schema on $tool")
+        assertEquals("object", outputSchema.type)
+        assertEquals(listOf("width", "height", "label"), outputSchema.properties?.keys?.toList())
+        // Only the properties without a default have to be present in the answer.
+        assertEquals(listOf("width", "height"), outputSchema.required)
+    }
+
+    @OptIn(ExperimentalJetWhaleApi::class)
+    @Test
+    fun `a command that declares no output advertises none`() = runBlocking {
+        val toolName = "com.example.test.greet"
+        val tool = describePluginTool(FakeMcpCapablePlugin(toolName), toolName)
+
+        // A text-only tool must keep saying nothing about its output rather than promising a shape.
+        assertNull(tool.outputSchema)
+    }
+
+    @OptIn(ExperimentalJetWhaleApi::class)
+    @Test
+    fun `a declared output answers with structured content shaped like its schema`() = runBlocking {
+        val toolName = "com.example.test.measures"
+        val callResult = callPluginTool(DeclaredOutputPlugin(toolName), toolName)
+
+        assertEquals(false, callResult.isError)
+        assertEquals(
+            buildJsonObject {
+                put("width", 120)
+                put("height", 40)
+            },
+            callResult.structuredContent,
+        )
+    }
+
+    /**
+     * Starts the service with [plugin] loaded for one session and reads [toolName] off the tool
+     * list, which is where an agent learns what the tool takes and answers with.
+     */
+    @OptIn(ExperimentalJetWhaleApi::class)
+    private suspend fun describePluginTool(plugin: JetWhaleHostPlugin, toolName: String): Tool {
+        val pluginId = "com.example.test"
+        val sessionId = "test-session-schema"
+        every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
+            LoadedPluginInstance(pluginId, sessionId, plugin),
+        )
+        every { pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId) } returns plugin
+
+        service.start(host, port)
+        return try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
+            try {
+                client.listTools().tools.single { it.name == toolName }
+            } finally {
+                client.close()
+            }
+        } finally {
+            service.stop()
+        }
+    }
+
     /**
      * Starts the service with [plugin] loaded for one session and calls [toolName] on it. Every
      * result-shape test needs the same registration dance, and only the answer is interesting.
@@ -825,6 +893,27 @@ private class FixedResultPlugin(private val toolName: String, private val result
             override val description = "Answers with a fixed result"
 
             override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = result
+        },
+    )
+}
+
+@Serializable
+private data class WidgetMeasurement(val width: Int, val height: Int, val label: String = "")
+
+/** A plugin whose single tool declares the `@Serializable` shape of its answer. */
+@OptIn(ExperimentalJetWhaleApi::class)
+private class DeclaredOutputPlugin(private val toolName: String) :
+    JetWhaleHostPlugin(),
+    JetWhaleMcpCapablePlugin {
+
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        object : JetWhaleMcpCommand() {
+            override val name = toolName
+            override val description = "Measures the selected widget"
+
+            private val measurement = serializableOutput<WidgetMeasurement>()
+
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = measurement.result(WidgetMeasurement(width = 120, height = 40))
         },
     )
 }

@@ -8,6 +8,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.ImageContent
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -48,6 +49,15 @@ fun JetWhaleMcpResult.toCallToolResult(): CallToolResult = CallToolResult(
     },
     isError = isError,
     structuredContent = structuredContent,
+)
+
+/**
+ * Narrows a derived object schema onto MCP's [ToolSchema], which pins `type` to `"object"` and
+ * carries only the property schemas and the required list.
+ */
+fun JsonObject.toToolSchema(): ToolSchema = ToolSchema(
+    properties = this["properties"] as? JsonObject,
+    required = (this["required"] as? JsonArray)?.mapNotNull { it.jsonContent },
 )
 
 fun errorResult(message: String): CallToolResult = CallToolResult(

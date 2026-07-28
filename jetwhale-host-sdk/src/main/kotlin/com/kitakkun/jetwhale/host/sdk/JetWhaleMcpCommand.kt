@@ -31,9 +31,10 @@ import kotlin.reflect.KProperty
  *
  *     private val widgetId by string("The widget ID")
  *     private val verbose by booleanOrNull("Include layout details.")
+ *     private val widget = serializableOutput<WidgetDescription>()
  *
  *     override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
- *         return JetWhaleMcpResult.json(widgets.describe(id = arguments[widgetId], verbose = arguments[verbose] ?: false))
+ *         return widget.result(widgets.describe(id = arguments[widgetId], verbose = arguments[verbose] ?: false))
  *     }
  * }
  * ```
@@ -46,6 +47,11 @@ import kotlin.reflect.KProperty
  * [execute] answers with a [JetWhaleMcpResult] — text, structured JSON, an image, or a failure.
  * A command that only ever answers with text can extend [JetWhaleMcpTextCommand] instead and
  * return the string directly.
+ *
+ * A command whose answer has a known shape declares it once with [serializableOutput], which derives
+ * the tool's output schema from the type and hands back the [JetWhaleMcpOutput] that builds the
+ * matching result. Declaring nothing means the tool answers with unstructured text and advertises no
+ * output schema.
  *
  * Expose commands through [JetWhaleMcpCapablePlugin]. A [JetWhaleMcpArgumentException] (thrown
  * by the argument accessors, or by [execute] directly for domain-level caller mistakes) becomes a
@@ -71,21 +77,24 @@ public abstract class JetWhaleMcpCommand(
 
     private val declaredParameters = mutableListOf<JetWhaleMcpParameter<*>>()
 
+    private var declaredOutput: JetWhaleMcpOutput<*>? = null
+
     // Set once the schema has been produced (and may have been shown to a caller); late
     // declarations would silently diverge from it, so they throw instead. The declarations are
     // deliberately not readable any other way: an accidental read during construction would
     // observe a half-built list.
-    private var parametersSealed = false
+    private var declarationsSealed = false
 
     /**
      * Executes the tool.
      *
-     * @return What the AI agent receives — build it with the [JetWhaleMcpResult] factories.
+     * @return What the AI agent receives — build it with the [JetWhaleMcpResult] factories, or with
+     *   [JetWhaleMcpOutput.result] when the command declares an output.
      */
     public abstract suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult
 
     public fun toDescriptor(): JetWhaleMcpToolDescriptor {
-        parametersSealed = true
+        declarationsSealed = true
         return JetWhaleMcpToolDescriptor(
             name = name,
             description = description,
@@ -96,6 +105,7 @@ public abstract class JetWhaleMcpCommand(
                     required = parameter.required,
                 )
             },
+            outputSchema = declaredOutput?.schema,
         )
     }
 
@@ -176,6 +186,39 @@ public abstract class JetWhaleMcpCommand(
     /** @see jsonArray */
     protected fun jsonArrayOrNull(description: String, name: String? = null): JetWhaleMcpParameterDeclaration<JsonArray?> = optionalStructured(name, ARRAY_SCHEMA, description, parse = ::parseJsonArray)
 
+    // -- Output declaration -------------------------------------------------------------------
+
+    /**
+     * Declares that this command answers with the `@Serializable` type [T], and hands back the
+     * handle that turns a [T] into the tool's result:
+     * ```kotlin
+     * private val mockConfig = serializableOutput<MockConfig>()
+     *
+     * override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult =
+     *     mockConfig.result(MockConfig(enabled = true, rules = rules))
+     * ```
+     * The tool's output schema is derived from [T]'s serializer exactly as [serializable] derives a
+     * parameter's, and [JetWhaleMcpOutput.result] encodes with the same [json] — so what the agent is
+     * promised and what it receives come from one declaration and cannot drift.
+     *
+     * MCP requires a tool's output schema to describe an object, so [T] must serialize to a JSON
+     * object; a list or a sealed hierarchy has to be wrapped in a class holding it.
+     *
+     * Declare this only as a property of the command, next to its parameters. Leave it out entirely
+     * when the tool answers with unstructured text — a tool that declares no output advertises no
+     * output schema, which is what an agent reading prose expects.
+     */
+    protected inline fun <reified T : Any> serializableOutput(): JetWhaleMcpOutput<T> = serializableOutput(serializer<T>())
+
+    /** Explicit-serializer form of [serializableOutput], for types whose serializer cannot be resolved from the type argument. */
+    protected fun <T : Any> serializableOutput(serializer: KSerializer<T>): JetWhaleMcpOutput<T> {
+        val schema = serializer.descriptor.toJsonSchema(json)
+        check((schema["type"] as? JsonPrimitive)?.content == "object") {
+            "Output type ${serializer.descriptor.serialName} of '$name' does not serialize to a JSON object, which MCP requires of a tool's output schema. Wrap it in a @Serializable class."
+        }
+        return declareOutput(JetWhaleMcpOutput(schema = schema, json = json, serializer = serializer))
+    }
+
     // -- Declaration builders -----------------------------------------------------------------
 
     private fun <T : Any> requiredScalar(name: String?, schema: JsonObject, description: String, parse: (String, String) -> T): JetWhaleMcpParameterDeclaration<T> = requiredStructured(name, schema, description) { paramName, element ->
@@ -209,7 +252,7 @@ public abstract class JetWhaleMcpCommand(
     }
 
     internal fun <T> declare(parameter: JetWhaleMcpParameter<T>): JetWhaleMcpParameter<T> {
-        check(!parametersSealed) {
+        check(!declarationsSealed) {
             "Parameter '${parameter.name}' was declared after the parameter list of '$name' was read. Declare parameters only as property declarations on the command, never inside execute()."
         }
         check(declaredParameters.none { it.name == parameter.name }) {
@@ -217,6 +260,17 @@ public abstract class JetWhaleMcpCommand(
         }
         declaredParameters.add(parameter)
         return parameter
+    }
+
+    private fun <T : Any> declareOutput(output: JetWhaleMcpOutput<T>): JetWhaleMcpOutput<T> {
+        check(!declarationsSealed) {
+            "The output of '$name' was declared after its schema was read. Declare the output only as a property declaration on the command, never inside execute()."
+        }
+        check(declaredOutput == null) {
+            "'$name' declares more than one output; a tool has a single output schema."
+        }
+        declaredOutput = output
+        return output
     }
 
     private fun scalarContent(name: String, element: JsonElement): String = (element as? JsonPrimitive)?.content
@@ -357,6 +411,29 @@ public class JetWhaleMcpParameter<T> internal constructor(
     private val extract: (JsonObject) -> T,
 ) {
     internal fun extractFrom(raw: JsonObject): T = extract(raw)
+}
+
+/**
+ * The declared output of a [JetWhaleMcpCommand]: the JSON Schema the tool advertises, and the only
+ * way to build a result that satisfies it. Obtained from
+ * [JetWhaleMcpCommand.serializableOutput].
+ */
+@ExperimentalJetWhaleApi
+public class JetWhaleMcpOutput<T : Any> internal constructor(
+    // JSON Schema of the tool's structured content; an object schema, as MCP requires.
+    public val schema: JsonObject,
+    private val json: Json,
+    private val serializer: KSerializer<T>,
+) {
+    /**
+     * A successful result carrying [value], encoded with the command's format and delivered as the
+     * call's structured content.
+     *
+     * A command that declares an output can still report a failure with [JetWhaleMcpResult.error] or
+     * a [JetWhaleMcpArgumentException]: a failed call carries a message, not the tool's answer, so
+     * the output schema does not apply to it.
+     */
+    public fun result(value: T): JetWhaleMcpResult = JetWhaleMcpResult.json(json.encodeToJsonElement(serializer, value) as JsonObject)
 }
 
 /** A caller mistake in a tool invocation (missing/invalid argument, unknown id, ...). */

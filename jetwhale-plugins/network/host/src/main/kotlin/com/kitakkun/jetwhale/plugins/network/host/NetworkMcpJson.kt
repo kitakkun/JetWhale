@@ -11,8 +11,11 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 
-// This module compiles without the kotlinx-serialization compiler plugin, so MCP results are
-// assembled with the JsonObject builders instead of @Serializable DTOs.
+// The transaction views stay hand-assembled rather than declared as `@Serializable` result types:
+// their keys are conditional (a transaction carries a response, a failure, or neither), which a
+// data class would have to flatten into nullable properties that are advertised on every
+// transaction and written even when they do not apply. The mock-configuration tools, whose answers
+// have one fixed shape, declare theirs — see NetworkMcpResults.kt.
 
 /** Compact one-line-per-transaction view for listTransactions. */
 internal fun HttpTransaction.toSummaryJson(): JsonObject = buildJsonObject {

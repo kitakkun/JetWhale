@@ -325,6 +325,51 @@ class DescribeWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpTextC
 }
 ```
 
+### Declaring what a tool returns
+
+A tool whose answer has a known shape declares it with `serializableOutput<T>()`, the mirror image of
+the `serializable<T>()` parameter declarator. The declaration hands back the handle that builds the
+result:
+
+```kotlin
+@Serializable
+data class WidgetDescription(val id: String, val label: String, val visible: Boolean = true)
+
+class InspectWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpCommand() {
+    override val name = "com.example.myplugin.inspectWidget"
+    override val description = "Inspect the selected widget"
+
+    private val widgetId by string("The widget ID")
+    private val widget = serializableOutput<WidgetDescription>()
+
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
+        val found = widgets.find(arguments[widgetId])
+            ?: return JetWhaleMcpResult.error("no widget with id: ${arguments[widgetId]}")
+        return widget.result(WidgetDescription(id = found.id, label = found.label))
+    }
+}
+```
+
+The tool's `outputSchema` is derived from `T`'s serializer — the same rules as for a parameter,
+including `@McpDescription` and "required means no default value" — and `result(...)` encodes with
+the same format. The AI agent therefore knows the shape of the answer *before* it calls the tool,
+instead of calling it once to find out, and what it is promised cannot drift from what it receives.
+
+Things to know:
+
+- **Declaring nothing is the default and stays valid.** A tool that declares no output advertises no
+  `outputSchema`, which is how it says its answer is prose for a human-like reader. Only declare an
+  output when the tool really does answer with one fixed structure.
+- **MCP requires the output schema to describe an object**, so `T` must serialize to a JSON object. A
+  list or a sealed hierarchy has to be wrapped in a `@Serializable` class holding it; declaring one
+  directly fails at construction time rather than advertising a schema MCP rejects.
+- **A failure is not the tool's answer.** A command that declares an output can still return
+  `JetWhaleMcpResult.error(...)` or throw `JetWhaleMcpArgumentException` — a failed call carries a
+  message, and the output schema does not apply to it.
+- **Declare it as a property**, next to the parameters. Like a parameter, an output declared after
+  the schema was read (inside `execute`, say) throws rather than silently diverging from the schema
+  the agent was already shown, and a command has a single output.
+
 ### Structured parameters
 
 Beyond scalars (`string`, `int`, `long`, `boolean`, `enum`), a parameter can take structured input.

@@ -5,10 +5,6 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.encodeToJsonElement
-import kotlinx.serialization.json.put
 
 @OptIn(ExperimentalJetWhaleApi::class)
 internal class GetMockConfigCommand(
@@ -18,10 +14,9 @@ internal class GetMockConfigCommand(
     override val name = "$TOOL_PREFIX.getMockConfig"
     override val description = "Returns the current mock configuration: the global enabled flag and all mock rules."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.json(
-        buildJsonObject {
-            put("enabled", mockingEnabled())
-            put("rules", Json.encodeToJsonElement(mockRules()))
-        },
+    private val mockConfig = serializableOutput<MockConfigResult>()
+
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = mockConfig.result(
+        MockConfigResult(enabled = mockingEnabled(), rules = mockRules()),
     )
 }
