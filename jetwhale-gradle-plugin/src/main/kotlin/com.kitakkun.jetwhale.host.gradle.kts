@@ -24,6 +24,9 @@ import util.JetWhalePluginExtension
  * - `runJetWhaleHot` — the same, but runs the host on the JetBrains Runtime (so structural code changes
  *   hot-reload in place too; requires a JBR toolchain) AND keeps the plugin re-staged in the background,
  *   so a single command is the whole hot-reload loop — no separate `stageDevPlugin -t` terminal needed.
+ * - `runJetWhaleQaAgent` — launches a headless debuggee that connects as an ordinary session, so the
+ *   plugin has a session to render for, and forwards messages POSTed to its local control API on to
+ *   the host plugin. Pass `-PjetwhaleQaAgentArgs="--plugin <your plugin id>"`.
  *
  * The in-repo host launcher (`runJetWhaleLocal`, which runs the local `:jetwhale-host:app` project)
  * lives in the separate, non-published `jetwhale-host-launch` convention.
@@ -371,6 +374,56 @@ registerRunTask(
         "place; requires a JBR toolchain) and auto re-stages the plugin in the background — the whole hot-reload loop in one command.",
     hot = true,
 )
+
+// ---------------------------------------------------------------------------
+// QA agent: a headless debuggee to drive this plugin against.
+// ---------------------------------------------------------------------------
+
+// A plugin's UI only renders for a connected session, and the usual source of one is a real app.
+// This launches a headless stand-in instead: it connects as an ordinary session and forwards
+// messages POSTed to its local control API on to the host plugin, so the UI can be driven from a
+// script with no debuggee app to build. It speaks the raw messaging layer, so nothing here depends
+// on this plugin's own protocol.
+val qaAgentClasspath = configurations.create("jetwhaleQaAgent") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isVisible = false
+}
+
+// addProvider rather than a plain coordinate string: the version comes from the extension, whose
+// value is not yet known while this script is being configured.
+dependencies.addProvider(
+    qaAgentClasspath.name,
+    pluginExtension.qaAgentVersion.orElse(pluginExtension.hostVersion)
+        .map { version -> "com.kitakkun.jetwhale:jetwhale-qa-agent:$version" },
+)
+
+tasks.register<JavaExec>("runJetWhaleQaAgent") {
+    group = "jetwhale"
+    description = "Runs the headless JetWhale QA agent — a debuggee for this plugin that you drive over HTTP."
+
+    classpath = qaAgentClasspath
+    mainClass.set("com.kitakkun.jetwhale.tools.qaagent.MainKt")
+
+    // Arguments come from the command line so one run can target any plugin id, port or host without
+    // editing the build:
+    // `-PjetwhaleQaAgentArgs="--plugin com.example.myplugin --control-port 7101"`.
+    // The agent's `--help` lists them all.
+    val extraArgs = providers.gradleProperty("jetwhaleQaAgentArgs")
+    argumentProviders.add(
+        CommandLineArgumentProvider {
+            extraArgs.getOrElse("").split(" ").filter { it.isNotBlank() }
+        },
+    )
+
+    val agentVersion = pluginExtension.qaAgentVersion.orElse(pluginExtension.hostVersion)
+    doFirst {
+        check(agentVersion.isPresent) {
+            "Set jetwhalePlugin.hostVersion (or jetwhalePlugin.qaAgentVersion) so the matching " +
+                "JetWhale QA agent can be resolved."
+        }
+    }
+}
 
 // Make sure `packagePlugin` participates in the standard `assemble`/`build` lifecycle so authors get
 // the distributable artifact without invoking the task by name.

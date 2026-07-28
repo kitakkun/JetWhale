@@ -53,6 +53,8 @@ include(":jetwhale-plugins:network:host")
 
 include(":test-annotations")
 
+include(":tools:qa-agent")
+
 include(":demo:shared")
 include(":demo:android")
 include(":demo:desktop")
