@@ -62,6 +62,9 @@ fun ServerSettingsScreenRoot() {
                     e.printStackTrace()
                 }
             },
+            onMcpPluginInstallAllowedChange = {
+                screenChannel.send(ServerSettingsScreenAction.SetMcpPluginInstallAllowed(it))
+            },
             onAddCertificate = {
                 screenChannel.send(ServerSettingsScreenAction.AddCertificate)
             },

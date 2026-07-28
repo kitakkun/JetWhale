@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.server
 
+import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -10,8 +11,8 @@ import soil.query.buildSubscriptionKey
 @Inject
 @ContributesBinding(AppScope::class)
 class DefaultServerStatusSubscriptionKey(
-    private val ktorWebSocketServer: KtorWebSocketServer,
+    private val debugWebSocketServer: DebugWebSocketServer,
 ) : ServerStatusSubscriptionKey by buildSubscriptionKey(
     id = SubscriptionId("server_status"),
-    subscribe = { ktorWebSocketServer.statusFlow },
+    subscribe = { debugWebSocketServer.statusFlow },
 )

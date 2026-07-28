@@ -2,10 +2,15 @@ package com.kitakkun.jetwhale.host.drawer
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import com.kitakkun.jetwhale.host.architecture.ActionResultEffect
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.HostNavigationRequest
+import com.kitakkun.jetwhale.host.navigation.toSegmentedMenu
+import com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu
 import soil.query.compose.rememberSubscription
 
 @Composable
@@ -20,6 +25,9 @@ fun ToolingScaffoldRoot(
     isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
     onClickBringBack: (pluginId: String, sessionId: String) -> Unit,
     onSelectedSessionChange: (selectedSession: DebugSession) -> Unit,
+    onNavigateHome: () -> Unit,
+    onNavigateSettings: (SettingsScreenSegmentedMenu) -> Unit,
+    onNavigateLogViewer: () -> Unit,
     content: @Composable () -> Unit,
 ) {
     SoilDataBoundary(
@@ -57,6 +65,49 @@ fun ToolingScaffoldRoot(
         LaunchedEffect(uiState.selectedSessionId) {
             val selectedSession = uiState.selectedSession ?: return@LaunchedEffect
             onSelectedSessionChange(selectedSession)
+        }
+
+        // Publish the drawer's selection so a caller outside the composition (the MCP server) can
+        // read what the window is pointed at; the destination itself is published by JetWhaleApp.
+        LaunchedEffect(uiState.selectedSessionId, uiState.selectedPluginId) {
+            screenContext.hostNavigationService.updateSelection(
+                selectedSessionId = uiState.selectedSessionId.takeIf { it.isNotEmpty() },
+                selectedPluginId = uiState.selectedPluginId.takeIf { it.isNotEmpty() },
+            )
+        }
+
+        // The collector below outlives every recomposition, so it must not close over the sessions
+        // and ui state of the composition that started it.
+        val currentSessions by rememberUpdatedState(debugSessions)
+        val currentUiState by rememberUpdatedState(uiState)
+
+        // The single collector of navigation requests: only here are both the screen channel and
+        // the navigation callbacks in scope, and the request channel delivers each request once.
+        LaunchedEffect(screenChannel) {
+            screenContext.hostNavigationService.requests.collect { request ->
+                when (request) {
+                    HostNavigationRequest.Home -> onNavigateHome()
+
+                    HostNavigationRequest.Info -> onClickInfo()
+
+                    HostNavigationRequest.LogViewer -> onNavigateLogViewer()
+
+                    is HostNavigationRequest.Settings -> onNavigateSettings(request.section.toSegmentedMenu())
+
+                    is HostNavigationRequest.Plugin -> {
+                        val targetSession = currentSessions.firstOrNull { it.id == request.sessionId }
+                            ?: currentUiState.selectedSession
+                            ?: return@collect
+                        // Drive the same path a drawer click takes, so an MCP-driven navigation and a
+                        // click are indistinguishable downstream.
+                        if (targetSession.id != currentUiState.selectedSessionId) {
+                            screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
+                        }
+                        screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
+                        onClickPlugin(request.pluginId, targetSession.id)
+                    }
+                }
+            }
         }
 
         ToolingScaffold(

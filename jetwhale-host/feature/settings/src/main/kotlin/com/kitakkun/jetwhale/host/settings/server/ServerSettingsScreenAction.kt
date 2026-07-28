@@ -10,6 +10,7 @@ sealed interface ServerSettingsScreenAction {
     data object ApplyMcpPortChange : ServerSettingsScreenAction
     data object ConfirmApplyMcpPortChange : ServerSettingsScreenAction
     data object DismissApplyMcpPortDialog : ServerSettingsScreenAction
+    data class SetMcpPluginInstallAllowed(val allowed: Boolean) : ServerSettingsScreenAction
 
     data object AddCertificate : ServerSettingsScreenAction
     data class SetActiveCertificate(val id: String) : ServerSettingsScreenAction

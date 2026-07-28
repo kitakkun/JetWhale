@@ -67,6 +67,8 @@
     <string name="mcp_setup_claude_code_label">Claude Code</string>
     <string name="mcp_setup_json_label">JSON 設定</string>
     <string name="mcp_setup_open_guide">セットアップガイドを開く</string>
+    <string name="mcp_plugin_install_allowed_label">AIエージェントによる公式プラグインのインストールを許可</string>
+    <string name="mcp_plugin_install_allowed_note">既定ではオフです。オンにすると、MCPサーバーに接続したAIエージェントが公式カタログのプラグインをインストールできます（JetWhale に新しいコードが読み込まれます）。任意の Maven coordinates からのインストールはこの経路では行えません。</string>
     <string name="copy_to_clipboard">コピー</string>
     <string name="dialog_ok">OK</string>
     <string name="dialog_cancel">キャンセル</string>

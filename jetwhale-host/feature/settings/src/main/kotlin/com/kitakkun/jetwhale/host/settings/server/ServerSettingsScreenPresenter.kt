@@ -55,6 +55,7 @@ fun serverSettingsScreenPresenter(
     val generateCertificateMutation = rememberMutation(presenterContext.generateSslCertificateMutationKey)
     val activateCertificateMutation = rememberMutation(presenterContext.activateSslCertificateMutationKey)
     val deleteCertificateMutation = rememberMutation(presenterContext.deleteSslCertificateMutationKey)
+    val mcpPluginInstallAllowedMutation = rememberMutation(presenterContext.mcpPluginInstallAllowedMutationKey)
 
     val savedDebugPortText by rememberUpdatedState(debuggerSettings.serverPort.toString())
     val savedMcpPortText by rememberUpdatedState(debuggerSettings.mcpServerPort.toString())
@@ -148,6 +149,10 @@ fun serverSettingsScreenPresenter(
                 showMcpApplyConfirmDialog = false
             }
 
+            is ServerSettingsScreenAction.SetMcpPluginInstallAllowed -> {
+                mcpPluginInstallAllowedMutation.mutateAsync(action.allowed)
+            }
+
             ServerSettingsScreenAction.AddCertificate -> {
                 // A newly generated certificate becomes the active one; the running TLS server
                 // hot-swaps to it automatically.
@@ -218,6 +223,7 @@ fun serverSettingsScreenPresenter(
               }
             }
         """.trimIndent(),
+        mcpPluginInstallAllowed = debuggerSettings.mcpPluginInstallAllowed,
         isDebugApplyVisible = isDebugDirty || isDebugStartFailed,
         isMcpApplyVisible = isMcpDirty || isMcpStartFailed,
         isDebugApplyEnabled = isDebugPortValid && (isDebugDirty || isDebugStartFailed),

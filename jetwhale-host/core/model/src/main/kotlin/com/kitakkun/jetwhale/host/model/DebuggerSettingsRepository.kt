@@ -10,6 +10,12 @@ interface DebuggerSettingsRepository {
     val mcpServerPortFlow: StateFlow<Int>
     val wssPortFlow: StateFlow<Int>
     val wssEnabledFlow: StateFlow<Boolean>
+
+    /**
+     * Whether an AI agent connected to the MCP server may install official plugins. Off by default:
+     * installing a plugin loads new code into the host process, so it stays an opt-in.
+     */
+    val mcpPluginInstallAllowedFlow: StateFlow<Boolean>
     suspend fun readServerPort(): Int
     suspend fun readMcpServerPort(): Int
     suspend fun readWssPort(): Int
@@ -21,4 +27,5 @@ interface DebuggerSettingsRepository {
     suspend fun updateMcpServerPort(port: Int)
     suspend fun updateWssPort(port: Int)
     suspend fun updateWssEnabled(enabled: Boolean)
+    suspend fun updateMcpPluginInstallAllowed(enabled: Boolean)
 }

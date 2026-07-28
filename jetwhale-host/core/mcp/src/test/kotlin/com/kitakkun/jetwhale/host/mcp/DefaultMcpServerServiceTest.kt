@@ -4,7 +4,6 @@ import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
-import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
@@ -51,6 +50,7 @@ class DefaultMcpServerServiceTest {
         pluginInstanceService = pluginInstanceService,
         mcpActivityRepository = mcpActivityRepository,
         builtInTools = emptySet(),
+        statusHolder = McpServerStatusHolder(),
     )
 
     private val host = "localhost"
@@ -74,6 +74,7 @@ class DefaultMcpServerServiceTest {
                 FakeMcpTool("fake.toolB"),
                 FakeMcpTool("fake.toolC"),
             ),
+            statusHolder = McpServerStatusHolder(),
         )
         val toolsPort = java.net.ServerSocket(0).use { it.localPort }
         serviceWithTools.start(host, toolsPort)
@@ -95,6 +96,7 @@ class DefaultMcpServerServiceTest {
             pluginInstanceService = pluginInstanceService,
             mcpActivityRepository = mcpActivityRepository,
             builtInTools = setOf(FakeMcpTool("fake.echo", response = "pong")),
+            statusHolder = McpServerStatusHolder(),
         )
         val echoPort = java.net.ServerSocket(0).use { it.localPort }
         serviceWithTool.start(host, echoPort)
@@ -148,7 +150,6 @@ class DefaultMcpServerServiceTest {
         }
     }
 
-    @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `plugin tools registered by a failed start do not survive into the next start`() = runBlocking {
         val testPluginId = "com.example.test"
@@ -180,7 +181,6 @@ class DefaultMcpServerServiceTest {
         }
     }
 
-    @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `plugin tools are registered when McpCapablePlugin instance exists at server start`() = runBlocking {
         val testPluginId = "com.example.test"
@@ -218,7 +218,6 @@ class DefaultMcpServerServiceTest {
         }
     }
 
-    @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `plugin tools are registered via pluginInstanceEventFlow after server start`() = runBlocking {
         val testPluginId = "com.example.test"
@@ -242,7 +241,6 @@ class DefaultMcpServerServiceTest {
         }
     }
 
-    @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `plugin tools are unregistered when Disposed event is received`() = runBlocking {
         val testPluginId = "com.example.test"
@@ -301,7 +299,6 @@ class DefaultMcpServerServiceTest {
         }
     }
 
-    @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `every MCP-capable plugin in a session is reported as capable`() = runBlocking {
         // Regression guard: the drawer's "exposes MCP tools" badge reads mcpCapablePluginsFlow, and
@@ -344,6 +341,7 @@ class DefaultMcpServerServiceTest {
                     runningDuringCall = mcpActivityRepository.activityFlow.value.runningInvocations.map { it.toolName }
                 },
             ),
+            statusHolder = McpServerStatusHolder(),
         )
         val observedPort = java.net.ServerSocket(0).use { it.localPort }
         serviceWithTool.start(host, observedPort)
@@ -368,6 +366,7 @@ class DefaultMcpServerServiceTest {
             pluginInstanceService = pluginInstanceService,
             mcpActivityRepository = mcpActivityRepository,
             builtInTools = setOf(FakeMcpTool("fake.targeted")),
+            statusHolder = McpServerStatusHolder(),
         )
         val targetedPort = java.net.ServerSocket(0).use { it.localPort }
         serviceWithTool.start(host, targetedPort)
@@ -397,6 +396,7 @@ class DefaultMcpServerServiceTest {
             pluginInstanceService = pluginInstanceService,
             mcpActivityRepository = mcpActivityRepository,
             builtInTools = setOf(FailingMcpTool("fake.failing")),
+            statusHolder = McpServerStatusHolder(),
         )
         val failingPort = java.net.ServerSocket(0).use { it.localPort }
         serviceWithTool.start(host, failingPort)
@@ -420,6 +420,7 @@ class DefaultMcpServerServiceTest {
             pluginInstanceService = pluginInstanceService,
             mcpActivityRepository = mcpActivityRepository,
             builtInTools = setOf(FakeMcpTool("fake.recorded")),
+            statusHolder = McpServerStatusHolder(),
         )
         val recordedPort = java.net.ServerSocket(0).use { it.localPort }
         serviceWithTool.start(host, recordedPort)
@@ -452,6 +453,7 @@ class DefaultMcpServerServiceTest {
             pluginInstanceService = pluginInstanceService,
             mcpActivityRepository = mcpActivityRepository,
             builtInTools = setOf(MediaMcpTool("fake.captured")),
+            statusHolder = McpServerStatusHolder(),
         )
         val capturedPort = java.net.ServerSocket(0).use { it.localPort }
         serviceWithTool.start(host, capturedPort)
@@ -477,6 +479,7 @@ class DefaultMcpServerServiceTest {
             pluginInstanceService = pluginInstanceService,
             mcpActivityRepository = mcpActivityRepository,
             builtInTools = setOf(ErrorResultMcpTool("fake.rejected")),
+            statusHolder = McpServerStatusHolder(),
         )
         val rejectedPort = java.net.ServerSocket(0).use { it.localPort }
         serviceWithTool.start(host, rejectedPort)
@@ -506,6 +509,7 @@ class DefaultMcpServerServiceTest {
             pluginInstanceService = pluginInstanceService,
             mcpActivityRepository = mcpActivityRepository,
             builtInTools = setOf(StructuredMcpTool("fake.structured")),
+            statusHolder = McpServerStatusHolder(),
         )
         val structuredPort = java.net.ServerSocket(0).use { it.localPort }
         serviceWithTool.start(host, structuredPort)
@@ -533,6 +537,7 @@ class DefaultMcpServerServiceTest {
             pluginInstanceService = pluginInstanceService,
             mcpActivityRepository = mcpActivityRepository,
             builtInTools = setOf(FailingMcpTool("fake.failing")),
+            statusHolder = McpServerStatusHolder(),
         )
         val failingPort = java.net.ServerSocket(0).use { it.localPort }
         serviceWithTool.start(host, failingPort)
@@ -554,7 +559,6 @@ class DefaultMcpServerServiceTest {
         assertEquals("boom", record.response)
     }
 
-    @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `a plugin tool call is attributed to the plugin that owns it`() = runBlocking {
         val testPluginId = "com.example.test"
@@ -674,7 +678,6 @@ private class FailingMcpTool(private val name: String) : JetWhaleMcpTool {
     }
 }
 
-@OptIn(ExperimentalJetWhaleApi::class)
 private class FakeMcpCapablePlugin(private val toolName: String = "com.example.test.greet") :
     JetWhaleHostPlugin(),
     JetWhaleMcpCapablePlugin {
