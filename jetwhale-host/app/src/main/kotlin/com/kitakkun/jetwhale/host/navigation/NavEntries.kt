@@ -15,6 +15,7 @@ import androidx.navigation3.runtime.NavKey
 import com.kitakkun.jetwhale.host.LocalComposeWindow
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
+import com.kitakkun.jetwhale.host.drawer.McpToolsScreenRoot
 import com.kitakkun.jetwhale.host.log_viewer_window_title
 import com.kitakkun.jetwhale.host.plugin.PluginScreenRoot
 import com.kitakkun.jetwhale.host.screen.EmptyPluginScreen
@@ -181,6 +182,29 @@ fun EntryProviderScope<NavKey>.logViewerEntry() {
             },
         ) {
             LogViewerScreenRoot()
+        }
+    }
+}
+
+context(appGraph: JetWhaleAppGraph)
+fun EntryProviderScope<NavKey>.mcpToolsEntry() {
+    entry<McpToolsNavKey>(
+        // The browser sizes itself; the platform default width would squeeze it to a narrow column.
+        metadata = StableDialogSceneStrategy.dialog(
+            dialogProperties = DialogProperties(
+                usePlatformDefaultWidth = false,
+            ),
+        ),
+    ) { navKey ->
+        context(
+            retain {
+                appGraph.mcpToolsScreenContext
+            },
+        ) {
+            McpToolsScreenRoot(
+                initialPluginId = navKey.pluginId,
+                initialSessionId = navKey.sessionId,
+            )
         }
     }
 }

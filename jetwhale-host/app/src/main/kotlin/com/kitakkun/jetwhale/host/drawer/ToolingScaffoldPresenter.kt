@@ -12,12 +12,20 @@ import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.MutationErrorEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.McpActivity
+import com.kitakkun.jetwhale.host.model.McpCapablePlugins
+import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.delay
 import soil.query.compose.rememberMutation
+import kotlin.time.Duration.Companion.milliseconds
+
+/** How long an MCP tool call keeps showing after it completes. */
+private val AI_OPERATION_INDICATOR_LINGER = 1500.milliseconds
 
 sealed interface ToolingScaffoldScreenAction {
     data class SelectSession(val session: DebugSession) : ToolingScaffoldScreenAction
@@ -38,6 +46,8 @@ fun toolingScaffoldPresenter(
     debugSessions: ImmutableList<DebugSession>,
     enabledPluginIds: Set<String>,
     hasFailedJars: Boolean,
+    mcpActivity: McpActivity,
+    mcpCapablePlugins: McpCapablePlugins,
 ): ToolingScaffoldUiState {
     var selectedSessionId by retain { mutableStateOf("") }
     var selectedPluginId by retain { mutableStateOf("") }
@@ -45,10 +55,31 @@ fun toolingScaffoldPresenter(
         derivedStateOf { debugSessions.firstOrNull { it.id == selectedSessionId } }
     }
 
+    // A tool call can start and finish faster than the UI samples runningInvocations, so watching
+    // that list drops fast calls entirely. Latch "operating" on whenever startedCount changes and
+    // hold it briefly instead: a fast call still registers, and a burst reads as one continuous
+    // operation because each new call restarts the hold. Keying the effect on the monotonic counter
+    // means a skipped intermediate value still re-fires, since the value differs across frames.
+    var operating by remember { mutableStateOf(false) }
+    LaunchedEffect(mcpActivity.startedCount) {
+        if (mcpActivity.startedCount > 0L) {
+            operating = true
+            delay(AI_OPERATION_INDICATOR_LINGER)
+            operating = false
+        }
+    }
+    val activeInvocation = mcpActivity.lastStartedInvocation?.takeIf { operating }
+
     val setPluginEnabledMutation = rememberMutation(presenterContext.setPluginEnabledMutationKey)
 
-    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds) {
+    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, activeInvocation) {
         derivedStateOf {
+            // Attribute the operation only when it targets the session the drawer is showing;
+            // highlighting a plugin for some other device would be misleading.
+            val aiControlledPluginId = activeInvocation
+                ?.takeIf { it.sessionId != null && it.sessionId == selectedSession?.id }
+                ?.pluginId
+
             loadedPlugins.map { metaData ->
                 val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
                 val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
@@ -69,6 +100,8 @@ fun toolingScaffoldPresenter(
 
                         else -> PluginAvailability.Disabled
                     },
+                    underAiControl = aiControlledPluginId == metaData.id,
+                    exposesMcpTools = mcpCapablePlugins.toolsFor(selectedSession?.id, metaData.id).isNotEmpty(),
                 )
             }.toImmutableList()
         }
@@ -112,5 +145,9 @@ fun toolingScaffoldPresenter(
         sessions = debugSessions,
         plugins = plugins,
         hasFailedJars = hasFailedJars,
+        aiActivity = AiActivityUiState(
+            isAgentConnected = mcpActivity.hasConnectedClient,
+            operatingToolName = activeInvocation?.toolName,
+        ),
     )
 }

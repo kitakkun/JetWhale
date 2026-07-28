@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp
 
+import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import kotlinx.coroutines.flow.StateFlow
 
@@ -15,6 +16,9 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface McpServerService {
     val statusFlow: StateFlow<McpServerStatus>
+
+    /** Plugins currently offering their own MCP tools, so the UI can mark them ahead of any call. */
+    val mcpCapablePluginsFlow: StateFlow<McpCapablePlugins>
 
     /**
      * Start the MCP HTTP+SSE server. Idempotent — calling while already running is a no-op.

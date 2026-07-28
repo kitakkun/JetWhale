@@ -5,6 +5,7 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventType
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
+import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.jsonFloat
@@ -16,7 +17,6 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
-import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -27,8 +27,8 @@ import kotlinx.serialization.json.JsonObject
 class ScrollMcpTool(
     private val pluginComposeSceneService: PluginComposeSceneService,
 ) : JetWhaleMcpTool {
-    override fun register(server: Server) {
-        server.addTool(
+    override fun register(registrar: McpToolRegistrar) {
+        registrar.addTool(
             name = "jetwhale.scroll",
             description = "Dispatches a scroll event at the given pixel coordinates in a plugin's UI. " +
                 "Positive deltaY scrolls down, negative scrolls up. " +

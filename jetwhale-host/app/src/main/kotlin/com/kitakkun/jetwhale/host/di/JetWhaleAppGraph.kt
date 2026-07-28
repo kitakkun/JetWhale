@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.di
 import com.kitakkun.jetwhale.host.ApplicationLifecycleOwner
 import com.kitakkun.jetwhale.host.BuildConfig
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
+import com.kitakkun.jetwhale.host.drawer.McpToolsScreenContext
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldScreenContext
 import com.kitakkun.jetwhale.host.mcp.McpServerService
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
@@ -39,6 +40,7 @@ interface JetWhaleAppGraph : ScreenContext {
     val swrClient: SwrClientPlus
 
     val toolingScaffoldScreenContext: ToolingScaffoldScreenContext
+    val mcpToolsScreenContext: McpToolsScreenContext
     val licensesScreenContext: LicensesScreenContext
     val settingsScreenContext: SettingsScreenContext
     val pluginScreenContextFactory: PluginScreenContext.Factory

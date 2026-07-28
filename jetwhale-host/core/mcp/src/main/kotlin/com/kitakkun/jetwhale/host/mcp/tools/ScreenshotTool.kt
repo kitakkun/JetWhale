@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.asSkiaBitmap
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
+import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.jsonFloat
@@ -22,7 +23,6 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
-import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.ImageContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
@@ -38,8 +38,8 @@ import org.jetbrains.skia.Image as SkiaImage
 class ScreenshotMcpTool(
     private val pluginComposeSceneService: PluginComposeSceneService,
 ) : JetWhaleMcpTool {
-    override fun register(server: Server) {
-        server.addTool(
+    override fun register(registrar: McpToolRegistrar) {
+        registrar.addTool(
             name = "jetwhale.screenshot",
             description = "Captures the current rendered frame of a plugin's Compose UI as a PNG image.",
             inputSchema = ToolSchema(

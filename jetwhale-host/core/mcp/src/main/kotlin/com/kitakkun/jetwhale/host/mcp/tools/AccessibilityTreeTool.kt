@@ -9,6 +9,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
+import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.stringProperty
@@ -20,7 +21,6 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
-import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
@@ -35,8 +35,8 @@ import kotlinx.serialization.json.JsonObject
 class GetAccessibilityTreeMcpTool(
     private val pluginComposeSceneService: PluginComposeSceneService,
 ) : JetWhaleMcpTool {
-    override fun register(server: Server) {
-        server.addTool(
+    override fun register(registrar: McpToolRegistrar) {
+        registrar.addTool(
             name = "jetwhale.getAccessibilityTree",
             description = "Returns the Compose semantics (accessibility) tree of a plugin's UI. " +
                 "Use this to identify elements by role or label and obtain their pixel bounds for targeted clicks.",

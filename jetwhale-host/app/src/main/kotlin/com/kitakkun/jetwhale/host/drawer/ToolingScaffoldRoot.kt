@@ -15,6 +15,7 @@ fun ToolingScaffoldRoot(
     onClickPluginSettings: () -> Unit,
     onClickInfo: () -> Unit,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
+    onOpenMcpTools: (pluginId: String?, sessionId: String?) -> Unit,
     onClickPopout: (pluginId: String, pluginName: String, sessionId: String) -> Unit,
     isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
     onClickBringBack: (pluginId: String, sessionId: String) -> Unit,
@@ -26,7 +27,9 @@ fun ToolingScaffoldRoot(
         state2 = rememberSubscription(screenContext.debugSessionsSubscriptionKey),
         state3 = rememberSubscription(screenContext.enabledPluginsSubscriptionKey),
         state4 = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey),
-    ) { loadedPlugins, debugSessions, enabledPluginIds, failedJars ->
+        state5 = rememberSubscription(screenContext.mcpActivitySubscriptionKey),
+        state6 = rememberSubscription(screenContext.mcpCapablePluginsSubscriptionKey),
+    ) { loadedPlugins, debugSessions, enabledPluginIds, failedJars, mcpActivity, mcpCapablePlugins ->
         val screenChannel = rememberScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>()
         ActionResultEffect(screenChannel) { result ->
             when (result) {
@@ -44,6 +47,8 @@ fun ToolingScaffoldRoot(
                 debugSessions = debugSessions,
                 enabledPluginIds = enabledPluginIds,
                 hasFailedJars = failedJars.isNotEmpty(),
+                mcpActivity = mcpActivity,
+                mcpCapablePlugins = mcpCapablePlugins,
             )
         }
 
@@ -64,6 +69,10 @@ fun ToolingScaffoldRoot(
                 screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it))
                 onClickPlugin(it, selectedSession.id)
             },
+            // The browser tolerates a missing session, so the badge stays usable while no session
+            // is selected: it simply opens with the session filter on "All".
+            onOpenMcpTools = { onOpenMcpTools(it, uiState.selectedSession?.id) },
+            onOpenAllMcpTools = { onOpenMcpTools(null, null) },
             onClickPopout = {
                 val selectedSession = uiState.selectedSession ?: return@ToolingScaffold
                 onClickPopout(it.id, it.name, selectedSession.id)

@@ -10,6 +10,7 @@ import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.text.AnnotatedString
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
+import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.stringProperty
@@ -20,7 +21,6 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
-import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -31,8 +31,8 @@ import kotlinx.serialization.json.JsonObject
 class TypeMcpTool(
     private val pluginComposeSceneService: PluginComposeSceneService,
 ) : JetWhaleMcpTool {
-    override fun register(server: Server) {
-        server.addTool(
+    override fun register(registrar: McpToolRegistrar) {
+        registrar.addTool(
             name = "jetwhale.type",
             description = "Types text or dispatches a special key into a plugin's UI. " +
                 "Use 'text' for printable characters. Use 'specialKey' for keys like ENTER, BACKSPACE, TAB, ESCAPE, " +

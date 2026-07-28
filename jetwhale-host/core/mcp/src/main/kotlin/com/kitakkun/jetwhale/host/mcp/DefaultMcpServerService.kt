@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.host.mcp
 
+import com.kitakkun.jetwhale.host.model.McpActivityRepository
+import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
@@ -18,6 +20,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.sse.SSE
+import io.ktor.server.sse.heartbeat
 import io.ktor.server.sse.sse
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
@@ -41,6 +44,13 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.time.Duration.Companion.seconds
+
+/**
+ * How often the server probes that an MCP client is still attached. Short because the AI activity
+ * indicator is only as truthful as this interval, and the connection is local.
+ */
+private val CLIENT_LIVENESS_PROBE_PERIOD = 5.seconds
 
 @OptIn(ExperimentalJetWhaleApi::class)
 @Inject
@@ -48,6 +58,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 @ContributesBinding(AppScope::class)
 class DefaultMcpServerService(
     private val pluginInstanceService: PluginInstanceService,
+    private val mcpActivityRepository: McpActivityRepository,
     private val builtInTools: Set<JetWhaleMcpTool>,
 ) : McpServerService {
 
@@ -60,6 +71,8 @@ class DefaultMcpServerService(
 
     private val _statusFlow = MutableStateFlow<McpServerStatus>(McpServerStatus.Stopped)
     override val statusFlow: StateFlow<McpServerStatus> = _statusFlow.asStateFlow()
+
+    override val mcpCapablePluginsFlow: StateFlow<McpCapablePlugins> = toolRegistry.mcpCapablePluginsFlow
 
     override suspend fun start(host: String, port: Int) {
         if (!running.compareAndSet(false, true)) return
@@ -86,13 +99,31 @@ class DefaultMcpServerService(
             install(SSE)
             routing {
                 sse("/sse") {
+                    // An idle MCP connection carries no server-to-client traffic, so without a
+                    // periodic write the server never learns that the agent went away and the UI
+                    // would keep claiming an agent is attached. The comment-only event is ignored
+                    // by SSE clients; the failing write is what surfaces the disconnect.
+                    heartbeat { period = CLIENT_LIVENESS_PROBE_PERIOD }
                     val transport = SseServerTransport("/message", this)
                     // transport.sessionId: MCP-library-assigned UUID per SSE connection (not a JetWhale device session)
                     transports[transport.sessionId] = transport
                     val mcpServer = createMcpServer()
-                    mcpServer.onClose { transports.remove(transport.sessionId) }
-                    mcpServer.createSession(transport)
-                    awaitCancellation()
+                    // A departing client surfaces either as the session closing or as this block
+                    // being cancelled, depending on how the connection dropped. Both paths lead
+                    // here, and only whichever arrives first may take effect.
+                    val disconnected = AtomicBoolean(false)
+                    fun markDisconnected() {
+                        if (!disconnected.compareAndSet(false, true)) return
+                        transports.remove(transport.sessionId)
+                        mcpActivityRepository.clientDisconnected()
+                    }
+                    mcpActivityRepository.clientConnected()
+                    try {
+                        mcpServer.createSession(transport).onClose { markDisconnected() }
+                        awaitCancellation()
+                    } finally {
+                        markDisconnected()
+                    }
                 }
                 post("/message") {
                     // sessionId here is the MCP transport session ID (matches transport.sessionId above),
@@ -149,6 +180,7 @@ class DefaultMcpServerService(
         _statusFlow.value = McpServerStatus.Stopping
         ktorServer?.stop(gracePeriodMillis = 500, timeoutMillis = 2000)
         ktorServer = null
+        mcpActivityRepository.clear()
         _statusFlow.value = McpServerStatus.Stopped
     }
 
@@ -177,10 +209,11 @@ class DefaultMcpServerService(
             ),
         )
 
+        val registrar = McpToolRegistrar(server, mcpActivityRepository)
         for (tool in builtInTools) {
-            tool.register(server)
+            tool.register(registrar)
         }
-        registerPluginTools(server)
+        registerPluginTools(registrar)
         return server
     }
 
@@ -192,7 +225,7 @@ class DefaultMcpServerService(
      * A `sessionId` parameter is automatically injected into every plugin tool's schema
      * so the caller can identify which session to route the call to.
      */
-    private fun registerPluginTools(server: Server) {
+    private fun registerPluginTools(registrar: McpToolRegistrar) {
         for ((toolName, descriptor) in toolRegistry.allRegistrations()) {
             val sessionIdProperty = buildJsonObject {
                 put("type", "string")
@@ -206,10 +239,11 @@ class DefaultMcpServerService(
                 properties = JsonObject(mapOf("sessionId" to sessionIdProperty) + pluginProperties),
                 required = listOf("sessionId") + descriptor.parameters.filterValues { it.required }.keys,
             )
-            server.addTool(
+            registrar.addPluginTool(
                 name = toolName,
                 description = descriptor.description,
                 inputSchema = inputSchema,
+                resolvePluginIdForSession = { sessionId -> toolRegistry.pluginIdFor(toolName, sessionId) },
             ) { request ->
                 // Forward the arguments as raw JSON so structured (object/array) parameters keep
                 // their shape; the command's parameter DSL decodes each value by its declared type.

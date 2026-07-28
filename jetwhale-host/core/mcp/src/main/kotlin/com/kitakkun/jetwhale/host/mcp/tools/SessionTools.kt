@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
+import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.model.DebugSession
@@ -12,7 +13,6 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
-import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
@@ -76,8 +76,8 @@ private fun DebugSession.toSessionInfo() = SessionInfo(
 class ListSessionsMcpTool(
     private val debugSessionRepository: DebugSessionRepository,
 ) : JetWhaleMcpTool {
-    override fun register(server: Server) {
-        server.addTool(
+    override fun register(registrar: McpToolRegistrar) {
+        registrar.addTool(
             name = "jetwhale.listSessions",
             description = "Lists all active debug sessions currently connected to JetWhale.",
             inputSchema = ToolSchema(),
@@ -95,8 +95,8 @@ class ListPluginsMcpTool(
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val pluginInstanceService: PluginInstanceService,
 ) : JetWhaleMcpTool {
-    override fun register(server: Server) {
-        server.addTool(
+    override fun register(registrar: McpToolRegistrar) {
+        registrar.addTool(
             name = "jetwhale.listPlugins",
             description = "Lists plugins installed in the specified debug session, including whether each plugin supports additional MCP tools.",
             inputSchema = ToolSchema(
