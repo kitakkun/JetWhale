@@ -87,6 +87,7 @@ the two situations:
 |---|---|
 | `"activated": false` | the host has **not enabled this plugin id** — waiting will not help. Enable it with `jetwhale.setPluginEnabled` (§4), or check the id |
 | `"activated": true, "ready": false` | connected, still preparing — keep polling |
+| both false for one app under `apps` | that app was disconnected (see below) — it will never come back |
 
 **Driving the plugin.** `/send` and `/request` speak the messenger's raw layer, so the agent needs no
 compile-time knowledge of the plugin. `messageType` is the payload class's `serialName` (its
@@ -104,6 +105,30 @@ curl -s 127.0.0.1:7100/send -H 'Content-Type: application/json' -d '{
 `serialName` wrong and the host reports no registered handler — check it against the plugin's
 protocol module rather than guessing.
 
+**Several apps at once.** A session is *one app*, and the host groups sessions by device into a
+two-level selector (pick a device, then an app under it). One `--app` per app gives you exactly that
+shape from a single process — same device, several apps — which is what you need to check the
+selector, per-session state isolation, and anything that must not leak between apps:
+
+```bash
+-PjetwhaleQaAgentArgs="--app checkout --app catalog --plugin com.example.myplugin"
+```
+
+Every app registers the same `--plugin` set but its own instances, so `checkout` and `catalog` are
+independent sessions. Without `--app` you get the single `qa-agent` app as before, and every `app`
+field below can be omitted; with several, calls that leave it out are refused rather than guessed at.
+
+```bash
+curl -s 127.0.0.1:7100/send -H 'Content-Type: application/json' \
+  -d '{"app":"checkout","pluginId":"com.example.myplugin","messageType":"…","payload":{}}'
+```
+
+**Disconnecting one app.** `POST /disconnect {"app":"checkout"}` gives up that app's session alone
+and leaves the others connected — the way to exercise what the host does when a debuggee goes away
+(does the selector fall back, does the scene survive, is per-session state kept or dropped?) without
+killing the process. It is one-way: a stopped session cannot be revived, so restart the agent when
+you need the app back. `POST /shutdown` still stops everything.
+
 **This is send-only.** Inbound handlers resolve their serializer from a reified type parameter
 (`onEvent<E>` / `onRequest<REQ, R>`), so there is no raw shape to register a catch-all against: a
 plugin whose flow depends on the *host* requesting the agent (the Network Inspector's mock replies,
@@ -111,12 +136,16 @@ for one) cannot be answered from here. Drive those from the plugin's own MCP too
 
 - Use **`127.0.0.1`, not `localhost`** — the control API binds loopback IPv4 only, and `localhost`
   can resolve to `::1` first and get connection-refused.
-- It shows up as `appName: qa-agent` / `QA Agent (headless)`, so it is never mistaken for a real
-  device. Its `sessionId` is its own — mock rules and transactions are per session.
-- `GET /plugins` lists what it is impersonating, with each one's `activated` / `ready` state;
+- It shows up under `QA Agent (headless)`, with `appName` per `--app` (`qa-agent` by default), so it
+  is never mistaken for a real device. Each app's `sessionId` is its own — mock rules and
+  transactions are per session.
+- `GET /plugins` lists what it is impersonating, with each one's `activated` / `ready` state
+  aggregated over the still-connected apps plus an `apps` breakdown; `GET /health` carries the same
+  split for the apps themselves, and `ready` there means *every connected app* is ready.
   `POST /shutdown` stops it.
 - `POST /fire` (`{"method":"GET","url":"…"}`) injects real HTTP traffic for the bundled Network
-  Inspector — the one plugin-specific shortcut, and it needs no `--plugin`.
+  Inspector — the one plugin-specific shortcut, and it needs no `--plugin`. The client is
+  instrumented per app, so the traffic is recorded against the app you addressed.
 - On startup the agent logs a failed plain-HTTP CA fetch followed by a successful HTTPS one. That
   is the trust-on-first-use probe, not an error.
 
