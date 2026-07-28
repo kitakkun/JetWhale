@@ -42,7 +42,11 @@ class DefaultMcpActivityRepository : McpActivityRepository {
             sessionId = sessionId,
         )
         activityFlow.update {
-            it.copy(runningInvocations = (it.runningInvocations + invocation).toImmutableList())
+            it.copy(
+                runningInvocations = (it.runningInvocations + invocation).toImmutableList(),
+                startedCount = it.startedCount + 1,
+                lastStartedInvocation = invocation,
+            )
         }
         return invocationId
     }

@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
+import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
+import com.kitakkun.jetwhale.host.model.McpToolSummary
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
@@ -106,13 +108,32 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     }
 
     private fun publishCapablePlugins() {
-        val pluginIdsBySessionId = mutableMapOf<String, MutableSet<String>>()
-        registrations.values.forEach { entry ->
+        val toolsBySessionAndPlugin = mutableMapOf<String, MutableMap<String, MutableList<McpToolSummary>>>()
+        registrations.forEach { (toolName, entry) ->
+            val summary = McpToolSummary(
+                name = toolName,
+                description = entry.descriptor.description,
+                parameters = entry.descriptor.parameters.map { (paramName, param) ->
+                    McpToolParameterSummary(
+                        name = paramName,
+                        type = (param.schema["type"] as? JsonPrimitive)?.content.orEmpty(),
+                        required = param.required,
+                        description = param.description,
+                    )
+                },
+            )
             entry.sessionToPlugin.forEach { (sessionId, pluginId) ->
-                pluginIdsBySessionId.getOrPut(sessionId) { mutableSetOf() } += pluginId
+                toolsBySessionAndPlugin
+                    .getOrPut(sessionId) { mutableMapOf() }
+                    .getOrPut(pluginId) { mutableListOf() }
+                    .add(summary)
             }
         }
-        mcpCapablePluginsFlow.value = McpCapablePlugins(pluginIdsBySessionId.mapValues { it.value.toSet() })
+        mcpCapablePluginsFlow.value = McpCapablePlugins(
+            toolsBySessionAndPlugin.mapValues { (_, byPlugin) ->
+                byPlugin.mapValues { (_, tools) -> tools.sortedBy { it.name } }
+            },
+        )
     }
 
     /** Returns all tools that have at least one active session, with their descriptors. */

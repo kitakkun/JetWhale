@@ -17,7 +17,7 @@ class McpToolRegistryTest {
 
     @Test
     fun `no plugins are reported as MCP-capable before anything registers`() {
-        assertEquals(emptyMap(), registry.mcpCapablePluginsFlow.value.pluginIdsBySessionId)
+        assertEquals(emptyMap(), registry.mcpCapablePluginsFlow.value.toolsBySessionAndPlugin)
     }
 
     @Test
@@ -64,7 +64,7 @@ class McpToolRegistryTest {
 
         registry.clear()
 
-        assertEquals(emptyMap(), registry.mcpCapablePluginsFlow.value.pluginIdsBySessionId)
+        assertEquals(emptyMap(), registry.mcpCapablePluginsFlow.value.toolsBySessionAndPlugin)
     }
 
     @Test

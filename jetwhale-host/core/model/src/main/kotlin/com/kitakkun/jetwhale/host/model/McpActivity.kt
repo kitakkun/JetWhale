@@ -24,6 +24,15 @@ data class McpToolInvocation(
 data class McpActivity(
     val connectedClientCount: Int,
     val runningInvocations: ImmutableList<McpToolInvocation>,
+    /**
+     * Monotonically increasing count of tool calls started. A tool call can begin and end faster
+     * than the UI samples [runningInvocations], so that list is often empty between rapid calls and
+     * can't be sampled reliably. Watching this counter change instead never misses a call, because
+     * the value differs across frames even when individual increments are skipped.
+     */
+    val startedCount: Long,
+    /** The most recently started tool call, kept so the UI can name and attribute it. */
+    val lastStartedInvocation: McpToolInvocation?,
 ) {
     val hasConnectedClient: Boolean get() = connectedClientCount > 0
 
@@ -31,6 +40,8 @@ data class McpActivity(
         val Idle = McpActivity(
             connectedClientCount = 0,
             runningInvocations = persistentListOf(),
+            startedCount = 0,
+            lastStartedInvocation = null,
         )
     }
 }
