@@ -14,6 +14,32 @@ fun <T : NavKey> NavBackStack<T>.addSingleTop(index: Int, navKey: T) {
 }
 
 /**
+ * Whether the given plugin is currently shown in a separate popout window for [sessionId].
+ */
+fun NavBackStack<NavKey>.isPluginPoppedOut(pluginId: String, sessionId: String): Boolean = any {
+    it is PluginPopoutNavKey &&
+        it.pluginId == pluginId &&
+        it.sessionId == sessionId
+}
+
+/**
+ * Docks a popped-out plugin: shows it in the main window and closes its popout window.
+ */
+fun NavBackStack<NavKey>.bringPluginBackToMainWindow(pluginId: String, sessionId: String) {
+    addSingleTop(
+        PluginNavKey(
+            pluginId = pluginId,
+            sessionId = sessionId,
+        ),
+    )
+    removeAll {
+        it is PluginPopoutNavKey &&
+            it.pluginId == pluginId &&
+            it.sessionId == sessionId
+    }
+}
+
+/**
  * Makes the plugin screen currently on top of the back stack follow a session switch.
  *
  * If the top entry is a [PluginNavKey] targeting a different session, it is replaced with a

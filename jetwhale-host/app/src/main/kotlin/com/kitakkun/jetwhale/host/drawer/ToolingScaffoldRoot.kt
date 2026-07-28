@@ -16,6 +16,8 @@ fun ToolingScaffoldRoot(
     onClickInfo: () -> Unit,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
     onClickPopout: (pluginId: String, pluginName: String, sessionId: String) -> Unit,
+    isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
+    onClickBringBack: (pluginId: String, sessionId: String) -> Unit,
     onSelectedSessionChange: (selectedSession: DebugSession) -> Unit,
     content: @Composable () -> Unit,
 ) {
@@ -65,6 +67,15 @@ fun ToolingScaffoldRoot(
             onClickPopout = {
                 val selectedSession = uiState.selectedSession ?: return@ToolingScaffold
                 onClickPopout(it.id, it.name, selectedSession.id)
+            },
+            isPoppedOut = { pluginId ->
+                val selectedSession = uiState.selectedSession ?: return@ToolingScaffold false
+                isPoppedOut(pluginId, selectedSession.id)
+            },
+            onClickBringBack = {
+                val selectedSession = uiState.selectedSession ?: return@ToolingScaffold
+                screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it.id))
+                onClickBringBack(it.id, selectedSession.id)
             },
             onSelectSession = { screenChannel.send(ToolingScaffoldScreenAction.SelectSession(it)) },
             onSetPluginEnabled = { pluginId, enabled ->
