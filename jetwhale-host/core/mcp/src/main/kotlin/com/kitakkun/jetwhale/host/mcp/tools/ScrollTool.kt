@@ -40,11 +40,11 @@ class ScrollMcpTool(
                         "sessionId" to stringProperty("The session ID."),
                         "x" to numberProperty("X coordinate in pixels from the left edge of the plugin UI."),
                         "y" to numberProperty("Y coordinate in pixels from the top edge of the plugin UI."),
-                        "deltaX" to numberProperty("Horizontal scroll delta in pixels. Positive scrolls right, negative scrolls left."),
-                        "deltaY" to numberProperty("Vertical scroll delta in pixels. Positive scrolls down, negative scrolls up."),
+                        "deltaX" to numberProperty("Horizontal scroll delta in pixels. Positive scrolls right, negative scrolls left. Defaults to 0."),
+                        "deltaY" to numberProperty("Vertical scroll delta in pixels. Positive scrolls down, negative scrolls up. Defaults to 0."),
                     ),
                 ),
-                required = listOf("pluginId", "sessionId", "x", "y", "deltaX", "deltaY"),
+                required = listOf("pluginId", "sessionId", "x", "y"),
             ),
         ) { request ->
             val pluginId = request.arguments?.get("pluginId")?.jsonContent
@@ -55,10 +55,12 @@ class ScrollMcpTool(
                 ?: return@addTool errorResult("Missing required argument: x")
             val y = request.arguments?.get("y")?.jsonFloat
                 ?: return@addTool errorResult("Missing required argument: y")
-            val deltaX = request.arguments?.get("deltaX")?.jsonFloat
-                ?: return@addTool errorResult("Missing required argument: deltaX")
-            val deltaY = request.arguments?.get("deltaY")?.jsonFloat
-                ?: return@addTool errorResult("Missing required argument: deltaY")
+            val deltaX = request.arguments?.get("deltaX")?.let {
+                it.jsonFloat ?: return@addTool errorResult("deltaX must be a number")
+            } ?: 0f
+            val deltaY = request.arguments?.get("deltaY")?.let {
+                it.jsonFloat ?: return@addTool errorResult("deltaY must be a number")
+            } ?: 0f
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
             withContext(Dispatchers.Main) { dispatchScroll(scene, x, y, deltaX, deltaY) }
