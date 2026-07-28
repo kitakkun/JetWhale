@@ -112,10 +112,10 @@ class DefaultDebuggerSettingsRepository(
     }
 
     override suspend fun updateServerPort(port: Int) {
-        dropOverride { it.copy(serverPort = null) }
         dataStore.edit { prefs ->
             prefs[KEY_SERVER_PORT] = port
         }
+        dropOverride { it.copy(serverPort = null) }
     }
 
     override suspend fun readServerPort(): Int = portOverrides.value.serverPort ?: dataStore.data.first()[KEY_SERVER_PORT] ?: DEFAULT_SERVER_PORT
@@ -123,19 +123,19 @@ class DefaultDebuggerSettingsRepository(
     override suspend fun readMcpServerPort(): Int = portOverrides.value.mcpServerPort ?: dataStore.data.first()[KEY_MCP_SERVER_PORT] ?: DEFAULT_MCP_SERVER_PORT
 
     override suspend fun updateMcpServerPort(port: Int) {
-        dropOverride { it.copy(mcpServerPort = null) }
         dataStore.edit { prefs ->
             prefs[KEY_MCP_SERVER_PORT] = port
         }
+        dropOverride { it.copy(mcpServerPort = null) }
     }
 
     override suspend fun readWssPort(): Int = portOverrides.value.wssPort ?: dataStore.data.first()[KEY_WSS_PORT] ?: DEFAULT_WSS_PORT
 
     override suspend fun updateWssPort(port: Int) {
-        dropOverride { it.copy(wssPort = null) }
         dataStore.edit { prefs ->
             prefs[KEY_WSS_PORT] = port
         }
+        dropOverride { it.copy(wssPort = null) }
     }
 
     override suspend fun updateWssEnabled(enabled: Boolean) {
@@ -151,6 +151,9 @@ class DefaultDebuggerSettingsRepository(
      * Retires the launch override for a port the user just picked in the settings screen. Without
      * this the saved value would keep losing to the override for the rest of the session, leaving
      * the settings screen showing a port the user did not choose.
+     *
+     * Call this only once the new port is stored: retiring the override first would uncover the
+     * previously stored port until the write lands, publishing an effective port nobody asked for.
      */
     private fun dropOverride(drop: (ServerPortOverrides) -> ServerPortOverrides) {
         portOverrides.update(drop)
