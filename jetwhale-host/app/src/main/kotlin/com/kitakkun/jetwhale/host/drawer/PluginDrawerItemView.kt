@@ -71,8 +71,8 @@ import com.kitakkun.jetwhale.host.mcp_history_copy_details
 import com.kitakkun.jetwhale.host.mcp_history_copy_tool_name
 import com.kitakkun.jetwhale.host.mcp_history_empty
 import com.kitakkun.jetwhale.host.mcp_history_failed
+import com.kitakkun.jetwhale.host.mcp_history_no_arguments
 import com.kitakkun.jetwhale.host.mcp_history_succeeded
-import com.kitakkun.jetwhale.host.mcp_history_toggle_arguments
 import com.kitakkun.jetwhale.host.mcp_tool_executing
 import com.kitakkun.jetwhale.host.mcp_tools_available
 import com.kitakkun.jetwhale.host.mcp_tools_no_match
@@ -524,24 +524,147 @@ private fun McpCallHistoryPane(
         }
         return
     }
-    // Expansion lives above the lazy list so a row keeps its state while scrolled out of view.
-    var expandedCallIds by remember { mutableStateOf(emptySet<Long>()) }
-    LazyColumn(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+    // Selection lives above the lazy list so it survives the row scrolling out of view.
+    var selectedCallId by remember { mutableStateOf(callHistory.first().id) }
+    val selected = callHistory.firstOrNull { it.id == selectedCallId } ?: callHistory.first()
+
+    Row(modifier = modifier) {
+        LazyColumn(
+            modifier = Modifier.width(300.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            items(callHistory, key = { it.id }) { record ->
+                McpCallHistoryRow(
+                    record = record,
+                    selected = record.id == selected.id,
+                    onSelect = { selectedCallId = record.id },
+                )
+            }
+        }
+        VerticalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+        McpCallDetailPane(
+            record = selected,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+        )
+    }
+}
+
+/** Right pane: everything recorded about the selected call, with copy actions. */
+@Composable
+private fun McpCallDetailPane(
+    record: McpCallRecord,
+    modifier: Modifier,
+) {
+    val statusLabel = stringResource(
+        if (record.succeeded) Res.string.mcp_history_succeeded else Res.string.mcp_history_failed,
+    )
+    val finishedAt = formatCallTime(record.finishedAtEpochMillis)
+    val renderedArguments = record.arguments.joinToString(separator = "\n") { "${it.name} = ${it.value}" }
+    val clipboardManager = LocalClipboardManager.current
+
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(callHistory, key = { it.id }) { record ->
-            McpCallHistoryRow(
-                record = record,
-                expanded = record.id in expandedCallIds,
-                onToggleExpanded = {
-                    expandedCallIds = if (record.id in expandedCallIds) {
-                        expandedCallIds - record.id
-                    } else {
-                        expandedCallIds + record.id
-                    }
+        Text(
+            text = record.toolName.substringAfterLast('.'),
+            style = MaterialTheme.typography.titleMedium,
+            fontFamily = FontFamily.Monospace,
+        )
+        Text(
+            text = record.toolName,
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = FontFamily.Monospace,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = if (record.succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
+                contentDescription = null,
+                tint = if (record.succeeded) AiOperatingAccentColor else MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = statusLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (record.succeeded) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.error
                 },
             )
+            Text(
+                text = finishedAt,
+                style = MaterialTheme.typography.labelMedium,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        Spacer(Modifier.size(4.dp))
+        Text(
+            text = stringResource(Res.string.mcp_tools_parameters),
+            style = MaterialTheme.typography.labelLarge,
+        )
+        if (record.arguments.isEmpty()) {
+            Text(
+                text = stringResource(Res.string.mcp_history_no_arguments),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            record.arguments.forEach { argument ->
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(
+                        text = argument.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                    Text(
+                        text = argument.value,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.size(4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(
+                onClick = { clipboardManager.setText(AnnotatedString(record.toolName)) },
+            ) {
+                Text(stringResource(Res.string.mcp_history_copy_tool_name))
+            }
+            if (record.arguments.isNotEmpty()) {
+                TextButton(
+                    onClick = { clipboardManager.setText(AnnotatedString(renderedArguments)) },
+                ) {
+                    Text(stringResource(Res.string.mcp_history_copy_arguments))
+                }
+            }
+            TextButton(
+                onClick = {
+                    clipboardManager.setText(
+                        AnnotatedString(
+                            buildCallDetails(
+                                toolName = record.toolName,
+                                statusLabel = statusLabel,
+                                finishedAt = finishedAt,
+                                renderedArguments = renderedArguments,
+                            ),
+                        ),
+                    )
+                },
+            ) {
+                Text(stringResource(Res.string.mcp_history_copy_details))
+            }
         }
     }
 }
@@ -549,18 +672,14 @@ private fun McpCallHistoryPane(
 @Composable
 private fun McpCallHistoryRow(
     record: McpCallRecord,
-    expanded: Boolean,
-    onToggleExpanded: () -> Unit,
+    selected: Boolean,
+    onSelect: () -> Unit,
 ) {
-    val succeededLabel = stringResource(
+    val statusLabel = stringResource(
         if (record.succeeded) Res.string.mcp_history_succeeded else Res.string.mcp_history_failed,
     )
-    val toggleArgumentsLabel = stringResource(Res.string.mcp_history_toggle_arguments)
     val finishedAt = formatCallTime(record.finishedAtEpochMillis)
-    // Only calls that carry arguments have anything to reveal, so the rest stay plain rows.
-    val hasArguments = record.arguments.isNotEmpty()
     val renderedArguments = record.arguments.joinToString(separator = "\n") { "${it.name} = ${it.value}" }
-    val chevronRotation by animateFloatAsState(if (expanded) 90f else 0f)
 
     val clipboardManager = LocalClipboardManager.current
     val copyToolNameLabel = stringResource(Res.string.mcp_history_copy_tool_name)
@@ -575,7 +694,7 @@ private fun McpCallHistoryRow(
                         clipboardManager.setText(AnnotatedString(record.toolName))
                     },
                 )
-                if (hasArguments) {
+                if (record.arguments.isNotEmpty()) {
                     add(
                         ContextMenuItem(copyArgumentsLabel) {
                             clipboardManager.setText(AnnotatedString(renderedArguments))
@@ -588,7 +707,7 @@ private fun McpCallHistoryRow(
                             AnnotatedString(
                                 buildCallDetails(
                                     toolName = record.toolName,
-                                    statusLabel = succeededLabel,
+                                    statusLabel = statusLabel,
                                     finishedAt = finishedAt,
                                     renderedArguments = renderedArguments,
                                 ),
@@ -599,94 +718,44 @@ private fun McpCallHistoryRow(
             }
         },
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp)),
+                .clip(RoundedCornerShape(6.dp))
+                .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+                .clickable(role = Role.Button, onClick = onSelect)
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .then(
-                        if (hasArguments) {
-                            Modifier.clickable(
-                                onClickLabel = toggleArgumentsLabel,
-                                role = Role.Button,
-                                onClick = onToggleExpanded,
-                            )
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                if (hasArguments) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowRight,
-                        contentDescription = toggleArgumentsLabel,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .rotate(chevronRotation),
-                    )
+            Icon(
+                imageVector = if (record.succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
+                contentDescription = statusLabel,
+                tint = if (record.succeeded) AiOperatingAccentColor else MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = record.toolName.substringAfterLast('.'),
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = if (selected) {
+                    MaterialTheme.colorScheme.onSecondaryContainer
                 } else {
-                    // Keeps rows without arguments aligned with the ones that show a chevron.
-                    Spacer(Modifier.size(16.dp))
-                }
-                Icon(
-                    imageVector = if (record.succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
-                    contentDescription = succeededLabel,
-                    tint = if (record.succeeded) AiOperatingAccentColor else MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(16.dp),
-                )
-                Text(
-                    text = record.toolName.substringAfterLast('.'),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontFamily = FontFamily.Monospace,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = succeededLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (record.succeeded) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    },
-                )
-                Text(
-                    text = finishedAt,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (hasArguments && expanded) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 36.dp, end = 10.dp, bottom = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    record.arguments.forEach { argument ->
-                        Text(
-                            text = "${argument.name} = ${argument.value}",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
+                    MaterialTheme.colorScheme.onSurface
+                },
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = finishedAt,
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
-
-/** Everything known about one call, in the order the row shows it. */
 private fun buildCallDetails(
     toolName: String,
     statusLabel: String,
