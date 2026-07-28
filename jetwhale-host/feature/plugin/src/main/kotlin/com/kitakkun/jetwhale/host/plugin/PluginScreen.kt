@@ -53,6 +53,9 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
             .pointerHoverIcon(pluginComposeScene.pointerIcon.value)
             .onSizeChanged {
                 try {
+                    // The scene was seeded with a density when it was created, but only the window
+                    // actually showing it knows the right one: a popped-out plugin gets its own
+                    // Window, which can sit on a display with a different scale factor.
                     pluginComposeScene.composeScene.density = density
                     pluginComposeScene.composeScene.size = it
                 } catch (_: IllegalStateException) {

@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
@@ -46,6 +47,14 @@ class DefaultPluginComposeSceneService(
 
     private val pluginScenes = mutableMapOf<String, CachedScene>()
 
+    // Written from the host's composition and read when a scene is created; both happen on the main
+    // thread. Falls back to the ComposeScene default until the window has reported its density.
+    private var hostDensity: Density = Density(1f)
+
+    override fun updateHostDensity(density: Density) {
+        hostDensity = density
+    }
+
     override suspend fun getOrCreatePluginScene(
         pluginId: String,
         sessionId: String,
@@ -65,7 +74,10 @@ class DefaultPluginComposeSceneService(
             cached?.scene?.composeScene?.close()
 
             val windowUpdatableContext = DynamicWindowInfoPlatformContext()
-            val composeScene = CanvasLayersComposeScene(platformContext = windowUpdatableContext)
+            val composeScene = CanvasLayersComposeScene(
+                density = hostDensity,
+                platformContext = windowUpdatableContext,
+            )
             val isScreenshotCapture = mutableStateOf(false)
 
             composeScene.setContent {

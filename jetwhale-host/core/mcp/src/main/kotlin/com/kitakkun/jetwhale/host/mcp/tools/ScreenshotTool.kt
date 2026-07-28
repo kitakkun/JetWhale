@@ -5,10 +5,12 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asSkiaBitmap
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
+import com.kitakkun.jetwhale.host.mcp.jsonFloat
 import com.kitakkun.jetwhale.host.mcp.jsonInt
 import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
@@ -47,6 +49,12 @@ class ScreenshotMcpTool(
                         "sessionId" to stringProperty("The session ID."),
                         "width" to numberProperty("Image width in pixels. Defaults to the current UI width (fallback: 1280)."),
                         "height" to numberProperty("Image height in pixels. Defaults to the current UI height (fallback: 720)."),
+                        "density" to numberProperty(
+                            "Pixel density to render at, e.g. 2 for HiDPI. Defaults to the scene's own density, " +
+                                "which follows the host window. Pin it to keep pixel geometry identical across " +
+                                "machines. Like width/height, this is applied to the live scene, so the host window " +
+                                "keeps rendering at it until the window next resizes.",
+                        ),
                     ),
                 ),
                 required = listOf("pluginId", "sessionId"),
@@ -61,10 +69,12 @@ class ScreenshotMcpTool(
             if ((requestedWidth == null) != (requestedHeight == null)) {
                 return@addTool errorResult("Both 'width' and 'height' must be provided together.")
             }
+            val requestedDensity = request.arguments?.get("density")?.jsonFloat
+            invalidDensityMessage(requestedDensity)?.let { return@addTool errorResult(it) }
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
             val (viewport, pngBytes) = withContext(Dispatchers.Main) {
-                val viewport = resolveViewport(scene, requestedWidth, requestedHeight)
+                val viewport = resolveViewport(scene, requestedWidth, requestedHeight, requestedDensity)
                 viewport to captureScreenshot(scene, viewport)
             }
             val base64 = Base64.getEncoder().encodeToString(pngBytes)
@@ -114,13 +124,32 @@ fun captureScreenshot(
         ?: error("Failed to encode screenshot to PNG")
 }
 
+/**
+ * Why a caller-supplied density is rejected, or null when it is usable.
+ *
+ * A JSON number too large for a Float parses to `Infinity`, and `NaN` parses to `NaN`; neither is
+ * caught by a `<= 0` test (`NaN <= 0` is false), and both would reach Compose layout.
+ */
+internal fun invalidDensityMessage(requestedDensity: Float?): String? = when {
+    requestedDensity == null -> null
+    !requestedDensity.isFinite() -> "'density' must be a finite number."
+    requestedDensity <= 0f -> "'density' must be greater than 0."
+    else -> null
+}
+
 @OptIn(InternalComposeUiApi::class)
-private fun resolveViewport(
+internal fun resolveViewport(
     scene: PluginComposeScene,
     requestedWidth: Int?,
     requestedHeight: Int?,
+    requestedDensity: Float?,
 ): McpViewport {
-    val density = scene.composeScene.density
+    val sceneDensity = scene.composeScene.density
+    // Override the density scalar only: fontScale is a separate, user-facing setting that the
+    // caller is not asking about, so carry the scene's through.
+    val density = requestedDensity
+        ?.let { Density(density = it, fontScale = sceneDensity.fontScale) }
+        ?: sceneDensity
     val requested = if (requestedWidth != null && requestedHeight != null) {
         IntSize(requestedWidth, requestedHeight)
     } else {
