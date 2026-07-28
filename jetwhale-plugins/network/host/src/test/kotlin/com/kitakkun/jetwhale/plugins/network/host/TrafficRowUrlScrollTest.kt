@@ -41,14 +41,14 @@ class TrafficRowUrlScrollTest {
 
     @Test
     fun `a long url in a list row is horizontally scrollable`() = runTrafficTab { _ ->
-        val range = urlNode(newestIndex).horizontalScrollRange()
+        val range = urlNode(TOP_ROW).horizontalScrollRange()
         assertEquals(0f, range.value(), "starts unscrolled")
         assertTrue(range.maxValue() > 0f, "content is wider than the row's viewport, maxValue=${range.maxValue()}")
     }
 
     @Test
     fun `a horizontal wheel over the url scrolls the url`() = runTrafficTab { _ ->
-        val url = urlNode(newestIndex)
+        val url = urlNode(TOP_ROW)
         url.performMouseInput {
             moveTo(center)
             repeat(WHEEL_NOTCHES) { scroll(1f, ScrollWheel.Horizontal) }
@@ -57,38 +57,55 @@ class TrafficRowUrlScrollTest {
     }
 
     @Test
-    fun `a vertical wheel over the url scrolls the list and leaves the url alone`() = runTrafficTab { _ ->
-        // Aim at a row well down the viewport and send a single notch, so the row the wheel lands on
-        // is still composed afterwards and its horizontal offset can be re-read.
-        val index = newestIndex - 10
+    fun `a vertical wheel over the url scrolls the list`() = runTrafficTab(rows = LONG_LIST) { _ ->
         val list = onNode(hasScrollToIndexAction())
         assertEquals(0f, list.verticalScrollRange().value(), "list starts at the top")
 
-        urlNode(index).performMouseInput {
+        urlNode(TOP_ROW).performMouseInput {
             moveTo(center)
-            scroll(1f, ScrollWheel.Vertical)
+            repeat(WHEEL_NOTCHES) { scroll(1f, ScrollWheel.Vertical) }
         }
 
+        // Asserted on the list rather than on the row: how far one notch travels is platform
+        // specific, and the row the wheel landed on may itself have scrolled out of the viewport.
         waitUntil("the list scrolls down") { list.verticalScrollRange().value() > 0f }
-        assertEquals(0f, urlNode(index).horizontalScrollRange().value(), "the url did not move sideways")
+    }
+
+    @Test
+    fun `a vertical wheel does not scroll the url sideways`() = runTrafficTab(rows = SHORT_LIST) { _ ->
+        // A list short enough to need no vertical scrolling keeps the row in place, so the same URL
+        // node can be re-read after the wheel regardless of how far a notch would have travelled.
+        val url = urlNode(TOP_ROW)
+        url.performMouseInput {
+            moveTo(center)
+            repeat(WHEEL_NOTCHES) { scroll(1f, ScrollWheel.Vertical) }
+        }
+        waitForIdle()
+        assertEquals(0f, url.horizontalScrollRange().value())
     }
 
     @Test
     fun `clicking the url selects its row`() = runTrafficTab { selected ->
-        urlNode(newestIndex).performClick()
+        urlNode(TOP_ROW).performClick()
         waitForIdle()
-        assertEquals(txId(newestIndex), selected())
+        assertEquals(txId(TOP_ROW), selected())
     }
 }
 
 /** Enough rows that the list can scroll vertically well past the viewport. */
-private const val TRANSACTION_COUNT = 60
+private const val LONG_LIST = 60
+
+/** Few enough rows that the list fits the viewport and cannot scroll at all. */
+private const val SHORT_LIST = 3
 
 /** Mouse wheel notches to send; one notch alone is a sub-pixel move under smooth scrolling. */
 private const val WHEEL_NOTCHES = 10
 
-/** [TrafficTab] renders newest-first, so the newest transaction owns the topmost row. */
-private val newestIndex = TRANSACTION_COUNT - 1
+/**
+ * [TrafficTab] renders newest-first, and the fixtures are built newest-last, so index 0 owns the
+ * topmost row.
+ */
+private const val TOP_ROW = 0
 
 private fun txId(index: Int) = "tx-$index"
 
@@ -96,16 +113,16 @@ private fun txId(index: Int) = "tx-$index"
  * Long enough to overflow the list pane at any plausible split position, and index-tagged so each
  * row is individually addressable.
  */
-private fun url(index: Int) =
-    "https://api.example.com/v1/organizations/acme-corp/projects/atlas/deployments/$index" +
-        "?environment=production&include=metrics%2Ctraces&page=3"
+private fun url(index: Int) = "https://api.example.com/v1/organizations/acme-corp/projects/atlas/" +
+    "deployments/$index?environment=production&include=metrics%2Ctraces&page=3"
 
-private fun transaction(index: Int) = HttpTransaction(
+/** Built newest-first so that [TOP_ROW] is index 0 once [TrafficTab] reverses the list. */
+private fun transaction(index: Int, rows: Int) = HttpTransaction(
     request = CapturedHttpRequest(
         txId = txId(index),
         method = "GET",
         url = url(index),
-        timestampMs = index.toLong(),
+        timestampMs = (rows - index).toLong(),
     ),
     response = CapturedHttpResponse(
         txId = txId(index),
@@ -116,20 +133,23 @@ private fun transaction(index: Int) = HttpTransaction(
 )
 
 /**
- * Renders [TrafficTab] at a fixed size and runs [block] against it. The lambda receives a getter for
- * the most recently selected transaction id.
+ * Renders [TrafficTab] with [rows] transactions at a fixed size and runs [block] against it. The
+ * lambda receives a getter for the most recently selected transaction id.
  */
 @OptIn(ExperimentalTestApi::class)
-private fun runTrafficTab(block: ComposeUiTest.(selected: () -> String?) -> Unit) = runComposeUiTest {
+private fun runTrafficTab(
+    rows: Int = LONG_LIST,
+    block: suspend ComposeUiTest.(selected: () -> String?) -> Unit,
+) = runComposeUiTest {
     var selected: String? = null
     setContent {
         CompositionLocalProvider(LocalJetWhalePluginStorage provides InMemoryPluginStorage()) {
             MaterialTheme {
-                // Wide enough to clear ListMinWidth + DetailMinWidth, tall enough that the list has
-                // far more rows than fit.
+                // Wide enough to clear ListMinWidth + DetailMinWidth, and tall enough that LONG_LIST
+                // overflows the viewport while SHORT_LIST does not.
                 Box(Modifier.requiredSize(width = 900.dp, height = 600.dp)) {
                     TrafficTab(
-                        transactions = List(TRANSACTION_COUNT) { transaction(it) },
+                        transactions = List(rows) { transaction(index = rows - 1 - it, rows = rows) },
                         selectedTxId = null,
                         onSelectTx = { selected = it },
                         onClear = {},
@@ -145,11 +165,11 @@ private fun runTrafficTab(block: ComposeUiTest.(selected: () -> String?) -> Unit
 @OptIn(ExperimentalTestApi::class)
 private fun ComposeUiTest.urlNode(index: Int): SemanticsNodeInteraction = onNodeWithText(url(index))
 
-private fun SemanticsNodeInteraction.horizontalScrollRange(): ScrollAxisRange =
-    fetchSemanticsNode().config[SemanticsProperties.HorizontalScrollAxisRange]
+private fun SemanticsNodeInteraction.horizontalScrollRange(): ScrollAxisRange = fetchSemanticsNode()
+    .config[SemanticsProperties.HorizontalScrollAxisRange]
 
-private fun SemanticsNodeInteraction.verticalScrollRange(): ScrollAxisRange =
-    fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange]
+private fun SemanticsNodeInteraction.verticalScrollRange(): ScrollAxisRange = fetchSemanticsNode()
+    .config[SemanticsProperties.VerticalScrollAxisRange]
 
 /** Minimal in-memory [JetWhalePluginStorage] so `rememberPersistent` has something to bind to. */
 @Suppress("UNCHECKED_CAST")

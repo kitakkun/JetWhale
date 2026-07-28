@@ -77,6 +77,7 @@ jetbrainsComposePreview = { module = "org.jetbrains.compose.ui:ui-tooling-previe
 jetbrainsComposeResources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "jetbrainsCompose" }
 jetbrainsComposeSplitPane = { module = "org.jetbrains.compose.components:components-splitpane", version.ref = "jetbrainsCompose" }
 jetbrainsComposeMaterialIconsExtended = { module = "org.jetbrains.compose.material:material-icons-extended", version = "1.7.3" }
+jetbrainsComposeUiTestJUnit4 = { module = "org.jetbrains.compose.ui:ui-test-junit4", version.ref = "jetbrainsCompose" }
 material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
 
 # navigation3
