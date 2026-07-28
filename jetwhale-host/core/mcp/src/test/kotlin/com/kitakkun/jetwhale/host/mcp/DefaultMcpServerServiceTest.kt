@@ -20,13 +20,18 @@ import io.modelcontextprotocol.kotlin.sdk.client.mcpSse
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 class DefaultMcpServerServiceTest {
 
@@ -151,16 +156,9 @@ class DefaultMcpServerServiceTest {
             // Emit Ready event after server started (simulates Android device connecting later)
             eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId))
 
-            // Connect a new client after the event was processed to pick up the newly registered tool
-            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
-            try {
-                val listResult = client.listTools()
-                assertNotNull(listResult)
-                val toolNames = listResult.tools.map { it.name }
-                assertTrue("com.example.test.greet" in toolNames, "Expected tool in $toolNames")
-            } finally {
-                client.close()
-            }
+            // The event is handled asynchronously by the service's collector, so the registration
+            // may not be visible the instant emit() returns. Poll until the tool appears.
+            awaitToolListed("com.example.test.greet")
         } finally {
             service.stop()
         }
@@ -181,29 +179,52 @@ class DefaultMcpServerServiceTest {
         try {
             eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId))
 
-            // Verify tool is registered
-            val clientBefore = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
-            try {
-                assertTrue("com.example.test.greet" in clientBefore.listTools().tools.map { it.name })
-            } finally {
-                clientBefore.close()
-            }
+            // Both events are handled asynchronously, so poll for each transition rather than
+            // reading the tool list the instant emit() returns.
+            awaitToolListed("com.example.test.greet")
 
-            // Emit Disposed event
             eventFlow.emit(PluginInstanceEvent.Disposed(testPluginId, testSessionId))
 
-            // Reconnect and verify tool is gone
-            val clientAfter = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
-            try {
-                assertFalse("com.example.test.greet" in clientAfter.listTools().tools.map { it.name })
-            } finally {
-                clientAfter.close()
-            }
+            awaitToolAbsent("com.example.test.greet")
         } finally {
             service.stop()
         }
     }
+
+    /**
+     * The service registers and unregisters plugin tools asynchronously in response to lifecycle
+     * events, so a tool list read immediately after emitting an event can observe the state from
+     * before the event was handled. These helpers reconnect and re-read until the tool list reaches
+     * the expected state, so the tests assert on the eventual result instead of racing the handler.
+     *
+     * A fresh connection is opened each poll because the tool list is computed at connection time.
+     */
+    private suspend fun awaitToolListed(toolName: String, timeout: Duration = 5.seconds) = awaitTools(timeout, "$toolName to be listed") { toolName in it }
+
+    private suspend fun awaitToolAbsent(toolName: String, timeout: Duration = 5.seconds) = awaitTools(timeout, "$toolName to be absent") { toolName !in it }
+
+    private suspend fun awaitTools(timeout: Duration, description: String, predicate: (List<String>) -> Boolean) {
+        var lastSeen: List<String> = emptyList()
+        try {
+            withTimeout(timeout) {
+                while (true) {
+                    val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
+                    lastSeen = try {
+                        client.listTools().tools.map { it.name }
+                    } finally {
+                        client.close()
+                    }
+                    if (predicate(lastSeen)) return@withTimeout
+                    delay(POLL_INTERVAL_MILLIS)
+                }
+            }
+        } catch (e: TimeoutCancellationException) {
+            throw AssertionError("Timed out waiting for $description; last saw $lastSeen", e)
+        }
+    }
 }
+
+private const val POLL_INTERVAL_MILLIS = 50L
 
 private class FakeMcpTool(
     private val name: String,
