@@ -9,4 +9,8 @@ data class DrawerPluginItemUiState(
     val activeIconResource: PluginIconResource?,
     val inactiveIconResource: PluginIconResource?,
     val pluginAvailability: PluginAvailability,
+    /** True while an AI agent is driving this plugin's UI in the selected session. */
+    val underAiControl: Boolean,
+    /** True when the plugin publishes its own MCP tools for the selected session. */
+    val exposesMcpTools: Boolean,
 )

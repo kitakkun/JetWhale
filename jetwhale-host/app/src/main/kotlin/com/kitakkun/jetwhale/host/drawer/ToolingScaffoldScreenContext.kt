@@ -6,6 +6,8 @@ import com.kitakkun.jetwhale.host.model.DebugSessionsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.EnabledPluginsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.FailedPluginJarPathsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
+import com.kitakkun.jetwhale.host.model.McpActivitySubscriptionKey
+import com.kitakkun.jetwhale.host.model.McpCapablePluginsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledMutationKey
 import dev.zacsweers.metro.Inject
 
@@ -27,5 +29,7 @@ class ToolingScaffoldScreenContext(
     val debugSessionsSubscriptionKey: DebugSessionsSubscriptionKey,
     val enabledPluginsSubscriptionKey: EnabledPluginsSubscriptionKey,
     val failedPluginJarPathsSubscriptionKey: FailedPluginJarPathsSubscriptionKey,
+    val mcpActivitySubscriptionKey: McpActivitySubscriptionKey,
+    val mcpCapablePluginsSubscriptionKey: McpCapablePluginsSubscriptionKey,
     val presenterContext: ToolingScaffoldPresenterContext,
 ) : ScreenContext

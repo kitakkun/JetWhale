@@ -12,12 +12,20 @@ import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.MutationErrorEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.McpActivity
+import com.kitakkun.jetwhale.host.model.McpCapablePlugins
+import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.delay
 import soil.query.compose.rememberMutation
+import kotlin.time.Duration.Companion.milliseconds
+
+/** How long an MCP tool call keeps showing after it completes. */
+private val AI_OPERATION_INDICATOR_LINGER = 700.milliseconds
 
 sealed interface ToolingScaffoldScreenAction {
     data class SelectSession(val session: DebugSession) : ToolingScaffoldScreenAction
@@ -38,6 +46,8 @@ fun toolingScaffoldPresenter(
     debugSessions: ImmutableList<DebugSession>,
     enabledPluginIds: Set<String>,
     hasFailedJars: Boolean,
+    mcpActivity: McpActivity,
+    mcpCapablePlugins: McpCapablePlugins,
 ): ToolingScaffoldUiState {
     var selectedSessionId by retain { mutableStateOf("") }
     var selectedPluginId by retain { mutableStateOf("") }
@@ -45,10 +55,31 @@ fun toolingScaffoldPresenter(
         derivedStateOf { debugSessions.firstOrNull { it.id == selectedSessionId } }
     }
 
+    // Most MCP tool calls complete in a few milliseconds, which would make the indicator flash by
+    // unnoticed. Keep the last call on screen for a moment after it finishes so the user can tell
+    // that something happened, and which tool did it.
+    var lingeringInvocation by remember { mutableStateOf<McpToolInvocation?>(null) }
+    LaunchedEffect(mcpActivity.runningInvocations) {
+        val running = mcpActivity.runningInvocations.lastOrNull()
+        if (running != null) {
+            lingeringInvocation = running
+        } else if (lingeringInvocation != null) {
+            delay(AI_OPERATION_INDICATOR_LINGER)
+            lingeringInvocation = null
+        }
+    }
+
     val setPluginEnabledMutation = rememberMutation(presenterContext.setPluginEnabledMutationKey)
 
-    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds) {
+    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins) {
         derivedStateOf {
+            // Attribute the operation only when it targets the session the drawer is showing;
+            // highlighting a plugin for some other device would be misleading.
+            val mcpCapablePluginIds = mcpCapablePlugins.pluginIdsFor(selectedSession?.id)
+            val aiControlledPluginId = lingeringInvocation
+                ?.takeIf { it.sessionId != null && it.sessionId == selectedSession?.id }
+                ?.pluginId
+
             loadedPlugins.map { metaData ->
                 val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
                 val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
@@ -69,6 +100,8 @@ fun toolingScaffoldPresenter(
 
                         else -> PluginAvailability.Disabled
                     },
+                    underAiControl = aiControlledPluginId == metaData.id,
+                    exposesMcpTools = metaData.id in mcpCapablePluginIds,
                 )
             }.toImmutableList()
         }
@@ -112,5 +145,9 @@ fun toolingScaffoldPresenter(
         sessions = debugSessions,
         plugins = plugins,
         hasFailedJars = hasFailedJars,
+        aiActivity = AiActivityUiState(
+            isAgentConnected = mcpActivity.hasConnectedClient,
+            operatingToolName = lingeringInvocation?.toolName,
+        ),
     )
 }

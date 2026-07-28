@@ -52,6 +52,7 @@ fun ShrunkToolingDrawerView(
     sessions: ImmutableList<DebugSession>,
     selectedSessionId: String?,
     selectedPluginId: String,
+    aiActivity: AiActivityUiState,
     onClickExpandMenu: () -> Unit,
     onClickSettings: () -> Unit,
     onClickPlugin: (String) -> Unit,
@@ -121,6 +122,7 @@ fun ShrunkToolingDrawerView(
                 contentDescription = null,
             )
         }
+        CompactAiActivityIndicatorView(uiState = aiActivity)
         HorizontalDivider()
         LazyColumn(
             modifier = Modifier.weight(1f),

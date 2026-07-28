@@ -26,7 +26,9 @@ fun ToolingScaffoldRoot(
         state2 = rememberSubscription(screenContext.debugSessionsSubscriptionKey),
         state3 = rememberSubscription(screenContext.enabledPluginsSubscriptionKey),
         state4 = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey),
-    ) { loadedPlugins, debugSessions, enabledPluginIds, failedJars ->
+        state5 = rememberSubscription(screenContext.mcpActivitySubscriptionKey),
+        state6 = rememberSubscription(screenContext.mcpCapablePluginsSubscriptionKey),
+    ) { loadedPlugins, debugSessions, enabledPluginIds, failedJars, mcpActivity, mcpCapablePlugins ->
         val screenChannel = rememberScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>()
         ActionResultEffect(screenChannel) { result ->
             when (result) {
@@ -44,6 +46,8 @@ fun ToolingScaffoldRoot(
                 debugSessions = debugSessions,
                 enabledPluginIds = enabledPluginIds,
                 hasFailedJars = failedJars.isNotEmpty(),
+                mcpActivity = mcpActivity,
+                mcpCapablePlugins = mcpCapablePlugins,
             )
         }
 

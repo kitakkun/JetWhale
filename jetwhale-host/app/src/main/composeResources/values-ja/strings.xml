@@ -28,4 +28,7 @@
     <string name="bring_back_from_popout">ポップアウトを戻す</string>
     <string name="enable">有効化</string>
     <string name="disable">無効化</string>
+    <string name="ai_agent_connected">AI エージェント接続中</string>
+    <string name="ai_agent_operating">AI エージェントが操作中</string>
+    <string name="plugin_exposes_mcp_tools">AI エージェントに MCP tools を公開中</string>
 </resources>

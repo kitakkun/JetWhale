@@ -60,6 +60,7 @@ fun ExpandedToolingDrawerView(
     hasFailedJars: Boolean,
     selectedSession: DebugSession?,
     sessions: ImmutableList<DebugSession>,
+    aiActivity: AiActivityUiState,
     onClickShrinkDrawer: () -> Unit,
     onClickSettings: () -> Unit,
     onClickPluginSettings: () -> Unit,
@@ -92,6 +93,7 @@ fun ExpandedToolingDrawerView(
             modifier = Modifier.padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            AiActivityIndicatorView(uiState = aiActivity)
             SessionSelectorView(
                 selectedSession = selectedSession,
                 sessions = sessions,
@@ -166,6 +168,8 @@ fun ExpandedToolingDrawerView(
                                         activeIconResource = it.activeIconResource,
                                         inactiveIconResource = it.inactiveIconResource,
                                         selected = it.id == selectedPluginId,
+                                        underAiControl = it.underAiControl,
+                                        exposesMcpTools = it.exposesMcpTools,
                                         onClick = { onClickPlugin(it) },
                                         popupMenuContent = { dismiss ->
                                             DropdownMenuItem(
@@ -236,6 +240,8 @@ fun ExpandedToolingDrawerView(
                                         activeIconResource = it.activeIconResource,
                                         inactiveIconResource = it.inactiveIconResource,
                                         selected = false,
+                                        underAiControl = it.underAiControl,
+                                        exposesMcpTools = it.exposesMcpTools,
                                         onClick = {
                                             // do nothing
                                         },
@@ -280,6 +286,8 @@ fun ExpandedToolingDrawerView(
                                     activeIconResource = it.activeIconResource,
                                     inactiveIconResource = it.inactiveIconResource,
                                     selected = false,
+                                    underAiControl = it.underAiControl,
+                                    exposesMcpTools = it.exposesMcpTools,
                                     onClick = {
                                         // do nothing
                                     },

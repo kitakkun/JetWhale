@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.kitakkun.jetwhale.host.drawer.AiActivityUiState
 import com.kitakkun.jetwhale.host.drawer.DrawerPluginItemUiState
 import com.kitakkun.jetwhale.host.drawer.ExpandedToolingDrawerView
 import com.kitakkun.jetwhale.host.drawer.ShrunkToolingDrawerView
@@ -18,6 +19,7 @@ fun ToolingDrawer(
     sessions: ImmutableList<DebugSession>,
     selectedSession: DebugSession?,
     selectedPluginId: String,
+    aiActivity: AiActivityUiState,
     onClickSettings: () -> Unit,
     onClickPluginSettings: () -> Unit,
     onClickInfo: () -> Unit,
@@ -39,6 +41,7 @@ fun ToolingDrawer(
                 hasFailedJars = hasFailedJars,
                 sessions = sessions,
                 selectedSession = selectedSession,
+                aiActivity = aiActivity,
                 onClickShrinkDrawer = { expandMenu = false },
                 onClickSettings = onClickSettings,
                 onClickPluginSettings = onClickPluginSettings,
@@ -56,6 +59,7 @@ fun ToolingDrawer(
                 sessions = sessions,
                 selectedSessionId = selectedSession?.id,
                 selectedPluginId = selectedPluginId,
+                aiActivity = aiActivity,
                 onClickPlugin = onClickPlugin,
                 onClickExpandMenu = { expandMenu = true },
                 onClickSettings = onClickSettings,
