@@ -1,5 +1,8 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ContextMenuArea
+import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
@@ -50,7 +54,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -58,9 +66,13 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.close
+import com.kitakkun.jetwhale.host.mcp_history_copy_arguments
+import com.kitakkun.jetwhale.host.mcp_history_copy_details
+import com.kitakkun.jetwhale.host.mcp_history_copy_tool_name
 import com.kitakkun.jetwhale.host.mcp_history_empty
 import com.kitakkun.jetwhale.host.mcp_history_failed
 import com.kitakkun.jetwhale.host.mcp_history_succeeded
+import com.kitakkun.jetwhale.host.mcp_history_toggle_arguments
 import com.kitakkun.jetwhale.host.mcp_tool_executing
 import com.kitakkun.jetwhale.host.mcp_tools_available
 import com.kitakkun.jetwhale.host.mcp_tools_no_match
@@ -512,56 +524,181 @@ private fun McpCallHistoryPane(
         }
         return
     }
+    // Expansion lives above the lazy list so a row keeps its state while scrolled out of view.
+    var expandedCallIds by remember { mutableStateOf(emptySet<Long>()) }
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        items(callHistory, key = { it.id }) { record -> McpCallHistoryRow(record) }
+        items(callHistory, key = { it.id }) { record ->
+            McpCallHistoryRow(
+                record = record,
+                expanded = record.id in expandedCallIds,
+                onToggleExpanded = {
+                    expandedCallIds = if (record.id in expandedCallIds) {
+                        expandedCallIds - record.id
+                    } else {
+                        expandedCallIds + record.id
+                    }
+                },
+            )
+        }
     }
 }
 
 @Composable
-private fun McpCallHistoryRow(record: McpCallRecord) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+private fun McpCallHistoryRow(
+    record: McpCallRecord,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
+) {
+    val succeededLabel = stringResource(
+        if (record.succeeded) Res.string.mcp_history_succeeded else Res.string.mcp_history_failed,
+    )
+    val toggleArgumentsLabel = stringResource(Res.string.mcp_history_toggle_arguments)
+    val finishedAt = formatCallTime(record.finishedAtEpochMillis)
+    // Only calls that carry arguments have anything to reveal, so the rest stay plain rows.
+    val hasArguments = record.arguments.isNotEmpty()
+    val renderedArguments = record.arguments.joinToString(separator = "\n") { "${it.name} = ${it.value}" }
+    val chevronRotation by animateFloatAsState(if (expanded) 90f else 0f)
+
+    val clipboardManager = LocalClipboardManager.current
+    val copyToolNameLabel = stringResource(Res.string.mcp_history_copy_tool_name)
+    val copyArgumentsLabel = stringResource(Res.string.mcp_history_copy_arguments)
+    val copyDetailsLabel = stringResource(Res.string.mcp_history_copy_details)
+
+    ContextMenuArea(
+        items = {
+            buildList {
+                add(
+                    ContextMenuItem(copyToolNameLabel) {
+                        clipboardManager.setText(AnnotatedString(record.toolName))
+                    },
+                )
+                if (hasArguments) {
+                    add(
+                        ContextMenuItem(copyArgumentsLabel) {
+                            clipboardManager.setText(AnnotatedString(renderedArguments))
+                        },
+                    )
+                }
+                add(
+                    ContextMenuItem(copyDetailsLabel) {
+                        clipboardManager.setText(
+                            AnnotatedString(
+                                buildCallDetails(
+                                    toolName = record.toolName,
+                                    statusLabel = succeededLabel,
+                                    finishedAt = finishedAt,
+                                    renderedArguments = renderedArguments,
+                                ),
+                            ),
+                        )
+                    },
+                )
+            }
+        },
     ) {
-        val succeededLabel = stringResource(
-            if (record.succeeded) Res.string.mcp_history_succeeded else Res.string.mcp_history_failed,
-        )
-        Icon(
-            imageVector = if (record.succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
-            contentDescription = succeededLabel,
-            tint = if (record.succeeded) AiOperatingAccentColor else MaterialTheme.colorScheme.error,
-            modifier = Modifier.size(16.dp),
-        )
-        Text(
-            text = record.toolName.substringAfterLast('.'),
-            style = MaterialTheme.typography.bodyMedium,
-            fontFamily = FontFamily.Monospace,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = succeededLabel,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (record.succeeded) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.error
-            },
-        )
-        Text(
-            text = formatCallTime(record.finishedAtEpochMillis),
-            style = MaterialTheme.typography.labelSmall,
-            fontFamily = FontFamily.Monospace,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp)),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (hasArguments) {
+                            Modifier.clickable(
+                                onClickLabel = toggleArgumentsLabel,
+                                role = Role.Button,
+                                onClick = onToggleExpanded,
+                            )
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (hasArguments) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowRight,
+                        contentDescription = toggleArgumentsLabel,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .rotate(chevronRotation),
+                    )
+                } else {
+                    // Keeps rows without arguments aligned with the ones that show a chevron.
+                    Spacer(Modifier.size(16.dp))
+                }
+                Icon(
+                    imageVector = if (record.succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
+                    contentDescription = succeededLabel,
+                    tint = if (record.succeeded) AiOperatingAccentColor else MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    text = record.toolName.substringAfterLast('.'),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = succeededLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (record.succeeded) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    },
+                )
+                Text(
+                    text = finishedAt,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (hasArguments && expanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 36.dp, end = 10.dp, bottom = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    record.arguments.forEach { argument ->
+                        Text(
+                            text = "${argument.name} = ${argument.value}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Everything known about one call, in the order the row shows it. */
+private fun buildCallDetails(
+    toolName: String,
+    statusLabel: String,
+    finishedAt: String,
+    renderedArguments: String,
+): String = buildString {
+    appendLine(toolName)
+    appendLine(statusLabel)
+    append(finishedAt)
+    if (renderedArguments.isNotEmpty()) {
+        appendLine()
+        append(renderedArguments)
     }
 }
 

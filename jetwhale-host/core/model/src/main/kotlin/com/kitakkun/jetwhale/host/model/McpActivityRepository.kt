@@ -19,9 +19,17 @@ interface McpActivityRepository {
     /**
      * Records the start of a tool call.
      *
+     * @param arguments the arguments the call was made with, already rendered to strings. Values are
+     * shortened to [McpCallArgument.MAX_VALUE_LENGTH] here, so nothing large is retained for as long
+     * as the call stays in history.
      * @return the invocation id to hand back to [toolInvocationFinished] once the call completes.
      */
-    fun toolInvocationStarted(toolName: String, pluginId: String?, sessionId: String?): Long
+    fun toolInvocationStarted(
+        toolName: String,
+        pluginId: String?,
+        sessionId: String?,
+        arguments: Map<String, String>,
+    ): Long
 
     /**
      * Records the completion of a tool call and appends it to the recent-call history.

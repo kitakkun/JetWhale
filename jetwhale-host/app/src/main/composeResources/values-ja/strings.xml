@@ -43,4 +43,8 @@
     <string name="mcp_history_empty">MCP tools の呼び出し履歴はありません</string>
     <string name="mcp_history_succeeded">成功</string>
     <string name="mcp_history_failed">失敗</string>
+    <string name="mcp_history_toggle_arguments">引数の表示を切り替え</string>
+    <string name="mcp_history_copy_tool_name">ツール名をコピー</string>
+    <string name="mcp_history_copy_arguments">引数をコピー</string>
+    <string name="mcp_history_copy_details">詳細をコピー</string>
 </resources>

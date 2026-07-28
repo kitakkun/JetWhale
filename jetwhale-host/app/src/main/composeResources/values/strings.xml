@@ -43,4 +43,8 @@
     <string name="mcp_history_empty">No MCP tool calls yet</string>
     <string name="mcp_history_succeeded">Succeeded</string>
     <string name="mcp_history_failed">Failed</string>
+    <string name="mcp_history_toggle_arguments">Show or hide arguments</string>
+    <string name="mcp_history_copy_tool_name">Copy tool name</string>
+    <string name="mcp_history_copy_arguments">Copy arguments</string>
+    <string name="mcp_history_copy_details">Copy details</string>
 </resources>

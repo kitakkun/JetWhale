@@ -4,6 +4,36 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
 /**
+ * One argument a tool call was made with, already rendered for display.
+ *
+ * [value] is the argument rendered to a string and shortened to [MAX_VALUE_LENGTH] characters, so a
+ * call carrying a large body (a screenshot, an accessibility tree, ...) does not keep that body
+ * alive for as long as the call stays in history.
+ */
+data class McpCallArgument(
+    val name: String,
+    val value: String,
+) {
+    companion object {
+        /** How many characters of an argument value are kept. */
+        const val MAX_VALUE_LENGTH = 80
+
+        /** Appended to a [value] that was cut, so the UI does not have to mark it itself. */
+        const val TRUNCATION_MARKER = "…"
+
+        /** Builds an argument whose [value] is shortened to [MAX_VALUE_LENGTH] characters. */
+        fun truncating(name: String, value: String): McpCallArgument = McpCallArgument(
+            name = name,
+            value = if (value.length <= MAX_VALUE_LENGTH) {
+                value
+            } else {
+                value.take(MAX_VALUE_LENGTH) + TRUNCATION_MARKER
+            },
+        )
+    }
+}
+
+/**
  * A single MCP tool call that is currently being executed on behalf of an AI agent.
  *
  * [pluginId] and [sessionId] are read from the tool call arguments when the tool declares them, so
@@ -15,6 +45,8 @@ data class McpToolInvocation(
     val toolName: String,
     val pluginId: String?,
     val sessionId: String?,
+    /** Every argument the call was made with, including `pluginId` and `sessionId`. */
+    val arguments: ImmutableList<McpCallArgument>,
 )
 
 /**
@@ -29,6 +61,8 @@ data class McpCallRecord(
     val sessionId: String?,
     val succeeded: Boolean,
     val finishedAtEpochMillis: Long,
+    /** Every argument the call was made with, including `pluginId` and `sessionId`. */
+    val arguments: ImmutableList<McpCallArgument>,
 )
 
 /**

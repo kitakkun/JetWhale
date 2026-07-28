@@ -78,6 +78,13 @@ class McpToolRegistrar(
                 toolName = name,
                 pluginId = resolvePluginId(request),
                 sessionId = request.arguments?.get("sessionId")?.jsonContent,
+                // Every argument key is reported, including the ones the UI already shows as
+                // attribution, so history describes the call exactly as the agent made it.
+                arguments = request.arguments.orEmpty().mapValues { (_, value) ->
+                    // Primitives render without the surrounding JSON quoting; objects and arrays
+                    // fall back to their JSON form.
+                    value.jsonContent ?: value.toString()
+                },
             )
             // A thrown handler is the only failure signal available here, and it has to reach the
             // repository before it propagates on to the MCP layer.

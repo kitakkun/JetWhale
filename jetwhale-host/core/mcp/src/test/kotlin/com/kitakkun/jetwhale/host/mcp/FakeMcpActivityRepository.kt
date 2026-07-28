@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.McpActivity
 import com.kitakkun.jetwhale.host.model.McpActivityRepository
+import com.kitakkun.jetwhale.host.model.McpCallArgument
 import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import kotlinx.collections.immutable.toImmutableList
@@ -34,12 +35,20 @@ class FakeMcpActivityRepository : McpActivityRepository {
         }
     }
 
-    override fun toolInvocationStarted(toolName: String, pluginId: String?, sessionId: String?): Long {
+    override fun toolInvocationStarted(
+        toolName: String,
+        pluginId: String?,
+        sessionId: String?,
+        arguments: Map<String, String>,
+    ): Long {
         val invocation = McpToolInvocation(
             id = nextInvocationId.incrementAndGet(),
             toolName = toolName,
             pluginId = pluginId,
             sessionId = sessionId,
+            arguments = arguments
+                .map { (name, value) -> McpCallArgument.truncating(name, value) }
+                .toImmutableList(),
         )
         _recordedInvocations += invocation
         activityFlow.update {
@@ -70,6 +79,7 @@ class FakeMcpActivityRepository : McpActivityRepository {
                         sessionId = finished.sessionId,
                         succeeded = !failed,
                         finishedAtEpochMillis = finishedAtEpochMillis,
+                        arguments = finished.arguments,
                     )
                     (listOf(record) + activity.recentCalls)
                         .take(McpActivity.MAX_RECENT_CALLS)

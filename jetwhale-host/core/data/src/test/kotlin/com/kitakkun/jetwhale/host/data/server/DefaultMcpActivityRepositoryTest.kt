@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.data.server
 
 import com.kitakkun.jetwhale.host.model.McpActivity
+import com.kitakkun.jetwhale.host.model.McpCallArgument
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -17,7 +18,7 @@ class DefaultMcpActivityRepositoryTest {
 
     @Test
     fun `a completed call is recorded with its attribution`() {
-        val id = repository.toolInvocationStarted("plugin.click", "com.example.plugin", "session-1")
+        val id = repository.toolInvocationStarted("plugin.click", "com.example.plugin", "session-1", emptyMap())
         repository.toolInvocationFinished(id, failed = false)
 
         val record = repository.activityFlow.value.recentCalls.single()
@@ -29,14 +30,14 @@ class DefaultMcpActivityRepositoryTest {
 
     @Test
     fun `a call is only recorded once it finishes`() {
-        repository.toolInvocationStarted("plugin.click", "com.example.plugin", "session-1")
+        repository.toolInvocationStarted("plugin.click", "com.example.plugin", "session-1", emptyMap())
 
         assertTrue(repository.activityFlow.value.recentCalls.isEmpty())
     }
 
     @Test
     fun `a failed call is recorded as unsuccessful`() {
-        val id = repository.toolInvocationStarted("plugin.click", "com.example.plugin", "session-1")
+        val id = repository.toolInvocationStarted("plugin.click", "com.example.plugin", "session-1", emptyMap())
         repository.toolInvocationFinished(id, failed = true)
 
         assertFalse(repository.activityFlow.value.recentCalls.single().succeeded)
@@ -45,7 +46,7 @@ class DefaultMcpActivityRepositoryTest {
     @Test
     fun `history is ordered newest first`() {
         listOf("first", "second", "third").forEach { toolName ->
-            val id = repository.toolInvocationStarted(toolName, "com.example.plugin", "session-1")
+            val id = repository.toolInvocationStarted(toolName, "com.example.plugin", "session-1", emptyMap())
             repository.toolInvocationFinished(id, failed = false)
         }
 
@@ -59,7 +60,7 @@ class DefaultMcpActivityRepositoryTest {
     fun `history drops the oldest calls once the cap is reached`() {
         val overflow = McpActivity.MAX_RECENT_CALLS + 5
         repeat(overflow) { index ->
-            val id = repository.toolInvocationStarted("tool-$index", "com.example.plugin", "session-1")
+            val id = repository.toolInvocationStarted("tool-$index", "com.example.plugin", "session-1", emptyMap())
             repository.toolInvocationFinished(id, failed = false)
         }
 
@@ -77,8 +78,68 @@ class DefaultMcpActivityRepositoryTest {
     }
 
     @Test
+    fun `a completed call is recorded with the arguments it was made with`() {
+        val id = repository.toolInvocationStarted(
+            "plugin.click",
+            "com.example.plugin",
+            "session-1",
+            mapOf("sessionId" to "session-1", "x" to "100"),
+        )
+        repository.toolInvocationFinished(id, failed = false)
+
+        val record = repository.activityFlow.value.recentCalls.single()
+        assertEquals(
+            listOf(
+                McpCallArgument("sessionId", "session-1"),
+                McpCallArgument("x", "100"),
+            ),
+            record.arguments,
+        )
+    }
+
+    @Test
+    fun `a long argument value is truncated with an ellipsis`() {
+        val value = "a".repeat(McpCallArgument.MAX_VALUE_LENGTH + 20)
+        val id = repository.toolInvocationStarted(
+            "plugin.type",
+            "com.example.plugin",
+            "session-1",
+            mapOf("text" to value),
+        )
+        repository.toolInvocationFinished(id, failed = false)
+
+        val recorded = repository.activityFlow.value.recentCalls.single().arguments.single()
+        assertEquals(
+            "a".repeat(McpCallArgument.MAX_VALUE_LENGTH) + McpCallArgument.TRUNCATION_MARKER,
+            recorded.value,
+        )
+    }
+
+    @Test
+    fun `an argument value at the cap is kept whole`() {
+        val value = "a".repeat(McpCallArgument.MAX_VALUE_LENGTH)
+        val id = repository.toolInvocationStarted(
+            "plugin.type",
+            "com.example.plugin",
+            "session-1",
+            mapOf("text" to value),
+        )
+        repository.toolInvocationFinished(id, failed = false)
+
+        assertEquals(value, repository.activityFlow.value.recentCalls.single().arguments.single().value)
+    }
+
+    @Test
+    fun `a call without arguments records an empty argument list`() {
+        val id = repository.toolInvocationStarted("plugin.screenshot", "com.example.plugin", "session-1", emptyMap())
+        repository.toolInvocationFinished(id, failed = false)
+
+        assertTrue(repository.activityFlow.value.recentCalls.single().arguments.isEmpty())
+    }
+
+    @Test
     fun `clear drops the recorded history`() {
-        val id = repository.toolInvocationStarted("plugin.click", "com.example.plugin", "session-1")
+        val id = repository.toolInvocationStarted("plugin.click", "com.example.plugin", "session-1", emptyMap())
         repository.toolInvocationFinished(id, failed = false)
 
         repository.clear()
