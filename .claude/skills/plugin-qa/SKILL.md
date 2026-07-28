@@ -57,20 +57,47 @@ they only fire the handful of requests their buttons are wired to, and **a GUI a
 from an agent at all** — MCP reaches plugin scenes, never a debuggee.
 
 Use the headless QA agent instead. It connects as an ordinary session and exposes a control API, so
-any request can be injected on demand:
+messages can be injected on demand. Name the plugin ids it should impersonate:
 
 ```bash
-./gradlew :tools:qa-agent:run            # background it; keeps the session alive
+# in this repository
+./gradlew :tools:qa-agent:run --args="--plugin com.example.myplugin"
 
-curl -s 127.0.0.1:7100/fire -H 'Content-Type: application/json' \
-  -d '{"method":"GET","url":"https://example.com/items?page=2"}'
+# from a plugin's own repository (jetwhalePlugin.hostVersion decides the agent version)
+./gradlew runJetWhaleQaAgent -PjetwhaleQaAgentArgs="--plugin com.example.myplugin"
 ```
+
+Background it — it holds the session open for as long as it runs.
+
+**Driving the plugin.** `/send` and `/request` speak the messenger's raw layer, so the agent needs no
+compile-time knowledge of the plugin. `messageType` is the payload class's `serialName` (its
+fully-qualified name unless it carries `@SerialName`), and `payload` is that class as JSON:
+
+```bash
+curl -s 127.0.0.1:7100/send -H 'Content-Type: application/json' -d '{
+  "pluginId": "com.example.myplugin",
+  "messageType": "com.example.myplugin.protocol.ItemAdded",
+  "payload": {"id": 1, "label": "hello"}
+}'
+```
+
+`/request` takes the same shape plus an optional `timeoutMs` and returns the host's reply. Get the
+`serialName` wrong and the host reports no registered handler — check it against the plugin's
+protocol module rather than guessing.
+
+**This is send-only.** Inbound handlers resolve their serializer from a reified type parameter
+(`onEvent<E>` / `onRequest<REQ, R>`), so there is no raw shape to register a catch-all against: a
+plugin whose flow depends on the *host* requesting the agent (the Network Inspector's mock replies,
+for one) cannot be answered from here. Drive those from the plugin's own MCP tools instead.
 
 - Use **`127.0.0.1`, not `localhost`** — the control API binds loopback IPv4 only, and `localhost`
   can resolve to `::1` first and get connection-refused.
 - It shows up as `appName: qa-agent` / `QA Agent (headless)`, so it is never mistaken for a real
   device. Its `sessionId` is its own — mock rules and transactions are per session.
-- `POST /shutdown` stops it; `GET /health` is a readiness probe worth polling before firing.
+- `GET /plugins` lists what it is impersonating; `GET /health` is a readiness probe worth polling
+  before sending; `POST /shutdown` stops it.
+- `POST /fire` (`{"method":"GET","url":"…"}`) injects real HTTP traffic for the bundled Network
+  Inspector — the one plugin-specific shortcut, and it needs no `--plugin`.
 - On startup the agent logs a failed plain-HTTP CA fetch followed by a successful HTTPS one. That
   is the trust-on-first-use probe, not an error.
 
