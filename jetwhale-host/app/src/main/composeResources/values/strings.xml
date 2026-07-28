@@ -50,7 +50,6 @@
     <string name="mcp_history_no_arguments">No arguments</string>
     <string name="mcp_history_response">Response</string>
     <string name="mcp_history_no_response">No response</string>
-    <string name="mcp_tools_window_title">MCP Tools</string>
     <string name="mcp_tools_open_all">Browse MCP tools</string>
     <string name="mcp_tools_filter_plugin">Plugin</string>
     <string name="mcp_tools_filter_session">Session</string>

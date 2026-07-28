@@ -17,7 +17,6 @@ import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.drawer.McpToolsScreenRoot
 import com.kitakkun.jetwhale.host.log_viewer_window_title
-import com.kitakkun.jetwhale.host.mcp_tools_window_title
 import com.kitakkun.jetwhale.host.plugin.PluginScreenRoot
 import com.kitakkun.jetwhale.host.screen.EmptyPluginScreen
 import com.kitakkun.jetwhale.host.screen.InfoScreen
@@ -190,20 +189,13 @@ fun EntryProviderScope<NavKey>.logViewerEntry() {
 context(appGraph: JetWhaleAppGraph)
 fun EntryProviderScope<NavKey>.mcpToolsEntry() {
     entry<McpToolsNavKey>(
-        metadata = WindowSceneStrategy.window(
-            WindowProperties(
-                width = 1100.dp,
-                height = 750.dp,
+        // The browser sizes itself; the platform default width would squeeze it to a narrow column.
+        metadata = StableDialogSceneStrategy.dialog(
+            dialogProperties = DialogProperties(
+                usePlatformDefaultWidth = false,
             ),
         ),
     ) { navKey ->
-        val window = LocalComposeWindow.current
-        val windowTitle = stringResource(Res.string.mcp_tools_window_title)
-
-        LaunchedEffect(window, windowTitle) {
-            window.title = windowTitle
-        }
-
         context(
             retain {
                 appGraph.mcpToolsScreenContext

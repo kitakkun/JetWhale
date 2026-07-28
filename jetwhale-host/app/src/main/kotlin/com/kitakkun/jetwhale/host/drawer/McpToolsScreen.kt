@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,6 +40,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -109,97 +111,109 @@ internal enum class McpToolsTab {
     History,
 }
 
+private const val MCP_TOOLS_DIALOG_WINDOW_FRACTION = 0.8f
+
 @Composable
 fun McpToolsScreen(
     uiState: McpToolsScreenUiState,
     onSelectPluginFilters: (Set<String>) -> Unit,
     onSelectSessionFilters: (Set<String>) -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp),
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.weight(1f),
-            ) {
-                McpFilterChipGroup(
-                    label = stringResource(Res.string.mcp_tools_filter_plugin),
-                    options = uiState.pluginOptions,
-                    selectedIds = uiState.selectedPluginIds,
-                    onSelectionChange = onSelectPluginFilters,
+    Surface(shape = MaterialTheme.shapes.large) {
+        Column(
+            modifier = Modifier
+                // Take most of the window so tool descriptions and history are readable, but stop
+                // growing past a comfortable reading width on a large display.
+                .fillMaxSize(MCP_TOOLS_DIALOG_WINDOW_FRACTION)
+                .sizeIn(
+                    minWidth = 640.dp,
+                    minHeight = 440.dp,
+                    maxWidth = 1200.dp,
+                    maxHeight = 860.dp,
                 )
-                McpFilterChipGroup(
-                    label = stringResource(Res.string.mcp_tools_filter_session),
-                    options = uiState.sessionOptions,
-                    selectedIds = uiState.selectedSessionIds,
-                    onSelectionChange = onSelectSessionFilters,
+                .padding(20.dp),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    McpFilterChipGroup(
+                        label = stringResource(Res.string.mcp_tools_filter_plugin),
+                        options = uiState.pluginOptions,
+                        selectedIds = uiState.selectedPluginIds,
+                        onSelectionChange = onSelectPluginFilters,
+                    )
+                    McpFilterChipGroup(
+                        label = stringResource(Res.string.mcp_tools_filter_session),
+                        options = uiState.sessionOptions,
+                        selectedIds = uiState.selectedSessionIds,
+                        onSelectionChange = onSelectSessionFilters,
+                    )
+                }
+                Text(
+                    text = stringResource(
+                        if (uiState.runningToolName != null) Res.string.mcp_tool_executing else Res.string.mcp_tools_available,
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // Held against the first chip row instead of the middle of a block whose height
+                    // grows as chips wrap.
+                    modifier = Modifier.padding(top = 8.dp),
                 )
             }
-            Text(
-                text = stringResource(
-                    if (uiState.runningToolName != null) Res.string.mcp_tool_executing else Res.string.mcp_tools_available,
-                ),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                // Held against the first chip row instead of the middle of a block whose height
-                // grows as chips wrap.
-                modifier = Modifier.padding(top = 8.dp),
-            )
-        }
-        Spacer(Modifier.size(12.dp))
+            Spacer(Modifier.size(12.dp))
 
-        var selectedTab by remember { mutableStateOf(McpToolsTab.Tools) }
-        TabRow(selectedTabIndex = selectedTab.ordinal) {
-            Tab(
-                selected = selectedTab == McpToolsTab.Tools,
-                onClick = { selectedTab = McpToolsTab.Tools },
-                text = { Text(stringResource(Res.string.mcp_tools_tab_tools)) },
-            )
-            Tab(
-                selected = selectedTab == McpToolsTab.History,
-                onClick = { selectedTab = McpToolsTab.History },
-                text = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text(stringResource(Res.string.mcp_tools_tab_history))
-                        if (uiState.callHistory.isNotEmpty()) {
-                            // How many calls the current scope holds, so the count is visible
-                            // without opening the tab.
-                            McpToolCallCountBadge(count = uiState.callHistory.size, running = false)
+            var selectedTab by remember { mutableStateOf(McpToolsTab.Tools) }
+            TabRow(selectedTabIndex = selectedTab.ordinal) {
+                Tab(
+                    selected = selectedTab == McpToolsTab.Tools,
+                    onClick = { selectedTab = McpToolsTab.Tools },
+                    text = { Text(stringResource(Res.string.mcp_tools_tab_tools)) },
+                )
+                Tab(
+                    selected = selectedTab == McpToolsTab.History,
+                    onClick = { selectedTab = McpToolsTab.History },
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(stringResource(Res.string.mcp_tools_tab_history))
+                            if (uiState.callHistory.isNotEmpty()) {
+                                // How many calls the current scope holds, so the count is visible
+                                // without opening the tab.
+                                McpToolCallCountBadge(count = uiState.callHistory.size, running = false)
+                            }
                         }
-                    }
-                },
-            )
-        }
-        Spacer(Modifier.size(12.dp))
+                    },
+                )
+            }
+            Spacer(Modifier.size(12.dp))
 
-        // Hoisted out of the pane so switching tabs and coming back keeps the search and the
-        // selected tool where the user left them.
-        var query by remember { mutableStateOf("") }
-        var selectedToolKey by remember { mutableStateOf<String?>(null) }
+            // Hoisted out of the pane so switching tabs and coming back keeps the search and the
+            // selected tool where the user left them.
+            var query by remember { mutableStateOf("") }
+            var selectedToolKey by remember { mutableStateOf<String?>(null) }
 
-        when (selectedTab) {
-            McpToolsTab.Tools -> McpToolsPane(
-                toolRows = uiState.toolRows,
-                query = query,
-                onQueryChange = { query = it },
-                selectedToolKey = selectedToolKey,
-                onSelectTool = { selectedToolKey = it },
-                modifier = Modifier.weight(1f),
-            )
+            when (selectedTab) {
+                McpToolsTab.Tools -> McpToolsPane(
+                    toolRows = uiState.toolRows,
+                    query = query,
+                    onQueryChange = { query = it },
+                    selectedToolKey = selectedToolKey,
+                    onSelectTool = { selectedToolKey = it },
+                    modifier = Modifier.weight(1f),
+                )
 
-            McpToolsTab.History -> McpCallHistoryPane(
-                callHistory = uiState.callHistory,
-                modifier = Modifier.weight(1f),
-            )
+                McpToolsTab.History -> McpCallHistoryPane(
+                    callHistory = uiState.callHistory,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }
