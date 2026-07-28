@@ -4,11 +4,15 @@ import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpTextCommand
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -23,6 +27,8 @@ import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -36,15 +42,19 @@ class NetworkMcpCommandsTest {
 
     private fun listCommand(data: List<HttpTransaction> = transactions) = ListTransactionsCommand(transactions = { data }, redactForMcp = { it })
 
-    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, String>): String = executeJson(command, *args.map { (key, value) -> key to JsonPrimitive(value) }.toTypedArray())
+    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, String>): JetWhaleMcpResult = executeJson(command, *args.map { (key, value) -> key to JsonPrimitive(value) }.toTypedArray())
 
-    private fun executeJson(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
+    private fun executeJson(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): JetWhaleMcpResult = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
 
-    private fun txIdsOf(result: String): List<String> = Json.parseToJsonElement(result).jsonObject
+    private val JetWhaleMcpResult.text: String get() = content.filterIsInstance<JetWhaleMcpContent.Text>().joinToString(separator = "\n") { it.text }
+
+    private val JetWhaleMcpResult.json: JsonObject get() = assertNotNull(structuredContent, "Expected a structured payload in $this")
+
+    private fun txIdsOf(result: JetWhaleMcpResult): List<String> = result.json
         .getValue("transactions").jsonArray
         .map { it.jsonObject.getValue("txId").jsonPrimitive.content }
 
-    private fun nextCursorOf(result: String): String? = Json.parseToJsonElement(result).jsonObject["nextCursor"]?.jsonPrimitive?.content
+    private fun nextCursorOf(result: JetWhaleMcpResult): String? = result.json["nextCursor"]?.jsonPrimitive?.content
 
     @Test
     fun `listTransactions without arguments returns all oldest first`() {
@@ -132,7 +142,7 @@ class NetworkMcpCommandsTest {
         )
         val rule = synced!!.single()
         assertEquals(mapOf("Content-Type" to "application/json", "X-Trace" to "abc"), rule.response.headers)
-        assertTrue("application/json" in result, result)
+        assertTrue("application/json" in result.text, result.text)
     }
 
     @Test
@@ -184,7 +194,42 @@ class NetworkMcpCommandsTest {
         )
         val result = executeJson(command, "rules" to Json.encodeToJsonElement(edited))
         assertEquals(edited, synced)
-        assertTrue("edited" in result, result)
+        assertTrue("edited" in result.text, result.text)
+    }
+
+    @Test
+    fun `a change the debuggee did not accept is reported as a failed result`() {
+        val failure = JetWhaleMessagingException("connection closed")
+
+        val setEnabled = execute(SetMockingEnabledCommand { failure }, "enabled" to "true")
+        assertTrue(setEnabled.isError, setEnabled.text)
+        assertTrue("connection closed" in setEnabled.text, setEnabled.text)
+
+        val addRule = execute(
+            AddMockRuleCommand(mockRules = { emptyList() }, syncMockRules = { failure }),
+            "urlPattern" to "/x",
+        )
+        assertTrue(addRule.isError, addRule.text)
+
+        val setRules = executeJson(SetMockRulesCommand { failure }, "rules" to Json.parseToJsonElement("[]"))
+        assertTrue(setRules.isError, setRules.text)
+
+        val removeRule = execute(
+            RemoveMockRuleCommand(
+                mockRules = { listOf(MockRule(id = "r1", matcher = MockMatcher(urlPattern = "/a"), response = MockResponseSpec())) },
+                syncMockRules = { failure },
+            ),
+            "id" to "r1",
+        )
+        assertTrue(removeRule.isError, removeRule.text)
+    }
+
+    @Test
+    fun `a change the debuggee accepted answers with a structured payload`() {
+        val result = execute(SetMockingEnabledCommand { null }, "enabled" to "true")
+
+        assertFalse(result.isError)
+        assertEquals(buildJsonObject { put("enabled", true) }, result.structuredContent)
     }
 
     @Test
@@ -201,11 +246,11 @@ class NetworkMcpCommandsTest {
 
     @Test
     fun `declaring a parameter after the schema was read fails fast`() {
-        val command = object : JetWhaleMcpCommand() {
+        val command = object : JetWhaleMcpTextCommand() {
             override val name = "test.late"
             override val description = "declares a parameter inside execute"
 
-            override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+            override suspend fun executeText(arguments: JetWhaleMcpArguments): String {
                 val late by stringOrNull("declared too late")
                 return late.name
             }
@@ -218,14 +263,14 @@ class NetworkMcpCommandsTest {
     @Test
     fun `declaring the same parameter name twice fails fast`() {
         val exception = assertFailsWith<IllegalStateException> {
-            object : JetWhaleMcpCommand() {
+            object : JetWhaleMcpTextCommand() {
                 override val name = "test.dup"
                 override val description = "declares the same name twice"
 
                 private val first by stringOrNull("first declaration", name = "x")
                 private val second by stringOrNull("second declaration", name = "x")
 
-                override suspend fun execute(arguments: JetWhaleMcpArguments): String = "unused"
+                override suspend fun executeText(arguments: JetWhaleMcpArguments): String = "unused"
             }
         }
         assertTrue("declared twice" in exception.message!!, exception.message!!)

@@ -10,6 +10,8 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpTextCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.example.protocol.ButtonClicked
 import com.kitakkun.jetwhale.plugins.example.protocol.Ping
@@ -68,27 +70,23 @@ private class ExampleHostPlugin :
     override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
         object : JetWhaleMcpCommand() {
             override val name = "com.kitakkun.jetwhale.example.sendPing"
-            override val description = "Sends a Ping request to the debuggee and returns whether a Pong reply was received."
+            override val description = "Sends a Ping request to the debuggee and reports whether a Pong reply came back."
 
-            override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-                val pongReceived = try {
-                    messenger.request(Ping)
-                    true
-                } catch (e: JetWhaleMessagingException) {
-                    false
-                }
-                return buildJsonObject {
-                    put("pongReceived", pongReceived)
-                }.toString()
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = try {
+                messenger.request(Ping)
+                JetWhaleMcpResult.json(buildJsonObject { put("pongReceived", true) })
+            } catch (e: JetWhaleMessagingException) {
+                // An unanswered Ping is the debuggee failing to respond, not an answer of "no".
+                JetWhaleMcpResult.error("the debuggee did not answer Ping: ${e.message}")
             }
         },
-        object : JetWhaleMcpCommand() {
+        object : JetWhaleMcpTextCommand() {
             override val name = "com.kitakkun.jetwhale.example.getEventLogs"
             override val description = "Returns the list of event log entries accumulated by the Example plugin."
 
             private val limit by intOrNull("Maximum number of log entries to return. Returns all entries if omitted.")
 
-            override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+            override suspend fun executeText(arguments: JetWhaleMcpArguments): String {
                 val limit = arguments[this.limit]
                 val logs = if (limit != null) eventLogs.takeLast(limit) else eventLogs.toList()
                 return Json.encodeToJsonElement(logs).toString()

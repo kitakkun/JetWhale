@@ -32,8 +32,8 @@ import kotlin.reflect.KProperty
  *     private val widgetId by string("The widget ID")
  *     private val verbose by booleanOrNull("Include layout details.")
  *
- *     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
- *         return widgets.describeAsJson(id = arguments[widgetId], verbose = arguments[verbose] ?: false)
+ *     override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
+ *         return JetWhaleMcpResult.json(widgets.describe(id = arguments[widgetId], verbose = arguments[verbose] ?: false))
  *     }
  * }
  * ```
@@ -43,9 +43,13 @@ import kotlin.reflect.KProperty
  * [stringList] / [stringMap] cover the common flat containers, and [jsonObject] / [jsonArray] hand
  * back the raw [JsonElement] for payloads whose shape is not known ahead of time.
  *
+ * [execute] answers with a [JetWhaleMcpResult] — text, structured JSON, an image, or a failure.
+ * A command that only ever answers with text can extend [JetWhaleMcpTextCommand] instead and
+ * return the string directly.
+ *
  * Expose commands through [JetWhaleMcpCapablePlugin]. A [JetWhaleMcpArgumentException] (thrown
- * by the argument accessors, or by [execute] directly for domain-level caller mistakes) is
- * rendered as an `{"error": ...}` payload instead of failing the MCP server.
+ * by the argument accessors, or by [execute] directly for domain-level caller mistakes) becomes a
+ * failed [JetWhaleMcpResult] the agent can read and correct, instead of failing the MCP server.
  *
  * @param json Format used to decode [serializable] arguments and to derive their schema; also
  *   available to [execute] for encoding results. Defaults to [DefaultArgumentJson]. Pass a custom
@@ -76,9 +80,9 @@ public abstract class JetWhaleMcpCommand(
     /**
      * Executes the tool.
      *
-     * @return A result string (plain text or JSON).
+     * @return What the AI agent receives — build it with the [JetWhaleMcpResult] factories.
      */
-    public abstract suspend fun execute(arguments: JetWhaleMcpArguments): String
+    public abstract suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult
 
     public fun toDescriptor(): JetWhaleMcpToolDescriptor {
         parametersSealed = true
@@ -279,6 +283,35 @@ public abstract class JetWhaleMcpCommand(
             putJsonArray("enum") { entries.forEach { add(it.name) } }
         }
     }
+}
+
+/**
+ * A [JetWhaleMcpCommand] whose answer is always plain text, so it returns the string itself:
+ * ```kotlin
+ * class DescribeWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpTextCommand() {
+ *     override val name = "com.example.myplugin.describeWidget"
+ *     override val description = "Describe the selected widget"
+ *
+ *     private val widgetId by string("The widget ID")
+ *
+ *     override suspend fun executeText(arguments: JetWhaleMcpArguments): String = widgets.describe(arguments[widgetId])
+ * }
+ * ```
+ * Extend [JetWhaleMcpCommand] directly to report a failure, structured JSON, or an image.
+ *
+ * @param json Same meaning as on [JetWhaleMcpCommand], and defaulted the same way.
+ */
+@ExperimentalJetWhaleApi
+public abstract class JetWhaleMcpTextCommand(json: Json = DefaultArgumentJson) : JetWhaleMcpCommand(json) {
+    final override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(executeText(arguments))
+
+    /**
+     * Executes the tool.
+     *
+     * @return The text handed to the AI agent. Throw [JetWhaleMcpArgumentException] to report a
+     *   caller mistake.
+     */
+    protected abstract suspend fun executeText(arguments: JetWhaleMcpArguments): String
 }
 
 /**

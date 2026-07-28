@@ -270,8 +270,10 @@ class InspectWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpComman
     private val widgetId by string("The widget ID")
     private val verbose by booleanOrNull("Include layout details.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        return widgets.describeAsJson(id = arguments[widgetId], verbose = arguments[verbose] ?: false)
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
+        val widget = widgets.find(arguments[widgetId])
+            ?: return JetWhaleMcpResult.error("no widget with id: ${arguments[widgetId]}")
+        return JetWhaleMcpResult.json(widget.describe(verbose = arguments[verbose] ?: false))
     }
 }
 
@@ -286,11 +288,42 @@ Things to know:
 - **`sessionId` is injected for you.** JetWhale adds a required `sessionId` parameter to every
   plugin tool's schema and routes the call to the right plugin instance, so your command runs
   against the correct session without handling it yourself.
-- **`execute` returns a string** (plain text or JSON). Throw `JetWhaleMcpArgumentException` for
-  caller mistakes — it is rendered as an `{"error": ...}` payload instead of failing the server.
 - **Messaging works from tool handlers.** `messenger` is valid for the whole instance lifetime, so
   a command can `request` the agent directly.
 - The MCP APIs are marked `@ExperimentalJetWhaleApi` and may change between releases.
+
+### What a tool answers with
+
+`execute` returns a `JetWhaleMcpResult`, built with one of four factories:
+
+| Factory                            | What the AI agent gets                                                        |
+|------------------------------------|-------------------------------------------------------------------------------|
+| `JetWhaleMcpResult.text(s)`        | Plain text — prose, or JSON you serialized yourself.                           |
+| `JetWhaleMcpResult.json(obj)`      | A `JsonObject` as structured content, repeated as text for agents that ignore it. |
+| `JetWhaleMcpResult.image(b64, mime)` | An image the agent can look at, Base64-encoded.                              |
+| `JetWhaleMcpResult.error(message)` | A **failure**: the call is flagged so the agent corrects and retries it.       |
+
+Report failures with `error(...)` rather than returning text that merely mentions the problem —
+without the flag, the agent reads "the widget does not exist" as the tool's answer and carries on.
+Throwing `JetWhaleMcpArgumentException` produces the same failed result and is the shorter path when
+the mistake is spotted deep inside the command; it never fails the MCP server.
+
+JetWhale deliberately owns this type instead of exposing the MCP library's own result types, so your
+plugin does not have to track that library's versions.
+
+A command that only ever answers with text can extend `JetWhaleMcpTextCommand` and return the string
+directly:
+
+```kotlin
+class DescribeWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpTextCommand() {
+    override val name = "com.example.myplugin.describeWidget"
+    override val description = "Describe the selected widget"
+
+    private val widgetId by string("The widget ID")
+
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String = widgets.describe(arguments[widgetId])
+}
+```
 
 ### Structured parameters
 

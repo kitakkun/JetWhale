@@ -9,7 +9,7 @@ import kotlinx.serialization.json.JsonObject
  * The MCP server queries all active plugin instances for this interface as sessions come up,
  * registers each command's descriptor, and dispatches invocations to the matching command on the
  * correct plugin instance (keyed by pluginId + sessionId). A [JetWhaleMcpArgumentException]
- * thrown by a command is rendered as an `{"error": ...}` payload instead of failing the server.
+ * thrown by a command becomes a failed [JetWhaleMcpResult] instead of failing the server.
  *
  * Usage:
  * ```kotlin
