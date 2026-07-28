@@ -5,6 +5,7 @@ import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,7 +52,6 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import kotlinx.coroutines.launch
@@ -254,13 +254,15 @@ private fun TransactionRow(tx: HttpTransaction, selected: Boolean, onClick: () -
         Text(
             text = tx.request.url,
             style = MaterialTheme.typography.bodySmall,
+            // The list pane is narrow, so long URLs are read by scrolling the text sideways rather
+            // than by selecting the row. maxLines = 1 plus softWrap = false keeps the URL on a
+            // single line; weight(1f) fixes the viewport before horizontalScroll measures the text
+            // against the unbounded width it hands down.
             maxLines = 1,
-            // softWrap = false keeps the URL on one line so a narrow column truncates it with an
-            // ellipsis at the edge; with the default softWrap the text wraps at the "//" first and
-            // maxLines = 1 then leaves only the "https://" scheme visible.
             softWrap = false,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(rememberScrollState()),
         )
         if (tx.response?.fromMock == true) {
             MockChip()

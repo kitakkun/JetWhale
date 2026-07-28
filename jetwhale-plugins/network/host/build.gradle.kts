@@ -34,6 +34,7 @@ dependencies {
     testImplementation(libs.kotlinTest)
     testImplementation(libs.kotlinxSerializationJson)
     testImplementation(compose.desktop.currentOs)
+    testImplementation(libs.jetbrainsComposeUiTestJUnit4)
     testImplementation(libs.material3)
 }
 
