@@ -292,7 +292,19 @@ private fun McpToolsDialog(
                     Tab(
                         selected = selectedTab == McpDialogTab.History,
                         onClick = { selectedTab = McpDialogTab.History },
-                        text = { Text(stringResource(Res.string.mcp_tools_tab_history)) },
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Text(stringResource(Res.string.mcp_tools_tab_history))
+                                if (callHistory.isNotEmpty()) {
+                                    // How many calls the history holds, so the count is visible
+                                    // without opening the tab.
+                                    McpToolCallCountBadge(count = callHistory.size, running = false)
+                                }
+                            }
+                        },
                     )
                 }
                 Spacer(Modifier.size(12.dp))
@@ -332,6 +344,35 @@ private fun McpToolsDialog(
                 }
             }
         }
+    }
+}
+
+/**
+ * Trailing badge on a tool row: the number of recorded calls, shown quietly. While an agent is
+ * running the tool it takes the accent fill and the same rotating ring the drawer item uses, so
+ * "being called right now" reads the same way everywhere.
+ */
+@Composable
+private fun McpToolCallCountBadge(count: Int, running: Boolean) {
+    val shape = RoundedCornerShape(6.dp)
+    Box(
+        modifier = Modifier
+            .clip(shape)
+            .background(
+                if (running) AiOperatingAccentColor else MaterialTheme.colorScheme.surfaceContainerHighest,
+                shape,
+            )
+            .then(
+                if (running) Modifier.aiOperatingBorder(color = AiOperatingAccentColor, width = 2.dp) else Modifier,
+            )
+            .padding(horizontal = 7.dp, vertical = 2.dp),
+    ) {
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.labelMedium,
+            fontFamily = FontFamily.Monospace,
+            color = if (running) Color.Black else MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
@@ -399,24 +440,11 @@ private fun McpToolsPane(
                             } else {
                                 MaterialTheme.colorScheme.onSurface
                             },
-                            modifier = Modifier.weight(1f, fill = false),
+                            // Takes the free space so the count and dot sit against the right edge.
+                            modifier = Modifier.weight(1f),
                         )
-                        if (callCount > 0) {
-                            Text(
-                                text = callCount.toString(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        if (isRunning) {
-                            // Same pulsing accent dot the drawer uses, so a tool being called right
-                            // now is recognisable here too.
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .alpha(aiActivityPulseAlpha(operating = true))
-                                    .background(AiOperatingAccentColor, CircleShape),
-                            )
+                        if (callCount > 0 || isRunning) {
+                            McpToolCallCountBadge(count = callCount, running = isRunning)
                         }
                     }
                 }
