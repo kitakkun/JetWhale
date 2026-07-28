@@ -112,6 +112,9 @@ fun toolingScaffoldPresenter(
                     mcpCallHistory = callsForSelectedSession
                         .filter { it.pluginId == metaData.id }
                         .toImmutableList(),
+                    runningMcpToolName = activeInvocation
+                        ?.takeIf { it.pluginId == metaData.id }
+                        ?.toolName,
                 )
             }.toImmutableList()
         }

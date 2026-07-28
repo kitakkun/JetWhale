@@ -18,6 +18,8 @@ data class DrawerPluginItemUiState(
     val mcpTools: ImmutableList<McpToolSummary>,
     /** Completed MCP tool calls attributed to this plugin, newest first. */
     val mcpCallHistory: ImmutableList<McpCallRecord>,
+    /** The tool an agent is running on this plugin right now, or null when none is in flight. */
+    val runningMcpToolName: String?,
 ) {
     val exposesMcpTools: Boolean get() = mcpTools.isNotEmpty()
 }

@@ -171,6 +171,7 @@ fun ExpandedToolingDrawerView(
                                         underAiControl = it.underAiControl,
                                         mcpTools = it.mcpTools,
                                         mcpCallHistory = it.mcpCallHistory,
+                                        runningMcpToolName = it.runningMcpToolName,
                                         onClick = { onClickPlugin(it) },
                                         popupMenuContent = { dismiss ->
                                             DropdownMenuItem(
@@ -244,6 +245,7 @@ fun ExpandedToolingDrawerView(
                                         underAiControl = it.underAiControl,
                                         mcpTools = it.mcpTools,
                                         mcpCallHistory = it.mcpCallHistory,
+                                        runningMcpToolName = it.runningMcpToolName,
                                         onClick = {
                                             // do nothing
                                         },
@@ -291,6 +293,7 @@ fun ExpandedToolingDrawerView(
                                     underAiControl = it.underAiControl,
                                     mcpTools = it.mcpTools,
                                     mcpCallHistory = it.mcpCallHistory,
+                                    runningMcpToolName = it.runningMcpToolName,
                                     onClick = {
                                         // do nothing
                                     },

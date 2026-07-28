@@ -10,14 +10,17 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -52,6 +55,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.close
 import com.kitakkun.jetwhale.host.mcp_history_empty
@@ -86,6 +90,7 @@ fun PluginDrawerItemView(
     underAiControl: Boolean,
     mcpTools: ImmutableList<McpToolSummary>,
     mcpCallHistory: ImmutableList<McpCallRecord>,
+    runningMcpToolName: String?,
     activeIconResource: PluginIconResource?,
     inactiveIconResource: PluginIconResource?,
     onClick: () -> Unit,
@@ -115,6 +120,7 @@ fun PluginDrawerItemView(
                             pluginName = name,
                             tools = mcpTools,
                             callHistory = mcpCallHistory,
+                            runningToolName = runningMcpToolName,
                         )
                     }
                 }
@@ -181,6 +187,7 @@ private fun McpBadge(
     pluginName: String,
     tools: ImmutableList<McpToolSummary>,
     callHistory: ImmutableList<McpCallRecord>,
+    runningToolName: String?,
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(4.dp)
@@ -218,6 +225,7 @@ private fun McpBadge(
             pluginName = pluginName,
             tools = tools,
             callHistory = callHistory,
+            runningToolName = runningToolName,
             onDismiss = { showDialog = false },
         )
     }
@@ -235,14 +243,27 @@ private fun McpToolsDialog(
     pluginName: String,
     tools: ImmutableList<McpToolSummary>,
     callHistory: ImmutableList<McpCallRecord>,
+    runningToolName: String?,
     onDismiss: () -> Unit,
 ) {
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        // The platform default constrains the dialog to its content's size; tool descriptions and
+        // history need the room to grow with the window instead.
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
         Surface(shape = MaterialTheme.shapes.large) {
             Column(
                 modifier = Modifier
-                    .width(760.dp)
-                    .height(500.dp)
+                    // Take most of the window so long descriptions and history are readable, but
+                    // stop growing past a comfortable reading width on a large display.
+                    .fillMaxSize(MCP_TOOLS_DIALOG_WINDOW_FRACTION)
+                    .sizeIn(
+                        minWidth = 640.dp,
+                        minHeight = 440.dp,
+                        maxWidth = 1200.dp,
+                        maxHeight = 860.dp,
+                    )
                     .padding(20.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -288,6 +309,10 @@ private fun McpToolsDialog(
                         onQueryChange = { query = it },
                         selectedToolName = selectedName,
                         onSelectTool = { selectedName = it },
+                        runningToolName = runningToolName,
+                        // Counts come from the retained history, so they cover the calls the
+                        // dialog can actually show rather than all time.
+                        callCounts = remember(callHistory) { callHistory.groupingBy { it.toolName }.eachCount() },
                         modifier = Modifier.weight(1f),
                     )
 
@@ -318,6 +343,8 @@ private fun McpToolsPane(
     onQueryChange: (String) -> Unit,
     selectedToolName: String?,
     onSelectTool: (String) -> Unit,
+    runningToolName: String?,
+    callCounts: Map<String, Int>,
     modifier: Modifier,
 ) {
     val filtered = remember(query, tools) {
@@ -334,7 +361,7 @@ private fun McpToolsPane(
 
     Row(modifier = modifier) {
         // Left pane: search + tool list.
-        Column(modifier = Modifier.width(260.dp)) {
+        Column(modifier = Modifier.width(300.dp)) {
             OutlinedTextField(
                 value = query,
                 onValueChange = onQueryChange,
@@ -347,17 +374,11 @@ private fun McpToolsPane(
             LazyColumn(modifier = Modifier.fillMaxHeight()) {
                 items(filtered, key = { it.name }) { tool ->
                     val isSelected = tool.name == selected?.name
-                    Text(
-                        text = tool.name.substringAfterLast('.'),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontFamily = FontFamily.Monospace,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = if (isSelected) {
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
+                    val isRunning = tool.name == runningToolName
+                    val callCount = callCounts[tool.name] ?: 0
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(6.dp))
@@ -366,7 +387,38 @@ private fun McpToolsPane(
                             )
                             .clickable { onSelectTool(tool.name) }
                             .padding(horizontal = 10.dp, vertical = 8.dp),
-                    )
+                    ) {
+                        Text(
+                            text = tool.name.substringAfterLast('.'),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontFamily = FontFamily.Monospace,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        if (callCount > 0) {
+                            Text(
+                                text = callCount.toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (isRunning) {
+                            // Same pulsing accent dot the drawer uses, so a tool being called right
+                            // now is recognisable here too.
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .alpha(aiActivityPulseAlpha(operating = true))
+                                    .background(AiOperatingAccentColor, CircleShape),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -486,6 +538,8 @@ private fun McpCallHistoryRow(record: McpCallRecord) {
 }
 
 /** Wall-clock time of day, which is what the user can line up against their own actions. */
+private const val MCP_TOOLS_DIALOG_WINDOW_FRACTION = 0.8f
+
 private val CallHistoryTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
 private fun formatCallTime(epochMillis: Long): String = Instant.ofEpochMilli(epochMillis)
