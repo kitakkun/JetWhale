@@ -21,6 +21,44 @@ internal class WireLevelQaPlugin(
     override val pluginId: String,
     override val pluginVersion: String,
 ) : JetWhaleAgentPlugin() {
+    /**
+     * Whether the host has enabled this plugin id. False means the host is not listening for this
+     * plugin at all — usually because it is disabled there — and no send will ever arrive, however
+     * long you wait.
+     */
+    @Volatile
+    var isActivated: Boolean = false
+        private set
+
+    /**
+     * Whether a message sent right now would reach the host.
+     *
+     * The control API accepts connections well before the debug session is up, so "the port answers"
+     * is not readiness: a send in that window is dropped and only reports `false` afterwards. This
+     * tracks the activation/connection lifecycle instead, so a caller can poll for readiness and
+     * then send exactly once.
+     */
+    @Volatile
+    var isReady: Boolean = false
+        private set
+
+    override fun onActivate() {
+        isActivated = true
+    }
+
+    override suspend fun onPrepare() {
+        isReady = true
+    }
+
+    override suspend fun onDisconnected() {
+        isReady = false
+    }
+
+    override fun onDeactivate() {
+        isActivated = false
+        isReady = false
+    }
+
     fun send(messageType: String, payload: String, policy: OfflineSendPolicy): Boolean = messenger.sendRaw(messageType, payload, policy)
 
     suspend fun request(messageType: String, payload: String, timeout: Duration?): String = messenger.requestRaw(messageType, payload, timeout)

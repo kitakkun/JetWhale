@@ -89,8 +89,9 @@ private data class SendRequest(
     val policy: OfflineSendPolicy = OfflineSendPolicy.DROP,
 )
 
+/** @param hint why a `false` send was dropped, when the agent can tell. */
 @Serializable
-private data class SendResponse(val sent: Boolean)
+private data class SendResponse(val sent: Boolean, val hint: String? = null)
 
 @Serializable
 private data class RequestMessage(
@@ -108,6 +109,18 @@ private data class RequestResponse(
 
 @Serializable
 private data class ErrorResponse(val error: String)
+
+/** @param ready whether every impersonated plugin can reach the host right now. */
+@Serializable
+private data class HealthResponse(val status: String, val ready: Boolean)
+
+/**
+ * @param activated the host enabled this plugin id. False means it is disabled there, and waiting
+ *   will not help.
+ * @param ready a message sent now would reach the host.
+ */
+@Serializable
+private data class PluginStatus(val version: String, val activated: Boolean, val ready: Boolean)
 
 /**
  * What the agent impersonates and where it connects.
@@ -215,11 +228,26 @@ fun main(args: Array<String>) {
         install(ContentNegotiation) { json() }
         routing {
             get("/health") {
-                call.respond(mapOf("status" to "ok"))
+                // `ready` is what a caller must poll before sending: the control API answers long
+                // before the debug session is up, and a send in that window is silently dropped.
+                call.respond(
+                    HealthResponse(
+                        status = "ok",
+                        ready = wirePluginsById.values.all { it.isReady },
+                    ),
+                )
             }
 
             get("/plugins") {
-                call.respond(wirePluginsById.mapValues { (_, plugin) -> plugin.pluginVersion })
+                call.respond(
+                    wirePluginsById.mapValues { (_, plugin) ->
+                        PluginStatus(
+                            version = plugin.pluginVersion,
+                            activated = plugin.isActivated,
+                            ready = plugin.isReady,
+                        )
+                    },
+                )
             }
 
             post("/send") {
@@ -234,7 +262,8 @@ fun main(args: Array<String>) {
                     return@post
                 }
                 try {
-                    call.respond(SendResponse(plugin.send(spec.messageType, spec.payload.toString(), spec.policy)))
+                    val sent = plugin.send(spec.messageType, spec.payload.toString(), spec.policy)
+                    call.respond(SendResponse(sent = sent, hint = if (sent) null else dropHint(plugin)))
                 } catch (e: Exception) {
                     // FAIL policy while offline lands here; that is an answer about the connection,
                     // not a malformed call.
@@ -326,6 +355,20 @@ private fun unknownPluginError(pluginId: String, known: Set<String>) = ErrorResp
         "No plugin is registered under '$pluginId'. Registered: ${known.joinToString()}."
     },
 )
+
+/**
+ * Why a send was dropped. Both cases look identical from the caller's side — `sent: false` — but only
+ * one of them is worth waiting out.
+ */
+private fun dropHint(plugin: WireLevelQaPlugin): String = when {
+    !plugin.isActivated ->
+        "The host has not enabled '${plugin.pluginId}' for this session, so nothing is listening. " +
+            "Enable the plugin in the host, or check the id."
+
+    !plugin.isReady -> "Connected but not prepared yet — poll /health until \"ready\": true."
+
+    else -> "The connection was unavailable. Retry, or send with \"policy\": \"QUEUE\" to buffer it."
+}
 
 /** Replies are opaque here — hand back JSON as JSON, and anything else as a string. */
 private fun String.asJsonOrString(): JsonElement = runCatching { Json.parseToJsonElement(this) }.getOrElse { JsonPrimitive(this) }
