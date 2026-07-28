@@ -10,8 +10,9 @@ tests pass". The host exposes an MCP server whose tools operate on a plugin's Co
 agent can drive the actual UI and look at the result.
 
 The key property: `PluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)` creates
-the scene **on demand**, independent of what the host window is displaying. You never navigate the
-host UI, and you never steal the window from whoever is using it.
+the scene **on demand**, independent of what the host window is displaying. Driving a plugin never
+needs the host window, and never steals it from whoever is using it — `jetwhale.navigate` exists for
+the times you *want* the window moved, and is the only tool that touches it.
 
 ## 1. Scope — what this can and cannot verify
 
@@ -22,11 +23,17 @@ Can:
 - the Compose semantics tree (`getAccessibilityTree`) for locating elements
 - persisted plugin state, and whether it survives a host restart
 - the plugin's own contributed MCP tools
+- **the host shell itself** — enabling a plugin, changing settings, restarting the debug server, and
+  switching the main window to another screen, through the host tools in §4
 
 Cannot:
 
-- **anything in the host shell** — settings, session switching, plugin install/enable, navigation,
-  popout windows. Every tool is scoped to `pluginId` + `sessionId`; no host-control tool exists.
+- **popout windows** — a plugin can be sent to the main window, but nothing pops it out or docks it
+  back.
+- **anything that needs the user's consent.** Installing a plugin is off by default and the agent
+  cannot lift that gate itself: `jetwhale.updateSettings` deliberately does not expose
+  `mcpPluginInstallAllowed`, so a refusal means asking the user to flip it in
+  **Settings → Server → MCP Server**.
 - the mouse cursor's appearance. An AWT cursor is not part of the rendered scene, so
   `Modifier.pointerHoverIcon` results never show up in a screenshot. Cover that with a unit test
   (see §7) and say plainly that the visual was not verified.
@@ -78,7 +85,7 @@ the two situations:
 
 | `/plugins` | meaning |
 |---|---|
-| `"activated": false` | the host has **not enabled this plugin id** — waiting will not help; enable it in the host, or check the id |
+| `"activated": false` | the host has **not enabled this plugin id** — waiting will not help. Enable it with `jetwhale.setPluginEnabled` (§4), or check the id |
 | `"activated": true, "ready": false` | connected, still preparing — keep polling |
 
 **Driving the plugin.** `/send` and `/request` speak the messenger's raw layer, so the agent needs no
@@ -131,8 +138,9 @@ gitignored (`.gitignore:7`), so each developer creates their own:
 
 The catch: MCP servers connect when the session starts, and this workflow **launches the host
 mid-session**. If the tools are missing or stale, reconnect with `/mcp` after the host is up. Tool
-lists are also per-session — a plugin's own tools only register once its instance is live, so
-reconnect after connecting a debuggee if you expect `<pluginId>.*` tools.
+lists are fixed at connection time, so a plugin's own tools appear only on a connection opened after
+its instance went live — reconnect after connecting a debuggee, and again after
+`jetwhale.setPluginEnabled`, if you expect `<pluginId>.*` tools.
 
 If reconnecting is not an option (say, a headless run), the same server is reachable over plain
 HTTP: open `GET /sse`, take the `endpoint` event's path, and POST JSON-RPC to it.
@@ -145,6 +153,28 @@ HTTP: open `GET /sse`, take the `endpoint` event's path, and POST JSON-RPC to it
 | `jetwhale.type` | text and special keys |
 | `jetwhale.getAccessibilityTree` | semantics tree; use it to find coordinates |
 | `<pluginId>.*` | tools the plugin itself contributes |
+
+Host-scoped tools take neither `pluginId` nor `sessionId`, and cover the setup a QA run used to need
+a human for:
+
+| Tool | Purpose |
+|------|---------|
+| `jetwhale.getStatus` | version, both servers, session/plugin counts, settings, current screen — call it first |
+| `jetwhale.listInstalledPlugins` | what is installed and whether it is enabled |
+| `jetwhale.setPluginEnabled` | enable the plugin under test; reports which sessions got an instance |
+| `jetwhale.navigate` | move the main window (`HOME` / `PLUGIN` / `SETTINGS` / `INFO` / `LOG_VIEWER`) |
+| `jetwhale.getLogs` / `jetwhale.clearLogs` | the **host's** own log — clear, reproduce, read |
+| `jetwhale.updateSettings` / `jetwhale.restartDebugServer` | ports and server lifecycle |
+
+`getLogs` reads the host's log, not the debuggee's — it is how a plugin jar that failed to load
+explains itself.
+
+::: warning
+`restartDebugServer`, and `updateSettings` when it changes a ws/wss setting, drop **every** session:
+each `sessionId` you hold goes stale and each debuggee has to reconnect. Re-run `listSessions`
+afterwards. Changing `mcpServerPort` never restarts the MCP server — it would kill your own
+connection — so that one only takes effect on the next host start.
+:::
 
 Always `Read` the screenshot afterwards. A screenshot you never open verifies nothing.
 
