@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.host.mcp
 
-import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
@@ -8,6 +7,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.ImageContent
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -38,7 +38,6 @@ fun JetWhaleMcpToolDescriptor.toToolSchema(
  * Plugins are deliberately kept away from the MCP library's own types, so this is the single place
  * where the SDK's vocabulary and the protocol's meet.
  */
-@OptIn(ExperimentalJetWhaleApi::class)
 fun JetWhaleMcpResult.toCallToolResult(): CallToolResult = CallToolResult(
     content = content.map { block ->
         when (block) {
@@ -48,6 +47,15 @@ fun JetWhaleMcpResult.toCallToolResult(): CallToolResult = CallToolResult(
     },
     isError = isError,
     structuredContent = structuredContent,
+)
+
+/**
+ * Narrows a derived object schema onto MCP's [ToolSchema], which pins `type` to `"object"` and
+ * carries only the property schemas and the required list.
+ */
+fun JsonObject.toToolSchema(): ToolSchema = ToolSchema(
+    properties = this["properties"] as? JsonObject,
+    required = (this["required"] as? JsonArray)?.mapNotNull { it.jsonContent },
 )
 
 fun errorResult(message: String): CallToolResult = CallToolResult(

@@ -6,10 +6,6 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.encodeToJsonElement
-import kotlinx.serialization.json.put
 
 @OptIn(ExperimentalJetWhaleApi::class)
 internal class SetMockRulesCommand(
@@ -22,10 +18,12 @@ internal class SetMockRulesCommand(
 
     private val rules by serializable<List<MockRule>>("The full list of mock rules to apply, replacing the current set.")
 
+    private val appliedRules = serializableOutput<MockRulesResult>()
+
     override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val newRules = arguments[rules]
         return when (val failure = syncMockRules(newRules)) {
-            null -> JetWhaleMcpResult.json(buildJsonObject { put("rules", Json.encodeToJsonElement(newRules)) })
+            null -> appliedRules.result(MockRulesResult(rules = newRules))
             else -> syncErrorResult(failure)
         }
     }

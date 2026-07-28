@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpTextCommand
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
@@ -27,6 +28,7 @@ import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -323,5 +325,100 @@ class McpParameterDslTest {
             execute(SerializableCommand(), "rules" to buildJsonArray { add(buildJsonObject { put("id", "rule-1") }) })
         }
         assertTrue("invalid rules" in exception.message!!, exception.message!!)
+    }
+
+    // -- Output declaration ---------------------------------------------------------------------
+
+    private class OutputCommand : JetWhaleMcpCommand() {
+        override val name = "test.output"
+        override val description = "answers with a mock configuration"
+        private val mockConfig = serializableOutput<MockConfigResult>()
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = mockConfig.result(
+            MockConfigResult(enabled = true, rules = listOf(MockRule(id = "r1", matcher = MockMatcher(urlPattern = "/api"), response = MockResponseSpec()))),
+        )
+    }
+
+    // The output schema follows the command's format for the same reason a parameter's does.
+    private class SnakeCaseOutputCommand : JetWhaleMcpCommand(Json(from = DefaultArgumentJson) { namingStrategy = JsonNamingStrategy.SnakeCase }) {
+        override val name = "test.snakeCaseOutput"
+        override val description = "answers with a snake_case mock configuration"
+        private val mockConfig = serializableOutput<MockConfigResult>()
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = mockConfig.result(MockConfigResult(enabled = false, rules = emptyList()))
+    }
+
+    @Test
+    fun `the derived output schema advertises the properties and the ones without defaults`() {
+        val schema = assertNotNull(OutputCommand().toDescriptor().outputSchema)
+        assertEquals("object", (schema.getValue("type") as JsonPrimitive).content)
+        assertEquals(listOf("enabled", "rules"), schema.obj("properties").keys.toList())
+        assertEquals(listOf("enabled", "rules"), schema.strings("required"))
+
+        val rule = schema.property("rules").obj("items")
+        assertEquals(listOf("id", "matcher", "response"), rule.strings("required"))
+        assertEquals(
+            "Whether response mocking is enabled globally on the debuggee.",
+            (schema.property("enabled").getValue("description") as JsonPrimitive).content,
+        )
+    }
+
+    @Test
+    fun `a declared output answers with structured content matching its schema`() {
+        val result = runBlocking { OutputCommand().execute(JetWhaleMcpArguments(JsonObject(emptyMap()))) }
+        val payload = assertNotNull(result.structuredContent)
+        assertEquals(setOf("enabled", "rules"), payload.keys)
+        assertTrue(payload.getValue("enabled") is JsonPrimitive)
+        // The same payload is repeated as text, which is what JetWhaleMcpResult.json produces.
+        assertEquals(payload.toString(), execute(OutputCommand()))
+    }
+
+    @Test
+    fun `a command that declares no output advertises none`() {
+        assertNull(StringMapCommand().toDescriptor().outputSchema)
+    }
+
+    @Test
+    fun `a custom format drives both the advertised output names and the encoding`() {
+        val command = SnakeCaseOutputCommand()
+        val rule = assertNotNull(command.toDescriptor().outputSchema).property("rules").obj("items")
+        assertEquals(listOf("method", "url_pattern", "match_type"), rule.property("matcher").obj("properties").keys.toList())
+    }
+
+    @Test
+    fun `an output type that is not a JSON object fails fast`() {
+        val exception = assertFailsWith<IllegalStateException> {
+            object : JetWhaleMcpCommand() {
+                override val name = "test.listOutput"
+                override val description = "tries to answer with a bare list"
+                private val rules = serializableOutput<List<MockRule>>()
+                override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = rules.result(emptyList())
+            }
+        }
+        assertTrue("does not serialize to a JSON object" in exception.message!!, exception.message!!)
+    }
+
+    @Test
+    fun `declaring a second output fails fast`() {
+        val exception = assertFailsWith<IllegalStateException> {
+            object : JetWhaleMcpCommand() {
+                override val name = "test.twoOutputs"
+                override val description = "declares two outputs"
+                val config = serializableOutput<MockConfigResult>()
+                val rules = serializableOutput<MockRulesResult>()
+                override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = config.result(MockConfigResult(enabled = true, rules = emptyList()))
+            }
+        }
+        assertTrue("more than one output" in exception.message!!, exception.message!!)
+    }
+
+    @Test
+    fun `declaring an output after the schema was read fails fast`() {
+        val command = object : JetWhaleMcpCommand() {
+            override val name = "test.lateOutput"
+            override val description = "declares its output inside execute"
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = serializableOutput<MockRulesResult>().result(MockRulesResult(rules = emptyList()))
+        }
+        command.toDescriptor()
+        val exception = assertFailsWith<IllegalStateException> { execute(command) }
+        assertTrue("after its schema was read" in exception.message!!, exception.message!!)
     }
 }
