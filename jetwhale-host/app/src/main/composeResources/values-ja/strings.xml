@@ -55,4 +55,6 @@
     <string name="mcp_tools_filter_plugin">プラグイン</string>
     <string name="mcp_tools_filter_session">セッション</string>
     <string name="mcp_tools_filter_all">すべて</string>
+    <string name="mcp_tools_filter_add">フィルターを追加</string>
+    <string name="mcp_tools_filter_remove">フィルターを解除</string>
 </resources>

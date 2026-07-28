@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -23,16 +24,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -67,8 +72,10 @@ import com.kitakkun.jetwhale.host.mcp_history_response
 import com.kitakkun.jetwhale.host.mcp_history_succeeded
 import com.kitakkun.jetwhale.host.mcp_tool_executing
 import com.kitakkun.jetwhale.host.mcp_tools_available
+import com.kitakkun.jetwhale.host.mcp_tools_filter_add
 import com.kitakkun.jetwhale.host.mcp_tools_filter_all
 import com.kitakkun.jetwhale.host.mcp_tools_filter_plugin
+import com.kitakkun.jetwhale.host.mcp_tools_filter_remove
 import com.kitakkun.jetwhale.host.mcp_tools_filter_session
 import com.kitakkun.jetwhale.host.mcp_tools_no_match
 import com.kitakkun.jetwhale.host.mcp_tools_parameters
@@ -79,6 +86,7 @@ import com.kitakkun.jetwhale.host.mcp_tools_tab_tools
 import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableSet
 import org.jetbrains.compose.resources.stringResource
 import java.time.Instant
 import java.time.ZoneId
@@ -88,8 +96,8 @@ import java.time.format.DateTimeFormatter
 data class McpToolsScreenUiState(
     val pluginOptions: ImmutableList<McpFilterOption>,
     val sessionOptions: ImmutableList<McpFilterOption>,
-    val selectedPluginId: String?,
-    val selectedSessionId: String?,
+    val selectedPluginIds: ImmutableSet<String>,
+    val selectedSessionIds: ImmutableSet<String>,
     val toolRows: ImmutableList<McpToolRowUiState>,
     val callHistory: ImmutableList<McpCallRecord>,
     val runningToolName: String?,
@@ -104,8 +112,8 @@ internal enum class McpToolsTab {
 @Composable
 fun McpToolsScreen(
     uiState: McpToolsScreenUiState,
-    onSelectPluginFilter: (String?) -> Unit,
-    onSelectSessionFilter: (String?) -> Unit,
+    onSelectPluginFilters: (Set<String>) -> Unit,
+    onSelectSessionFilters: (Set<String>) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -113,29 +121,35 @@ fun McpToolsScreen(
             .padding(20.dp),
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            McpFilterDropdown(
-                label = stringResource(Res.string.mcp_tools_filter_plugin),
-                options = uiState.pluginOptions,
-                selectedId = uiState.selectedPluginId,
-                onSelect = onSelectPluginFilter,
-            )
-            McpFilterDropdown(
-                label = stringResource(Res.string.mcp_tools_filter_session),
-                options = uiState.sessionOptions,
-                selectedId = uiState.selectedSessionId,
-                onSelect = onSelectSessionFilter,
-            )
-            Spacer(Modifier.weight(1f))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                McpFilterChipGroup(
+                    label = stringResource(Res.string.mcp_tools_filter_plugin),
+                    options = uiState.pluginOptions,
+                    selectedIds = uiState.selectedPluginIds,
+                    onSelectionChange = onSelectPluginFilters,
+                )
+                McpFilterChipGroup(
+                    label = stringResource(Res.string.mcp_tools_filter_session),
+                    options = uiState.sessionOptions,
+                    selectedIds = uiState.selectedSessionIds,
+                    onSelectionChange = onSelectSessionFilters,
+                )
+            }
             Text(
                 text = stringResource(
                     if (uiState.runningToolName != null) Res.string.mcp_tool_executing else Res.string.mcp_tools_available,
                 ),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // Held against the first chip row instead of the middle of a block whose height
+                // grows as chips wrap.
+                modifier = Modifier.padding(top = 8.dp),
             )
         }
         Spacer(Modifier.size(12.dp))
@@ -190,49 +204,133 @@ fun McpToolsScreen(
     }
 }
 
-/** "All" plus one entry per option, so the user can widen a filter the nav key seeded. */
+/** Icon size shared by the filter chips and the entries of their picker. */
+private val McpFilterIconSize = 18.dp
+
+/**
+ * One filter group: a removable chip per picked value, plus a chip that opens the picker. An empty
+ * [selectedIds] narrows nothing, and the group reads as "All" until a value is picked.
+ */
 @Composable
-private fun McpFilterDropdown(
+private fun McpFilterChipGroup(
     label: String,
     options: ImmutableList<McpFilterOption>,
-    selectedId: String?,
-    onSelect: (String?) -> Unit,
+    selectedIds: ImmutableSet<String>,
+    onSelectionChange: (Set<String>) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val allLabel = stringResource(Res.string.mcp_tools_filter_all)
-    val selectedLabel = options.firstOrNull { it.id == selectedId }?.label ?: allLabel
+    val addLabel = stringResource(Res.string.mcp_tools_filter_add)
+    val removeLabel = stringResource(Res.string.mcp_tools_filter_remove)
+    // A picked value outlives the option that named it once a session goes away, so the raw id
+    // stands in rather than dropping a filter that is still narrowing the screen.
+    val selectedChips = remember(options, selectedIds) {
+        val labelsById = options.associate { it.id to it.label }
+        selectedIds
+            .map { id -> McpFilterOption(id = id, label = labelsById[id] ?: id) }
+            .sortedBy { it.label }
+    }
 
-    Box {
-        OutlinedButton(onClick = { expanded = true }) {
-            Text(
-                text = "$label: $selectedLabel",
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = 260.dp),
-            )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            // Fixed width and held against the first chip row so both groups' labels line up even
+            // when one of them wraps onto several rows.
+            modifier = Modifier
+                .width(76.dp)
+                .padding(top = 8.dp),
+        )
+        // Wraps so a long list of plugins or sessions grows downwards instead of widening a dialog
+        // that is already bounded.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.weight(1f),
         ) {
-            DropdownMenuItem(
-                text = { Text(allLabel) },
-                onClick = {
-                    onSelect(null)
-                    expanded = false
-                },
-            )
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option.label) },
-                    onClick = {
-                        onSelect(option.id)
-                        expanded = false
+            selectedChips.forEach { option ->
+                InputChip(
+                    selected = true,
+                    onClick = { onSelectionChange(selectedIds - option.id) },
+                    label = {
+                        Text(
+                            text = option.label,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 220.dp),
+                        )
+                    },
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = removeLabel,
+                            modifier = Modifier.size(McpFilterIconSize),
+                        )
                     },
                 )
             }
+            Box {
+                val filtering = selectedChips.isNotEmpty()
+                val addIcon: (@Composable () -> Unit)? = if (filtering) {
+                    {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(McpFilterIconSize),
+                        )
+                    }
+                } else {
+                    null
+                }
+                AssistChip(
+                    onClick = { expanded = true },
+                    enabled = options.isNotEmpty(),
+                    label = { Text(if (filtering) addLabel else allLabel) },
+                    leadingIcon = addIcon,
+                )
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                ) {
+                    // The menu survives every pick so several values can be added in one go, and a
+                    // check marks what is already picked while it is open.
+                    DropdownMenuItem(
+                        text = { Text(allLabel) },
+                        onClick = { onSelectionChange(emptySet()) },
+                        trailingIcon = { if (selectedIds.isEmpty()) McpFilterSelectedCheck() },
+                    )
+                    options.forEach { option ->
+                        val selected = option.id in selectedIds
+                        DropdownMenuItem(
+                            text = { Text(option.label) },
+                            onClick = {
+                                onSelectionChange(
+                                    if (selected) selectedIds - option.id else selectedIds + option.id,
+                                )
+                            },
+                            trailingIcon = { if (selected) McpFilterSelectedCheck() },
+                        )
+                    }
+                }
+            }
         }
     }
+}
+
+/** Marks an entry of a filter picker as already narrowing the screen. */
+@Composable
+private fun McpFilterSelectedCheck() {
+    Icon(
+        imageVector = Icons.Default.Check,
+        contentDescription = null,
+        modifier = Modifier.size(McpFilterIconSize),
+    )
 }
 
 /**

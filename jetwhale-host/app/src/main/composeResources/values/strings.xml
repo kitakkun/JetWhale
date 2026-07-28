@@ -55,4 +55,6 @@
     <string name="mcp_tools_filter_plugin">Plugin</string>
     <string name="mcp_tools_filter_session">Session</string>
     <string name="mcp_tools_filter_all">All</string>
+    <string name="mcp_tools_filter_add">Add filter</string>
+    <string name="mcp_tools_filter_remove">Remove filter</string>
 </resources>

@@ -13,7 +13,9 @@ import com.kitakkun.jetwhale.host.model.McpActivity
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpToolSummary
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.delay
 import soil.query.compose.rememberSubscription
 import kotlin.time.Duration.Companion.milliseconds
@@ -33,9 +35,9 @@ data class McpToolRowUiState(
     val key: String get() = "$pluginId/${tool.name}"
 }
 
-/** An entry of a filter dropdown. A null [id] is the "All" entry. */
+/** One value a filter group can be narrowed to. */
 data class McpFilterOption(
-    val id: String?,
+    val id: String,
     val label: String,
 )
 
@@ -51,8 +53,9 @@ fun McpToolsScreenRoot(
         state3 = rememberSubscription(screenContext.mcpActivitySubscriptionKey),
         state4 = rememberSubscription(screenContext.mcpCapablePluginsSubscriptionKey),
     ) { loadedPlugins, debugSessions, mcpActivity, mcpCapablePlugins ->
-        var selectedPluginId by retain { mutableStateOf(initialPluginId) }
-        var selectedSessionId by retain { mutableStateOf(initialSessionId) }
+        // An empty set filters nothing, so the nav key's "no preference" maps onto it directly.
+        var selectedPluginIds by retain { mutableStateOf(setOfNotNull(initialPluginId).toPersistentSet()) }
+        var selectedSessionIds by retain { mutableStateOf(setOfNotNull(initialSessionId).toPersistentSet()) }
 
         // A call can start and finish between two frames, so watching the running list drops fast
         // calls entirely. Latch on the monotonic counter and hold briefly instead, matching how the
@@ -75,13 +78,13 @@ fun McpToolsScreenRoot(
                 mcpActivity = mcpActivity,
                 debugSessions = debugSessions,
                 pluginNamesById = pluginNamesById,
-                selectedPluginId = selectedPluginId,
-                selectedSessionId = selectedSessionId,
+                selectedPluginIds = selectedPluginIds,
+                selectedSessionIds = selectedSessionIds,
                 runningPluginId = runningInvocation?.pluginId,
                 runningToolName = runningInvocation?.toolName,
             ),
-            onSelectPluginFilter = { selectedPluginId = it },
-            onSelectSessionFilter = { selectedSessionId = it },
+            onSelectPluginFilters = { selectedPluginIds = it.toPersistentSet() },
+            onSelectSessionFilters = { selectedSessionIds = it.toPersistentSet() },
         )
     }
 }
@@ -92,8 +95,8 @@ private fun rememberMcpToolsUiState(
     mcpActivity: McpActivity,
     debugSessions: ImmutableList<DebugSession>,
     pluginNamesById: Map<String, String>,
-    selectedPluginId: String?,
-    selectedSessionId: String?,
+    selectedPluginIds: ImmutableSet<String>,
+    selectedSessionIds: ImmutableSet<String>,
     runningPluginId: String?,
     runningToolName: String?,
 ): McpToolsScreenUiState {
@@ -117,22 +120,22 @@ private fun rememberMcpToolsUiState(
 
     // Calls that named no session came from a tool that targets none, so they stay visible under a
     // specific session too; hiding them would make a session look quieter than it was.
-    val callHistory = remember(mcpActivity.recentCalls, selectedPluginId, selectedSessionId) {
+    val callHistory = remember(mcpActivity.recentCalls, selectedPluginIds, selectedSessionIds) {
         mcpActivity.recentCalls
-            .filter { selectedPluginId == null || it.pluginId == selectedPluginId }
-            .filter { selectedSessionId == null || it.sessionId == null || it.sessionId == selectedSessionId }
+            .filter { selectedPluginIds.isEmpty() || it.pluginId in selectedPluginIds }
+            .filter { selectedSessionIds.isEmpty() || it.sessionId == null || it.sessionId in selectedSessionIds }
             .toImmutableList()
     }
 
-    val toolRows = remember(mcpCapablePlugins, callHistory, pluginNamesById, selectedPluginId, selectedSessionId, runningPluginId, runningToolName) {
+    val toolRows = remember(mcpCapablePlugins, callHistory, pluginNamesById, selectedPluginIds, selectedSessionIds, runningPluginId, runningToolName) {
         // The same plugin publishes the same tools in every session it is active in, so the scope can
         // yield duplicates that carry no extra information.
         val callCounts = callHistory.groupingBy { it.pluginId to it.toolName }.eachCount()
         mcpCapablePlugins.toolsBySessionAndPlugin
-            .filterKeys { selectedSessionId == null || it == selectedSessionId }
+            .filterKeys { selectedSessionIds.isEmpty() || it in selectedSessionIds }
             .values
             .flatMap { toolsByPlugin -> toolsByPlugin.entries }
-            .filter { selectedPluginId == null || it.key == selectedPluginId }
+            .filter { selectedPluginIds.isEmpty() || it.key in selectedPluginIds }
             .flatMap { (pluginId, tools) -> tools.map { pluginId to it } }
             .distinctBy { (pluginId, tool) -> "$pluginId/${tool.name}" }
             .map { (pluginId, tool) ->
@@ -151,8 +154,8 @@ private fun rememberMcpToolsUiState(
     return McpToolsScreenUiState(
         pluginOptions = pluginOptions,
         sessionOptions = sessionOptions,
-        selectedPluginId = selectedPluginId,
-        selectedSessionId = selectedSessionId,
+        selectedPluginIds = selectedPluginIds,
+        selectedSessionIds = selectedSessionIds,
         toolRows = toolRows,
         callHistory = callHistory,
         runningToolName = runningToolName,
