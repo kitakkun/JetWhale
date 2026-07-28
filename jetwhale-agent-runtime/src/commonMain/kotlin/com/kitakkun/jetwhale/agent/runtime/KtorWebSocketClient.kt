@@ -17,7 +17,9 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.URLProtocol
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
+import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
+import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.filterIsInstance
@@ -73,6 +75,12 @@ internal class KtorWebSocketClient(
 
     override suspend fun sendDebuggeeEvent(event: JetWhaleDebuggeeEvent) {
         session?.sendSerialized(event)
+    }
+
+    override suspend fun closeConnection() {
+        val session = this.session ?: return
+        this.session = null
+        session.close(CloseReason(CloseReason.Codes.NORMAL, "JetWhale session stopped"))
     }
 
     override suspend fun openConnection(

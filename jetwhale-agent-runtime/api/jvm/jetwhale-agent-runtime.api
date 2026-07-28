@@ -38,7 +38,11 @@ public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhalePlug
 }
 
 public final class com/kitakkun/jetwhale/agent/runtime/JetWhaleServiceDslKt {
-	public static final fun startJetWhale (Lkotlin/jvm/functions/Function1;)V
+	public static final fun startJetWhale (Lkotlin/jvm/functions/Function1;)Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleSession;
+}
+
+public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleSession {
+	public abstract fun stop ()V
 }
 
 public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleSslConfigurationScope {

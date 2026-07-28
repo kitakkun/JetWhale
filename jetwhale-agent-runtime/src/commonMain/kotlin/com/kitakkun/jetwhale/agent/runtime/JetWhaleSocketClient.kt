@@ -12,4 +12,10 @@ internal data class JetWhaleConnection(
 internal interface JetWhaleSocketClient {
     suspend fun sendDebuggeeEvent(event: JetWhaleDebuggeeEvent)
     suspend fun openConnection(host: String, port: Int): JetWhaleConnection
+
+    /**
+     * Closes the current session, if any, so the host observes the debuggee going away instead of
+     * waiting out a dead socket. Does nothing when no session is open.
+     */
+    suspend fun closeConnection()
 }
