@@ -10,6 +10,10 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -149,7 +153,13 @@ fun AiActivityIndicatorView(
     uiState: AiActivityUiState,
     modifier: Modifier = Modifier,
 ) {
-    AnimatedVisibility(visible = uiState.isAgentConnected) {
+    AnimatedVisibility(
+        visible = uiState.isAgentConnected,
+        // Collapse the banner's height as it goes, so the rest of the drawer slides up to fill the
+        // space instead of the banner blinking out and leaving a gap.
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut(),
+    ) {
         val pulseAlpha = aiActivityPulseAlpha(uiState.isOperating)
         // A fast tool call flips isOperating on and off within a few frames; animating the colour
         // turns that into a soft glow instead of a jarring flicker between the two container colours.

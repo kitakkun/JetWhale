@@ -146,7 +146,7 @@ fun PluginDrawerItemView(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .aiOperatingBorder(color = AiOperatingAccentColor, width = 3.dp),
+                    .aiOperatingBorder(color = AiOperatingAccentColor, width = 2.dp),
             )
         }
     }
