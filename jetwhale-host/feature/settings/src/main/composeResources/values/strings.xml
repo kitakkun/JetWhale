@@ -62,6 +62,11 @@
     <string name="debug_server_port_apply_confirm_message">Restart Debug Server on port %1$s?</string>
     <string name="mcp_server_port_apply_confirm_title">Apply MCP Server Port Change</string>
     <string name="mcp_server_port_apply_confirm_message">Restart MCP Server on port %1$s?</string>
+    <string name="mcp_setup_note">Connect an AI agent to this MCP server by registering the SSE endpoint below.</string>
+    <string name="mcp_setup_claude_code_label">Claude Code</string>
+    <string name="mcp_setup_json_label">JSON config</string>
+    <string name="mcp_setup_open_guide">Open setup guide</string>
+    <string name="copy_to_clipboard">Copy</string>
     <string name="dialog_ok">OK</string>
     <string name="dialog_cancel">Cancel</string>
     <string name="health_check">Health Check</string>

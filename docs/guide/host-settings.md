@@ -56,6 +56,10 @@ The **Settings → Server** screen configures the debug WebSocket server and its
 The server status line shows the running ports, e.g. *Running on port 5080 (WSS: 5443)* when wss is
 active.
 
+The **MCP Server** section also offers copy-ready connection snippets — a `claude mcp add` command
+and a JSON config block, both carrying the port the MCP server is currently running on — plus a link
+to the [MCP Server](/guide/mcp-server) guide.
+
 ### SSL certificates
 
 To let agents connect over [wss](/guide/getting-started#secure-connections-wss), the host serves TLS
