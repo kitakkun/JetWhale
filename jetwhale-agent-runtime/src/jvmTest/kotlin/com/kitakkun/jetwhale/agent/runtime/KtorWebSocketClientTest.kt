@@ -27,11 +27,7 @@ import kotlin.test.assertFailsWith
 class KtorWebSocketClientTest {
     @Test
     fun `test fail to connect to non-existent server`() = testApplication {
-        val webSocketClient = KtorWebSocketClient(
-            json = json,
-            negotiationStrategy = NoopClientSessionNegotiationStrategy(),
-            httpClient = client,
-        )
+        val webSocketClient = webSocketClient()
 
         assertFailsWith<Throwable> {
             webSocketClient.openConnection(
@@ -45,11 +41,7 @@ class KtorWebSocketClientTest {
     fun `test connection established successfully`() = testApplication {
         configureTestServer()
 
-        val webSocketClient = KtorWebSocketClient(
-            json = json,
-            negotiationStrategy = NoopClientSessionNegotiationStrategy(),
-            httpClient = client,
-        )
+        val webSocketClient = webSocketClient()
 
         webSocketClient.openConnection(
             host = TEST_SERVER_HOST,
@@ -61,11 +53,7 @@ class KtorWebSocketClientTest {
     fun `test send message`() = testApplication {
         configureTestServer()
 
-        val webSocketClient = KtorWebSocketClient(
-            json = json,
-            negotiationStrategy = NoopClientSessionNegotiationStrategy(),
-            httpClient = client,
-        )
+        val webSocketClient = webSocketClient()
 
         webSocketClient.openConnection(
             host = TEST_SERVER_HOST,
@@ -91,11 +79,7 @@ class KtorWebSocketClientTest {
             sendSerialized(expectedEvent)
         }
 
-        val webSocketClient = KtorWebSocketClient(
-            json = json,
-            negotiationStrategy = NoopClientSessionNegotiationStrategy(),
-            httpClient = client,
-        )
+        val webSocketClient = webSocketClient()
 
         val connectionResult = webSocketClient.openConnection(
             host = TEST_SERVER_HOST,
@@ -107,6 +91,17 @@ class KtorWebSocketClientTest {
             actual = connectionResult.debuggerEventFlow.first(),
         )
     }
+
+    /**
+     * The client under test owns whatever the provider hands it and closes it when the connection
+     * ends, so each connection gets a throwaway client rather than this application's own.
+     */
+    private fun ApplicationTestBuilder.webSocketClient() = KtorWebSocketClient(
+        json = json,
+        negotiationStrategy = NoopClientSessionNegotiationStrategy(),
+        sslConfiguration = JetWhaleSslConfiguration(),
+        httpClientProvider = { createClient { configureWebSocketClient(json) } },
+    )
 
     private fun ApplicationTestBuilder.configureTestServer(
         extraWebSocketSessionHandler: suspend WebSocketServerSession.() -> Unit = {},

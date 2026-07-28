@@ -4,10 +4,14 @@ import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.cancellation.CancellationException
 
 internal class DefaultJetWhaleMessagingService(
@@ -34,6 +38,25 @@ internal class DefaultJetWhaleMessagingService(
                     delay(delayMillis)
                 }
             }
+        }
+    }
+
+    override fun stopService() {
+        JetWhaleLogger.i("Stopping JetWhale Messaging Service")
+        val connectionJob = keepAwakeJob ?: return
+        keepAwakeJob = null
+        coroutineScope.launch {
+            // Join, don't just cancel: the loop must be fully wound down before the teardown below,
+            // or the connection's own `finally` would interleave with it and drop the peers twice.
+            connectionJob.cancelAndJoin()
+            // A cancelled connection cannot run its own suspending teardown, so close the socket and
+            // drop the peers here, out of reach of the cancellation.
+            withContext(NonCancellable) {
+                socketClient.closeConnection()
+                pluginService.disconnectAll()
+            }
+        }.invokeOnCompletion {
+            coroutineScope.cancel()
         }
     }
 

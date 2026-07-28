@@ -4,12 +4,36 @@ import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 
 /**
+ * A running JetWhale debug session: one connection to the host, which lists and groups it as a
+ * single app under its device.
+ *
+ * An app that connects once and stays connected for its whole lifetime can ignore the handle. It
+ * matters when the process owns more than one session, or wants to give one up on purpose.
+ */
+public interface JetWhaleSession {
+    /**
+     * Disconnects this session from the host and releases the resources it holds.
+     *
+     * Terminal: the reconnect loop is torn down and the registered plugins are dropped, so the
+     * session cannot be revived. Call [startJetWhale] again — with fresh plugin instances, since a
+     * plugin is bound to the session it was registered with — for a new one. Repeated calls are
+     * ignored.
+     *
+     * Returns as soon as the teardown is scheduled, so the host observes the disconnect shortly
+     * after rather than by the time this returns.
+     */
+    public fun stop()
+}
+
+/**
  * Starts the JetWhale Messaging Service with the provided configuration.
  *
  * @param configure A lambda function to configure the JetWhale service.
+ * @return a handle to the started session. An app that connects once at startup and stays connected
+ *   for as long as it runs can ignore it.
  */
 @OptIn(InternalJetWhaleApi::class)
-public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
+public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit): JetWhaleSession {
     val configuration = JetWhaleConfiguration().apply(configure)
 
     JetWhaleLogger.setEnabled(configuration.logging.enabled)
@@ -36,6 +60,13 @@ public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit) {
         host = configuration.connection.host,
         port = configuration.connection.port,
     )
+    return MessagingServiceSession(service)
+}
+
+private class MessagingServiceSession(private val service: JetWhaleMessagingService) : JetWhaleSession {
+    override fun stop() {
+        service.stopService()
+    }
 }
 
 @DslMarker

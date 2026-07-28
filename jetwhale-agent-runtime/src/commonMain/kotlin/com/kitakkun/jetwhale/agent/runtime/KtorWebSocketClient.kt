@@ -17,7 +17,9 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.URLProtocol
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
+import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
+import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.filterIsInstance
@@ -32,6 +34,10 @@ import kotlin.coroutines.cancellation.CancellationException
  * time. This is required for two reasons: SSL must be configured via the engine{} block when the
  * client is built (Ktor ignores engine{} blocks applied through HttpClient.config{} afterwards),
  * and the trusted CA may only become known at connect time when it is fetched from the host.
+ *
+ * A client therefore serves exactly one connection and is owned by this class: [httpClientProvider]
+ * hands over a client to dispose of, and every path out of [openConnection] goes through
+ * [releaseHttpClient]. Without that, each attempt would strand an engine's thread pool.
  */
 internal class KtorWebSocketClient(
     private val json: Json,
@@ -40,6 +46,7 @@ internal class KtorWebSocketClient(
     private val httpClientProvider: (JetWhaleSslConfiguration) -> HttpClient,
 ) : JetWhaleSocketClient {
     private var session: DefaultClientWebSocketSession? = null
+    private var httpClient: HttpClient? = null
 
     /** Production constructor: builds the engine with SSL configured at construction time. */
     constructor(
@@ -51,49 +58,63 @@ internal class KtorWebSocketClient(
         negotiationStrategy = negotiationStrategy,
         sslConfiguration = sslConfiguration,
         httpClientProvider = { resolvedConfiguration ->
+            // One client, configured in full here: an engine{} block only takes effect while the
+            // client is being built, so the SSL setup cannot be applied to it afterwards.
             HttpClient(defaultKtorEngineFactory()) {
                 engine {
                     configureSsl(resolvedConfiguration)
                 }
+                configureWebSocketClient(json)
             }
         },
-    )
-
-    /** Test constructor: uses a prebuilt [HttpClient] (e.g. the Ktor test client) as-is. */
-    constructor(
-        json: Json,
-        negotiationStrategy: ClientSessionNegotiationStrategy,
-        httpClient: HttpClient,
-    ) : this(
-        json = json,
-        negotiationStrategy = negotiationStrategy,
-        sslConfiguration = JetWhaleSslConfiguration(),
-        httpClientProvider = { httpClient },
     )
 
     override suspend fun sendDebuggeeEvent(event: JetWhaleDebuggeeEvent) {
         session?.sendSerialized(event)
     }
 
+    override suspend fun closeConnection() {
+        val session = this.session
+        this.session = null
+        session?.close(CloseReason(CloseReason.Codes.NORMAL, "JetWhale session stopped"))
+        releaseHttpClient()
+    }
+
     override suspend fun openConnection(
         host: String,
         port: Int,
     ): JetWhaleConnection {
-        val resolvedConfiguration = resolveSslConfiguration(host, port)
-        val client = httpClientProvider(resolvedConfiguration).config {
-            configureHttpClient()
-        }
+        // A connection that ended on its own (host disconnect, error) never reached closeConnection,
+        // so its client is still held here. Release it before this attempt allocates another.
+        releaseHttpClient()
 
-        val session = client.webSocketSession(
-            host = host,
-            port = port,
-        ) {
-            url {
-                protocol = if (resolvedConfiguration.isEnabled) URLProtocol.WSS else URLProtocol.WS
+        val resolvedConfiguration = resolveSslConfiguration(host, port)
+        val client = httpClientProvider(resolvedConfiguration)
+        httpClient = client
+
+        try {
+            val session = client.webSocketSession(
+                host = host,
+                port = port,
+            ) {
+                url {
+                    protocol = if (resolvedConfiguration.isEnabled) URLProtocol.WSS else URLProtocol.WS
+                }
             }
+            this.session = session
+            return session.configureSession()
+        } catch (e: Throwable) {
+            // A refused host and a failed negotiation both land here, and the reconnect loop will
+            // try again; without this every attempt would strand an engine's thread pool.
+            releaseHttpClient()
+            throw e
         }
-        this.session = session
-        return session.configureSession()
+    }
+
+    private fun releaseHttpClient() {
+        val client = httpClient ?: return
+        httpClient = null
+        client.close()
     }
 
     /**
@@ -194,20 +215,24 @@ internal class KtorWebSocketClient(
             debuggerEventFlow = debuggerEventFlow,
         )
     }
+}
 
-    private fun HttpClientConfig<*>.configureHttpClient() {
-        install(WebSockets) {
-            contentConverter = KotlinxWebsocketSerializationConverter(json)
-        }
+/**
+ * Installs what [KtorWebSocketClient] needs from a client. Applied while the client is being built,
+ * so a connection costs exactly one client rather than one plus a `config { }` derivative.
+ */
+internal fun HttpClientConfig<*>.configureWebSocketClient(json: Json) {
+    install(WebSockets) {
+        contentConverter = KotlinxWebsocketSerializationConverter(json)
+    }
 
-        install(Logging) {
-            logger = JetWhaleLogger
-            level = when (JetWhaleLogger.ktorLogLevel) {
-                KtorLogLevel.ALL -> LogLevel.ALL
-                KtorLogLevel.HEADERS -> LogLevel.HEADERS
-                KtorLogLevel.BODY -> LogLevel.BODY
-                KtorLogLevel.NONE -> LogLevel.NONE
-            }
+    install(Logging) {
+        logger = JetWhaleLogger
+        level = when (JetWhaleLogger.ktorLogLevel) {
+            KtorLogLevel.ALL -> LogLevel.ALL
+            KtorLogLevel.HEADERS -> LogLevel.HEADERS
+            KtorLogLevel.BODY -> LogLevel.BODY
+            KtorLogLevel.NONE -> LogLevel.NONE
         }
     }
 }

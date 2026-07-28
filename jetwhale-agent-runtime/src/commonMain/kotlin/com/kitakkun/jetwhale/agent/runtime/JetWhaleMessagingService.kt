@@ -11,4 +11,13 @@ internal interface JetWhaleMessagingService {
      * @param port The port number of the JetWhale debugger server.
      */
     fun startService(host: String, port: Int)
+
+    /**
+     * Stops the messaging service: the reconnect loop is torn down, the current connection is closed
+     * and every plugin peer is dropped.
+     *
+     * Terminal — the service is not restartable afterwards. Returns as soon as the teardown is
+     * scheduled, and repeated calls are ignored.
+     */
+    fun stopService()
 }

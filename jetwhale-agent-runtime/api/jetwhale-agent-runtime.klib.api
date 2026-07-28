@@ -83,9 +83,13 @@ abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhalePluginConfigurati
     abstract fun register(com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin) // com.kitakkun.jetwhale.agent.runtime/JetWhalePluginConfigurationScope.register|register(com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin){}[0]
 }
 
+abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleSession { // com.kitakkun.jetwhale.agent.runtime/JetWhaleSession|null[0]
+    abstract fun stop() // com.kitakkun.jetwhale.agent.runtime/JetWhaleSession.stop|stop(){}[0]
+}
+
 abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleSslConfigurationScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleSslConfigurationScope|null[0]
     abstract fun trustCertificate(kotlin/String) // com.kitakkun.jetwhale.agent.runtime/JetWhaleSslConfigurationScope.trustCertificate|trustCertificate(kotlin.String){}[0]
     abstract fun trustServerCertificate() // com.kitakkun.jetwhale.agent.runtime/JetWhaleSslConfigurationScope.trustServerCertificate|trustServerCertificate(){}[0]
 }
 
-final fun com.kitakkun.jetwhale.agent.runtime/startJetWhale(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/startJetWhale|startJetWhale(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleConfigurationScope,kotlin.Unit>){}[0]
+final fun com.kitakkun.jetwhale.agent.runtime/startJetWhale(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope, kotlin/Unit>): com.kitakkun.jetwhale.agent.runtime/JetWhaleSession // com.kitakkun.jetwhale.agent.runtime/startJetWhale|startJetWhale(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleConfigurationScope,kotlin.Unit>){}[0]
