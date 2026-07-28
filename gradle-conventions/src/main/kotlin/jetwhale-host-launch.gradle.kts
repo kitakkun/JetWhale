@@ -4,9 +4,10 @@ import org.gradle.process.CommandLineArgumentProvider
  * In-repo-only companion to the published `com.kitakkun.jetwhale.host` plugin.
  *
  * Adds `runJetWhaleLocal`, which launches the locally built host project (`:jetwhale-host:app`) with
- * this plugin staged for hot reload. It lives here, and is NOT published, because it depends on the
- * JetWhale repository's own host project — which external plugin authors don't have. They use
- * `runJetWhale` from the published plugin instead.
+ * this plugin staged for hot reload, and `runJetWhaleQaAgentLocal`, which runs the locally built QA
+ * agent (`:tools:qa-agent`) against it. Both live here, and are NOT published, because they depend on
+ * this repository's own projects — which external plugin authors don't have. They use `runJetWhale`
+ * and `runJetWhaleQaAgent` from the published plugin instead, which resolve released artifacts.
  *
  * Apply this alongside `com.kitakkun.jetwhale.host`: it reuses that plugin's `stageDevPlugin` task and its
  * dev plugins directory.
@@ -61,6 +62,31 @@ tasks.register<JavaExec>("runJetWhaleLocal") {
                 // can only be set via -Xdock:name at launch — it is not settable at runtime.
                 if (osName.getOrElse("").contains("mac", ignoreCase = true)) add("-Xdock:name=JetWhale")
             }
+        },
+    )
+}
+
+// Resolve the QA agent from this build rather than from Maven, so a plugin can be driven against an
+// agent built from the working tree — the published `runJetWhaleQaAgent` can only run released ones.
+val jetwhaleQaAgentRuntime = configurations.create("jetwhaleQaAgentRuntime") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+dependencies.add("jetwhaleQaAgentRuntime", dependencies.project(":tools:qa-agent"))
+
+tasks.register<JavaExec>("runJetWhaleQaAgentLocal") {
+    group = "jetwhale"
+    description = "Runs the locally built JetWhale QA agent — a headless debuggee for this plugin, driven over HTTP."
+
+    classpath = jetwhaleQaAgentRuntime
+    mainClass.set("com.kitakkun.jetwhale.tools.qaagent.MainKt")
+
+    // Same property the published `runJetWhaleQaAgent` reads, so a command line moves between them
+    // unchanged: `-PjetwhaleQaAgentArgs="--plugin com.example.myplugin"`. See the agent's `--help`.
+    val extraArgs = providers.gradleProperty("jetwhaleQaAgentArgs")
+    argumentProviders.add(
+        CommandLineArgumentProvider {
+            extraArgs.getOrElse("").split(" ").filter { it.isNotBlank() }
         },
     )
 }
