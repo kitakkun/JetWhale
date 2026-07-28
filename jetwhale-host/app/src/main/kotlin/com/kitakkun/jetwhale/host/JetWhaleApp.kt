@@ -31,7 +31,9 @@ import com.kitakkun.jetwhale.host.navigation.PluginNavKey
 import com.kitakkun.jetwhale.host.navigation.PluginPopoutNavKey
 import com.kitakkun.jetwhale.host.navigation.SettingsNavKey
 import com.kitakkun.jetwhale.host.navigation.addSingleTop
+import com.kitakkun.jetwhale.host.navigation.bringPluginBackToMainWindow
 import com.kitakkun.jetwhale.host.navigation.followPluginToSession
+import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu
 import com.kitakkun.jetwhale.host.ui.AppEnvironment
 import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
@@ -138,6 +140,8 @@ fun JetWhaleApp() {
                                             ),
                                         )
                                     },
+                                    isPoppedOut = backStack::isPluginPoppedOut,
+                                    onClickBringBack = backStack::bringPluginBackToMainWindow,
                                     onSelectedSessionChange = { selectedSession ->
                                         // When the user switches the active session, make any plugin screen
                                         // currently on top follow the newly-selected session instead of

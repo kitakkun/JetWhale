@@ -20,6 +20,8 @@ fun ToolingScaffold(
     onClickInfo: () -> Unit,
     onClickPlugin: (String) -> Unit,
     onClickPopout: (DrawerPluginItemUiState) -> Unit,
+    isPoppedOut: (pluginId: String) -> Boolean,
+    onClickBringBack: (DrawerPluginItemUiState) -> Unit,
     onSelectSession: (DebugSession) -> Unit,
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -40,6 +42,8 @@ fun ToolingScaffold(
                     onClickPlugin = onClickPlugin,
                     onSelectSession = onSelectSession,
                     onClickPopout = onClickPopout,
+                    isPoppedOut = isPoppedOut,
+                    onClickBringBack = onClickBringBack,
                     onSetPluginEnabled = onSetPluginEnabled,
                 )
             },
@@ -68,6 +72,8 @@ private fun ToolingScaffoldPreview() {
         onClickPlugin = {},
         onSelectSession = {},
         onClickPopout = {},
+        isPoppedOut = { false },
+        onClickBringBack = {},
         onSetPluginEnabled = { _, _ -> },
     ) {
         Text("Hello, World!")

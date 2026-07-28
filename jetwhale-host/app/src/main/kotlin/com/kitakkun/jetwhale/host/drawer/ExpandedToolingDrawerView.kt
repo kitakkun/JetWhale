@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SouthWest
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
+import com.kitakkun.jetwhale.host.bring_back_from_popout
 import com.kitakkun.jetwhale.host.disable
 import com.kitakkun.jetwhale.host.disabled_plugins
 import com.kitakkun.jetwhale.host.enable
@@ -64,6 +66,8 @@ fun ExpandedToolingDrawerView(
     onClickPlugin: (DrawerPluginItemUiState) -> Unit,
     onSelectSession: (DebugSession) -> Unit,
     onClickPopout: (DrawerPluginItemUiState) -> Unit,
+    isPoppedOut: (pluginId: String) -> Boolean,
+    onClickBringBack: (DrawerPluginItemUiState) -> Unit,
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
 ) {
     ModalDrawerSheet {
@@ -177,19 +181,35 @@ fun ExpandedToolingDrawerView(
                                                     dismiss()
                                                 },
                                             )
-                                            DropdownMenuItem(
-                                                text = { Text(stringResource(Res.string.popout)) },
-                                                leadingIcon = {
-                                                    Icon(
-                                                        imageVector = Icons.Default.ArrowOutward,
-                                                        contentDescription = null,
-                                                    )
-                                                },
-                                                onClick = {
-                                                    onClickPopout(it)
-                                                    dismiss()
-                                                },
-                                            )
+                                            if (isPoppedOut(it.id)) {
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(Res.string.bring_back_from_popout)) },
+                                                    leadingIcon = {
+                                                        Icon(
+                                                            imageVector = Icons.Default.SouthWest,
+                                                            contentDescription = null,
+                                                        )
+                                                    },
+                                                    onClick = {
+                                                        onClickBringBack(it)
+                                                        dismiss()
+                                                    },
+                                                )
+                                            } else {
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(Res.string.popout)) },
+                                                    leadingIcon = {
+                                                        Icon(
+                                                            imageVector = Icons.Default.ArrowOutward,
+                                                            contentDescription = null,
+                                                        )
+                                                    },
+                                                    onClick = {
+                                                        onClickPopout(it)
+                                                        dismiss()
+                                                    },
+                                                )
+                                            }
                                         },
                                         modifier = Modifier.animateItem(),
                                     )

@@ -24,6 +24,8 @@ fun ToolingDrawer(
     onClickPlugin: (String) -> Unit,
     onSelectSession: (DebugSession) -> Unit,
     onClickPopout: (DrawerPluginItemUiState) -> Unit,
+    isPoppedOut: (pluginId: String) -> Boolean,
+    onClickBringBack: (DrawerPluginItemUiState) -> Unit,
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
 ) {
     var expandMenu by remember { mutableStateOf(true) }
@@ -43,6 +45,8 @@ fun ToolingDrawer(
                 onClickPlugin = { onClickPlugin(it.id) },
                 onSelectSession = onSelectSession,
                 onClickPopout = onClickPopout,
+                isPoppedOut = isPoppedOut,
+                onClickBringBack = onClickBringBack,
                 onSetPluginEnabled = onSetPluginEnabled,
             )
         },

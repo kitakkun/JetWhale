@@ -63,26 +63,8 @@ fun JetWhaleNavDisplay(
             licensesEntry(onClickBack = backStack::removeLastOrNull)
             logViewerEntry()
             pluginEntries(
-                isOpenedOnPopout = { pluginId, sessionId ->
-                    backStack.any {
-                        it is PluginPopoutNavKey &&
-                            it.pluginId == pluginId &&
-                            it.sessionId == sessionId
-                    }
-                },
-                onBringbackToMainWindow = { pluginId, sessionId ->
-                    backStack.addSingleTop(
-                        PluginNavKey(
-                            pluginId = pluginId,
-                            sessionId = sessionId,
-                        ),
-                    )
-                    backStack.removeAll {
-                        it is PluginPopoutNavKey &&
-                            it.pluginId == pluginId &&
-                            it.sessionId == sessionId
-                    }
-                },
+                isOpenedOnPopout = backStack::isPluginPoppedOut,
+                onBringbackToMainWindow = backStack::bringPluginBackToMainWindow,
             )
             disabledPluginEntry()
         },
