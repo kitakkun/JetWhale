@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
+import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
@@ -42,6 +43,14 @@ class DefaultMcpServerServiceTest {
 
     private val host = "localhost"
     private val port = java.net.ServerSocket(0).use { it.localPort }
+
+    /**
+     * Holds [port] (0 picks a free one) on the loopback address specifically. A wildcard-bound
+     * `ServerSocket(0)` would not do: BSD-derived systems let a SO_REUSEADDR socket bind
+     * 127.0.0.1:p over an existing 0.0.0.0:p, so the server would start just fine and the test
+     * would silently stop testing the failure path.
+     */
+    private fun occupyPort(port: Int = 0): java.net.ServerSocket = java.net.ServerSocket(port, 50, java.net.InetAddress.getByName(host))
 
     @Test
     fun `listTools returns all registered built-in tools`() = runBlocking {
@@ -95,6 +104,66 @@ class DefaultMcpServerServiceTest {
         service.start(host, port) // second call should be no-op
         service.stop()
         service.stop() // second call should be no-op
+    }
+
+    @Test
+    fun `start on an occupied port reports Error`() = runBlocking {
+        occupyPort().use { occupied ->
+            service.start(host, occupied.localPort)
+            val status = service.statusFlow.value
+            assertTrue(status is McpServerStatus.Error, "Expected Error but was $status")
+        }
+    }
+
+    @Test
+    fun `a failed start can be retried on the same port once it frees up`() = runBlocking {
+        val contestedPort = occupyPort().use { it.localPort }
+
+        occupyPort(contestedPort).use {
+            service.start(host, contestedPort)
+            assertTrue(service.statusFlow.value is McpServerStatus.Error)
+        }
+
+        // The port is free again; retrying must not be blocked by the leftovers of the failed
+        // attempt (notably the `running` flag it had already flipped).
+        service.start(host, contestedPort)
+        try {
+            assertEquals(McpServerStatus.Running(host, contestedPort), service.statusFlow.value)
+        } finally {
+            service.stop()
+        }
+    }
+
+    @OptIn(ExperimentalJetWhaleApi::class)
+    @Test
+    fun `plugin tools registered by a failed start do not survive into the next start`() = runBlocking {
+        val testPluginId = "com.example.test"
+        val testSessionId = "test-session-failed-start"
+        every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
+            LoadedPluginInstance(testPluginId, testSessionId, FakeMcpCapablePlugin()),
+        )
+
+        occupyPort().use { occupied ->
+            service.start(host, occupied.localPort)
+            assertTrue(service.statusFlow.value is McpServerStatus.Error)
+        }
+
+        // No plugin instances remain loaded, so the tools the failed attempt registered must have
+        // been cleared rather than carried over.
+        every { pluginInstanceService.getLoadedPluginInstances() } returns emptyList()
+
+        service.start(host, port)
+        try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
+            try {
+                val toolNames = client.listTools().tools.map { it.name }
+                assertFalse("com.example.test.greet" in toolNames, "Stale tool survived in $toolNames")
+            } finally {
+                client.close()
+            }
+        } finally {
+            service.stop()
+        }
     }
 
     @OptIn(ExperimentalJetWhaleApi::class)
