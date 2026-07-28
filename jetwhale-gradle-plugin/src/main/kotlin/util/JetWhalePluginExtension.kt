@@ -23,4 +23,14 @@ interface JetWhalePluginExtension {
      * `-PjetwhaleHostJar=<path>` to launch a locally built host uber jar instead.
      */
     val hostVersion: Property<String>
+
+    /**
+     * Version of the JetWhale QA agent `runJetWhaleQaAgent` runs. Defaults to [hostVersion], so the
+     * agent and the host it connects to speak the same protocol version.
+     *
+     * The QA agent is a headless debuggee: it connects as an ordinary session — giving the plugin's
+     * UI a session to render for — and forwards messages you POST to its local control API on to the
+     * host plugin. Set this only to pin an agent version other than the host's.
+     */
+    val qaAgentVersion: Property<String>
 }
