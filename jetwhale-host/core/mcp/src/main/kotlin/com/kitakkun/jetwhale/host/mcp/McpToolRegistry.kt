@@ -1,11 +1,14 @@
 package com.kitakkun.jetwhale.host.mcp
 
+import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -31,6 +34,12 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     private val registrations: ConcurrentHashMap<String, PluginToolEntry> = ConcurrentHashMap()
 
     /**
+     * Which plugins currently offer MCP tools, so the UI can mark them before an agent acts.
+     */
+    val mcpCapablePluginsFlow: StateFlow<McpCapablePlugins>
+        field = MutableStateFlow(McpCapablePlugins.Empty)
+
+    /**
      * Registers all MCP tools declared by a plugin instance.
      * Only called if the plugin implements [JetWhaleMcpCapablePlugin].
      */
@@ -41,6 +50,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
             }
             entry.sessionToPlugin[sessionId] = pluginId
         }
+        publishCapablePlugins()
     }
 
     /**
@@ -54,6 +64,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
             }
             entry.sessionToPlugin.isEmpty()
         }
+        publishCapablePlugins()
     }
 
     /**
@@ -82,9 +93,26 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
         }
     }
 
+    /**
+     * Resolves which plugin would handle [toolName] for [sessionId], without invoking it.
+     * Used to attribute an in-flight tool call to a plugin for the AI activity indicator.
+     */
+    fun pluginIdFor(toolName: String, sessionId: String): String? = registrations[toolName]?.sessionToPlugin?.get(sessionId)
+
     /** Removes all registered plugin tools. Call on server stop to avoid stale entries on restart. */
     fun clear() {
         registrations.clear()
+        publishCapablePlugins()
+    }
+
+    private fun publishCapablePlugins() {
+        val pluginIdsBySessionId = mutableMapOf<String, MutableSet<String>>()
+        registrations.values.forEach { entry ->
+            entry.sessionToPlugin.forEach { (sessionId, pluginId) ->
+                pluginIdsBySessionId.getOrPut(sessionId) { mutableSetOf() } += pluginId
+            }
+        }
+        mcpCapablePluginsFlow.value = McpCapablePlugins(pluginIdsBySessionId.mapValues { it.value.toSet() })
     }
 
     /** Returns all tools that have at least one active session, with their descriptors. */
