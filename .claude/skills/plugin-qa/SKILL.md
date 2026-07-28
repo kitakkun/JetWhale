@@ -60,14 +60,26 @@ Use the headless QA agent instead. It connects as an ordinary session and expose
 messages can be injected on demand. Name the plugin ids it should impersonate:
 
 ```bash
-# in this repository
-./gradlew :tools:qa-agent:run --args="--plugin com.example.myplugin"
+# in this repository, from the plugin module
+./gradlew :jetwhale-plugins:<plugin>:host:runJetWhaleQaAgentLocal \
+  -PjetwhaleQaAgentArgs="--plugin com.example.myplugin"
 
 # from a plugin's own repository (jetwhalePlugin.hostVersion decides the agent version)
 ./gradlew runJetWhaleQaAgent -PjetwhaleQaAgentArgs="--plugin com.example.myplugin"
 ```
 
-Background it — it holds the session open for as long as it runs.
+Background it — it holds the session open for as long as it runs. (`./gradlew :tools:qa-agent:run
+--args="…"` runs the same binary without going through a plugin module.)
+
+**Wait for readiness, and read it when a send fails.** The control API answers well before the debug
+session is up, so a send right after the port opens is dropped. Poll `GET /health` until
+`"ready": true`. When a send does come back `"sent": false`, its `hint` and `GET /plugins` separate
+the two situations:
+
+| `/plugins` | meaning |
+|---|---|
+| `"activated": false` | the host has **not enabled this plugin id** — waiting will not help; enable it in the host, or check the id |
+| `"activated": true, "ready": false` | connected, still preparing — keep polling |
 
 **Driving the plugin.** `/send` and `/request` speak the messenger's raw layer, so the agent needs no
 compile-time knowledge of the plugin. `messageType` is the payload class's `serialName` (its
@@ -94,8 +106,8 @@ for one) cannot be answered from here. Drive those from the plugin's own MCP too
   can resolve to `::1` first and get connection-refused.
 - It shows up as `appName: qa-agent` / `QA Agent (headless)`, so it is never mistaken for a real
   device. Its `sessionId` is its own — mock rules and transactions are per session.
-- `GET /plugins` lists what it is impersonating; `GET /health` is a readiness probe worth polling
-  before sending; `POST /shutdown` stops it.
+- `GET /plugins` lists what it is impersonating, with each one's `activated` / `ready` state;
+  `POST /shutdown` stops it.
 - `POST /fire` (`{"method":"GET","url":"…"}`) injects real HTTP traffic for the bundled Network
   Inspector — the one plugin-specific shortcut, and it needs no `--plugin`.
 - On startup the agent logs a failed plain-HTTP CA fetch followed by a successful HTTPS one. That
