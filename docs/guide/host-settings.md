@@ -52,6 +52,7 @@ The **Settings → Server** screen configures the debug WebSocket server and its
 | **Debug server port** | `5080` | The plain **ws** port debuggee apps connect to. Must match the `port` in your app's `startJetWhale { connection { ... } }` block. |
 | **wss port** | `5443` | The **secure WebSocket (wss)** port, served alongside plain ws when a certificate is active. Point the agent's `port` at this when it connects over `ssl { }`. |
 | **MCP server port** | `7080` | Port of the built-in [MCP server](/guide/mcp-server) for AI agents. |
+| **Allow AI agents to install official plugins** | off | Lets an agent on the MCP server install plugins from the official catalog, which loads new code into JetWhale. Plugins from arbitrary Maven coordinates can never be installed this way. |
 
 The server status line shows the running ports, e.g. *Running on port 5080 (WSS: 5443)* when wss is
 active.
@@ -59,6 +60,10 @@ active.
 The **MCP Server** section also offers copy-ready connection snippets — a `claude mcp add` command
 and a JSON config block, both carrying the port the MCP server is currently running on — plus a link
 to the [MCP Server](/guide/mcp-server) guide.
+
+Changing the MCP server port here restarts the MCP server immediately. An agent changing it through
+`jetwhale.updateSettings` only persists the value — restarting would drop the agent's own
+connection — so that change takes effect on the next host start.
 
 ### Overriding the ports at startup
 
