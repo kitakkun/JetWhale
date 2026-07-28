@@ -38,4 +38,9 @@
     <string name="mcp_tools_no_match">一致するツールがありません</string>
     <string name="mcp_tools_parameters">パラメータ</string>
     <string name="mcp_tools_required">必須</string>
+    <string name="mcp_tools_tab_tools">ツール</string>
+    <string name="mcp_tools_tab_history">履歴</string>
+    <string name="mcp_history_empty">MCP tools の呼び出し履歴はありません</string>
+    <string name="mcp_history_succeeded">成功</string>
+    <string name="mcp_history_failed">失敗</string>
 </resources>

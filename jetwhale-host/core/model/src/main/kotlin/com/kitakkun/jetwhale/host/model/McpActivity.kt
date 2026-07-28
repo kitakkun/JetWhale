@@ -18,6 +18,20 @@ data class McpToolInvocation(
 )
 
 /**
+ * A finished MCP tool call, kept so the UI can show what an agent already did.
+ *
+ * [finishedAtEpochMillis] is wall-clock time in epoch milliseconds, taken when the call completed.
+ */
+data class McpCallRecord(
+    val id: Long,
+    val toolName: String,
+    val pluginId: String?,
+    val sessionId: String?,
+    val succeeded: Boolean,
+    val finishedAtEpochMillis: Long,
+)
+
+/**
  * Live view of what AI agents are doing through the MCP server, so the UI can tell the user when
  * something other than themselves is driving the debugger.
  */
@@ -33,15 +47,25 @@ data class McpActivity(
     val startedCount: Long,
     /** The most recently started tool call, kept so the UI can name and attribute it. */
     val lastStartedInvocation: McpToolInvocation?,
+    /**
+     * Tool calls that have already completed, newest first, capped at [MAX_RECENT_CALLS]. This is a
+     * live troubleshooting aid rather than an audit log, so the oldest entries are dropped once the
+     * cap is reached.
+     */
+    val recentCalls: ImmutableList<McpCallRecord>,
 ) {
     val hasConnectedClient: Boolean get() = connectedClientCount > 0
 
     companion object {
+        /** How many completed calls [recentCalls] keeps before dropping the oldest. */
+        const val MAX_RECENT_CALLS = 100
+
         val Idle = McpActivity(
             connectedClientCount = 0,
             runningInvocations = persistentListOf(),
             startedCount = 0,
             lastStartedInvocation = null,
+            recentCalls = persistentListOf(),
         )
     }
 }

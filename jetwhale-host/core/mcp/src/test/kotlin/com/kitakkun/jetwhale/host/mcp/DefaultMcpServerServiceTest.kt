@@ -411,6 +411,63 @@ class DefaultMcpServerServiceTest {
         assertTrue(mcpActivityRepository.activityFlow.value.runningInvocations.isEmpty())
     }
 
+    @Test
+    fun `a completed tool call is added to the recent-call history`() = runBlocking {
+        val serviceWithTool = DefaultMcpServerService(
+            pluginInstanceService = pluginInstanceService,
+            mcpActivityRepository = mcpActivityRepository,
+            builtInTools = setOf(FakeMcpTool("fake.recorded")),
+        )
+        val recordedPort = java.net.ServerSocket(0).use { it.localPort }
+        serviceWithTool.start(host, recordedPort)
+        // Stopping the server clears recorded activity, so the history has to be read while it runs.
+        val record = try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$recordedPort/sse")
+            try {
+                client.callTool(
+                    "fake.recorded",
+                    mapOf("pluginId" to "com.example.plugin", "sessionId" to "session-1"),
+                )
+            } finally {
+                client.close()
+            }
+            mcpActivityRepository.activityFlow.value.recentCalls.single()
+        } finally {
+            serviceWithTool.stop()
+        }
+
+        assertEquals("fake.recorded", record.toolName)
+        assertEquals("com.example.plugin", record.pluginId)
+        assertEquals("session-1", record.sessionId)
+        assertTrue(record.succeeded)
+    }
+
+    @Test
+    fun `a throwing tool call is recorded in history as a failure`() = runBlocking {
+        val serviceWithTool = DefaultMcpServerService(
+            pluginInstanceService = pluginInstanceService,
+            mcpActivityRepository = mcpActivityRepository,
+            builtInTools = setOf(FailingMcpTool("fake.failing")),
+        )
+        val failingPort = java.net.ServerSocket(0).use { it.localPort }
+        serviceWithTool.start(host, failingPort)
+        // Stopping the server clears recorded activity, so the history has to be read while it runs.
+        val record = try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$failingPort/sse")
+            try {
+                runCatching { client.callTool("fake.failing", emptyMap()) }
+            } finally {
+                client.close()
+            }
+            mcpActivityRepository.activityFlow.value.recentCalls.single()
+        } finally {
+            serviceWithTool.stop()
+        }
+
+        assertEquals("fake.failing", record.toolName)
+        assertFalse(record.succeeded)
+    }
+
     @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `a plugin tool call is attributed to the plugin that owns it`() = runBlocking {

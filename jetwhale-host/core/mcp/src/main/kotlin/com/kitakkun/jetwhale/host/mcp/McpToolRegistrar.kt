@@ -79,10 +79,13 @@ class McpToolRegistrar(
                 pluginId = resolvePluginId(request),
                 sessionId = request.arguments?.get("sessionId")?.jsonContent,
             )
+            // A thrown handler is the only failure signal available here, and it has to reach the
+            // repository before it propagates on to the MCP layer.
+            var failed = true
             try {
-                handler(request)
+                handler(request).also { failed = false }
             } finally {
-                activityRepository.toolInvocationFinished(invocationId)
+                activityRepository.toolInvocationFinished(invocationId, failed)
             }
         }
     }

@@ -38,4 +38,9 @@
     <string name="mcp_tools_no_match">No matching tools</string>
     <string name="mcp_tools_parameters">Parameters</string>
     <string name="mcp_tools_required">required</string>
+    <string name="mcp_tools_tab_tools">Tools</string>
+    <string name="mcp_tools_tab_history">History</string>
+    <string name="mcp_history_empty">No MCP tool calls yet</string>
+    <string name="mcp_history_succeeded">Succeeded</string>
+    <string name="mcp_history_failed">Failed</string>
 </resources>

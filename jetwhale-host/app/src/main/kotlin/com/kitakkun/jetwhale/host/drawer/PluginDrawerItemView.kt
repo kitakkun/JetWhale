@@ -22,6 +22,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
@@ -31,6 +33,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
@@ -50,12 +54,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.close
+import com.kitakkun.jetwhale.host.mcp_history_empty
+import com.kitakkun.jetwhale.host.mcp_history_failed
+import com.kitakkun.jetwhale.host.mcp_history_succeeded
 import com.kitakkun.jetwhale.host.mcp_tool_executing
 import com.kitakkun.jetwhale.host.mcp_tools_available
 import com.kitakkun.jetwhale.host.mcp_tools_no_match
 import com.kitakkun.jetwhale.host.mcp_tools_parameters
 import com.kitakkun.jetwhale.host.mcp_tools_required
 import com.kitakkun.jetwhale.host.mcp_tools_search
+import com.kitakkun.jetwhale.host.mcp_tools_tab_history
+import com.kitakkun.jetwhale.host.mcp_tools_tab_tools
+import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
 import com.kitakkun.jetwhale.host.model.McpToolSummary
 import com.kitakkun.jetwhale.host.model.PluginIconResource
@@ -64,6 +74,9 @@ import com.kitakkun.jetwhale.host.puzzle_outlined
 import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun PluginDrawerItemView(
@@ -72,6 +85,7 @@ fun PluginDrawerItemView(
     selected: Boolean,
     underAiControl: Boolean,
     mcpTools: ImmutableList<McpToolSummary>,
+    mcpCallHistory: ImmutableList<McpCallRecord>,
     activeIconResource: PluginIconResource?,
     inactiveIconResource: PluginIconResource?,
     onClick: () -> Unit,
@@ -96,7 +110,12 @@ fun PluginDrawerItemView(
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     if (mcpTools.isNotEmpty()) {
-                        McpBadge(operating = underAiControl, pluginName = name, tools = mcpTools)
+                        McpBadge(
+                            operating = underAiControl,
+                            pluginName = name,
+                            tools = mcpTools,
+                            callHistory = mcpCallHistory,
+                        )
                     }
                 }
             },
@@ -161,6 +180,7 @@ private fun McpBadge(
     operating: Boolean,
     pluginName: String,
     tools: ImmutableList<McpToolSummary>,
+    callHistory: ImmutableList<McpCallRecord>,
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(4.dp)
@@ -197,9 +217,16 @@ private fun McpBadge(
             operating = operating,
             pluginName = pluginName,
             tools = tools,
+            callHistory = callHistory,
             onDismiss = { showDialog = false },
         )
     }
+}
+
+/** The panes the MCP dialog can show: the tools a plugin publishes, or the calls already made. */
+private enum class McpDialogTab {
+    Tools,
+    History,
 }
 
 @Composable
@@ -207,6 +234,7 @@ private fun McpToolsDialog(
     operating: Boolean,
     pluginName: String,
     tools: ImmutableList<McpToolSummary>,
+    callHistory: ImmutableList<McpCallRecord>,
     onDismiss: () -> Unit,
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -233,98 +261,40 @@ private fun McpToolsDialog(
                 }
                 Spacer(Modifier.size(12.dp))
 
+                var selectedTab by remember { mutableStateOf(McpDialogTab.Tools) }
+                TabRow(selectedTabIndex = selectedTab.ordinal) {
+                    Tab(
+                        selected = selectedTab == McpDialogTab.Tools,
+                        onClick = { selectedTab = McpDialogTab.Tools },
+                        text = { Text(stringResource(Res.string.mcp_tools_tab_tools)) },
+                    )
+                    Tab(
+                        selected = selectedTab == McpDialogTab.History,
+                        onClick = { selectedTab = McpDialogTab.History },
+                        text = { Text(stringResource(Res.string.mcp_tools_tab_history)) },
+                    )
+                }
+                Spacer(Modifier.size(12.dp))
+
+                // Hoisted out of the pane so switching tabs and coming back keeps the search and the
+                // selected tool where the user left them.
                 var query by remember { mutableStateOf("") }
                 var selectedName by remember { mutableStateOf(tools.firstOrNull()?.name) }
-                val filtered = remember(query, tools) {
-                    if (query.isBlank()) {
-                        tools
-                    } else {
-                        tools.filter {
-                            it.name.contains(query, ignoreCase = true) ||
-                                it.description.contains(query, ignoreCase = true)
-                        }
-                    }
-                }
-                val selected = filtered.firstOrNull { it.name == selectedName } ?: filtered.firstOrNull()
 
-                Row(modifier = Modifier.weight(1f)) {
-                    // Left pane: search + tool list.
-                    Column(modifier = Modifier.width(260.dp)) {
-                        OutlinedTextField(
-                            value = query,
-                            onValueChange = { query = it },
-                            singleLine = true,
-                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                            placeholder = { Text(stringResource(Res.string.mcp_tools_search)) },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Spacer(Modifier.size(8.dp))
-                        LazyColumn(modifier = Modifier.fillMaxHeight()) {
-                            items(filtered, key = { it.name }) { tool ->
-                                val isSelected = tool.name == selected?.name
-                                Text(
-                                    text = tool.name.substringAfterLast('.'),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontFamily = FontFamily.Monospace,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    color = if (isSelected) {
-                                        MaterialTheme.colorScheme.onSecondaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(
-                                            if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                                        )
-                                        .clickable { selectedName = tool.name }
-                                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                                )
-                            }
-                        }
-                    }
-                    VerticalDivider(modifier = Modifier.padding(horizontal = 12.dp))
-                    // Right pane: the selected tool's detail.
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        if (selected == null) {
-                            Text(
-                                text = stringResource(Res.string.mcp_tools_no_match),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        } else {
-                            Text(
-                                text = selected.name.substringAfterLast('.'),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontFamily = FontFamily.Monospace,
-                            )
-                            Text(
-                                text = selected.name,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontFamily = FontFamily.Monospace,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = selected.description,
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                            if (selected.parameters.isNotEmpty()) {
-                                Spacer(Modifier.size(4.dp))
-                                Text(
-                                    text = stringResource(Res.string.mcp_tools_parameters),
-                                    style = MaterialTheme.typography.labelLarge,
-                                )
-                                selected.parameters.forEach { param -> McpParameterRow(param) }
-                            }
-                        }
-                    }
+                when (selectedTab) {
+                    McpDialogTab.Tools -> McpToolsPane(
+                        tools = tools,
+                        query = query,
+                        onQueryChange = { query = it },
+                        selectedToolName = selectedName,
+                        onSelectTool = { selectedName = it },
+                        modifier = Modifier.weight(1f),
+                    )
+
+                    McpDialogTab.History -> McpCallHistoryPane(
+                        callHistory = callHistory,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
 
                 Row(
@@ -339,6 +309,188 @@ private fun McpToolsDialog(
         }
     }
 }
+
+/** Two-pane browser over the tools a plugin publishes: search + list on the left, detail right. */
+@Composable
+private fun McpToolsPane(
+    tools: ImmutableList<McpToolSummary>,
+    query: String,
+    onQueryChange: (String) -> Unit,
+    selectedToolName: String?,
+    onSelectTool: (String) -> Unit,
+    modifier: Modifier,
+) {
+    val filtered = remember(query, tools) {
+        if (query.isBlank()) {
+            tools
+        } else {
+            tools.filter {
+                it.name.contains(query, ignoreCase = true) ||
+                    it.description.contains(query, ignoreCase = true)
+            }
+        }
+    }
+    val selected = filtered.firstOrNull { it.name == selectedToolName } ?: filtered.firstOrNull()
+
+    Row(modifier = modifier) {
+        // Left pane: search + tool list.
+        Column(modifier = Modifier.width(260.dp)) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                singleLine = true,
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                placeholder = { Text(stringResource(Res.string.mcp_tools_search)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.size(8.dp))
+            LazyColumn(modifier = Modifier.fillMaxHeight()) {
+                items(filtered, key = { it.name }) { tool ->
+                    val isSelected = tool.name == selected?.name
+                    Text(
+                        text = tool.name.substringAfterLast('.'),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontFamily = FontFamily.Monospace,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(
+                                if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                            )
+                            .clickable { onSelectTool(tool.name) }
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                    )
+                }
+            }
+        }
+        VerticalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+        // Right pane: the selected tool's detail.
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (selected == null) {
+                Text(
+                    text = stringResource(Res.string.mcp_tools_no_match),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Text(
+                    text = selected.name.substringAfterLast('.'),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = FontFamily.Monospace,
+                )
+                Text(
+                    text = selected.name,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = selected.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                if (selected.parameters.isNotEmpty()) {
+                    Spacer(Modifier.size(4.dp))
+                    Text(
+                        text = stringResource(Res.string.mcp_tools_parameters),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    selected.parameters.forEach { param -> McpParameterRow(param) }
+                }
+            }
+        }
+    }
+}
+
+/** What an agent already did with this plugin, newest call first. */
+@Composable
+private fun McpCallHistoryPane(
+    callHistory: ImmutableList<McpCallRecord>,
+    modifier: Modifier,
+) {
+    if (callHistory.isEmpty()) {
+        Box(
+            modifier = modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = stringResource(Res.string.mcp_history_empty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
+    LazyColumn(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        items(callHistory, key = { it.id }) { record -> McpCallHistoryRow(record) }
+    }
+}
+
+@Composable
+private fun McpCallHistoryRow(record: McpCallRecord) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        val succeededLabel = stringResource(
+            if (record.succeeded) Res.string.mcp_history_succeeded else Res.string.mcp_history_failed,
+        )
+        Icon(
+            imageVector = if (record.succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
+            contentDescription = succeededLabel,
+            tint = if (record.succeeded) AiOperatingAccentColor else MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = record.toolName.substringAfterLast('.'),
+            style = MaterialTheme.typography.bodyMedium,
+            fontFamily = FontFamily.Monospace,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = succeededLabel,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (record.succeeded) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.error
+            },
+        )
+        Text(
+            text = formatCallTime(record.finishedAtEpochMillis),
+            style = MaterialTheme.typography.labelSmall,
+            fontFamily = FontFamily.Monospace,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Wall-clock time of day, which is what the user can line up against their own actions. */
+private val CallHistoryTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+
+private fun formatCallTime(epochMillis: Long): String = Instant.ofEpochMilli(epochMillis)
+    .atZone(ZoneId.systemDefault())
+    .format(CallHistoryTimeFormatter)
 
 @Composable
 private fun McpParameterRow(param: McpToolParameterSummary) {

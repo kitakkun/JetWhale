@@ -23,7 +23,12 @@ interface McpActivityRepository {
      */
     fun toolInvocationStarted(toolName: String, pluginId: String?, sessionId: String?): Long
 
-    fun toolInvocationFinished(invocationId: Long)
+    /**
+     * Records the completion of a tool call and appends it to the recent-call history.
+     *
+     * @param failed true when the handler threw instead of returning a result.
+     */
+    fun toolInvocationFinished(invocationId: Long, failed: Boolean)
 
     /** Drops all recorded activity, so a server restart does not inherit stale connection counts. */
     fun clear()

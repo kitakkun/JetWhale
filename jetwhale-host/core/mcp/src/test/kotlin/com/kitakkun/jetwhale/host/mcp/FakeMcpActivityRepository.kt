@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.McpActivity
 import com.kitakkun.jetwhale.host.model.McpActivityRepository
+import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,12 +52,29 @@ class FakeMcpActivityRepository : McpActivityRepository {
         return invocation.id
     }
 
-    override fun toolInvocationFinished(invocationId: Long) {
+    override fun toolInvocationFinished(invocationId: Long, failed: Boolean) {
+        val finishedAtEpochMillis = System.currentTimeMillis()
         activityFlow.update { activity ->
+            val finished = activity.runningInvocations.firstOrNull { it.id == invocationId }
             activity.copy(
                 runningInvocations = activity.runningInvocations
                     .filterNot { it.id == invocationId }
                     .toImmutableList(),
+                recentCalls = if (finished == null) {
+                    activity.recentCalls
+                } else {
+                    val record = McpCallRecord(
+                        id = finished.id,
+                        toolName = finished.toolName,
+                        pluginId = finished.pluginId,
+                        sessionId = finished.sessionId,
+                        succeeded = !failed,
+                        finishedAtEpochMillis = finishedAtEpochMillis,
+                    )
+                    (listOf(record) + activity.recentCalls)
+                        .take(McpActivity.MAX_RECENT_CALLS)
+                        .toImmutableList()
+                },
             )
         }
     }

@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolSummary
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginIconResource
@@ -15,6 +16,8 @@ data class DrawerPluginItemUiState(
     val underAiControl: Boolean,
     /** The MCP tools this plugin exposes for the selected session; empty when it publishes none. */
     val mcpTools: ImmutableList<McpToolSummary>,
+    /** Completed MCP tool calls attributed to this plugin, newest first. */
+    val mcpCallHistory: ImmutableList<McpCallRecord>,
 ) {
     val exposesMcpTools: Boolean get() = mcpTools.isNotEmpty()
 }

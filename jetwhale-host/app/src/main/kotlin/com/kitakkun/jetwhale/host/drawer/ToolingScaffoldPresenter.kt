@@ -72,13 +72,20 @@ fun toolingScaffoldPresenter(
 
     val setPluginEnabledMutation = rememberMutation(presenterContext.setPluginEnabledMutationKey)
 
-    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, activeInvocation) {
+    val recentCalls = mcpActivity.recentCalls
+    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, activeInvocation, recentCalls) {
         derivedStateOf {
             // Attribute the operation only when it targets the session the drawer is showing;
             // highlighting a plugin for some other device would be misleading.
             val aiControlledPluginId = activeInvocation
                 ?.takeIf { it.sessionId != null && it.sessionId == selectedSession?.id }
                 ?.pluginId
+
+            // Calls that named no session came from a tool that does not target one, so they belong
+            // to whichever session is on screen; the rest are shown only under their own session.
+            val callsForSelectedSession = recentCalls.filter {
+                it.sessionId == null || it.sessionId == selectedSession?.id
+            }
 
             loadedPlugins.map { metaData ->
                 val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
@@ -102,6 +109,9 @@ fun toolingScaffoldPresenter(
                     },
                     underAiControl = aiControlledPluginId == metaData.id,
                     mcpTools = mcpCapablePlugins.toolsFor(selectedSession?.id, metaData.id).toImmutableList(),
+                    mcpCallHistory = callsForSelectedSession
+                        .filter { it.pluginId == metaData.id }
+                        .toImmutableList(),
                 )
             }.toImmutableList()
         }
