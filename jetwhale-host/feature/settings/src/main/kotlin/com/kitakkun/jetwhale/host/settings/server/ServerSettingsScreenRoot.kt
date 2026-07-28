@@ -5,6 +5,9 @@ import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 import soil.query.compose.rememberSubscription
+import java.awt.Desktop
+
+private const val MCP_GUIDE_URL = "https://kitakkun.github.io/JetWhale/guide/mcp-server"
 
 @Composable
 context(screenContext: SettingsScreenContext)
@@ -51,6 +54,13 @@ fun ServerSettingsScreenRoot() {
             },
             onDismissApplyMcpPortDialog = {
                 screenChannel.send(ServerSettingsScreenAction.DismissApplyMcpPortDialog)
+            },
+            onClickOpenMcpGuide = {
+                try {
+                    Desktop.getDesktop().browse(java.net.URI(MCP_GUIDE_URL))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             },
             onAddCertificate = {
                 screenChannel.send(ServerSettingsScreenAction.AddCertificate)

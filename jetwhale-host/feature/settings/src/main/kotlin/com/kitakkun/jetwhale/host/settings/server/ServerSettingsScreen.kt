@@ -2,16 +2,22 @@ package com.kitakkun.jetwhale.host.settings.server
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,11 +25,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
 import com.kitakkun.jetwhale.host.settings.component.TextFieldSettingsItemView
+import com.kitakkun.jetwhale.host.settings.copy_to_clipboard
 import com.kitakkun.jetwhale.host.settings.debug_server_label
 import com.kitakkun.jetwhale.host.settings.debug_server_port_apply_confirm_message
 import com.kitakkun.jetwhale.host.settings.debug_server_port_apply_confirm_title
@@ -34,6 +42,10 @@ import com.kitakkun.jetwhale.host.settings.mcp_server_label
 import com.kitakkun.jetwhale.host.settings.mcp_server_port_apply_confirm_message
 import com.kitakkun.jetwhale.host.settings.mcp_server_port_apply_confirm_title
 import com.kitakkun.jetwhale.host.settings.mcp_server_port_label
+import com.kitakkun.jetwhale.host.settings.mcp_setup_claude_code_label
+import com.kitakkun.jetwhale.host.settings.mcp_setup_json_label
+import com.kitakkun.jetwhale.host.settings.mcp_setup_note
+import com.kitakkun.jetwhale.host.settings.mcp_setup_open_guide
 import com.kitakkun.jetwhale.host.settings.server_configuration
 import com.kitakkun.jetwhale.host.settings.server_port_apply
 import com.kitakkun.jetwhale.host.settings.server_status_error
@@ -66,6 +78,7 @@ fun ServerSettingsScreen(
     onApplyMcpPortChange: () -> Unit,
     onConfirmApplyMcpPortChange: () -> Unit,
     onDismissApplyMcpPortDialog: () -> Unit,
+    onClickOpenMcpGuide: () -> Unit,
     onAddCertificate: () -> Unit,
     onSetActiveCertificate: (String) -> Unit,
     onDeleteCertificate: (String) -> Unit,
@@ -199,6 +212,23 @@ fun ServerSettingsScreen(
                         Text(stringResource(Res.string.server_port_apply))
                     }
                 }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(Res.string.mcp_setup_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                McpSnippetView(
+                    label = stringResource(Res.string.mcp_setup_claude_code_label),
+                    snippet = uiState.mcpClaudeCodeCommand,
+                )
+                McpSnippetView(
+                    label = stringResource(Res.string.mcp_setup_json_label),
+                    snippet = uiState.mcpJsonConfig,
+                )
+                OutlinedButton(onClick = onClickOpenMcpGuide) {
+                    Text(stringResource(Res.string.mcp_setup_open_guide))
+                }
             }
         }
         item {
@@ -247,6 +277,48 @@ fun ServerSettingsScreen(
                     Text(stringResource(Res.string.ssl_certificate_add))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun McpSnippetView(
+    label: String,
+    snippet: String,
+) {
+    val clipboardManager = LocalClipboardManager.current
+    Spacer(Modifier.height(8.dp))
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.small,
+            ) {
+                SelectionContainer {
+                    Text(
+                        text = snippet,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .horizontalScroll(rememberScrollState()),
+                    )
+                }
+            }
+        }
+        TextButton(onClick = { clipboardManager.setText(AnnotatedString(snippet)) }) {
+            Text(stringResource(Res.string.copy_to_clipboard))
         }
     }
 }

@@ -68,6 +68,18 @@ fun serverSettingsScreenPresenter(
     val isDebugPortValid by remember { derivedStateOf { parsedDebugPort != null && parsedDebugPort in 1..65535 } }
     val isMcpPortValid by remember { derivedStateOf { parsedMcpPort != null && parsedMcpPort in 1..65535 } }
 
+    // The snippets must describe the endpoint an agent can actually reach right now, so they follow
+    // the running server rather than the (possibly unapplied) port text field.
+    val runningMcpStatus by rememberUpdatedState(mcpServerStatus as? McpServerStatus.Running)
+    val savedMcpPort by rememberUpdatedState(debuggerSettings.mcpServerPort)
+    val mcpEndpointUrl by remember {
+        derivedStateOf {
+            val host = runningMcpStatus?.host ?: "localhost"
+            val port = runningMcpStatus?.port ?: savedMcpPort
+            "http://$host:$port/sse"
+        }
+    }
+
     LaunchedEffect(serverStatus) {
         if (serverStatus is DebugWebSocketServerStatus.Started) {
             editingDebugPortText = serverStatus.port.toString()
@@ -183,6 +195,17 @@ fun serverSettingsScreenPresenter(
         },
         editingDebugPortText = editingDebugPortText,
         editingMcpPortText = editingMcpPortText,
+        mcpClaudeCodeCommand = "claude mcp add --transport sse jetwhale $mcpEndpointUrl",
+        mcpJsonConfig = """
+            {
+              "mcpServers": {
+                "jetwhale": {
+                  "type": "sse",
+                  "url": "$mcpEndpointUrl"
+                }
+              }
+            }
+        """.trimIndent(),
         isDebugApplyVisible = isDebugDirty,
         isMcpApplyVisible = isMcpDirty,
         isDebugApplyEnabled = isDebugPortValid && isDebugDirty,

@@ -19,6 +19,10 @@ For example, to register it with Claude Code:
 claude mcp add --transport sse jetwhale http://localhost:7080/sse
 ```
 
+The host's **Settings → Server → MCP Server** section shows this command — and an equivalent JSON
+config block for other MCP clients — already filled in with the port the server is actually running
+on, ready to copy.
+
 ## Built-in tools
 
 | Tool | What it does |
