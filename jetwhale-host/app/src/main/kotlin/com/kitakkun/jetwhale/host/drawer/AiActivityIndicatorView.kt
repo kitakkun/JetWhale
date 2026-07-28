@@ -136,7 +136,9 @@ fun CompactAiActivityIndicatorView(
             ) {
                 Icon(
                     imageVector = Icons.Default.SmartToy,
-                    contentDescription = stringResource(Res.string.ai_agent_operating),
+                    contentDescription = stringResource(
+                        if (uiState.isOperating) Res.string.ai_agent_operating else Res.string.ai_agent_connected,
+                    ),
                     tint = if (uiState.isOperating) {
                         MaterialTheme.colorScheme.primary
                     } else {
