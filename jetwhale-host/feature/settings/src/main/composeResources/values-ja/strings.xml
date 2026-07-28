@@ -56,6 +56,7 @@
     <string name="debug_server_port_label">デバッグサーバーポート</string>
     <string name="mcp_server_port_label">MCPサーバーポート</string>
     <string name="server_port_apply">適用</string>
+    <string name="server_start_retry">再試行</string>
     <string name="server_port_apply_confirm_title">ポート変更の適用</string>
     <string name="server_port_apply_confirm_message">ポート %1$s でサーバーを再起動しますか？</string>
     <string name="debug_server_port_apply_confirm_title">デバッグサーバーのポート変更を適用</string>

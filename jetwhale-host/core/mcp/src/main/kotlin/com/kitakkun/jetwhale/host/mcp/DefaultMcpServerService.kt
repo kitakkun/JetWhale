@@ -27,6 +27,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -114,12 +115,30 @@ class DefaultMcpServerService(
         try {
             server.start(wait = false)
             _statusFlow.value = McpServerStatus.Running(host = host, port = port)
-        } catch (e: Exception) {
-            server.stop(gracePeriodMillis = 0, timeoutMillis = 0)
-            ktorServer = null
-            running.set(false)
+        } catch (e: CancellationException) {
+            // Never swallow cancellation: undo this attempt, then re-throw so the coroutine
+            // cancellation mechanism keeps working. The status stays untouched — the caller went
+            // away, the server did not fail.
+            rollbackFailedStart(server)
+            throw e
+        } catch (e: Throwable) {
+            rollbackFailedStart(server)
             _statusFlow.value = McpServerStatus.Error(e.message ?: "Unknown error")
         }
+    }
+
+    /**
+     * Undoes everything [start] set up before the bind attempt. [stop] bails out early once
+     * [running] is false, so a failed start has to release the observer job and the tool
+     * registrations itself or a later retry piles another collector on top of the leaked one.
+     */
+    private suspend fun rollbackFailedStart(server: EmbeddedServer<*, *>) {
+        server.stop(gracePeriodMillis = 0, timeoutMillis = 0)
+        ktorServer = null
+        lifecycleObserverJob?.cancel()
+        lifecycleObserverJob = null
+        toolRegistry.clear()
+        running.set(false)
     }
 
     override suspend fun stop() {
