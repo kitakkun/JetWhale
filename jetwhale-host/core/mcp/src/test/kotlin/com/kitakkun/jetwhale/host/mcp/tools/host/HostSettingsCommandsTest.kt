@@ -72,6 +72,22 @@ class HostSettingsCommandsTest {
     }
 
     @Test
+    fun `updateSettings restarts the debug server when adb auto port mapping changed`() = runBlocking {
+        // The setting is read when the server starts, so it is inert until the server restarts.
+        val result = updateSettings.execute(arguments("adbAutoPortMappingEnabled" to JsonPrimitive(true))).decodeSettings()
+
+        assertTrue(result.debugServerRestarted)
+        verifySuspend { debugWebSocketServer.stop() }
+    }
+
+    @Test
+    fun `updateSettings does not claim a change is pending once it has restarted the server`() = runBlocking {
+        val result = updateSettings.execute(arguments("adbAutoPortMappingEnabled" to JsonPrimitive(true))).decodeSettings()
+
+        assertFalse(result.notes.any { "still running" in it })
+    }
+
+    @Test
     fun `updateSettings can persist a ws change without restarting when asked`() = runBlocking {
         val result = updateSettings.execute(
             arguments(

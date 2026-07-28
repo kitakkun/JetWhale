@@ -75,6 +75,7 @@ class HostStatusCommand(
                     adbAutoPortMappingEnabled = settingsRepository.adbAutoPortMappingEnabledFlow.value,
                     checkForUpdatesOnStartup = settingsRepository.checkForUpdatesOnStartupFlow.value,
                     persistData = settingsRepository.persistDataFlow.value,
+                    mcpPluginInstallAllowed = settingsRepository.mcpPluginInstallAllowedFlow.value,
                 ),
                 ui = hostNavigationService.currentView.value?.toJson(),
             ),
@@ -177,4 +178,6 @@ data class SettingsJson(
     val adbAutoPortMappingEnabled: Boolean,
     val checkForUpdatesOnStartup: Boolean,
     val persistData: Boolean,
+    /** Whether jetwhale.installOfficialPlugin is permitted; see Settings → Server → MCP Server. */
+    val mcpPluginInstallAllowed: Boolean,
 )

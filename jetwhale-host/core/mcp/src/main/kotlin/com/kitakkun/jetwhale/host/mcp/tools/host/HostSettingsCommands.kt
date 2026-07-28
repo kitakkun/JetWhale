@@ -67,7 +67,6 @@ class UpdateSettingsCommand(
         arguments[adbAutoPortMappingEnabled]?.let { enabled ->
             settingsRepository.updateAdbAutoPortMappingEnabled(enabled)
             applied["adbAutoPortMappingEnabled"] = enabled.toString()
-            notes += "adbAutoPortMappingEnabled is read when the debug server starts, so it takes effect on the next debug server start."
         }
         arguments[checkForUpdatesOnStartup]?.let { enabled ->
             settingsRepository.updateCheckForUpdatesOnStartup(enabled)
@@ -88,7 +87,8 @@ class UpdateSettingsCommand(
             restartDebugServer(settingsRepository, debugWebSocketServer)
             notes += SERVER_RESTART_NOTE
         } else if (debugServerAffected) {
-            notes += "The debug server is still running with its previous ports; restart it with jetwhale.restartDebugServer to apply the change."
+            // Both the ports and adbAutoPortMappingEnabled are only read when the server starts.
+            notes += "The debug server is still running with its previous configuration; restart it with jetwhale.restartDebugServer to apply the change."
         }
 
         return Json.encodeToString(

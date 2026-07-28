@@ -95,9 +95,13 @@ fun ToolingScaffoldRoot(
                     is HostNavigationRequest.Settings -> onNavigateSettings(request.section.toSegmentedMenu())
 
                     is HostNavigationRequest.Plugin -> {
-                        val targetSession = currentSessions.firstOrNull { it.id == request.sessionId }
-                            ?: currentUiState.selectedSession
-                            ?: return@collect
+                        // Only a request that named no session falls back to the drawer's selection.
+                        // A named session that has gone away since the request was validated must
+                        // drop the request rather than navigate to some other app.
+                        val targetSession = when (val requestedSessionId = request.sessionId) {
+                            null -> currentUiState.selectedSession
+                            else -> currentSessions.firstOrNull { it.id == requestedSessionId }
+                        } ?: return@collect
                         // Drive the same path a drawer click takes, so an MCP-driven navigation and a
                         // click are indistinguishable downstream.
                         if (targetSession.id != currentUiState.selectedSessionId) {

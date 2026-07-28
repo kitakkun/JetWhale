@@ -47,7 +47,11 @@ targets a plugin UI takes required `sessionId` **and** `pluginId` parameters: ca
 
 ## Host tools
 
-These target the debug tool itself, so they take neither `sessionId` nor `pluginId`.
+These target the debug tool itself rather than one plugin instance, so none of them takes the
+required `sessionId` + `pluginId` pair the plugin UI tools route on. Some do take a `pluginId` or an
+optional `sessionId` as ordinary arguments — which plugin to enable, which session to open — but the
+tool is not scoped to them.
+
 `jetwhale.getStatus` is the recommended first call: one parameter-free request tells an agent the
 host version, both servers' endpoints, how many sessions and plugins are live, the current settings,
 and what the window is showing.
