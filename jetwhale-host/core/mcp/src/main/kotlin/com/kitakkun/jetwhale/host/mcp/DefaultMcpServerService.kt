@@ -117,6 +117,12 @@ class DefaultMcpServerService(
         } catch (e: Exception) {
             server.stop(gracePeriodMillis = 0, timeoutMillis = 0)
             ktorServer = null
+            // stop() bails out early once running is false, so a failed start has to undo the
+            // observer job and the tool registrations itself or a later retry piles another
+            // collector on top of the one this attempt leaked.
+            lifecycleObserverJob?.cancel()
+            lifecycleObserverJob = null
+            toolRegistry.clear()
             running.set(false)
             _statusFlow.value = McpServerStatus.Error(e.message ?: "Unknown error")
         }

@@ -48,6 +48,7 @@ import com.kitakkun.jetwhale.host.settings.mcp_setup_note
 import com.kitakkun.jetwhale.host.settings.mcp_setup_open_guide
 import com.kitakkun.jetwhale.host.settings.server_configuration
 import com.kitakkun.jetwhale.host.settings.server_port_apply
+import com.kitakkun.jetwhale.host.settings.server_start_retry
 import com.kitakkun.jetwhale.host.settings.server_status_error
 import com.kitakkun.jetwhale.host.settings.server_status_running
 import com.kitakkun.jetwhale.host.settings.server_status_running_with_wss
@@ -187,7 +188,7 @@ fun ServerSettingsScreen(
                         onClick = onApplyDebugPortChange,
                         enabled = uiState.isDebugApplyEnabled,
                     ) {
-                        Text(stringResource(Res.string.server_port_apply))
+                        Text(applyButtonText(isRetry = uiState.isDebugRetry))
                     }
                 }
             }
@@ -209,7 +210,7 @@ fun ServerSettingsScreen(
                         onClick = onApplyMcpPortChange,
                         enabled = uiState.isMcpApplyEnabled,
                     ) {
-                        Text(stringResource(Res.string.server_port_apply))
+                        Text(applyButtonText(isRetry = uiState.isMcpRetry))
                     }
                 }
                 Spacer(Modifier.height(12.dp))
@@ -321,6 +322,13 @@ private fun McpSnippetView(
             Text(stringResource(Res.string.copy_to_clipboard))
         }
     }
+}
+
+@Composable
+private fun applyButtonText(isRetry: Boolean): String = if (isRetry) {
+    stringResource(Res.string.server_start_retry)
+} else {
+    stringResource(Res.string.server_port_apply)
 }
 
 @Composable

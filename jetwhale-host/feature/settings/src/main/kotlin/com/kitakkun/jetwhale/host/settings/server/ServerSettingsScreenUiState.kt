@@ -11,6 +11,8 @@ data class ServerSettingsScreenUiState(
     val isMcpApplyVisible: Boolean,
     val isDebugApplyEnabled: Boolean,
     val isMcpApplyEnabled: Boolean,
+    val isDebugRetry: Boolean,
+    val isMcpRetry: Boolean,
     val showDebugApplyConfirmDialog: Boolean,
     val showMcpApplyConfirmDialog: Boolean,
     val certificates: List<CertificateUiEntry>,

@@ -68,6 +68,11 @@ fun serverSettingsScreenPresenter(
     val isDebugPortValid by remember { derivedStateOf { parsedDebugPort != null && parsedDebugPort in 1..65535 } }
     val isMcpPortValid by remember { derivedStateOf { parsedMcpPort != null && parsedMcpPort in 1..65535 } }
 
+    // A failed start leaves the port setting untouched, so gating the button on dirtiness alone
+    // would make retrying the same port impossible without editing it away and back again.
+    val isDebugStartFailed by rememberUpdatedState(serverStatus is DebugWebSocketServerStatus.Error)
+    val isMcpStartFailed by rememberUpdatedState(mcpServerStatus is McpServerStatus.Error)
+
     // The snippets must describe the endpoint an agent can actually reach right now, so they follow
     // the running server rather than the (possibly unapplied) port text field.
     val runningMcpStatus by rememberUpdatedState(mcpServerStatus as? McpServerStatus.Running)
@@ -99,8 +104,13 @@ fun serverSettingsScreenPresenter(
             }
 
             ServerSettingsScreenAction.ApplyDebugPortChange -> {
-                if (isDebugPortValid && isDebugDirty) {
-                    showDebugApplyConfirmDialog = true
+                if (!isDebugPortValid) return@ActionEffect
+                when {
+                    isDebugDirty -> showDebugApplyConfirmDialog = true
+
+                    // Nothing is listening after a failed start, so there are no connected clients
+                    // a restart could disrupt — retry without asking.
+                    isDebugStartFailed -> debugPortMutation.mutateAsync(parsedDebugPort ?: return@ActionEffect)
                 }
             }
 
@@ -120,8 +130,10 @@ fun serverSettingsScreenPresenter(
             }
 
             ServerSettingsScreenAction.ApplyMcpPortChange -> {
-                if (isMcpPortValid && isMcpDirty) {
-                    showMcpApplyConfirmDialog = true
+                if (!isMcpPortValid) return@ActionEffect
+                when {
+                    isMcpDirty -> showMcpApplyConfirmDialog = true
+                    isMcpStartFailed -> mcpPortMutation.mutateAsync(parsedMcpPort ?: return@ActionEffect)
                 }
             }
 
@@ -206,10 +218,12 @@ fun serverSettingsScreenPresenter(
               }
             }
         """.trimIndent(),
-        isDebugApplyVisible = isDebugDirty,
-        isMcpApplyVisible = isMcpDirty,
-        isDebugApplyEnabled = isDebugPortValid && isDebugDirty,
-        isMcpApplyEnabled = isMcpPortValid && isMcpDirty,
+        isDebugApplyVisible = isDebugDirty || isDebugStartFailed,
+        isMcpApplyVisible = isMcpDirty || isMcpStartFailed,
+        isDebugApplyEnabled = isDebugPortValid && (isDebugDirty || isDebugStartFailed),
+        isMcpApplyEnabled = isMcpPortValid && (isMcpDirty || isMcpStartFailed),
+        isDebugRetry = isDebugStartFailed && !isDebugDirty,
+        isMcpRetry = isMcpStartFailed && !isMcpDirty,
         showDebugApplyConfirmDialog = showDebugApplyConfirmDialog,
         showMcpApplyConfirmDialog = showMcpApplyConfirmDialog,
         certificates = certificates,
