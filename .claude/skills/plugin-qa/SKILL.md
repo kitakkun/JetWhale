@@ -29,7 +29,7 @@ Cannot:
   popout windows. Every tool is scoped to `pluginId` + `sessionId`; no host-control tool exists.
 - the mouse cursor's appearance. An AWT cursor is not part of the rendered scene, so
   `Modifier.pointerHoverIcon` results never show up in a screenshot. Cover that with a unit test
-  (see §6) and say plainly that the visual was not verified.
+  (see §7) and say plainly that the visual was not verified.
 - native window chrome, real DPI switching, multi-window behaviour.
 
 ## 2. Launch the host
@@ -50,11 +50,33 @@ Cannot:
   persistence check.
 - The plugin is staged to `<module>/build/jetwhale/devPlugins` and hot-reloaded from there.
 
-Every UI tool needs a `sessionId`, which means a connected debuggee. `./gradlew :demo:desktop:run`
-is the cheapest source; the Android / iOS / web demos under `demo/` work too. If
-`jetwhale.listSessions` comes back empty, nothing is connected — start a demo app first.
+## 3. Get a debuggee you can actually drive
 
-## 3. Reaching the tools
+Every UI tool needs a `sessionId`, which means a connected debuggee. The demo apps are a poor fit:
+they only fire the handful of requests their buttons are wired to, and **a GUI app cannot be driven
+from an agent at all** — MCP reaches plugin scenes, never a debuggee.
+
+Use the headless QA agent instead. It connects as an ordinary session and exposes a control API, so
+any request can be injected on demand:
+
+```bash
+./gradlew :tools:qa-agent:run            # background it; keeps the session alive
+
+curl -s 127.0.0.1:7100/fire -H 'Content-Type: application/json' \
+  -d '{"method":"GET","url":"https://example.com/items?page=2"}'
+```
+
+- Use **`127.0.0.1`, not `localhost`** — the control API binds loopback IPv4 only, and `localhost`
+  can resolve to `::1` first and get connection-refused.
+- It shows up as `appName: qa-agent` / `QA Agent (headless)`, so it is never mistaken for a real
+  device. Its `sessionId` is its own — mock rules and transactions are per session.
+- `POST /shutdown` stops it; `GET /health` is a readiness probe worth polling before firing.
+- On startup the agent logs a failed plain-HTTP CA fetch followed by a successful HTTPS one. That
+  is the trust-on-first-use probe, not an error.
+
+`./gradlew :demo:desktop:run` still works when you specifically want the demo's own fixed requests.
+
+## 4. Reaching the tools
 
 The host's MCP server is SSE on `http://localhost:7080/sse`, with **no authentication**. Register
 it and the tools arrive natively as `mcp__jetwhale__*` — no client script needed. `.mcp.json` is
@@ -87,21 +109,26 @@ HTTP: open `GET /sse`, take the `endpoint` event's path, and POST JSON-RPC to it
 
 Always `Read` the screenshot afterwards. A screenshot you never open verifies nothing.
 
-## 4. Coordinates and density — the expensive gotcha
+## 5. Coordinates and density — the expensive gotcha
 
 - `click` / `drag` / `scroll` coordinates are in the **same pixel space as the screenshot**, so
   read positions off the image you just captured.
-- `width` / `height` on `screenshot` are **pixels**, and `resolveViewport` keeps the scene's own
-  density (`ScreenshotTool.kt:123`). That density comes from the host window — **2.0 on a Retina
-  Mac, not 1.0**. So a 1280x720 request renders 640x360 **dp**, and a 240dp minimum width lands at
-  480px. Never assume 1 px = 1 dp.
-- Passing `width`/`height` **resizes the live scene** (`applyViewport` writes `composeScene.size`)
-  — the very scene the host window is showing. Omit both to capture at the current size unless a
-  fixed viewport is the point.
+- `width` / `height` on `screenshot` are **pixels**, and the scene renders at the host window's
+  density — 2.0 on a Retina Mac, so a 240dp minimum width measures 480px. That holds even for a
+  scene the tool created on demand and the window never displayed: it is seeded with the window's
+  density (`PluginComposeSceneService.updateHostDensity`). Never assume 1 px = 1 dp.
+- A pixel landmark is therefore only portable if you **pin the density**: `screenshot` takes a
+  `density` argument (`ScreenshotTool.kt:52`) — pass `2` and the geometry is identical on any
+  machine. Omit it to inherit whatever the window is at. Values that are not finite and > 0 are
+  rejected.
+- Passing `width`/`height`/`density` **mutates the live scene** — `applyViewport` writes
+  `composeScene.density` and `composeScene.size` (`McpViewportUtils.kt:37`) on the very scene the
+  host window is showing, and it keeps rendering that way until the window next resizes. Omit them
+  to capture as-is unless a fixed viewport is the point.
 - Prefer asserting **relationships** — "the left pane grew", "the divider stopped moving" — over
-  absolute pixel values, which depend on the machine's density.
+  absolute pixel values.
 
-## 5. Verifying persisted state
+## 6. Verifying persisted state
 
 `rememberPersistent` writes to:
 
@@ -115,17 +142,18 @@ Always `Read` the screenshot afterwards. A screenshot you never open verifies no
   confirm the UI comes back at the persisted value rather than the coded default. **Wait for the
   loading spinner to clear** — the first frames after restart are a spinner, not your UI.
 
-## 6. Prefer a regression test to a one-off check
+## 7. Prefer a regression test to a one-off check
 
 If the behaviour can be pinned in a unit test, add the test as well — a manual MCP pass proves it
 worked once, on one machine. Scene-level test infrastructure already exists:
 `jetwhale-host/core/mcp/src/test/kotlin/.../TestSceneFactory.kt` (`createTestScene`,
-`renderTestScene`) plus the `dispatchClick` / `dispatchDrag` / `dispatchScroll` helpers.
+`renderTestScene`), driven with the `dispatchClick` / `dispatchDrag` / `dispatchScroll` helpers the
+tools themselves expose (`ClickTool.kt`, `DragTool.kt`, `ScrollTool.kt`).
 
 Mutation-check every new test: break the production code, confirm the test fails, restore. A test
 that passes both ways is worse than no test.
 
-## 7. Reporting
+## 8. Reporting
 
 State separately what was **driven and observed**, what was covered by **tests**, and what was
 **not verified** (§1 lists the usual suspects). Do not let a green build imply the UI was seen.
