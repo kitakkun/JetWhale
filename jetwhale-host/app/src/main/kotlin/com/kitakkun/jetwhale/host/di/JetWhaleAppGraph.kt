@@ -15,6 +15,7 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginHotReloadService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
+import com.kitakkun.jetwhale.host.model.ServerPortOverrides
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
 import com.kitakkun.jetwhale.host.model.UpdateCheckMutationKey
 import com.kitakkun.jetwhale.host.model.WindowStateRepository
@@ -54,6 +55,13 @@ interface JetWhaleAppGraph : ScreenContext {
     val debuggerSettingsRepository: DebuggerSettingsRepository
     val updateCheckMutationKey: UpdateCheckMutationKey
     val windowStateRepository: WindowStateRepository
+
+    @DependencyGraph.Factory
+    fun interface Factory {
+        // The command line is only readable from main(), so the launch port overrides enter the
+        // graph here instead of being provided from within it.
+        fun create(@Provides serverPortOverrides: ServerPortOverrides): JetWhaleAppGraph
+    }
 
     @Provides
     fun provideSwrClient(): SwrClientPlus = SwrCachePlus(SwrCachePlusPolicy(SwrCacheScope()))

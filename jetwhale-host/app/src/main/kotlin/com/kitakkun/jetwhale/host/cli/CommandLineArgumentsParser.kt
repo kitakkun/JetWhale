@@ -1,8 +1,11 @@
 package com.kitakkun.jetwhale.host.cli
 
+import com.kitakkun.jetwhale.host.model.ServerPortOverrides
+
 data class JetWhaleCliOptions(
     val pluginDirs: List<String>,
     val logLevel: JetWhaleLogLevel,
+    val serverPortOverrides: ServerPortOverrides,
 )
 
 enum class JetWhaleLogLevel {
@@ -16,11 +19,14 @@ class CommandLineArgumentsParser {
     fun parse(args: Array<String>): JetWhaleCliOptions {
         val pluginDirs = mutableListOf<String>()
         var logLevel: JetWhaleLogLevel = JetWhaleLogLevel.WARN
+        var serverPort: Int? = null
+        var wssPort: Int? = null
+        var mcpServerPort: Int? = null
 
         val iterator = args.iterator()
 
         while (iterator.hasNext()) {
-            when (iterator.next()) {
+            when (val argument = iterator.next()) {
                 "--plugin-dir" -> {
                     if (iterator.hasNext()) {
                         pluginDirs.add(iterator.next())
@@ -43,6 +49,12 @@ class CommandLineArgumentsParser {
                     }
                 }
 
+                "--server-port" -> serverPort = iterator.nextPort(argument)
+
+                "--wss-port" -> wssPort = iterator.nextPort(argument)
+
+                "--mcp-server-port" -> mcpServerPort = iterator.nextPort(argument)
+
                 else -> {
                     // Ignore unknown arguments
                 }
@@ -52,6 +64,21 @@ class CommandLineArgumentsParser {
         return JetWhaleCliOptions(
             pluginDirs = pluginDirs,
             logLevel = logLevel,
+            serverPortOverrides = ServerPortOverrides(
+                serverPort = serverPort,
+                wssPort = wssPort,
+                mcpServerPort = mcpServerPort,
+            ),
         )
+    }
+
+    private fun Iterator<String>.nextPort(option: String): Int {
+        if (!hasNext()) error("Expected a port number after $option")
+        val rawPort = next()
+        val port = rawPort.toIntOrNull()
+        // Reject out-of-range values here rather than letting the server fail to bind later: the
+        // failure would surface long after startup, without naming the option that caused it.
+        check(port != null && port in 1..65535) { "Expected a port number in 1..65535 after $option, but was: $rawPort" }
+        return port
     }
 }

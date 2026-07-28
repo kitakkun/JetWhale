@@ -60,6 +60,31 @@ The **MCP Server** section also offers copy-ready connection snippets — a `cla
 and a JSON config block, both carrying the port the MCP server is currently running on — plus a link
 to the [MCP Server](/guide/mcp-server) guide.
 
+### Overriding the ports at startup
+
+Each port can also be chosen on the command line, which is handy when several hosts have to run side
+by side (for example one per git worktree) and would otherwise fight over the same defaults:
+
+| Option | Overrides |
+|--------|-----------|
+| `--server-port <port>` | **Debug server port** |
+| `--wss-port <port>` | **wss port** |
+| `--mcp-server-port <port>` | **MCP server port** |
+
+An option that is not passed keeps using the saved setting. `--wss-port` only picks the port: wss is
+still served only when it is enabled in the settings.
+
+An override applies to that launch only and is never written back, but for as long as it is in force
+it *is* the port the host reports — the **Settings → Server** screen shows it, so the screen and the
+running server never disagree. Changing a port on that screen afterwards wins: the new value is saved
+and the override for that port is retired for the rest of the session.
+
+When launching through Gradle, pass them with `--args`:
+
+```bash
+./gradlew :jetwhale-host:app:run --args="--server-port 5081 --mcp-server-port 7081"
+```
+
 ### SSL certificates
 
 To let agents connect over [wss](/guide/getting-started#secure-connections-wss), the host serves TLS
