@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.savedstate.serialization.SavedStateConfiguration
@@ -55,6 +56,13 @@ fun JetWhaleApp() {
         },
         EmptyPluginNavKey,
     )
+
+    // Scenes created for a caller that never displays them (the MCP screenshot tool, say) would
+    // otherwise lay out at density 1.0 and disagree with what this window shows.
+    val density = LocalDensity.current
+    LaunchedEffect(density) {
+        appGraph.pluginComposeSceneService.updateHostDensity(density)
+    }
 
     LaunchedEffect(Unit) {
         // dispose plugin scenes when the debug websocket server is stopped, as all plugin sessions will be closed
