@@ -23,7 +23,7 @@ import com.kitakkun.jetwhale.host.component.ShuttingDownDialog
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.model.PersistedWindowState
 import com.kitakkun.jetwhale.host.ui.isShortcutModifierPressed
-import dev.zacsweers.metro.createGraph
+import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.map
@@ -58,9 +58,10 @@ private val DefaultWindowSize = DpSize(1280.dp, 800.dp)
 fun main(args: Array<String>) = runBlocking {
     configureAppMetadata()
 
-    CommandLineArgumentsParser().parse(args)
+    val cliOptions = CommandLineArgumentsParser().parse(args)
 
-    val appGraph: JetWhaleAppGraph = createGraph()
+    val appGraph: JetWhaleAppGraph = createGraphFactory<JetWhaleAppGraph.Factory>()
+        .create(serverPortOverrides = cliOptions.serverPortOverrides)
 
     // Start capturing logs
     appGraph.logCaptureService.startCapture()

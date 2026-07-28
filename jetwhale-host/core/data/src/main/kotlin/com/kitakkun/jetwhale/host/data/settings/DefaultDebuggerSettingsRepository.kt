@@ -7,17 +7,22 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import com.kitakkun.jetwhale.host.data.DebuggerSettingsDataStoreQualifier
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
+import com.kitakkun.jetwhale.host.model.ServerPortOverrides
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
@@ -25,8 +30,14 @@ import kotlinx.coroutines.flow.stateIn
 class DefaultDebuggerSettingsRepository(
     @param:DebuggerSettingsDataStoreQualifier
     private val dataStore: DataStore<Preferences>,
+    launchPortOverrides: ServerPortOverrides,
 ) : DebuggerSettingsRepository {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
+
+    // Ports named on the command line shadow the stored ones for the rest of the session, so every
+    // reader of this repository — the servers, the settings screen, the restart flows — sees the
+    // ports actually in use. Picking a port in the settings screen drops the matching override.
+    private val portOverrides = MutableStateFlow(launchPortOverrides)
 
     override val adbAutoPortMappingEnabledFlow = dataStore.data
         .mapNotNull { it[KEY_ADB_AUTO_PORT_MAPPING_ENABLED] }
@@ -50,24 +61,27 @@ class DefaultDebuggerSettingsRepository(
         )
     override val serverPortFlow = dataStore.data
         .map { it[KEY_SERVER_PORT] ?: DEFAULT_SERVER_PORT }
+        .overriddenBy(ServerPortOverrides::serverPort)
         .stateIn(
             scope = coroutineScope,
             started = SharingStarted.Eagerly,
-            initialValue = DEFAULT_SERVER_PORT,
+            initialValue = launchPortOverrides.serverPort ?: DEFAULT_SERVER_PORT,
         )
     override val mcpServerPortFlow = dataStore.data
         .map { it[KEY_MCP_SERVER_PORT] ?: DEFAULT_MCP_SERVER_PORT }
+        .overriddenBy(ServerPortOverrides::mcpServerPort)
         .stateIn(
             scope = coroutineScope,
             started = SharingStarted.Eagerly,
-            initialValue = DEFAULT_MCP_SERVER_PORT,
+            initialValue = launchPortOverrides.mcpServerPort ?: DEFAULT_MCP_SERVER_PORT,
         )
     override val wssPortFlow = dataStore.data
         .map { it[KEY_WSS_PORT] ?: DEFAULT_WSS_PORT }
+        .overriddenBy(ServerPortOverrides::wssPort)
         .stateIn(
             scope = coroutineScope,
             started = SharingStarted.Eagerly,
-            initialValue = DEFAULT_WSS_PORT,
+            initialValue = launchPortOverrides.wssPort ?: DEFAULT_WSS_PORT,
         )
     override val wssEnabledFlow = dataStore.data
         .map { it[KEY_WSS_ENABLED] ?: DEFAULT_WSS_ENABLED }
@@ -101,30 +115,48 @@ class DefaultDebuggerSettingsRepository(
         dataStore.edit { prefs ->
             prefs[KEY_SERVER_PORT] = port
         }
+        dropOverride { it.copy(serverPort = null) }
     }
 
-    override suspend fun readServerPort(): Int = dataStore.data.first()[KEY_SERVER_PORT] ?: DEFAULT_SERVER_PORT
+    override suspend fun readServerPort(): Int = portOverrides.value.serverPort ?: dataStore.data.first()[KEY_SERVER_PORT] ?: DEFAULT_SERVER_PORT
 
-    override suspend fun readMcpServerPort(): Int = dataStore.data.first()[KEY_MCP_SERVER_PORT] ?: DEFAULT_MCP_SERVER_PORT
+    override suspend fun readMcpServerPort(): Int = portOverrides.value.mcpServerPort ?: dataStore.data.first()[KEY_MCP_SERVER_PORT] ?: DEFAULT_MCP_SERVER_PORT
 
     override suspend fun updateMcpServerPort(port: Int) {
         dataStore.edit { prefs ->
             prefs[KEY_MCP_SERVER_PORT] = port
         }
+        dropOverride { it.copy(mcpServerPort = null) }
     }
 
-    override suspend fun readWssPort(): Int = dataStore.data.first()[KEY_WSS_PORT] ?: DEFAULT_WSS_PORT
+    override suspend fun readWssPort(): Int = portOverrides.value.wssPort ?: dataStore.data.first()[KEY_WSS_PORT] ?: DEFAULT_WSS_PORT
 
     override suspend fun updateWssPort(port: Int) {
         dataStore.edit { prefs ->
             prefs[KEY_WSS_PORT] = port
         }
+        dropOverride { it.copy(wssPort = null) }
     }
 
     override suspend fun updateWssEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[KEY_WSS_ENABLED] = enabled
         }
+    }
+
+    /** Lets a launch override win over the stored value this flow carries. */
+    private fun Flow<Int>.overriddenBy(selectOverride: (ServerPortOverrides) -> Int?): Flow<Int> = combine(portOverrides) { storedPort, overrides -> selectOverride(overrides) ?: storedPort }
+
+    /**
+     * Retires the launch override for a port the user just picked in the settings screen. Without
+     * this the saved value would keep losing to the override for the rest of the session, leaving
+     * the settings screen showing a port the user did not choose.
+     *
+     * Call this only once the new port is stored: retiring the override first would uncover the
+     * previously stored port until the write lands, publishing an effective port nobody asked for.
+     */
+    private fun dropOverride(drop: (ServerPortOverrides) -> ServerPortOverrides) {
+        portOverrides.update(drop)
     }
 
     companion object Companion {
