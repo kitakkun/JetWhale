@@ -1,11 +1,18 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.architecture.ActionResultEffect
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.session_disconnected_message
+import com.kitakkun.jetwhale.host.sessions_disconnected_message
+import org.jetbrains.compose.resources.getString
 import soil.query.compose.rememberSubscription
 
 @Composable
@@ -28,11 +35,19 @@ fun ToolingScaffoldRoot(
         state4 = rememberSubscription(screenContext.failedPluginJarPathsSubscriptionKey),
     ) { loadedPlugins, debugSessions, enabledPluginIds, failedJars ->
         val screenChannel = rememberScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>()
+        val snackbarHostState = remember { SnackbarHostState() }
         ActionResultEffect(screenChannel) { result ->
             when (result) {
-                // No message sink yet; results are routed through the channel so a future
-                // Root-side handler (e.g. a Snackbar) can surface them during the rollout.
-                is ToolingScaffoldScreenActionResult.SessionClosed -> Unit
+                is ToolingScaffoldScreenActionResult.SessionClosed -> {
+                    // A single disconnect names the session; a simultaneous batch (the server
+                    // stopping, say) is collapsed into a count so the queue stays short enough to
+                    // read. showSnackbar suspends until dismissed, which serializes the queue.
+                    val closedSessions = result.closedSessions
+                    val message = closedSessions.singleOrNull()
+                        ?.let { getString(Res.string.session_disconnected_message, it.deviceAndAppDisplayName) }
+                        ?: getString(Res.string.sessions_disconnected_message, closedSessions.size)
+                    snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
+                }
 
                 is ToolingScaffoldScreenActionResult.SetPluginEnabledFailed -> Unit
             }
@@ -81,6 +96,7 @@ fun ToolingScaffoldRoot(
             onSetPluginEnabled = { pluginId, enabled ->
                 screenChannel.send(ToolingScaffoldScreenAction.SetPluginEnabled(pluginId, enabled))
             },
+            snackbarHostState = snackbarHostState,
             content = content,
         )
     }
