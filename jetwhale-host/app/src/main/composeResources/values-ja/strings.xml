@@ -50,4 +50,9 @@
     <string name="mcp_history_no_arguments">引数なし</string>
     <string name="mcp_history_response">レスポンス</string>
     <string name="mcp_history_no_response">レスポンスなし</string>
+    <string name="mcp_tools_window_title">MCP Tools</string>
+    <string name="mcp_tools_open_all">MCP tools を閲覧</string>
+    <string name="mcp_tools_filter_plugin">プラグイン</string>
+    <string name="mcp_tools_filter_session">セッション</string>
+    <string name="mcp_tools_filter_all">すべて</string>
 </resources>

@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -24,12 +24,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -50,10 +54,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.kitakkun.jetwhale.host.Res
-import com.kitakkun.jetwhale.host.close
 import com.kitakkun.jetwhale.host.mcp_history_copy_arguments
 import com.kitakkun.jetwhale.host.mcp_history_copy_details
 import com.kitakkun.jetwhale.host.mcp_history_copy_response
@@ -66,6 +67,9 @@ import com.kitakkun.jetwhale.host.mcp_history_response
 import com.kitakkun.jetwhale.host.mcp_history_succeeded
 import com.kitakkun.jetwhale.host.mcp_tool_executing
 import com.kitakkun.jetwhale.host.mcp_tools_available
+import com.kitakkun.jetwhale.host.mcp_tools_filter_all
+import com.kitakkun.jetwhale.host.mcp_tools_filter_plugin
+import com.kitakkun.jetwhale.host.mcp_tools_filter_session
 import com.kitakkun.jetwhale.host.mcp_tools_no_match
 import com.kitakkun.jetwhale.host.mcp_tools_parameters
 import com.kitakkun.jetwhale.host.mcp_tools_required
@@ -74,124 +78,158 @@ import com.kitakkun.jetwhale.host.mcp_tools_tab_history
 import com.kitakkun.jetwhale.host.mcp_tools_tab_tools
 import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
-import com.kitakkun.jetwhale.host.model.McpToolSummary
 import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.stringResource
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-/** The panes the MCP dialog can show: the tools a plugin publishes, or the calls already made. */
-internal enum class McpDialogTab {
+/** Everything the MCP tools browser draws, already narrowed to the selected plugin and session. */
+data class McpToolsScreenUiState(
+    val pluginOptions: ImmutableList<McpFilterOption>,
+    val sessionOptions: ImmutableList<McpFilterOption>,
+    val selectedPluginId: String?,
+    val selectedSessionId: String?,
+    val toolRows: ImmutableList<McpToolRowUiState>,
+    val callHistory: ImmutableList<McpCallRecord>,
+    val runningToolName: String?,
+)
+
+/** The panes the MCP browser can show: the tools plugins publish, or the calls already made. */
+internal enum class McpToolsTab {
     Tools,
     History,
 }
 
 @Composable
-internal fun McpToolsDialog(
-    operating: Boolean,
-    pluginName: String,
-    tools: ImmutableList<McpToolSummary>,
-    callHistory: ImmutableList<McpCallRecord>,
-    runningToolName: String?,
-    onDismiss: () -> Unit,
+fun McpToolsScreen(
+    uiState: McpToolsScreenUiState,
+    onSelectPluginFilter: (String?) -> Unit,
+    onSelectSessionFilter: (String?) -> Unit,
 ) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        // The platform default constrains the dialog to its content's size; tool descriptions and
-        // history need the room to grow with the window instead.
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp),
     ) {
-        Surface(shape = MaterialTheme.shapes.large) {
-            Column(
-                modifier = Modifier
-                    // Take most of the window so long descriptions and history are readable, but
-                    // stop growing past a comfortable reading width on a large display.
-                    .fillMaxSize(MCP_TOOLS_DIALOG_WINDOW_FRACTION)
-                    .sizeIn(
-                        minWidth = 640.dp,
-                        minHeight = 440.dp,
-                        maxWidth = 1200.dp,
-                        maxHeight = 860.dp,
-                    )
-                    .padding(20.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = pluginName,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(
-                        text = stringResource(
-                            if (operating) Res.string.mcp_tool_executing else Res.string.mcp_tools_available,
-                        ),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Spacer(Modifier.size(12.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            McpFilterDropdown(
+                label = stringResource(Res.string.mcp_tools_filter_plugin),
+                options = uiState.pluginOptions,
+                selectedId = uiState.selectedPluginId,
+                onSelect = onSelectPluginFilter,
+            )
+            McpFilterDropdown(
+                label = stringResource(Res.string.mcp_tools_filter_session),
+                options = uiState.sessionOptions,
+                selectedId = uiState.selectedSessionId,
+                onSelect = onSelectSessionFilter,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = stringResource(
+                    if (uiState.runningToolName != null) Res.string.mcp_tool_executing else Res.string.mcp_tools_available,
+                ),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.size(12.dp))
 
-                var selectedTab by remember { mutableStateOf(McpDialogTab.Tools) }
-                TabRow(selectedTabIndex = selectedTab.ordinal) {
-                    Tab(
-                        selected = selectedTab == McpDialogTab.Tools,
-                        onClick = { selectedTab = McpDialogTab.Tools },
-                        text = { Text(stringResource(Res.string.mcp_tools_tab_tools)) },
-                    )
-                    Tab(
-                        selected = selectedTab == McpDialogTab.History,
-                        onClick = { selectedTab = McpDialogTab.History },
-                        text = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Text(stringResource(Res.string.mcp_tools_tab_history))
-                                if (callHistory.isNotEmpty()) {
-                                    // How many calls the history holds, so the count is visible
-                                    // without opening the tab.
-                                    McpToolCallCountBadge(count = callHistory.size, running = false)
-                                }
-                            }
-                        },
-                    )
-                }
-                Spacer(Modifier.size(12.dp))
-
-                // Hoisted out of the pane so switching tabs and coming back keeps the search and the
-                // selected tool where the user left them.
-                var query by remember { mutableStateOf("") }
-                var selectedName by remember { mutableStateOf(tools.firstOrNull()?.name) }
-
-                when (selectedTab) {
-                    McpDialogTab.Tools -> McpToolsPane(
-                        tools = tools,
-                        query = query,
-                        onQueryChange = { query = it },
-                        selectedToolName = selectedName,
-                        onSelectTool = { selectedName = it },
-                        runningToolName = runningToolName,
-                        // Counts come from the retained history, so they cover the calls the
-                        // dialog can actually show rather than all time.
-                        callCounts = remember(callHistory) { callHistory.groupingBy { it.toolName }.eachCount() },
-                        modifier = Modifier.weight(1f),
-                    )
-
-                    McpDialogTab.History -> McpCallHistoryPane(
-                        callHistory = callHistory,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text(stringResource(Res.string.close))
+        var selectedTab by remember { mutableStateOf(McpToolsTab.Tools) }
+        TabRow(selectedTabIndex = selectedTab.ordinal) {
+            Tab(
+                selected = selectedTab == McpToolsTab.Tools,
+                onClick = { selectedTab = McpToolsTab.Tools },
+                text = { Text(stringResource(Res.string.mcp_tools_tab_tools)) },
+            )
+            Tab(
+                selected = selectedTab == McpToolsTab.History,
+                onClick = { selectedTab = McpToolsTab.History },
+                text = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(stringResource(Res.string.mcp_tools_tab_history))
+                        if (uiState.callHistory.isNotEmpty()) {
+                            // How many calls the current scope holds, so the count is visible
+                            // without opening the tab.
+                            McpToolCallCountBadge(count = uiState.callHistory.size, running = false)
+                        }
                     }
-                }
+                },
+            )
+        }
+        Spacer(Modifier.size(12.dp))
+
+        // Hoisted out of the pane so switching tabs and coming back keeps the search and the
+        // selected tool where the user left them.
+        var query by remember { mutableStateOf("") }
+        var selectedToolKey by remember { mutableStateOf<String?>(null) }
+
+        when (selectedTab) {
+            McpToolsTab.Tools -> McpToolsPane(
+                toolRows = uiState.toolRows,
+                query = query,
+                onQueryChange = { query = it },
+                selectedToolKey = selectedToolKey,
+                onSelectTool = { selectedToolKey = it },
+                modifier = Modifier.weight(1f),
+            )
+
+            McpToolsTab.History -> McpCallHistoryPane(
+                callHistory = uiState.callHistory,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/** "All" plus one entry per option, so the user can widen a filter the nav key seeded. */
+@Composable
+private fun McpFilterDropdown(
+    label: String,
+    options: ImmutableList<McpFilterOption>,
+    selectedId: String?,
+    onSelect: (String?) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val allLabel = stringResource(Res.string.mcp_tools_filter_all)
+    val selectedLabel = options.firstOrNull { it.id == selectedId }?.label ?: allLabel
+
+    Box {
+        OutlinedButton(onClick = { expanded = true }) {
+            Text(
+                text = "$label: $selectedLabel",
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 260.dp),
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text(allLabel) },
+                onClick = {
+                    onSelect(null)
+                    expanded = false
+                },
+            )
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.label) },
+                    onClick = {
+                        onSelect(option.id)
+                        expanded = false
+                    },
+                )
             }
         }
     }
@@ -226,33 +264,32 @@ internal fun McpToolCallCountBadge(count: Int, running: Boolean) {
     }
 }
 
-/** Two-pane browser over the tools a plugin publishes: search + list on the left, detail right. */
+/** Two-pane browser over the tools in scope: search + list on the left, detail right. */
 @Composable
 private fun McpToolsPane(
-    tools: ImmutableList<McpToolSummary>,
+    toolRows: ImmutableList<McpToolRowUiState>,
     query: String,
     onQueryChange: (String) -> Unit,
-    selectedToolName: String?,
+    selectedToolKey: String?,
     onSelectTool: (String) -> Unit,
-    runningToolName: String?,
-    callCounts: Map<String, Int>,
     modifier: Modifier,
 ) {
-    val filtered = remember(query, tools) {
+    val filtered = remember(query, toolRows) {
         if (query.isBlank()) {
-            tools
+            toolRows
         } else {
-            tools.filter {
-                it.name.contains(query, ignoreCase = true) ||
-                    it.description.contains(query, ignoreCase = true)
+            toolRows.filter {
+                it.tool.name.contains(query, ignoreCase = true) ||
+                    it.tool.description.contains(query, ignoreCase = true) ||
+                    it.pluginName.contains(query, ignoreCase = true)
             }
         }
     }
-    val selected = filtered.firstOrNull { it.name == selectedToolName } ?: filtered.firstOrNull()
+    val selected = filtered.firstOrNull { it.key == selectedToolKey } ?: filtered.firstOrNull()
 
     Row(modifier = modifier) {
         // Left pane: search + tool list.
-        Column(modifier = Modifier.width(300.dp)) {
+        Column(modifier = Modifier.width(320.dp)) {
             OutlinedTextField(
                 value = query,
                 onValueChange = onQueryChange,
@@ -263,10 +300,8 @@ private fun McpToolsPane(
             )
             Spacer(Modifier.size(8.dp))
             LazyColumn(modifier = Modifier.fillMaxHeight()) {
-                items(filtered, key = { it.name }) { tool ->
-                    val isSelected = tool.name == selected?.name
-                    val isRunning = tool.name == runningToolName
-                    val callCount = callCounts[tool.name] ?: 0
+                items(filtered, key = { it.key }) { row ->
+                    val isSelected = row.key == selected?.key
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -276,25 +311,35 @@ private fun McpToolsPane(
                             .background(
                                 if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
                             )
-                            .clickable { onSelectTool(tool.name) }
+                            .clickable { onSelectTool(row.key) }
                             .padding(horizontal = 10.dp, vertical = 8.dp),
                     ) {
-                        Text(
-                            text = tool.name.substringAfterLast('.'),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontFamily = FontFamily.Monospace,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = if (isSelected) {
-                                MaterialTheme.colorScheme.onSecondaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                            // Takes the free space so the count and dot sit against the right edge.
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (callCount > 0 || isRunning) {
-                            McpToolCallCountBadge(count = callCount, running = isRunning)
+                        // Takes the free space so the count sits against the right edge.
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = row.tool.name.substringAfterLast('.'),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontFamily = FontFamily.Monospace,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = if (isSelected) {
+                                    MaterialTheme.colorScheme.onSecondaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
+                            )
+                            // The short name alone is ambiguous once plugins are mixed, so every row
+                            // names the plugin that publishes the tool.
+                            Text(
+                                text = row.pluginName,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (row.callCount > 0 || row.running) {
+                            McpToolCallCountBadge(count = row.callCount, running = row.running)
                         }
                     }
                 }
@@ -316,34 +361,39 @@ private fun McpToolsPane(
                 )
             } else {
                 Text(
-                    text = selected.name.substringAfterLast('.'),
+                    text = selected.tool.name.substringAfterLast('.'),
                     style = MaterialTheme.typography.titleMedium,
                     fontFamily = FontFamily.Monospace,
                 )
                 Text(
-                    text = selected.name,
+                    text = selected.pluginName,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = selected.tool.name,
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = FontFamily.Monospace,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = selected.description,
+                    text = selected.tool.description,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                if (selected.parameters.isNotEmpty()) {
+                if (selected.tool.parameters.isNotEmpty()) {
                     Spacer(Modifier.size(4.dp))
                     Text(
                         text = stringResource(Res.string.mcp_tools_parameters),
                         style = MaterialTheme.typography.labelLarge,
                     )
-                    selected.parameters.forEach { param -> McpParameterRow(param) }
+                    selected.tool.parameters.forEach { param -> McpParameterRow(param) }
                 }
             }
         }
     }
 }
 
-/** What an agent already did with this plugin, newest call first. */
+/** What agents already did in the selected scope, newest call first. */
 @Composable
 private fun McpCallHistoryPane(
     callHistory: ImmutableList<McpCallRecord>,
@@ -368,7 +418,7 @@ private fun McpCallHistoryPane(
 
     Row(modifier = modifier) {
         LazyColumn(
-            modifier = Modifier.width(300.dp),
+            modifier = Modifier.width(320.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             items(callHistory, key = { it.id }) { record ->
@@ -389,7 +439,10 @@ private fun McpCallHistoryPane(
     }
 }
 
-/** Right pane: everything recorded about the selected call, with copy actions. */
+/**
+ * Right pane: everything recorded about the selected call. Each section carries its own inline copy
+ * icon; the one action that takes the whole record stays a labelled button.
+ */
 @Composable
 private fun McpCallDetailPane(
     record: McpCallRecord,
@@ -406,11 +459,20 @@ private fun McpCallDetailPane(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(
-            text = record.toolName.substringAfterLast('.'),
-            style = MaterialTheme.typography.titleMedium,
-            fontFamily = FontFamily.Monospace,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = record.toolName.substringAfterLast('.'),
+                style = MaterialTheme.typography.titleMedium,
+                fontFamily = FontFamily.Monospace,
+            )
+            McpCopyIconButton(
+                contentDescription = stringResource(Res.string.mcp_history_copy_tool_name),
+                onClick = { clipboardManager.setText(AnnotatedString(record.toolName)) },
+            )
+        }
         Text(
             text = record.toolName,
             style = MaterialTheme.typography.labelSmall,
@@ -445,10 +507,21 @@ private fun McpCallDetailPane(
         }
 
         Spacer(Modifier.size(4.dp))
-        Text(
-            text = stringResource(Res.string.mcp_tools_parameters),
-            style = MaterialTheme.typography.labelLarge,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = stringResource(Res.string.mcp_tools_parameters),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            if (record.arguments.isNotEmpty()) {
+                McpCopyIconButton(
+                    contentDescription = stringResource(Res.string.mcp_history_copy_arguments),
+                    onClick = { clipboardManager.setText(AnnotatedString(renderedArguments)) },
+                )
+            }
+        }
         if (record.arguments.isEmpty()) {
             Text(
                 text = stringResource(Res.string.mcp_history_no_arguments),
@@ -474,10 +547,21 @@ private fun McpCallDetailPane(
         }
 
         Spacer(Modifier.size(4.dp))
-        Text(
-            text = stringResource(Res.string.mcp_history_response),
-            style = MaterialTheme.typography.labelLarge,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = stringResource(Res.string.mcp_history_response),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            if (record.response.isNotEmpty()) {
+                McpCopyIconButton(
+                    contentDescription = stringResource(Res.string.mcp_history_copy_response),
+                    onClick = { clipboardManager.setText(AnnotatedString(record.response)) },
+                )
+            }
+        }
         if (record.response.isEmpty()) {
             Text(
                 text = stringResource(Res.string.mcp_history_no_response),
@@ -489,7 +573,7 @@ private fun McpCallDetailPane(
                 modifier = Modifier
                     .fillMaxWidth()
                     // Bounded and scrolled on its own so a long response stays readable instead of
-                    // pushing the copy actions out of the pane.
+                    // pushing the copy action out of the pane.
                     .heightIn(max = 240.dp)
                     .clip(RoundedCornerShape(6.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest)
@@ -506,44 +590,42 @@ private fun McpCallDetailPane(
         }
 
         Spacer(Modifier.size(4.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(
-                onClick = { clipboardManager.setText(AnnotatedString(record.toolName)) },
-            ) {
-                Text(stringResource(Res.string.mcp_history_copy_tool_name))
-            }
-            if (record.arguments.isNotEmpty()) {
-                TextButton(
-                    onClick = { clipboardManager.setText(AnnotatedString(renderedArguments)) },
-                ) {
-                    Text(stringResource(Res.string.mcp_history_copy_arguments))
-                }
-            }
-            if (record.response.isNotEmpty()) {
-                TextButton(
-                    onClick = { clipboardManager.setText(AnnotatedString(record.response)) },
-                ) {
-                    Text(stringResource(Res.string.mcp_history_copy_response))
-                }
-            }
-            TextButton(
-                onClick = {
-                    clipboardManager.setText(
-                        AnnotatedString(
-                            buildCallDetails(
-                                toolName = record.toolName,
-                                statusLabel = statusLabel,
-                                finishedAt = finishedAt,
-                                renderedArguments = renderedArguments,
-                                response = record.response,
-                            ),
+        TextButton(
+            onClick = {
+                clipboardManager.setText(
+                    AnnotatedString(
+                        buildCallDetails(
+                            toolName = record.toolName,
+                            statusLabel = statusLabel,
+                            finishedAt = finishedAt,
+                            renderedArguments = renderedArguments,
+                            response = record.response,
                         ),
-                    )
-                },
-            ) {
-                Text(stringResource(Res.string.mcp_history_copy_details))
-            }
+                    ),
+                )
+            },
+        ) {
+            Text(stringResource(Res.string.mcp_history_copy_details))
         }
+    }
+}
+
+/** Copy affordance that sits beside a heading without competing with it for attention. */
+@Composable
+private fun McpCopyIconButton(
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(24.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.ContentCopy,
+            contentDescription = contentDescription,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
+        )
     }
 }
 
@@ -643,6 +725,7 @@ private fun McpCallHistoryRow(
         }
     }
 }
+
 private fun buildCallDetails(
     toolName: String,
     statusLabel: String,
@@ -667,8 +750,6 @@ private fun buildCallDetails(
 }
 
 /** Wall-clock time of day, which is what the user can line up against their own actions. */
-private const val MCP_TOOLS_DIALOG_WINDOW_FRACTION = 0.8f
-
 private val CallHistoryTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
 private fun formatCallTime(epochMillis: Long): String = Instant.ofEpochMilli(epochMillis)

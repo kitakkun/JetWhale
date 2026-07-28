@@ -62,6 +62,7 @@ fun JetWhaleNavDisplay(
             )
             licensesEntry(onClickBack = backStack::removeLastOrNull)
             logViewerEntry()
+            mcpToolsEntry()
             pluginEntries(
                 isOpenedOnPopout = backStack::isPluginPoppedOut,
                 onBringbackToMainWindow = backStack::bringPluginBackToMainWindow,

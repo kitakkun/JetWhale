@@ -14,6 +14,20 @@ fun <T : NavKey> NavBackStack<T>.addSingleTop(index: Int, navKey: T) {
 }
 
 /**
+ * Shows the MCP tools browser, seeded with the scope it was opened from.
+ *
+ * At most one browser window exists: opening it from a different scope re-seeds the filters rather
+ * than stacking a second window, and re-opening it with the same scope leaves the window as it is so
+ * the user does not lose its position or their own filter changes.
+ */
+fun NavBackStack<NavKey>.openMcpTools(pluginId: String?, sessionId: String?) {
+    val navKey = McpToolsNavKey(pluginId = pluginId, sessionId = sessionId)
+    if (any { it == navKey }) return
+    removeAll { it is McpToolsNavKey }
+    add(navKey)
+}
+
+/**
  * Whether the given plugin is currently shown in a separate popout window for [sessionId].
  */
 fun NavBackStack<NavKey>.isPluginPoppedOut(pluginId: String, sessionId: String): Boolean = any {
