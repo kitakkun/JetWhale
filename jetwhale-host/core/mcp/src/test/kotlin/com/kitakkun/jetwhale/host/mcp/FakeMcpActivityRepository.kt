@@ -61,8 +61,9 @@ class FakeMcpActivityRepository : McpActivityRepository {
         return invocation.id
     }
 
-    override fun toolInvocationFinished(invocationId: Long, failed: Boolean) {
+    override fun toolInvocationFinished(invocationId: Long, failed: Boolean, response: String) {
         val finishedAtEpochMillis = System.currentTimeMillis()
+        val truncatedResponse = McpCallRecord.truncateResponse(response)
         activityFlow.update { activity ->
             val finished = activity.runningInvocations.firstOrNull { it.id == invocationId }
             activity.copy(
@@ -80,6 +81,7 @@ class FakeMcpActivityRepository : McpActivityRepository {
                         succeeded = !failed,
                         finishedAtEpochMillis = finishedAtEpochMillis,
                         arguments = finished.arguments,
+                        response = truncatedResponse,
                     )
                     (listOf(record) + activity.recentCalls)
                         .take(McpActivity.MAX_RECENT_CALLS)

@@ -5,6 +5,7 @@ import io.modelcontextprotocol.kotlin.sdk.server.ClientConnection
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequest
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 
 /**
@@ -89,11 +90,33 @@ class McpToolRegistrar(
             // A thrown handler is the only failure signal available here, and it has to reach the
             // repository before it propagates on to the MCP layer.
             var failed = true
+            var response = ""
             try {
-                handler(request).also { failed = false }
+                handler(request).also {
+                    failed = false
+                    response = it.renderForHistory()
+                }
+            } catch (throwable: Throwable) {
+                // A failure is only explainable in history if it says what went wrong.
+                response = throwable.message.orEmpty()
+                throw throwable
             } finally {
-                activityRepository.toolInvocationFinished(invocationId, failed)
+                activityRepository.toolInvocationFinished(invocationId, failed, response)
             }
         }
+    }
+}
+
+/**
+ * Renders a tool result to the text kept in call history.
+ *
+ * Only text blocks carry something a reader can use; every other block type is a binary payload (a
+ * screenshot, audio, an embedded resource) that is named rather than inlined, so history does not
+ * fill up with base64.
+ */
+private fun CallToolResult.renderForHistory(): String = content.joinToString(separator = "\n") { block ->
+    when (block) {
+        is TextContent -> block.text
+        else -> "<${block.type.value}>"
     }
 }

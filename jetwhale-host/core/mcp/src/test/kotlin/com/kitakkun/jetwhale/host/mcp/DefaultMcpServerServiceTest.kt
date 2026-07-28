@@ -19,6 +19,7 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.sse.SSE
 import io.modelcontextprotocol.kotlin.sdk.client.mcpSse
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.ImageContent
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.TimeoutCancellationException
@@ -440,6 +441,32 @@ class DefaultMcpServerServiceTest {
         assertEquals("com.example.plugin", record.pluginId)
         assertEquals("session-1", record.sessionId)
         assertTrue(record.succeeded)
+        assertEquals("ok", record.response)
+    }
+
+    @Test
+    fun `a non-text response block is recorded as a placeholder instead of its payload`() = runBlocking {
+        val serviceWithTool = DefaultMcpServerService(
+            pluginInstanceService = pluginInstanceService,
+            mcpActivityRepository = mcpActivityRepository,
+            builtInTools = setOf(MediaMcpTool("fake.captured")),
+        )
+        val capturedPort = java.net.ServerSocket(0).use { it.localPort }
+        serviceWithTool.start(host, capturedPort)
+        // Stopping the server clears recorded activity, so the history has to be read while it runs.
+        val record = try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$capturedPort/sse")
+            try {
+                client.callTool("fake.captured", emptyMap())
+            } finally {
+                client.close()
+            }
+            mcpActivityRepository.activityFlow.value.recentCalls.single()
+        } finally {
+            serviceWithTool.stop()
+        }
+
+        assertEquals("captured\n<image>", record.response)
     }
 
     @Test
@@ -466,6 +493,7 @@ class DefaultMcpServerServiceTest {
 
         assertEquals("fake.failing", record.toolName)
         assertFalse(record.succeeded)
+        assertEquals("boom", record.response)
     }
 
     @OptIn(ExperimentalJetWhaleApi::class)
@@ -538,6 +566,20 @@ private class FakeMcpTool(
         registrar.addTool(name = name, description = "Fake tool for testing", inputSchema = ToolSchema()) { _ ->
             onExecute()
             CallToolResult(content = listOf(TextContent(response)))
+        }
+    }
+}
+
+/** Returns a text block alongside a binary one, which history must name rather than inline. */
+private class MediaMcpTool(private val name: String) : JetWhaleMcpTool {
+    override fun register(registrar: McpToolRegistrar) {
+        registrar.addTool(name = name, description = "Returns text and an image", inputSchema = ToolSchema()) { _ ->
+            CallToolResult(
+                content = listOf(
+                    TextContent("captured"),
+                    ImageContent(data = "AAAA", mimeType = "image/png"),
+                ),
+            )
         }
     }
 }

@@ -61,9 +61,10 @@ class DefaultMcpActivityRepository : McpActivityRepository {
         return invocationId
     }
 
-    override fun toolInvocationFinished(invocationId: Long, failed: Boolean) {
+    override fun toolInvocationFinished(invocationId: Long, failed: Boolean, response: String) {
         // Sampled once outside the update block, which may re-run under contention.
         val finishedAtEpochMillis = System.currentTimeMillis()
+        val truncatedResponse = McpCallRecord.truncateResponse(response)
         activityFlow.update { activity ->
             val finished = activity.runningInvocations.firstOrNull { it.id == invocationId }
             activity.copy(
@@ -82,6 +83,7 @@ class DefaultMcpActivityRepository : McpActivityRepository {
                         succeeded = !failed,
                         finishedAtEpochMillis = finishedAtEpochMillis,
                         arguments = finished.arguments,
+                        response = truncatedResponse,
                     )
                     (listOf(record) + activity.recentCalls)
                         .take(McpActivity.MAX_RECENT_CALLS)

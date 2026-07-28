@@ -35,8 +35,11 @@ interface McpActivityRepository {
      * Records the completion of a tool call and appends it to the recent-call history.
      *
      * @param failed true when the handler threw instead of returning a result.
+     * @param response what the call produced, already rendered to a string: the tool's result, or
+     * the failure message when it threw. Shortened to [McpCallRecord.MAX_RESPONSE_LENGTH] here. Pass
+     * an empty string when the call produced nothing to show.
      */
-    fun toolInvocationFinished(invocationId: Long, failed: Boolean)
+    fun toolInvocationFinished(invocationId: Long, failed: Boolean, response: String)
 
     /** Drops all recorded activity, so a server restart does not inherit stale connection counts. */
     fun clear()

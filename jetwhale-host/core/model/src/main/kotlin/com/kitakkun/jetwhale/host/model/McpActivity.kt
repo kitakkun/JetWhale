@@ -63,7 +63,31 @@ data class McpCallRecord(
     val finishedAtEpochMillis: Long,
     /** Every argument the call was made with, including `pluginId` and `sessionId`. */
     val arguments: ImmutableList<McpCallArgument>,
-)
+    /**
+     * What the call produced, rendered to a string and shortened to [MAX_RESPONSE_LENGTH]. Carries
+     * the failure message when the call failed, and is empty when there is nothing to show.
+     */
+    val response: String,
+) {
+    companion object {
+        /**
+         * How many characters of a [response] are kept. Far more generous than
+         * [McpCallArgument.MAX_VALUE_LENGTH]: the response is the payload the user opens history to
+         * read, whereas an argument only has to be recognisable.
+         */
+        const val MAX_RESPONSE_LENGTH = 2000
+
+        /**
+         * Shortens a response to [MAX_RESPONSE_LENGTH] characters, marking the cut the same way
+         * argument values are marked.
+         */
+        fun truncateResponse(response: String): String = if (response.length <= MAX_RESPONSE_LENGTH) {
+            response
+        } else {
+            response.take(MAX_RESPONSE_LENGTH) + McpCallArgument.TRUNCATION_MARKER
+        }
+    }
+}
 
 /**
  * Live view of what AI agents are doing through the MCP server, so the UI can tell the user when

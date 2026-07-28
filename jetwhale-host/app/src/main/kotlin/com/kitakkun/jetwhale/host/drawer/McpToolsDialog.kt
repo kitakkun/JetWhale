@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -55,10 +56,13 @@ import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.close
 import com.kitakkun.jetwhale.host.mcp_history_copy_arguments
 import com.kitakkun.jetwhale.host.mcp_history_copy_details
+import com.kitakkun.jetwhale.host.mcp_history_copy_response
 import com.kitakkun.jetwhale.host.mcp_history_copy_tool_name
 import com.kitakkun.jetwhale.host.mcp_history_empty
 import com.kitakkun.jetwhale.host.mcp_history_failed
 import com.kitakkun.jetwhale.host.mcp_history_no_arguments
+import com.kitakkun.jetwhale.host.mcp_history_no_response
+import com.kitakkun.jetwhale.host.mcp_history_response
 import com.kitakkun.jetwhale.host.mcp_history_succeeded
 import com.kitakkun.jetwhale.host.mcp_tool_executing
 import com.kitakkun.jetwhale.host.mcp_tools_available
@@ -470,6 +474,38 @@ private fun McpCallDetailPane(
         }
 
         Spacer(Modifier.size(4.dp))
+        Text(
+            text = stringResource(Res.string.mcp_history_response),
+            style = MaterialTheme.typography.labelLarge,
+        )
+        if (record.response.isEmpty()) {
+            Text(
+                text = stringResource(Res.string.mcp_history_no_response),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // Bounded and scrolled on its own so a long response stays readable instead of
+                    // pushing the copy actions out of the pane.
+                    .heightIn(max = 240.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                    .verticalScroll(rememberScrollState())
+                    .padding(8.dp),
+            ) {
+                Text(
+                    text = record.response,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        Spacer(Modifier.size(4.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(
                 onClick = { clipboardManager.setText(AnnotatedString(record.toolName)) },
@@ -483,6 +519,13 @@ private fun McpCallDetailPane(
                     Text(stringResource(Res.string.mcp_history_copy_arguments))
                 }
             }
+            if (record.response.isNotEmpty()) {
+                TextButton(
+                    onClick = { clipboardManager.setText(AnnotatedString(record.response)) },
+                ) {
+                    Text(stringResource(Res.string.mcp_history_copy_response))
+                }
+            }
             TextButton(
                 onClick = {
                     clipboardManager.setText(
@@ -492,6 +535,7 @@ private fun McpCallDetailPane(
                                 statusLabel = statusLabel,
                                 finishedAt = finishedAt,
                                 renderedArguments = renderedArguments,
+                                response = record.response,
                             ),
                         ),
                     )
@@ -518,6 +562,7 @@ private fun McpCallHistoryRow(
     val clipboardManager = LocalClipboardManager.current
     val copyToolNameLabel = stringResource(Res.string.mcp_history_copy_tool_name)
     val copyArgumentsLabel = stringResource(Res.string.mcp_history_copy_arguments)
+    val copyResponseLabel = stringResource(Res.string.mcp_history_copy_response)
     val copyDetailsLabel = stringResource(Res.string.mcp_history_copy_details)
 
     ContextMenuArea(
@@ -535,6 +580,13 @@ private fun McpCallHistoryRow(
                         },
                     )
                 }
+                if (record.response.isNotEmpty()) {
+                    add(
+                        ContextMenuItem(copyResponseLabel) {
+                            clipboardManager.setText(AnnotatedString(record.response))
+                        },
+                    )
+                }
                 add(
                     ContextMenuItem(copyDetailsLabel) {
                         clipboardManager.setText(
@@ -544,6 +596,7 @@ private fun McpCallHistoryRow(
                                     statusLabel = statusLabel,
                                     finishedAt = finishedAt,
                                     renderedArguments = renderedArguments,
+                                    response = record.response,
                                 ),
                             ),
                         )
@@ -595,6 +648,7 @@ private fun buildCallDetails(
     statusLabel: String,
     finishedAt: String,
     renderedArguments: String,
+    response: String,
 ): String = buildString {
     appendLine(toolName)
     appendLine(statusLabel)
@@ -602,6 +656,13 @@ private fun buildCallDetails(
     if (renderedArguments.isNotEmpty()) {
         appendLine()
         append(renderedArguments)
+    }
+    if (response.isNotEmpty()) {
+        // A blank line keeps the response apart from the arguments above it, which are otherwise
+        // laid out the same way.
+        appendLine()
+        appendLine()
+        append(response)
     }
 }
 

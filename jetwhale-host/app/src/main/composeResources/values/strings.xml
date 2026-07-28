@@ -46,5 +46,8 @@
     <string name="mcp_history_copy_tool_name">Copy tool name</string>
     <string name="mcp_history_copy_arguments">Copy arguments</string>
     <string name="mcp_history_copy_details">Copy details</string>
+    <string name="mcp_history_copy_response">Copy response</string>
     <string name="mcp_history_no_arguments">No arguments</string>
+    <string name="mcp_history_response">Response</string>
+    <string name="mcp_history_no_response">No response</string>
 </resources>

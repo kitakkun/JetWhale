@@ -46,5 +46,8 @@
     <string name="mcp_history_copy_tool_name">ツール名をコピー</string>
     <string name="mcp_history_copy_arguments">引数をコピー</string>
     <string name="mcp_history_copy_details">詳細をコピー</string>
+    <string name="mcp_history_copy_response">レスポンスをコピー</string>
     <string name="mcp_history_no_arguments">引数なし</string>
+    <string name="mcp_history_response">レスポンス</string>
+    <string name="mcp_history_no_response">レスポンスなし</string>
 </resources>
