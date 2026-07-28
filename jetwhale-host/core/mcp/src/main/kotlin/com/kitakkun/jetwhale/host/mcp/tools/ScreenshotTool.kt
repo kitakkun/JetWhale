@@ -70,9 +70,7 @@ class ScreenshotMcpTool(
                 return@addTool errorResult("Both 'width' and 'height' must be provided together.")
             }
             val requestedDensity = request.arguments?.get("density")?.jsonFloat
-            if (requestedDensity != null && requestedDensity <= 0f) {
-                return@addTool errorResult("'density' must be greater than 0.")
-            }
+            invalidDensityMessage(requestedDensity)?.let { return@addTool errorResult(it) }
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
             val (viewport, pngBytes) = withContext(Dispatchers.Main) {
@@ -126,6 +124,19 @@ fun captureScreenshot(
         ?: error("Failed to encode screenshot to PNG")
 }
 
+/**
+ * Why a caller-supplied density is rejected, or null when it is usable.
+ *
+ * A JSON number too large for a Float parses to `Infinity`, and `NaN` parses to `NaN`; neither is
+ * caught by a `<= 0` test (`NaN <= 0` is false), and both would reach Compose layout.
+ */
+internal fun invalidDensityMessage(requestedDensity: Float?): String? = when {
+    requestedDensity == null -> null
+    !requestedDensity.isFinite() -> "'density' must be a finite number."
+    requestedDensity <= 0f -> "'density' must be greater than 0."
+    else -> null
+}
+
 @OptIn(InternalComposeUiApi::class)
 internal fun resolveViewport(
     scene: PluginComposeScene,
@@ -133,7 +144,12 @@ internal fun resolveViewport(
     requestedHeight: Int?,
     requestedDensity: Float?,
 ): McpViewport {
-    val density = requestedDensity?.let { Density(it) } ?: scene.composeScene.density
+    val sceneDensity = scene.composeScene.density
+    // Override the density scalar only: fontScale is a separate, user-facing setting that the
+    // caller is not asking about, so carry the scene's through.
+    val density = requestedDensity
+        ?.let { Density(density = it, fontScale = sceneDensity.fontScale) }
+        ?: sceneDensity
     val requested = if (requestedWidth != null && requestedHeight != null) {
         IntSize(requestedWidth, requestedHeight)
     } else {
