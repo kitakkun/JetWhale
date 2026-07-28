@@ -31,4 +31,11 @@
     <string name="ai_agent_connected">AI agent connected</string>
     <string name="ai_agent_operating">AI agent is operating</string>
     <string name="plugin_exposes_mcp_tools">Exposes MCP tools to AI agents</string>
+    <string name="mcp_tool_executing">MCP executing</string>
+    <string name="mcp_tools_available">MCP available</string>
+    <string name="close">Close</string>
+    <string name="mcp_tools_search">Search tools</string>
+    <string name="mcp_tools_no_match">No matching tools</string>
+    <string name="mcp_tools_parameters">Parameters</string>
+    <string name="mcp_tools_required">required</string>
 </resources>

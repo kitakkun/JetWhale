@@ -1,13 +1,16 @@
 package com.kitakkun.jetwhale.host.drawer
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Info
@@ -30,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalDensity
@@ -138,22 +142,44 @@ fun ShrunkToolingDrawerView(
                     state = rememberTooltipState(),
                 ) {
                     val selected = selectedPluginId == it.id && selectedSessionId != null
-                    IconButton(
-                        enabled = selectedSessionId != null,
-                        onClick = { onClickPlugin(it.id) },
-                        colors = if (selected) IconButtonDefaults.filledTonalIconButtonColors() else IconButtonDefaults.iconButtonColors(),
-                    ) {
-                        Icon(
-                            painter = when {
-                                selected -> rememberPluginIconSvgPainter(it.activeIconResource)
-                                    ?: painterResource(Res.drawable.puzzle_filled)
+                    Box {
+                        IconButton(
+                            enabled = selectedSessionId != null,
+                            onClick = { onClickPlugin(it.id) },
+                            colors = if (selected) IconButtonDefaults.filledTonalIconButtonColors() else IconButtonDefaults.iconButtonColors(),
+                        ) {
+                            Icon(
+                                painter = when {
+                                    selected -> rememberPluginIconSvgPainter(it.activeIconResource)
+                                        ?: painterResource(Res.drawable.puzzle_filled)
 
-                                else -> rememberPluginIconSvgPainter(it.inactiveIconResource)
-                                    ?: painterResource(Res.drawable.puzzle_outlined)
-                            },
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                        )
+                                    else -> rememberPluginIconSvgPainter(it.inactiveIconResource)
+                                        ?: painterResource(Res.drawable.puzzle_outlined)
+                                },
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                        // No room for the full "MCP" badge in the narrow rail, so the plugin's MCP
+                        // status collapses to a dot: filled while an agent is operating it, a hollow
+                        // ring when it merely exposes tools.
+                        if (it.underAiControl) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(6.dp)
+                                    .size(8.dp)
+                                    .background(AiOperatingAccentColor, CircleShape),
+                            )
+                        } else if (it.exposesMcpTools) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(6.dp)
+                                    .size(8.dp)
+                                    .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, CircleShape),
+                            )
+                        }
                     }
                 }
             }
