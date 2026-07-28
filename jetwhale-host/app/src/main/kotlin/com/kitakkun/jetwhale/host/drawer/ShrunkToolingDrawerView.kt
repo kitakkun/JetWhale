@@ -61,6 +61,7 @@ fun ShrunkToolingDrawerView(
     onClickSettings: () -> Unit,
     onClickPlugin: (String) -> Unit,
     onClickInfo: () -> Unit,
+    onOpenAllMcpTools: () -> Unit,
     onSelectSession: (DebugSession) -> Unit,
 ) {
     Column(
@@ -126,6 +127,9 @@ fun ShrunkToolingDrawerView(
                 contentDescription = null,
             )
         }
+        // Opens the browser unscoped, so the tools an agent can reach are visible without first
+        // finding a plugin that happens to publish some.
+        McpToolsDrawerButton(onClick = onOpenAllMcpTools)
         CompactAiActivityIndicatorView(uiState = aiActivity)
         HorizontalDivider()
         LazyColumn(

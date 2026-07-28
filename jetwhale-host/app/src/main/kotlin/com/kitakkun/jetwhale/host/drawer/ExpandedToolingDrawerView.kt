@@ -64,6 +64,8 @@ fun ExpandedToolingDrawerView(
     onClickShrinkDrawer: () -> Unit,
     onClickSettings: () -> Unit,
     onClickPluginSettings: () -> Unit,
+    onOpenMcpTools: (pluginId: String) -> Unit,
+    onOpenAllMcpTools: () -> Unit,
     onClickPlugin: (DrawerPluginItemUiState) -> Unit,
     onSelectSession: (DebugSession) -> Unit,
     onClickPopout: (DrawerPluginItemUiState) -> Unit,
@@ -82,11 +84,16 @@ fun ExpandedToolingDrawerView(
                     contentDescription = null,
                 )
             }
-            IconButton(onClick = onClickSettings) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = null,
-                )
+            Row {
+                // Opens the browser unscoped, so the tools an agent can reach are visible without
+                // first finding a plugin that happens to publish some.
+                McpToolsDrawerButton(onClick = onOpenAllMcpTools)
+                IconButton(onClick = onClickSettings) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                    )
+                }
             }
         }
         Column(
@@ -169,9 +176,8 @@ fun ExpandedToolingDrawerView(
                                         inactiveIconResource = it.inactiveIconResource,
                                         selected = it.id == selectedPluginId,
                                         underAiControl = it.underAiControl,
-                                        mcpTools = it.mcpTools,
-                                        mcpCallHistory = it.mcpCallHistory,
-                                        runningMcpToolName = it.runningMcpToolName,
+                                        exposesMcpTools = it.exposesMcpTools,
+                                        onClickMcpBadge = { onOpenMcpTools(it.id) },
                                         onClick = { onClickPlugin(it) },
                                         popupMenuContent = { dismiss ->
                                             DropdownMenuItem(
@@ -243,9 +249,8 @@ fun ExpandedToolingDrawerView(
                                         inactiveIconResource = it.inactiveIconResource,
                                         selected = false,
                                         underAiControl = it.underAiControl,
-                                        mcpTools = it.mcpTools,
-                                        mcpCallHistory = it.mcpCallHistory,
-                                        runningMcpToolName = it.runningMcpToolName,
+                                        exposesMcpTools = it.exposesMcpTools,
+                                        onClickMcpBadge = { onOpenMcpTools(it.id) },
                                         onClick = {
                                             // do nothing
                                         },
@@ -291,9 +296,8 @@ fun ExpandedToolingDrawerView(
                                     inactiveIconResource = it.inactiveIconResource,
                                     selected = false,
                                     underAiControl = it.underAiControl,
-                                    mcpTools = it.mcpTools,
-                                    mcpCallHistory = it.mcpCallHistory,
-                                    runningMcpToolName = it.runningMcpToolName,
+                                    exposesMcpTools = it.exposesMcpTools,
+                                    onClickMcpBadge = { onOpenMcpTools(it.id) },
                                     onClick = {
                                         // do nothing
                                     },

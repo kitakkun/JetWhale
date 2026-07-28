@@ -33,12 +33,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
-import com.kitakkun.jetwhale.host.model.McpCallRecord
-import com.kitakkun.jetwhale.host.model.McpToolSummary
 import com.kitakkun.jetwhale.host.model.PluginIconResource
 import com.kitakkun.jetwhale.host.puzzle_filled
 import com.kitakkun.jetwhale.host.puzzle_outlined
-import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -47,12 +44,11 @@ fun PluginDrawerItemView(
     name: String,
     selected: Boolean,
     underAiControl: Boolean,
-    mcpTools: ImmutableList<McpToolSummary>,
-    mcpCallHistory: ImmutableList<McpCallRecord>,
-    runningMcpToolName: String?,
+    exposesMcpTools: Boolean,
     activeIconResource: PluginIconResource?,
     inactiveIconResource: PluginIconResource?,
     onClick: () -> Unit,
+    onClickMcpBadge: () -> Unit,
     popupMenuContent: (@Composable ColumnScope.(dismiss: () -> Unit) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -73,13 +69,10 @@ fun PluginDrawerItemView(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
-                    if (mcpTools.isNotEmpty()) {
+                    if (exposesMcpTools) {
                         McpBadge(
                             operating = underAiControl,
-                            pluginName = name,
-                            tools = mcpTools,
-                            callHistory = mcpCallHistory,
-                            runningToolName = runningMcpToolName,
+                            onClick = onClickMcpBadge,
                         )
                     }
                 }
@@ -138,17 +131,14 @@ fun PluginDrawerItemView(
 
 /**
  * A compact "MCP" badge shown after a plugin's name when it exposes MCP tools. It is filled while an
- * agent is running one of those tools and outlined otherwise, and opens a dialog listing the tools.
+ * agent is running one of those tools and outlined otherwise, and opens the MCP tools browser scoped
+ * to this plugin.
  */
 @Composable
 private fun McpBadge(
     operating: Boolean,
-    pluginName: String,
-    tools: ImmutableList<McpToolSummary>,
-    callHistory: ImmutableList<McpCallRecord>,
-    runningToolName: String?,
+    onClick: () -> Unit,
 ) {
-    var showDialog by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(4.dp)
     val contentColor = if (operating) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant
     val decoration = if (operating) {
@@ -160,7 +150,7 @@ private fun McpBadge(
         modifier = Modifier
             .clip(shape)
             .then(decoration)
-            .clickable { showDialog = true }
+            .clickable(onClick = onClick)
             .padding(horizontal = 5.dp, vertical = 1.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp),
@@ -170,22 +160,12 @@ private fun McpBadge(
             style = MaterialTheme.typography.labelSmall,
             color = contentColor,
         )
-        // Signals that clicking opens a separate dialog.
+        // Signals that clicking opens a separate window.
         Icon(
             imageVector = Icons.AutoMirrored.Filled.OpenInNew,
             contentDescription = null,
             tint = contentColor,
             modifier = Modifier.size(11.dp),
-        )
-    }
-    if (showDialog) {
-        McpToolsDialog(
-            operating = operating,
-            pluginName = pluginName,
-            tools = tools,
-            callHistory = callHistory,
-            runningToolName = runningToolName,
-            onDismiss = { showDialog = false },
         )
     }
 }
