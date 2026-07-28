@@ -179,7 +179,8 @@ private val McpHostToolGroup.displayName: String
  *
  * A structured payload follows the blocks on its own line. It is the whole answer for a tool that
  * replies only in `structuredContent`, and it reads as the machine-readable detail behind the prose
- * for a tool that sends both.
+ * for a tool that sends both — unless a text block already spells it out, which is what the protocol
+ * asks a structured tool to do for clients that read nothing else.
  */
 private fun CallToolResult.renderForHistory(): String {
     val renderedBlocks = content.map { block ->
@@ -188,5 +189,6 @@ private fun CallToolResult.renderForHistory(): String {
             else -> "<${block.type.value}>"
         }
     }
-    return (renderedBlocks + listOfNotNull(structuredContent?.toString())).joinToString(separator = "\n")
+    val structured = structuredContent?.toString()?.takeUnless { it in renderedBlocks }
+    return (renderedBlocks + listOfNotNull(structured)).joinToString(separator = "\n")
 }

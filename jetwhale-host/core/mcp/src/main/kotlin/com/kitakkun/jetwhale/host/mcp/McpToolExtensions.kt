@@ -1,7 +1,11 @@
 package com.kitakkun.jetwhale.host.mcp
 
+import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.ImageContent
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.serialization.json.JsonObject
@@ -26,6 +30,24 @@ fun JetWhaleMcpToolDescriptor.toToolSchema(
         },
     ),
     required = leadingProperties.keys.toList() + parameters.filterValues { it.required }.keys,
+)
+
+/**
+ * Translates a plugin's result into the MCP wire type.
+ *
+ * Plugins are deliberately kept away from the MCP library's own types, so this is the single place
+ * where the SDK's vocabulary and the protocol's meet.
+ */
+@OptIn(ExperimentalJetWhaleApi::class)
+fun JetWhaleMcpResult.toCallToolResult(): CallToolResult = CallToolResult(
+    content = content.map { block ->
+        when (block) {
+            is JetWhaleMcpContent.Text -> TextContent(block.text)
+            is JetWhaleMcpContent.Image -> ImageContent(data = block.base64Data, mimeType = block.mimeType)
+        }
+    },
+    isError = isError,
+    structuredContent = structuredContent,
 )
 
 fun errorResult(message: String): CallToolResult = CallToolResult(
