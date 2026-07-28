@@ -28,22 +28,6 @@ import kotlinx.serialization.json.Json
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * The [HttpClient] serving one connection, plus whether closing it falls to [KtorWebSocketClient].
- *
- * Ownership differs per construction path and cannot be read off the client itself: a client built
- * here owns an engine (and with it a thread pool) that has to be released when the connection ends,
- * while a client handed in from outside outlives any single connection and must be left alone.
- */
-internal class ConnectionHttpClient(
-    val client: HttpClient,
-    private val owned: Boolean,
-) {
-    fun releaseIfOwned() {
-        if (owned) client.close()
-    }
-}
-
-/**
  * A Ktor-based implementation of [JetWhaleSocketClient].
  *
  * The [HttpClient] is built by [httpClientProvider] at connection time rather than construction
@@ -51,17 +35,18 @@ internal class ConnectionHttpClient(
  * client is built (Ktor ignores engine{} blocks applied through HttpClient.config{} afterwards),
  * and the trusted CA may only become known at connect time when it is fetched from the host.
  *
- * Building per connection means the client is a per-connection resource, so the provider states who
- * closes it and every path out of [openConnection] goes through [releaseHttpClient].
+ * A client therefore serves exactly one connection and is owned by this class: [httpClientProvider]
+ * hands over a client to dispose of, and every path out of [openConnection] goes through
+ * [releaseHttpClient]. Without that, each attempt would strand an engine's thread pool.
  */
 internal class KtorWebSocketClient(
     private val json: Json,
     private val negotiationStrategy: ClientSessionNegotiationStrategy,
     private val sslConfiguration: JetWhaleSslConfiguration,
-    private val httpClientProvider: (JetWhaleSslConfiguration) -> ConnectionHttpClient,
+    private val httpClientProvider: (JetWhaleSslConfiguration) -> HttpClient,
 ) : JetWhaleSocketClient {
     private var session: DefaultClientWebSocketSession? = null
-    private var httpClient: ConnectionHttpClient? = null
+    private var httpClient: HttpClient? = null
 
     /** Production constructor: builds the engine with SSL configured at construction time. */
     constructor(
@@ -73,30 +58,15 @@ internal class KtorWebSocketClient(
         negotiationStrategy = negotiationStrategy,
         sslConfiguration = sslConfiguration,
         httpClientProvider = { resolvedConfiguration ->
-            ConnectionHttpClient(
-                // One client, configured in full here: an engine{} block only takes effect while the
-                // client is being built, so the SSL setup cannot be applied to it afterwards.
-                client = HttpClient(defaultKtorEngineFactory()) {
-                    engine {
-                        configureSsl(resolvedConfiguration)
-                    }
-                    configureWebSocketClient(json)
-                },
-                owned = true,
-            )
+            // One client, configured in full here: an engine{} block only takes effect while the
+            // client is being built, so the SSL setup cannot be applied to it afterwards.
+            HttpClient(defaultKtorEngineFactory()) {
+                engine {
+                    configureSsl(resolvedConfiguration)
+                }
+                configureWebSocketClient(json)
+            }
         },
-    )
-
-    /** Test constructor: borrows a prebuilt [HttpClient] (e.g. the Ktor test client). */
-    constructor(
-        json: Json,
-        negotiationStrategy: ClientSessionNegotiationStrategy,
-        httpClient: HttpClient,
-    ) : this(
-        json = json,
-        negotiationStrategy = negotiationStrategy,
-        sslConfiguration = JetWhaleSslConfiguration(),
-        httpClientProvider = borrowedClientProvider(httpClient, json),
     )
 
     override suspend fun sendDebuggeeEvent(event: JetWhaleDebuggeeEvent) {
@@ -123,7 +93,7 @@ internal class KtorWebSocketClient(
         httpClient = client
 
         try {
-            val session = client.client.webSocketSession(
+            val session = client.webSocketSession(
                 host = host,
                 port = port,
             ) {
@@ -144,7 +114,7 @@ internal class KtorWebSocketClient(
     private fun releaseHttpClient() {
         val client = httpClient ?: return
         httpClient = null
-        client.releaseIfOwned()
+        client.close()
     }
 
     /**
@@ -248,22 +218,10 @@ internal class KtorWebSocketClient(
 }
 
 /**
- * Hands every connection the same view of a borrowed [HttpClient].
- *
- * The view exists so the caller's client is not reconfigured behind its back, and it is derived once
- * because it holds no per-connection state: the engine belongs to the caller, so there is nothing to
- * allocate per connection and nothing to release afterwards.
+ * Installs what [KtorWebSocketClient] needs from a client. Applied while the client is being built,
+ * so a connection costs exactly one client rather than one plus a `config { }` derivative.
  */
-private fun borrowedClientProvider(httpClient: HttpClient, json: Json): (JetWhaleSslConfiguration) -> ConnectionHttpClient {
-    val view = httpClient.config { configureWebSocketClient(json) }
-    return { ConnectionHttpClient(client = view, owned = false) }
-}
-
-/**
- * Installs what [KtorWebSocketClient] needs from a client. Top level so both construction paths can
- * apply it while their client is being built, keeping the count at one client per connection.
- */
-private fun HttpClientConfig<*>.configureWebSocketClient(json: Json) {
+internal fun HttpClientConfig<*>.configureWebSocketClient(json: Json) {
     install(WebSockets) {
         contentConverter = KotlinxWebsocketSerializationConverter(json)
     }
