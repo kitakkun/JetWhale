@@ -63,7 +63,8 @@ to the [MCP Server](/guide/mcp-server) guide.
 ### Overriding the ports at startup
 
 Each port can also be chosen on the command line, which is handy when several hosts have to run side
-by side (for example one per git worktree) and would otherwise fight over the same defaults:
+by side (for example one per checkout of the app you are debugging) and would otherwise fight over
+the same defaults:
 
 | Option | Overrides |
 |--------|-----------|
@@ -79,10 +80,17 @@ it *is* the port the host reports — the **Settings → Server** screen shows i
 running server never disagree. Changing a port on that screen afterwards wins: the new value is saved
 and the override for that port is retired for the rest of the session.
 
-When launching through Gradle, pass them with `--args`:
+Pass them to the [runnable uber jar](/guide/getting-started):
 
 ```bash
-./gradlew :jetwhale-host:app:run --args="--server-port 5081 --mcp-server-port 7081"
+java -jar jetwhale-host-<version>-<osArch>.jar --server-port 5081 --mcp-server-port 7081
+```
+
+When you launch the host from a plugin project with
+[`runJetWhale`](/guide/developing-plugins) (or `runJetWhaleHot`), pass them with `--args`:
+
+```bash
+./gradlew :myPlugin:runJetWhale --args="--server-port 5081 --mcp-server-port 7081"
 ```
 
 ### SSL certificates
