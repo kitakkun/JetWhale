@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
+import com.kitakkun.jetwhale.host.settings.component.SwitchSettingsItemView
 import com.kitakkun.jetwhale.host.settings.component.TextFieldSettingsItemView
 import com.kitakkun.jetwhale.host.settings.copy_to_clipboard
 import com.kitakkun.jetwhale.host.settings.debug_server_label
@@ -38,6 +39,8 @@ import com.kitakkun.jetwhale.host.settings.debug_server_port_apply_confirm_title
 import com.kitakkun.jetwhale.host.settings.debug_server_port_label
 import com.kitakkun.jetwhale.host.settings.dialog_cancel
 import com.kitakkun.jetwhale.host.settings.dialog_ok
+import com.kitakkun.jetwhale.host.settings.mcp_plugin_install_allowed_label
+import com.kitakkun.jetwhale.host.settings.mcp_plugin_install_allowed_note
 import com.kitakkun.jetwhale.host.settings.mcp_server_label
 import com.kitakkun.jetwhale.host.settings.mcp_server_port_apply_confirm_message
 import com.kitakkun.jetwhale.host.settings.mcp_server_port_apply_confirm_title
@@ -80,6 +83,7 @@ fun ServerSettingsScreen(
     onConfirmApplyMcpPortChange: () -> Unit,
     onDismissApplyMcpPortDialog: () -> Unit,
     onClickOpenMcpGuide: () -> Unit,
+    onMcpPluginInstallAllowedChange: (Boolean) -> Unit,
     onAddCertificate: () -> Unit,
     onSetActiveCertificate: (String) -> Unit,
     onDeleteCertificate: (String) -> Unit,
@@ -230,6 +234,17 @@ fun ServerSettingsScreen(
                 OutlinedButton(onClick = onClickOpenMcpGuide) {
                     Text(stringResource(Res.string.mcp_setup_open_guide))
                 }
+                Spacer(Modifier.height(12.dp))
+                SwitchSettingsItemView(
+                    label = stringResource(Res.string.mcp_plugin_install_allowed_label),
+                    isChecked = uiState.mcpPluginInstallAllowed,
+                    onCheckedChange = onMcpPluginInstallAllowedChange,
+                )
+                Text(
+                    text = stringResource(Res.string.mcp_plugin_install_allowed_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         item {

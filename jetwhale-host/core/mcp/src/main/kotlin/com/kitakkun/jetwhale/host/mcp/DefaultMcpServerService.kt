@@ -5,7 +5,6 @@ import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
-import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -29,20 +28,13 @@ import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
-import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.seconds
 
@@ -52,7 +44,6 @@ import kotlin.time.Duration.Companion.seconds
  */
 private val CLIENT_LIVENESS_PROBE_PERIOD = 5.seconds
 
-@OptIn(ExperimentalJetWhaleApi::class)
 @Inject
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
@@ -60,6 +51,7 @@ class DefaultMcpServerService(
     private val pluginInstanceService: PluginInstanceService,
     private val mcpActivityRepository: McpActivityRepository,
     private val builtInTools: Set<JetWhaleMcpTool>,
+    private val statusHolder: McpServerStatusHolder,
 ) : McpServerService {
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
@@ -69,8 +61,7 @@ class DefaultMcpServerService(
     private var ktorServer: EmbeddedServer<*, *>? = null
     private val running = AtomicBoolean(false)
 
-    private val _statusFlow = MutableStateFlow<McpServerStatus>(McpServerStatus.Stopped)
-    override val statusFlow: StateFlow<McpServerStatus> = _statusFlow.asStateFlow()
+    override val statusFlow: StateFlow<McpServerStatus> get() = statusHolder.statusFlow
 
     override val mcpCapablePluginsFlow: StateFlow<McpCapablePlugins> = toolRegistry.mcpCapablePluginsFlow
 
@@ -93,7 +84,7 @@ class DefaultMcpServerService(
             }
         }
 
-        _statusFlow.value = McpServerStatus.Starting
+        statusHolder.update(McpServerStatus.Starting)
         val transports = java.util.concurrent.ConcurrentHashMap<String, SseServerTransport>()
         val server = embeddedServer(Netty, host = host, port = port) {
             install(SSE)
@@ -145,7 +136,7 @@ class DefaultMcpServerService(
         ktorServer = server
         try {
             server.start(wait = false)
-            _statusFlow.value = McpServerStatus.Running(host = host, port = port)
+            statusHolder.update(McpServerStatus.Running(host = host, port = port))
         } catch (e: CancellationException) {
             // Never swallow cancellation: undo this attempt, then re-throw so the coroutine
             // cancellation mechanism keeps working. The status stays untouched — the caller went
@@ -154,7 +145,7 @@ class DefaultMcpServerService(
             throw e
         } catch (e: Throwable) {
             rollbackFailedStart(server)
-            _statusFlow.value = McpServerStatus.Error(e.message ?: "Unknown error")
+            statusHolder.update(McpServerStatus.Error(e.message ?: "Unknown error"))
         }
     }
 
@@ -177,11 +168,11 @@ class DefaultMcpServerService(
         lifecycleObserverJob?.cancel()
         lifecycleObserverJob = null
         toolRegistry.clear()
-        _statusFlow.value = McpServerStatus.Stopping
+        statusHolder.update(McpServerStatus.Stopping)
         ktorServer?.stop(gracePeriodMillis = 500, timeoutMillis = 2000)
         ktorServer = null
         mcpActivityRepository.clear()
-        _statusFlow.value = McpServerStatus.Stopped
+        statusHolder.update(McpServerStatus.Stopped)
     }
 
     private fun onPluginInstanceReady(pluginId: String, sessionId: String) {
@@ -227,17 +218,10 @@ class DefaultMcpServerService(
      */
     private fun registerPluginTools(registrar: McpToolRegistrar) {
         for ((toolName, descriptor) in toolRegistry.allRegistrations()) {
-            val sessionIdProperty = buildJsonObject {
-                put("type", "string")
-                put("description", "Session ID of the target device (from jetwhale.listSessions)")
-            }
-            // The parameter's schema describes its type; only the description has to be merged in.
-            val pluginProperties = descriptor.parameters.mapValues { (_, param) ->
-                JsonObject(param.schema + ("description" to JsonPrimitive(param.description)))
-            }
-            val inputSchema = ToolSchema(
-                properties = JsonObject(mapOf("sessionId" to sessionIdProperty) + pluginProperties),
-                required = listOf("sessionId") + descriptor.parameters.filterValues { it.required }.keys,
+            val inputSchema = descriptor.toToolSchema(
+                leadingProperties = mapOf(
+                    "sessionId" to stringProperty("Session ID of the target device (from jetwhale.listSessions)"),
+                ),
             )
             registrar.addPluginTool(
                 name = toolName,

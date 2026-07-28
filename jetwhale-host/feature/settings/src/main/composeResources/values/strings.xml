@@ -67,6 +67,8 @@
     <string name="mcp_setup_claude_code_label">Claude Code</string>
     <string name="mcp_setup_json_label">JSON config</string>
     <string name="mcp_setup_open_guide">Open setup guide</string>
+    <string name="mcp_plugin_install_allowed_label">Allow AI agents to install official plugins</string>
+    <string name="mcp_plugin_install_allowed_note">Off by default. When on, an AI agent on the MCP server can install plugins from the official catalog, which loads new code into JetWhale. Plugins from arbitrary Maven coordinates can never be installed this way.</string>
     <string name="copy_to_clipboard">Copy</string>
     <string name="dialog_ok">OK</string>
     <string name="dialog_cancel">Cancel</string>

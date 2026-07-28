@@ -90,6 +90,13 @@ class DefaultDebuggerSettingsRepository(
             started = SharingStarted.Eagerly,
             initialValue = DEFAULT_WSS_ENABLED,
         )
+    override val mcpPluginInstallAllowedFlow = dataStore.data
+        .map { it[KEY_MCP_PLUGIN_INSTALL_ALLOWED] ?: DEFAULT_MCP_PLUGIN_INSTALL_ALLOWED }
+        .stateIn(
+            scope = coroutineScope,
+            started = SharingStarted.Eagerly,
+            initialValue = DEFAULT_MCP_PLUGIN_INSTALL_ALLOWED,
+        )
 
     override suspend fun updateAdbAutoPortMappingEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
@@ -144,6 +151,12 @@ class DefaultDebuggerSettingsRepository(
         }
     }
 
+    override suspend fun updateMcpPluginInstallAllowed(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[KEY_MCP_PLUGIN_INSTALL_ALLOWED] = enabled
+        }
+    }
+
     /** Lets a launch override win over the stored value this flow carries. */
     private fun Flow<Int>.overriddenBy(selectOverride: (ServerPortOverrides) -> Int?): Flow<Int> = combine(portOverrides) { storedPort, overrides -> selectOverride(overrides) ?: storedPort }
 
@@ -168,9 +181,11 @@ class DefaultDebuggerSettingsRepository(
         private val KEY_MCP_SERVER_PORT = intPreferencesKey("mcp_server_port")
         private val KEY_WSS_PORT = intPreferencesKey("wss_port")
         private val KEY_WSS_ENABLED = booleanPreferencesKey("wss_enabled")
+        private val KEY_MCP_PLUGIN_INSTALL_ALLOWED = booleanPreferencesKey("mcp_plugin_install_allowed")
         private const val DEFAULT_SERVER_PORT = 5080
         private const val DEFAULT_MCP_SERVER_PORT = 7080
         private const val DEFAULT_WSS_PORT = 5443
         private const val DEFAULT_WSS_ENABLED = true
+        private const val DEFAULT_MCP_PLUGIN_INSTALL_ALLOWED = false
     }
 }

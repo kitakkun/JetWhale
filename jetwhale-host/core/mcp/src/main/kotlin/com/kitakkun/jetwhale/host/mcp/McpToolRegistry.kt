@@ -4,7 +4,6 @@ import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
 import com.kitakkun.jetwhale.host.model.McpToolSummary
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
-import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
@@ -26,7 +25,6 @@ import java.util.concurrent.ConcurrentHashMap
  * invoked, the caller must supply a `sessionId` argument so the registry can route the
  * call to the correct plugin instance.
  */
-@OptIn(ExperimentalJetWhaleApi::class)
 class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) {
 
     /**
@@ -142,7 +140,6 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
         .map { (name, entry) -> name to entry.descriptor }
 }
 
-@OptIn(ExperimentalJetWhaleApi::class)
 data class PluginToolEntry(
     val descriptor: JetWhaleMcpToolDescriptor,
     val sessionToPlugin: ConcurrentHashMap<String, String>,

@@ -15,6 +15,7 @@ import com.kitakkun.jetwhale.host.model.GenerateSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.LogCaptureService
+import com.kitakkun.jetwhale.host.model.McpPluginInstallAllowedMutationKey
 import com.kitakkun.jetwhale.host.model.McpServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.McpServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.OfficialPluginInstallMutationKey
@@ -45,6 +46,7 @@ class SettingsPresenterContext(
     val adbAutoPortMappingMutationKey: AdbAutoPortMappingMutationKey,
     val serverPortMutationKey: ServerPortMutationKey,
     val mcpServerPortMutationKey: McpServerPortMutationKey,
+    val mcpPluginInstallAllowedMutationKey: McpPluginInstallAllowedMutationKey,
     val pluginInstallMutationKey: PluginInstallMutationKey,
     val pluginInstallFromMavenMutationKey: PluginInstallFromMavenMutationKey,
     val trustPluginMutationKey: TrustPluginMutationKey,

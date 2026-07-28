@@ -10,6 +10,9 @@ plugins {
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-opt-in=com.kitakkun.jetwhale.annotations.InternalJetWhaleApi")
+        // The MCP server is the consumer of the experimental plugin-facing MCP API, and host tools
+        // are written with its parameter DSL, so every file in this module opts in.
+        freeCompilerArgs.add("-opt-in=com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi")
     }
 }
 

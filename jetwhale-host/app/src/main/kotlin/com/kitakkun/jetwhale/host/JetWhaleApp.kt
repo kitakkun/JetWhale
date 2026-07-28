@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalDensity
 import androidx.navigation3.runtime.NavKey
@@ -28,6 +29,7 @@ import com.kitakkun.jetwhale.host.navigation.EmptyPluginNavKey
 import com.kitakkun.jetwhale.host.navigation.InfoNavKey
 import com.kitakkun.jetwhale.host.navigation.JetWhaleNavDisplay
 import com.kitakkun.jetwhale.host.navigation.LicensesNavKey
+import com.kitakkun.jetwhale.host.navigation.LogViewerNavKey
 import com.kitakkun.jetwhale.host.navigation.PluginNavKey
 import com.kitakkun.jetwhale.host.navigation.PluginPopoutNavKey
 import com.kitakkun.jetwhale.host.navigation.SettingsNavKey
@@ -36,6 +38,7 @@ import com.kitakkun.jetwhale.host.navigation.bringPluginBackToMainWindow
 import com.kitakkun.jetwhale.host.navigation.followPluginToSession
 import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
+import com.kitakkun.jetwhale.host.navigation.toHostDestination
 import com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu
 import com.kitakkun.jetwhale.host.ui.AppEnvironment
 import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
@@ -65,6 +68,14 @@ fun JetWhaleApp() {
     val density = LocalDensity.current
     LaunchedEffect(density) {
         appGraph.pluginComposeSceneService.updateHostDensity(density)
+    }
+
+    // Publish what the window shows so the MCP server can report it and confirm its own navigation
+    // requests were applied. ToolingScaffoldRoot publishes the drawer selection alongside it.
+    LaunchedEffect(backStack) {
+        snapshotFlow { backStack.toList() }.collect { keys ->
+            appGraph.hostNavigationService.updateDestination(keys.toHostDestination())
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -154,6 +165,15 @@ fun JetWhaleApp() {
                                     },
                                     isPoppedOut = backStack::isPluginPoppedOut,
                                     onClickBringBack = backStack::bringPluginBackToMainWindow,
+                                    onNavigateHome = {
+                                        // Popouts live in their own windows; going home in the main
+                                        // window must not close them.
+                                        backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey }
+                                    },
+                                    onNavigateSettings = { menu ->
+                                        backStack.addSingleTop(SettingsNavKey(initialMenu = menu))
+                                    },
+                                    onNavigateLogViewer = { backStack.addSingleTop(LogViewerNavKey) },
                                     onSelectedSessionChange = { selectedSession ->
                                         // When the user switches the active session, make any plugin screen
                                         // currently on top follow the newly-selected session instead of

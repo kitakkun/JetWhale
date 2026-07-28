@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 @Inject
@@ -33,6 +34,7 @@ class DefaultDebugWebSocketServer(
     private val ktorWebSocketServer: KtorWebSocketServer,
 ) : DebugWebSocketServer {
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+    override val statusFlow: StateFlow<DebugWebSocketServerStatus> get() = ktorWebSocketServer.statusFlow
     override val sessionClosedFlow: Flow<String> get() = ktorWebSocketServer.sessionClosedFlow
     private val mutableServerStoppedFlow: MutableSharedFlow<Unit> = MutableSharedFlow()
     override val serverStoppedFlow: Flow<Unit> = mutableServerStoppedFlow
