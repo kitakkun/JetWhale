@@ -2,6 +2,8 @@ package com.kitakkun.jetwhale.host.data.server
 
 import com.kitakkun.jetwhale.host.model.McpActivity
 import com.kitakkun.jetwhale.host.model.McpActivityRepository
+import com.kitakkun.jetwhale.host.model.McpCallArgument
+import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -33,13 +35,21 @@ class DefaultMcpActivityRepository : McpActivityRepository {
         }
     }
 
-    override fun toolInvocationStarted(toolName: String, pluginId: String?, sessionId: String?): Long {
+    override fun toolInvocationStarted(
+        toolName: String,
+        pluginId: String?,
+        sessionId: String?,
+        arguments: Map<String, String>,
+    ): Long {
         val invocationId = nextInvocationId.incrementAndGet()
         val invocation = McpToolInvocation(
             id = invocationId,
             toolName = toolName,
             pluginId = pluginId,
             sessionId = sessionId,
+            arguments = arguments
+                .map { (name, value) -> McpCallArgument.truncating(name, value) }
+                .toImmutableList(),
         )
         activityFlow.update {
             it.copy(
@@ -51,12 +61,34 @@ class DefaultMcpActivityRepository : McpActivityRepository {
         return invocationId
     }
 
-    override fun toolInvocationFinished(invocationId: Long) {
+    override fun toolInvocationFinished(invocationId: Long, failed: Boolean, response: String) {
+        // Sampled once outside the update block, which may re-run under contention.
+        val finishedAtEpochMillis = System.currentTimeMillis()
+        val truncatedResponse = McpCallRecord.truncateResponse(response)
         activityFlow.update { activity ->
+            val finished = activity.runningInvocations.firstOrNull { it.id == invocationId }
             activity.copy(
                 runningInvocations = activity.runningInvocations
                     .filterNot { it.id == invocationId }
                     .toImmutableList(),
+                recentCalls = if (finished == null) {
+                    // The invocation is unknown here, so there is nothing to describe in history.
+                    activity.recentCalls
+                } else {
+                    val record = McpCallRecord(
+                        id = finished.id,
+                        toolName = finished.toolName,
+                        pluginId = finished.pluginId,
+                        sessionId = finished.sessionId,
+                        succeeded = !failed,
+                        finishedAtEpochMillis = finishedAtEpochMillis,
+                        arguments = finished.arguments,
+                        response = truncatedResponse,
+                    )
+                    (listOf(record) + activity.recentCalls)
+                        .take(McpActivity.MAX_RECENT_CALLS)
+                        .toImmutableList()
+                },
             )
         }
     }

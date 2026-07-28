@@ -5,6 +5,7 @@ import io.modelcontextprotocol.kotlin.sdk.server.ClientConnection
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequest
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 
 /**
@@ -78,12 +79,52 @@ class McpToolRegistrar(
                 toolName = name,
                 pluginId = resolvePluginId(request),
                 sessionId = request.arguments?.get("sessionId")?.jsonContent,
+                // Every argument key is reported, including the ones the UI already shows as
+                // attribution, so history describes the call exactly as the agent made it.
+                arguments = request.arguments.orEmpty().mapValues { (_, value) ->
+                    // Primitives render without the surrounding JSON quoting; objects and arrays
+                    // fall back to their JSON form.
+                    value.jsonContent ?: value.toString()
+                },
             )
+            // A tool fails in two ways: the handler throws, or it returns a result flagged with
+            // `isError`, which is how the protocol wants a tool-level failure reported. Both have to
+            // reach the repository before the call leaves here.
+            var failed = true
+            var response = ""
             try {
-                handler(request)
+                handler(request).also {
+                    failed = it.isError == true
+                    response = it.renderForHistory()
+                }
+            } catch (throwable: Throwable) {
+                // A failure is only explainable in history if it says what went wrong.
+                response = throwable.message.orEmpty()
+                throw throwable
             } finally {
-                activityRepository.toolInvocationFinished(invocationId)
+                activityRepository.toolInvocationFinished(invocationId, failed, response)
             }
         }
     }
+}
+
+/**
+ * Renders a tool result to the text kept in call history.
+ *
+ * Only text blocks carry something a reader can use; every other block type is a binary payload (a
+ * screenshot, audio, an embedded resource) that is named rather than inlined, so history does not
+ * fill up with base64.
+ *
+ * A structured payload follows the blocks on its own line. It is the whole answer for a tool that
+ * replies only in `structuredContent`, and it reads as the machine-readable detail behind the prose
+ * for a tool that sends both.
+ */
+private fun CallToolResult.renderForHistory(): String {
+    val renderedBlocks = content.map { block ->
+        when (block) {
+            is TextContent -> block.text
+            else -> "<${block.type.value}>"
+        }
+    }
+    return (renderedBlocks + listOfNotNull(structuredContent?.toString())).joinToString(separator = "\n")
 }

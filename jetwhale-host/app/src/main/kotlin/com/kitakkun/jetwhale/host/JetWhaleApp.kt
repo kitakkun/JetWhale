@@ -35,6 +35,7 @@ import com.kitakkun.jetwhale.host.navigation.addSingleTop
 import com.kitakkun.jetwhale.host.navigation.bringPluginBackToMainWindow
 import com.kitakkun.jetwhale.host.navigation.followPluginToSession
 import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
+import com.kitakkun.jetwhale.host.navigation.openMcpTools
 import com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu
 import com.kitakkun.jetwhale.host.ui.AppEnvironment
 import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
@@ -138,6 +139,9 @@ fun JetWhaleApp() {
                                     onClickInfo = { backStack.addSingleTop(InfoNavKey) },
                                     onClickPlugin = { pluginId, sessionId ->
                                         backStack.addSingleTop(PluginNavKey(pluginId, sessionId))
+                                    },
+                                    onOpenMcpTools = { pluginId, sessionId ->
+                                        backStack.openMcpTools(pluginId = pluginId, sessionId = sessionId)
                                     },
                                     onClickPopout = { pluginId, pluginName, sessionId ->
                                         backStack.addSingleTop(

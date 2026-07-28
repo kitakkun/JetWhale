@@ -38,4 +38,22 @@
     <string name="mcp_tools_no_match">No matching tools</string>
     <string name="mcp_tools_parameters">Parameters</string>
     <string name="mcp_tools_required">required</string>
+    <string name="mcp_tools_tab_tools">Tools</string>
+    <string name="mcp_tools_tab_history">History</string>
+    <string name="mcp_history_empty">No MCP tool calls yet</string>
+    <string name="mcp_history_succeeded">Succeeded</string>
+    <string name="mcp_history_failed">Failed</string>
+    <string name="mcp_history_copy_tool_name">Copy tool name</string>
+    <string name="mcp_history_copy_arguments">Copy arguments</string>
+    <string name="mcp_history_copy_details">Copy details</string>
+    <string name="mcp_history_copy_response">Copy response</string>
+    <string name="mcp_history_no_arguments">No arguments</string>
+    <string name="mcp_history_response">Response</string>
+    <string name="mcp_history_no_response">No response</string>
+    <string name="mcp_tools_open_all">Browse MCP tools</string>
+    <string name="mcp_tools_filter_plugin">Plugin</string>
+    <string name="mcp_tools_filter_session">Session</string>
+    <string name="mcp_tools_filter_all">All</string>
+    <string name="mcp_tools_filter_add">Add filter</string>
+    <string name="mcp_tools_filter_remove">Remove filter</string>
 </resources>

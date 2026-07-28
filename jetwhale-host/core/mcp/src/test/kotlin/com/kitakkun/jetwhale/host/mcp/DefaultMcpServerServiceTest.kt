@@ -19,6 +19,7 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.sse.SSE
 import io.modelcontextprotocol.kotlin.sdk.client.mcpSse
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.ImageContent
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.TimeoutCancellationException
@@ -27,6 +28,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -411,6 +414,146 @@ class DefaultMcpServerServiceTest {
         assertTrue(mcpActivityRepository.activityFlow.value.runningInvocations.isEmpty())
     }
 
+    @Test
+    fun `a completed tool call is added to the recent-call history`() = runBlocking {
+        val serviceWithTool = DefaultMcpServerService(
+            pluginInstanceService = pluginInstanceService,
+            mcpActivityRepository = mcpActivityRepository,
+            builtInTools = setOf(FakeMcpTool("fake.recorded")),
+        )
+        val recordedPort = java.net.ServerSocket(0).use { it.localPort }
+        serviceWithTool.start(host, recordedPort)
+        // Stopping the server clears recorded activity, so the history has to be read while it runs.
+        val record = try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$recordedPort/sse")
+            try {
+                client.callTool(
+                    "fake.recorded",
+                    mapOf("pluginId" to "com.example.plugin", "sessionId" to "session-1"),
+                )
+            } finally {
+                client.close()
+            }
+            mcpActivityRepository.activityFlow.value.recentCalls.single()
+        } finally {
+            serviceWithTool.stop()
+        }
+
+        assertEquals("fake.recorded", record.toolName)
+        assertEquals("com.example.plugin", record.pluginId)
+        assertEquals("session-1", record.sessionId)
+        assertTrue(record.succeeded)
+        assertEquals("ok", record.response)
+    }
+
+    @Test
+    fun `a non-text response block is recorded as a placeholder instead of its payload`() = runBlocking {
+        val serviceWithTool = DefaultMcpServerService(
+            pluginInstanceService = pluginInstanceService,
+            mcpActivityRepository = mcpActivityRepository,
+            builtInTools = setOf(MediaMcpTool("fake.captured")),
+        )
+        val capturedPort = java.net.ServerSocket(0).use { it.localPort }
+        serviceWithTool.start(host, capturedPort)
+        // Stopping the server clears recorded activity, so the history has to be read while it runs.
+        val record = try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$capturedPort/sse")
+            try {
+                client.callTool("fake.captured", emptyMap())
+            } finally {
+                client.close()
+            }
+            mcpActivityRepository.activityFlow.value.recentCalls.single()
+        } finally {
+            serviceWithTool.stop()
+        }
+
+        assertEquals("captured\n<image>", record.response)
+    }
+
+    @Test
+    fun `a tool call that reports an error without throwing is recorded as a failure`() = runBlocking {
+        val serviceWithTool = DefaultMcpServerService(
+            pluginInstanceService = pluginInstanceService,
+            mcpActivityRepository = mcpActivityRepository,
+            builtInTools = setOf(ErrorResultMcpTool("fake.rejected")),
+        )
+        val rejectedPort = java.net.ServerSocket(0).use { it.localPort }
+        serviceWithTool.start(host, rejectedPort)
+        // Stopping the server clears recorded activity, so the history has to be read while it runs.
+        val record = try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$rejectedPort/sse")
+            try {
+                val result = client.callTool("fake.rejected", emptyMap())
+                // The handler returns normally, so nothing but `isError` marks this as a failure.
+                assertEquals(true, result.isError)
+            } finally {
+                client.close()
+            }
+            mcpActivityRepository.activityFlow.value.recentCalls.single()
+        } finally {
+            serviceWithTool.stop()
+        }
+
+        assertEquals("fake.rejected", record.toolName)
+        assertFalse(record.succeeded)
+        assertEquals("""{"error":"no such element"}""", record.response)
+    }
+
+    @Test
+    fun `a structured response is recorded alongside the text content`() = runBlocking {
+        val serviceWithTool = DefaultMcpServerService(
+            pluginInstanceService = pluginInstanceService,
+            mcpActivityRepository = mcpActivityRepository,
+            builtInTools = setOf(StructuredMcpTool("fake.structured")),
+        )
+        val structuredPort = java.net.ServerSocket(0).use { it.localPort }
+        serviceWithTool.start(host, structuredPort)
+        // Stopping the server clears recorded activity, so the history has to be read while it runs.
+        val record = try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$structuredPort/sse")
+            try {
+                client.callTool("fake.structured", emptyMap())
+            } finally {
+                client.close()
+            }
+            mcpActivityRepository.activityFlow.value.recentCalls.single()
+        } finally {
+            serviceWithTool.stop()
+        }
+
+        assertTrue(record.succeeded)
+        assertEquals("measured", record.response.lineSequence().first())
+        assertTrue("\"width\":120" in record.response, "Structured payload missing from ${record.response}")
+    }
+
+    @Test
+    fun `a throwing tool call is recorded in history as a failure`() = runBlocking {
+        val serviceWithTool = DefaultMcpServerService(
+            pluginInstanceService = pluginInstanceService,
+            mcpActivityRepository = mcpActivityRepository,
+            builtInTools = setOf(FailingMcpTool("fake.failing")),
+        )
+        val failingPort = java.net.ServerSocket(0).use { it.localPort }
+        serviceWithTool.start(host, failingPort)
+        // Stopping the server clears recorded activity, so the history has to be read while it runs.
+        val record = try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$failingPort/sse")
+            try {
+                runCatching { client.callTool("fake.failing", emptyMap()) }
+            } finally {
+                client.close()
+            }
+            mcpActivityRepository.activityFlow.value.recentCalls.single()
+        } finally {
+            serviceWithTool.stop()
+        }
+
+        assertEquals("fake.failing", record.toolName)
+        assertFalse(record.succeeded)
+        assertEquals("boom", record.response)
+    }
+
     @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `a plugin tool call is attributed to the plugin that owns it`() = runBlocking {
@@ -481,6 +624,44 @@ private class FakeMcpTool(
         registrar.addTool(name = name, description = "Fake tool for testing", inputSchema = ToolSchema()) { _ ->
             onExecute()
             CallToolResult(content = listOf(TextContent(response)))
+        }
+    }
+}
+
+/** Returns a text block alongside a binary one, which history must name rather than inline. */
+private class MediaMcpTool(private val name: String) : JetWhaleMcpTool {
+    override fun register(registrar: McpToolRegistrar) {
+        registrar.addTool(name = name, description = "Returns text and an image", inputSchema = ToolSchema()) { _ ->
+            CallToolResult(
+                content = listOf(
+                    TextContent("captured"),
+                    ImageContent(data = "AAAA", mimeType = "image/png"),
+                ),
+            )
+        }
+    }
+}
+
+/** Reports a tool-level failure the way the protocol prefers: a normal return flagged `isError`. */
+private class ErrorResultMcpTool(private val name: String) : JetWhaleMcpTool {
+    override fun register(registrar: McpToolRegistrar) {
+        registrar.addTool(name = name, description = "Always reports an error result", inputSchema = ToolSchema()) { _ ->
+            errorResult("no such element")
+        }
+    }
+}
+
+/** Answers with both prose and a machine-readable payload, as a tool with an output schema does. */
+private class StructuredMcpTool(private val name: String) : JetWhaleMcpTool {
+    override fun register(registrar: McpToolRegistrar) {
+        registrar.addTool(name = name, description = "Returns structured content", inputSchema = ToolSchema()) { _ ->
+            CallToolResult(
+                content = listOf(TextContent("measured")),
+                structuredContent = buildJsonObject {
+                    put("width", 120)
+                    put("height", 40)
+                },
+            )
         }
     }
 }

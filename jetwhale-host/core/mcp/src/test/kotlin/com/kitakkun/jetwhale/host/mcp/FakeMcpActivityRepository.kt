@@ -2,6 +2,8 @@ package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.McpActivity
 import com.kitakkun.jetwhale.host.model.McpActivityRepository
+import com.kitakkun.jetwhale.host.model.McpCallArgument
+import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,12 +35,20 @@ class FakeMcpActivityRepository : McpActivityRepository {
         }
     }
 
-    override fun toolInvocationStarted(toolName: String, pluginId: String?, sessionId: String?): Long {
+    override fun toolInvocationStarted(
+        toolName: String,
+        pluginId: String?,
+        sessionId: String?,
+        arguments: Map<String, String>,
+    ): Long {
         val invocation = McpToolInvocation(
             id = nextInvocationId.incrementAndGet(),
             toolName = toolName,
             pluginId = pluginId,
             sessionId = sessionId,
+            arguments = arguments
+                .map { (name, value) -> McpCallArgument.truncating(name, value) }
+                .toImmutableList(),
         )
         _recordedInvocations += invocation
         activityFlow.update {
@@ -51,12 +61,32 @@ class FakeMcpActivityRepository : McpActivityRepository {
         return invocation.id
     }
 
-    override fun toolInvocationFinished(invocationId: Long) {
+    override fun toolInvocationFinished(invocationId: Long, failed: Boolean, response: String) {
+        val finishedAtEpochMillis = System.currentTimeMillis()
+        val truncatedResponse = McpCallRecord.truncateResponse(response)
         activityFlow.update { activity ->
+            val finished = activity.runningInvocations.firstOrNull { it.id == invocationId }
             activity.copy(
                 runningInvocations = activity.runningInvocations
                     .filterNot { it.id == invocationId }
                     .toImmutableList(),
+                recentCalls = if (finished == null) {
+                    activity.recentCalls
+                } else {
+                    val record = McpCallRecord(
+                        id = finished.id,
+                        toolName = finished.toolName,
+                        pluginId = finished.pluginId,
+                        sessionId = finished.sessionId,
+                        succeeded = !failed,
+                        finishedAtEpochMillis = finishedAtEpochMillis,
+                        arguments = finished.arguments,
+                        response = truncatedResponse,
+                    )
+                    (listOf(record) + activity.recentCalls)
+                        .take(McpActivity.MAX_RECENT_CALLS)
+                        .toImmutableList()
+                },
             )
         }
     }

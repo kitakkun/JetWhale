@@ -101,7 +101,7 @@ fun toolingScaffoldPresenter(
                         else -> PluginAvailability.Disabled
                     },
                     underAiControl = aiControlledPluginId == metaData.id,
-                    mcpTools = mcpCapablePlugins.toolsFor(selectedSession?.id, metaData.id).toImmutableList(),
+                    exposesMcpTools = mcpCapablePlugins.toolsFor(selectedSession?.id, metaData.id).isNotEmpty(),
                 )
             }.toImmutableList()
         }

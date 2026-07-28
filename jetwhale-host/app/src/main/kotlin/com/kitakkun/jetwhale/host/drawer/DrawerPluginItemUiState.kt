@@ -1,9 +1,7 @@
 package com.kitakkun.jetwhale.host.drawer
 
-import com.kitakkun.jetwhale.host.model.McpToolSummary
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginIconResource
-import kotlinx.collections.immutable.ImmutableList
 
 data class DrawerPluginItemUiState(
     val name: String,
@@ -13,8 +11,6 @@ data class DrawerPluginItemUiState(
     val pluginAvailability: PluginAvailability,
     /** True while an AI agent is driving this plugin's UI in the selected session. */
     val underAiControl: Boolean,
-    /** The MCP tools this plugin exposes for the selected session; empty when it publishes none. */
-    val mcpTools: ImmutableList<McpToolSummary>,
-) {
-    val exposesMcpTools: Boolean get() = mcpTools.isNotEmpty()
-}
+    /** True when this plugin publishes MCP tools of its own for the selected session. */
+    val exposesMcpTools: Boolean,
+)
