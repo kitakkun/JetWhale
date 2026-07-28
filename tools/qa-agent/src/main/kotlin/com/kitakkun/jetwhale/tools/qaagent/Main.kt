@@ -1,12 +1,6 @@
 package com.kitakkun.jetwhale.tools.qaagent
 
-import com.kitakkun.jetwhale.agent.runtime.KtorLogLevel
-import com.kitakkun.jetwhale.agent.runtime.LogLevel
-import com.kitakkun.jetwhale.agent.runtime.startJetWhale
 import com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy
-import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
-import com.kitakkun.jetwhale.plugins.network.agent.ktor.ktorClientPlugin
-import io.ktor.client.HttpClient
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -15,6 +9,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -47,25 +42,31 @@ import kotlin.time.Duration.Companion.milliseconds
  * `/fire`, which injects HTTP traffic for the bundled Network Inspector, is the one plugin-specific
  * convenience on top.
  *
+ * One process can hold **several apps** — one session each, all under the same device, which is how
+ * the host groups them. Every control call takes an optional `app`; with a single app it can be left
+ * out. `/disconnect` gives one app's session up on its own, which is how the host's disconnect
+ * handling gets exercised without stopping the process.
+ *
  * The control API binds loopback IPv4 only, so address it as `127.0.0.1`: `localhost` may resolve to
  * `::1` first and be refused.
  *
  * ```
- * ./gradlew :tools:qa-agent:run --args="--plugin com.example.myplugin"
+ * ./gradlew :tools:qa-agent:run --args="--app checkout --app catalog --plugin com.example.myplugin"
  *
  * curl -s 127.0.0.1:7100/send -H 'Content-Type: application/json' -d '{
+ *   "app": "checkout",
  *   "pluginId": "com.example.myplugin",
  *   "messageType": "com.example.myplugin.protocol.ItemAdded",
  *   "payload": {"id": 1, "label": "hello"}
  * }'
  * ```
  */
-private const val DEFAULT_CONTROL_PORT = 7100
-private const val DEFAULT_HOST_PORT = 5443
 private const val BODY_PREVIEW_LIMIT = 2000
 
+/** @param app which app's session to act on. Optional while only one app is running. */
 @Serializable
 private data class FireRequest(
+    val app: String? = null,
     val url: String,
     val method: String = "GET",
     val headers: Map<String, String> = emptyMap(),
@@ -80,8 +81,10 @@ private data class FireResponse(
     val bodyPreview: String,
 )
 
+/** @param app which app's session to send from. Optional while only one app is running. */
 @Serializable
 private data class SendRequest(
+    val app: String? = null,
     val pluginId: String,
     val messageType: String,
     val payload: JsonElement,
@@ -93,8 +96,10 @@ private data class SendRequest(
 @Serializable
 private data class SendResponse(val sent: Boolean, val hint: String? = null)
 
+/** @param app which app's session to request from. Optional while only one app is running. */
 @Serializable
 private data class RequestMessage(
+    val app: String? = null,
     val pluginId: String,
     val messageType: String,
     val payload: JsonElement,
@@ -107,144 +112,88 @@ private data class RequestResponse(
     val reply: JsonElement,
 )
 
+/** @param app which app to disconnect. Optional while only one app is running. */
+@Serializable
+private data class DisconnectRequest(val app: String? = null)
+
+/** @param disconnected false when that app had already given its session up. */
+@Serializable
+private data class DisconnectResponse(val app: String, val disconnected: Boolean)
+
 @Serializable
 private data class ErrorResponse(val error: String)
 
-/** @param ready whether every impersonated plugin can reach the host right now. */
-@Serializable
-private data class HealthResponse(val status: String, val ready: Boolean)
-
 /**
- * @param activated the host enabled this plugin id. False means it is disabled there, and waiting
- *   will not help.
- * @param ready a message sent now would reach the host.
+ * @param ready whether every still-connected app can reach the host right now. False once every app
+ *   has been disconnected: nothing is left to drive.
+ * @param apps per-app breakdown, so a run with several apps can tell which one is holding things up.
  */
 @Serializable
-private data class PluginStatus(val version: String, val activated: Boolean, val ready: Boolean)
-
-/**
- * What the agent impersonates and where it connects.
- *
- * @param plugins plugin ids to register a [WireLevelQaPlugin] for, each with the version to report.
- */
-private data class QaAgentOptions(
-    val plugins: Map<String, String>,
-    val hostName: String,
-    val hostPort: Int,
-    val controlPort: Int,
+private data class HealthResponse(
+    val status: String,
+    val ready: Boolean,
+    val apps: Map<String, AppHealth>,
 )
 
-private const val DEFAULT_PLUGIN_VERSION = "1.0.0"
+/** @param connected false once this app gave its session up via `/disconnect`. */
+@Serializable
+private data class AppHealth(val connected: Boolean, val ready: Boolean)
 
-private val usage = """
-    Usage: qa-agent [options]
+/**
+ * @param activated the host enabled this plugin id in every connected app. False means it is
+ *   disabled there, and waiting will not help.
+ * @param ready a message sent now would reach the host from every connected app.
+ * @param apps the same two flags per app, for a run holding more than one.
+ */
+@Serializable
+private data class PluginStatus(
+    val version: String,
+    val activated: Boolean,
+    val ready: Boolean,
+    val apps: Map<String, AppPluginStatus>,
+)
 
-      --plugin <id>[@<version>]  Register a raw-messaging plugin under this id, so /send and
-                                 /request can drive its host counterpart. Repeatable.
-                                 Version defaults to $DEFAULT_PLUGIN_VERSION.
-      --host <name>              JetWhale host to connect to (default: localhost).
-      --port <n>                 Host debug port (default: $DEFAULT_HOST_PORT).
-      --control-port <n>         Port for this agent's own control API (default: $DEFAULT_CONTROL_PORT).
-""".trimIndent()
-
-private fun parseArgs(args: Array<String>): QaAgentOptions {
-    val plugins = mutableMapOf<String, String>()
-    var hostName = "localhost"
-    var hostPort = DEFAULT_HOST_PORT
-    var controlPort = DEFAULT_CONTROL_PORT
-
-    fun valueOf(index: Int, name: String): String = args.getOrNull(index) ?: error("$name requires a value.\n\n$usage")
-
-    fun intValueOf(index: Int, name: String): Int = valueOf(index, name).toIntOrNull() ?: error("$name requires a number.\n\n$usage")
-
-    var i = 0
-    while (i < args.size) {
-        when (val arg = args[i]) {
-            "--plugin" -> {
-                val (id, version) = valueOf(++i, arg).split("@", limit = 2).let {
-                    it[0] to (it.getOrNull(1) ?: DEFAULT_PLUGIN_VERSION)
-                }
-                plugins[id] = version
-            }
-
-            "--host" -> hostName = valueOf(++i, arg)
-
-            "--port" -> hostPort = intValueOf(++i, arg)
-
-            "--control-port" -> controlPort = intValueOf(++i, arg)
-
-            "--help", "-h" -> {
-                println(usage)
-                exitProcess(0)
-            }
-
-            else -> error("Unknown option: $arg\n\n$usage")
-        }
-        i++
-    }
-
-    return QaAgentOptions(plugins, hostName, hostPort, controlPort)
-}
+@Serializable
+private data class AppPluginStatus(val activated: Boolean, val ready: Boolean)
 
 fun main(args: Array<String>) {
-    val options = parseArgs(args)
-
-    val networkAgentPlugin = JetWhaleNetworkAgentPlugin()
-    val wirePlugins = options.plugins.map { (id, version) -> WireLevelQaPlugin(id, version) }
-
-    startJetWhale {
-        app {
-            // Make this session obvious in jetwhale.listSessions so it is never mistaken for a
-            // real device someone is debugging.
-            appName = "qa-agent"
-            deviceName = "QA Agent (headless)"
-            deviceId = "jetwhale-qa-agent"
-        }
-        connection {
-            host = options.hostName
-            port = options.hostPort
-            ssl {
-                trustServerCertificate()
-            }
-        }
-        logging {
-            enabled = true
-            logLevel = LogLevel.INFO
-            ktorLogLevel = KtorLogLevel.NONE
-        }
-        plugins {
-            register(networkAgentPlugin)
-            wirePlugins.forEach { register(it) }
-        }
+    val options = try {
+        parseArgs(args)
+    } catch (_: HelpRequestedException) {
+        println(usage)
+        exitProcess(0)
     }
 
-    val wirePluginsById = wirePlugins.associateBy { it.pluginId }
-
-    val client = HttpClient {
-        install(networkAgentPlugin.ktorClientPlugin())
-    }
+    val apps = options.apps.associateWith { name -> startQaApp(name, options) }
 
     val server = embeddedServer(Netty, host = "127.0.0.1", port = options.controlPort) {
         install(ContentNegotiation) { json() }
         routing {
             get("/health") {
                 // `ready` is what a caller must poll before sending: the control API answers long
-                // before the debug session is up, and a send in that window is silently dropped.
+                // before the debug sessions are up, and a send in that window is silently dropped.
+                val connected = apps.values.filter { it.isConnected }
                 call.respond(
                     HealthResponse(
                         status = "ok",
-                        ready = wirePluginsById.values.all { it.isReady },
+                        ready = connected.isNotEmpty() && connected.all { it.isReady },
+                        apps = apps.mapValues { (_, app) -> AppHealth(connected = app.isConnected, ready = app.isReady) },
                     ),
                 )
             }
 
             get("/plugins") {
                 call.respond(
-                    wirePluginsById.mapValues { (_, plugin) ->
+                    // Every app registers the same plugin ids, so the plugin stays the top-level key
+                    // and a single-app run reads exactly as it did before there were several.
+                    options.plugins.mapValues { (pluginId, version) ->
+                        val perApp = apps.mapValues { (_, app) -> app.pluginStatus(pluginId) }
+                        val connected = perApp.filterKeys { apps.getValue(it).isConnected }.values
                         PluginStatus(
-                            version = plugin.pluginVersion,
-                            activated = plugin.isActivated,
-                            ready = plugin.isReady,
+                            version = version,
+                            activated = connected.isNotEmpty() && connected.all { it.activated },
+                            ready = connected.isNotEmpty() && connected.all { it.ready },
+                            apps = perApp,
                         )
                     },
                 )
@@ -257,13 +206,25 @@ fun main(args: Array<String>) {
                     call.respond(HttpStatusCode.BadRequest, ErrorResponse("Malformed request: ${e.message}"))
                     return@post
                 }
-                val plugin = wirePluginsById[spec.pluginId] ?: run {
-                    call.respond(HttpStatusCode.BadRequest, unknownPluginError(spec.pluginId, wirePluginsById.keys))
+                val app = call.resolveApp(apps, spec.app) ?: return@post
+                val plugin = app.wirePluginsById[spec.pluginId] ?: run {
+                    call.respond(HttpStatusCode.BadRequest, unknownPluginError(spec.pluginId, app.wirePluginsById.keys))
                     return@post
                 }
                 try {
                     val sent = plugin.send(spec.messageType, spec.payload.toString(), spec.policy)
-                    call.respond(SendResponse(sent = sent, hint = if (sent) null else dropHint(plugin)))
+                    val hint = if (sent) {
+                        null
+                    } else {
+                        sendDropHint(
+                            pluginId = plugin.pluginId,
+                            appName = app.name,
+                            appConnected = app.isConnected,
+                            activated = plugin.isActivated,
+                            ready = plugin.isReady,
+                        )
+                    }
+                    call.respond(SendResponse(sent = sent, hint = hint))
                 } catch (e: Exception) {
                     // FAIL policy while offline lands here; that is an answer about the connection,
                     // not a malformed call.
@@ -278,8 +239,9 @@ fun main(args: Array<String>) {
                     call.respond(HttpStatusCode.BadRequest, ErrorResponse("Malformed request: ${e.message}"))
                     return@post
                 }
-                val plugin = wirePluginsById[spec.pluginId] ?: run {
-                    call.respond(HttpStatusCode.BadRequest, unknownPluginError(spec.pluginId, wirePluginsById.keys))
+                val app = call.resolveApp(apps, spec.app) ?: return@post
+                val plugin = app.wirePluginsById[spec.pluginId] ?: run {
+                    call.respond(HttpStatusCode.BadRequest, unknownPluginError(spec.pluginId, app.wirePluginsById.keys))
                     return@post
                 }
                 try {
@@ -306,11 +268,21 @@ fun main(args: Array<String>) {
                     call.respond(HttpStatusCode.BadRequest, ErrorResponse("Malformed request: ${e.message}"))
                     return@post
                 }
+                val app = call.resolveApp(apps, spec.app) ?: return@post
+                if (!app.isConnected) {
+                    // The client is instrumented per app, so traffic fired here would be captured for
+                    // a session that no longer exists — silently invisible in the inspector.
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        ErrorResponse("App '${app.name}' was disconnected, so its traffic is no longer recorded."),
+                    )
+                    return@post
+                }
                 try {
                     lateinit var status: HttpStatusCode
                     lateinit var preview: String
                     val elapsed = measureTimeMillis {
-                        val response = client.request(spec.url) {
+                        val response = app.httpClient.request(spec.url) {
                             method = HttpMethod.parse(spec.method.uppercase())
                             spec.contentType?.let { contentType(ContentType.parse(it)) }
                             spec.headers.forEach { (name, value) -> headers.append(name, value) }
@@ -327,6 +299,17 @@ fun main(args: Array<String>) {
                 }
             }
 
+            post("/disconnect") {
+                val spec = try {
+                    call.receive<DisconnectRequest>()
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("Malformed request: ${e.message}"))
+                    return@post
+                }
+                val app = call.resolveApp(apps, spec.app) ?: return@post
+                call.respond(DisconnectResponse(app = app.name, disconnected = app.disconnect()))
+            }
+
             post("/shutdown") {
                 call.respond(mapOf("status" to "stopping"))
                 thread {
@@ -338,14 +321,40 @@ fun main(args: Array<String>) {
     }
 
     println("qa-agent: control API on http://127.0.0.1:${options.controlPort} (host ${options.hostName}:${options.hostPort})")
+    println("qa-agent: apps ${options.apps.joinToString()}")
     println(
-        if (wirePluginsById.isEmpty()) {
+        if (options.plugins.isEmpty()) {
             "qa-agent: no --plugin given; only /fire (Network Inspector) is available."
         } else {
-            "qa-agent: impersonating ${wirePluginsById.keys.joinToString()}"
+            "qa-agent: impersonating ${options.plugins.keys.joinToString()}"
         },
     )
     runBlocking { server.start(wait = true) }
+}
+
+/**
+ * A disconnected app keeps the plugin's activation flag — the host never deactivated it, the session
+ * simply went away — so both flags are reported against the session actually being held.
+ */
+private fun QaApp.pluginStatus(pluginId: String): AppPluginStatus {
+    val plugin = wirePluginsById.getValue(pluginId)
+    return AppPluginStatus(
+        activated = isConnected && plugin.isActivated,
+        ready = isConnected && plugin.isReady,
+    )
+}
+
+/**
+ * Resolves the app a call is addressed to, answering the caller itself when it cannot be resolved
+ * and returning null so the handler stops without touching a session.
+ */
+private suspend fun ApplicationCall.resolveApp(apps: Map<String, QaApp>, requested: String?): QaApp? = when (val resolution = resolveAppName(requested, apps.keys)) {
+    is AppResolution.Resolved -> apps.getValue(resolution.name)
+
+    is AppResolution.Failed -> {
+        respond(HttpStatusCode.BadRequest, ErrorResponse(resolution.error))
+        null
+    }
 }
 
 private fun unknownPluginError(pluginId: String, known: Set<String>) = ErrorResponse(
@@ -355,20 +364,6 @@ private fun unknownPluginError(pluginId: String, known: Set<String>) = ErrorResp
         "No plugin is registered under '$pluginId'. Registered: ${known.joinToString()}."
     },
 )
-
-/**
- * Why a send was dropped. Both cases look identical from the caller's side — `sent: false` — but only
- * one of them is worth waiting out.
- */
-private fun dropHint(plugin: WireLevelQaPlugin): String = when {
-    !plugin.isActivated ->
-        "The host has not enabled '${plugin.pluginId}' for this session, so nothing is listening. " +
-            "Enable the plugin in the host, or check the id."
-
-    !plugin.isReady -> "Connected but not prepared yet — poll /health until \"ready\": true."
-
-    else -> "The connection was unavailable. Retry, or send with \"policy\": \"QUEUE\" to buffer it."
-}
 
 /** Replies are opaque here — hand back JSON as JSON, and anything else as a string. */
 private fun String.asJsonOrString(): JsonElement = runCatching { Json.parseToJsonElement(this) }.getOrElse { JsonPrimitive(this) }
