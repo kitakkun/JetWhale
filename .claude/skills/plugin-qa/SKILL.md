@@ -69,8 +69,9 @@ pgrep -f com.kitakkun.jetwhale.host.MainKt | wc -l
 lsof -nP -iTCP:5081,5444,7081 -sTCP:LISTEN   # the ports you asked for
 ```
 
-Several host processes are normal and not a problem in themselves. A port of yours held by a PID
-that is not your launch's means every observation downstream of it describes someone else's host.
+Several host processes are normal and not a problem in themselves. What matters is which PID holds
+your ports: if it is not the process your launch started, every observation downstream of it
+describes someone else's host.
 
 - Run it in the **background, redirected to a file** (`> run.log 2>&1`). Do NOT pipe it through
   `tail`/`grep`: the pipeline buffers and the log file stays empty until the process exits, so you
