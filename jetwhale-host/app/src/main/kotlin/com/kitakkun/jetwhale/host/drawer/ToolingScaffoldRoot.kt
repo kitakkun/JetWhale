@@ -13,7 +13,7 @@ import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
-import com.kitakkun.jetwhale.host.navigation.toSegmentedMenu
+import com.kitakkun.jetwhale.host.navigation.toMenu
 import com.kitakkun.jetwhale.host.session_disconnected_message
 import com.kitakkun.jetwhale.host.sessions_disconnected_message
 import com.kitakkun.jetwhale.host.settings.SettingsScreenMenu
@@ -107,7 +107,7 @@ fun ToolingScaffoldRoot(
 
                     HostNavigationRequest.LogViewer -> onNavigateLogViewer()
 
-                    is HostNavigationRequest.Settings -> onNavigateSettings(request.section.toSegmentedMenu())
+                    is HostNavigationRequest.Settings -> onNavigateSettings(request.section.toMenu())
 
                     is HostNavigationRequest.Plugin -> {
                         // Only a request that named no session falls back to the drawer's selection.

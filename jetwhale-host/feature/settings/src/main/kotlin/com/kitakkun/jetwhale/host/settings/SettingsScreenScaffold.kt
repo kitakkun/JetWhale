@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Computer
@@ -26,6 +28,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.StringResource
@@ -93,12 +96,17 @@ fun SettingsScreenScaffold(
                 modifier = Modifier
                     .width(MenuPaneWidth)
                     .fillMaxHeight()
+                    // The list grows downward as sections are added, which is the point of it — so it
+                    // has to scroll, or the newest entries are the ones a short window cuts off.
+                    .verticalScroll(rememberScrollState())
                     .padding(8.dp),
             ) {
                 SettingsScreenMenu.entries.forEach { menu ->
                     NavigationDrawerItem(
                         selected = menu == uiState.selectedMenu,
-                        label = { Text(stringResource(menu.labelTextRes)) },
+                        // One line keeps every row the same height, so the list does not reflow when a
+                        // translation is longer than the pane.
+                        label = { Text(stringResource(menu.labelTextRes), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         icon = { Icon(menu.icon, contentDescription = null) },
                         onClick = { onSelectMenu(menu) },
                     )

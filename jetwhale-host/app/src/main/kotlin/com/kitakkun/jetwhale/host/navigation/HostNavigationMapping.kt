@@ -50,7 +50,7 @@ fun List<NavKey>.toHostDestination(): HostDestination {
     }
 }
 
-fun HostSettingsSection.toSegmentedMenu(): SettingsScreenMenu = when (this) {
+fun HostSettingsSection.toMenu(): SettingsScreenMenu = when (this) {
     HostSettingsSection.GENERAL -> SettingsScreenMenu.General
     HostSettingsSection.SERVER -> SettingsScreenMenu.Server
     HostSettingsSection.PLUGINS -> SettingsScreenMenu.Plugins
