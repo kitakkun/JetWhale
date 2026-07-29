@@ -147,6 +147,8 @@ class DefaultDebuggerSettingsRepository(
         dropOverride { it.copy(wssPort = null) }
     }
 
+    override suspend fun readWssEnabled(): Boolean = dataStore.data.first()[KEY_WSS_ENABLED] ?: DEFAULT_WSS_ENABLED
+
     override suspend fun updateWssEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[KEY_WSS_ENABLED] = enabled

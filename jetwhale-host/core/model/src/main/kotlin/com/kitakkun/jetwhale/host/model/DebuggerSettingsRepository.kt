@@ -18,11 +18,13 @@ interface DebuggerSettingsRepository {
     val mcpPluginInstallAllowedFlow: StateFlow<Boolean>
 
     /**
-     * The stored value, awaiting the initial read rather than reporting the default while it is
-     * still unknown. Use this to decide whether to wire; [adbAutoPortMappingEnabledFlow] carries
+     * The stored values, awaiting the initial read rather than reporting the default while it is
+     * still unknown. Decide from these: [adbAutoPortMappingEnabledFlow] and [wssEnabledFlow] carry
      * the default until the store answers, which is fine to display but not to act on.
      */
     suspend fun readAdbAutoPortMappingEnabled(): Boolean
+    suspend fun readWssEnabled(): Boolean
+
     suspend fun readServerPort(): Int
     suspend fun readMcpServerPort(): Int
     suspend fun readWssPort(): Int

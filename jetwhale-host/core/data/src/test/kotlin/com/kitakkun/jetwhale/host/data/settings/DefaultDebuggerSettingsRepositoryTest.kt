@@ -52,6 +52,15 @@ class DefaultDebuggerSettingsRepositoryTest {
     }
 
     @Test
+    fun `reading wss enabled never reports the default over a stored off`() = runBlocking {
+        val dataStore = newDataStore()
+        DefaultDebuggerSettingsRepository(dataStore, noOverrides).updateWssEnabled(false)
+
+        // A fresh repository has not read the store yet, which is exactly when startup asks.
+        assertEquals(false, DefaultDebuggerSettingsRepository(dataStore, noOverrides).readWssEnabled())
+    }
+
+    @Test
     fun `launch overrides win over the stored ports`() = runBlocking {
         val dataStore = newDataStore()
         DefaultDebuggerSettingsRepository(dataStore, noOverrides).run {
