@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.IOException
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -59,6 +60,13 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
                     System.err.println("ADB device tracking ended; re-attaching in ${RECONNECT_DELAY_MS}ms")
                 } catch (e: CancellationException) {
                     throw e
+                } catch (e: AdbUnavailableException) {
+                    // Auto wiring is on by default, so a machine with no Android SDK would otherwise
+                    // retry a binary that will never appear, every RECONNECT_DELAY_MS, forever.
+                    // Report once and stand down; stopping the server clears the job so toggling the
+                    // setting (which restarts the server) tries again.
+                    System.err.println("ADB auto port mapping is inactive: ${e.message}")
+                    return@launch
                 } catch (e: Exception) {
                     System.err.println("ADB device tracking failed; re-attaching in ${RECONNECT_DELAY_MS}ms: ${e.message}")
                 }
@@ -68,9 +76,13 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
     }
 
     private fun deviceEventFlow(): Flow<DeviceEvent> = callbackFlow {
-        val deviceTrackingProcess = ProcessBuilder(adbPath, "track-devices")
-            .redirectErrorStream(true)
-            .start()
+        val deviceTrackingProcess = try {
+            ProcessBuilder(adbPath, "track-devices")
+                .redirectErrorStream(true)
+                .start()
+        } catch (e: IOException) {
+            throw AdbUnavailableException(adbPath, e)
+        }
 
         launch {
             deviceTrackingProcess.inputStream
@@ -141,6 +153,9 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
         return exitCode to output
     }
 }
+
+/** The adb executable itself could not be launched — no amount of retrying will bring it back. */
+private class AdbUnavailableException(adbPath: String, cause: IOException) : Exception("adb could not be launched from \"$adbPath\": ${cause.message}", cause)
 
 private sealed interface DeviceEvent {
     data class Connected(val serial: String) : DeviceEvent
