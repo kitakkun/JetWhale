@@ -25,7 +25,6 @@ import com.kitakkun.jetwhale.host.settings.mcp_permission_note
 import com.kitakkun.jetwhale.host.settings.mcp_permission_plugin_own_tools
 import com.kitakkun.jetwhale.host.settings.mcp_permission_plugin_ui
 import com.kitakkun.jetwhale.host.settings.mcp_permission_plugins_label
-import com.kitakkun.jetwhale.host.settings.mcp_permission_title
 import org.jetbrains.compose.resources.stringResource
 
 /** One installed plugin's two permission leaves, resolved for display. */
@@ -48,11 +47,8 @@ fun McpPermissionsView(
     onSetPluginUiAllowed: (pluginId: String, allowed: Boolean) -> Unit,
     onSetPluginOwnToolsAllowed: (pluginId: String, allowed: Boolean) -> Unit,
 ) {
+    // The heading comes from the SettingOptionView this sits in, like every other settings block.
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = stringResource(Res.string.mcp_permission_title),
-            style = MaterialTheme.typography.titleSmall,
-        )
         Text(
             text = stringResource(Res.string.mcp_permission_note),
             style = MaterialTheme.typography.bodySmall,

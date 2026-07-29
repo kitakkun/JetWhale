@@ -70,7 +70,11 @@ enum class SettingsScreenPage(
     /** Auto port wiring and where adb was found — one topic that used to be two headings. */
     Adb(SettingsScreenSection.Connection, Res.string.adb_support, SettingsScreenPageOwner.General),
 
+    /** How an agent connects: the port it is on, and the config to paste into a client. */
     McpServer(SettingsScreenSection.AiAgents, Res.string.mcp_server_label, SettingsScreenPageOwner.Server),
+
+    /** What a connected agent may then do. A separate question, and a page that keeps growing. */
+    McpPermissions(SettingsScreenSection.AiAgents, Res.string.mcp_permission_title, SettingsScreenPageOwner.Server),
 
     InstalledPlugins(SettingsScreenSection.Plugins, Res.string.installed_plugins, SettingsScreenPageOwner.Plugin),
 

@@ -41,6 +41,7 @@ import com.kitakkun.jetwhale.host.settings.debug_server_port_apply_confirm_title
 import com.kitakkun.jetwhale.host.settings.debug_server_port_label
 import com.kitakkun.jetwhale.host.settings.dialog_cancel
 import com.kitakkun.jetwhale.host.settings.dialog_ok
+import com.kitakkun.jetwhale.host.settings.mcp_permission_title
 import com.kitakkun.jetwhale.host.settings.mcp_server_label
 import com.kitakkun.jetwhale.host.settings.mcp_server_port_apply_confirm_message
 import com.kitakkun.jetwhale.host.settings.mcp_server_port_apply_confirm_title
@@ -240,7 +241,14 @@ fun ServerSettingsScreen(
                     OutlinedButton(onClick = onClickOpenMcpGuide) {
                         Text(stringResource(Res.string.mcp_setup_open_guide))
                     }
-                    Spacer(Modifier.height(12.dp))
+                }
+            }
+        }
+        if (page == SettingsScreenPage.McpPermissions) {
+            item {
+                SettingOptionView(
+                    label = stringResource(Res.string.mcp_permission_title),
+                ) {
                     McpPermissionsView(
                         uiState = uiState.mcpPermissions,
                         onSetHostGroupAllowed = onSetHostGroupAllowed,
