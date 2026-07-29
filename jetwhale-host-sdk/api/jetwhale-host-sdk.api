@@ -173,7 +173,7 @@ public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugi
 	public abstract fun Content (Landroidx/compose/runtime/Composer;I)V
 }
 
-public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpArgumentException : java/lang/Exception {
+public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpArgumentException : com/kitakkun/jetwhale/host/sdk/JetWhaleMcpException {
 	public static final field $stable I
 	public fun <init> (Ljava/lang/String;)V
 }
@@ -268,6 +268,11 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpContent$Text : com/
 	public final fun getText ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpException : java/lang/Exception {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;)V
 }
 
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpOutput {

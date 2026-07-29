@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpTextCommand
 import dev.mokkery.answering.returns
@@ -111,6 +112,18 @@ class McpToolRegistryTest {
     }
 
     @Test
+    fun `dispatch turns a failure that is not about the arguments into a failed result`() = runBlocking {
+        val plugin = FailingPlugin("a.fail")
+        registry.register("com.example.a", "session-1", plugin)
+        every { pluginInstanceService.getPluginInstanceForSession("com.example.a", "session-1") } returns plugin
+
+        val result = registry.dispatch("a.fail", mapOf("sessionId" to JsonPrimitive("session-1")))
+
+        assertEquals(true, result?.isError)
+        assertEquals(listOf(JetWhaleMcpContent.Text("the device disconnected")), result?.content)
+    }
+
+    @Test
     fun `dispatch reports an unroutable call as no result at all`() = runBlocking {
         registry.register("com.example.a", "session-1", FakeTooledPlugin("a.greet"))
 
@@ -146,6 +159,20 @@ private class RejectingPlugin(private val toolName: String) :
             override val name = toolName
             override val description = "Always rejects the call"
             override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = throw JetWhaleMcpArgumentException("no widget with id: 7")
+        },
+    )
+}
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private class FailingPlugin(private val toolName: String) :
+    JetWhaleHostPlugin(),
+    JetWhaleMcpCapablePlugin {
+
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        object : JetWhaleMcpCommand() {
+            override val name = toolName
+            override val description = "Always fails for a reason unrelated to its arguments"
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = throw JetWhaleMcpException("the device disconnected")
         },
     )
 }

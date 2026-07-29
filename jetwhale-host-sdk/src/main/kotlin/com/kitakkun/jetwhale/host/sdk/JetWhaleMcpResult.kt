@@ -44,6 +44,8 @@ public sealed interface JetWhaleMcpContent {
  *   mention a problem.
  */
 @ExperimentalJetWhaleApi
+// Not a data class: the generated copy() and componentN would be public even though the constructor
+// is internal, which would hand plugins the very bypass the factories exist to prevent.
 public class JetWhaleMcpResult internal constructor(
     public val content: List<JetWhaleMcpContent>,
     public val structuredContent: JsonObject?,
@@ -95,8 +97,8 @@ public class JetWhaleMcpResult internal constructor(
          * A failed call. [message] says what went wrong, and the result is flagged so the agent
          * treats it as a failure to correct rather than as the tool's answer.
          *
-         * Throwing [JetWhaleMcpArgumentException] produces the same thing, and is the shorter path
-         * when the mistake is detected deep inside the command.
+         * Throwing [JetWhaleMcpException] produces the same thing, and is the shorter path when the
+         * failure is discovered deep inside the command.
          */
         public fun error(message: String): JetWhaleMcpResult = JetWhaleMcpResult(
             content = listOf(JetWhaleMcpContent.Text(message)),

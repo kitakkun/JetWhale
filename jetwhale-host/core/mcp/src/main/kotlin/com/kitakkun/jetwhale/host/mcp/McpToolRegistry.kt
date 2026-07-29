@@ -4,9 +4,10 @@ import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
 import com.kitakkun.jetwhale.host.model.McpToolSummary
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
+import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -85,9 +86,9 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
         val command = plugin.mcpCommands.firstOrNull { it.name == toolName } ?: return null
         return try {
             command.execute(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
-        } catch (e: JetWhaleMcpArgumentException) {
-            // A caller mistake becomes a failed result the AI agent can read and correct, instead
-            // of an MCP-level failure.
+        } catch (e: JetWhaleMcpException) {
+            // A failure the command chose to report becomes a failed result the AI agent can read
+            // and correct, instead of an MCP-level failure.
             JetWhaleMcpResult.error(e.message.orEmpty())
         }
     }

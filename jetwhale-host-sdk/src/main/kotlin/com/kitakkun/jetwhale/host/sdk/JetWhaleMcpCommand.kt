@@ -53,9 +53,10 @@ import kotlin.reflect.KProperty
  * matching result. Declaring nothing means the tool answers with unstructured text and advertises no
  * output schema.
  *
- * Expose commands through [JetWhaleMcpCapablePlugin]. A [JetWhaleMcpArgumentException] (thrown
- * by the argument accessors, or by [execute] directly for domain-level caller mistakes) becomes a
- * failed [JetWhaleMcpResult] the agent can read and correct, instead of failing the MCP server.
+ * Expose commands through [JetWhaleMcpCapablePlugin]. A [JetWhaleMcpException] (thrown by [execute]
+ * for a failure of any kind, or by the argument accessors as the narrower
+ * [JetWhaleMcpArgumentException]) becomes a failed [JetWhaleMcpResult] the agent can read and
+ * correct, instead of failing the MCP server.
  *
  * @param json Format used to decode [serializable] arguments and to derive their schema; also
  *   available to [execute] for encoding results. Defaults to [DefaultArgumentJson]. Pass a custom
@@ -362,8 +363,10 @@ public abstract class JetWhaleMcpTextCommand(json: Json = DefaultArgumentJson) :
     /**
      * Executes the tool.
      *
-     * @return The text handed to the AI agent. Throw [JetWhaleMcpArgumentException] to report a
-     *   caller mistake.
+     * @return The text handed to the AI agent — always the tool's answer, never a failure. Whatever
+     *   is returned is reported as a success, so an agent reading `"error: no such widget"` sees a
+     *   tool that worked and answered that. Throw [JetWhaleMcpException] instead: the flag is what
+     *   tells the agent to correct itself, not the wording.
      */
     protected abstract suspend fun executeText(arguments: JetWhaleMcpArguments): String
 }
@@ -430,15 +433,31 @@ public class JetWhaleMcpOutput<T : Any> internal constructor(
      * call's structured content.
      *
      * A command that declares an output can still report a failure with [JetWhaleMcpResult.error] or
-     * a [JetWhaleMcpArgumentException]: a failed call carries a message, not the tool's answer, so
-     * the output schema does not apply to it.
+     * a [JetWhaleMcpException]: a failed call carries a message, not the tool's answer, so the
+     * output schema does not apply to it.
      */
     public fun result(value: T): JetWhaleMcpResult = JetWhaleMcpResult.json(json.encodeToJsonElement(serializer, value) as JsonObject)
 }
 
-/** A caller mistake in a tool invocation (missing/invalid argument, unknown id, ...). */
+/**
+ * A tool call that failed: the device went away, the target no longer exists, the plugin cannot
+ * answer right now. [message] is handed to the AI agent as the failed call's text, so write it as
+ * something the agent can act on — what was wrong, and what would be right.
+ *
+ * This is the throwing counterpart of [JetWhaleMcpResult.error], and produces exactly that result.
+ * Throw when the failure is discovered deep inside the command; return when reporting it is the
+ * command's plain answer.
+ */
 @ExperimentalJetWhaleApi
-public class JetWhaleMcpArgumentException(message: String) : Exception(message)
+public open class JetWhaleMcpException(message: String) : Exception(message)
+
+/**
+ * A tool call that failed because of the arguments it was given: one is missing, unparseable, or
+ * names something that does not exist. Thrown by the argument accessors, and worth throwing
+ * directly when a command's own lookup of an argument's value comes up empty.
+ */
+@ExperimentalJetWhaleApi
+public class JetWhaleMcpArgumentException(message: String) : JetWhaleMcpException(message)
 
 /**
  * The raw arguments of an MCP tool call, read through the command's declared

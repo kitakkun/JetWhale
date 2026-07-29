@@ -305,8 +305,10 @@ Things to know:
 
 Report failures with `error(...)` rather than returning text that merely mentions the problem —
 without the flag, the agent reads "the widget does not exist" as the tool's answer and carries on.
-Throwing `JetWhaleMcpArgumentException` produces the same failed result and is the shorter path when
-the mistake is spotted deep inside the command; it never fails the MCP server.
+Throwing `JetWhaleMcpException` produces the same failed result and is the shorter path when the
+failure is spotted deep inside the command; it never fails the MCP server. Throw its narrower
+subclass `JetWhaleMcpArgumentException` when the arguments are what went wrong — the argument
+accessors already do.
 
 JetWhale deliberately owns this type instead of exposing the MCP library's own result types, so your
 plugin does not have to track that library's versions.
@@ -324,6 +326,9 @@ class DescribeWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpTextC
     override suspend fun executeText(arguments: JetWhaleMcpArguments): String = widgets.describe(arguments[widgetId])
 }
 ```
+
+Whatever `executeText` returns is reported as a success, so it has no way to say "this failed" —
+throw `JetWhaleMcpException` for that.
 
 ### Declaring what a tool returns
 
@@ -364,8 +369,8 @@ Things to know:
   list or a sealed hierarchy has to be wrapped in a `@Serializable` class holding it; declaring one
   directly fails at construction time rather than advertising a schema MCP rejects.
 - **A failure is not the tool's answer.** A command that declares an output can still return
-  `JetWhaleMcpResult.error(...)` or throw `JetWhaleMcpArgumentException` — a failed call carries a
-  message, and the output schema does not apply to it.
+  `JetWhaleMcpResult.error(...)` or throw `JetWhaleMcpException` — a failed call carries a message,
+  and the output schema does not apply to it.
 - **Declare it as a property**, next to the parameters. Like a parameter, an output declared after
   the schema was read (inside `execute`, say) throws rather than silently diverging from the schema
   the agent was already shown, and a command has a single output.
