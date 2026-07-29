@@ -53,5 +53,6 @@ Each session in the host shows a lock indicator for how its transport is secured
 ## Next steps
 
 - [Getting Started](/guide/getting-started) — install the host and integrate the agent into your app
+- [The Host Window](/guide/host-window) — sessions, the plugin drawer, and popping a plugin out
 - [Network Inspector](/guide/network-inspector) — inspect and mock HTTP traffic
 - [Developing Plugins](/guide/developing-plugins) — build your own debugging tools

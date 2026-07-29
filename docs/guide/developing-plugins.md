@@ -9,12 +9,19 @@ The `com.kitakkun.jetwhale.host` plugin gives your plugin's module these tasks:
 
 | Task                     | What it does                                                                                          |
 |--------------------------|------------------------------------------------------------------------------------------------------|
-| `packagePlugin`          | Builds the distributable plugin fat-jar (the artifact you drop into `~/.jetwhale/plugins/`).          |
-| `installPlugin`          | Copies the packaged fat-jar into `~/.jetwhale/plugins/`.                                              |
+| `packagePlugin`          | Builds the distributable plugin fat-jar (the artifact you drop into `~/.jetwhale/plugins/`). Hooked to `assemble`, so a plain `./gradlew build` already produces it. |
+| `installPlugin`          | Copies the packaged fat-jar into `~/.jetwhale/plugins/` — your real installation, not the [sandbox](#isolated-sandbox-environment). |
 | `stageDevPlugin`         | Stages the packaged fat-jar into a private dev directory the host watches for hot reload.             |
 | `packageMavenPlugin`     | Builds the publishable plugin jar (see [Publishing your plugin to Maven](#publishing-your-plugin-to-maven)). |
+| `generatePluginDependencyManifest` | Writes the runtime dependency list `packageMavenPlugin` embeds. Runs as part of it. |
+| `downloadJetWhaleHost`   | Downloads the released host uber jar for `hostVersion`. Runs as part of `runJetWhale`.                |
 | `runJetWhale`            | Downloads a released JetWhale host for your OS and launches it with your plugin loaded.|
 | `runJetWhaleHot`         | Like `runJetWhale`, but runs the host on the JetBrains Runtime so structural changes hot-reload in place (see [Limitations](#limitations)), and auto re-stages your plugin in the background — the whole hot-reload loop in one command. |
+| `runJetWhaleQaAgent`     | Runs a headless debuggee your plugin can render against, driven over HTTP — see [QA Agent](/guide/qa-agent). |
+
+`runJetWhale` and `runJetWhaleHot` launch the host on a **Java 21** toolchain (`runJetWhaleHot`
+additionally requires the JetBrains vendor), independently of the toolchain your plugin module
+itself compiles with.
 
 ## Set up
 
@@ -61,6 +68,17 @@ jetwhalePlugin {
 }
 ```
 
+The extension has exactly three properties:
+
+| Property | Default | What it does |
+|----------|---------|--------------|
+| `hostVersion` | none | The released host version `runJetWhale` / `runJetWhaleHot` download and launch. Required unless you pass `-PjetwhaleHostJar`. |
+| `pluginArchiveName` | the project name | Base name of the packaged jars. Set it when several plugin modules in one build are all called `host`, so their jars do not collide in `~/.jetwhale/plugins/` or the staging directory. |
+| `qaAgentVersion` | falls back to `hostVersion` | Version of the [QA agent](/guide/qa-agent) `runJetWhaleQaAgent` resolves. |
+
+The two packaging tasks write `<pluginArchiveName>-<version>-jetwhale-plugin.jar` and
+`<pluginArchiveName>-<version>-jetwhale-maven-plugin.jar` into `build/libs/`.
+
 ::: warning Kotlin version compatibility
 The host loads your plugin jar into its own runtime, which ships a fixed Kotlin stdlib and Compose
 runtime. Kotlin is **not forward-compatible**: a plugin compiled with a newer Kotlin than the host's
@@ -92,6 +110,7 @@ complete, working example:
 
   ```json
   {
+    "$schema": "https://raw.githubusercontent.com/kitakkun/JetWhale/main/schemas/plugin-manifest.schema.json",
     "plugins": [
       {
         "pluginId": "com.example.myplugin",
@@ -102,6 +121,32 @@ complete, working example:
     ]
   }
   ```
+
+The manifest is **hand-written** — the Gradle plugin ships whatever is in your resources rather than
+generating it. Pointing `"$schema"` at the published JSON Schema gives you completion and validation
+in the IDE.
+
+#### Manifest reference
+
+| Field | Required | Default | Meaning |
+|-------|----------|---------|---------|
+| `pluginId` | ✅ | — | Unique id. The **agent** plugin's `pluginId` must match it for the two to be paired. |
+| `pluginName` | ✅ | — | Display name in the plugin drawer. |
+| `version` | ✅ | — | Your plugin's version. |
+| `factoryClass` | ✅ | — | Fully-qualified `JetWhaleHostPluginFactory` the host instantiates. Needs a public no-arg constructor. |
+| `requiresAgent` | | `true` | `false` makes the plugin [host-only](#host-only-plugins-no-agent-no-messaging): no agent counterpart, no messaging, instantiated for every active session. |
+| `agentVersionRange` | | none | `{ "min": …, "max": … }`, both **inclusive** and both nullable. An agent plugin whose `pluginVersion` falls outside the range is reported back to the agent as *incompatible* and never paired. Omit the object to accept any agent version. |
+| `icon` | | none | `{ "activePath": …, "inactivePath": … }` — see below. |
+
+#### Icons
+
+`activePath` and `inactivePath` are resource paths **relative to the jar root** (e.g.
+`"icons/widget_filled.svg"`), loaded with your plugin's own classloader. `activePath` is used when
+the plugin is selected and enabled, `inactivePath` otherwise; a path that does not resolve falls back
+silently to JetWhale's default puzzle-piece icons.
+
+Both must be **SVG** — a PNG will not render — and they are drawn as Material `Icon`s, i.e. tinted
+with the drawer's content color. Author monochrome shapes, not multi-color artwork.
 
 #### Multiple plugins in one module
 
@@ -174,6 +219,11 @@ pass `timeout` to `request`
 to override the default per call (e.g. `request(SlowOp, timeout = 30.seconds)`). Implement `JetWhaleHostPluginUi`
 (`@Composable Content()`) to render a UI; plugins that don't are **headless** (e.g. MCP-only).
 
+::: tip `onDispose()` is public
+`onCreate()` is `protected`, but `onDispose()` is `public open` — override it without a `protected`
+modifier or it will not compile.
+:::
+
 **The host plugin's `messenger` is a plain, always-connected property.** A host plugin instance
 lives exactly as long as its session's connection, so `messenger` is valid from `onCreate()` through
 `onDispose()` and may be used anywhere — UI callbacks, MCP tool handlers, background jobs. Because
@@ -187,7 +237,13 @@ instance is disposed, so nothing can outlive the plugin. State that must survive
 **On the agent** the `messenger` property is **connection-independent** (it outlives any single
 connection), so app code may send at any time and choose the offline behavior per call: `trySend`
 drops, `sendOrQueue` buffers, `sendOrFail` throws. Buffering is opt-in — override
-`offlineEventBufferCapacity` (bounded, drops oldest when full).
+`offlineEventBufferCapacity`, which defaults to **`0`** (so `sendOrQueue` behaves like `trySend`
+until you raise it) and drops the oldest entry once full.
+
+Two rules the buffer does not bend: **requests are never buffered** (`request` throws
+`JetWhaleConnectionClosedException` while disconnected, whatever the capacity), and ordering is only
+guaranteed *within* a policy — a `trySend` issued while queued events are still draining can overtake
+them. Pick one policy per logical stream.
 
 **Commands vs queries.** `request` returns the reply value (`val r: Pong = request(Ping)`); when you
 issue a command and only need it to succeed, just discard the result (`request(SetMockRules(rules))`).
@@ -228,9 +284,10 @@ override suspend fun onPrepare() {
 
 By convention only **one** side of a plugin pair actively `request`s during preparation (the other
 answers from its handlers): two sides that both block on each other's handlers while preparing would
-deadlock until the timeout. `onPrepare` is bounded by `prepareTimeoutMillis` — on timeout (or
-failure) the runtime logs a warning (visible in the host log) and opens handler dispatch anyway, so
-the plugin proceeds degraded rather than hanging.
+deadlock until the timeout. `onPrepare` is bounded by `prepareTimeoutMillis` (a `protected open val`
+on both sides, **10 000 ms** by default) — on timeout (or failure) the runtime logs a warning
+(visible in the host log) and opens handler dispatch anyway, so the plugin proceeds degraded rather
+than hanging.
 
 Note that there is no preparation-only message lane: a handler registered in `configure` is callable
 by the other side for the **whole session**, not just while preparing. Design prepare-time exchanges
@@ -290,6 +347,11 @@ Things to know:
   caller mistakes — it is rendered as an `{"error": ...}` payload instead of failing the server.
 - **Messaging works from tool handlers.** `messenger` is valid for the whole instance lifetime, so
   a command can `request` the agent directly.
+- **Declare parameters as properties, never inside `execute`.** The list is read once, and declaring
+  one afterwards — or declaring the same name twice — throws with a message saying so.
+- **`mcpCommands` is read once** per plugin instance activation and treated as static from then on.
+- Every declarator takes an optional `name` to override the wire name, for when the property cannot
+  be called what the parameter should be called (`by stringOrNull("…", name = "name")`).
 - The MCP APIs are marked `@ExperimentalJetWhaleApi` and may change between releases.
 
 ### Structured parameters
@@ -308,7 +370,8 @@ description, so it cannot drift from the model. A payload that doesn't fit the t
 `JetWhaleMcpArgumentException` naming the parameter.
 
 Document individual properties with `@McpDescription`; the text lands in the schema next to the
-field it describes:
+field it describes. It reaches your classpath transitively through the host SDK, so there is no extra
+dependency to declare:
 
 ```kotlin
 @Serializable
@@ -319,6 +382,11 @@ data class MockMatcher(
     val urlPattern: String,
 )
 ```
+
+`@McpDescription` also applies to a whole `@Serializable` **class**, where it becomes that object's
+schema description; a property's own annotation wins over the one inherited from its type. It is
+deliberately not usable on a value parameter's use-site target — writing it on a constructor
+parameter without a target is what makes it survive into the serial descriptor.
 
 A sealed hierarchy is advertised as a `oneOf` over its subclasses, each pinning the class
 discriminator (`"type"` by default, or whatever `@JsonClassDiscriminator` sets) to a `const` — the
@@ -371,6 +439,30 @@ Read it (`LocalJetWhaleDarkTheme.current`) to pick theme-appropriate colors inst
 `isSystemInDarkTheme()`, which reflects the OS setting and can disagree with the host's own Theme
 option.
 
+### Theming: you already match the host
+
+The host wraps your `Content()` in **its own** `MaterialTheme` before calling it, so plain
+`MaterialTheme.colorScheme` / `MaterialTheme.typography` inside your plugin already resolve to the
+host's applied scheme. Do not install a theme of your own unless you deliberately want to look
+different — that is why `material3` is a `compileOnly` dependency and why plugins get visual
+consistency for free.
+
+The SDK ships **no component library** — no shared Composables, icons, scaffolds or spacing tokens.
+Build your UI from Compose and Material 3 directly. Your composition is kept for the lifetime of the
+plugin instance, so it survives switching to another plugin tab and back.
+
+::: warning What the host SDK does *not* give a plugin
+There is no settings/preferences API (render your own controls inside `Content()` and persist them
+with [storage](#persistent-storage)), no logging API (use `println` or your own logging library —
+the host's log viewer captures stdout/stderr), and no way to read the session's app/device metadata.
+A plugin never learns its own session id; if you need facts about the app, `request` them from your
+agent counterpart.
+
+Members annotated `@InternalJetWhaleHostApi` (`bindMessenger`, `dispatchCreate`, …) show up in
+autocomplete because the runtime calls them across module boundaries. Never call them — the opt-in is
+an error, not a warning.
+:::
+
 ## Persistent storage
 
 Every host plugin instance gets a persistent key-value store via the protected `storage` property,
@@ -395,7 +487,12 @@ class MyPlugin : JetWhaleMessagingHostPlugin() {
 ```
 
 The API is suspend/`Flow` based: `put` / `get` / `getFlow` / `contains` / `remove` / `clear`, plus
-`keysFlow` to observe the stored key set.
+`keysFlow` to observe the stored key set. Each has an explicit-`KSerializer` overload alongside the
+reified one, for types whose serializer you resolve yourself.
+
+The key `__jetwhale_storage_version` is **reserved** — writing it throws, and it never shows up in
+`keysFlow` or `contains`. `clear()` wipes the store and re-stamps the current `storageVersion`, so a
+cleared store is not mistaken for legacy data by the migration below.
 
 ### Compose helper: `rememberPersistent`
 
@@ -409,6 +506,14 @@ fun DraftField() {
     OutlinedTextField(value = draft, onValueChange = { draft = it })
 }
 ```
+
+Two behaviours to design around: the state **starts at `default`** and is replaced asynchronously
+once the stored value has been read, so the first frame shows the default; and writes are **debounced
+by 300 ms**, so a value typed and immediately followed by a crash may not have reached disk. There is
+also an overload taking an explicit `KSerializer`.
+
+From UI code that has no plugin reference, `LocalJetWhalePluginStorage.current` gives the same
+`pluginId`-scoped store as the `storage` property (it is `null` outside a host-managed scene).
 
 ### Migrating stored data
 
@@ -455,10 +560,16 @@ state; for changes it can't apply that way it recreates the plugin from a fresh 
 `runJetWhale`, `runJetWhaleHot` and the in-repo `runJetWhaleLocal` run the host against an
 **isolated, per-project sandbox** at
 `build/jetwhale-sandbox/` instead of your real `~/.jetwhale/`. Everything the host persists — installed
-plugins, settings, per-plugin data, TLS material and the plugin trust registry — lives there, so trying
-a plugin never reads or mutates your actual JetWhale installation. The sandbox starts empty: only your
-dev plugin is loaded (dev-directory plugins are trusted implicitly, so there is no trust prompt to
-click through), and there are no leftover plugins or settings from previous work.
+plugins (`plugins/`, with Maven-installed dependencies under `plugins/libs/`), settings, per-plugin
+data (`plugin-data/`), TLS material (`ssl/`) and the plugin trust registry
+(`trusted-plugins.json`) — lives there, so trying a plugin never reads or mutates your actual JetWhale
+installation. The sandbox starts empty: only your dev plugin is loaded (dev-directory plugins are
+trusted implicitly, so there is no trust prompt to click through), and there are no leftover plugins
+or settings from previous work.
+
+Two system properties do this, both set for you by the launch tasks: `jetwhale.appDataDir` redirects
+the app data root, and `jetwhale.devPluginsDir` names the watched staging directory. Note that
+`installPlugin` is **not** affected — it deliberately targets your real `~/.jetwhale/plugins/`.
 
 The sandbox lives under `build/`, so it **persists across re-launches** of the same project — test data
 you set up survives the next `runJetWhale`. Running `./gradlew :myPlugin:clean` wipes it for a
@@ -498,8 +609,21 @@ yourself from a second terminal:
 > in one terminal and `stageDevPlugin -t` in another.
 
 `runJetWhale` downloads the runnable host uber jar for `hostVersion` and the current
-OS/architecture from the GitHub release (cached under `~/.jetwhale/dev-host/`) — no manual install of
-JetWhale needed. Pass `-PjetwhaleHostJar=<path>` to launch a locally built host uber jar instead.
+OS/architecture from the GitHub release — no manual install of JetWhale needed. Pass
+`-PjetwhaleHostJar=<path>` to launch a locally built host uber jar instead, which skips the download
+entirely.
+
+The download is cached under `~/.jetwhale/dev-host/<version>/` and reused. A released version is only
+fetched once; a `-SNAPSHOT` `hostVersion` is re-checked against the release asset's ETag on every
+launch, so you pick up a newer snapshot without clearing anything by hand. The supported matrix is
+macOS / Linux / Windows on `arm64` or `x64`; anything else fails with an explicit
+*Unsupported OS/architecture* message.
+
+### Testing against a real session
+
+A plugin screen has nothing to render without a connected debuggee. `runJetWhaleQaAgent` starts a
+headless one and gives you an HTTP control API to push messages at your plugin — see
+[QA Agent](/guide/qa-agent).
 
 ### Limitations
 

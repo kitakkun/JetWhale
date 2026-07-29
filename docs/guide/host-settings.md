@@ -1,6 +1,16 @@
 # Host Settings
 
-The JetWhale host's behavior is configured from its **Settings** screen.
+The JetWhale host's behavior is configured from its **Settings** screen, opened from the gear icon in
+the [drawer](/guide/host-window#the-rest-of-the-drawer).
+
+Settings are organized into four **sections**, each holding one or more **pages**:
+
+| Section | Pages |
+|---------|-------|
+| **General** | [Appearance](#appearance), [Application](#application) |
+| **Connection** | [Debug Server](#debug-server), [SSL Certificate](#ssl-certificates), [ADB Support](#adb-support) |
+| **AI Agents** | [MCP Server](#mcp-server), [Permissions](#mcp-permissions) |
+| **Plugins** | [Installed Plugins](#plugins), [Add Plugins](#plugins), [Security](#plugin-trust) |
 
 ::: tip Window size and position
 The host remembers its window size and position across launches automatically (when the window is
@@ -10,8 +20,6 @@ configure.
 
 ## General
 
-The **Settings → General** screen groups the host-wide options:
-
 ### Appearance
 
 | Setting | Description |
@@ -19,88 +27,48 @@ The **Settings → General** screen groups the host-wide options:
 | **Language** | UI language of the host: **English** or **Japanese**. |
 | **Theme** | Color scheme: `builtin:dynamic`, `builtin:light`, or `builtin:dark`. |
 
-### Maintenance
+### Application
 
-- **Application data directory** — shows the host's app-data path (normally `~/.jetwhale/`) with a
+Everything about *this install* of the host.
+
+**Maintenance**
+
+- **Application Data Directory** — shows the host's app-data path (normally `~/.jetwhale/`) with a
   shortcut to open it in your file manager.
-- **View application logs** — opens the built-in log viewer.
+- **View Application Logs** — opens the built-in [log viewer](/guide/host-window#the-log-viewer).
 
-### Updates
+**Updates**
 
-- **Current version** — the running host version.
-- **Check for updates on startup** — toggle the automatic update check.
-- **Check for updates** — check immediately; when an update is found you can install it or open the
-  download page.
+- **Current Version** — the running host version.
+- **Check for updates on startup (notify only)** — toggle the automatic check. Updates are never
+  applied automatically.
+- **Check for Updates** — check immediately. When one is found you can **Install and Relaunch** (on
+  the platforms that support in-app updates) or **Open Download Page**.
 
-## ADB support
+## Connection
 
-The **Settings → Connection → ADB support** page carries the Android port forwarding, plus where
-the host found the tool it needs for it:
+### Debug Server
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| **ADB auto port mapping** | on | Automatically runs `adb reverse` for Android devices as they connect. Inactive on machines without `adb`. See [ADB Auto Port Mapping](/guide/adb-auto-port-mapping). |
-
-- **adb executable path** — shows where JetWhale found `adb` (see
-  [How adb is found](/guide/adb-auto-port-mapping#how-adb-is-found)), or that it is unavailable.
-
-## Server
-
-The **Settings → Server** screen configures the debug WebSocket server and its TLS certificates.
+The **Settings → Connection → Debug Server** page configures the WebSocket server debuggee apps
+connect to.
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| **Debug server port** | `5080` | The plain **ws** port debuggee apps connect to. Must match the `port` in your app's `startJetWhale { connection { ... } }` block. |
-| **wss port** | `5443` | The **secure WebSocket (wss)** port, served alongside plain ws when a certificate is active. Point the agent's `port` at this when it connects over `ssl { }`. |
-| **MCP server port** | `7080` | Port of the built-in [MCP server](/guide/mcp-server) for AI agents. |
+| **Debug Server Port** | `5080` | The plain **ws** port. Must match the `port` in your app's `startJetWhale { connection { ... } }` block. |
 
-The server status line shows the running ports, e.g. *Running on port 5080 (WSS: 5443)* when wss is
-active.
+Editing the port reveals an **Apply** button, which confirms before restarting the server —
+restarting disconnects every session.
 
-The **MCP Server** section also offers copy-ready connection snippets — a `claude mcp add` command
-and a JSON config block, both carrying the port the MCP server is currently running on — plus a link
-to the [MCP Server](/guide/mcp-server) guide.
+The status line above it shows the running ports, e.g. *Running on port 5080 (WSS: 5443)* when wss is
+active, and offers **Retry** if the server failed to bind.
 
-The **MCP Server** section also carries **Permissions** — a checkbox tree deciding what an AI
-agent may do, from read-only observation through to restarting the debug server. See
-[MCP Server → Permissions](/guide/mcp-server#permissions).
-
-Changing the MCP server port here restarts the MCP server immediately. An agent changing it through
-`jetwhale.updateSettings` only persists the value — restarting would drop the agent's own
-connection — so that change takes effect on the next host start.
-
-### Overriding the ports at startup
-
-Each port can also be chosen on the command line, which is handy when several hosts have to run side
-by side (for example one per checkout of the app you are debugging) and would otherwise fight over
-the same defaults:
-
-| Option | Overrides |
-|--------|-----------|
-| `--server-port <port>` | **Debug server port** |
-| `--wss-port <port>` | **wss port** |
-| `--mcp-server-port <port>` | **MCP server port** |
-
-An option that is not passed keeps using the saved setting. `--wss-port` only picks the port: wss is
-still served only when it is enabled in the settings.
-
-An override applies to that launch only and is never written back, but for as long as it is in force
-it *is* the port the host reports — the **Settings → Server** screen shows it, so the screen and the
-running server never disagree. Changing a port on that screen afterwards wins: the new value is saved
-and the override for that port is retired for the rest of the session.
-
-Pass them to the [runnable uber jar](/guide/getting-started):
-
-```bash
-java -jar jetwhale-host-<version>-<osArch>.jar --server-port 5081 --mcp-server-port 7081
-```
-
-When you launch the host from a plugin project with
-[`runJetWhale`](/guide/developing-plugins) (or `runJetWhaleHot`), pass them with `--args`:
-
-```bash
-./gradlew :myPlugin:runJetWhale --args="--server-port 5081 --mcp-server-port 7081"
-```
+::: tip The wss port has no field of its own
+The **secure WebSocket (wss)** port (default `5443`) and whether the wss connector is exposed at all
+are not editable on this screen. They are set at launch with [`--wss-port`](#overriding-the-ports-at-startup),
+or by an AI agent through `jetwhale.updateSettings` (`wssPort` / `wssEnabled`). In practice you only
+need to generate a certificate under [SSL Certificate](#ssl-certificates) and point the agent's
+`port` at 5443.
+:::
 
 ### SSL certificates
 
@@ -143,12 +111,53 @@ unaffected.
   certificate **at generation time**. If your machine's IP changes, **regenerate the certificate**
   so LAN clients still pass hostname verification.
 
+### ADB support
+
+The **Settings → Connection → ADB Support** page carries the Android port forwarding, plus where
+the host found the tool it needs for it:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **Automatically wire ADB port to host PC port** | on | Runs `adb reverse` for Android devices as they connect. Inactive on machines without `adb`. See [ADB Auto Port Mapping](/guide/adb-auto-port-mapping). |
+
+Under **Health Check**, **ADB Executable Path** shows where JetWhale found `adb` (see
+[How adb is found](/guide/adb-auto-port-mapping#how-adb-is-found)), or *ADB command not found*.
+
+## AI Agents
+
+### MCP Server
+
+The **Settings → AI Agents → MCP Server** page configures the built-in
+[MCP server](/guide/mcp-server) for AI agents.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **MCP Server Port** | `7080` | Port the MCP server's SSE endpoint listens on, bound to localhost. |
+
+Below it are copy-ready connection snippets — a `claude mcp add` command and a JSON config block,
+both carrying the port the MCP server is *currently* running on — plus **Open setup guide**, which
+links to the [MCP Server](/guide/mcp-server) page.
+
+Changing the MCP server port here restarts the MCP server immediately (after a confirmation). An
+agent changing it through `jetwhale.updateSettings` only persists the value — restarting would drop
+the agent's own connection — so that change takes effect on the next host start.
+
+### MCP Permissions
+
+The **Settings → AI Agents → Permissions** page is a checkbox tree deciding what an AI agent may do,
+from read-only observation through to restarting the debug server. See
+[MCP Server → Permissions](/guide/mcp-server#permissions).
+
 ## Plugins
+
+The **Installed Plugins** page lists what is loaded; **Add Plugins** is where new ones come from and
+**Security** holds the trust settings below.
 
 Installed plugins live in `~/.jetwhale/plugins/`. There are three ways to install one:
 
-- **Official Plugins** — one-click install for officially published plugins (e.g. the Network
-  Inspector), no coordinates needed. The artifact version matching the running host is fetched
+- **Official Plugins** — one-click install from the official catalog, no coordinates needed. The
+  catalog currently holds the [Network Inspector](/guide/network-inspector) and the
+  [Nav3 Navigator](/guide/nav3-navigator). The artifact version matching the running host is fetched
   from Maven Central, falling back to the matching snapshot build when the release is not
   published yet (snapshot hosts fetch their matching snapshot directly).
 - **Install from Maven** — enter the plugin's `group:artifact:version` and pick a repository
@@ -218,4 +227,56 @@ signing back off, because deleting the key requires credential-store access — 
 What stays outside scope is an attacker who can already reach the credential store, or who runs code
 as you and modifies JetWhale itself; protecting against full control of your user account is not a
 goal of this mechanism.
+:::
+
+## Command-line options
+
+### Overriding the ports at startup
+
+Each port can also be chosen on the command line, which is handy when several hosts have to run side
+by side (for example one per checkout of the app you are debugging) and would otherwise fight over
+the same defaults:
+
+| Option | Overrides |
+|--------|-----------|
+| `--server-port <port>` | **Debug Server Port** |
+| `--wss-port <port>` | **wss port** |
+| `--mcp-server-port <port>` | **MCP Server Port** |
+
+An option that is not passed keeps using the saved setting. `--wss-port` only picks the port: wss is
+still served only when it is enabled in the settings.
+
+An override applies to that launch only and is never written back, but for as long as it is in force
+it *is* the port the host reports — the settings screen shows it, so the screen and the running
+server never disagree. Changing a port on that screen afterwards wins: the new value is saved and the
+override for that port is retired for the rest of the session.
+
+Pass them to the [runnable uber jar](/guide/getting-started):
+
+```bash
+java -jar jetwhale-host-<version>-<osArch>.jar --server-port 5081 --mcp-server-port 7081
+```
+
+When you launch the host from a plugin project with
+[`runJetWhale`](/guide/developing-plugins) (or `runJetWhaleHot`), pass them with `--args`:
+
+```bash
+./gradlew :myPlugin:runJetWhale --args="--server-port 5081 --mcp-server-port 7081"
+```
+
+### Other options
+
+| Option | Default | What it does |
+|--------|---------|--------------|
+| `--plugin-dir <path>` | — | Load plugins from an additional directory, on top of `~/.jetwhale/plugins/`. **Repeatable.** |
+| `--log-level <level>` | `WARN` | Minimum level the host's own logging emits: `DEBUG`, `INFO`, `WARN` or `ERROR`. Raise it when diagnosing a plugin that will not load, then read the result in the [log viewer](/guide/host-window#the-log-viewer). |
+| `--mcp-allow-all-permissions` | off | Allows every MCP tool for that process only — see [MCP Server → Lifting every permission for one launch](/guide/mcp-server#lifting-every-permission-for-one-launch). |
+
+Ports are validated at parse time (they must be in `1..65535`), so a typo is reported immediately
+rather than as a bind failure later. Unrecognized arguments are ignored.
+
+::: tip Plugin developers use a sandbox, not `~/.jetwhale`
+`runJetWhale` / `runJetWhaleHot` also set `-Djetwhale.appDataDir` and `-Djetwhale.devPluginsDir`, so
+the whole app-data directory described on this page is redirected into a per-project sandbox. See
+[Developing Plugins → Isolated sandbox environment](/guide/developing-plugins#isolated-sandbox-environment).
 :::
