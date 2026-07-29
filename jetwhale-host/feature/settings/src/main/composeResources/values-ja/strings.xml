@@ -118,4 +118,5 @@
     <string name="no_plugins_installed">プラグインはまだインストールされていません。下の公式カタログ、Maven、またはローカルファイルからインストールできます。</string>
     <string name="maven_install_repository_label">リポジトリ</string>
     <string name="maven_install_repository_custom">カスタムURL</string>
+    <string name="log_viewer_window_title">ログビューワー</string>
 </resources>

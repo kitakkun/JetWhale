@@ -5,17 +5,12 @@ plugins {
 
 dependencies {
     implementation(projects.jetwhaleHost.core.model)
-    implementation(projects.jetwhaleHost.core.architecture)
     implementation(projects.jetwhaleHost.core.navigation)
+    implementation(projects.jetwhaleHost.feature.settings)
+    implementation(projects.jetwhaleHost.feature.plugin)
 
     implementation(libs.bundles.navigation3)
     implementation(libs.kotlinxSerializationJson)
-    implementation(libs.kotlinxCollectionsImmutable)
-    implementation(libs.kotlinxDatetime)
-    implementation(libs.aboutLibrariesComposeM3)
-    testImplementation(libs.kotlinTest)
-}
 
-compose.resources {
-    packageOfResClass = "com.kitakkun.jetwhale.host.settings"
+    testImplementation(libs.kotlinTest)
 }

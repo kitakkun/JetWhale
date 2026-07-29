@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.navigation
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -16,11 +17,7 @@ import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SceneStrategyScope
-import com.kitakkun.jetwhale.host.LocalComposeWindow
-import com.kitakkun.jetwhale.host.Res
-import com.kitakkun.jetwhale.host.app_icon
 import com.kitakkun.jetwhale.host.ui.isShortcutModifierPressed
-import org.jetbrains.compose.resources.painterResource
 
 data class WindowProperties(
     val windowPlacement: WindowPlacement = WindowPlacement.Floating,
@@ -40,6 +37,7 @@ internal data class WindowEntry<T : Any>(
 // window keeps its position and size.
 internal class WindowOverlayScene<T : Any>(
     private val windowEntry: WindowEntry<T>,
+    private val windowIcon: Painter,
     override val previousEntries: List<NavEntry<T>>,
     override val overlaidEntries: List<NavEntry<T>>,
     private val onCloseRequest: (NavEntry<T>) -> Unit,
@@ -55,7 +53,7 @@ internal class WindowOverlayScene<T : Any>(
 
         Window(
             state = windowState,
-            icon = painterResource(Res.drawable.app_icon),
+            icon = windowIcon,
             onCloseRequest = { onCloseRequest(windowEntry.entry) },
             onPreviewKeyEvent = { keyEvent ->
                 if (keyEvent.type == KeyEventType.KeyDown && keyEvent.isShortcutModifierPressed && keyEvent.key == Key.W) {
@@ -86,7 +84,14 @@ internal class WindowOverlayScene<T : Any>(
     override fun hashCode(): Int = key.hashCode()
 }
 
+/**
+ * Displays entries that carry [window] metadata in their own desktop window.
+ *
+ * [windowIcon] is passed in rather than read from a resource so this strategy stays independent of
+ * whichever module owns the application icon.
+ */
 class WindowSceneStrategy<T : Any>(
+    private val windowIcon: Painter,
     private val onCloseRequestForContentKey: (Any) -> Unit,
 ) : SceneStrategy<T> {
     override fun SceneStrategyScope<T>.calculateScene(entries: List<NavEntry<T>>): Scene<T>? {
@@ -106,6 +111,7 @@ class WindowSceneStrategy<T : Any>(
 
         return WindowOverlayScene(
             windowEntry = WindowEntry(entry, properties),
+            windowIcon = windowIcon,
             previousEntries = overlaidEntries,
             overlaidEntries = overlaidEntries,
             onCloseRequest = onCloseRequest,

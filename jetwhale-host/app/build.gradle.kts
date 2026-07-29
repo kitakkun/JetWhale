@@ -123,6 +123,7 @@ kotlin {
 dependencies {
     implementation(projects.jetwhaleHostSdk)
     implementation(projects.jetwhaleProtocol.core)
+    implementation(projects.jetwhaleHost.appShared)
     implementation(projects.jetwhaleHost.feature.settings)
     implementation(projects.jetwhaleHost.feature.plugin)
     implementation(projects.jetwhaleHost.core.model)
@@ -130,6 +131,7 @@ dependencies {
     implementation(projects.jetwhaleHost.core.mcp)
     implementation(projects.jetwhaleHost.core.architecture)
     implementation(projects.jetwhaleHost.core.ui)
+    implementation(projects.jetwhaleHost.core.navigation)
 
     implementation(libs.bundles.navigation3)
     implementation(libs.kotlinxSerializationJson)
@@ -140,6 +142,7 @@ dependencies {
     implementation(libs.aboutLibrariesCore)
 
     implementation(libs.jetbrainsComposeMaterialIconsExtended)
+    implementation(libs.lifecycleRuntimeCompose)
     testImplementation(libs.kotlinTest)
 
     // Machine-specific Compose runtime dependencies resolved by Conveyor

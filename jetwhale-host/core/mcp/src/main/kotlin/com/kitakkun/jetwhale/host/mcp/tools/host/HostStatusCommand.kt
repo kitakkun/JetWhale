@@ -8,7 +8,7 @@ import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
-import com.kitakkun.jetwhale.host.model.HostNavigationService
+import com.kitakkun.jetwhale.host.model.HostNavigator
 import com.kitakkun.jetwhale.host.model.HostOs
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.HostViewState
@@ -42,7 +42,7 @@ class HostStatusCommand(
     private val pluginInstallProgressRepository: PluginInstallProgressRepository,
     private val settingsRepository: DebuggerSettingsRepository,
     private val mcpPermissionsRepository: McpPermissionsRepository,
-    private val hostNavigationService: HostNavigationService,
+    private val hostNavigator: HostNavigator,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.getStatus"
     override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
@@ -82,7 +82,7 @@ class HostStatusCommand(
                     persistData = settingsRepository.persistDataFlow.value,
                 ),
                 permissions = mcpPermissionsRepository.permissionsFlow.value.toJson(),
-                ui = hostNavigationService.currentView.value?.toJson(),
+                ui = hostNavigator.currentView.value?.toJson(),
             ),
         )
     }

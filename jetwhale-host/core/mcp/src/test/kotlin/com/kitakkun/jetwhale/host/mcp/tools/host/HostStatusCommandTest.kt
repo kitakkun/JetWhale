@@ -10,7 +10,7 @@ import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
-import com.kitakkun.jetwhale.host.model.HostNavigationService
+import com.kitakkun.jetwhale.host.model.HostNavigator
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.HostViewState
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
@@ -77,7 +77,7 @@ class HostStatusCommandTest {
             every { persistDataFlow } returns MutableStateFlow(false)
         },
         mcpPermissionsRepository = permissions,
-        hostNavigationService = mock<HostNavigationService> {
+        hostNavigator = mock<HostNavigator> {
             every { this@mock.currentView } returns this@HostStatusCommandTest.currentView
         },
     )

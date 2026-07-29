@@ -10,7 +10,6 @@ import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
-import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.McpPermissionOverride
@@ -22,9 +21,13 @@ import com.kitakkun.jetwhale.host.model.ServerPortOverrides
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
 import com.kitakkun.jetwhale.host.model.UpdateCheckMutationKey
 import com.kitakkun.jetwhale.host.model.WindowStateRepository
+import com.kitakkun.jetwhale.host.navigation.NavEntryProvider
+import com.kitakkun.jetwhale.host.plugin.PluginNavigator
 import com.kitakkun.jetwhale.host.plugin.PluginScreenContext
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 import com.kitakkun.jetwhale.host.settings.licenses.LicensesScreenContext
+import com.kitakkun.jetwhale.host.shell.NavigationBus
+import com.kitakkun.jetwhale.host.shell.ToolingScaffoldNavigator
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
@@ -47,10 +50,15 @@ interface JetWhaleAppGraph : ScreenContext {
     val settingsScreenContext: SettingsScreenContext
     val pluginScreenContextFactory: PluginScreenContext.Factory
 
+    /** Every screen's entry, collected from the graph so the navigation host names none of them. */
+    val navEntryProviders: Set<NavEntryProvider>
+    val navigationBus: NavigationBus
+    val toolingScaffoldNavigator: ToolingScaffoldNavigator
+    val pluginNavigator: PluginNavigator
+
     val themeSubscriptionKey: ThemeSubscriptionKey
     val appearanceSettingsSubscriptionKey: AppearanceSettingsSubscriptionKey
     val debugWebSocketServer: DebugWebSocketServer
-    val hostNavigationService: HostNavigationService
     val pluginComposeSceneService: PluginComposeSceneService
     val pluginInstanceService: PluginInstanceService
     val pluginHotReloadService: PluginHotReloadService
