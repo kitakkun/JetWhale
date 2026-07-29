@@ -1,6 +1,6 @@
 {
   "name": "jetwhale",
-  "description": "Claude Code skills for developing JetWhale host plugins, published from the JetWhale repository so they move with the code they describe.",
+  "description": "Claude Code skills for developing plugins for JetWhale, the Compose Desktop debugging tool.",
   "owner": {
     "name": "kitakkun",
     "url": "https://github.com/kitakkun"
