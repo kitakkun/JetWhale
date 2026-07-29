@@ -1,9 +1,10 @@
 # JetWhale plugin for Claude Code
 
-Skills for developing [JetWhale](https://github.com/kitakkun/JetWhale) host plugins.
+Skills for using and extending [JetWhale](https://github.com/kitakkun/JetWhale).
 
 | Skill | What it covers |
 |---|---|
+| `/jetwhale:integrate` | Adding JetWhale to an app you want to debug — surveying the build, HTTP client and DI framework, then wiring startup and traffic capture behind a seam so no JetWhale symbol reaches release builds |
 | `/jetwhale:plugin-qa` | Driving a host plugin's real UI through the debug tool's MCP server — screenshots, gestures, persisted state, restart restore, and a headless debuggee to drive it against |
 
 ## Install
@@ -23,16 +24,20 @@ claude plugin marketplace add kitakkun/JetWhale --sparse .claude-plugin plugins
 
 Either way, installing copies just this directory into `~/.claude/plugins/cache`.
 
-## Why the skill lives in the JetWhale repository
+## Why the skills live in the JetWhale repository
 
-A QA skill is only useful while it is true, and what it describes — MCP tool names, the QA agent's
-control API, which ports the launch tasks accept — moves with the code. Keeping it here means a
-change to the host and the change to its documented workflow land in the same commit, reviewed
-together. A separate repository would let the two drift, and a QA guide that quietly lies is worse
-than none.
+A skill is only useful while it is true, and what these describe — MCP tool names, the QA agent's
+control API, which ports the launch tasks accept, the published artifact coordinates — moves with
+the code. Keeping them here means a change to the host and the change to its documented workflow
+land in the same commit, reviewed together. A separate repository would let the two drift, and a
+guide that quietly lies is worse than none.
 
 ## Requirements
 
-The skill assumes your plugin module applies the `com.kitakkun.jetwhale.host` Gradle plugin and sets
-`jetwhalePlugin.hostVersion`; that is what provides the `runJetWhale` and `runJetWhaleQaAgent` tasks
-it drives. See the [plugin development guide](https://github.com/kitakkun/JetWhale/tree/main/docs).
+`/jetwhale:integrate` runs against the app you want to debug and needs nothing installed beyond
+that project; it will tell you if the project's Kotlin version is too old.
+
+`/jetwhale:plugin-qa` assumes your plugin module applies the `com.kitakkun.jetwhale.host` Gradle
+plugin and sets `jetwhalePlugin.hostVersion`; that is what provides the `runJetWhale` and
+`runJetWhaleQaAgent` tasks it drives. See the
+[plugin development guide](https://github.com/kitakkun/JetWhale/tree/main/docs).

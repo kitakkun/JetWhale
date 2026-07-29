@@ -1,7 +1,7 @@
 {
   "name": "jetwhale",
-  "description": "Skills for developing JetWhale host plugins — currently a QA workflow that drives a plugin's real UI through the debug tool's MCP server.",
-  "version": "0.1.0",
+  "description": "Skills for JetWhale, the Compose Desktop debugging tool — integrating it into an app you want to debug, and QA-ing host plugins through the debug tool's MCP server.",
+  "version": "0.2.0",
   "author": {
     "name": "kitakkun",
     "url": "https://github.com/kitakkun"
