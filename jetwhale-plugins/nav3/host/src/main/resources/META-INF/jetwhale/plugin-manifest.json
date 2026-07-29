@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../../../../../schemas/plugin-manifest.schema.json",
+  "plugins": [
+    {
+      "pluginId": "com.kitakkun.jetwhale.nav3",
+      "pluginName": "Nav3 Navigator",
+      "version": "1.0.0",
+      "factoryClass": "com.kitakkun.jetwhale.plugins.nav3.host.Nav3HostPluginFactory",
+      "agentVersionRange": {
+        "min": "1.0.0",
+        "max": "1.0.0"
+      },
+      "icon": {
+        "activePath": "icons/nav3_filled.svg",
+        "inactivePath": "icons/nav3_outlined.svg"
+      }
+    }
+  ]
+}

@@ -10,6 +10,9 @@ plugins {
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.composeCompiler)
+    // The demo's NavKeys are @Serializable: that is what Navigation 3 saved state — and the Nav3
+    // plugin's key catalog — are both built on.
+    alias(libs.plugins.kotlinxSerialization)
 }
 
 kotlin {
@@ -47,6 +50,9 @@ kotlin {
             implementation(projects.jetwhalePlugins.example.protocol)
             implementation(projects.jetwhalePlugins.network.agent)
             implementation(projects.jetwhalePlugins.network.agentKtor)
+            implementation(projects.jetwhalePlugins.nav3.agent)
+            implementation(libs.navigation3Runtime)
+            implementation(libs.navigation3Ui)
             implementation(libs.ktorClientCio)
         }
 

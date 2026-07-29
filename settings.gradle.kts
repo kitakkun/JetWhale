@@ -51,6 +51,10 @@ include(":jetwhale-plugins:network:agent-ktor")
 include(":jetwhale-plugins:network:agent-okhttp")
 include(":jetwhale-plugins:network:host")
 
+include(":jetwhale-plugins:nav3:protocol")
+include(":jetwhale-plugins:nav3:agent")
+include(":jetwhale-plugins:nav3:host")
+
 include(":test-annotations")
 
 include(":tools:qa-agent")

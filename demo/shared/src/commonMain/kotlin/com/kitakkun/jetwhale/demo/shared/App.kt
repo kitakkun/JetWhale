@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 @Composable
 fun App() {
     var selectedTab by remember { mutableStateOf(0) }
+    val nav3BackStack = rememberTrackedDemoNavBackStack()
     MaterialTheme {
         Surface {
             Scaffold(
@@ -43,10 +44,15 @@ fun App() {
                             onClick = { selectedTab = 1 },
                             text = { Text("Network plugin") },
                         )
+                        Tab(
+                            selected = selectedTab == 2,
+                            onClick = { selectedTab = 2 },
+                            text = { Text("Nav3 plugin") },
+                        )
                         platformExtraTabLabel?.let { label ->
                             Tab(
-                                selected = selectedTab == 2,
-                                onClick = { selectedTab = 2 },
+                                selected = selectedTab == 3,
+                                onClick = { selectedTab = 3 },
                                 text = { Text(label) },
                             )
                         }
@@ -54,6 +60,7 @@ fun App() {
                     when (selectedTab) {
                         0 -> ExampleTestScreen()
                         1 -> NetworkTestScreen()
+                        2 -> Nav3TestScreen(nav3BackStack)
                         else -> PlatformExtraTabScreen()
                     }
                 }

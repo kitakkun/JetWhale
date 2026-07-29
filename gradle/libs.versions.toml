@@ -81,6 +81,9 @@ jetbrainsComposeUiTestJUnit4 = { module = "org.jetbrains.compose.ui:ui-test-juni
 material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
 
 # navigation3
+# The runtime is published by AndroidX itself as a Kotlin Multiplatform artifact (the JetBrains
+# navigation3-ui port depends on this very module), so it is the one to compile the agent against.
+navigation3Runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "navigation3" }
 navigation3Ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
 navigation3Adaptive = { module = "org.jetbrains.compose.material3.adaptive:adaptive-navigation3", version.ref = "material3Adaptive" }
 lifecycleViewModelNavigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycle" }
