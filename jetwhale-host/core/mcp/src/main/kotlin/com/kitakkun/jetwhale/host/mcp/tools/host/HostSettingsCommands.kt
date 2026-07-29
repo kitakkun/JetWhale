@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.host.mcp.HostMcpCommand
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import dev.zacsweers.metro.AppScope
@@ -24,6 +25,7 @@ class UpdateSettingsCommand(
     private val debugWebSocketServer: DebugWebSocketServer,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.updateSettings"
+    override val group: McpHostToolGroup = McpHostToolGroup.SETTINGS_AND_SERVERS
     override val description: String =
         "Host-wide: changes the debug tool's settings. Only the arguments you supply are touched. Changing a ws/wss setting restarts the debug server, which drops every agent session — pass restartDebugServer=false to persist the change and apply it later instead."
 
@@ -118,6 +120,7 @@ class RestartDebugServerCommand(
     private val debugWebSocketServer: DebugWebSocketServer,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.restartDebugServer"
+    override val group: McpHostToolGroup = McpHostToolGroup.SETTINGS_AND_SERVERS
     override val description: String =
         "Host-wide: stops and restarts the debug WebSocket server that agents connect to. This disconnects every session — every sessionId you hold becomes invalid and each app has to reconnect."
 

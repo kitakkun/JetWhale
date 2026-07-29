@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.LogEntry
 import com.kitakkun.jetwhale.host.model.LogLevel
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import dev.zacsweers.metro.AppScope
@@ -25,6 +26,7 @@ class GetLogsCommand(
     private val logCaptureService: LogCaptureService,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.getLogs"
+    override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String =
         "Host-wide: reads the debug tool's own captured stdout/stderr, oldest first. Use it to diagnose JetWhale itself — plugin load failures, server errors — not the debugged app's logs."
 
@@ -62,6 +64,7 @@ class ClearLogsCommand(
     private val logCaptureService: LogCaptureService,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.clearLogs"
+    override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String =
         "Host-wide: discards every captured host log entry. Clear before reproducing an issue so that jetwhale.getLogs afterwards shows only what the reproduction produced."
 

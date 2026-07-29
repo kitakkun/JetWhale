@@ -54,14 +54,13 @@ fun List<NavKey>.toHostDestination(): HostDestination {
 fun HostSettingsSection.toPage(): SettingsScreenPage = when (this) {
     HostSettingsSection.GENERAL -> SettingsScreenSection.General.firstPage
     HostSettingsSection.SERVER -> SettingsScreenSection.Connection.firstPage
+    HostSettingsSection.AI_AGENTS -> SettingsScreenSection.AiAgents.firstPage
     HostSettingsSection.PLUGINS -> SettingsScreenSection.Plugins.firstPage
 }
 
 private fun SettingsScreenPage.toHostSettingsSection(): HostSettingsSection = when (section) {
     SettingsScreenSection.General -> HostSettingsSection.GENERAL
-
-    // The MCP server used to live under Server; an agent still asks for it by section.
-    SettingsScreenSection.Connection, SettingsScreenSection.AiAgents -> HostSettingsSection.SERVER
-
+    SettingsScreenSection.Connection -> HostSettingsSection.SERVER
+    SettingsScreenSection.AiAgents -> HostSettingsSection.AI_AGENTS
     SettingsScreenSection.Plugins -> HostSettingsSection.PLUGINS
 }

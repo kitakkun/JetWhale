@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.cli
 
+import com.kitakkun.jetwhale.host.model.McpPermissionOverride
 import com.kitakkun.jetwhale.host.model.ServerPortOverrides
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -99,6 +100,21 @@ class CommandLineArgumentsResolverTest {
             ServerPortOverrides(serverPort = 5081, wssPort = null, mcpServerPort = null),
             options.serverPortOverrides,
         )
+    }
+
+    @Test
+    fun `MCP permissions are left to the stored settings unless the flag is passed`() {
+        val options = CommandLineArgumentsParser().parse(arrayOf("--server-port", "5081"))
+
+        assertEquals(McpPermissionOverride.None, options.mcpPermissionOverride)
+    }
+
+    @Test
+    fun `the allow-all flag takes no value and lifts every MCP permission for the launch`() {
+        // Automated QA has to reach tools a human would otherwise have to tick a checkbox for.
+        val options = CommandLineArgumentsParser().parse(arrayOf("--mcp-allow-all-permissions"))
+
+        assertEquals(McpPermissionOverride(allowAll = true), options.mcpPermissionOverride)
     }
 
     @Test

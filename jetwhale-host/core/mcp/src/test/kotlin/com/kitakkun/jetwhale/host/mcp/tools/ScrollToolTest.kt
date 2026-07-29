@@ -14,6 +14,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.mcp.FakeMcpActivityRepository
+import com.kitakkun.jetwhale.host.mcp.FakeMcpPermissionsRepository
 import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
@@ -143,7 +144,7 @@ class ScrollToolTest {
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
         )
-        ScrollMcpTool(FakePluginComposeSceneService(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository()))
+        ScrollMcpTool(FakePluginComposeSceneService(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
         val handler = server.tools.getValue("jetwhale.scroll").handler
 
         // Only deltaY is provided; deltaX is omitted and must default to 0.
@@ -193,7 +194,7 @@ class ScrollToolTest {
             serverInfo = Implementation(name = "test", version = "1.0.0"),
             options = ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools())),
         )
-        ScrollMcpTool(FakePluginComposeSceneService(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository()))
+        ScrollMcpTool(FakePluginComposeSceneService(scene)).register(McpToolRegistrar(server, FakeMcpActivityRepository(), FakeMcpPermissionsRepository()))
         val handler = server.tools.getValue("jetwhale.scroll").handler
 
         // deltaX is present but non-numeric; it must be rejected instead of silently treated as 0.

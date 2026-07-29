@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.host.mcp
 
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
+import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
@@ -36,11 +38,18 @@ abstract class HostMcpCommand :
     // so caching it here only avoids rebuilding it once per SSE connection.
     private val descriptor by lazy { toDescriptor() }
 
+    /**
+     * Which host group this command belongs to. Abstract rather than defaulted: a new host tool has
+     * to state its blast radius, and the safest group is not a sensible guess for all of them.
+     */
+    abstract val group: McpHostToolGroup
+
     final override fun register(registrar: McpToolRegistrar) {
         registrar.addTool(
             name = descriptor.name,
             description = descriptor.description,
             inputSchema = descriptor.toToolSchema(),
+            permission = McpToolPermission.HostGroup(group),
         ) { request ->
             try {
                 val result = execute(JetWhaleMcpArguments(JsonObject(request.arguments ?: emptyMap())))

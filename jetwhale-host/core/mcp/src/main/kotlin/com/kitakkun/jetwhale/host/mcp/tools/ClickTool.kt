@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.successResult
 import com.kitakkun.jetwhale.host.mcp.viewport.ensureSceneRendered
+import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import dev.zacsweers.metro.AppScope
@@ -44,6 +45,7 @@ class ClickMcpTool(
                 ),
                 required = listOf("pluginId", "sessionId", "x", "y"),
             ),
+            permission = McpToolPermission.PluginInteract,
         ) { request ->
             val pluginId = request.arguments?.get("pluginId")?.jsonContent
                 ?: return@addTool errorResult("Missing required argument: pluginId")

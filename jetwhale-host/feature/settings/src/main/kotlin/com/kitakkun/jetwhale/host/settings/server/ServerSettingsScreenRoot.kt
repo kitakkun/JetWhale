@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.settings.server
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import soil.query.compose.rememberSubscription
@@ -18,7 +19,8 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
         state2 = rememberSubscription(screenContext.mcpServerStatusSubscriptionKey),
         state3 = rememberSubscription(screenContext.settingsSubscriptionKey),
         state4 = rememberSubscription(screenContext.sslCertificatesSubscriptionKey),
-    ) { serverStatus, mcpServerStatus, debuggerSettings, sslCertificates ->
+        state5 = rememberSubscription(screenContext.mcpPermissionsSnapshotSubscriptionKey),
+    ) { serverStatus, mcpServerStatus, debuggerSettings, sslCertificates, mcpPermissionsSnapshot ->
         val screenChannel = rememberScreenChannel<ServerSettingsScreenAction, Nothing>()
         val uiState = context(screenContext.presenterContext) {
             serverSettingsScreenPresenter(
@@ -27,6 +29,7 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
                 mcpServerStatus = mcpServerStatus,
                 debuggerSettings = debuggerSettings,
                 sslCertificates = sslCertificates,
+                mcpPermissionsSnapshot = mcpPermissionsSnapshot,
             )
         }
 
@@ -64,8 +67,17 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
                     e.printStackTrace()
                 }
             },
-            onMcpPluginInstallAllowedChange = {
-                screenChannel.send(ServerSettingsScreenAction.SetMcpPluginInstallAllowed(it))
+            onSetHostGroupAllowed = { group, allowed ->
+                screenChannel.send(ServerSettingsScreenAction.SetHostGroupAllowed(group, allowed))
+            },
+            onSetPluginInspectAllowed = { pluginId, allowed ->
+                screenChannel.send(ServerSettingsScreenAction.SetPluginInspectAllowed(pluginId, allowed))
+            },
+            onSetPluginInteractAllowed = { pluginId, allowed ->
+                screenChannel.send(ServerSettingsScreenAction.SetPluginInteractAllowed(pluginId, allowed))
+            },
+            onSetPluginToolAllowed = { toolName, allowed ->
+                screenChannel.send(ServerSettingsScreenAction.SetPluginToolAllowed(toolName, allowed))
             },
             onAddCertificate = {
                 screenChannel.send(ServerSettingsScreenAction.AddCertificate)

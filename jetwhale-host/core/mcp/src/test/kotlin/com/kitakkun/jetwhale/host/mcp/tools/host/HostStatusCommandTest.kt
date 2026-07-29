@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools.host
 
+import com.kitakkun.jetwhale.host.mcp.FakeMcpPermissionsRepository
 import com.kitakkun.jetwhale.host.mcp.McpServerStatusHolder
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
@@ -12,6 +13,7 @@ import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.HostViewState
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
@@ -28,12 +30,15 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class HostStatusCommandTest {
+
+    private val permissions = FakeMcpPermissionsRepository()
 
     private val currentView = MutableStateFlow<HostViewState?>(null)
     private val mcpServerStatusHolder = McpServerStatusHolder().apply {
@@ -70,8 +75,8 @@ class HostStatusCommandTest {
             every { adbAutoPortMappingEnabledFlow } returns MutableStateFlow(true)
             every { checkForUpdatesOnStartupFlow } returns MutableStateFlow(true)
             every { persistDataFlow } returns MutableStateFlow(false)
-            every { mcpPluginInstallAllowedFlow } returns MutableStateFlow(false)
         },
+        mcpPermissionsRepository = permissions,
         hostNavigationService = mock<HostNavigationService> {
             every { this@mock.currentView } returns this@HostStatusCommandTest.currentView
         },
@@ -129,9 +134,33 @@ class HostStatusCommandTest {
     }
 
     @Test
-    fun `getStatus reports whether installing plugins over MCP is allowed`() = runBlocking {
-        // Without this an agent could only discover the gate by attempting an install and being refused.
-        assertFalse(command.execute(arguments()).decode().settings.mcpPluginInstallAllowed)
+    fun `getStatus reports which permissions the agent has`() = runBlocking {
+        // Without this an agent could only discover a denial by calling a tool and being refused.
+        val permissions = command.execute(arguments()).decode().permissions
+
+        assertEquals(McpHostToolGroup.entries.map { it.name }.sorted(), permissions.allowedHostGroups)
+        assertTrue(permissions.deniedHostGroups.isEmpty())
+        assertTrue(permissions.pluginsWithInspectDenied.isEmpty())
+        assertTrue(permissions.pluginsWithInteractDenied.isEmpty())
+        assertTrue(permissions.deniedPluginTools.isEmpty())
+        assertContains(permissions.changeableIn, "Permissions")
+    }
+
+    @Test
+    fun `getStatus separates the denied host groups from the allowed ones`() = runBlocking {
+        permissions.setHostGroupAllowed(McpHostToolGroup.SETTINGS_AND_SERVERS, allowed = false)
+        permissions.setPluginInspectAllowed("com.example.secret", allowed = false)
+        permissions.setPluginToolAllowed("com.example.secret.wipe", allowed = false)
+
+        val reported = command.execute(arguments()).decode().permissions
+
+        assertContains(reported.deniedHostGroups, McpHostToolGroup.SETTINGS_AND_SERVERS.name)
+        assertFalse(McpHostToolGroup.SETTINGS_AND_SERVERS.name in reported.allowedHostGroups)
+        assertEquals(listOf("com.example.secret"), reported.pluginsWithInspectDenied)
+        assertEquals(listOf("com.example.secret.wipe"), reported.deniedPluginTools)
+        // Denying inspection says nothing about input; they are reported apart because they are
+        // decided apart.
+        assertTrue(reported.pluginsWithInteractDenied.isEmpty())
     }
 }
 

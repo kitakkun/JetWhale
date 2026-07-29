@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
+import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
@@ -79,6 +80,7 @@ class ListSessionsMcpTool(
             name = "jetwhale.listSessions",
             description = "Lists all active debug sessions currently connected to JetWhale.",
             inputSchema = ToolSchema(),
+            permission = McpToolPermission.Unrestricted,
         ) { _ ->
             val json = listSessions(debugSessionRepository)
             CallToolResult(content = listOf(TextContent(json)))
@@ -105,6 +107,7 @@ class ListPluginsMcpTool(
                 ),
                 required = listOf("sessionId"),
             ),
+            permission = McpToolPermission.Unrestricted,
         ) { request ->
             val sessionId = request.arguments?.get("sessionId")?.let {
                 (it as? JsonPrimitive)?.content

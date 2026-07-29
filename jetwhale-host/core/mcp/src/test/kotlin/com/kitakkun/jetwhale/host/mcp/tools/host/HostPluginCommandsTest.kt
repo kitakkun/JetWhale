@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools.host
 
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
-import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
@@ -48,7 +47,6 @@ class HostPluginCommandsTest {
     private val untrustedJars = MutableStateFlow(listOf("/plugins/unknown.jar"))
     private val enabledPluginIds = MutableStateFlow(setOf("com.example.local"))
     private val installProgress = MutableStateFlow<PluginInstallProgress?>(null)
-    private val installAllowed = MutableStateFlow(false)
 
     private val pluginFactoryRepository = mock<PluginFactoryRepository> {
         every { this@mock.loadedPlugins } returns this@HostPluginCommandsTest.loadedPlugins
@@ -66,9 +64,6 @@ class HostPluginCommandsTest {
     private val pluginInstallProgressRepository = mock<PluginInstallProgressRepository> {
         every { progressFlow } returns installProgress
     }
-    private val settingsRepository = mock<DebuggerSettingsRepository> {
-        every { mcpPluginInstallAllowedFlow } returns installAllowed
-    }
     private val officialPluginInstallService = mock<OfficialPluginInstallService>(MockMode.autoUnit)
 
     private val listInstalledPlugins = ListInstalledPluginsCommand(pluginFactoryRepository, enabledPluginsRepository, pluginTrustService)
@@ -82,7 +77,6 @@ class HostPluginCommandsTest {
         officialPluginInstallService,
         pluginFactoryRepository,
         pluginInstallProgressRepository,
-        settingsRepository,
     )
 
     @Test
@@ -141,17 +135,7 @@ class HostPluginCommandsTest {
     }
 
     @Test
-    fun `installOfficialPlugin is refused when the setting is disabled`(): Unit = runBlocking {
-        val error = assertFailsWith<JetWhaleMcpArgumentException> {
-            installOfficialPlugin.execute(arguments("pluginId" to JsonPrimitive(officialPluginId)))
-        }
-        assertContains(error.message.orEmpty(), "Settings → Server → MCP Server")
-    }
-
-    @Test
     fun `installOfficialPlugin rejects a pluginId that is not in the official catalog`(): Unit = runBlocking {
-        installAllowed.value = true
-
         val error = assertFailsWith<JetWhaleMcpArgumentException> {
             installOfficialPlugin.execute(arguments("pluginId" to JsonPrimitive("com.evil.backdoor")))
         }
@@ -160,7 +144,6 @@ class HostPluginCommandsTest {
 
     @Test
     fun `installOfficialPlugin is refused while another installation is in flight`(): Unit = runBlocking {
-        installAllowed.value = true
         installProgress.value = PluginInstallProgress.DownloadingPlugin
 
         val error = assertFailsWith<JetWhaleMcpArgumentException> {
@@ -171,8 +154,6 @@ class HostPluginCommandsTest {
 
     @Test
     fun `installOfficialPlugin installs the catalog entry and points at the next step`() = runBlocking {
-        installAllowed.value = true
-
         val result = installOfficialPlugin
             .execute(arguments("pluginId" to JsonPrimitive(officialPluginId)))
             .let { Json.decodeFromString<InstallOfficialPluginResult>(it) }
@@ -187,7 +168,6 @@ class HostPluginCommandsTest {
 
     @Test
     fun `installOfficialPlugin reports an already installed plugin without reinstalling it`() = runBlocking {
-        installAllowed.value = true
         loadedPlugins[officialPluginId] = loadedPlugin(officialPluginId, "Network Inspector", requiresAgent = true)
 
         val result = installOfficialPlugin

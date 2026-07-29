@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp
 
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import dev.mokkery.answering.returns
@@ -95,6 +96,7 @@ class HostMcpCommandTest {
             pluginInstanceService = pluginInstanceService,
             mcpActivityRepository = FakeMcpActivityRepository(),
             builtInTools = setOf(command),
+            mcpPermissionsRepository = FakeMcpPermissionsRepository(),
             statusHolder = McpServerStatusHolder(),
         )
         val port = java.net.ServerSocket(0).use { it.localPort }
@@ -115,6 +117,7 @@ private fun CallToolResult.firstText(): String = content.filterIsInstance<TextCo
 
 private class EchoHostCommand : HostMcpCommand() {
     override val name: String = "jetwhale.test.echo"
+    override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String = "Echoes text back."
 
     private val text by string("Text to echo back.")
@@ -125,6 +128,7 @@ private class EchoHostCommand : HostMcpCommand() {
 
 private class ExplodingHostCommand : HostMcpCommand() {
     override val name: String = "jetwhale.test.explode"
+    override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String = "Always fails."
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String = throw IllegalStateException("boom")

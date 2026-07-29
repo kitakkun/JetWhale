@@ -17,6 +17,7 @@ import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
 import com.kitakkun.jetwhale.host.mcp.viewport.isValidForViewport
 import com.kitakkun.jetwhale.host.mcp.viewport.withScopedViewport
+import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import dev.zacsweers.metro.AppScope
@@ -50,6 +51,7 @@ class GetAccessibilityTreeMcpTool(
                 ),
                 required = listOf("pluginId", "sessionId"),
             ),
+            permission = McpToolPermission.PluginInspect,
         ) { request ->
             val pluginId = request.arguments?.get("pluginId")?.jsonContent
                 ?: return@addTool errorResult("Missing required argument: pluginId")

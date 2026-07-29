@@ -15,7 +15,11 @@ import com.kitakkun.jetwhale.host.model.GenerateSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.LogCaptureService
-import com.kitakkun.jetwhale.host.model.McpPluginInstallAllowedMutationKey
+import com.kitakkun.jetwhale.host.model.McpHostGroupPermissionMutationKey
+import com.kitakkun.jetwhale.host.model.McpPermissionsSnapshotSubscriptionKey
+import com.kitakkun.jetwhale.host.model.McpPluginInspectPermissionMutationKey
+import com.kitakkun.jetwhale.host.model.McpPluginInteractPermissionMutationKey
+import com.kitakkun.jetwhale.host.model.McpPluginToolPermissionMutationKey
 import com.kitakkun.jetwhale.host.model.McpServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.McpServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.OfficialPluginInstallMutationKey
@@ -46,7 +50,10 @@ class SettingsPresenterContext(
     val adbAutoPortMappingMutationKey: AdbAutoPortMappingMutationKey,
     val serverPortMutationKey: ServerPortMutationKey,
     val mcpServerPortMutationKey: McpServerPortMutationKey,
-    val mcpPluginInstallAllowedMutationKey: McpPluginInstallAllowedMutationKey,
+    val mcpHostGroupPermissionMutationKey: McpHostGroupPermissionMutationKey,
+    val mcpPluginInspectPermissionMutationKey: McpPluginInspectPermissionMutationKey,
+    val mcpPluginInteractPermissionMutationKey: McpPluginInteractPermissionMutationKey,
+    val mcpPluginToolPermissionMutationKey: McpPluginToolPermissionMutationKey,
     val pluginInstallMutationKey: PluginInstallMutationKey,
     val pluginInstallFromMavenMutationKey: PluginInstallFromMavenMutationKey,
     val trustPluginMutationKey: TrustPluginMutationKey,
@@ -69,6 +76,7 @@ class SettingsPresenterContext(
 @Inject
 class SettingsScreenContext(
     val settingsSubscriptionKey: SettingsSubscriptionKey,
+    val mcpPermissionsSnapshotSubscriptionKey: McpPermissionsSnapshotSubscriptionKey,
     val appearanceSettingsSubscriptionKey: AppearanceSettingsSubscriptionKey,
     val diagnosticsQueryKey: DiagnosticsQueryKey,
     val loadedPluginsMetaDataSubscriptionKey: LoadedPluginsMetaDataSubscriptionKey,

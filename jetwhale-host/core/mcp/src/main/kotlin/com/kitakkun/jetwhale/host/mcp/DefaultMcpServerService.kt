@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.McpActivityRepository
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
+import com.kitakkun.jetwhale.host.model.McpPermissionsRepository
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
@@ -50,6 +51,7 @@ private val CLIENT_LIVENESS_PROBE_PERIOD = 5.seconds
 class DefaultMcpServerService(
     private val pluginInstanceService: PluginInstanceService,
     private val mcpActivityRepository: McpActivityRepository,
+    private val mcpPermissionsRepository: McpPermissionsRepository,
     private val builtInTools: Set<JetWhaleMcpTool>,
     private val statusHolder: McpServerStatusHolder,
 ) : McpServerService {
@@ -200,7 +202,7 @@ class DefaultMcpServerService(
             ),
         )
 
-        val registrar = McpToolRegistrar(server, mcpActivityRepository)
+        val registrar = McpToolRegistrar(server, mcpActivityRepository, mcpPermissionsRepository)
         for (tool in builtInTools) {
             tool.register(registrar)
         }
