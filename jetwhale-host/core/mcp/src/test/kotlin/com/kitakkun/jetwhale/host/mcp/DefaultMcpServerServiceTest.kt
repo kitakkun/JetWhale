@@ -552,7 +552,9 @@ class DefaultMcpServerServiceTest {
         val serviceWithTool = DefaultMcpServerService(
             pluginInstanceService = pluginInstanceService,
             mcpActivityRepository = mcpActivityRepository,
+            mcpPermissionsRepository = FakeMcpPermissionsRepository(),
             builtInTools = setOf(MirroredStructuredMcpTool("fake.mirrored")),
+            statusHolder = McpServerStatusHolder(),
         )
         val mirroredPort = java.net.ServerSocket(0).use { it.localPort }
         serviceWithTool.start(host, mirroredPort)
@@ -635,7 +637,6 @@ class DefaultMcpServerServiceTest {
         assertEquals(testSessionId, invocation.sessionId)
     }
 
-    @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `a plugin error result reaches the agent flagged as an error`() = runBlocking {
         val toolName = "com.example.test.fails"
@@ -645,7 +646,6 @@ class DefaultMcpServerServiceTest {
         assertEquals("no widget with id: 7", callResult.content.filterIsInstance<TextContent>().single().text)
     }
 
-    @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `a caller mistake a plugin throws reaches the agent flagged as an error`() = runBlocking {
         val toolName = "com.example.test.rejects"
@@ -656,7 +656,6 @@ class DefaultMcpServerServiceTest {
         assertEquals("unknown widget id", callResult.content.filterIsInstance<TextContent>().single().text)
     }
 
-    @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `a plugin structured result arrives as structuredContent`() = runBlocking {
         val toolName = "com.example.test.measures"
@@ -672,7 +671,6 @@ class DefaultMcpServerServiceTest {
         assertEquals(payload.toString(), callResult.content.filterIsInstance<TextContent>().single().text)
     }
 
-    @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `a plugin image result arrives as an image block`() = runBlocking {
         val toolName = "com.example.test.captures"
@@ -686,7 +684,6 @@ class DefaultMcpServerServiceTest {
         assertEquals("image/png", image.mimeType)
     }
 
-    @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `a declared output schema reaches the agent on the listed tool`() = runBlocking {
         val toolName = "com.example.test.measures"
@@ -699,7 +696,6 @@ class DefaultMcpServerServiceTest {
         assertEquals(listOf("width", "height"), outputSchema.required)
     }
 
-    @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `a command that declares no output advertises none`() = runBlocking {
         val toolName = "com.example.test.greet"
@@ -709,7 +705,6 @@ class DefaultMcpServerServiceTest {
         assertNull(tool.outputSchema)
     }
 
-    @OptIn(ExperimentalJetWhaleApi::class)
     @Test
     fun `a declared output answers with structured content shaped like its schema`() = runBlocking {
         val toolName = "com.example.test.measures"
@@ -729,7 +724,6 @@ class DefaultMcpServerServiceTest {
      * Starts the service with [plugin] loaded for one session and reads [toolName] off the tool
      * list, which is where an agent learns what the tool takes and answers with.
      */
-    @OptIn(ExperimentalJetWhaleApi::class)
     private suspend fun describePluginTool(plugin: JetWhaleHostPlugin, toolName: String): Tool {
         val pluginId = "com.example.test"
         val sessionId = "test-session-schema"
@@ -755,7 +749,6 @@ class DefaultMcpServerServiceTest {
      * Starts the service with [plugin] loaded for one session and calls [toolName] on it. Every
      * result-shape test needs the same registration dance, and only the answer is interesting.
      */
-    @OptIn(ExperimentalJetWhaleApi::class)
     private suspend fun callPluginTool(plugin: JetWhaleHostPlugin, toolName: String): CallToolResult {
         val pluginId = "com.example.test"
         val sessionId = "test-session-result"
@@ -858,11 +851,10 @@ private class StructuredMcpTool(private val name: String) : JetWhaleMcpTool {
  * Repeats its structured payload as a text block, which is what the protocol asks a structured tool
  * to do for clients that read nothing else — and what [JetWhaleMcpResult.json] produces.
  */
-@OptIn(ExperimentalJetWhaleApi::class)
 private class MirroredStructuredMcpTool(private val name: String) : JetWhaleMcpTool {
     override fun register(registrar: McpToolRegistrar) {
         val payload = buildJsonObject { put("width", 120) }
-        registrar.addTool(name = name, description = "Repeats its payload as text", inputSchema = ToolSchema()) { _ ->
+        registrar.addTool(name = name, description = "Repeats its payload as text", inputSchema = ToolSchema(), permission = McpToolPermission.Unrestricted) { _ ->
             CallToolResult(content = listOf(TextContent(payload.toString())), structuredContent = payload)
         }
     }
@@ -893,7 +885,6 @@ private class FakeMcpCapablePlugin(private val toolName: String = "com.example.t
 }
 
 /** A plugin whose single tool always answers with [result], to check how it reaches the wire. */
-@OptIn(ExperimentalJetWhaleApi::class)
 private class FixedResultPlugin(private val toolName: String, private val result: JetWhaleMcpResult) :
     JetWhaleHostPlugin(),
     JetWhaleMcpCapablePlugin {
@@ -912,7 +903,6 @@ private class FixedResultPlugin(private val toolName: String, private val result
 private data class WidgetMeasurement(val width: Int, val height: Int, val label: String = "")
 
 /** A plugin whose single tool declares the `@Serializable` shape of its answer. */
-@OptIn(ExperimentalJetWhaleApi::class)
 private class DeclaredOutputPlugin(private val toolName: String) :
     JetWhaleHostPlugin(),
     JetWhaleMcpCapablePlugin {
@@ -930,7 +920,6 @@ private class DeclaredOutputPlugin(private val toolName: String) :
 }
 
 /** A plugin whose single tool rejects every call the way a command reports a caller mistake. */
-@OptIn(ExperimentalJetWhaleApi::class)
 private class RejectingMcpCapablePlugin(private val toolName: String) :
     JetWhaleHostPlugin(),
     JetWhaleMcpCapablePlugin {

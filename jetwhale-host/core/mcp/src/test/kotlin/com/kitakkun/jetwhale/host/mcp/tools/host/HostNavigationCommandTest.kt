@@ -85,7 +85,7 @@ class HostNavigationCommandTest {
         )
 
         val result = command
-            .execute(arguments("destination" to JsonPrimitive("SETTINGS"), "settingsSection" to JsonPrimitive("SERVER")))
+            .executeForText(arguments("destination" to JsonPrimitive("SETTINGS"), "settingsSection" to JsonPrimitive("SERVER")))
             .decode()
 
         assertTrue(result.applied)
@@ -100,7 +100,7 @@ class HostNavigationCommandTest {
         )
 
         val result = command
-            .execute(arguments("destination" to JsonPrimitive("SETTINGS"), "settingsSection" to JsonPrimitive("PLUGINS")))
+            .executeForText(arguments("destination" to JsonPrimitive("SETTINGS"), "settingsSection" to JsonPrimitive("PLUGINS")))
             .decode()
 
         assertFalse(result.applied)
@@ -108,7 +108,7 @@ class HostNavigationCommandTest {
 
     @Test
     fun `navigate reports not-applied when the host window never confirms`() = runBlocking {
-        val result = command.execute(arguments("destination" to JsonPrimitive("INFO"))).decode()
+        val result = command.executeForText(arguments("destination" to JsonPrimitive("INFO"))).decode()
 
         assertFalse(result.applied)
         assertContains(result.reason.orEmpty(), "did not report")
@@ -126,7 +126,7 @@ class HostNavigationCommandTest {
         )
 
         val result = command
-            .execute(arguments("destination" to JsonPrimitive("PLUGIN"), "pluginId" to JsonPrimitive("com.example.agent")))
+            .executeForText(arguments("destination" to JsonPrimitive("PLUGIN"), "pluginId" to JsonPrimitive("com.example.agent")))
             .decode()
 
         assertTrue(result.applied)
@@ -135,14 +135,14 @@ class HostNavigationCommandTest {
 
     @Test
     fun `navigate requires a pluginId when the destination is PLUGIN`(): Unit = runBlocking {
-        val error = assertFailsWithArgumentException { command.execute(arguments("destination" to JsonPrimitive("PLUGIN"))) }
+        val error = assertFailsWithArgumentException { command.executeForText(arguments("destination" to JsonPrimitive("PLUGIN"))) }
         assertContains(error, "pluginId is required")
     }
 
     @Test
     fun `navigate rejects a pluginId that is not installed`(): Unit = runBlocking {
         val error = assertFailsWithArgumentException {
-            command.execute(arguments("destination" to JsonPrimitive("PLUGIN"), "pluginId" to JsonPrimitive("com.example.missing")))
+            command.executeForText(arguments("destination" to JsonPrimitive("PLUGIN"), "pluginId" to JsonPrimitive("com.example.missing")))
         }
         assertContains(error, "is not installed")
     }
@@ -150,7 +150,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate rejects a plugin that is installed but disabled`(): Unit = runBlocking {
         val error = assertFailsWithArgumentException {
-            command.execute(arguments("destination" to JsonPrimitive("PLUGIN"), "pluginId" to JsonPrimitive("com.example.disabled")))
+            command.executeForText(arguments("destination" to JsonPrimitive("PLUGIN"), "pluginId" to JsonPrimitive("com.example.disabled")))
         }
         assertContains(error, "disabled")
     }
@@ -158,7 +158,7 @@ class HostNavigationCommandTest {
     @Test
     fun `navigate rejects a session that does not exist`(): Unit = runBlocking {
         val error = assertFailsWithArgumentException {
-            command.execute(
+            command.executeForText(
                 arguments(
                     "destination" to JsonPrimitive("PLUGIN"),
                     "pluginId" to JsonPrimitive("com.example.agent"),
@@ -174,7 +174,7 @@ class HostNavigationCommandTest {
         every { reconciliationService.requiresAgent("com.example.hostonly") } returns true
 
         val error = assertFailsWithArgumentException {
-            command.execute(
+            command.executeForText(
                 arguments(
                     "destination" to JsonPrimitive("PLUGIN"),
                     "pluginId" to JsonPrimitive("com.example.hostonly"),
