@@ -1,5 +1,9 @@
 <resources>
     <string name="settings_title">Settings</string>
+    <string name="settings_section_connection">Connection</string>
+    <string name="settings_section_ai_agents">AI Agents</string>
+    <string name="settings_page_application">Application</string>
+    <string name="settings_page_add_plugins">Add Plugins</string>
     <string name="general">General</string>
     <string name="server">Server</string>
     <string name="plugins">Plugins</string>

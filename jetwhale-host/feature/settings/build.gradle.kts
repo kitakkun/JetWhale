@@ -8,6 +8,7 @@ dependencies {
     implementation(libs.kotlinxCollectionsImmutable)
     implementation(libs.kotlinxDatetime)
     implementation(libs.aboutLibrariesComposeM3)
+    testImplementation(libs.kotlinTest)
 }
 
 compose.resources {

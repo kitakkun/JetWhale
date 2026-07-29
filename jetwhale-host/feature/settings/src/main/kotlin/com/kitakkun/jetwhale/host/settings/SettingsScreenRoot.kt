@@ -9,21 +9,25 @@ import com.kitakkun.jetwhale.host.settings.server.ServerSettingsScreenRoot
 context(screenContext: SettingsScreenContext)
 fun SettingsScreenRoot(
     onClickClose: () -> Unit,
-    initialMenu: SettingsScreenMenu = SettingsScreenMenu.General,
+    initialPage: SettingsScreenPage = SettingsScreenPage.Appearance,
     onOpenLogViewer: () -> Unit = {},
 ) {
     SettingsScreenScaffoldRoot(
-        initialMenu = initialMenu,
+        initialPage = initialPage,
         onClickClose = onClickClose,
-    ) {
-        when (it) {
-            SettingsScreenMenu.General -> GeneralSettingsScreenRoot(
+    ) { page ->
+        // Pages are routed to whichever Root already subscribes to their data, which is not always
+        // the section they are filed under: the menu groups settings by what they are about, while a
+        // Root groups them by what they need to read.
+        when (page.owner) {
+            SettingsScreenPageOwner.General -> GeneralSettingsScreenRoot(
+                page = page,
                 onOpenLogViewer = onOpenLogViewer,
             )
 
-            SettingsScreenMenu.Server -> ServerSettingsScreenRoot()
+            SettingsScreenPageOwner.Server -> ServerSettingsScreenRoot(page = page)
 
-            SettingsScreenMenu.Plugins -> PluginSettingsScreenRoot()
+            SettingsScreenPageOwner.Plugin -> PluginSettingsScreenRoot(page = page)
         }
     }
 }

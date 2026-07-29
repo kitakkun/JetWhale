@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
+import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import soil.query.compose.rememberQuery
 import soil.query.compose.rememberSubscription
 import java.awt.Desktop
@@ -11,6 +12,7 @@ import java.awt.Desktop
 @Composable
 context(screenContext: SettingsScreenContext)
 fun GeneralSettingsScreenRoot(
+    page: SettingsScreenPage,
     onOpenLogViewer: () -> Unit = {},
 ) {
     SoilDataBoundary(
@@ -29,6 +31,7 @@ fun GeneralSettingsScreenRoot(
         }
 
         GeneralSettingsScreen(
+            page = page,
             uiState = uiState,
             onCheckedChangePersistData = {
                 screenChannel.send(GeneralSettingsScreenAction.ChangePersistData(it))

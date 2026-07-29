@@ -38,6 +38,7 @@ import com.kitakkun.jetwhale.host.model.HostOs
 import com.kitakkun.jetwhale.host.model.OfficialPlugin
 import com.kitakkun.jetwhale.host.model.PluginInstallProgress
 import com.kitakkun.jetwhale.host.settings.Res
+import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.add_plugin_from_file
 import com.kitakkun.jetwhale.host.settings.approve_untrusted_plugin
@@ -67,6 +68,7 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun PluginSettingsScreen(
+    page: SettingsScreenPage,
     uiState: PluginSettingsScreenUiState,
     onClickAddPlugin: () -> Unit,
     onApproveUntrustedJar: (String) -> Unit,
@@ -124,35 +126,41 @@ fun PluginSettingsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier.fillMaxSize(),
     ) {
-        // Installed plugins: header with the install actions kept alongside it, then one card per
-        // plugin. The whole page is a single scrollable list so no section can squeeze another out
-        // of view when the window is short.
-        item(key = "installed_header") {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+        // One list serving three pages of the Plugins section: each block declares which page it
+        // belongs to, so the section's Root keeps a single set of subscriptions.
+        if (page == SettingsScreenPage.InstalledPlugins) {
+            item(key = "installed_header") {
                 Text(
                     text = stringResource(Res.string.installed_plugins),
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
                 )
-                TextButton(
-                    onClick = onClickAddPlugin,
-                    enabled = !uiState.isInstalling,
+            }
+        }
+        // The install actions sit with the official catalog rather than on the installed list: they
+        // are two more ways in, and splitting them across pages hid that they are the same choice.
+        if (page == SettingsScreenPage.AddPlugins) {
+            item(key = "add_actions") {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(stringResource(Res.string.add_plugin_from_file), maxLines = 1)
-                }
-                TextButton(
-                    onClick = onClickInstallFromMaven,
-                    enabled = !uiState.isInstalling,
-                ) {
-                    Text(stringResource(Res.string.install_from_maven), maxLines = 1)
+                    TextButton(
+                        onClick = onClickAddPlugin,
+                        enabled = !uiState.isInstalling,
+                    ) {
+                        Text(stringResource(Res.string.add_plugin_from_file), maxLines = 1)
+                    }
+                    TextButton(
+                        onClick = onClickInstallFromMaven,
+                        enabled = !uiState.isInstalling,
+                    ) {
+                        Text(stringResource(Res.string.install_from_maven), maxLines = 1)
+                    }
                 }
             }
         }
-        if (uiState.isInstalling) {
+        if (page == SettingsScreenPage.AddPlugins && uiState.isInstalling) {
             item(key = "install_progress") {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -187,31 +195,37 @@ fun PluginSettingsScreen(
                 }
             }
         }
-        uiState.installError?.let { error ->
-            item(key = "install_error") {
-                Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            color = MaterialTheme.colorScheme.errorContainer,
-                            shape = MaterialTheme.shapes.small,
-                        )
-                        .padding(12.dp),
-                )
+        // Beside the progress it replaces: an install only starts from this page, so its failure has
+        // no business appearing over the installed list or the security settings.
+        if (page == SettingsScreenPage.AddPlugins) {
+            uiState.installError?.let { error ->
+                item(key = "install_error") {
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = MaterialTheme.colorScheme.errorContainer,
+                                shape = MaterialTheme.shapes.small,
+                            )
+                            .padding(12.dp),
+                    )
+                }
             }
         }
-        items(
-            items = uiState.plugins,
-            // Prefixed so an official catalog entry for the same plugin id cannot collide with it
-            // in this single LazyColumn.
-            key = { plugin -> "installed:${plugin.id}" },
-        ) { plugin ->
-            InstalledPluginRow(plugin = plugin)
+        if (page == SettingsScreenPage.InstalledPlugins) {
+            items(
+                items = uiState.plugins,
+                // Prefixed so an official catalog entry for the same plugin id cannot collide with it
+                // in this single LazyColumn.
+                key = { plugin -> "installed:${plugin.id}" },
+            ) { plugin ->
+                InstalledPluginRow(plugin = plugin)
+            }
         }
-        if (uiState.plugins.isEmpty()) {
+        if (page == SettingsScreenPage.InstalledPlugins && uiState.plugins.isEmpty()) {
             item(key = "no_plugins") {
                 Text(
                     text = stringResource(Res.string.no_plugins_installed),
@@ -223,7 +237,7 @@ fun PluginSettingsScreen(
                 )
             }
         }
-        if (uiState.failedJars.isNotEmpty()) {
+        if (page == SettingsScreenPage.InstalledPlugins && uiState.failedJars.isNotEmpty()) {
             item(key = "failed_jars") {
                 TextButton(
                     onClick = { showFailedJarsDialog = true },
@@ -244,7 +258,7 @@ fun PluginSettingsScreen(
                 }
             }
         }
-        if (uiState.untrustedJarPaths.isNotEmpty()) {
+        if (page == SettingsScreenPage.PluginSecurity && uiState.untrustedJarPaths.isNotEmpty()) {
             item(key = "untrusted_jars") {
                 UntrustedPluginsSection(
                     untrustedJarPaths = uiState.untrustedJarPaths,
@@ -252,7 +266,7 @@ fun PluginSettingsScreen(
                 )
             }
         }
-        if (uiState.officialPlugins.isNotEmpty()) {
+        if (page == SettingsScreenPage.AddPlugins && uiState.officialPlugins.isNotEmpty()) {
             item(key = "official_header") {
                 Text(
                     text = stringResource(Res.string.official_plugins),
@@ -271,25 +285,27 @@ fun PluginSettingsScreen(
                 )
             }
         }
-        item(key = "trust_registry_signing") {
-            SettingOptionView(label = stringResource(Res.string.plugin_security)) {
-                SwitchSettingsItemView(
-                    label = stringResource(Res.string.sign_plugin_trust_registry),
-                    isChecked = uiState.signPluginTrustRegistry,
-                    onCheckedChange = onChangeSignPluginTrustRegistry,
-                )
-                // Append only the current OS's credential-store behavior — the prompt story differs
-                // per platform (macOS prompts, Windows DPAPI is silent, Linux depends on the keyring).
-                val osHint = when (HostOs.current) {
-                    HostOs.MAC -> Res.string.sign_plugin_trust_registry_hint_macos
-                    HostOs.WINDOWS -> Res.string.sign_plugin_trust_registry_hint_windows
-                    else -> Res.string.sign_plugin_trust_registry_hint_linux
+        if (page == SettingsScreenPage.PluginSecurity) {
+            item(key = "trust_registry_signing") {
+                SettingOptionView(label = stringResource(Res.string.plugin_security)) {
+                    SwitchSettingsItemView(
+                        label = stringResource(Res.string.sign_plugin_trust_registry),
+                        isChecked = uiState.signPluginTrustRegistry,
+                        onCheckedChange = onChangeSignPluginTrustRegistry,
+                    )
+                    // Append only the current OS's credential-store behavior — the prompt story differs
+                    // per platform (macOS prompts, Windows DPAPI is silent, Linux depends on the keyring).
+                    val osHint = when (HostOs.current) {
+                        HostOs.MAC -> Res.string.sign_plugin_trust_registry_hint_macos
+                        HostOs.WINDOWS -> Res.string.sign_plugin_trust_registry_hint_windows
+                        else -> Res.string.sign_plugin_trust_registry_hint_linux
+                    }
+                    Text(
+                        text = "${stringResource(Res.string.sign_plugin_trust_registry_hint)} ${stringResource(osHint)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-                Text(
-                    text = "${stringResource(Res.string.sign_plugin_trust_registry_hint)} ${stringResource(osHint)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }

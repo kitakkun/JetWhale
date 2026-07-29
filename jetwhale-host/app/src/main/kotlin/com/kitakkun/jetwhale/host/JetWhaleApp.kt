@@ -39,7 +39,7 @@ import com.kitakkun.jetwhale.host.navigation.followPluginToSession
 import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
-import com.kitakkun.jetwhale.host.settings.SettingsScreenMenu
+import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.ui.AppEnvironment
 import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
 import kotlinx.serialization.modules.SerializersModule
@@ -144,7 +144,7 @@ fun JetWhaleApp() {
                                     onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },
                                     onClickPluginSettings = {
                                         backStack.addSingleTop(
-                                            SettingsNavKey(initialMenu = SettingsScreenMenu.Plugins),
+                                            SettingsNavKey(initialPage = SettingsScreenPage.InstalledPlugins),
                                         )
                                     },
                                     onClickInfo = { backStack.addSingleTop(InfoNavKey) },
@@ -170,8 +170,8 @@ fun JetWhaleApp() {
                                         // window must not close them.
                                         backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey }
                                     },
-                                    onNavigateSettings = { menu ->
-                                        backStack.addSingleTop(SettingsNavKey(initialMenu = menu))
+                                    onNavigateSettings = { page ->
+                                        backStack.addSingleTop(SettingsNavKey(initialPage = page))
                                     },
                                     onNavigateLogViewer = { backStack.addSingleTop(LogViewerNavKey) },
                                     onSelectedSessionChange = { selectedSession ->

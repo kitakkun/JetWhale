@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
+import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import soil.query.compose.rememberSubscription
 import java.awt.FileDialog
 import java.awt.Frame
@@ -15,7 +16,7 @@ import java.io.File
 
 @Composable
 context(screenContext: SettingsScreenContext)
-fun PluginSettingsScreenRoot() {
+fun PluginSettingsScreenRoot(page: SettingsScreenPage) {
     var showMavenDialog by remember { mutableStateOf(false) }
 
     SoilDataBoundary(
@@ -40,6 +41,7 @@ fun PluginSettingsScreenRoot() {
             }
 
             PluginSettingsScreen(
+                page = page,
                 uiState = uiState,
                 onClickAddPlugin = {
                     val selectedJar = selectJarFile() ?: return@PluginSettingsScreen

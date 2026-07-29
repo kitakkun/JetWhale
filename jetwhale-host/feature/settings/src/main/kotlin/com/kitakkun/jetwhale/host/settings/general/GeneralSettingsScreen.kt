@@ -31,6 +31,7 @@ import com.kitakkun.jetwhale.host.model.AppLanguage
 import com.kitakkun.jetwhale.host.model.JetWhaleColorSchemeId
 import com.kitakkun.jetwhale.host.model.UpdateCheckResult
 import com.kitakkun.jetwhale.host.settings.Res
+import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.adb_executable_path
 import com.kitakkun.jetwhale.host.settings.adb_support
@@ -63,6 +64,7 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun GeneralSettingsScreen(
+    page: SettingsScreenPage,
     uiState: GeneralSettingsScreenUiState,
     onCheckedChangePersistData: (Boolean) -> Unit,
     onAutomaticallyWireADBTransportChange: (Boolean) -> Unit,
@@ -80,103 +82,113 @@ fun GeneralSettingsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = SettingsScreenScaffoldPageContentPadding,
     ) {
-        item {
-            SettingOptionView(
-                label = stringResource(Res.string.appearance),
-            ) {
-                DropdownSettingsItemView(
-                    label = stringResource(Res.string.language_option),
-                    currentItem = uiState.language,
-                    items = AppLanguage.entries,
-                    onSelect = { onSelectLanguage(it) },
-                    itemNameProvider = { it.displayName },
-                )
-                DropdownSettingsItemView(
-                    label = stringResource(Res.string.theme_option),
-                    currentItem = uiState.selectedColorSchemeId,
-                    items = uiState.availableColorSchemes,
-                    onSelect = { onSelectColorScheme(it) },
-                    itemNameProvider = { it.id },
-                )
-            }
-        }
-        item {
-            SettingOptionView(stringResource(Res.string.adb_support)) {
-                SwitchSettingsItemView(
-                    label = stringResource(Res.string.automatically_wire_adb_transport),
-                    isChecked = uiState.automaticallyWireADBTransport,
-                    onCheckedChange = onAutomaticallyWireADBTransportChange,
-                )
-            }
-        }
-        item {
-            SettingOptionView(stringResource(Res.string.maintenance)) {
-                // Not SettingsItemRow here: the path can be very long. The label keeps a min width so
-                // it can't be starved down to one character per line, and the path Card takes the
-                // remaining space (weight) and wraps within it.
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+        if (page == SettingsScreenPage.Appearance) {
+            item {
+                SettingOptionView(
+                    label = stringResource(Res.string.appearance),
                 ) {
-                    Text(
-                        text = stringResource(Res.string.application_data_directory),
-                        modifier = Modifier.widthIn(min = 120.dp),
+                    DropdownSettingsItemView(
+                        label = stringResource(Res.string.language_option),
+                        currentItem = uiState.language,
+                        items = AppLanguage.entries,
+                        onSelect = { onSelectLanguage(it) },
+                        itemNameProvider = { it.displayName },
                     )
-                    Card(modifier = Modifier.weight(1f)) {
+                    DropdownSettingsItemView(
+                        label = stringResource(Res.string.theme_option),
+                        currentItem = uiState.selectedColorSchemeId,
+                        items = uiState.availableColorSchemes,
+                        onSelect = { onSelectColorScheme(it) },
+                        itemNameProvider = { it.id },
+                    )
+                }
+            }
+        }
+        if (page == SettingsScreenPage.Adb) {
+            item {
+                SettingOptionView(stringResource(Res.string.adb_support)) {
+                    SwitchSettingsItemView(
+                        label = stringResource(Res.string.automatically_wire_adb_transport),
+                        isChecked = uiState.automaticallyWireADBTransport,
+                        onCheckedChange = onAutomaticallyWireADBTransportChange,
+                    )
+                }
+            }
+        }
+        if (page == SettingsScreenPage.Application) {
+            item {
+                SettingOptionView(stringResource(Res.string.maintenance)) {
+                    // Not SettingsItemRow here: the path can be very long. The label keeps a min width so
+                    // it can't be starved down to one character per line, and the path Card takes the
+                    // remaining space (weight) and wraps within it.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         Text(
-                            text = uiState.appDataPath,
-                            modifier = Modifier.padding(8.dp),
+                            text = stringResource(Res.string.application_data_directory),
+                            modifier = Modifier.widthIn(min = 120.dp),
                         )
+                        Card(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = uiState.appDataPath,
+                                modifier = Modifier.padding(8.dp),
+                            )
+                        }
+                        IconButton(onClick = onClickOpenAppDataPath) {
+                            Icon(Icons.Default.FolderOpen, null)
+                        }
                     }
-                    IconButton(onClick = onClickOpenAppDataPath) {
-                        Icon(Icons.Default.FolderOpen, null)
+                    Button(onClick = onClickOpenLogViewer) {
+                        Text(stringResource(Res.string.view_application_logs))
                     }
-                }
-                Button(onClick = onClickOpenLogViewer) {
-                    Text(stringResource(Res.string.view_application_logs))
                 }
             }
         }
-        item {
-            SettingOptionView(stringResource(Res.string.updates)) {
-                SettingsItemRow(stringResource(Res.string.current_version)) {
-                    Card {
-                        Text(uiState.currentVersion)
+        if (page == SettingsScreenPage.Application) {
+            item {
+                SettingOptionView(stringResource(Res.string.updates)) {
+                    SettingsItemRow(stringResource(Res.string.current_version)) {
+                        Card {
+                            Text(uiState.currentVersion)
+                        }
                     }
-                }
-                SwitchSettingsItemView(
-                    label = stringResource(Res.string.check_for_updates_on_startup),
-                    isChecked = uiState.checkForUpdatesOnStartup,
-                    onCheckedChange = onCheckForUpdatesOnStartupChange,
-                )
-                UpdateCheckStatusView(
-                    isChecking = uiState.isCheckingForUpdates,
-                    result = uiState.updateCheckResult,
-                    error = uiState.updateCheckError,
-                    onClickInstallUpdate = onClickInstallUpdate,
-                    onClickOpenDownloadPage = onClickOpenDownloadPage,
-                )
-                Button(
-                    onClick = onClickCheckForUpdates,
-                    enabled = !uiState.isCheckingForUpdates,
-                ) {
-                    Text(stringResource(Res.string.check_for_updates))
-                }
-            }
-        }
-        item {
-            SettingOptionView(stringResource(Res.string.health_check)) {
-                SettingsItemRow(stringResource(Res.string.adb_executable_path)) {
-                    Text(
-                        text = uiState.adbPath.ifEmpty { stringResource(Res.string.adb_unavailable) },
+                    SwitchSettingsItemView(
+                        label = stringResource(Res.string.check_for_updates_on_startup),
+                        isChecked = uiState.checkForUpdatesOnStartup,
+                        onCheckedChange = onCheckForUpdatesOnStartupChange,
                     )
-                    Spacer(Modifier.width(8.dp))
-                    if (uiState.adbPath.isNotEmpty()) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            tint = MaterialTheme.colorScheme.primary,
-                            contentDescription = null,
+                    UpdateCheckStatusView(
+                        isChecking = uiState.isCheckingForUpdates,
+                        result = uiState.updateCheckResult,
+                        error = uiState.updateCheckError,
+                        onClickInstallUpdate = onClickInstallUpdate,
+                        onClickOpenDownloadPage = onClickOpenDownloadPage,
+                    )
+                    Button(
+                        onClick = onClickCheckForUpdates,
+                        enabled = !uiState.isCheckingForUpdates,
+                    ) {
+                        Text(stringResource(Res.string.check_for_updates))
+                    }
+                }
+            }
+        }
+        if (page == SettingsScreenPage.Adb) {
+            item {
+                SettingOptionView(stringResource(Res.string.health_check)) {
+                    SettingsItemRow(stringResource(Res.string.adb_executable_path)) {
+                        Text(
+                            text = uiState.adbPath.ifEmpty { stringResource(Res.string.adb_unavailable) },
                         )
+                        Spacer(Modifier.width(8.dp))
+                        if (uiState.adbPath.isNotEmpty()) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                tint = MaterialTheme.colorScheme.primary,
+                                contentDescription = null,
+                            )
+                        }
                     }
                 }
             }
@@ -260,6 +272,7 @@ private fun UpdateCheckStatusView(
 @Composable
 private fun GeneralSettingsScreenPreview() {
     GeneralSettingsScreen(
+        page = SettingsScreenPage.Appearance,
         uiState = GeneralSettingsScreenUiState(
             automaticallyWireADBTransport = true,
             selectedColorSchemeId = JetWhaleColorSchemeId.BuiltInDynamic,

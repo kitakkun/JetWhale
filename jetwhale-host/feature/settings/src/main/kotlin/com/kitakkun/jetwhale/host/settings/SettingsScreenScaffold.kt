@@ -1,21 +1,22 @@
 package com.kitakkun.jetwhale.host.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -26,46 +27,26 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlinx.serialization.Serializable
-import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-
-@Serializable
-enum class SettingsScreenMenu(
-    val labelTextRes: StringResource,
-    val icon: ImageVector,
-) {
-    General(
-        labelTextRes = Res.string.general,
-        icon = Icons.Default.Info,
-    ),
-    Server(
-        labelTextRes = Res.string.server,
-        icon = Icons.Default.Computer,
-    ),
-    Plugins(
-        labelTextRes = Res.string.plugins,
-        icon = Icons.Default.Work,
-    ),
-}
 
 val SettingsScreenScaffoldPageContentPadding = PaddingValues(16.dp)
 
-/** Wide enough for the longest section label without wrapping, narrow enough to leave the detail room. */
-private val MenuPaneWidth = 200.dp
+/** Wide enough for the longest label without wrapping, narrow enough to leave the detail room. */
+private val MenuPaneWidth = 220.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreenScaffold(
     uiState: SettingsScreenScaffoldUiState,
     onClickClose: () -> Unit,
-    onSelectMenu: (SettingsScreenMenu) -> Unit,
+    onSelectPage: (SettingsScreenPage) -> Unit,
+    onToggleSection: (SettingsScreenSection) -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable (SettingsScreenMenu) -> Unit,
+    content: @Composable (SettingsScreenPage) -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -92,7 +73,7 @@ fun SettingsScreenScaffold(
 
         Row(modifier = Modifier.fillMaxSize()) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
                 modifier = Modifier
                     .width(MenuPaneWidth)
                     .fillMaxHeight()
@@ -101,23 +82,71 @@ fun SettingsScreenScaffold(
                     .verticalScroll(rememberScrollState())
                     .padding(8.dp),
             ) {
-                SettingsScreenMenu.entries.forEach { menu ->
-                    NavigationDrawerItem(
-                        selected = menu == uiState.selectedMenu,
-                        // One line keeps every row the same height, so the list does not reflow when a
-                        // translation is longer than the pane.
-                        label = { Text(stringResource(menu.labelTextRes), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        icon = { Icon(menu.icon, contentDescription = null) },
-                        onClick = { onSelectMenu(menu) },
+                SettingsScreenSection.entries.forEach { section ->
+                    SectionHeader(
+                        section = section,
+                        expanded = section in uiState.expandedSections,
+                        onClick = { onToggleSection(section) },
                     )
+                    if (section in uiState.expandedSections) {
+                        SettingsScreenPage.entries.filter { it.section == section }.forEach { page ->
+                            NavigationDrawerItem(
+                                selected = page == uiState.selectedPage,
+                                // One line keeps every row the same height, so the list does not
+                                // reflow when a translation is longer than the pane.
+                                label = {
+                                    Text(
+                                        text = stringResource(page.labelTextRes),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                },
+                                onClick = { onSelectPage(page) },
+                                modifier = Modifier.padding(start = 16.dp),
+                            )
+                        }
+                    }
                 }
             }
             VerticalDivider()
-            // Only the selected section is composed. The pager this replaced kept every section
-            // alive, so each one's subscriptions ran whether or not it was on screen.
+            // Only the selected page is composed. The pager this replaced kept every section alive,
+            // so each one's subscriptions ran whether or not it was on screen.
             Column(modifier = Modifier.fillMaxSize()) {
-                content(uiState.selectedMenu)
+                content(uiState.selectedPage)
             }
         }
+    }
+}
+
+/**
+ * A section row. It collapses rather than selecting anything: the section is a container, and every
+ * setting lives on one of its pages.
+ */
+@Composable
+private fun SectionHeader(
+    section: SettingsScreenSection,
+    expanded: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Icon(section.icon, contentDescription = null)
+        Text(
+            text = stringResource(section.labelTextRes),
+            style = MaterialTheme.typography.titleSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+            contentDescription = null,
+        )
     }
 }

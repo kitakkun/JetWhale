@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
+import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import soil.query.compose.rememberSubscription
 import java.awt.Desktop
 
@@ -11,7 +12,7 @@ private const val MCP_GUIDE_URL = "https://kitakkun.github.io/JetWhale/guide/mcp
 
 @Composable
 context(screenContext: SettingsScreenContext)
-fun ServerSettingsScreenRoot() {
+fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
     SoilDataBoundary(
         state1 = rememberSubscription(screenContext.serverStatusSubscriptionKey),
         state2 = rememberSubscription(screenContext.mcpServerStatusSubscriptionKey),
@@ -30,6 +31,7 @@ fun ServerSettingsScreenRoot() {
         }
 
         ServerSettingsScreen(
+            page = page,
             uiState = uiState,
             onDebugPortTextChange = {
                 screenChannel.send(ServerSettingsScreenAction.ChangeDebugPortText(it))
