@@ -161,7 +161,7 @@ fun PluginSettingsScreen(
                 }
             }
         }
-        if (page == SettingsScreenPage.AddPlugins) if (uiState.isInstalling) {
+        if (page == SettingsScreenPage.AddPlugins && uiState.isInstalling) {
             item(key = "install_progress") {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -222,21 +222,19 @@ fun PluginSettingsScreen(
                 InstalledPluginRow(plugin = plugin)
             }
         }
-        if (uiState.plugins.isEmpty()) {
-            if (page == SettingsScreenPage.InstalledPlugins) {
-                item(key = "no_plugins") {
-                    Text(
-                        text = stringResource(Res.string.no_plugins_installed),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                    )
-                }
+        if (page == SettingsScreenPage.InstalledPlugins && uiState.plugins.isEmpty()) {
+            item(key = "no_plugins") {
+                Text(
+                    text = stringResource(Res.string.no_plugins_installed),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                )
             }
         }
-        if (page == SettingsScreenPage.InstalledPlugins) if (uiState.failedJars.isNotEmpty()) {
+        if (page == SettingsScreenPage.InstalledPlugins && uiState.failedJars.isNotEmpty()) {
             item(key = "failed_jars") {
                 TextButton(
                     onClick = { showFailedJarsDialog = true },
@@ -257,7 +255,7 @@ fun PluginSettingsScreen(
                 }
             }
         }
-        if (page == SettingsScreenPage.PluginSecurity) if (uiState.untrustedJarPaths.isNotEmpty()) {
+        if (page == SettingsScreenPage.PluginSecurity && uiState.untrustedJarPaths.isNotEmpty()) {
             item(key = "untrusted_jars") {
                 UntrustedPluginsSection(
                     untrustedJarPaths = uiState.untrustedJarPaths,
@@ -265,7 +263,7 @@ fun PluginSettingsScreen(
                 )
             }
         }
-        if (page == SettingsScreenPage.AddPlugins) if (uiState.officialPlugins.isNotEmpty()) {
+        if (page == SettingsScreenPage.AddPlugins && uiState.officialPlugins.isNotEmpty()) {
             item(key = "official_header") {
                 Text(
                     text = stringResource(Res.string.official_plugins),

@@ -170,8 +170,8 @@ fun JetWhaleApp() {
                                         // window must not close them.
                                         backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey }
                                     },
-                                    onNavigateSettings = { menu ->
-                                        backStack.addSingleTop(SettingsNavKey(initialPage = menu))
+                                    onNavigateSettings = { page ->
+                                        backStack.addSingleTop(SettingsNavKey(initialPage = page))
                                     },
                                     onNavigateLogViewer = { backStack.addSingleTop(LogViewerNavKey) },
                                     onSelectedSessionChange = { selectedSession ->
