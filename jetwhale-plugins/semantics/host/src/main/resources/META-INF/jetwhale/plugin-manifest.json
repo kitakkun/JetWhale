@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../../../../../schemas/plugin-manifest.schema.json",
+  "plugins": [
+    {
+      "pluginId": "com.kitakkun.jetwhale.semantics",
+      "pluginName": "Compose Semantics Inspector",
+      "version": "1.0.0",
+      "factoryClass": "com.kitakkun.jetwhale.plugins.semantics.host.ComposeSemanticsInspectorPluginFactory",
+      "agentVersionRange": {
+        "min": "1.0.0",
+        "max": "1.0.0"
+      },
+      "icon": {
+        "activePath": "icons/node_tree_filled.svg",
+        "inactivePath": "icons/node_tree_outlined.svg"
+      }
+    }
+  ]
+}

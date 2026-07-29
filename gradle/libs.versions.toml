@@ -73,6 +73,7 @@ androidxDatastoreCoreOkio = { module = "androidx.datastore:datastore-core-okio",
 
 # compose
 jetbrainsComposeRuntime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "jetbrainsCompose" }
+jetbrainsComposeUi = { module = "org.jetbrains.compose.ui:ui", version.ref = "jetbrainsCompose" }
 jetbrainsComposePreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "jetbrainsCompose" }
 jetbrainsComposeResources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "jetbrainsCompose" }
 jetbrainsComposeSplitPane = { module = "org.jetbrains.compose.components:components-splitpane", version.ref = "jetbrainsCompose" }
