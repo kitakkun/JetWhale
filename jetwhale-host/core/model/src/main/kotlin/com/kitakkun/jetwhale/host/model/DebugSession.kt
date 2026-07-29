@@ -39,4 +39,8 @@ data class DebugSession(
      */
     val appDisplayName: String
         get() = appName ?: displayName
+
+    /** Device and app labels joined, for places that identify a session on a single line. */
+    val deviceAndAppDisplayName: String
+        get() = "$deviceDisplayName · $appDisplayName"
 }
