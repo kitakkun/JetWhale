@@ -40,7 +40,10 @@ class ApplicationLifecycleOwner(
     fun initialize() {
         mutableApplicationStateFlow.update { ApplicationState.INITIALIZING }
         coroutineScope.launch {
-            val wssPort = if (settingsRepository.wssEnabledFlow.value) {
+            // Read the stored value rather than sampling the flow: this runs before anything has
+            // awaited the store, so the flow still carries its default here, and the decision is
+            // made once for the whole run.
+            val wssPort = if (settingsRepository.readWssEnabled()) {
                 settingsRepository.readWssPort()
             } else {
                 null
