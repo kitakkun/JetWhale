@@ -82,10 +82,27 @@ describes someone else's host.
 - Run it in the **background, redirected to a file** (`> run.log 2>&1`). Do NOT pipe it through
   `tail`/`grep`: the pipeline buffers and the log file stays empty until the process exits, so you
   lose all live output.
-- Wait for it properly — Gradle configuration plus the app launch takes minutes on a cold build:
+- Wait for the **MCP port to answer**, not for a process to appear — Gradle configuration plus the
+  app launch takes minutes on a cold build, and the JVM exists long before the port opens. Waiting on
+  `pgrep` means guessing how much longer with a `sleep`, and on a machine running several checkouts
+  it matches somebody else's host and returns immediately.
+
+  Bound the wait and watch the launcher: a build that fails or a port already taken otherwise leaves
+  you spinning until a timeout with nothing to read.
+
   ```bash
-  until pgrep -f com.kitakkun.jetwhale.host.MainKt >/dev/null; do sleep 3; done
+  nohup ./gradlew … > run.log 2>&1 &
+  LAUNCHER=$!
+  DEADLINE=$((SECONDS + 900))
+  until nc -z 127.0.0.1 7081 >/dev/null 2>&1; do
+    kill -0 $LAUNCHER 2>/dev/null || { echo "launcher exited"; tail -30 run.log; break; }
+    [ $SECONDS -ge $DEADLINE ] && { echo "timed out"; tail -30 run.log; break; }
+    sleep 3
+  done
   ```
+
+  Readiness far sooner than a cold build takes is a warning, not a win: it usually means the port was
+  already open. Check the PID against the `lsof` above before believing it.
 - App data lives in an isolated sandbox, `<module>/build/jetwhale-sandbox`, not the developer's
   `~/.jetwhale`. **`clean` wipes it** — never clean between the save and restore halves of a
   persistence check.
