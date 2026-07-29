@@ -4,8 +4,11 @@ import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifestFile
+import com.kitakkun.jetwhale.host.sdk.web.WebPluginConfig
+import com.kitakkun.jetwhale.host.sdk.web.webManifestPluginFactory
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -194,23 +197,53 @@ class DefaultPluginFactoryRepository @Inject constructor(
         }
 
         return manifests.map { manifest ->
-            val factory = try {
-                // getConstructor (not getDeclaredConstructor): the contract is a *public* no-arg
-                // constructor, so a non-public/missing one fails clearly with NoSuchMethodException.
-                classLoader.loadClass(manifest.factoryClass).getConstructor().newInstance()
-            } catch (e: ReflectiveOperationException) {
-                throw IllegalStateException(
-                    "Could not load factory '${manifest.factoryClass}' for plugin '${manifest.pluginId}' " +
-                        "in $pluginJarPath: ${e.message}",
-                    e,
-                )
-            }
-            require(factory is JetWhaleHostPluginFactory) {
-                "Factory '${manifest.factoryClass}' for plugin '${manifest.pluginId}' in $pluginJarPath " +
-                    "is not a ${JetWhaleHostPluginFactory::class.java.simpleName}"
-            }
+            val factory = manifest.web?.let { web -> webFactoryFor(web, classLoader) }
+                ?: reflectFactory(manifest.factoryClass, manifest.pluginId, pluginJarPath, classLoader)
             LoadedHostPlugin(manifest = manifest, factory = factory)
         }
+    }
+
+    /** Builds the host-provided factory for a pure web plugin declared via the manifest `web` block. */
+    @OptIn(InternalJetWhaleHostApi::class)
+    private fun webFactoryFor(
+        web: com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest.WebUi,
+        classLoader: ClassLoader,
+    ): JetWhaleHostPluginFactory =
+        webManifestPluginFactory(
+            WebPluginConfig(
+                classLoader = classLoader,
+                resourceRoot = web.resourceRoot,
+                entry = web.entry,
+                // Resolved at load time: setting the dev-server property launches against a dev server.
+                devServerUrl = web.devServerUrlProperty?.let { System.getProperty(it) },
+            ),
+        )
+
+    /** Reflectively instantiates the [JetWhaleHostPluginFactory] named by a Kotlin-authored plugin. */
+    private fun reflectFactory(
+        factoryClass: String?,
+        pluginId: String,
+        pluginJarPath: String,
+        classLoader: ClassLoader,
+    ): JetWhaleHostPluginFactory {
+        requireNotNull(factoryClass) {
+            "Plugin '$pluginId' in $pluginJarPath declares neither 'factoryClass' nor 'web'."
+        }
+        val factory = try {
+            // getConstructor (not getDeclaredConstructor): the contract is a *public* no-arg
+            // constructor, so a non-public/missing one fails clearly with NoSuchMethodException.
+            classLoader.loadClass(factoryClass).getConstructor().newInstance()
+        } catch (e: ReflectiveOperationException) {
+            throw IllegalStateException(
+                "Could not load factory '$factoryClass' for plugin '$pluginId' in $pluginJarPath: ${e.message}",
+                e,
+            )
+        }
+        require(factory is JetWhaleHostPluginFactory) {
+            "Factory '$factoryClass' for plugin '$pluginId' in $pluginJarPath " +
+                "is not a ${JetWhaleHostPluginFactory::class.java.simpleName}"
+        }
+        return factory
     }
 
     /**

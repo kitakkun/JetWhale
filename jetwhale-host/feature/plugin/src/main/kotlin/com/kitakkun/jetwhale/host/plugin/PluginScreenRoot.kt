@@ -26,10 +26,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
+import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.web.JetWhaleWebHostPluginUi
 import kotlinx.coroutines.delay
 import soil.query.compose.rememberQuery
 
-@OptIn(InternalComposeUiApi::class)
+@OptIn(InternalComposeUiApi::class, ExperimentalJetWhaleApi::class)
 @Composable
 context(screenContext: PluginScreenContext)
 fun PluginScreenRoot() {
@@ -48,21 +50,31 @@ fun PluginScreenRoot() {
 
     Box(Modifier.fillMaxSize()) {
         key(reset) {
-            SoilDataBoundary(
-                state = rememberQuery(screenContext.pluginComposeSceneQueryKey),
-                fallback = SoilFallbackDefaults.custom(
-                    suspenseFallback = SoilFallbackDefaults.default().suspenseFallback,
-                    errorFallback = {
-                        PluginScreenErrorFallback(
-                            pluginId = screenContext.pluginId,
-                            errorBoundaryContext = it,
-                            // force recompose when reset is clicked
-                            onClickReset = { reset = !reset },
-                        )
-                    },
-                ),
-            ) { pluginComposeScene ->
-                PluginScreen(pluginComposeScene = pluginComposeScene)
+            // Web plugins render in this real windowed composition (so the embedded browser's
+            // heavyweight component can attach) instead of the off-screen compose scene.
+            val pluginInstance = remember(reset) { screenContext.resolvePluginInstance() }
+            if (pluginInstance is JetWhaleWebHostPluginUi) {
+                WebPluginScreen(
+                    instance = pluginInstance,
+                    bridgeProvider = screenContext.pluginBridgeProvider,
+                )
+            } else {
+                SoilDataBoundary(
+                    state = rememberQuery(screenContext.pluginComposeSceneQueryKey),
+                    fallback = SoilFallbackDefaults.custom(
+                        suspenseFallback = SoilFallbackDefaults.default().suspenseFallback,
+                        errorFallback = {
+                            PluginScreenErrorFallback(
+                                pluginId = screenContext.pluginId,
+                                errorBoundaryContext = it,
+                                // force recompose when reset is clicked
+                                onClickReset = { reset = !reset },
+                            )
+                        },
+                    ),
+                ) { pluginComposeScene ->
+                    PluginScreen(pluginComposeScene = pluginComposeScene)
+                }
             }
         }
 

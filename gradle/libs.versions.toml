@@ -42,6 +42,9 @@ conveyorControl = "1.1"
 
 bouncyCastle = "1.83"
 
+# Embedded browser for experimental web-based host plugins (Compose-independent JCEF wrapper).
+kcef = "2025.03.23"
+
 [libraries]
 # Gradle Plugins
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -55,11 +58,16 @@ mavenPublishGradlePlugin = { module = "com.vanniktech:gradle-maven-publish-plugi
 # kotlin
 kotlinTest = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 
+# webview (experimental web-based host plugins)
+kcef = { module = "dev.datlag:kcef", version.ref = "kcef" }
+
 # kotlinx
 kotlinxSerializationCore = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerializationJson" }
 kotlinxSerializationJson = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 kotlinxCollectionsImmutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 kotlinxCoroutinesCore = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+# Swing dispatcher required by KCEF (the embedded browser drives its callbacks on the AWT/Swing thread).
+kotlinxCoroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
 byteBuddyAgent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "byteBuddy" }
 javaKeyring = { module = "com.github.javakeyring:java-keyring", version.ref = "javaKeyring" }
 kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
@@ -73,6 +81,8 @@ androidxDatastoreCoreOkio = { module = "androidx.datastore:datastore-core-okio",
 
 # compose
 jetbrainsComposeRuntime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "jetbrainsCompose" }
+jetbrainsComposeFoundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "jetbrainsCompose" }
+jetbrainsComposeUi = { module = "org.jetbrains.compose.ui:ui", version.ref = "jetbrainsCompose" }
 jetbrainsComposePreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "jetbrainsCompose" }
 jetbrainsComposeResources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "jetbrainsCompose" }
 jetbrainsComposeSplitPane = { module = "org.jetbrains.compose.components:components-splitpane", version.ref = "jetbrainsCompose" }

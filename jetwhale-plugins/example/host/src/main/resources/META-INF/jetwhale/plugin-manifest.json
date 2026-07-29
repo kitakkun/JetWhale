@@ -25,6 +25,24 @@
         "activePath": "icons/window_filled.svg",
         "inactivePath": "icons/window_outlined.svg"
       }
+    },
+    {
+      "pluginId": "com.kitakkun.jetwhale.example.web",
+      "pluginName": "Example Web Plugin (Experimental)",
+      "version": "1.0.0",
+      "web": {
+        "entry": "index.html",
+        "resourceRoot": "web/example",
+        "devServerUrlProperty": "jetwhale.example.web.devServer"
+      },
+      "agentVersionRange": {
+        "min": "1.0.0",
+        "max": "1.0.0"
+      },
+      "icon": {
+        "activePath": "icons/window_filled.svg",
+        "inactivePath": "icons/window_outlined.svg"
+      }
     }
   ]
 }

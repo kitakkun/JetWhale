@@ -35,8 +35,8 @@ public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugi
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest {
 	public static final field $stable I
 	public static final field Companion Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()Ljava/lang/String;
@@ -44,8 +44,9 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest {
 	public final fun component5 ()Z
 	public final fun component6 ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
 	public final fun component7 ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;
+	public final fun component8 ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAgentVersionRange ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
 	public final fun getFactoryClass ()Ljava/lang/String;
@@ -54,6 +55,7 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest {
 	public final fun getPluginName ()Ljava/lang/String;
 	public final fun getRequiresAgent ()Z
 	public final fun getVersion ()Ljava/lang/String;
+	public final fun getWeb ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -137,6 +139,40 @@ public final synthetic class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginMa
 }
 
 public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi {
+	public static final field $stable I
+	public static final field Companion Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDevServerUrlProperty ()Ljava/lang/String;
+	public final fun getEntry ()Ljava/lang/String;
+	public final fun getResourceRoot ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$WebUi$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
@@ -322,5 +358,62 @@ public final class com/kitakkun/jetwhale/host/sdk/RememberPersistentKt {
 
 public final class com/kitakkun/jetwhale/host/sdk/ScreenshotCaptureKt {
 	public static final fun getLocalIsScreenshotCapture ()Landroidx/compose/runtime/ProvidableCompositionLocal;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/web/JetWhaleWebBridge {
+	public static final field $stable I
+	public fun <init> ()V
+	public final fun emit (Ljava/lang/String;Ljava/lang/String;)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/host/sdk/web/JetWhaleWebHostPluginUi : com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginUi {
+}
+
+public abstract interface class com/kitakkun/jetwhale/host/sdk/web/JetWhaleWebSource {
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/web/JetWhaleWebSource$BundledAsset : com/kitakkun/jetwhale/host/sdk/web/JetWhaleWebSource {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/ClassLoader;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/ClassLoader;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/ClassLoader;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/web/JetWhaleWebSource$BundledAsset;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/web/JetWhaleWebSource$BundledAsset;Ljava/lang/ClassLoader;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/web/JetWhaleWebSource$BundledAsset;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getClassLoader ()Ljava/lang/ClassLoader;
+	public final fun getEntry ()Ljava/lang/String;
+	public final fun getResourceRoot ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/web/JetWhaleWebSource$DevServer : com/kitakkun/jetwhale/host/sdk/web/JetWhaleWebSource {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/web/JetWhaleWebSource$DevServer;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/web/JetWhaleWebSource$DevServer;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/web/JetWhaleWebSource$DevServer;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getUrl ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/web/JetWhaleWebViewKt {
+	public static final fun JetWhaleWebView (Lcom/kitakkun/jetwhale/protocol/messaging/JetWhaleMessenger;Lcom/kitakkun/jetwhale/host/sdk/web/JetWhaleWebBridge;Lcom/kitakkun/jetwhale/host/sdk/web/JetWhaleWebSource;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/web/WebManifestHostPluginKt {
+	public static final fun webManifestPluginFactory (Lcom/kitakkun/jetwhale/host/sdk/web/WebPluginConfig;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory;
+}
+
+public final class com/kitakkun/jetwhale/host/sdk/web/WebPluginConfig {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/ClassLoader;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun getClassLoader ()Ljava/lang/ClassLoader;
+	public final fun getDevServerUrl ()Ljava/lang/String;
+	public final fun getEntry ()Ljava/lang/String;
+	public final fun getResourceRoot ()Ljava/lang/String;
 }
 

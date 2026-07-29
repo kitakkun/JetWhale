@@ -16,6 +16,15 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
         google()
+        // KCEF (the embedded browser for experimental web plugins) pulls JOGL/GlueGen native
+        // bindings, which are published only on the JogAmp repository, not Maven Central. Scoped by
+        // content filter so no other dependency resolution is routed here.
+        maven("https://jogamp.org/deployment/maven") {
+            content {
+                includeGroup("org.jogamp.gluegen")
+                includeGroup("org.jogamp.jogl")
+            }
+        }
     }
 }
 

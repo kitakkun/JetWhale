@@ -13,7 +13,11 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["pluginId", "pluginName", "version", "factoryClass"],
+        "required": ["pluginId", "pluginName", "version"],
+        "oneOf": [
+          { "required": ["factoryClass"] },
+          { "required": ["web"] }
+        ],
         "additionalProperties": false,
         "properties": {
           "pluginId": {
@@ -30,7 +34,27 @@
           },
           "factoryClass": {
             "type": "string",
-            "description": "Fully-qualified name of this plugin's JetWhaleHostPluginFactory implementation (e.g. com.example.MyPluginFactory). The host loads and instantiates it from the JAR."
+            "description": "Fully-qualified name of this plugin's JetWhaleHostPluginFactory implementation (e.g. com.example.MyPluginFactory). The host loads and instantiates it from the JAR. Set this OR 'web', not both."
+          },
+          "web": {
+            "type": "object",
+            "description": "Declares a pure web plugin: bundled web assets rendered by an embedded browser, with no plugin code to write or compile. Set this OR 'factoryClass', not both.",
+            "required": ["entry", "resourceRoot"],
+            "additionalProperties": false,
+            "properties": {
+              "entry": {
+                "type": "string",
+                "description": "Entry document to open, relative to resourceRoot (e.g. index.html)."
+              },
+              "resourceRoot": {
+                "type": "string",
+                "description": "Resource directory inside the JAR holding the built web app (e.g. web)."
+              },
+              "devServerUrlProperty": {
+                "type": ["string", "null"],
+                "description": "System property whose value, if set at runtime, is loaded as a dev-server URL instead of the bundle (for hot-module reload)."
+              }
+            }
           },
           "requiresAgent": {
             "type": "boolean",

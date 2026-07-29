@@ -137,13 +137,34 @@ internal class InboundFrameDispatcher(
 
     private suspend fun handleRequest(frame: PluginFrame.Request) {
         val entry = handlers.requestEntryFor(frame.messageType)
-        val reply: PluginFrame.Reply = if (entry == null) {
+        val rawRequestHandler = if (entry == null) handlers.rawRequestHandler() else null
+        val reply: PluginFrame.Reply = if (entry == null && rawRequestHandler == null) {
             PluginFrame.Reply.Failure(
                 pluginId = pluginId,
                 inReplyTo = frame.correlationId,
                 errorMessage = "No request handler registered for '${frame.messageType}'",
             )
+        } else if (rawRequestHandler != null) {
+            // No typed handler, but a raw fallback is registered: hand it the undecoded payload and
+            // use whatever raw string it returns as the reply.
+            try {
+                val payload = rawRequestHandler(frame.messageType, frame.payload)
+                PluginFrame.Reply.Success(
+                    pluginId = pluginId,
+                    inReplyTo = frame.correlationId,
+                    payload = payload,
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                PluginFrame.Reply.Failure(
+                    pluginId = pluginId,
+                    inReplyTo = frame.correlationId,
+                    errorMessage = e.message ?: (e::class.simpleName ?: "Unknown error"),
+                )
+            }
         } else {
+            checkNotNull(entry)
             try {
                 val request = payloadFormat.decodeFromString(entry.requestSerializer.castToAny(), frame.payload)
                 val result = entry.handler(request)
@@ -171,6 +192,18 @@ internal class InboundFrameDispatcher(
     private suspend fun dispatchNotification(frame: PluginFrame.Notification) {
         val entry = handlers.eventEntryFor(frame.messageType)
         if (entry == null) {
+            val rawEventHandler = handlers.rawEventHandler()
+            if (rawEventHandler != null) {
+                // No typed handler, but a raw fallback is registered: hand it the undecoded payload.
+                try {
+                    rawEventHandler(frame.messageType, frame.payload)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    logger("JetWhale: raw event handler for '${frame.messageType}' (plugin '$pluginId') failed: ${e.message}")
+                }
+                return
+            }
             // Forward-compatibility: an unknown event (e.g. version skew) is skipped, not fatal.
             logger("JetWhale: no event handler registered for '${frame.messageType}' (plugin '$pluginId'); skipping.")
             return
