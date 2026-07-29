@@ -9,6 +9,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesTo
 import dev.zacsweers.metro.Provides
 import dev.zacsweers.metro.Qualifier
+import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 
@@ -28,6 +29,7 @@ annotation class WindowStateDataStoreQualifier
 interface DataStoreDependencyProvider {
     @DebuggerSettingsDataStoreQualifier
     @Provides
+    @SingleIn(AppScope::class)
     fun provideDebuggerSettingsDataStore(
         appDataDirectoryProvider: AppDataDirectoryProvider,
     ): DataStore<Preferences> = PreferenceDataStoreFactory.createWithPath(
@@ -37,6 +39,7 @@ interface DataStoreDependencyProvider {
 
     @ThemeDataStoreQualifier
     @Provides
+    @SingleIn(AppScope::class)
     fun provideThemeDataStore(
         appDataDirectoryProvider: AppDataDirectoryProvider,
     ): DataStore<Preferences> = PreferenceDataStoreFactory.createWithPath(
@@ -46,6 +49,7 @@ interface DataStoreDependencyProvider {
 
     @EnabledPluginsDataStoreQualifier
     @Provides
+    @SingleIn(AppScope::class)
     fun provideEnabledPluginsDataStore(
         appDataDirectoryProvider: AppDataDirectoryProvider,
     ): DataStore<Preferences> = PreferenceDataStoreFactory.createWithPath(
@@ -55,6 +59,7 @@ interface DataStoreDependencyProvider {
 
     @WindowStateDataStoreQualifier
     @Provides
+    @SingleIn(AppScope::class)
     fun provideWindowStateDataStore(
         appDataDirectoryProvider: AppDataDirectoryProvider,
     ): DataStore<Preferences> = PreferenceDataStoreFactory.createWithPath(
