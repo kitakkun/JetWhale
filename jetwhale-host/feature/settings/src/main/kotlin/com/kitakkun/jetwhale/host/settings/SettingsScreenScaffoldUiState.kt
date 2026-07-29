@@ -1,5 +1,5 @@
 package com.kitakkun.jetwhale.host.settings
 
 data class SettingsScreenScaffoldUiState(
-    val selectedMenu: SettingsScreenSegmentedMenu = SettingsScreenSegmentedMenu.Plugins,
+    val selectedMenu: SettingsScreenMenu = SettingsScreenMenu.Plugins,
 )

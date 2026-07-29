@@ -9,14 +9,14 @@ import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 
 sealed interface SettingsScreenScaffoldAction {
-    data class SelectMenu(val menu: SettingsScreenSegmentedMenu) : SettingsScreenScaffoldAction
+    data class SelectMenu(val menu: SettingsScreenMenu) : SettingsScreenScaffoldAction
 }
 
 @Composable
 context(_: SettingsPresenterContext)
 fun settingsScreenScaffoldPresenter(
     screenChannel: ScreenChannel<SettingsScreenScaffoldAction, Nothing>,
-    initialMenu: SettingsScreenSegmentedMenu,
+    initialMenu: SettingsScreenMenu,
 ): SettingsScreenScaffoldUiState {
     var selectedMenu by retain { mutableStateOf(initialMenu) }
 

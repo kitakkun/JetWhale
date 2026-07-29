@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.host.navigation
 
 import androidx.navigation3.runtime.NavKey
-import com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu
+import com.kitakkun.jetwhale.host.settings.SettingsScreenMenu
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -9,7 +9,7 @@ data object EmptyPluginNavKey : NavKey
 
 @Serializable
 data class SettingsNavKey(
-    val initialMenu: SettingsScreenSegmentedMenu = SettingsScreenSegmentedMenu.General,
+    val initialMenu: SettingsScreenMenu = SettingsScreenMenu.General,
 ) : NavKey
 
 @Serializable

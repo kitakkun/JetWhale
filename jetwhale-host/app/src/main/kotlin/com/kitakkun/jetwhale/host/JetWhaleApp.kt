@@ -39,7 +39,7 @@ import com.kitakkun.jetwhale.host.navigation.followPluginToSession
 import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
-import com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu
+import com.kitakkun.jetwhale.host.settings.SettingsScreenMenu
 import com.kitakkun.jetwhale.host.ui.AppEnvironment
 import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
 import kotlinx.serialization.modules.SerializersModule
@@ -144,7 +144,7 @@ fun JetWhaleApp() {
                                     onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },
                                     onClickPluginSettings = {
                                         backStack.addSingleTop(
-                                            SettingsNavKey(initialMenu = SettingsScreenSegmentedMenu.Plugins),
+                                            SettingsNavKey(initialMenu = SettingsScreenMenu.Plugins),
                                         )
                                     },
                                     onClickInfo = { backStack.addSingleTop(InfoNavKey) },

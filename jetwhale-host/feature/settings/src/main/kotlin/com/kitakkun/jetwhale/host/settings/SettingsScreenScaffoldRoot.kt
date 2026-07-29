@@ -7,8 +7,8 @@ import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 context(screenContext: SettingsScreenContext)
 fun SettingsScreenScaffoldRoot(
     onClickClose: () -> Unit,
-    initialMenu: SettingsScreenSegmentedMenu = SettingsScreenSegmentedMenu.General,
-    content: @Composable (SettingsScreenSegmentedMenu) -> Unit,
+    initialMenu: SettingsScreenMenu = SettingsScreenMenu.General,
+    content: @Composable (SettingsScreenMenu) -> Unit,
 ) {
     val screenChannel = rememberScreenChannel<SettingsScreenScaffoldAction, Nothing>()
     val uiState = context(screenContext.presenterContext) {

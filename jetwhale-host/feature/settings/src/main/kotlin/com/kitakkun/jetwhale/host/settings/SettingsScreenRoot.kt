@@ -9,7 +9,7 @@ import com.kitakkun.jetwhale.host.settings.server.ServerSettingsScreenRoot
 context(screenContext: SettingsScreenContext)
 fun SettingsScreenRoot(
     onClickClose: () -> Unit,
-    initialMenu: SettingsScreenSegmentedMenu = SettingsScreenSegmentedMenu.General,
+    initialMenu: SettingsScreenMenu = SettingsScreenMenu.General,
     onOpenLogViewer: () -> Unit = {},
 ) {
     SettingsScreenScaffoldRoot(
@@ -17,13 +17,13 @@ fun SettingsScreenRoot(
         onClickClose = onClickClose,
     ) {
         when (it) {
-            SettingsScreenSegmentedMenu.General -> GeneralSettingsScreenRoot(
+            SettingsScreenMenu.General -> GeneralSettingsScreenRoot(
                 onOpenLogViewer = onOpenLogViewer,
             )
 
-            SettingsScreenSegmentedMenu.Server -> ServerSettingsScreenRoot()
+            SettingsScreenMenu.Server -> ServerSettingsScreenRoot()
 
-            SettingsScreenSegmentedMenu.Plugins -> PluginSettingsScreenRoot()
+            SettingsScreenMenu.Plugins -> PluginSettingsScreenRoot()
         }
     }
 }
