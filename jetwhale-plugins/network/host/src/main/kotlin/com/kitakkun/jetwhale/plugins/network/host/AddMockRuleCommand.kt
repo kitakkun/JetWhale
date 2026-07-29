@@ -3,13 +3,12 @@ package com.kitakkun.jetwhale.plugins.network.host
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.encodeToJsonElement
 import java.util.UUID
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -40,7 +39,9 @@ internal class AddMockRuleCommand(
     )
     private val delayMs by longOrNull("Artificial delay before the mocked response is delivered, in milliseconds. Defaults to 0.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    private val createdRule = serializableOutput<MockRule>()
+
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val rule = MockRule(
             id = UUID.randomUUID().toString(),
             name = arguments[ruleName] ?: "",
@@ -58,8 +59,8 @@ internal class AddMockRuleCommand(
             ),
         )
         return when (val failure = syncMockRules(mockRules() + rule)) {
-            null -> Json.encodeToJsonElement(rule).toString()
-            else -> syncErrorJson(failure)
+            null -> createdRule.result(rule)
+            else -> syncErrorResult(failure)
         }
     }
 

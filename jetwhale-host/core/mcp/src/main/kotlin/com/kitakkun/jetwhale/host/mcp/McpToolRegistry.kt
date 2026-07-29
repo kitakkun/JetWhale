@@ -4,17 +4,17 @@ import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
 import com.kitakkun.jetwhale.host.model.McpToolSummary
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
+import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpException
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -73,9 +73,9 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * The [arguments] map must contain a `sessionId` key that identifies the target session.
      * That key is stripped before forwarding to the plugin.
      *
-     * @return The result string, or null if not found or plugin returned null.
+     * @return The command's result, or null if the call could not be routed to a plugin instance.
      */
-    suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): String? {
+    suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): JetWhaleMcpResult? {
         val sessionId = (arguments["sessionId"] as? JsonPrimitive)?.content ?: return null
         val entry = registrations[toolName] ?: return null
         val pluginId = entry.sessionToPlugin[sessionId] ?: return null
@@ -86,10 +86,10 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
         val command = plugin.mcpCommands.firstOrNull { it.name == toolName } ?: return null
         return try {
             command.execute(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
-        } catch (e: JetWhaleMcpArgumentException) {
-            // A caller mistake becomes a payload the AI agent can read and correct, instead of
-            // an MCP-level failure.
-            buildJsonObject { put("error", e.message.orEmpty()) }.toString()
+        } catch (e: JetWhaleMcpException) {
+            // A failure the command chose to report becomes a failed result the AI agent can read
+            // and correct, instead of an MCP-level failure.
+            JetWhaleMcpResult.error(e.message.orEmpty())
         }
     }
 

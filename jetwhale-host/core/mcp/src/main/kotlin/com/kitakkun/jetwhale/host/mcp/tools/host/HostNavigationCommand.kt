@@ -47,7 +47,7 @@ class HostNavigationCommand(
     private val sessionId by stringOrNull("Only for PLUGIN. Defaults to the session already selected in the drawer.")
     private val settingsSection by enumOrNull("Only for SETTINGS. Defaults to GENERAL.", HostSettingsSection.entries)
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String {
         val request = arguments.toRequest()
         hostNavigationService.navigate(request)
 

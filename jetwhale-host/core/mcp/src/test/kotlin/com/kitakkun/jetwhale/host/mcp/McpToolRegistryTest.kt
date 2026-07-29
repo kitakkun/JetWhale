@@ -3,17 +3,29 @@ package com.kitakkun.jetwhale.host.mcp
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpException
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpTextCommand
+import dev.mokkery.answering.returns
+import dev.mokkery.every
 import dev.mokkery.mock
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 @OptIn(ExperimentalJetWhaleApi::class)
 class McpToolRegistryTest {
 
-    private val registry = McpToolRegistry(mock<PluginInstanceService>())
+    private val pluginInstanceService = mock<PluginInstanceService>()
+
+    private val registry = McpToolRegistry(pluginInstanceService)
 
     @Test
     fun `no plugins are reported as MCP-capable before anything registers`() {
@@ -75,6 +87,52 @@ class McpToolRegistryTest {
         assertEquals(null, registry.pluginIdFor("a.greet", "session-2"))
         assertEquals(null, registry.pluginIdFor("nope", "session-1"))
     }
+
+    @Test
+    fun `dispatch hands back the command's own result`() = runBlocking {
+        val plugin = FakeTooledPlugin("a.greet")
+        registry.register("com.example.a", "session-1", plugin)
+        every { pluginInstanceService.getPluginInstanceForSession("com.example.a", "session-1") } returns plugin
+
+        val result = registry.dispatch("a.greet", mapOf("sessionId" to JsonPrimitive("session-1")))
+
+        assertEquals(JetWhaleMcpResult.text("ok"), result)
+    }
+
+    @Test
+    fun `dispatch turns a caller mistake into a failed result rather than throwing`() = runBlocking {
+        val plugin = RejectingPlugin("a.reject")
+        registry.register("com.example.a", "session-1", plugin)
+        every { pluginInstanceService.getPluginInstanceForSession("com.example.a", "session-1") } returns plugin
+
+        val result = registry.dispatch("a.reject", mapOf("sessionId" to JsonPrimitive("session-1")))
+
+        assertEquals(true, result?.isError)
+        assertEquals(listOf(JetWhaleMcpContent.Text("no widget with id: 7")), result?.content)
+    }
+
+    @Test
+    fun `dispatch turns a failure that is not about the arguments into a failed result`() = runBlocking {
+        val plugin = FailingPlugin("a.fail")
+        registry.register("com.example.a", "session-1", plugin)
+        every { pluginInstanceService.getPluginInstanceForSession("com.example.a", "session-1") } returns plugin
+
+        val result = registry.dispatch("a.fail", mapOf("sessionId" to JsonPrimitive("session-1")))
+
+        assertEquals(true, result?.isError)
+        assertEquals(listOf(JetWhaleMcpContent.Text("the device disconnected")), result?.content)
+    }
+
+    @Test
+    fun `dispatch reports an unroutable call as no result at all`() = runBlocking {
+        registry.register("com.example.a", "session-1", FakeTooledPlugin("a.greet"))
+
+        // A tool nobody registered, and a session that does not have the tool: neither is a plugin
+        // failure, so neither may be answered with an error result the plugin never produced.
+        assertNull(registry.dispatch("a.missing", mapOf("sessionId" to JsonPrimitive("session-1"))))
+        assertNull(registry.dispatch("a.greet", mapOf("sessionId" to JsonPrimitive("session-2"))))
+        assertNull(registry.dispatch("a.greet", emptyMap()))
+    }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -83,10 +141,38 @@ private class FakeTooledPlugin(private vararg val toolNames: String) :
     JetWhaleMcpCapablePlugin {
 
     override val mcpCommands: List<JetWhaleMcpCommand> = toolNames.map { toolName ->
-        object : JetWhaleMcpCommand() {
+        object : JetWhaleMcpTextCommand() {
             override val name = toolName
             override val description = "Fake tool for testing"
-            override suspend fun execute(arguments: JetWhaleMcpArguments): String = "ok"
+            override suspend fun executeText(arguments: JetWhaleMcpArguments): String = "ok"
         }
     }
+}
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private class RejectingPlugin(private val toolName: String) :
+    JetWhaleHostPlugin(),
+    JetWhaleMcpCapablePlugin {
+
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        object : JetWhaleMcpCommand() {
+            override val name = toolName
+            override val description = "Always rejects the call"
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = throw JetWhaleMcpArgumentException("no widget with id: 7")
+        },
+    )
+}
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private class FailingPlugin(private val toolName: String) :
+    JetWhaleHostPlugin(),
+    JetWhaleMcpCapablePlugin {
+
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        object : JetWhaleMcpCommand() {
+            override val name = toolName
+            override val description = "Always fails for a reason unrelated to its arguments"
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = throw JetWhaleMcpException("the device disconnected")
+        },
+    )
 }

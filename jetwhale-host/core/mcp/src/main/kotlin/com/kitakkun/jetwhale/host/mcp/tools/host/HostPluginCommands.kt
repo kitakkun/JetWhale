@@ -41,7 +41,7 @@ class ListInstalledPluginsCommand(
     override val description: String =
         "Host-wide: lists every plugin installed into the debug tool and whether it is enabled, plus the official plugins that could still be installed and any jar that failed to load or is awaiting trust. Use jetwhale.listPlugins instead to see what a particular debug session advertises."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String {
         val loaded = pluginFactoryRepository.loadedPlugins
         val enabledPluginIds = enabledPluginsRepository.enabledPluginIdsFlow.first()
 
@@ -91,7 +91,7 @@ class SetPluginEnabledCommand(
     private val pluginId by string("The plugin to toggle; from jetwhale.listInstalledPlugins.")
     private val enabled by boolean("True to enable the plugin, false to disable it.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String {
         val targetPluginId = arguments[pluginId]
         if (targetPluginId !in pluginFactoryRepository.loadedPlugins) {
             throw JetWhaleMcpArgumentException("invalid pluginId: '$targetPluginId' is not installed. See jetwhale.listInstalledPlugins.")
@@ -140,7 +140,7 @@ class InstallOfficialPluginCommand(
 
     private val pluginId by string("The official plugin to install; from the availableOfficial list of jetwhale.listInstalledPlugins.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String {
         if (!settingsRepository.mcpPluginInstallAllowedFlow.value) {
             // Listed but refused on purpose: an agent that can read the reason can tell the user
             // which switch to flip, where a hidden tool would only produce confusion.

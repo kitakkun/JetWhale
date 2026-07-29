@@ -5,6 +5,9 @@ import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpTextCommand
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
@@ -25,12 +28,16 @@ import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class, ExperimentalSerializationApi::class)
 class McpParameterDslTest {
-    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
+    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking {
+        command.execute(JetWhaleMcpArguments(JsonObject(args.toMap())))
+            .content.filterIsInstance<JetWhaleMcpContent.Text>().joinToString(separator = "\n") { it.text }
+    }
 
     private fun JetWhaleMcpCommand.schemaOf(parameter: String): JsonObject = toDescriptor().parameters.getValue(parameter).schema
 
@@ -40,73 +47,73 @@ class McpParameterDslTest {
 
     private fun JsonObject.strings(key: String): List<String> = (get(key) as JsonArray).map { (it as JsonPrimitive).content }
 
-    private class StringMapCommand : JetWhaleMcpCommand() {
+    private class StringMapCommand : JetWhaleMcpTextCommand() {
         override val name = "test.stringMap"
         override val description = "echoes a string map"
         val headers by stringMap("A string-to-string map.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[headers].entries.joinToString(",") { "${it.key}=${it.value}" }
+        override suspend fun executeText(arguments: JetWhaleMcpArguments): String = arguments[headers].entries.joinToString(",") { "${it.key}=${it.value}" }
     }
 
-    private class OptionalStringMapCommand : JetWhaleMcpCommand() {
+    private class OptionalStringMapCommand : JetWhaleMcpTextCommand() {
         override val name = "test.optionalStringMap"
         override val description = "echoes an optional string map"
         val headers by stringMapOrNull("An optional string-to-string map.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[headers]?.size?.toString() ?: "absent"
+        override suspend fun executeText(arguments: JetWhaleMcpArguments): String = arguments[headers]?.size?.toString() ?: "absent"
     }
 
-    private class StringListCommand : JetWhaleMcpCommand() {
+    private class StringListCommand : JetWhaleMcpTextCommand() {
         override val name = "test.stringList"
         override val description = "echoes a string list"
         val items by stringList("A list of strings.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[items].joinToString(",")
+        override suspend fun executeText(arguments: JetWhaleMcpArguments): String = arguments[items].joinToString(",")
     }
 
-    private class JsonObjectCommand : JetWhaleMcpCommand() {
+    private class JsonObjectCommand : JetWhaleMcpTextCommand() {
         override val name = "test.jsonObject"
         override val description = "echoes a raw json object"
         val payload by jsonObject("A raw JSON object.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[payload].toString()
+        override suspend fun executeText(arguments: JetWhaleMcpArguments): String = arguments[payload].toString()
     }
 
-    private class JsonArrayCommand : JetWhaleMcpCommand() {
+    private class JsonArrayCommand : JetWhaleMcpTextCommand() {
         override val name = "test.jsonArray"
         override val description = "echoes a raw json array"
         val payload by jsonArray("A raw JSON array.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[payload].size.toString()
+        override suspend fun executeText(arguments: JetWhaleMcpArguments): String = arguments[payload].size.toString()
     }
 
-    private class EnumCommand : JetWhaleMcpCommand() {
+    private class EnumCommand : JetWhaleMcpTextCommand() {
         override val name = "test.enum"
         override val description = "echoes an enum"
         val matchType by enum("How the pattern is compared.", MockMatchType.entries)
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[matchType].name
+        override suspend fun executeText(arguments: JetWhaleMcpArguments): String = arguments[matchType].name
     }
 
-    private class SerializableCommand : JetWhaleMcpCommand() {
+    private class SerializableCommand : JetWhaleMcpTextCommand() {
         override val name = "test.serializable"
         override val description = "echoes serializable mock rules"
         val rules by serializable<List<MockRule>>("The mock rules to apply.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[rules].joinToString(",") { "${it.id}:${it.matcher.matchType}" }
+        override suspend fun executeText(arguments: JetWhaleMcpArguments): String = arguments[rules].joinToString(",") { "${it.id}:${it.matcher.matchType}" }
     }
 
     // Both the advertised schema and the decoder come from this format, so they cannot disagree.
     private class SnakeCaseCommand :
-        JetWhaleMcpCommand(
+        JetWhaleMcpTextCommand(
             Json(from = DefaultArgumentJson) { namingStrategy = JsonNamingStrategy.SnakeCase },
         ) {
         override val name = "test.snakeCase"
         override val description = "echoes mock rules named in snake_case"
         val rules by serializable<List<MockRule>>("The mock rules to apply.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[rules].single().matcher.urlPattern
+        override suspend fun executeText(arguments: JetWhaleMcpArguments): String = arguments[rules].single().matcher.urlPattern
     }
 
     // PluginFrame is a sealed interface whose subclasses (including those of the nested sealed
     // Reply) kotlinx flattens into one set of leaves.
-    private class SealedCommand : JetWhaleMcpCommand() {
+    private class SealedCommand : JetWhaleMcpTextCommand() {
         override val name = "test.sealed"
         override val description = "echoes a plugin frame"
         val frame by serializable<PluginFrame>("A plugin frame.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[frame].let { "${it::class.simpleName}:${it.pluginId}" }
+        override suspend fun executeText(arguments: JetWhaleMcpArguments): String = arguments[frame].let { "${it::class.simpleName}:${it.pluginId}" }
     }
 
     @Test
@@ -318,5 +325,100 @@ class McpParameterDslTest {
             execute(SerializableCommand(), "rules" to buildJsonArray { add(buildJsonObject { put("id", "rule-1") }) })
         }
         assertTrue("invalid rules" in exception.message!!, exception.message!!)
+    }
+
+    // -- Output declaration ---------------------------------------------------------------------
+
+    private class OutputCommand : JetWhaleMcpCommand() {
+        override val name = "test.output"
+        override val description = "answers with a mock configuration"
+        private val mockConfig = serializableOutput<MockConfigResult>()
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = mockConfig.result(
+            MockConfigResult(enabled = true, rules = listOf(MockRule(id = "r1", matcher = MockMatcher(urlPattern = "/api"), response = MockResponseSpec()))),
+        )
+    }
+
+    // The output schema follows the command's format for the same reason a parameter's does.
+    private class SnakeCaseOutputCommand : JetWhaleMcpCommand(Json(from = DefaultArgumentJson) { namingStrategy = JsonNamingStrategy.SnakeCase }) {
+        override val name = "test.snakeCaseOutput"
+        override val description = "answers with a snake_case mock configuration"
+        private val mockConfig = serializableOutput<MockConfigResult>()
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = mockConfig.result(MockConfigResult(enabled = false, rules = emptyList()))
+    }
+
+    @Test
+    fun `the derived output schema advertises the properties and the ones without defaults`() {
+        val schema = assertNotNull(OutputCommand().toDescriptor().outputSchema)
+        assertEquals("object", (schema.getValue("type") as JsonPrimitive).content)
+        assertEquals(listOf("enabled", "rules"), schema.obj("properties").keys.toList())
+        assertEquals(listOf("enabled", "rules"), schema.strings("required"))
+
+        val rule = schema.property("rules").obj("items")
+        assertEquals(listOf("id", "matcher", "response"), rule.strings("required"))
+        assertEquals(
+            "Whether response mocking is enabled globally on the debuggee.",
+            (schema.property("enabled").getValue("description") as JsonPrimitive).content,
+        )
+    }
+
+    @Test
+    fun `a declared output answers with structured content matching its schema`() {
+        val result = runBlocking { OutputCommand().execute(JetWhaleMcpArguments(JsonObject(emptyMap()))) }
+        val payload = assertNotNull(result.structuredContent)
+        assertEquals(setOf("enabled", "rules"), payload.keys)
+        assertTrue(payload.getValue("enabled") is JsonPrimitive)
+        // The same payload is repeated as text, which is what JetWhaleMcpResult.json produces.
+        assertEquals(payload.toString(), execute(OutputCommand()))
+    }
+
+    @Test
+    fun `a command that declares no output advertises none`() {
+        assertNull(StringMapCommand().toDescriptor().outputSchema)
+    }
+
+    @Test
+    fun `a custom format drives both the advertised output names and the encoding`() {
+        val command = SnakeCaseOutputCommand()
+        val rule = assertNotNull(command.toDescriptor().outputSchema).property("rules").obj("items")
+        assertEquals(listOf("method", "url_pattern", "match_type"), rule.property("matcher").obj("properties").keys.toList())
+    }
+
+    @Test
+    fun `an output type that is not a JSON object fails fast`() {
+        val exception = assertFailsWith<IllegalStateException> {
+            object : JetWhaleMcpCommand() {
+                override val name = "test.listOutput"
+                override val description = "tries to answer with a bare list"
+                private val rules = serializableOutput<List<MockRule>>()
+                override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = rules.result(emptyList())
+            }
+        }
+        assertTrue("does not serialize to a JSON object" in exception.message!!, exception.message!!)
+    }
+
+    @Test
+    fun `declaring a second output fails fast`() {
+        val exception = assertFailsWith<IllegalStateException> {
+            object : JetWhaleMcpCommand() {
+                override val name = "test.twoOutputs"
+                override val description = "declares two outputs"
+                val config = serializableOutput<MockConfigResult>()
+                val rules = serializableOutput<MockRulesResult>()
+                override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = config.result(MockConfigResult(enabled = true, rules = emptyList()))
+            }
+        }
+        assertTrue("more than one output" in exception.message!!, exception.message!!)
+    }
+
+    @Test
+    fun `declaring an output after the schema was read fails fast`() {
+        val command = object : JetWhaleMcpCommand() {
+            override val name = "test.lateOutput"
+            override val description = "declares its output inside execute"
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = serializableOutput<MockRulesResult>().result(MockRulesResult(rules = emptyList()))
+        }
+        command.toDescriptor()
+        val exception = assertFailsWith<IllegalStateException> { execute(command) }
+        assertTrue("after its schema was read" in exception.message!!, exception.message!!)
     }
 }

@@ -24,10 +24,10 @@ import io.ktor.server.sse.sse
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
-import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -227,13 +227,18 @@ class DefaultMcpServerService(
                 name = toolName,
                 description = descriptor.description,
                 inputSchema = inputSchema,
+                // A command that declares no output shape advertises none, so an agent keeps reading
+                // that tool's answer as text.
+                outputSchema = descriptor.outputSchema?.toToolSchema(),
                 resolvePluginIdForSession = { sessionId -> toolRegistry.pluginIdFor(toolName, sessionId) },
             ) { request ->
                 // Forward the arguments as raw JSON so structured (object/array) parameters keep
                 // their shape; the command's parameter DSL decodes each value by its declared type.
                 val arguments = request.arguments ?: emptyMap()
-                val result = toolRegistry.dispatch(toolName, arguments)
-                CallToolResult(content = listOf(TextContent(result ?: "null")))
+                // A tool is listed for as long as any session offers it, so a call naming a session
+                // that no longer has the plugin is a caller mistake rather than a server fault.
+                toolRegistry.dispatch(toolName, arguments)?.toCallToolResult()
+                    ?: errorResult("no plugin instance handles $toolName for the requested sessionId")
             }
         }
     }

@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -36,7 +37,7 @@ internal class ListTransactionsCommand(
         "Only include transactions with this HTTP method (case-insensitive).",
     )
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val urlContains = arguments[this.urlContains]
         val method = arguments[this.method]
         val limit = arguments[this.limit]
@@ -72,9 +73,11 @@ internal class ListTransactionsCommand(
             else -> filtered.take(limit)
         }
         val nextCursor = page.lastOrNull()?.txId?.takeIf { afterTxId != null && page.size < filtered.size }
-        return buildJsonObject {
-            put("transactions", JsonArray(page.map { redactForMcp(it).toSummaryJson() }))
-            nextCursor?.let { put("nextCursor", it) }
-        }.toString()
+        return JetWhaleMcpResult.json(
+            buildJsonObject {
+                put("transactions", JsonArray(page.map { redactForMcp(it).toSummaryJson() }))
+                nextCursor?.let { put("nextCursor", it) }
+            },
+        )
     }
 }

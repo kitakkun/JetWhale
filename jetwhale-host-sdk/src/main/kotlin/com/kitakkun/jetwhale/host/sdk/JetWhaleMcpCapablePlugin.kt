@@ -9,7 +9,7 @@ import kotlinx.serialization.json.JsonObject
  * The MCP server queries all active plugin instances for this interface as sessions come up,
  * registers each command's descriptor, and dispatches invocations to the matching command on the
  * correct plugin instance (keyed by pluginId + sessionId). A [JetWhaleMcpArgumentException]
- * thrown by a command is rendered as an `{"error": ...}` payload instead of failing the server.
+ * thrown by a command becomes a failed [JetWhaleMcpResult] instead of failing the server.
  *
  * Usage:
  * ```kotlin
@@ -34,15 +34,20 @@ public interface JetWhaleMcpCapablePlugin {
 /**
  * Describes a single MCP tool contributed by a plugin.
  *
- * @param name        Unique tool name (no spaces; use dots as separators).
- * @param description Human-readable description shown to the AI agent.
- * @param parameters  Parameter descriptors keyed by parameter name.
+ * @param name         Unique tool name (no spaces; use dots as separators).
+ * @param description  Human-readable description shown to the AI agent.
+ * @param parameters   Parameter descriptors keyed by parameter name.
+ * @param outputSchema JSON Schema of the structured content the tool answers with, always an
+ *                     `object` schema as MCP requires. Null when the command declares no output,
+ *                     which is how a tool says it answers with unstructured text; both defaults
+ *                     describe the tool that declares nothing beyond its name and description.
  */
 @ExperimentalJetWhaleApi
 public data class JetWhaleMcpToolDescriptor(
     val name: String,
     val description: String,
     val parameters: Map<String, JetWhaleMcpParameterDescriptor> = emptyMap(),
+    val outputSchema: JsonObject? = null,
 )
 
 /**

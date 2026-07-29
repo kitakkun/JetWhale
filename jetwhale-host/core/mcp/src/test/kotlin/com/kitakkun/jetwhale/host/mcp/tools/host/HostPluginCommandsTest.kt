@@ -87,7 +87,7 @@ class HostPluginCommandsTest {
 
     @Test
     fun `listInstalledPlugins reports each plugin's enabled state`() = runBlocking {
-        val result = listInstalledPlugins.execute(arguments()).decodeList()
+        val result = listInstalledPlugins.executeForText(arguments()).decodeList()
 
         val plugin = result.installed.single()
         assertEquals("com.example.local", plugin.pluginId)
@@ -98,7 +98,7 @@ class HostPluginCommandsTest {
 
     @Test
     fun `listInstalledPlugins marks an official plugin that is not installed`() = runBlocking {
-        val official = listInstalledPlugins.execute(arguments()).decodeList().availableOfficial.single { it.pluginId == officialPluginId }
+        val official = listInstalledPlugins.executeForText(arguments()).decodeList().availableOfficial.single { it.pluginId == officialPluginId }
 
         assertFalse(official.installed)
     }
@@ -107,14 +107,14 @@ class HostPluginCommandsTest {
     fun `listInstalledPlugins marks an official plugin that is already installed`() = runBlocking {
         loadedPlugins[officialPluginId] = loadedPlugin(officialPluginId, "Network Inspector", requiresAgent = true)
 
-        val official = listInstalledPlugins.execute(arguments()).decodeList().availableOfficial.single { it.pluginId == officialPluginId }
+        val official = listInstalledPlugins.executeForText(arguments()).decodeList().availableOfficial.single { it.pluginId == officialPluginId }
 
         assertTrue(official.installed)
     }
 
     @Test
     fun `listInstalledPlugins reports failed and untrusted jars`() = runBlocking {
-        val result = listInstalledPlugins.execute(arguments()).decodeList()
+        val result = listInstalledPlugins.executeForText(arguments()).decodeList()
 
         assertEquals("/plugins/broken.jar", result.failedJars.single().jarPath)
         assertEquals("/plugins/unknown.jar", result.untrustedJars.single())
@@ -123,7 +123,7 @@ class HostPluginCommandsTest {
     @Test
     fun `setPluginEnabled rejects a pluginId that is not installed`(): Unit = runBlocking {
         val error = assertFailsWith<JetWhaleMcpArgumentException> {
-            setPluginEnabled.execute(arguments("pluginId" to JsonPrimitive("com.example.missing"), "enabled" to JsonPrimitive(true)))
+            setPluginEnabled.executeForText(arguments("pluginId" to JsonPrimitive("com.example.missing"), "enabled" to JsonPrimitive(true)))
         }
         assertContains(error.message.orEmpty(), "is not installed")
     }
@@ -131,7 +131,7 @@ class HostPluginCommandsTest {
     @Test
     fun `setPluginEnabled disables a plugin without waiting for instantiation`() = runBlocking {
         val result = setPluginEnabled
-            .execute(arguments("pluginId" to JsonPrimitive("com.example.local"), "enabled" to JsonPrimitive(false)))
+            .executeForText(arguments("pluginId" to JsonPrimitive("com.example.local"), "enabled" to JsonPrimitive(false)))
             .let { Json.decodeFromString<SetPluginEnabledResult>(it) }
 
         assertFalse(result.enabled)
@@ -143,7 +143,7 @@ class HostPluginCommandsTest {
     @Test
     fun `installOfficialPlugin is refused when the setting is disabled`(): Unit = runBlocking {
         val error = assertFailsWith<JetWhaleMcpArgumentException> {
-            installOfficialPlugin.execute(arguments("pluginId" to JsonPrimitive(officialPluginId)))
+            installOfficialPlugin.executeForText(arguments("pluginId" to JsonPrimitive(officialPluginId)))
         }
         assertContains(error.message.orEmpty(), "Settings → Server → MCP Server")
     }
@@ -153,7 +153,7 @@ class HostPluginCommandsTest {
         installAllowed.value = true
 
         val error = assertFailsWith<JetWhaleMcpArgumentException> {
-            installOfficialPlugin.execute(arguments("pluginId" to JsonPrimitive("com.evil.backdoor")))
+            installOfficialPlugin.executeForText(arguments("pluginId" to JsonPrimitive("com.evil.backdoor")))
         }
         assertContains(error.message.orEmpty(), "is not an official plugin")
     }
@@ -164,7 +164,7 @@ class HostPluginCommandsTest {
         installProgress.value = PluginInstallProgress.DownloadingPlugin
 
         val error = assertFailsWith<JetWhaleMcpArgumentException> {
-            installOfficialPlugin.execute(arguments("pluginId" to JsonPrimitive(officialPluginId)))
+            installOfficialPlugin.executeForText(arguments("pluginId" to JsonPrimitive(officialPluginId)))
         }
         assertContains(error.message.orEmpty(), "already in progress")
     }
@@ -174,7 +174,7 @@ class HostPluginCommandsTest {
         installAllowed.value = true
 
         val result = installOfficialPlugin
-            .execute(arguments("pluginId" to JsonPrimitive(officialPluginId)))
+            .executeForText(arguments("pluginId" to JsonPrimitive(officialPluginId)))
             .let { Json.decodeFromString<InstallOfficialPluginResult>(it) }
 
         assertTrue(result.installed)
@@ -191,7 +191,7 @@ class HostPluginCommandsTest {
         loadedPlugins[officialPluginId] = loadedPlugin(officialPluginId, "Network Inspector", requiresAgent = true)
 
         val result = installOfficialPlugin
-            .execute(arguments("pluginId" to JsonPrimitive(officialPluginId)))
+            .executeForText(arguments("pluginId" to JsonPrimitive(officialPluginId)))
             .let { Json.decodeFromString<InstallOfficialPluginResult>(it) }
 
         assertTrue(result.alreadyInstalled)

@@ -79,7 +79,7 @@ class HostStatusCommandTest {
 
     @Test
     fun `getStatus reports the debug server and mcp server endpoints`() = runBlocking {
-        val status = command.execute(arguments()).decode()
+        val status = command.executeForText(arguments()).decode()
 
         assertEquals("Started", status.debugServer.state)
         assertEquals(5080, status.debugServer.port)
@@ -90,7 +90,7 @@ class HostStatusCommandTest {
 
     @Test
     fun `getStatus reports the host version and whether it is a snapshot`() = runBlocking {
-        val status = command.execute(arguments()).decode()
+        val status = command.executeForText(arguments()).decode()
 
         assertEquals("1.2.3-SNAPSHOT", status.host.version)
         assertTrue(status.host.isSnapshot)
@@ -98,7 +98,7 @@ class HostStatusCommandTest {
 
     @Test
     fun `getStatus counts sessions by whether they are still connected`() = runBlocking {
-        val status = command.execute(arguments()).decode()
+        val status = command.executeForText(arguments()).decode()
 
         assertEquals(2, status.sessions.total)
         assertEquals(1, status.sessions.active)
@@ -106,7 +106,7 @@ class HostStatusCommandTest {
 
     @Test
     fun `getStatus reports a null ui block before the host window has composed`() = runBlocking {
-        assertNull(command.execute(arguments()).decode().ui)
+        assertNull(command.executeForText(arguments()).decode().ui)
     }
 
     @Test
@@ -117,7 +117,7 @@ class HostStatusCommandTest {
             selectedPluginId = "com.example",
         )
 
-        val ui = requireNotNull(command.execute(arguments()).decode().ui)
+        val ui = requireNotNull(command.executeForText(arguments()).decode().ui)
         assertEquals("PLUGIN", ui.destination)
         assertEquals("com.example", ui.pluginId)
         assertEquals("s1", ui.selectedSessionId)
@@ -125,13 +125,13 @@ class HostStatusCommandTest {
 
     @Test
     fun `getStatus reports that no install is in flight`() = runBlocking {
-        assertFalse(command.execute(arguments()).decode().plugins.installInProgress)
+        assertFalse(command.executeForText(arguments()).decode().plugins.installInProgress)
     }
 
     @Test
     fun `getStatus reports whether installing plugins over MCP is allowed`() = runBlocking {
         // Without this an agent could only discover the gate by attempting an install and being refused.
-        assertFalse(command.execute(arguments()).decode().settings.mcpPluginInstallAllowed)
+        assertFalse(command.executeForText(arguments()).decode().settings.mcpPluginInstallAllowed)
     }
 }
 
