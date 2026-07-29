@@ -91,12 +91,13 @@ describes someone else's host.
   you spinning until a timeout with nothing to read.
 
   ```bash
-  nohup ./gradlew … > run.log 2>&1 &
+  nohup ./gradlew runJetWhale \
+    --args="--server-port 5081 --wss-port 5444 --mcp-server-port 7081" > run.log 2>&1 &
   LAUNCHER=$!
   DEADLINE=$((SECONDS + 900))
   until nc -z 127.0.0.1 7081 >/dev/null 2>&1; do
-    kill -0 $LAUNCHER 2>/dev/null || { echo "launcher exited"; tail -30 run.log; break; }
-    [ $SECONDS -ge $DEADLINE ] && { echo "timed out"; tail -30 run.log; break; }
+    kill -0 $LAUNCHER 2>/dev/null || { echo "launcher exited"; tail -n 30 run.log; break; }
+    [ $SECONDS -ge $DEADLINE ] && { echo "timed out"; tail -n 30 run.log; break; }
     sleep 3
   done
   ```
