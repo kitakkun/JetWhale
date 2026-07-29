@@ -241,14 +241,12 @@ a human for:
 `getLogs` reads the host's log, not the debuggee's — it is how a plugin jar that failed to load
 explains itself.
 
-::: warning
-`restartDebugServer`, and `updateSettings` when it changes a ws/wss setting, drop **every** session:
-each `sessionId` you hold goes stale and each debuggee has to reconnect. Re-run `listSessions`
-afterwards. Changing `mcpServerPort` never restarts the MCP server — it would kill your own
-connection — so that one only takes effect on the next host start. `updateSettings` also *retires*
-the matching `--args` override from §2 for the rest of the session, so a port set this way is the
-port from then on — pick one nobody else holds.
-:::
+**These two invalidate what you are holding.** `restartDebugServer`, and `updateSettings` when it
+changes a ws/wss setting, drop **every** session: each `sessionId` you hold goes stale and each
+debuggee has to reconnect. Re-run `listSessions` afterwards. Changing `mcpServerPort` never restarts
+the MCP server — it would kill your own connection — so that one only takes effect on the next host
+start. `updateSettings` also *retires* the matching `--args` override from §2 for the rest of the
+session, so a port set this way is the port from then on — pick one nobody else holds.
 
 Always `Read` the screenshot afterwards. A screenshot you never open verifies nothing.
 
