@@ -38,8 +38,8 @@ Cannot:
 - **anything that needs the user's consent, on a host you did not launch.** The tools that change
   something are permission-gated: on a host started without `--mcp-allow-all-permissions` they are
   not in the tool list at all, and nothing the agent can call turns them on — a human grants them in
-  **Settings → AI Agents → MCP Server**. Launching the host yourself (§2) is the QA route around it;
-  attaching to someone else's is not.
+  **Settings → AI Agents → Permissions**. Launching the host yourself (§2) is the QA route around
+  it; attaching to someone else's is not.
 - the mouse cursor's appearance. An AWT cursor is not part of the rendered scene, so
   `Modifier.pointerHoverIcon` results never show up in a screenshot. Cover that with a unit test
   (see §7) and say plainly that the visual was not verified.
@@ -325,8 +325,17 @@ the reason. Grant them for the launch with `--mcp-allow-all-permissions`:
   --args="--server-port 5081 --wss-port 5444 --mcp-server-port 7081 --mcp-allow-all-permissions"
 ```
 
-The flag holds for that launch only; a human grants them per tool in **Settings → Server → MCP
-Server**. List the tools before planning around one — the gate moves as the permission tree grows.
+The flag holds for that launch only; a human grants them per group in **Settings → AI Agents →
+Permissions**.
+
+The two kinds of gate fail differently, so read the symptom:
+
+| Gate | Symptom |
+|---|---|
+| a **host** group (observe / navigate / manage plugins / settings & servers) | decidable up front, so a denied group's tools are **not listed** — the call fails with `Tool … not found` |
+| a **plugin** permission (a plugin's UI, or its own `<pluginId>.*` tools) | the same tool is allowed for one plugin and denied for another, so it **stays listed** and the call comes back refused, naming the setting |
+
+List the tools before planning around one, and do not read a refusal as a bug in the plugin.
 
 | Tool | Purpose |
 |------|---------|
