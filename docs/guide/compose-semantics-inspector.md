@@ -1,0 +1,280 @@
+# Compose Semantics Inspector
+
+The Compose Semantics Inspector is a built-in JetWhale plugin that reads the **Compose node tree of your
+running app** — every node, its labels, its bounds, and the actions it exposes — and lets you both
+browse it in the host and hand it to an AI agent over [MCP](/guide/mcp-server).
+
+- ⚡ **~14 ms** per capture end-to-end, against ~2.7 s for `android layout` — see
+  [Why not the CLI?](#why-not-the-cli)
+- 🌲 Live tree of the app's Compose nodes, with search and an *interactive only* filter
+- 🎯 Per-node detail: role, text, `contentDescription`, `testTag`, state, bounds in root **and**
+  screen pixels
+- 👆 Run a node's own semantics action — click, long click, set text, scroll, focus, dismiss —
+  from the host or from an AI agent
+- 🪟 Dialogs and popups appear as their own roots, because that is what they are in Compose
+- 🤖 Three MCP tools so an agent can see the screen structurally instead of guessing at pixels
+
+## Why not the CLI?
+
+`android layout` and `adb shell uiautomator dump` both go out to the accessibility framework across
+a process boundary and write a file on the device before anything can read it. This plugin reads the
+semantics tree **inside** the app, on its main thread, and sends it back over the JetWhale
+connection that is already open — so a capture costs about as much as a frame.
+
+Measured on one machine, on the same screen, back to back — a Pixel-class emulator (1080×2400,
+density 2.625) showing the demo app's *Compose nodes* screen, 38–39 elements:
+
+| | median | 
+|---|---|
+| **`com.kitakkun.jetwhale.semantics.getNodeTree`** (host → app → host) | **14 ms** (min 12, p90 15) |
+| ⤷ of which reading the tree on the device | **1 ms** (max 6) |
+| **`com.kitakkun.jetwhale.semantics.findNodes`** | **11 ms** |
+| `adb shell uiautomator dump` + `adb pull` | 1,960 ms |
+| `android layout` (Google's Android CLI) | 2,703 ms |
+
+That is **~190× faster than `android layout`** on this setup — fast enough that an agent can capture
+between every action instead of budgeting for the dump. Treat the ratio as indicative rather than a
+spec: an emulator is slower than a physical device, and a bigger screen means more nodes.
+
+The host shows both numbers live — what the capture cost on the device, and the round trip from the
+host — so a slow capture says where the time went.
+
+### Are the coordinates right?
+
+`bounds` and `tap` are screen pixels, so they have to survive whatever the device does to the
+window. They were checked two ways at once — cross-checked against `android layout`'s reading of the
+same screen, and proved by tapping the reported point and watching the intended node react — across
+the conditions that move a window around:
+
+| Condition | nodes cross-checked | worst disagreement | tap reached the node |
+|---|---|---|---|
+| gesture nav, portrait, density 420 | 19 | 1 px | ✅ |
+| 3-button navigation bar | 18 | 1 px | ✅ |
+| landscape | 10 | 1 px | ✅ |
+| density 320 | 29 | 1 px | ✅ |
+| 800×1280 @ density 320 | 12 | 1 px | ✅ |
+
+The residual 1 px is rounding: this plugin rounds, `android layout` truncates.
+
+Each condition was also re-run with a dialog open, which is the case that actually exercises the
+arithmetic — a dialog is its own window and does **not** start at the screen origin, so a
+window-relative coordinate reported as if it were absolute would be off by the whole offset. In
+landscape that offset reaches `(717, 298)`; the dialog's nodes still agreed to within 1 px, and
+tapping the reported point closed the dialog. Every root reports its own `windowOffset`, so a
+suspicious coordinate can be traced back to the window it came from.
+
+The tree is also richer than what the CLIs return: `android layout` gives a flat list with text,
+`content-desc` and bounds, but no `testTag`, no role and no per-node id, so an agent can only aim by
+label or by pixel. This plugin reports all three, which is what makes
+[`performNodeAction`](#com-kitakkun-jetwhale-compose-performnodeaction) able to address a node
+directly.
+
+## What the tree contains
+
+The tree is the Compose **semantics** tree: the same tree an accessibility service sees, and the one
+that says what is actually clickable. A `Box` that only lays out pixels does not appear on its own;
+a `Button` does, carrying its label and its `OnClick` action.
+
+Two views of it are available, switchable in the host and per MCP call:
+
+| | What you get |
+|---|---|
+| **Merged** (default) | A `Button`'s label is folded into the clickable node — one node per control. This is what accessibility services and `performClick` see, and usually what you want. |
+| **Unmerged** | Every semantics node stays separate, closer to how the UI is written. Useful when you need to see exactly which composable contributed which property. |
+
+## Setup
+
+Add the agent to the app being debugged — one artifact, carrying both the plugin and the probes
+(see [Platform support](#platform-support) for which targets have a probe):
+
+```kotlin
+dependencies {
+    implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
+    implementation("com.kitakkun.jetwhale:jetwhale-compose-semantics-inspector-agent:<version>")
+}
+```
+
+Register the plugin with the agent runtime, and install a probe so it has roots to read.
+
+### Registering the plugin
+
+```kotlin
+import com.kitakkun.jetwhale.agent.runtime.startJetWhale
+import com.kitakkun.jetwhale.plugins.semantics.agent.JetWhaleSemanticsAgentPlugin
+
+startJetWhale {
+    connection { host = "localhost"; port = 5080 }
+    plugins { register(JetWhaleSemanticsAgentPlugin()) }
+}
+```
+
+This part is common code — it compiles on every Compose Multiplatform target. Without a probe the
+plugin still answers, reporting an empty tree and a warning saying so, which the host shows.
+
+### Installing a probe
+
+There are two ways in, and they can be combined — registrations are reference counted per root, so
+neither can pull a root out from under the other.
+
+#### From the Application layer (recommended)
+
+```kotlin
+import com.kitakkun.jetwhale.plugins.semantics.agent.installJetWhaleSemanticsProbe
+
+class MyApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        installJetWhaleSemanticsProbe(this)
+        startJetWhale { /* … */ }
+    }
+}
+```
+
+Installed from `onCreate()`, before any activity exists, it hooks the callback Compose fires when it
+creates the view backing a composition — so it sees **every** root, including the separate one a
+`Dialog` or a `Popup` composes into. No screen has to change.
+
+Installed later it also scans the resumed activity's window, so roots created before the call are
+not lost — but roots in windows that were already open and are never re-resumed can be.
+
+The install is process-wide and idempotent, and closing the returned handle restores whatever
+callback was there before — so it composes with the Compose test framework rather than displacing
+it.
+
+#### From inside the composition
+
+```kotlin
+import com.kitakkun.jetwhale.plugins.semantics.agent.JetWhaleSemanticsProbe
+
+setContent {
+    JetWhaleSemanticsProbe()
+    App()
+}
+```
+
+Use this when the Application layer is not yours to touch, or when only one screen should be
+readable. It registers **its own** root for as long as it stays composed — a `Dialog` or `Popup`
+composes into a root of its own, so add a call inside those too, or install the Application-level
+probe, which finds them all.
+
+::: warning Debug builds only
+The probe makes your app's UI structure readable, and the actions below make it drivable, over the
+JetWhale connection. Wire both up in debug builds only, exactly as you would the rest of JetWhale.
+:::
+
+## Using the host UI
+
+Open the **Compose Semantics Inspector** tab for a session and press **Refresh**.
+
+- **Auto** re-captures once a second. It is off by default: a capture reads the app's semantics on
+  its main thread, so leaving it on makes the app do that work forever.
+- **Interactive only** keeps the nodes that expose an action, are editable, or scroll — plus their
+  ancestors, so the structure stays readable.
+- **Include invisible** adds nodes that are not laid out or are fully clipped away.
+- The **search box** matches text, `contentDescription`, `testTag`, role and id.
+
+Select a node to see its full semantics on the right, along with a button for every action it
+actually exposes. There is also a **Copy `adb shell input tap`** button for the times you do want to
+drive the app through the input system.
+
+## MCP tools
+
+The plugin contributes three tools to the host's [MCP server](/guide/mcp-server). As with every
+plugin tool, JetWhale injects the `sessionId` parameter and routes the call to the right session.
+
+### `com.kitakkun.jetwhale.semantics.findNodes`
+
+The one to reach for first. Captures the tree and returns the matching nodes as a flat list, each
+carrying the `rootId`/`id` pair that addresses it, screen-pixel `bounds`, and a ready-made `tap`
+point.
+
+Criteria (`text`, `contentDescription`, `testTag`, `role`) are combined with AND and match
+case-insensitively by substring unless `exact` is set. With no criteria at all it lists everything
+interactive on screen — a good way to answer "what can I do here?".
+
+### `com.kitakkun.jetwhale.semantics.getNodeTree`
+
+The whole tree, structure included. Takes `merged`, `includeInvisible`, `maxDepth`,
+`interactiveOnly` and `rootId`. Use it when the layout itself is the question; use `findNodes` when
+you are looking for one element.
+
+### `com.kitakkun.jetwhale.semantics.performNodeAction`
+
+Invokes a node's own semantics action: `Click`, `LongClick`, `SetText`, `InsertText`, `ImeAction`,
+`ScrollBy`, `RequestFocus`, `Dismiss`, `Expand`, `Collapse`.
+
+This runs the action the node itself declared, so it needs no coordinates and cannot land on
+whatever moved into that spot in the meantime — prefer it over `adb shell input tap`. `rootId` is
+optional: without it the node is looked up in the most recent capture.
+
+It is also the more *reliable* route, not just the tidier one: on the emulator used for the
+benchmark above, `adb shell input swipe` did not scroll a `LazyColumn` at all, while
+`ScrollBy` moved it by exactly the requested distance on the first try.
+
+A typical agent loop:
+
+```
+findNodes(testTag: "login-button")     → { "nodes": [{ "rootId": "compose-root-1f2e", "id": 42, … }] }
+performNodeAction(nodeId: 42, action: "Click")
+findNodes()                            → the new screen's interactive nodes
+```
+
+## Platform support
+
+The capture and action layer is written against `SemanticsOwner`, which lives in Compose's
+**common** source set — so it is the same code on every target. What differs is only how a probe
+*finds* an owner, and that is where platform support begins and ends.
+
+| Target | Probe | What you write |
+|---|---|---|
+| **Android** | ✅ | `installJetWhaleSemanticsProbe(application)`, or `JetWhaleSemanticsProbe()` in a composition |
+| **Desktop (JVM)** | ✅ | `JetWhaleSemanticsProbe()` inside your `Window { }` |
+| iOS, JS, Wasm | — | register a `SemanticsOwner` yourself (below) |
+
+Those are the targets the agent artifact ships for — Compose Multiplatform's own set. Linux, mingw
+and macOS are absent: the first two have no `androidx.compose.ui` at all, and macOS needs the whole
+build to opt into Compose's experimental support for it.
+
+Android finds roots process-wide through the callback Compose fires when it creates the view backing
+a composition. Desktop has no such callback, so its probe is scoped to a window and reads
+`ComposeWindow.semanticsOwners` — which is snapshot-backed, so a dialog or popup rendered inside
+that window appears and disappears on its own. A second `Window { }` is a second composition and
+needs its own call.
+
+On a target with no probe, register an owner you already hold and everything else works unchanged:
+
+```kotlin
+import com.kitakkun.jetwhale.plugins.semantics.agent.ComposeNodeSourceRegistry
+import com.kitakkun.jetwhale.plugins.semantics.agent.registerSemanticsOwner
+
+ComposeNodeSourceRegistry.registerSemanticsOwner(
+    owner = mySemanticsOwner,
+    sourceId = "main-window",
+    label = "Main window",
+    density = 2f,
+)
+```
+
+::: tip Which thread reads the tree
+Semantics may only be read on the thread that owns the composition, and the probes get there without
+adding a dependency to your app — a `Handler` on Android, `EventQueue` on desktop. A target without
+a probe falls back to `Dispatchers.Main`, which on desktop would need `kotlinx-coroutines-swing` on
+your classpath; pass your own `ComposeUiThread` to `registerSemanticsOwner` if that does not suit.
+:::
+
+## Troubleshooting
+
+**"The app reported no Compose root."** No probe is installed. Add
+`installJetWhaleSemanticsProbe(application)`, or `JetWhaleSemanticsProbe()` inside your
+composition.
+
+**A dialog's contents are missing.** A dialog is a separate Compose root. The Application-level
+probe finds it; an in-composition probe only registers the root it was called in.
+
+**An action comes back `performed: false`.** The message says why — the node does not expose that
+action, it is disabled, or its handler declined. Capture the tree again and check the node's
+`actions` list; only what is listed there can be invoked.
+
+**Node ids changed between calls.** A node's id is stable while it stays composed, and ids are only
+unique within their root. After anything that recomposes the screen, capture again rather than
+reusing ids.
