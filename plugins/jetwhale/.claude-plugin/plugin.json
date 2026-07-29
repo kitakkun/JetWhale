@@ -1,0 +1,12 @@
+{
+  "name": "jetwhale",
+  "description": "Skills for developing JetWhale host plugins — currently a QA workflow that drives a plugin's real UI through the debug tool's MCP server.",
+  "version": "0.1.0",
+  "author": {
+    "name": "kitakkun",
+    "url": "https://github.com/kitakkun"
+  },
+  "homepage": "https://github.com/kitakkun/JetWhale",
+  "repository": "https://github.com/kitakkun/JetWhale",
+  "license": "Apache-2.0"
+}
