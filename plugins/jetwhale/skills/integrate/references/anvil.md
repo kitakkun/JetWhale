@@ -2,66 +2,136 @@
 
 Both frameworks merge contributions across the compile classpath and both spell displacement
 `replaces`, so the module layout and the seam are identical to Metro's — read
-[`metro.md`](metro.md) first and treat this file as the delta. The differences are annotation
-packages, the injection annotation, and how multibindings are expressed.
+[`metro.md`](metro.md) first and treat this file as the delta.
 
-**Verify against the version the project actually uses.** These libraries move, and
-kotlin-inject-anvil in particular has changed the shape of its multibinding support across
-releases. Check the annotation's parameters in the resolved artifact before relying on them.
+Both were verified by building a four-module project (`:seam`, `:tooling`, `:app-debug` depending on
+both, `:app-release` depending on `:seam` only) and running each app: release resolves the no-op,
+debug resolves the real implementation, and a scoped holder is shared across two injection sites.
+Each has one sharp edge that the Metro shape does not have.
 
-## Square Anvil (Dagger-backed)
+## kotlin-inject-anvil
+
+Verified with kotlin-inject-anvil 0.1.7, kotlin-inject 0.9.0, KSP 2.3.10, Kotlin 2.3.10.
+
+Annotations live under `software.amazon.lastmile.kotlin.inject.anvil`, with kotlin-inject's `@Inject`
+(`me.tatarka.inject.annotations.Inject`) and `@SingleIn(AppScope::class)` for scoping. The component
+is `@MergeComponent(AppScope::class)` on an abstract class, instantiated with
+`AppComponent::class.create()`.
 
 ```kotlin
 // production module
 interface DebugToolingInitializer {
-    fun initialize()
+    fun initialize(): String
 }
 
 @ContributesBinding(AppScope::class)
-class NoOpInitializer @Inject constructor() : DebugToolingInitializer {
-    override fun initialize() = Unit
+@Inject
+class NoOpInitializer : DebugToolingInitializer {
+    override fun initialize() = "noop"
 }
 ```
 
 ```kotlin
 // debug-only module
 @ContributesBinding(AppScope::class, replaces = [NoOpInitializer::class])
-@Singleton
-class JetWhaleInitializer @Inject constructor(
-    private val agents: JetWhaleAgents,
-) : DebugToolingInitializer {
-    override fun initialize() { /* startJetWhale { … } */ }
-}
-```
-
-- `@ContributesMultibinding(AppScope::class)` is the equivalent of Metro's `@ContributesIntoSet`
-  for the HTTP-client decorator set.
-- An empty `Set<HttpClientDecorator>` needs a `@Multibinds` declaration in a `@ContributesTo`
-  module in production code — Dagger errors on an undeclared empty set the same way Metro does.
-- Anvil is in maintenance mode; if the project is on a recent Kotlin and considering a move, Metro
-  is the successor and this wiring transfers with only the annotation packages changed.
-
-## kotlin-inject-anvil
-
-Same annotation names under `software.amazon.lastmile.kotlin.inject.anvil`, with kotlin-inject's
-`@Inject` (`me.tatarka.inject.annotations.Inject`) and `@SingleIn(AppScope::class)` for scoping.
-
-```kotlin
-@ContributesBinding(AppScope::class, replaces = [NoOpInitializer::class])
 @Inject
 @SingleIn(AppScope::class)
 class JetWhaleInitializer(
     private val agents: JetWhaleAgents,
 ) : DebugToolingInitializer {
-    override fun initialize() { /* startJetWhale { … } */ }
+    override fun initialize() = "jetwhale"
 }
 ```
 
-For the decorator set, kotlin-inject-anvil expresses multibinding contributions through
-`@ContributesBinding`'s multibinding support rather than a separate annotation — confirm the exact
-parameter in the project's version. If it is absent or awkward, skip the multibinding entirely: a
-single `HttpClientDecorator` binding with a no-op default, displaced by `replaces` exactly like the
-initializer, does the same job with one mechanism instead of two.
+### Use `replaces` for the HTTP decorator too — not a multibinding
+
+`@ContributesBinding` does carry a `multibinding: Boolean = false` parameter, so the Metro shape
+looks like it should transfer. **It does not.** kotlin-inject has no equivalent of
+`@Multibinds(allowEmpty = true)`, so a `Set<T>` with zero contributions does not resolve, and the
+release build fails at KSP time:
+
+```
+e: [ksp] Cannot find an @Inject constructor or provider for: Set<seam.HttpClientDecorator>
+```
+
+Release contributing nothing is exactly the case this seam needs, so the multibinding route is
+closed. Model the decorator as an ordinary binding with a no-op default and displace it the same way
+as the initializer:
+
+```kotlin
+// production
+@ContributesBinding(AppScope::class)
+@Inject
+class NoOpDecorator : HttpClientDecorator {
+    override fun decorate(client: HttpClient) = Unit
+}
+
+// debug-only
+@ContributesBinding(AppScope::class, replaces = [NoOpDecorator::class])
+@Inject
+class JetWhaleHttpClientDecorator(private val agents: JetWhaleAgents) : HttpClientDecorator {
+    override fun decorate(client: HttpClient) {
+        client.plugin(HttpSend).intercept(agents.network.ktorSendInterceptor(client))
+    }
+}
+```
+
+One mechanism for both seams, and it is the mechanism that works.
+
+## Square Anvil (Dagger-backed)
+
+Verified with Anvil 2.7.0, Dagger 2.60.1, Kotlin 2.2.20.
+
+```kotlin
+// production module
+@ContributesBinding(AppScope::class)
+class NoOpInitializer @Inject constructor() : DebugToolingInitializer {
+    override fun initialize() = "noop"
+}
+```
+
+```kotlin
+// debug-only module
+@ContributesBinding(AppScope::class, replaces = [NoOpInitializer::class])
+class JetWhaleInitializer @Inject constructor(
+    private val agents: FakeAgents,
+) : DebugToolingInitializer {
+    override fun initialize() = "jetwhale"
+}
+```
+
+The component is `@MergeComponent(AppScope::class)`, instantiated with `DaggerAppComponent.create()`.
+
+### Dagger must run through kapt, not KSP
+
+Anvil is a Kotlin **compiler plugin**: it adds `@Component` and the merged supertypes during
+compilation. KSP reads source before that happens, so Dagger's KSP processor never sees a component
+to process. The build does not complain — it generates nothing at all, and compilation fails much
+later on an unresolved `DaggerAppComponent`:
+
+```
+e: Unresolved reference: DaggerAppComponent
+```
+
+Switching Dagger's processor to kapt fixes it, and both variants then build and resolve correctly:
+
+```kotlin
+plugins {
+    kotlin("kapt")
+}
+dependencies {
+    kapt("com.google.dagger:dagger-compiler:2.60.1")
+}
+```
+
+If a project already runs Dagger through KSP, this is a real constraint to raise with the team
+rather than something to work around silently.
+
+### Version reality
+
+Anvil 2.7.0 (October 2025) is built against Kotlin 2.2.20. A project on a newer Kotlin cannot simply
+add it. Anvil is also effectively superseded — Metro is the successor, and this wiring transfers to
+it with only the annotation packages changed and `@Multibinds(allowEmpty = true)` available again.
 
 ## Common failure modes
 
@@ -69,4 +139,6 @@ initializer, does the same job with one mechanism instead of two.
 |---|---|
 | Duplicate binding for the seam type | `replaces` missing, or the contributions target different scopes |
 | Release cannot resolve the seam | The no-op is in the debug-only module |
-| Contribution silently ignored | The debug module is not on the compile classpath of the component/graph declaration — the variant dependency has to sit on the module that merges |
+| `Cannot find an @Inject constructor or provider for: Set<…>` | kotlin-inject-anvil: an empty multibinding. Use `replaces` with a no-op instead |
+| `Unresolved reference: DaggerAppComponent`, nothing generated | Square Anvil with Dagger on KSP. Move Dagger to kapt |
+| Contribution silently ignored | The debug module is not on the compile classpath of the component declaration — the variant dependency has to sit on the module that merges |

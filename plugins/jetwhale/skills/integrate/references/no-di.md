@@ -59,6 +59,11 @@ dependencies {
 }
 ```
 
+Verified on AGP 9.3.0 / Kotlin 2.4.10 by reading the built APKs rather than the wiring: the debug
+APK's dex carried the debug-only class and the `"jetwhale:"` marker, while the release APK carried
+`"noop"` and zero occurrences of the debug-only class. `:tooling` appeared on
+`debugRuntimeClasspath` and was absent from `releaseRuntimeClasspath`.
+
 ## HTTP client capture
 
 The client is built in production code, so give the seam a method that can do nothing:

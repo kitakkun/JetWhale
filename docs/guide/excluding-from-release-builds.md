@@ -263,11 +263,21 @@ a stray `startJetWhale` call to reach production.
 
 ## Other DI frameworks
 
-The mechanism differs, the shape does not:
+The seam is the same everywhere; only the mechanism for making the debug side win differs. Each of
+these was checked by building and running it, not inferred from the annotations:
 
 - **Anvil / kotlin-inject-anvil** — `@ContributesBinding(replaces = [...])` carries the same
-  meaning; the module layout above transfers unchanged.
-- **Plain Dagger/Hilt** — no contribution merging, so provide the seam from a `@Module` that exists
-  once per variant (`src/debug` and `src/release`, or two Gradle modules).
-- **Koin / manual DI** — bind `DebugToolingInitializer` in a variant-specific module and let the
-  release variant bind the no-op.
+  meaning and the module layout transfers unchanged. Two caveats: kotlin-inject has no equivalent of
+  `@Multibinds(allowEmpty = true)`, so model the HTTP decorator as an ordinary binding with a no-op
+  default rather than a set; and Square Anvil generates through the Kotlin compiler plugin, so
+  Dagger has to run on kapt — under KSP nothing is generated at all.
+- **Hilt** — `@InstallIn` modules are discovered from the classpath, so a `@BindsOptionalOf`
+  declaration in `src/main` plus a module in `src/debug` is enough. No release-side counterpart is
+  needed; the generated component simply binds `Optional.empty()`.
+- **Plain Dagger** — `@Component(modules = [...])` names its modules, and `src/main` cannot name a
+  class that only exists in `src/debug`. Here you do need the same fully-qualified module in both
+  source sets, empty in release. Note that Dagger's `@Multibinds` allows an empty set by default —
+  there is no `allowEmpty` to pass.
+- **Koin / manual DI** — resolution is at runtime, so nothing fails the release build for you.
+  Declare the JetWhale definitions only in the debug source set and reach for them with
+  `getOrNull` / `getAll`, which return absent and empty respectively when nothing is registered.

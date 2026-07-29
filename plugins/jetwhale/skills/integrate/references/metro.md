@@ -8,6 +8,11 @@ implementation from a module that only exists on the debug classpath.
 The variant-specific dependency therefore belongs on **the module that declares the graph**, usually
 the app module.
 
+Verified with Metro 1.3.2 and Kotlin 2.4.10, by running a four-module project both ways: the release
+app resolved `noop` with an empty decorator set, the debug app resolved the JetWhale binding, and
+the `@SingleIn` holder reported the same instance identity through both the initializer and the
+decorator.
+
 ## Module layout
 
 ```
