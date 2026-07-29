@@ -112,7 +112,7 @@ JetWhale-backed implementation that displaces it on the debug classpath only.
 |---|---|---|
 | Metro (`dev.zacsweers.metro`) | `references/metro.md` | Empty multibindings need `@Multibinds(allowEmpty = true)` |
 | kotlin-inject-anvil | `references/anvil.md` | **No empty multibindings at all** — use `replaces` for every seam |
-| Square Anvil | `references/anvil.md` | **Dagger must run on kapt, not KSP**, or nothing is generated |
+| Square Anvil (maintenance mode) | `references/anvil.md` | **Dagger must run on kapt, not KSP** — under KSP nothing is generated and nothing says so |
 | Hilt | `references/dagger-hilt.md` | `@InstallIn` is discovered, so the debug side is the only side |
 | Plain Dagger | `references/dagger-hilt.md` | Modules are listed, so a same-name module per variant is unavoidable |
 | Koin | `references/koin.md` | Runtime resolution — the compiler catches nothing |

@@ -1,8 +1,13 @@
-# Wiring with Anvil / kotlin-inject-anvil
+# Wiring with kotlin-inject-anvil, or an existing Square Anvil setup
 
-Both frameworks merge contributions across the compile classpath and both spell displacement
-`replaces`, so the module layout and the seam are identical to Metro's — read
-[`metro.md`](metro.md) first and treat this file as the delta.
+Two unrelated libraries that happen to share a name and the word `replaces`. Both merge
+contributions across the compile classpath, so the module layout and the seam are identical to
+Metro's — read [`metro.md`](metro.md) first and treat this file as the delta.
+
+- **kotlin-inject-anvil** (Amazon, actively developed) — the section below.
+- **Square Anvil** — in maintenance mode, pinned to an old Kotlin. Nobody adopts it today, so that
+  section is written for a project that is *already* on it, and leads with the trap rather than the
+  syntax.
 
 Both were verified by building a four-module project (`:seam`, `:tooling`, `:app-debug` depending on
 both, `:app-release` depending on `:seam` only) and running each app: release resolves the no-op,
@@ -78,42 +83,27 @@ class JetWhaleHttpClientDecorator(private val agents: JetWhaleAgents) : HttpClie
 
 One mechanism for both seams, and it is the mechanism that works.
 
-## Square Anvil (Dagger-backed)
+## Square Anvil — for a project already on it
 
-Verified with Anvil 2.7.0, Dagger 2.60.1, Kotlin 2.2.20.
+Do not reach for Anvil to solve this. Anvil 2.7.0 (October 2025) is built against Kotlin 2.2.20, so
+a project on anything newer cannot add it, and Metro is its successor. This section exists for the
+codebase that is already there — usually a large, long-lived Android app, which is exactly the kind
+that most needs the debugger kept out of its release build.
 
-```kotlin
-// production module
-@ContributesBinding(AppScope::class)
-class NoOpInitializer @Inject constructor() : DebugToolingInitializer {
-    override fun initialize() = "noop"
-}
-```
+### The trap: Dagger must run through kapt, not KSP
 
-```kotlin
-// debug-only module
-@ContributesBinding(AppScope::class, replaces = [NoOpInitializer::class])
-class JetWhaleInitializer @Inject constructor(
-    private val agents: FakeAgents,
-) : DebugToolingInitializer {
-    override fun initialize() = "jetwhale"
-}
-```
+Check this **before** writing any wiring. Anvil is a Kotlin **compiler plugin**: it adds
+`@Component` and the merged supertypes during compilation. KSP reads source before that happens, so
+Dagger's KSP processor never sees a component to process.
 
-The component is `@MergeComponent(AppScope::class)`, instantiated with `DaggerAppComponent.create()`.
-
-### Dagger must run through kapt, not KSP
-
-Anvil is a Kotlin **compiler plugin**: it adds `@Component` and the merged supertypes during
-compilation. KSP reads source before that happens, so Dagger's KSP processor never sees a component
-to process. The build does not complain — it generates nothing at all, and compilation fails much
-later on an unresolved `DaggerAppComponent`:
+Nothing announces this. No warning, no error, nothing generated at all — and the build fails much
+later, somewhere that looks unrelated:
 
 ```
 e: Unresolved reference: DaggerAppComponent
 ```
 
-Switching Dagger's processor to kapt fixes it, and both variants then build and resolve correctly:
+Both variants build and resolve correctly once Dagger's processor moves to kapt:
 
 ```kotlin
 plugins {
@@ -124,14 +114,34 @@ dependencies {
 }
 ```
 
-If a project already runs Dagger through KSP, this is a real constraint to raise with the team
-rather than something to work around silently.
+A project that already runs Dagger through KSP cannot have both. That is a constraint to raise with
+the team, not something to switch underneath them.
 
-### Version reality
+### The wiring itself
 
-Anvil 2.7.0 (October 2025) is built against Kotlin 2.2.20. A project on a newer Kotlin cannot simply
-add it. Anvil is also effectively superseded — Metro is the successor, and this wiring transfers to
-it with only the annotation packages changed and `@Multibinds(allowEmpty = true)` available again.
+Identical to Metro's, with `com.squareup.anvil.annotations.ContributesBinding`, Dagger's
+`@Inject constructor()` and `@Singleton`, and `@MergeComponent(AppScope::class)` on the component —
+instantiated as `DaggerAppComponent.create()`. `replaces` still names the contributing class:
+
+```kotlin
+// production module
+@ContributesBinding(AppScope::class)
+class NoOpInitializer @Inject constructor() : DebugToolingInitializer { … }
+
+// debug-only module
+@ContributesBinding(AppScope::class, replaces = [NoOpInitializer::class])
+class JetWhaleInitializer @Inject constructor(private val agents: JetWhaleAgents) :
+    DebugToolingInitializer { … }
+```
+
+Verified with Anvil 2.7.0, Dagger 2.60.1, Kotlin 2.2.20.
+
+### The exit
+
+This wiring transfers to Metro with only the annotation packages changed — and there
+`@Multibinds(allowEmpty = true)` is available again, so the HTTP decorator can go back to being a
+multibinding. If the team is weighing a migration, the seam is a small, self-contained place to
+start.
 
 ## Common failure modes
 
