@@ -24,6 +24,8 @@ dependencies {
     implementation(libs.ktorServerNetty)
     implementation(libs.ktorServerContentNegotiation)
     implementation(libs.ktorSerializationKotlinxJson)
+
+    testImplementation(libs.kotlinTest)
 }
 
 // Published so plugin authors outside this repository can run it — `runJetWhaleQaAgent` in the
