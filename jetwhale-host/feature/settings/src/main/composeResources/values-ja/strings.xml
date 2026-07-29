@@ -78,7 +78,10 @@
     <string name="mcp_permission_group_manage_plugins">Manage plugins — 有効化・無効化・インストール</string>
     <string name="mcp_permission_group_settings_and_servers">Settings &amp; servers — 設定変更、デバッグサーバーの再起動</string>
     <string name="mcp_permission_plugins_label">プラグイン</string>
-    <string name="mcp_permission_plugin_ui">Drive UI — スクリーンショット、クリック、入力、スクロール、semantics</string>
+    <string name="mcp_permission_plugin_ui">UI</string>
+    <string name="mcp_permission_plugin_inspect">Inspect — スクリーンショットと semantics</string>
+    <string name="mcp_permission_plugin_interact">Interact — クリック・入力・スクロール・ドラッグ</string>
+    <string name="mcp_permission_plugin_tools_offline">このプラグインのツール一覧はセッション接続時に表示されます。設定済みの選択は保持されます。</string>
     <string name="mcp_permission_plugin_own_tools">Own tools — このプラグインが提供するMCPツール</string>
     <string name="mcp_permission_no_plugins">プラグインはまだインストールされていません。</string>
     <string name="mcp_setup_open_guide">セットアップガイドを開く</string>

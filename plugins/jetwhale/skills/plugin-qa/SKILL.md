@@ -37,7 +37,7 @@ Cannot:
 - **anything that needs the user's consent.** Installing a plugin is off by default and the agent
   cannot lift that gate itself: `jetwhale.updateSettings` deliberately does not expose
   `mcpPluginInstallAllowed`, so a refusal means asking the user to flip it in
-  **Settings → Server → MCP Server**.
+  **Settings → AI Agents → MCP Server**.
 - the mouse cursor's appearance. An AWT cursor is not part of the rendered scene, so
   `Modifier.pointerHoverIcon` results never show up in a screenshot. Cover that with a unit test
   (see §7) and say plainly that the visual was not verified.

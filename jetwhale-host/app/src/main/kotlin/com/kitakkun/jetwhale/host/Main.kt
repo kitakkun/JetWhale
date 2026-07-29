@@ -61,7 +61,10 @@ fun main(args: Array<String>) = runBlocking {
     val cliOptions = CommandLineArgumentsParser().parse(args)
 
     val appGraph: JetWhaleAppGraph = createGraphFactory<JetWhaleAppGraph.Factory>()
-        .create(serverPortOverrides = cliOptions.serverPortOverrides)
+        .create(
+            serverPortOverrides = cliOptions.serverPortOverrides,
+            mcpPermissionOverride = cliOptions.mcpPermissionOverride,
+        )
 
     // Start capturing logs
     appGraph.logCaptureService.startCapture()

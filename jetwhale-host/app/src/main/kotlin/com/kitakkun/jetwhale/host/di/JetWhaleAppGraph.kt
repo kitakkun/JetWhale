@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LogCaptureService
+import com.kitakkun.jetwhale.host.model.McpPermissionOverride
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginHotReloadService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
@@ -62,9 +63,12 @@ interface JetWhaleAppGraph : ScreenContext {
 
     @DependencyGraph.Factory
     fun interface Factory {
-        // The command line is only readable from main(), so the launch port overrides enter the
-        // graph here instead of being provided from within it.
-        fun create(@Provides serverPortOverrides: ServerPortOverrides): JetWhaleAppGraph
+        // The command line is only readable from main(), so the launch overrides enter the graph
+        // here instead of being provided from within it.
+        fun create(
+            @Provides serverPortOverrides: ServerPortOverrides,
+            @Provides mcpPermissionOverride: McpPermissionOverride,
+        ): JetWhaleAppGraph
     }
 
     @Provides

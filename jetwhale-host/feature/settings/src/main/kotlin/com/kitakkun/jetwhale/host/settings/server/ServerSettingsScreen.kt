@@ -86,8 +86,9 @@ fun ServerSettingsScreen(
     onDismissApplyMcpPortDialog: () -> Unit,
     onClickOpenMcpGuide: () -> Unit,
     onSetHostGroupAllowed: (McpHostToolGroup, Boolean) -> Unit,
-    onSetPluginUiAllowed: (pluginId: String, allowed: Boolean) -> Unit,
-    onSetPluginOwnToolsAllowed: (pluginId: String, allowed: Boolean) -> Unit,
+    onSetPluginInspectAllowed: (pluginId: String, allowed: Boolean) -> Unit,
+    onSetPluginInteractAllowed: (pluginId: String, allowed: Boolean) -> Unit,
+    onSetPluginToolAllowed: (toolName: String, allowed: Boolean) -> Unit,
     onAddCertificate: () -> Unit,
     onSetActiveCertificate: (String) -> Unit,
     onDeleteCertificate: (String) -> Unit,
@@ -249,11 +250,12 @@ fun ServerSettingsScreen(
                 SettingOptionView(
                     label = stringResource(Res.string.mcp_permission_title),
                 ) {
-                    McpPermissionsView(
+                    McpPermissionsTreeView(
                         uiState = uiState.mcpPermissions,
                         onSetHostGroupAllowed = onSetHostGroupAllowed,
-                        onSetPluginUiAllowed = onSetPluginUiAllowed,
-                        onSetPluginOwnToolsAllowed = onSetPluginOwnToolsAllowed,
+                        onSetPluginInspectAllowed = onSetPluginInspectAllowed,
+                        onSetPluginInteractAllowed = onSetPluginInteractAllowed,
+                        onSetPluginToolAllowed = onSetPluginToolAllowed,
                     )
                 }
             }

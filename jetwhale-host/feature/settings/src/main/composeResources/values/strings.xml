@@ -78,7 +78,10 @@
     <string name="mcp_permission_group_manage_plugins">Manage plugins — enable, disable and install</string>
     <string name="mcp_permission_group_settings_and_servers">Settings &amp; servers — change settings, restart the debug server</string>
     <string name="mcp_permission_plugins_label">Plugins</string>
-    <string name="mcp_permission_plugin_ui">Drive UI — screenshot, click, type, scroll, semantics</string>
+    <string name="mcp_permission_plugin_ui">UI</string>
+    <string name="mcp_permission_plugin_inspect">Inspect — screenshot and semantics</string>
+    <string name="mcp_permission_plugin_interact">Interact — click, type, scroll, drag</string>
+    <string name="mcp_permission_plugin_tools_offline">Connect a session to list this plugin's tools. Choices already made are kept.</string>
     <string name="mcp_permission_plugin_own_tools">Own tools — the MCP tools this plugin contributes</string>
     <string name="mcp_permission_no_plugins">No plugins installed yet.</string>
     <string name="mcp_setup_open_guide">Open setup guide</string>

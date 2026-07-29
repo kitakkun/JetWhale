@@ -19,9 +19,8 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
         state2 = rememberSubscription(screenContext.mcpServerStatusSubscriptionKey),
         state3 = rememberSubscription(screenContext.settingsSubscriptionKey),
         state4 = rememberSubscription(screenContext.sslCertificatesSubscriptionKey),
-        state5 = rememberSubscription(screenContext.mcpPermissionsSubscriptionKey),
-        state6 = rememberSubscription(screenContext.loadedPluginsMetaDataSubscriptionKey),
-    ) { serverStatus, mcpServerStatus, debuggerSettings, sslCertificates, mcpPermissions, loadedPlugins ->
+        state5 = rememberSubscription(screenContext.mcpPermissionsViewSubscriptionKey),
+    ) { serverStatus, mcpServerStatus, debuggerSettings, sslCertificates, mcpPermissionsView ->
         val screenChannel = rememberScreenChannel<ServerSettingsScreenAction, Nothing>()
         val uiState = context(screenContext.presenterContext) {
             serverSettingsScreenPresenter(
@@ -30,8 +29,7 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
                 mcpServerStatus = mcpServerStatus,
                 debuggerSettings = debuggerSettings,
                 sslCertificates = sslCertificates,
-                mcpPermissions = mcpPermissions,
-                loadedPlugins = loadedPlugins,
+                mcpPermissionsView = mcpPermissionsView,
             )
         }
 
@@ -72,11 +70,14 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
             onSetHostGroupAllowed = { group, allowed ->
                 screenChannel.send(ServerSettingsScreenAction.SetHostGroupAllowed(group, allowed))
             },
-            onSetPluginUiAllowed = { pluginId, allowed ->
-                screenChannel.send(ServerSettingsScreenAction.SetPluginUiAllowed(pluginId, allowed))
+            onSetPluginInspectAllowed = { pluginId, allowed ->
+                screenChannel.send(ServerSettingsScreenAction.SetPluginInspectAllowed(pluginId, allowed))
             },
-            onSetPluginOwnToolsAllowed = { pluginId, allowed ->
-                screenChannel.send(ServerSettingsScreenAction.SetPluginOwnToolsAllowed(pluginId, allowed))
+            onSetPluginInteractAllowed = { pluginId, allowed ->
+                screenChannel.send(ServerSettingsScreenAction.SetPluginInteractAllowed(pluginId, allowed))
+            },
+            onSetPluginToolAllowed = { toolName, allowed ->
+                screenChannel.send(ServerSettingsScreenAction.SetPluginToolAllowed(toolName, allowed))
             },
             onAddCertificate = {
                 screenChannel.send(ServerSettingsScreenAction.AddCertificate)

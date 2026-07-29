@@ -3,9 +3,11 @@ package com.kitakkun.jetwhale.host.data.settings
 import com.kitakkun.jetwhale.host.model.McpHostGroupPermissionMutationKey
 import com.kitakkun.jetwhale.host.model.McpHostGroupPermissionParams
 import com.kitakkun.jetwhale.host.model.McpPermissionsRepository
-import com.kitakkun.jetwhale.host.model.McpPluginOwnToolsPermissionMutationKey
+import com.kitakkun.jetwhale.host.model.McpPluginInspectPermissionMutationKey
+import com.kitakkun.jetwhale.host.model.McpPluginInteractPermissionMutationKey
 import com.kitakkun.jetwhale.host.model.McpPluginPermissionParams
-import com.kitakkun.jetwhale.host.model.McpPluginUiPermissionMutationKey
+import com.kitakkun.jetwhale.host.model.McpPluginToolPermissionMutationKey
+import com.kitakkun.jetwhale.host.model.McpPluginToolPermissionParams
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -26,25 +28,36 @@ class DefaultMcpHostGroupPermissionMutationKey(
 )
 
 @Inject
-@ContributesBinding(AppScope::class, binding<McpPluginUiPermissionMutationKey>())
-class DefaultMcpPluginUiPermissionMutationKey(
+@ContributesBinding(AppScope::class)
+class DefaultMcpPluginToolPermissionMutationKey(
     private val repository: McpPermissionsRepository,
-) : McpPluginUiPermissionMutationKey,
+) : McpPluginToolPermissionMutationKey by buildMutationKey(
+    id = MutationId("mcp_permission_plugin_tool"),
+    mutate = { params: McpPluginToolPermissionParams ->
+        repository.setPluginToolAllowed(params.toolName, params.allowed)
+    },
+)
+
+@Inject
+@ContributesBinding(AppScope::class, binding<McpPluginInspectPermissionMutationKey>())
+class DefaultMcpPluginInspectPermissionMutationKey(
+    private val repository: McpPermissionsRepository,
+) : McpPluginInspectPermissionMutationKey,
     MutationKey<Unit, McpPluginPermissionParams> by buildMutationKey(
-        id = MutationId("mcp_permission_plugin_ui"),
+        id = MutationId("mcp_permission_plugin_inspect"),
         mutate = { params: McpPluginPermissionParams ->
-            repository.setPluginUiAllowed(params.pluginId, params.allowed)
+            repository.setPluginInspectAllowed(params.pluginId, params.allowed)
         },
     )
 
 @Inject
-@ContributesBinding(AppScope::class, binding<McpPluginOwnToolsPermissionMutationKey>())
-class DefaultMcpPluginOwnToolsPermissionMutationKey(
+@ContributesBinding(AppScope::class, binding<McpPluginInteractPermissionMutationKey>())
+class DefaultMcpPluginInteractPermissionMutationKey(
     private val repository: McpPermissionsRepository,
-) : McpPluginOwnToolsPermissionMutationKey,
+) : McpPluginInteractPermissionMutationKey,
     MutationKey<Unit, McpPluginPermissionParams> by buildMutationKey(
-        id = MutationId("mcp_permission_plugin_own_tools"),
+        id = MutationId("mcp_permission_plugin_interact"),
         mutate = { params: McpPluginPermissionParams ->
-            repository.setPluginOwnToolsAllowed(params.pluginId, params.allowed)
+            repository.setPluginInteractAllowed(params.pluginId, params.allowed)
         },
     )

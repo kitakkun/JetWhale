@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.settings.Res
@@ -22,17 +23,27 @@ import com.kitakkun.jetwhale.host.settings.mcp_permission_group_settings_and_ser
 import com.kitakkun.jetwhale.host.settings.mcp_permission_host_label
 import com.kitakkun.jetwhale.host.settings.mcp_permission_no_plugins
 import com.kitakkun.jetwhale.host.settings.mcp_permission_note
+import com.kitakkun.jetwhale.host.settings.mcp_permission_plugin_inspect
+import com.kitakkun.jetwhale.host.settings.mcp_permission_plugin_interact
 import com.kitakkun.jetwhale.host.settings.mcp_permission_plugin_own_tools
+import com.kitakkun.jetwhale.host.settings.mcp_permission_plugin_tools_offline
 import com.kitakkun.jetwhale.host.settings.mcp_permission_plugin_ui
 import com.kitakkun.jetwhale.host.settings.mcp_permission_plugins_label
 import org.jetbrains.compose.resources.stringResource
 
-/** One installed plugin's two permission leaves, resolved for display. */
+/** One tool a plugin contributes, permitted on its own. */
+data class McpPluginToolUiState(
+    val toolName: String,
+    val allowed: Boolean,
+)
+
 data class McpPluginPermissionUiState(
     val pluginId: String,
     val displayName: String,
-    val uiAllowed: Boolean,
-    val ownToolsAllowed: Boolean,
+    val inspectAllowed: Boolean,
+    val interactAllowed: Boolean,
+    /** Empty when the plugin has no live instance — it only publishes its commands once instantiated. */
+    val tools: List<McpPluginToolUiState>,
 )
 
 data class McpPermissionsUiState(
@@ -41,11 +52,12 @@ data class McpPermissionsUiState(
 )
 
 @Composable
-fun McpPermissionsView(
+fun McpPermissionsTreeView(
     uiState: McpPermissionsUiState,
     onSetHostGroupAllowed: (McpHostToolGroup, Boolean) -> Unit,
-    onSetPluginUiAllowed: (pluginId: String, allowed: Boolean) -> Unit,
-    onSetPluginOwnToolsAllowed: (pluginId: String, allowed: Boolean) -> Unit,
+    onSetPluginInspectAllowed: (pluginId: String, allowed: Boolean) -> Unit,
+    onSetPluginInteractAllowed: (pluginId: String, allowed: Boolean) -> Unit,
+    onSetPluginToolAllowed: (toolName: String, allowed: Boolean) -> Unit,
 ) {
     // The heading comes from the SettingOptionView this sits in, like every other settings block.
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -73,48 +85,79 @@ fun McpPermissionsView(
 
         ParentRow(
             label = stringResource(Res.string.mcp_permission_plugins_label),
-            state = toggleStateOf(uiState.plugins.flatMap { listOf(it.uiAllowed, it.ownToolsAllowed) }),
+            state = toggleStateOf(uiState.plugins.flatMap { it.allLeaves() }),
             // Nothing to toggle with no plugins installed, so the parent does not pretend otherwise.
             enabled = uiState.plugins.isNotEmpty(),
-            onClick = { allowAll ->
-                uiState.plugins.forEach {
-                    onSetPluginUiAllowed(it.pluginId, allowAll)
-                    onSetPluginOwnToolsAllowed(it.pluginId, allowAll)
-                }
-            },
+            onClick = { allowAll -> uiState.plugins.forEach { it.setAll(allowAll, onSetPluginInspectAllowed, onSetPluginInteractAllowed, onSetPluginToolAllowed) } },
         )
         if (uiState.plugins.isEmpty()) {
-            Text(
-                text = stringResource(Res.string.mcp_permission_no_plugins),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = INDENT_STEP),
-            )
+            Hint(stringResource(Res.string.mcp_permission_no_plugins), indent = 1)
         }
         uiState.plugins.forEach { plugin ->
             ParentRow(
                 label = plugin.displayName,
-                state = toggleStateOf(listOf(plugin.uiAllowed, plugin.ownToolsAllowed)),
-                onClick = { allowAll ->
-                    onSetPluginUiAllowed(plugin.pluginId, allowAll)
-                    onSetPluginOwnToolsAllowed(plugin.pluginId, allowAll)
-                },
+                state = toggleStateOf(plugin.allLeaves()),
+                onClick = { allowAll -> plugin.setAll(allowAll, onSetPluginInspectAllowed, onSetPluginInteractAllowed, onSetPluginToolAllowed) },
                 indent = 1,
             )
-            LeafRow(
+
+            ParentRow(
                 label = stringResource(Res.string.mcp_permission_plugin_ui),
-                checked = plugin.uiAllowed,
-                onCheckedChange = { onSetPluginUiAllowed(plugin.pluginId, it) },
+                state = toggleStateOf(listOf(plugin.inspectAllowed, plugin.interactAllowed)),
+                onClick = { allowAll ->
+                    onSetPluginInspectAllowed(plugin.pluginId, allowAll)
+                    onSetPluginInteractAllowed(plugin.pluginId, allowAll)
+                },
                 indent = 2,
             )
             LeafRow(
+                label = stringResource(Res.string.mcp_permission_plugin_inspect),
+                checked = plugin.inspectAllowed,
+                onCheckedChange = { onSetPluginInspectAllowed(plugin.pluginId, it) },
+                indent = 3,
+            )
+            LeafRow(
+                label = stringResource(Res.string.mcp_permission_plugin_interact),
+                checked = plugin.interactAllowed,
+                onCheckedChange = { onSetPluginInteractAllowed(plugin.pluginId, it) },
+                indent = 3,
+            )
+
+            ParentRow(
                 label = stringResource(Res.string.mcp_permission_plugin_own_tools),
-                checked = plugin.ownToolsAllowed,
-                onCheckedChange = { onSetPluginOwnToolsAllowed(plugin.pluginId, it) },
+                state = toggleStateOf(plugin.tools.map { it.allowed }),
+                enabled = plugin.tools.isNotEmpty(),
+                onClick = { allowAll -> plugin.tools.forEach { onSetPluginToolAllowed(it.toolName, allowAll) } },
                 indent = 2,
             )
+            if (plugin.tools.isEmpty()) {
+                // Its commands are only published once it is instantiated for a session, so with
+                // nothing connected there is no list to show. Stored denials are unaffected.
+                Hint(stringResource(Res.string.mcp_permission_plugin_tools_offline), indent = 3)
+            }
+            plugin.tools.forEach { tool ->
+                LeafRow(
+                    label = tool.toolName,
+                    checked = tool.allowed,
+                    onCheckedChange = { onSetPluginToolAllowed(tool.toolName, it) },
+                    indent = 3,
+                )
+            }
         }
     }
+}
+
+private fun McpPluginPermissionUiState.allLeaves(): List<Boolean> = listOf(inspectAllowed, interactAllowed) + tools.map { it.allowed }
+
+private fun McpPluginPermissionUiState.setAll(
+    allowed: Boolean,
+    onSetInspect: (String, Boolean) -> Unit,
+    onSetInteract: (String, Boolean) -> Unit,
+    onSetTool: (String, Boolean) -> Unit,
+) {
+    onSetInspect(pluginId, allowed)
+    onSetInteract(pluginId, allowed)
+    tools.forEach { onSetTool(it.toolName, allowed) }
 }
 
 private val INDENT_STEP = 24.dp
@@ -124,6 +167,16 @@ private fun toggleStateOf(children: List<Boolean>): ToggleableState = when {
     children.isEmpty() || children.none { it } -> ToggleableState.Off
     children.all { it } -> ToggleableState.On
     else -> ToggleableState.Indeterminate
+}
+
+@Composable
+private fun Hint(text: String, indent: Int) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = INDENT_STEP * indent),
+    )
 }
 
 @Composable
@@ -145,7 +198,7 @@ private fun ParentRow(
             // selection — throws away choices the user made one by one.
             onClick = { onClick(state != ToggleableState.On) },
         )
-        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -161,7 +214,7 @@ private fun LeafRow(
         modifier = Modifier.padding(start = INDENT_STEP * indent),
     ) {
         Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

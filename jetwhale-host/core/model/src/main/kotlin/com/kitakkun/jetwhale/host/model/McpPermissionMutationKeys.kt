@@ -6,9 +6,13 @@ data class McpHostGroupPermissionParams(val group: McpHostToolGroup, val allowed
 
 data class McpPluginPermissionParams(val pluginId: String, val allowed: Boolean)
 
+data class McpPluginToolPermissionParams(val toolName: String, val allowed: Boolean)
+
 typealias McpHostGroupPermissionMutationKey = MutationKey<Unit, McpHostGroupPermissionParams>
 
-/** Separate interfaces rather than two typealiases: both carry [McpPluginPermissionParams], and to Metro a typealias is the type it aliases. */
-interface McpPluginUiPermissionMutationKey : MutationKey<Unit, McpPluginPermissionParams>
+typealias McpPluginToolPermissionMutationKey = MutationKey<Unit, McpPluginToolPermissionParams>
 
-interface McpPluginOwnToolsPermissionMutationKey : MutationKey<Unit, McpPluginPermissionParams>
+/** Separate interfaces rather than two typealiases: both carry [McpPluginPermissionParams], and to Metro a typealias is the type it aliases. */
+interface McpPluginInspectPermissionMutationKey : MutationKey<Unit, McpPluginPermissionParams>
+
+interface McpPluginInteractPermissionMutationKey : MutationKey<Unit, McpPluginPermissionParams>

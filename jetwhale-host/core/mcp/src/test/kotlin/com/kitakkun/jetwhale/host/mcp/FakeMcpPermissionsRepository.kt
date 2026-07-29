@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
  * does not have to opt in to each group it happens to touch.
  */
 class FakeMcpPermissionsRepository(
-    initial: McpPermissions = AllowAll,
+    initial: McpPermissions = McpPermissions.AllowAll,
 ) : McpPermissionsRepository {
 
     override val permissionsFlow: StateFlow<McpPermissions>
@@ -23,23 +23,24 @@ class FakeMcpPermissionsRepository(
         }
     }
 
-    override suspend fun setPluginUiAllowed(pluginId: String, allowed: Boolean) {
+    override suspend fun setPluginInspectAllowed(pluginId: String, allowed: Boolean) {
         permissionsFlow.value = permissionsFlow.value.let {
-            it.copy(pluginsDeniedUi = if (allowed) it.pluginsDeniedUi - pluginId else it.pluginsDeniedUi + pluginId)
+            it.copy(pluginsDeniedInspect = it.pluginsDeniedInspect.toggle(pluginId, allowed))
         }
     }
 
-    override suspend fun setPluginOwnToolsAllowed(pluginId: String, allowed: Boolean) {
+    override suspend fun setPluginInteractAllowed(pluginId: String, allowed: Boolean) {
         permissionsFlow.value = permissionsFlow.value.let {
-            it.copy(pluginsDeniedOwnTools = if (allowed) it.pluginsDeniedOwnTools - pluginId else it.pluginsDeniedOwnTools + pluginId)
+            it.copy(pluginsDeniedInteract = it.pluginsDeniedInteract.toggle(pluginId, allowed))
         }
     }
 
-    companion object {
-        val AllowAll = McpPermissions(
-            allowedHostGroups = McpHostToolGroup.entries.toSet(),
-            pluginsDeniedUi = emptySet(),
-            pluginsDeniedOwnTools = emptySet(),
-        )
+    override suspend fun setPluginToolAllowed(toolName: String, allowed: Boolean) {
+        permissionsFlow.value = permissionsFlow.value.let {
+            it.copy(deniedPluginTools = it.deniedPluginTools.toggle(toolName, allowed))
+        }
     }
 }
+
+/** Denials are stored, so allowing something removes it from the set rather than adding to it. */
+private fun Set<String>.toggle(entry: String, allowed: Boolean) = if (allowed) this - entry else this + entry

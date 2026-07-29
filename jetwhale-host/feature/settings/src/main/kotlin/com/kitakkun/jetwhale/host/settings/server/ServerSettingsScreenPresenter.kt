@@ -13,10 +13,10 @@ import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
 import com.kitakkun.jetwhale.host.model.McpHostGroupPermissionParams
-import com.kitakkun.jetwhale.host.model.McpPermissions
+import com.kitakkun.jetwhale.host.model.McpPermissionsView
 import com.kitakkun.jetwhale.host.model.McpPluginPermissionParams
+import com.kitakkun.jetwhale.host.model.McpPluginToolPermissionParams
 import com.kitakkun.jetwhale.host.model.McpServerStatus
-import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.SslCertificateEntry
 import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
 import soil.query.compose.rememberMutation
@@ -29,8 +29,7 @@ context(presenterContext: SettingsPresenterContext)
 fun serverSettingsScreenPresenter(
     screenChannel: ScreenChannel<ServerSettingsScreenAction, Nothing>,
     serverStatus: DebugWebSocketServerStatus,
-    mcpPermissions: McpPermissions,
-    loadedPlugins: List<PluginMetaData>,
+    mcpPermissionsView: McpPermissionsView,
     mcpServerStatus: McpServerStatus,
     debuggerSettings: DebuggerBehaviorSettings,
     sslCertificates: List<SslCertificateEntry>,
@@ -62,8 +61,9 @@ fun serverSettingsScreenPresenter(
     val activateCertificateMutation = rememberMutation(presenterContext.activateSslCertificateMutationKey)
     val deleteCertificateMutation = rememberMutation(presenterContext.deleteSslCertificateMutationKey)
     val hostGroupPermissionMutation = rememberMutation(presenterContext.mcpHostGroupPermissionMutationKey)
-    val pluginUiPermissionMutation = rememberMutation(presenterContext.mcpPluginUiPermissionMutationKey)
-    val pluginOwnToolsPermissionMutation = rememberMutation(presenterContext.mcpPluginOwnToolsPermissionMutationKey)
+    val pluginInspectPermissionMutation = rememberMutation(presenterContext.mcpPluginInspectPermissionMutationKey)
+    val pluginInteractPermissionMutation = rememberMutation(presenterContext.mcpPluginInteractPermissionMutationKey)
+    val pluginToolPermissionMutation = rememberMutation(presenterContext.mcpPluginToolPermissionMutationKey)
 
     val savedDebugPortText by rememberUpdatedState(debuggerSettings.serverPort.toString())
     val savedMcpPortText by rememberUpdatedState(debuggerSettings.mcpServerPort.toString())
@@ -161,12 +161,16 @@ fun serverSettingsScreenPresenter(
                 hostGroupPermissionMutation.mutateAsync(McpHostGroupPermissionParams(action.group, action.allowed))
             }
 
-            is ServerSettingsScreenAction.SetPluginUiAllowed -> {
-                pluginUiPermissionMutation.mutateAsync(McpPluginPermissionParams(action.pluginId, action.allowed))
+            is ServerSettingsScreenAction.SetPluginInspectAllowed -> {
+                pluginInspectPermissionMutation.mutateAsync(McpPluginPermissionParams(action.pluginId, action.allowed))
             }
 
-            is ServerSettingsScreenAction.SetPluginOwnToolsAllowed -> {
-                pluginOwnToolsPermissionMutation.mutateAsync(McpPluginPermissionParams(action.pluginId, action.allowed))
+            is ServerSettingsScreenAction.SetPluginInteractAllowed -> {
+                pluginInteractPermissionMutation.mutateAsync(McpPluginPermissionParams(action.pluginId, action.allowed))
+            }
+
+            is ServerSettingsScreenAction.SetPluginToolAllowed -> {
+                pluginToolPermissionMutation.mutateAsync(McpPluginToolPermissionParams(action.toolName, action.allowed))
             }
 
             ServerSettingsScreenAction.AddCertificate -> {
@@ -240,13 +244,19 @@ fun serverSettingsScreenPresenter(
             }
         """.trimIndent(),
         mcpPermissions = McpPermissionsUiState(
-            allowedHostGroups = mcpPermissions.allowedHostGroups,
-            plugins = loadedPlugins.map { plugin ->
+            allowedHostGroups = mcpPermissionsView.permissions.allowedHostGroups,
+            plugins = mcpPermissionsView.plugins.map { plugin ->
                 McpPluginPermissionUiState(
-                    pluginId = plugin.id,
-                    displayName = plugin.name,
-                    uiAllowed = plugin.id !in mcpPermissions.pluginsDeniedUi,
-                    ownToolsAllowed = plugin.id !in mcpPermissions.pluginsDeniedOwnTools,
+                    pluginId = plugin.pluginId,
+                    displayName = plugin.displayName,
+                    inspectAllowed = plugin.pluginId !in mcpPermissionsView.permissions.pluginsDeniedInspect,
+                    interactAllowed = plugin.pluginId !in mcpPermissionsView.permissions.pluginsDeniedInteract,
+                    tools = plugin.tools.map { tool ->
+                        McpPluginToolUiState(
+                            toolName = tool.name,
+                            allowed = tool.name !in mcpPermissionsView.permissions.deniedPluginTools,
+                        )
+                    },
                 )
             },
         ),

@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
+import com.kitakkun.jetwhale.host.model.McpPermissionOverride
 import com.kitakkun.jetwhale.host.model.McpPermissions
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
@@ -13,9 +14,12 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.sse.SSE
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.mcpSse
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonObject
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -43,15 +47,54 @@ class McpPermissionEnforcementTest {
     fun `a plugin nobody has ruled out is allowed`() {
         val defaults = McpPermissions.Default
 
-        assertTrue(defaults.allows(McpToolPermission.PluginUi, pluginId = "com.example.new"))
-        assertTrue(defaults.allows(McpToolPermission.PluginOwnTools, pluginId = "com.example.new"))
+        assertTrue(defaults.allows(McpToolPermission.PluginInspect, pluginId = "com.example.new"))
+        assertTrue(defaults.allows(McpToolPermission.PluginInteract, pluginId = "com.example.new"))
+        assertTrue(defaults.allows(McpToolPermission.PluginTool("com.example.new.listItems"), pluginId = "com.example.new"))
     }
 
     @Test
     fun `a call whose plugin cannot be resolved is denied rather than waved through`() {
         // Otherwise an unknown plugin id would be the way around a per-plugin denial.
-        assertFalse(McpPermissions.Default.allows(McpToolPermission.PluginUi, pluginId = null))
-        assertFalse(McpPermissions.Default.allows(McpToolPermission.PluginOwnTools, pluginId = null))
+        assertFalse(McpPermissions.Default.allows(McpToolPermission.PluginInspect, pluginId = null))
+        assertFalse(McpPermissions.Default.allows(McpToolPermission.PluginInteract, pluginId = null))
+    }
+
+    @Test
+    fun `inspect and interact are decided separately for the same plugin`() {
+        // The whole point of splitting them: an agent may read a plugin's UI without being able to
+        // send input to it.
+        val readOnly = McpPermissions.Default.copy(pluginsDeniedInteract = setOf("com.example.secret"))
+
+        assertTrue(readOnly.allows(McpToolPermission.PluginInspect, pluginId = "com.example.secret"))
+        assertFalse(readOnly.allows(McpToolPermission.PluginInteract, pluginId = "com.example.secret"))
+    }
+
+    @Test
+    fun `a plugin tool is denied by its own name, not by its plugin`() {
+        // Denials are keyed by tool name so they survive the plugin having no live instance, when
+        // there is no plugin id to attribute the tool to.
+        val permissions = McpPermissions.Default.copy(deniedPluginTools = setOf("com.example.network.setMockRules"))
+
+        assertFalse(permissions.allows(McpToolPermission.PluginTool("com.example.network.setMockRules"), pluginId = null))
+        assertTrue(permissions.allows(McpToolPermission.PluginTool("com.example.network.listTransactions"), pluginId = null))
+    }
+
+    @Test
+    fun `the launch override lifts every denial without touching what was stored`() {
+        // The QA bypass has to reach tools nobody ticked a checkbox for, but only for this launch.
+        val stored = McpPermissions(
+            allowedHostGroups = emptySet(),
+            pluginsDeniedInspect = setOf("com.example.secret"),
+            pluginsDeniedInteract = setOf("com.example.secret"),
+            deniedPluginTools = setOf("com.example.secret.wipe"),
+        )
+
+        val overridden = stored.allOverriddenBy(McpPermissionOverride(allowAll = true))
+
+        assertTrue(overridden.allows(McpToolPermission.HostGroup(McpHostToolGroup.SETTINGS_AND_SERVERS), pluginId = null))
+        assertTrue(overridden.allows(McpToolPermission.PluginInspect, pluginId = "com.example.secret"))
+        assertTrue(overridden.allows(McpToolPermission.PluginTool("com.example.secret.wipe"), pluginId = null))
+        assertEquals(stored, stored.allOverriddenBy(McpPermissionOverride.None))
     }
 
     @Test
@@ -82,7 +125,7 @@ class McpPermissionEnforcementTest {
         val message = result.content.filterIsInstance<TextContent>().first().text
         // The refusal has to be actionable: which permission blocked it, and where to change it.
         assertContains(message, "Settings & servers")
-        assertContains(message, "Settings → Server → MCP Server → Permissions")
+        assertContains(message, "Settings → AI Agents → Permissions")
     }
 
     @Test
@@ -99,18 +142,62 @@ class McpPermissionEnforcementTest {
     }
 
     @Test
-    fun `a plugin whose UI is denied refuses the call that targets it`() = withServer(
+    fun `a plugin whose inspection is denied refuses the call that targets it`() = withServer(
         permissions = FakeMcpPermissionsRepository(
-            McpPermissions.Default.copy(pluginsDeniedUi = setOf("com.example.secret")),
+            McpPermissions.Default.copy(pluginsDeniedInspect = setOf("com.example.secret")),
         ),
-        tools = setOf(PluginUiProbe()),
+        tools = setOf(PluginProbe("jetwhale.test.inspect", McpToolPermission.PluginInspect)),
     ) { client, _ ->
-        val allowed = client.callTool("jetwhale.test.pluginUi", mapOf("pluginId" to "com.example.ok"))
+        val allowed = client.callTool("jetwhale.test.inspect", mapOf("pluginId" to "com.example.ok"))
         assertFalse(allowed.isError == true)
 
-        val denied = client.callTool("jetwhale.test.pluginUi", mapOf("pluginId" to "com.example.secret"))
+        val denied = client.callTool("jetwhale.test.inspect", mapOf("pluginId" to "com.example.secret"))
         assertEquals(true, denied.isError)
-        assertContains(denied.content.filterIsInstance<TextContent>().first().text, "com.example.secret")
+        val message = denied.content.filterIsInstance<TextContent>().first().text
+        assertContains(message, "com.example.secret")
+        // The refusal has to name which half of the plugin's UI it is about, or the user cannot tell
+        // which checkbox to tick.
+        assertContains(message, "reads the UI")
+    }
+
+    @Test
+    fun `interaction stays denied for a plugin whose inspection is allowed`() = withServer(
+        permissions = FakeMcpPermissionsRepository(
+            McpPermissions.Default.copy(pluginsDeniedInteract = setOf("com.example.secret")),
+        ),
+        tools = setOf(
+            PluginProbe("jetwhale.test.inspect", McpToolPermission.PluginInspect),
+            PluginProbe("jetwhale.test.interact", McpToolPermission.PluginInteract),
+        ),
+    ) { client, _ ->
+        val inspected = client.callTool("jetwhale.test.inspect", mapOf("pluginId" to "com.example.secret"))
+        assertFalse(inspected.isError == true, "Denying interaction must not take reading away too")
+
+        val denied = client.callTool("jetwhale.test.interact", mapOf("pluginId" to "com.example.secret"))
+        assertEquals(true, denied.isError)
+        assertContains(denied.content.filterIsInstance<TextContent>().first().text, "sends input to")
+    }
+
+    @Test
+    fun `denying one plugin tool leaves the plugin's other tools alone`() = withServer(
+        permissions = FakeMcpPermissionsRepository(
+            McpPermissions.Default.copy(deniedPluginTools = setOf("jetwhale.test.mutate")),
+        ),
+        tools = setOf(
+            PluginProbe("jetwhale.test.mutate", McpToolPermission.PluginTool("jetwhale.test.mutate")),
+            PluginProbe("jetwhale.test.read", McpToolPermission.PluginTool("jetwhale.test.read")),
+        ),
+    ) { client, _ ->
+        // A per-tool denial cannot be settled at registration either — it is stored per tool name,
+        // but the tool stays listed so the refusal can explain itself.
+        assertContains(client.listTools().tools.map { it.name }, "jetwhale.test.mutate")
+
+        val denied = client.callTool("jetwhale.test.mutate", mapOf("pluginId" to "com.example.ok"))
+        assertEquals(true, denied.isError)
+        assertContains(denied.content.filterIsInstance<TextContent>().first().text, "not exposed to AI agents")
+
+        val allowed = client.callTool("jetwhale.test.read", mapOf("pluginId" to "com.example.ok"))
+        assertFalse(allowed.isError == true)
     }
 
     private fun withServer(
@@ -157,18 +244,21 @@ private class RestartCommand : HostMcpCommand() {
 }
 
 /** Stands in for the built-in UI tools: takes a `pluginId`, so the check resolves per call. */
-private class PluginUiProbe : JetWhaleMcpTool {
+private class PluginProbe(
+    private val toolName: String,
+    private val permission: McpToolPermission,
+) : JetWhaleMcpTool {
     override fun register(registrar: McpToolRegistrar) {
         registrar.addTool(
-            name = "jetwhale.test.pluginUi",
-            description = "Drives a plugin UI",
-            inputSchema = io.modelcontextprotocol.kotlin.sdk.types.ToolSchema(
-                properties = kotlinx.serialization.json.JsonObject(mapOf("pluginId" to stringProperty("The plugin."))),
+            name = toolName,
+            description = "Drives a plugin",
+            inputSchema = ToolSchema(
+                properties = JsonObject(mapOf("pluginId" to stringProperty("The plugin."))),
                 required = listOf("pluginId"),
             ),
-            permission = McpToolPermission.PluginUi,
+            permission = permission,
         ) { _ ->
-            io.modelcontextprotocol.kotlin.sdk.types.CallToolResult(content = listOf(TextContent("drove it")))
+            CallToolResult(content = listOf(TextContent("drove it")))
         }
     }
 }

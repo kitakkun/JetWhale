@@ -47,7 +47,7 @@ class ScrollMcpTool(
                 ),
                 required = listOf("pluginId", "sessionId", "x", "y"),
             ),
-            permission = McpToolPermission.PluginUi,
+            permission = McpToolPermission.PluginInteract,
         ) { request ->
             val pluginId = request.arguments?.get("pluginId")?.jsonContent
                 ?: return@addTool errorResult("Missing required argument: pluginId")

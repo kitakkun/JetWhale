@@ -62,7 +62,7 @@ class McpToolRegistrar(
             name = name,
             description = description,
             inputSchema = inputSchema,
-            permission = McpToolPermission.PluginOwnTools,
+            permission = McpToolPermission.PluginTool(name),
             resolvePluginId = { request ->
                 request.arguments?.get("sessionId")?.jsonContent?.let(resolvePluginIdForSession)
             },
@@ -147,17 +147,19 @@ private fun deniedResult(
         is McpToolPermission.HostGroup ->
             "is in the ${permission.group.displayName} group, which is not allowed for AI agents"
 
-        McpToolPermission.PluginUi -> when (pluginId) {
+        McpToolPermission.PluginInspect -> when (pluginId) {
             null -> "could not tell which plugin it targets, so it cannot be permission-checked"
-            else -> "drives '$pluginId', whose UI is not exposed to AI agents"
+            else -> "reads the UI of '$pluginId', which is not exposed to AI agents"
         }
 
-        McpToolPermission.PluginOwnTools -> when (pluginId) {
-            null -> "could not tell which plugin owns it, so it cannot be permission-checked"
-            else -> "belongs to '$pluginId', whose tools are not exposed to AI agents"
+        McpToolPermission.PluginInteract -> when (pluginId) {
+            null -> "could not tell which plugin it targets, so it cannot be permission-checked"
+            else -> "sends input to '$pluginId', which is not exposed to AI agents"
         }
+
+        is McpToolPermission.PluginTool -> "is a plugin tool that is not exposed to AI agents"
     }
-    return errorResult("$toolName $reason. Review it in Settings → Server → MCP Server → Permissions.")
+    return errorResult("$toolName $reason. Review it in Settings → AI Agents → Permissions.")
 }
 
 private val McpHostToolGroup.displayName: String

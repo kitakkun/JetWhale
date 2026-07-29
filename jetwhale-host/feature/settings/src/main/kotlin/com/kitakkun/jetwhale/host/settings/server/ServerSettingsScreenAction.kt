@@ -14,8 +14,9 @@ sealed interface ServerSettingsScreenAction {
     data object DismissApplyMcpPortDialog : ServerSettingsScreenAction
 
     data class SetHostGroupAllowed(val group: McpHostToolGroup, val allowed: Boolean) : ServerSettingsScreenAction
-    data class SetPluginUiAllowed(val pluginId: String, val allowed: Boolean) : ServerSettingsScreenAction
-    data class SetPluginOwnToolsAllowed(val pluginId: String, val allowed: Boolean) : ServerSettingsScreenAction
+    data class SetPluginInspectAllowed(val pluginId: String, val allowed: Boolean) : ServerSettingsScreenAction
+    data class SetPluginInteractAllowed(val pluginId: String, val allowed: Boolean) : ServerSettingsScreenAction
+    data class SetPluginToolAllowed(val toolName: String, val allowed: Boolean) : ServerSettingsScreenAction
 
     data object AddCertificate : ServerSettingsScreenAction
     data class SetActiveCertificate(val id: String) : ServerSettingsScreenAction

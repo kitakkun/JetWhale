@@ -140,20 +140,27 @@ class HostStatusCommandTest {
 
         assertEquals(McpHostToolGroup.entries.map { it.name }.sorted(), permissions.allowedHostGroups)
         assertTrue(permissions.deniedHostGroups.isEmpty())
-        assertTrue(permissions.pluginsWithUiDenied.isEmpty())
-        assertContains(permissions.changeableIn, "MCP Server")
+        assertTrue(permissions.pluginsWithInspectDenied.isEmpty())
+        assertTrue(permissions.pluginsWithInteractDenied.isEmpty())
+        assertTrue(permissions.deniedPluginTools.isEmpty())
+        assertContains(permissions.changeableIn, "Permissions")
     }
 
     @Test
     fun `getStatus separates the denied host groups from the allowed ones`() = runBlocking {
         permissions.setHostGroupAllowed(McpHostToolGroup.SETTINGS_AND_SERVERS, allowed = false)
-        permissions.setPluginUiAllowed("com.example.secret", allowed = false)
+        permissions.setPluginInspectAllowed("com.example.secret", allowed = false)
+        permissions.setPluginToolAllowed("com.example.secret.wipe", allowed = false)
 
         val reported = command.execute(arguments()).decode().permissions
 
         assertContains(reported.deniedHostGroups, McpHostToolGroup.SETTINGS_AND_SERVERS.name)
         assertFalse(McpHostToolGroup.SETTINGS_AND_SERVERS.name in reported.allowedHostGroups)
-        assertEquals(listOf("com.example.secret"), reported.pluginsWithUiDenied)
+        assertEquals(listOf("com.example.secret"), reported.pluginsWithInspectDenied)
+        assertEquals(listOf("com.example.secret.wipe"), reported.deniedPluginTools)
+        // Denying inspection says nothing about input; they are reported apart because they are
+        // decided apart.
+        assertTrue(reported.pluginsWithInteractDenied.isEmpty())
     }
 }
 

@@ -1,11 +1,13 @@
 package com.kitakkun.jetwhale.host.cli
 
+import com.kitakkun.jetwhale.host.model.McpPermissionOverride
 import com.kitakkun.jetwhale.host.model.ServerPortOverrides
 
 data class JetWhaleCliOptions(
     val pluginDirs: List<String>,
     val logLevel: JetWhaleLogLevel,
     val serverPortOverrides: ServerPortOverrides,
+    val mcpPermissionOverride: McpPermissionOverride,
 )
 
 enum class JetWhaleLogLevel {
@@ -22,6 +24,7 @@ class CommandLineArgumentsParser {
         var serverPort: Int? = null
         var wssPort: Int? = null
         var mcpServerPort: Int? = null
+        var mcpAllowAllPermissions = false
 
         val iterator = args.iterator()
 
@@ -55,6 +58,8 @@ class CommandLineArgumentsParser {
 
                 "--mcp-server-port" -> mcpServerPort = iterator.nextPort(argument)
 
+                "--mcp-allow-all-permissions" -> mcpAllowAllPermissions = true
+
                 else -> {
                     // Ignore unknown arguments
                 }
@@ -69,6 +74,7 @@ class CommandLineArgumentsParser {
                 wssPort = wssPort,
                 mcpServerPort = mcpServerPort,
             ),
+            mcpPermissionOverride = McpPermissionOverride(allowAll = mcpAllowAllPermissions),
         )
     }
 

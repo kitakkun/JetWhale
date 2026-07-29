@@ -33,13 +33,21 @@ sealed interface McpToolPermission {
     data class HostGroup(val group: McpHostToolGroup) : McpToolPermission
 
     /**
-     * Drives some plugin's UI. Which plugin is only known per call, from the request's `pluginId`,
-     * so the check happens at invocation time rather than at registration.
+     * Reads a plugin's UI without changing it — the screenshot and the semantics tree. Split from
+     * [PluginInteract] because "look at my plugin but do not touch it" is a position a user can
+     * reasonably hold. Which plugin is only known per call, from the request's `pluginId`.
      */
-    data object PluginUi : McpToolPermission
+    data object PluginInspect : McpToolPermission
 
-    /** A tool the plugin itself contributes. The plugin is resolved from the call's `sessionId`. */
-    data object PluginOwnTools : McpToolPermission
+    /** Sends input to a plugin's UI: clicks, typing, scrolling, drags. */
+    data object PluginInteract : McpToolPermission
+
+    /**
+     * One tool a plugin contributes, keyed by the tool's own name — plugin tools are permitted
+     * individually, so an agent can be allowed to read a plugin's data without being allowed to
+     * change it. Names are globally unique, which is also how [McpToolRegistry] keys them.
+     */
+    data class PluginTool(val toolName: String) : McpToolPermission
 }
 
 /**
@@ -53,8 +61,9 @@ sealed interface McpToolPermission {
  */
 data class McpPermissions(
     val allowedHostGroups: Set<McpHostToolGroup>,
-    val pluginsDeniedUi: Set<String>,
-    val pluginsDeniedOwnTools: Set<String>,
+    val pluginsDeniedInspect: Set<String>,
+    val pluginsDeniedInteract: Set<String>,
+    val deniedPluginTools: Set<String>,
 ) {
     fun allows(permission: McpToolPermission, pluginId: String?): Boolean = when (permission) {
         McpToolPermission.Unrestricted -> true
@@ -63,9 +72,18 @@ data class McpPermissions(
 
         // An unattributable call is denied: letting a tool through because its target could not be
         // resolved would make an unknown plugin id the way around the setting.
-        McpToolPermission.PluginUi -> pluginId != null && pluginId !in pluginsDeniedUi
+        McpToolPermission.PluginInspect -> pluginId != null && pluginId !in pluginsDeniedInspect
 
-        McpToolPermission.PluginOwnTools -> pluginId != null && pluginId !in pluginsDeniedOwnTools
+        McpToolPermission.PluginInteract -> pluginId != null && pluginId !in pluginsDeniedInteract
+
+        // Keyed by the tool's own name, so this one needs no plugin attribution to decide.
+        is McpToolPermission.PluginTool -> permission.toolName !in deniedPluginTools
+    }
+
+    /** The launch override, applied where the permissions are read so nothing sees a stale copy. */
+    fun allOverriddenBy(override: McpPermissionOverride): McpPermissions = when {
+        override.allowAll -> AllowAll
+        else -> this
     }
 
     companion object {
@@ -73,11 +91,22 @@ data class McpPermissions(
          * Observation and navigation are on; managing plugins and touching servers are not.
          * Installing a plugin runs new code in the host, and restarting the debug server drops
          * every session — both are worth a deliberate opt-in, and the MCP port is unauthenticated.
+         *
+         * Everything a plugin offers starts allowed: the user installed and enabled it deliberately,
+         * and can revoke any single tool of it afterwards.
          */
         val Default = McpPermissions(
             allowedHostGroups = setOf(McpHostToolGroup.OBSERVE, McpHostToolGroup.NAVIGATE),
-            pluginsDeniedUi = emptySet(),
-            pluginsDeniedOwnTools = emptySet(),
+            pluginsDeniedInspect = emptySet(),
+            pluginsDeniedInteract = emptySet(),
+            deniedPluginTools = emptySet(),
+        )
+
+        val AllowAll = McpPermissions(
+            allowedHostGroups = McpHostToolGroup.entries.toSet(),
+            pluginsDeniedInspect = emptySet(),
+            pluginsDeniedInteract = emptySet(),
+            deniedPluginTools = emptySet(),
         )
     }
 }
@@ -87,7 +116,9 @@ interface McpPermissionsRepository {
 
     suspend fun setHostGroupAllowed(group: McpHostToolGroup, allowed: Boolean)
 
-    suspend fun setPluginUiAllowed(pluginId: String, allowed: Boolean)
+    suspend fun setPluginInspectAllowed(pluginId: String, allowed: Boolean)
 
-    suspend fun setPluginOwnToolsAllowed(pluginId: String, allowed: Boolean)
+    suspend fun setPluginInteractAllowed(pluginId: String, allowed: Boolean)
+
+    suspend fun setPluginToolAllowed(toolName: String, allowed: Boolean)
 }

@@ -37,7 +37,7 @@ Cannot:
 - **anything the permissions tree denies.** Managing plugins and changing settings/servers are off
   by default, and the agent cannot grant itself anything — no tool writes permissions. A refusal
   names the group or plugin that blocked it; ask the user to tick it in
-  **Settings → Server → MCP Server → Permissions**. `jetwhale.getStatus` reports the whole
+  **Settings → AI Agents → Permissions**. `jetwhale.getStatus` reports the whole
   permission state, so check there first when a QA run needs a group that is off.
 - the mouse cursor's appearance. An AWT cursor is not part of the rendered scene, so
   `Modifier.pointerHoverIcon` results never show up in a screenshot. Cover that with a unit test

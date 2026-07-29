@@ -24,7 +24,7 @@ For example, to register it with Claude Code:
 claude mcp add --transport sse jetwhale http://localhost:7080/sse
 ```
 
-The host's **Settings → Server → MCP Server** section shows this command — and an equivalent JSON
+The host's **Settings → AI Agents → MCP Server** section shows this command — and an equivalent JSON
 config block for other MCP clients — already filled in with the port the server is actually running
 on, ready to copy.
 
@@ -83,8 +83,8 @@ connection. The new port takes effect the next time the host starts.
 
 ## Permissions
 
-What an agent may do is controlled in **Settings → Server → MCP Server → Permissions**, as a tree of
-nested checkboxes.
+What an agent may do is controlled in **Settings → AI Agents → Permissions**, as a tree of nested
+checkboxes.
 
 | Group | Tools | Default |
 |-------|-------|---------|
@@ -93,9 +93,21 @@ nested checkboxes.
 | **Manage plugins** | `setPluginEnabled`, `installOfficialPlugin` | **off** |
 | **Settings & servers** | `updateSettings`, `restartDebugServer` | **off** |
 
-Each installed plugin gets two of its own: **Drive UI** (the screenshot/click/type/scroll/semantics
-tools, for that plugin) and **Own tools** (the MCP tools the plugin contributes). Both default to on
-— you installed and enabled the plugin deliberately — and either can be revoked per plugin.
+Each installed plugin gets a subtree of its own:
+
+| | Covers | Default |
+|---|---|---|
+| **UI → Inspect** | `screenshot`, `getAccessibilityTree`, for that plugin | on |
+| **UI → Interact** | `click`, `type`, `scroll`, `drag`, for that plugin | on |
+| **Own tools** | one checkbox per MCP tool the plugin contributes | on |
+
+Reading and driving are split because they are different risks: letting an agent look at a plugin's
+screen is not the same as letting it press the buttons on it. Everything defaults to on — you
+installed and enabled the plugin deliberately — and any leaf can be revoked on its own.
+
+A plugin's own tools are only listed once the plugin has a live instance, since that is when it
+publishes its commands; with nothing connected the subtree says so. Denials are keyed by tool name,
+so they survive a disconnect and apply again the moment the tool comes back.
 
 `jetwhale.listSessions` and `jetwhale.listPlugins` are never gated. They are the discovery calls
 every other tool's arguments come from, so denying them would only leave an agent unable to name
@@ -115,6 +127,21 @@ when the connection opens.
 A refused call says which group or plugin blocked it and names the settings screen, so an agent can
 tell you what to turn on rather than just failing. `jetwhale.getStatus` also reports the whole
 permission state, so it can check before trying.
+
+### Lifting every permission for one launch
+
+Starting the host with `--mcp-allow-all-permissions` allows everything for that process only:
+
+```shell
+./gradlew runJetWhale --args="--mcp-allow-all-permissions"
+```
+
+This is for automated QA, where a run that has to enable a plugin or restart a server would
+otherwise stop at a checkbox nobody is there to tick. Nothing is written back, so your own host keeps
+whatever you chose, and the settings screen and `jetwhale.getStatus` both show the lifted state
+rather than disagreeing with what the agent can actually do. Setting it requires being able to start
+the host process — already more than the unauthenticated MCP port grants — so it opens no door that
+was closed to that caller.
 
 ## Installing plugins from an AI agent
 

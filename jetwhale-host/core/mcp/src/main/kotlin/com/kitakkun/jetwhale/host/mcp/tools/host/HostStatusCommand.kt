@@ -91,8 +91,9 @@ class HostStatusCommand(
 private fun McpPermissions.toJson() = PermissionsJson(
     allowedHostGroups = allowedHostGroups.map { it.name }.sorted(),
     deniedHostGroups = McpHostToolGroup.entries.filterNot { it in allowedHostGroups }.map { it.name },
-    pluginsWithUiDenied = pluginsDeniedUi.sorted(),
-    pluginsWithOwnToolsDenied = pluginsDeniedOwnTools.sorted(),
+    pluginsWithInspectDenied = pluginsDeniedInspect.sorted(),
+    pluginsWithInteractDenied = pluginsDeniedInteract.sorted(),
+    deniedPluginTools = deniedPluginTools.sorted(),
 )
 
 private fun HostViewState.toJson() = UiStateJson(
@@ -142,9 +143,15 @@ data class HostStatusResult(
 data class PermissionsJson(
     val allowedHostGroups: List<String>,
     val deniedHostGroups: List<String>,
-    val pluginsWithUiDenied: List<String>,
-    val pluginsWithOwnToolsDenied: List<String>,
-    val changeableIn: String = "Settings → Server → MCP Server → Permissions",
+    /** Plugins whose UI an agent may not read. */
+    val pluginsWithInspectDenied: List<String>,
+
+    /** Plugins whose UI an agent may not send input to. */
+    val pluginsWithInteractDenied: List<String>,
+
+    /** Individual plugin-contributed tools that are off, by tool name. */
+    val deniedPluginTools: List<String>,
+    val changeableIn: String = "Settings → AI Agents → Permissions",
 )
 
 @Serializable
