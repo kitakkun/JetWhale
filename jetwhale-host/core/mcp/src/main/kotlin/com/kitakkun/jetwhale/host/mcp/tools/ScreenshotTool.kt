@@ -16,8 +16,8 @@ import com.kitakkun.jetwhale.host.mcp.jsonInt
 import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
-import com.kitakkun.jetwhale.host.mcp.viewport.applyViewport
 import com.kitakkun.jetwhale.host.mcp.viewport.isValidForViewport
+import com.kitakkun.jetwhale.host.mcp.viewport.withScopedViewport
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import dev.zacsweers.metro.AppScope
@@ -47,13 +47,19 @@ class ScreenshotMcpTool(
                     mapOf(
                         "pluginId" to stringProperty("The plugin ID."),
                         "sessionId" to stringProperty("The session ID."),
-                        "width" to numberProperty("Image width in pixels. Defaults to the current UI width (fallback: 1280)."),
-                        "height" to numberProperty("Image height in pixels. Defaults to the current UI height (fallback: 720)."),
+                        "width" to numberProperty(
+                            "Image width in pixels. Defaults to the current UI width (fallback: 1280). " +
+                                "Scoped to this capture; the scene keeps the size it was showing at.",
+                        ),
+                        "height" to numberProperty(
+                            "Image height in pixels. Defaults to the current UI height (fallback: 720). " +
+                                "Scoped to this capture; the scene keeps the size it was showing at.",
+                        ),
                         "density" to numberProperty(
                             "Pixel density to render at, e.g. 2 for HiDPI. Defaults to the scene's own density, " +
                                 "which follows the host window. Pin it to keep pixel geometry identical across " +
-                                "machines. Like width/height, this is applied to the live scene, so the host window " +
-                                "keeps rendering at it until the window next resizes.",
+                                "machines. Like width/height, it is scoped to this capture; the scene keeps the " +
+                                "density it was showing at.",
                         ),
                     ),
                 ),
@@ -73,9 +79,9 @@ class ScreenshotMcpTool(
             invalidDensityMessage(requestedDensity)?.let { return@addTool errorResult(it) }
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
-            val (viewport, pngBytes) = withContext(Dispatchers.Main) {
+            val pngBytes = withContext(Dispatchers.Main) {
                 val viewport = resolveViewport(scene, requestedWidth, requestedHeight, requestedDensity)
-                viewport to captureScreenshot(scene, viewport)
+                captureScreenshot(scene, viewport)
             }
             val base64 = Base64.getEncoder().encodeToString(pngBytes)
             CallToolResult(content = listOf(ImageContent(data = base64, mimeType = "image/png")))
@@ -86,7 +92,9 @@ class ScreenshotMcpTool(
 /**
  * Renders the plugin's ComposeScene to an in-memory PNG image.
  *
- * Must be called on the UI thread (Dispatchers.Main), as it mutates the ComposeScene.
+ * Must be called on the UI thread (Dispatchers.Main), as it mutates the ComposeScene. [viewport] is
+ * scoped to the capture: the scene is put back on the viewport it had before returning, so the
+ * on-screen plugin UI is unaffected and later captures do not inherit this one's size or density.
  *
  * @param scene  The plugin ComposeScene to render.
  * @param viewport Output viewport (size + density) to render with.
@@ -97,25 +105,25 @@ fun captureScreenshot(
     scene: PluginComposeScene,
     viewport: McpViewport,
 ): ByteArray {
-    applyViewport(scene, viewport)
-
     val imageBitmap = ImageBitmap(viewport.size.width, viewport.size.height)
     val composeCanvas = Canvas(imageBitmap)
-    // Raised only for this off-screen render; being on the UI thread, no interactive frame can
-    // observe the raised state.
-    scene.isMcpCapture.value = true
-    try {
-        // render() only flushes snapshot apply notifications at its end (before draw), so a write
-        // made right before it is not yet observed by the scene's recomposer and the frame would be
-        // drawn with the stale value. Flush explicitly here so the flag-flip recomposition is applied
-        // within this render pass.
-        Snapshot.sendApplyNotifications()
-        scene.render(composeCanvas)
-    } finally {
-        scene.isMcpCapture.value = false
-        // Flush the restore so the next interactive render observes capture=false immediately rather
-        // than lagging a frame behind.
-        Snapshot.sendApplyNotifications()
+    withScopedViewport(scene, viewport) {
+        // Raised only for this off-screen render; being on the UI thread, no interactive frame can
+        // observe the raised state.
+        scene.isMcpCapture.value = true
+        try {
+            // render() only flushes snapshot apply notifications at its end (before draw), so a write
+            // made right before it is not yet observed by the scene's recomposer and the frame would be
+            // drawn with the stale value. Flush explicitly here so the flag-flip recomposition is applied
+            // within this render pass.
+            Snapshot.sendApplyNotifications()
+            scene.render(composeCanvas)
+        } finally {
+            scene.isMcpCapture.value = false
+            // Flush the restore so the next interactive render observes capture=false immediately rather
+            // than lagging a frame behind.
+            Snapshot.sendApplyNotifications()
+        }
     }
 
     return SkiaImage.makeFromBitmap(imageBitmap.asSkiaBitmap())

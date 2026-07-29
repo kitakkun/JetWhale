@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
@@ -85,6 +86,49 @@ class ScreenshotToolTest {
         // Sample the center of each box
         assertEquals(Color.Red, pixels[25, 25], "Expected red at center of left box")
         assertEquals(Color.Blue, pixels[75, 25], "Expected blue at center of right box")
+    }
+
+    @Test
+    fun `captureScreenshot leaves the scene on the size and density it had`() {
+        val scene = createTestScene()
+        scene.composeScene.size = IntSize(320, 240)
+        scene.composeScene.density = Density(density = 1.5f, fontScale = 1.25f)
+
+        captureScreenshot(scene, McpViewport(size = IntSize(800, 600), density = Density(3f)))
+
+        assertEquals(IntSize(320, 240), scene.composeScene.size, "Capture size must not outlive the capture")
+        assertEquals(Density(density = 1.5f, fontScale = 1.25f), scene.composeScene.density, "Capture density must not outlive the capture")
+    }
+
+    @Test
+    fun `captureScreenshot leaves the window info it had`() {
+        val scene = createTestScene()
+        scene.composeScene.size = IntSize(320, 240)
+        applyViewport(scene, McpViewport(size = IntSize(320, 240), density = Density(1f)))
+
+        captureScreenshot(scene, McpViewport(size = IntSize(800, 600), density = Density(3f)))
+
+        assertEquals(IntSize(320, 240), scene.windowInfoUpdater.currentIntSize)
+        assertEquals(DpSize(320.dp, 240.dp), scene.windowInfoUpdater.currentDpSize)
+    }
+
+    @Test
+    fun `the frame drawn after a capture uses the scene's own density`() {
+        // A 50dp box covers 50px at density 1 and 150px at density 3, so the pixel it lands on
+        // says which density the interactive frame was laid out at.
+        val scene = createTestScene {
+            Box(modifier = Modifier.size(50.dp).background(Color.Red))
+        }
+        scene.composeScene.density = Density(1f)
+
+        captureScreenshot(scene, McpViewport(size = IntSize(200, 200), density = Density(3f)))
+
+        val imageBitmap = ImageBitmap(200, 200)
+        scene.composeScene.size = IntSize(200, 200)
+        scene.composeScene.render(Canvas(imageBitmap), System.nanoTime())
+        val pixels = imageBitmap.toPixelMap()
+        assertEquals(Color.Red, pixels[25, 25], "Expected the box to still cover 50px")
+        assertEquals(Color.Transparent, pixels[100, 100], "Expected the box not to have grown to the capture's density")
     }
 
     @Test

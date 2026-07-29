@@ -15,8 +15,8 @@ import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
-import com.kitakkun.jetwhale.host.mcp.viewport.applyViewport
 import com.kitakkun.jetwhale.host.mcp.viewport.isValidForViewport
+import com.kitakkun.jetwhale.host.mcp.viewport.withScopedViewport
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import dev.zacsweers.metro.AppScope
@@ -71,7 +71,8 @@ class GetAccessibilityTreeMcpTool(
  * elements by name/role and calculate precise click coordinates from [NodeInfo.bounds].
  *
  * Must be called on the UI thread (Dispatchers.Main): it applies the viewport, renders, and flips
- * the capture flag, all of which mutate the ComposeScene.
+ * the capture flag, all of which mutate the ComposeScene. Both mutations are scoped to the capture
+ * — the scene is put back on the viewport it had before returning.
  *
  * The tree carries the same strings the screenshot shows, so it is captured under
  * [com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture] exactly like a screenshot is —
@@ -85,26 +86,27 @@ fun captureAccessibilityTree(scene: PluginComposeScene): String {
         ?: scene.windowInfoUpdater.currentIntSize.takeIf { it.isValidForViewport() }
         ?: IntSize(1280, 720)
     val viewport = McpViewport(size = size, density = scene.composeScene.density)
-    applyViewport(scene, viewport)
 
-    // Raised only for this off-screen render; being on the UI thread, no interactive frame can
-    // observe the raised state.
-    scene.isMcpCapture.value = true
-    val nodes = try {
-        // render() only flushes snapshot apply notifications at its end (before draw), so a write
-        // made right before it is not yet observed by the scene's recomposer and the frame would be
-        // drawn with the stale value. Flush explicitly here so the flag-flip recomposition is applied
-        // within this render pass.
-        Snapshot.sendApplyNotifications()
-        scene.render(Canvas(ImageBitmap(size.width, size.height)))
-        // Read the semantics while the flag is still raised: lowering it first would leave the tree
-        // one recomposition away from the values that were actually rendered.
-        scene.semanticsOwners.map { it.rootSemanticsNode }.flatMap { traverseSemanticsTree(it) }
-    } finally {
-        scene.isMcpCapture.value = false
-        // Flush the restore so the next interactive render observes capture=false immediately rather
-        // than lagging a frame behind.
-        Snapshot.sendApplyNotifications()
+    val nodes = withScopedViewport(scene, viewport) {
+        // Raised only for this off-screen render; being on the UI thread, no interactive frame can
+        // observe the raised state.
+        scene.isMcpCapture.value = true
+        try {
+            // render() only flushes snapshot apply notifications at its end (before draw), so a write
+            // made right before it is not yet observed by the scene's recomposer and the frame would be
+            // drawn with the stale value. Flush explicitly here so the flag-flip recomposition is applied
+            // within this render pass.
+            Snapshot.sendApplyNotifications()
+            scene.render(Canvas(ImageBitmap(size.width, size.height)))
+            // Read the semantics while the flag is still raised: lowering it first would leave the tree
+            // one recomposition away from the values that were actually rendered.
+            scene.semanticsOwners.map { it.rootSemanticsNode }.flatMap { traverseSemanticsTree(it) }
+        } finally {
+            scene.isMcpCapture.value = false
+            // Flush the restore so the next interactive render observes capture=false immediately rather
+            // than lagging a frame behind.
+            Snapshot.sendApplyNotifications()
+        }
     }
     return Json.encodeToString(AccessibilityTreeResult(nodes))
 }

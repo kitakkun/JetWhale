@@ -69,7 +69,14 @@ private class TestPlatformContext(
         override fun onLayoutChange(semanticsOwner: SemanticsOwner, semanticsNodeId: Int) = Unit
     }
 
-    override val currentIntSize: IntSize get() = IntSize(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT)
-    override val currentDpSize: DpSize get() = DpSize(TEST_SCENE_WIDTH.dp, TEST_SCENE_HEIGHT.dp)
-    override fun updateWindowSize(intSize: IntSize, dpSize: DpSize) {}
+    // Recorded rather than fixed, so a test can tell whether a tool put the window info back.
+    override var currentIntSize: IntSize = IntSize(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT)
+        private set
+    override var currentDpSize: DpSize = DpSize(TEST_SCENE_WIDTH.dp, TEST_SCENE_HEIGHT.dp)
+        private set
+
+    override fun updateWindowSize(intSize: IntSize, dpSize: DpSize) {
+        currentIntSize = intSize
+        currentDpSize = dpSize
+    }
 }
