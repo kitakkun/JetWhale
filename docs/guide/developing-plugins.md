@@ -354,13 +354,16 @@ protected `json` property, for encoding the result.
 The Network Inspector's own tools (`com.kitakkun.jetwhale.network.*`) are a complete in-repo
 example — see `jetwhale-plugins/network/host`.
 
-### Hiding sensitive UI from MCP screenshots
+### Hiding sensitive UI from MCP captures
 
-`jetwhale.screenshot` renders the same Compose scene the host window shows. If your plugin UI
-displays values that AI agents should not see, read the `LocalIsScreenshotCapture`
-CompositionLocal — it is `true` only while the scene is being rendered for an MCP screenshot
-capture — and blank or mask the sensitive content while it is raised. The interactive window never
-observes the raised state, so there is no on-screen flicker.
+`jetwhale.screenshot` renders the same Compose scene the host window shows, and
+`jetwhale.getAccessibilityTree` reads that scene's semantics — which carry your `Text` and
+`contentDescription` strings verbatim. If your plugin UI displays values that AI agents should not
+see, read the `LocalIsScreenshotCapture` CompositionLocal — it is `true` only while the scene is
+being rendered for either of those captures — and blank or mask the sensitive content while it is
+raised. Masking only in the drawing layer is not enough: the semantics tree would still hand over
+the original string. The interactive window never observes the raised state, so there is no
+on-screen flicker.
 
 The `LocalJetWhaleDarkTheme` CompositionLocal tells your plugin whether the host is rendering it in
 a dark theme — the host provides the authoritative value from its actually-applied color scheme.

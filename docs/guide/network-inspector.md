@@ -162,4 +162,5 @@ Like every MCP tool, they take a required `sessionId` (from `jetwhale.listSessio
 
 [Redaction rules](#redacting-sensitive-values) apply to MCP output as well: values redacted with
 `RedactionScope.MCP_ONLY` are hidden from these tools' results **and** from `jetwhale.screenshot`
-captures of the Network Inspector UI, while staying visible to you in the host window.
+and `jetwhale.getAccessibilityTree` captures of the Network Inspector UI, while staying visible to
+you in the host window.
