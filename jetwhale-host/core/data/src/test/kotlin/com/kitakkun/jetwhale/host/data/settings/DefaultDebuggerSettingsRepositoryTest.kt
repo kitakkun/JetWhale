@@ -43,6 +43,15 @@ class DefaultDebuggerSettingsRepositoryTest {
     }
 
     @Test
+    fun `reading adb auto port mapping never reports the default over a stored off`() = runBlocking {
+        val dataStore = newDataStore()
+        DefaultDebuggerSettingsRepository(dataStore, noOverrides).updateAdbAutoPortMappingEnabled(false)
+
+        // A fresh repository has not read the store yet, which is exactly when the server asks.
+        assertEquals(false, DefaultDebuggerSettingsRepository(dataStore, noOverrides).readAdbAutoPortMappingEnabled())
+    }
+
+    @Test
     fun `launch overrides win over the stored ports`() = runBlocking {
         val dataStore = newDataStore()
         DefaultDebuggerSettingsRepository(dataStore, noOverrides).run {

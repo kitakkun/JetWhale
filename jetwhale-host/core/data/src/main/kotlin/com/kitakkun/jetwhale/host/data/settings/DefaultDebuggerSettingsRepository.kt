@@ -98,6 +98,8 @@ class DefaultDebuggerSettingsRepository(
             initialValue = DEFAULT_MCP_PLUGIN_INSTALL_ALLOWED,
         )
 
+    override suspend fun readAdbAutoPortMappingEnabled(): Boolean = dataStore.data.first()[KEY_ADB_AUTO_PORT_MAPPING_ENABLED] ?: DEFAULT_ADB_AUTO_PORT_MAPPING_ENABLED
+
     override suspend fun updateAdbAutoPortMappingEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[KEY_ADB_AUTO_PORT_MAPPING_ENABLED] = enabled

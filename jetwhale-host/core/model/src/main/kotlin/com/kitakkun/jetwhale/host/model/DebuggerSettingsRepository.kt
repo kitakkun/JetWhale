@@ -16,6 +16,13 @@ interface DebuggerSettingsRepository {
      * installing a plugin loads new code into the host process, so it stays an opt-in.
      */
     val mcpPluginInstallAllowedFlow: StateFlow<Boolean>
+
+    /**
+     * The stored value, awaiting the initial read rather than reporting the default while it is
+     * still unknown. Use this to decide whether to wire; [adbAutoPortMappingEnabledFlow] carries
+     * the default until the store answers, which is fine to display but not to act on.
+     */
+    suspend fun readAdbAutoPortMappingEnabled(): Boolean
     suspend fun readServerPort(): Int
     suspend fun readMcpServerPort(): Int
     suspend fun readWssPort(): Int

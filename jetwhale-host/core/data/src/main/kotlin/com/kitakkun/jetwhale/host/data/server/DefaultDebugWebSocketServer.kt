@@ -72,7 +72,10 @@ class DefaultDebugWebSocketServer(
     }
 
     private suspend fun monitorAdbAutoWiring() {
-        if (!settingsRepository.adbAutoPortMappingEnabledFlow.value) return
+        // Read the stored value instead of sampling the flow: the flow reports the default until the
+        // store answers, and this decision is made once per server start. Sampling it too early would
+        // wire devices for a user who turned the setting off, for the whole run.
+        if (!settingsRepository.readAdbAutoPortMappingEnabled()) return
 
         var wiredPorts: List<Int> = emptyList()
         ktorWebSocketServer.statusFlow.collect { status ->
