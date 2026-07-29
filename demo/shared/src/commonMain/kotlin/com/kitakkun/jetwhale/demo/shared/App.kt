@@ -49,10 +49,15 @@ fun App() {
                             onClick = { selectedTab = 2 },
                             text = { Text("Nav3 plugin") },
                         )
+                        Tab(
+                            selected = selectedTab == 3,
+                            onClick = { selectedTab = 3 },
+                            text = { Text("Compose nodes") },
+                        )
                         platformExtraTabLabel?.let { label ->
                             Tab(
-                                selected = selectedTab == 3,
-                                onClick = { selectedTab = 3 },
+                                selected = selectedTab == 4,
+                                onClick = { selectedTab = 4 },
                                 text = { Text(label) },
                             )
                         }
@@ -61,6 +66,7 @@ fun App() {
                         0 -> ExampleTestScreen()
                         1 -> NetworkTestScreen()
                         2 -> Nav3TestScreen(nav3BackStack)
+                        3 -> ComposeNodeTestScreen()
                         else -> PlatformExtraTabScreen()
                     }
                 }

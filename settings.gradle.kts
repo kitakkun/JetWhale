@@ -55,6 +55,10 @@ include(":jetwhale-plugins:nav3:protocol")
 include(":jetwhale-plugins:nav3:agent")
 include(":jetwhale-plugins:nav3:host")
 
+include(":jetwhale-plugins:semantics:protocol")
+include(":jetwhale-plugins:semantics:agent")
+include(":jetwhale-plugins:semantics:host")
+
 include(":test-annotations")
 
 include(":tools:qa-agent")

@@ -166,7 +166,10 @@ your custom debugging features too. See
 write one.
 
 The [Network Inspector](/guide/network-inspector#mcp-tools) ships a full set of plugin tools
-(`com.kitakkun.jetwhale.network.*`) for reading captured traffic and managing mock rules.
+(`com.kitakkun.jetwhale.network.*`) for reading captured traffic and managing mock rules, and the
+[Compose Semantics Inspector](/guide/compose-semantics-inspector#mcp-tools) contributes
+`com.kitakkun.jetwhale.semantics.*` for reading the **debuggee's** Compose node tree and invoking a
+node's own action — the structural counterpart to the coordinate-based `jetwhale.click` below.
 
 ::: tip Sensitive values
 Plugin UIs can hide sensitive content from `jetwhale.screenshot` **and**

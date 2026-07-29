@@ -204,5 +204,7 @@ sessions, so you can debug several apps or devices at once.
 ## Next steps
 
 - [Network Inspector](/guide/network-inspector) — inspect and mock HTTP traffic
+- [Compose Semantics Inspector](/guide/compose-semantics-inspector) — browse your app's Compose node tree and
+  drive it by node
 - [MCP Server](/guide/mcp-server) — let AI agents drive your app
 - [Developing Plugins](/guide/developing-plugins) — build your own debugging tools
