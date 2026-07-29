@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.nav3.host
 import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.plugins.nav3.protocol.MutationResult
+import com.kitakkun.jetwhale.plugins.nav3.protocol.NAV3_PLUGIN_ID
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
@@ -15,7 +16,8 @@ import kotlinx.serialization.json.putJsonArray
 
 // Shared by the Nav3 plugin's MCP command classes (one class per file in this package).
 
-internal const val TOOL_PREFIX = "com.kitakkun.jetwhale.nav3"
+// The tool names are namespaced by the pluginId, so they follow it rather than restating it.
+internal const val TOOL_PREFIX = NAV3_PLUGIN_ID
 
 /** What the MCP commands are allowed to see and do; the host plugin is the only implementation. */
 internal interface Nav3BackStackController {
