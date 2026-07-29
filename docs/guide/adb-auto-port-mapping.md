@@ -5,13 +5,14 @@ WebSocket server on `localhost`. For that to work, the device needs an
 [`adb reverse`](https://developer.android.com/tools/adb) port forwarding so that `localhost:<port>`
 on the device reaches the host machine.
 
-JetWhale can manage this for you: with **ADB auto port mapping** enabled, the host watches ADB for
+JetWhale manages this for you: with **ADB auto port mapping** enabled, the host watches ADB for
 device connections and sets up (and tears down) the reverse port forwarding automatically — no
 manual `adb reverse` commands needed.
 
 ## Enabling it
 
-Open **Settings → General** in the JetWhale host and toggle **ADB auto port mapping**.
+It is **on by default** — Android debugging needs no setup. The toggle lives under
+**ADB support** in the JetWhale host's settings if you want to turn it off.
 
 While enabled, the host:
 
@@ -46,9 +47,13 @@ JetWhale looks for the `adb` executable in the usual locations, in order:
 If none of these work in your environment, make sure `adb` is on the `PATH` of the shell that
 launches the JetWhale host, or set `ANDROID_HOME`.
 
+On a machine with no `adb` at all — a desktop-, iOS-, or web-only setup — there is nothing to wire,
+so the host reports it once in its logs and leaves auto port mapping inactive. Nothing else about
+the host is affected, which is why the setting ships enabled.
+
 ## Manual setup (if you prefer)
 
-If you'd rather manage the forwarding yourself, leave the setting off and run:
+If you'd rather manage the forwarding yourself, turn the setting off and run:
 
 ```shell
 adb reverse tcp:<serverPort> tcp:<serverPort>

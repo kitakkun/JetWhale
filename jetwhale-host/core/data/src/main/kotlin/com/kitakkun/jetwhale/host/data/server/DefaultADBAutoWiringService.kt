@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.IOException
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -37,12 +38,15 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
     private val adbPath: String by lazy { findAdbPath() }
 
     override fun startAutoWiring(port: Int) {
-        if (!wiredPorts.add(port)) return
+        if (wiredPorts.add(port)) {
+            // Devices that connected before this port was registered still need the new forwarding.
+            wiredDevices.forEach { serial -> wire(serial, port) }
+        }
 
-        // Devices that connected before this port was registered still need the new forwarding.
-        wiredDevices.forEach { serial -> wire(serial, port) }
-
-        if (wiringJob != null) return
+        // A job that has finished — it stood down over a missing adb — must not read as running, or
+        // a port that is already registered would never get tracking back. Restarting the server
+        // calls this again, which is the retry.
+        if (wiringJob?.isActive == true) return
 
         wiringJob = coroutineScope.launch {
             // `adb track-devices` can end at any time (adb server restart/crash, USB hiccup, version
@@ -59,6 +63,12 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
                     System.err.println("ADB device tracking ended; re-attaching in ${RECONNECT_DELAY_MS}ms")
                 } catch (e: CancellationException) {
                     throw e
+                } catch (e: AdbUnavailableException) {
+                    // Auto wiring is on by default, so a machine with no Android SDK would otherwise
+                    // retry a binary that will never appear, every RECONNECT_DELAY_MS, forever.
+                    // Report once and stand down until the next startAutoWiring call.
+                    System.err.println("ADB auto port mapping is inactive: ${e.message}")
+                    return@launch
                 } catch (e: Exception) {
                     System.err.println("ADB device tracking failed; re-attaching in ${RECONNECT_DELAY_MS}ms: ${e.message}")
                 }
@@ -68,9 +78,13 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
     }
 
     private fun deviceEventFlow(): Flow<DeviceEvent> = callbackFlow {
-        val deviceTrackingProcess = ProcessBuilder(adbPath, "track-devices")
-            .redirectErrorStream(true)
-            .start()
+        val deviceTrackingProcess = try {
+            ProcessBuilder(adbPath, "track-devices")
+                .redirectErrorStream(true)
+                .start()
+        } catch (e: IOException) {
+            throw AdbUnavailableException(adbPath, e)
+        }
 
         launch {
             deviceTrackingProcess.inputStream
@@ -141,6 +155,9 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
         return exitCode to output
     }
 }
+
+/** The adb executable itself could not be launched — no amount of retrying will bring it back. */
+private class AdbUnavailableException(adbPath: String, cause: IOException) : Exception("adb could not be launched from \"$adbPath\": ${cause.message}", cause)
 
 private sealed interface DeviceEvent {
     data class Connected(val serial: String) : DeviceEvent

@@ -194,9 +194,9 @@ falls back to `https` over the wss port, no App Transport Security exception for
 
 - **Desktop / iOS Simulator / Web** debuggees reach the host directly on `localhost` — no extra
   setup.
-- **Android** devices and emulators need `adb reverse` port forwarding. Enable
-  [ADB auto port mapping](/guide/adb-auto-port-mapping) in the host settings and JetWhale wires it
-  up automatically; or run `adb reverse tcp:5080 tcp:5080` yourself.
+- **Android** devices and emulators need `adb reverse` port forwarding.
+  [ADB auto port mapping](/guide/adb-auto-port-mapping) is on by default, so JetWhale wires it up
+  automatically; turn it off in the host settings to run `adb reverse tcp:5080 tcp:5080` yourself.
 
 Launch your app — it appears as a new session in the host. JetWhale supports multiple simultaneous
 sessions, so you can debug several apps or devices at once.
