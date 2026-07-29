@@ -53,5 +53,11 @@ object OfficialPluginCatalog {
             description = "Inspect and mock the HTTP traffic of connected debug sessions.",
             artifactId = "jetwhale-network-inspector",
         ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.nav3",
+            displayName = "Nav3 Navigator",
+            description = "Inspect and drive the Navigation 3 back stack of connected debug sessions.",
+            artifactId = "jetwhale-nav3-navigator",
+        ),
     )
 }
