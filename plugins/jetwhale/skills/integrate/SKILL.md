@@ -108,13 +108,18 @@ Each reference gives the seam, the two implementations, and the framework's mech
 the debug one win. They share a shape: an app-owned interface, a no-op bound by default, and a
 JetWhale-backed implementation that displaces it on the debug classpath only.
 
-| Detected | Read |
-|---|---|
-| Metro (`dev.zacsweers.metro`) | `references/metro.md` |
-| Anvil, or kotlin-inject-anvil | `references/anvil.md` |
-| Dagger or Hilt | `references/dagger-hilt.md` |
-| Koin | `references/koin.md` |
-| None | `references/no-di.md` |
+| Detected | Read | The edge that framework has |
+|---|---|---|
+| Metro (`dev.zacsweers.metro`) | `references/metro.md` | Empty multibindings need `@Multibinds(allowEmpty = true)` |
+| kotlin-inject-anvil | `references/anvil.md` | **No empty multibindings at all** — use `replaces` for every seam |
+| Square Anvil | `references/anvil.md` | **Dagger must run on kapt, not KSP**, or nothing is generated |
+| Hilt | `references/dagger-hilt.md` | `@InstallIn` is discovered, so the debug side is the only side |
+| Plain Dagger | `references/dagger-hilt.md` | Modules are listed, so a same-name module per variant is unavoidable |
+| Koin | `references/koin.md` | Runtime resolution — the compiler catches nothing |
+| None | `references/no-di.md` | Same-signature factory per variant; KMP has no variants |
+
+Every row was verified by building and running a project, not reasoned about. See
+[Verified against](#verified-against) for versions and evidence.
 
 Whichever you follow, two JetWhale-side facts hold:
 
@@ -158,6 +163,29 @@ State plainly:
 - whether you saw the session connect, or only that it compiles — do not imply a live check you
   did not run
 - anything you left unwired (e.g. OkHttp present but only Ktor wired) and why
+
+## Verified against
+
+Each pattern below was built as a four-module project (`:seam`, `:tooling`, `:app-debug` depending
+on both, `:app-release` depending on `:seam` only) and **run**, so the recorded result is the
+binding that actually resolved — not one inferred from the annotations.
+
+| Framework | Versions | Evidence |
+|---|---|---|
+| Metro | 1.3.2, Kotlin 2.4.10 | release `noop` + empty decorator set; debug real binding; `@SingleIn` holder identical across both injection sites |
+| kotlin-inject-anvil | 0.1.7, kotlin-inject 0.9.0, KSP 2.3.10, Kotlin 2.3.10 | `replaces` resolves both ways; an empty `Set<T>` fails KSP outright |
+| Square Anvil | 2.7.0, Dagger 2.60.1, Kotlin 2.2.20 | `replaces` resolves both ways — **only** after moving Dagger from KSP to kapt |
+| Dagger | 2.60.1 | `@BindsOptionalOf` → `Optional.empty()` in release, present in debug; `@Multibinds` allows empty with no parameter |
+| Hilt + Android variants | 2.60.1, AGP 9.3.0, Kotlin 2.4.10 | generated component: `Optional.of(...)` in debug vs `Optional.empty()` in release, with no release-side module |
+| Koin | 4.2.2 | `getOrNull` null in release; `getAll` empty; `single` shares one instance |
+| No DI + AGP variants | AGP 9.3.0, Kotlin 2.4.10 | debug APK dex carries the debug-only class, release APK carries zero occurrences |
+
+Classpath isolation was checked on the built artifacts in the Android project: the debug-only
+project appeared on `debugRuntimeClasspath`, was absent from `releaseRuntimeClasspath`, and its
+classes were absent from the release APK's dex.
+
+When a project's versions differ materially from these, re-check the sharp edge for that framework
+before trusting the shape.
 
 ## Reference
 

@@ -1,83 +1,110 @@
 # Wiring with Dagger or Hilt
 
-Neither merges contributions off the classpath, so there is no `replaces` to lean on. The switch is
-made by **supplying the binding from a different place per variant**: one module for debug, one for
-release, providing the same type.
+Neither has Metro's `replaces`. What they have instead is **optional bindings**: production code
+declares that a binding *may be absent*, and the debug side is the only one that supplies it. That
+is a better fit than it sounds — the release behaviour this seam wants is "do nothing", which is
+exactly what absence means.
 
-Android variant source sets make this cheap — `src/debug/` and `src/release/` inside a single
-module, with `debugImplementation` for the JetWhale dependency. Nothing in `src/main/` ever names
-JetWhale, so the release compilation never needs it.
+Whether you need a release-side counterpart at all comes down to one difference:
 
-## Layout
+| | How the debug module reaches the graph | Release-side counterpart |
+|---|---|---|
+| **Hilt** | Discovered from `@InstallIn` on the classpath | **Not needed** — one-sided |
+| **Plain Dagger** | Listed explicitly in `@Component(modules = [...])` | **Required** — a same-name module per variant |
 
-```
-:app
-  build.gradle.kts        debugImplementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
-  src/main/…/DebugToolingInitializer.kt    ← the seam, always compiled
-  src/debug/…/DebugToolingModule.kt        ← binds JetWhaleInitializer
-  src/release/…/DebugToolingModule.kt      ← binds NoOpInitializer
-```
+Verified with Dagger 2.60.1, Hilt 2.60.1, AGP 9.3.0, Kotlin 2.4.10, KSP 2.3.10.
 
-Both module files must declare the **same binding key**, and Hilt requires the same
-`@InstallIn` component. Keeping the file name and class name identical across the two source sets
-is what makes the pair obvious to the next reader.
+## Hilt — one-sided, no release counterpart
 
-## The seam
+Declare the optional binding once, in `src/main`:
 
 ```kotlin
-// src/main
+// src/main — production code, never names JetWhale
 interface DebugToolingInitializer {
-    fun initialize()
+    fun initialize(): String
 }
-```
 
-## Release side
-
-```kotlin
-// src/release
 @Module
 @InstallIn(SingletonComponent::class)
-object DebugToolingModule {
-    @Provides
-    @Singleton
-    fun provideInitializer(): DebugToolingInitializer =
-        object : DebugToolingInitializer {
-            override fun initialize() = Unit
-        }
+abstract class SeamModule {
+    @BindsOptionalOf
+    abstract fun optionalInitializer(): DebugToolingInitializer
 }
 ```
 
-## Debug side
+Supply it from `src/debug` only. There is no `src/release` file:
 
 ```kotlin
 // src/debug — the only source set that imports JetWhale
 @Module
 @InstallIn(SingletonComponent::class)
-object DebugToolingModule {
+object JetWhaleModule {
     @Provides
     @Singleton
-    fun provideNetworkAgent(): JetWhaleNetworkAgentPlugin = JetWhaleNetworkAgentPlugin()
+    fun agents(): JetWhaleAgents = JetWhaleAgents()
 
     @Provides
-    @Singleton
-    fun provideInitializer(agent: JetWhaleNetworkAgentPlugin): DebugToolingInitializer =
+    fun initializer(agents: JetWhaleAgents): DebugToolingInitializer =
         DebugToolingInitializer {
             startJetWhale {
                 connection { host = "localhost"; port = 5080 }
-                plugins { register(agent) }
+                plugins { register(agents.network) }
             }
         }
 }
 ```
 
-`@Singleton` on the agent provider is what keeps one instance across the two call sites.
+Inject `Optional<DebugToolingInitializer>` and call it:
+
+```kotlin
+// src/main
+@Inject lateinit var initializer: Optional<DebugToolingInitializer>
+
+initializer.ifPresent { it.initialize() }
+```
+
+`@Singleton` on the agent provider is what keeps one instance across the HTTP client and the session.
+
+This works because Hilt aggregates every `@InstallIn` module it finds on the variant's classpath.
+The generated component proves it — same app, two variants:
+
+```java
+// app/build/generated/hilt/component_sources/debug/…/DaggerApp_HiltComponents_SingletonC.java
+App_MembersInjector.injectInitializer(instance, Optional.of(debugToolingInitializer()));
+
+// …/release/…
+App_MembersInjector.injectInitializer(instance, Optional.empty());
+```
+
+The release component contains no reference to `JetWhaleModule` at all, and no
+`JetWhaleModule_*Factory` is generated for that variant.
+
+## Plain Dagger — the same-name module pair
+
+Without Hilt, `@Component(modules = [...])` names its modules explicitly, and `src/main` cannot name
+a class that exists only in `src/debug`. So the module has to exist in both source sets under the
+same fully-qualified name — empty in release, providing in debug.
+
+```kotlin
+// src/main
+@Singleton
+@Component(modules = [SeamModule::class, DebugToolingModule::class])
+interface AppComponent {
+    fun initializer(): Optional<DebugToolingInitializer>
+}
+```
+
+`SeamModule` (with `@BindsOptionalOf`) stays in `src/main`; `DebugToolingModule` is declared twice —
+empty in `src/release`, providing in `src/debug`. Nothing keeps that pair in sync but convention, so
+build both variants in CI.
 
 ## HTTP client capture
 
-Use an optional multibinding so the release side contributes nothing:
+Dagger's `@Multibinds` allows an empty set **by default** — unlike Metro, there is no `allowEmpty`
+parameter to set:
 
 ```kotlin
-// src/main — declares the (possibly empty) set
+// src/main
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class HttpClientDecoratorModule {
@@ -90,29 +117,44 @@ abstract class HttpClientDecoratorModule {
 // src/debug
 @Provides
 @IntoSet
-fun provideJetWhaleDecorator(agent: JetWhaleNetworkAgentPlugin): HttpClientDecorator =
+fun jetwhaleDecorator(agents: JetWhaleAgents): HttpClientDecorator =
     HttpClientDecorator { client ->
-        client.plugin(HttpSend).intercept(agent.ktorSendInterceptor(client))
+        client.plugin(HttpSend).intercept(agents.network.ktorSendInterceptor(client))
     }
 ```
 
 The production `HttpClient` / `OkHttpClient` provider injects `Set<HttpClientDecorator>` and applies
 every element. In release the set is empty and the provider is unchanged.
 
-## Plain Dagger, or a KMP project
+## Gradle, and what it actually buys you
 
-Without Hilt, the same split applies to the component's `modules = [...]` list: declare
-`DebugToolingModule` in both source sets and list it once in the component.
+```kotlin
+dependencies {
+    implementation("com.google.dagger:hilt-android:2.60.1")
+    ksp("com.google.dagger:hilt-compiler:2.60.1")
+    debugImplementation(project(":tooling"))   // or the JetWhale artifacts directly
+}
+```
+
+Verified end to end on the built artifacts, not just the wiring:
+
+```
+:app:dependencies --configuration releaseRuntimeClasspath   → no :tooling
+:app:dependencies --configuration debugRuntimeClasspath     → +--- project :tooling
+debug APK   dex strings: FakeAgents ×5
+release APK dex strings: FakeAgents ×0
+```
 
 KMP has no variant source sets. Put the debug module in its own Gradle module and gate the
-dependency on a Gradle property, or keep two thin entry-point modules — see the KMP section of
-[`metro.md`](metro.md), which is framework-independent.
+dependency on a Gradle property — see the KMP section of [`metro.md`](metro.md), which is
+framework-independent.
 
 ## Failure modes
 
 | Symptom | Cause |
 |---|---|
-| `DuplicateBindings` | Both source sets ended up on one compile — check that `src/debug` is not also listed in the release variant's source sets |
-| `MissingBinding` in release only | The release module file is missing, or its `@InstallIn` component differs from the debug one |
-| Unresolved reference to JetWhale in release | Something in `src/main` names a JetWhale type — the seam leaked |
+| `MissingBinding` in release only | Plain Dagger with no release-side counterpart module, or `@BindsOptionalOf` never declared |
+| `DuplicateBindings` | Both source sets ended up on one compile — check the release variant's source set list |
+| Unresolved JetWhale reference in release | Something in `src/main` names a JetWhale type — the seam leaked |
 | Session connects, no traffic | Two agent instances — `@Singleton` missing on the agent provider |
+| `The 'org.jetbrains.kotlin.android' plugin is no longer required since AGP 9.0` | AGP 9 has built-in Kotlin; drop the plugin rather than pinning AGP back |
