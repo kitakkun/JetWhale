@@ -5,9 +5,8 @@ contributions across the compile classpath, so the module layout and the seam ar
 Metro's — read [`metro.md`](metro.md) first and treat this file as the delta.
 
 - **kotlin-inject-anvil** (Amazon, actively developed) — the section below.
-- **Square Anvil** — in maintenance mode, pinned to an old Kotlin. Nobody adopts it today, so that
-  section is written for a project that is *already* on it, and leads with the trap rather than the
-  syntax.
+- **Square Anvil** — in maintenance mode and pinned to an old Kotlin, so that section is written for
+  a project that is already on it, and leads with the constraint to check rather than the syntax.
 
 Both were verified by building a four-module project (`:seam`, `:tooling`, `:app-debug` depending on
 both, `:app-release` depending on `:seam` only) and running each app: release resolves the no-op,
@@ -85,19 +84,19 @@ One mechanism for both seams, and it is the mechanism that works.
 
 ## Square Anvil — for a project already on it
 
-Do not reach for Anvil to solve this. Anvil 2.7.0 (October 2025) is built against Kotlin 2.2.20, so
-a project on anything newer cannot add it, and Metro is its successor. This section exists for the
-codebase that is already there — usually a large, long-lived Android app, which is exactly the kind
-that most needs the debugger kept out of its release build.
+Anvil 2.7.0 (October 2025) is built against Kotlin 2.2.20, and Metro is its successor, so this is
+not a library a project adopts today. It is one a project already has — often a large, long-lived
+Android app, which is exactly the kind that most benefits from keeping the debugger out of its
+release build.
 
-### The trap: Dagger must run through kapt, not KSP
+### Check the Dagger processor first: kapt, not KSP
 
-Check this **before** writing any wiring. Anvil is a Kotlin **compiler plugin**: it adds
+Worth settling before writing any wiring. Anvil is a Kotlin **compiler plugin**: it adds
 `@Component` and the merged supertypes during compilation. KSP reads source before that happens, so
 Dagger's KSP processor never sees a component to process.
 
-Nothing announces this. No warning, no error, nothing generated at all — and the build fails much
-later, somewhere that looks unrelated:
+There is no warning for this — nothing is generated, and the build fails later at a point that looks
+unrelated:
 
 ```
 e: Unresolved reference: DaggerAppComponent
@@ -114,8 +113,8 @@ dependencies {
 }
 ```
 
-A project that already runs Dagger through KSP cannot have both. That is a constraint to raise with
-the team, not something to switch underneath them.
+A project that already runs Dagger through KSP cannot have both, so this is a decision for the team
+rather than a detail to change in passing.
 
 ### The wiring itself
 
