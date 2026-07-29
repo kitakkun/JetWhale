@@ -126,9 +126,8 @@ fun PluginSettingsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier.fillMaxSize(),
     ) {
-        // Installed plugins: header with the install actions kept alongside it, then one card per
-        // plugin. The whole page is a single scrollable list so no section can squeeze another out
-        // of view when the window is short.
+        // One list serving three pages of the Plugins section: each block declares which page it
+        // belongs to, so the section's Root keeps a single set of subscriptions.
         if (page == SettingsScreenPage.InstalledPlugins) {
             item(key = "installed_header") {
                 Text(
@@ -196,20 +195,24 @@ fun PluginSettingsScreen(
                 }
             }
         }
-        uiState.installError?.let { error ->
-            item(key = "install_error") {
-                Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            color = MaterialTheme.colorScheme.errorContainer,
-                            shape = MaterialTheme.shapes.small,
-                        )
-                        .padding(12.dp),
-                )
+        // Beside the progress it replaces: an install only starts from this page, so its failure has
+        // no business appearing over the installed list or the security settings.
+        if (page == SettingsScreenPage.AddPlugins) {
+            uiState.installError?.let { error ->
+                item(key = "install_error") {
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = MaterialTheme.colorScheme.errorContainer,
+                                shape = MaterialTheme.shapes.small,
+                            )
+                            .padding(12.dp),
+                    )
+                }
             }
         }
         if (page == SettingsScreenPage.InstalledPlugins) {
