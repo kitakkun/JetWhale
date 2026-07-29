@@ -128,7 +128,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
             },
         ) {
             SettingsScreenRoot(
-                initialMenu = navKey.initialMenu,
+                initialPage = navKey.initialPage,
                 onClickClose = onClickClose,
                 onOpenLogViewer = onOpenLogViewer,
             )

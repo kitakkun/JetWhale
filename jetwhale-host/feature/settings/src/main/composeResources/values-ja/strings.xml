@@ -1,5 +1,9 @@
 <resources>
     <string name="settings_title">設定</string>
+    <string name="settings_section_connection">接続</string>
+    <string name="settings_section_ai_agents">AIエージェント</string>
+    <string name="settings_page_application">アプリケーション</string>
+    <string name="settings_page_add_plugins">プラグインの追加</string>
     <string name="general">一般</string>
     <string name="server">サーバー</string>
     <string name="plugins">プラグイン</string>

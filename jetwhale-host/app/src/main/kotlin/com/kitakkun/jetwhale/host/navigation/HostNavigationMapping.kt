@@ -5,7 +5,8 @@ import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostSettingsSection
 import com.kitakkun.jetwhale.host.model.PoppedOutPlugin
-import com.kitakkun.jetwhale.host.settings.SettingsScreenMenu
+import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
+import com.kitakkun.jetwhale.host.settings.SettingsScreenSection
 
 /**
  * Translates the back stack into the destination model that [com.kitakkun.jetwhale.host.model.HostNavigationService]
@@ -27,7 +28,7 @@ fun List<NavKey>.toHostDestination(): HostDestination {
 
         is SettingsNavKey -> HostDestination(
             kind = HostDestinationKind.SETTINGS,
-            settingsSection = top.initialMenu.toHostSettingsSection(),
+            settingsSection = top.initialPage.toHostSettingsSection(),
             poppedOutPlugins = poppedOut,
         )
 
@@ -50,14 +51,17 @@ fun List<NavKey>.toHostDestination(): HostDestination {
     }
 }
 
-fun HostSettingsSection.toMenu(): SettingsScreenMenu = when (this) {
-    HostSettingsSection.GENERAL -> SettingsScreenMenu.General
-    HostSettingsSection.SERVER -> SettingsScreenMenu.Server
-    HostSettingsSection.PLUGINS -> SettingsScreenMenu.Plugins
+fun HostSettingsSection.toPage(): SettingsScreenPage = when (this) {
+    HostSettingsSection.GENERAL -> SettingsScreenSection.General.firstPage
+    HostSettingsSection.SERVER -> SettingsScreenSection.Connection.firstPage
+    HostSettingsSection.PLUGINS -> SettingsScreenSection.Plugins.firstPage
 }
 
-private fun SettingsScreenMenu.toHostSettingsSection(): HostSettingsSection = when (this) {
-    SettingsScreenMenu.General -> HostSettingsSection.GENERAL
-    SettingsScreenMenu.Server -> HostSettingsSection.SERVER
-    SettingsScreenMenu.Plugins -> HostSettingsSection.PLUGINS
+private fun SettingsScreenPage.toHostSettingsSection(): HostSettingsSection = when (section) {
+    SettingsScreenSection.General -> HostSettingsSection.GENERAL
+
+    // The MCP server used to live under Server; an agent still asks for it by section.
+    SettingsScreenSection.Connection, SettingsScreenSection.AiAgents -> HostSettingsSection.SERVER
+
+    SettingsScreenSection.Plugins -> HostSettingsSection.PLUGINS
 }

@@ -28,6 +28,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.settings.Res
+import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
 import com.kitakkun.jetwhale.host.settings.component.SwitchSettingsItemView
@@ -73,6 +74,7 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ServerSettingsScreen(
+    page: SettingsScreenPage,
     uiState: ServerSettingsScreenUiState,
     onDebugPortTextChange: (String) -> Unit,
     onApplyDebugPortChange: () -> Unit,
@@ -175,122 +177,128 @@ fun ServerSettingsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = SettingsScreenScaffoldPageContentPadding,
     ) {
-        item {
-            SettingOptionView(
-                label = stringResource(Res.string.debug_server_label),
-            ) {
-                Text(
-                    text = serverStateText(uiState.debugServerState),
-                )
-                TextFieldSettingsItemView(
-                    label = stringResource(Res.string.debug_server_port_label),
-                    text = uiState.editingDebugPortText,
-                    onTextChange = onDebugPortTextChange,
-                )
-                if (uiState.isDebugApplyVisible) {
-                    Button(
-                        onClick = onApplyDebugPortChange,
-                        enabled = uiState.isDebugApplyEnabled,
-                    ) {
-                        Text(applyButtonText(isRetry = uiState.isDebugRetry))
+        if (page == SettingsScreenPage.DebugServer) {
+            item {
+                SettingOptionView(
+                    label = stringResource(Res.string.debug_server_label),
+                ) {
+                    Text(
+                        text = serverStateText(uiState.debugServerState),
+                    )
+                    TextFieldSettingsItemView(
+                        label = stringResource(Res.string.debug_server_port_label),
+                        text = uiState.editingDebugPortText,
+                        onTextChange = onDebugPortTextChange,
+                    )
+                    if (uiState.isDebugApplyVisible) {
+                        Button(
+                            onClick = onApplyDebugPortChange,
+                            enabled = uiState.isDebugApplyEnabled,
+                        ) {
+                            Text(applyButtonText(isRetry = uiState.isDebugRetry))
+                        }
                     }
                 }
             }
         }
-        item {
-            SettingOptionView(
-                label = stringResource(Res.string.mcp_server_label),
-            ) {
-                Text(
-                    text = serverStateText(uiState.mcpServerState),
-                )
-                TextFieldSettingsItemView(
-                    label = stringResource(Res.string.mcp_server_port_label),
-                    text = uiState.editingMcpPortText,
-                    onTextChange = onMcpPortTextChange,
-                )
-                if (uiState.isMcpApplyVisible) {
-                    Button(
-                        onClick = onApplyMcpPortChange,
-                        enabled = uiState.isMcpApplyEnabled,
-                    ) {
-                        Text(applyButtonText(isRetry = uiState.isMcpRetry))
+        if (page == SettingsScreenPage.McpServer) {
+            item {
+                SettingOptionView(
+                    label = stringResource(Res.string.mcp_server_label),
+                ) {
+                    Text(
+                        text = serverStateText(uiState.mcpServerState),
+                    )
+                    TextFieldSettingsItemView(
+                        label = stringResource(Res.string.mcp_server_port_label),
+                        text = uiState.editingMcpPortText,
+                        onTextChange = onMcpPortTextChange,
+                    )
+                    if (uiState.isMcpApplyVisible) {
+                        Button(
+                            onClick = onApplyMcpPortChange,
+                            enabled = uiState.isMcpApplyEnabled,
+                        ) {
+                            Text(applyButtonText(isRetry = uiState.isMcpRetry))
+                        }
                     }
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(Res.string.mcp_setup_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    McpSnippetView(
+                        label = stringResource(Res.string.mcp_setup_claude_code_label),
+                        snippet = uiState.mcpClaudeCodeCommand,
+                    )
+                    McpSnippetView(
+                        label = stringResource(Res.string.mcp_setup_json_label),
+                        snippet = uiState.mcpJsonConfig,
+                    )
+                    OutlinedButton(onClick = onClickOpenMcpGuide) {
+                        Text(stringResource(Res.string.mcp_setup_open_guide))
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    SwitchSettingsItemView(
+                        label = stringResource(Res.string.mcp_plugin_install_allowed_label),
+                        isChecked = uiState.mcpPluginInstallAllowed,
+                        onCheckedChange = onMcpPluginInstallAllowedChange,
+                    )
+                    Text(
+                        text = stringResource(Res.string.mcp_plugin_install_allowed_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = stringResource(Res.string.mcp_setup_note),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                McpSnippetView(
-                    label = stringResource(Res.string.mcp_setup_claude_code_label),
-                    snippet = uiState.mcpClaudeCodeCommand,
-                )
-                McpSnippetView(
-                    label = stringResource(Res.string.mcp_setup_json_label),
-                    snippet = uiState.mcpJsonConfig,
-                )
-                OutlinedButton(onClick = onClickOpenMcpGuide) {
-                    Text(stringResource(Res.string.mcp_setup_open_guide))
-                }
-                Spacer(Modifier.height(12.dp))
-                SwitchSettingsItemView(
-                    label = stringResource(Res.string.mcp_plugin_install_allowed_label),
-                    isChecked = uiState.mcpPluginInstallAllowed,
-                    onCheckedChange = onMcpPluginInstallAllowedChange,
-                )
-                Text(
-                    text = stringResource(Res.string.mcp_plugin_install_allowed_note),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
-        item {
-            SettingOptionView(
-                label = stringResource(Res.string.ssl_certificate),
-            ) {
-                Text(
-                    text = stringResource(Res.string.ssl_certificate_apply_note),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (uiState.certificates.isEmpty()) {
-                    Text(stringResource(Res.string.ssl_certificate_no_certificate))
-                }
-                uiState.certificates.forEach { certificate ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = buildString {
-                                append(certificate.name)
-                                if (certificate.isActive) append(" (${stringResource(Res.string.ssl_certificate_active)})")
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(
-                            text = stringResource(Res.string.ssl_certificate_created_at, certificate.createdAt),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        if (!certificate.isActive) {
-                            TextButton(onClick = { onSetActiveCertificate(certificate.id) }) {
-                                Text(stringResource(Res.string.ssl_certificate_set_active))
+        if (page == SettingsScreenPage.SslCertificate) {
+            item {
+                SettingOptionView(
+                    label = stringResource(Res.string.ssl_certificate),
+                ) {
+                    Text(
+                        text = stringResource(Res.string.ssl_certificate_apply_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (uiState.certificates.isEmpty()) {
+                        Text(stringResource(Res.string.ssl_certificate_no_certificate))
+                    }
+                    uiState.certificates.forEach { certificate ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = buildString {
+                                    append(certificate.name)
+                                    if (certificate.isActive) append(" (${stringResource(Res.string.ssl_certificate_active)})")
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                text = stringResource(Res.string.ssl_certificate_created_at, certificate.createdAt),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            if (!certificate.isActive) {
+                                TextButton(onClick = { onSetActiveCertificate(certificate.id) }) {
+                                    Text(stringResource(Res.string.ssl_certificate_set_active))
+                                }
+                            }
+                            TextButton(onClick = { onShowCertificateDetail(certificate.id) }) {
+                                Text(stringResource(Res.string.ssl_certificate_show_detail))
+                            }
+                            TextButton(onClick = { onDeleteCertificate(certificate.id) }) {
+                                Text(stringResource(Res.string.ssl_certificate_delete))
                             }
                         }
-                        TextButton(onClick = { onShowCertificateDetail(certificate.id) }) {
-                            Text(stringResource(Res.string.ssl_certificate_show_detail))
-                        }
-                        TextButton(onClick = { onDeleteCertificate(certificate.id) }) {
-                            Text(stringResource(Res.string.ssl_certificate_delete))
-                        }
                     }
-                }
-                OutlinedButton(onClick = onAddCertificate) {
-                    Text(stringResource(Res.string.ssl_certificate_add))
+                    OutlinedButton(onClick = onAddCertificate) {
+                        Text(stringResource(Res.string.ssl_certificate_add))
+                    }
                 }
             }
         }

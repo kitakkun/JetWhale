@@ -7,24 +7,22 @@ import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 context(screenContext: SettingsScreenContext)
 fun SettingsScreenScaffoldRoot(
     onClickClose: () -> Unit,
-    initialMenu: SettingsScreenMenu = SettingsScreenMenu.General,
-    content: @Composable (SettingsScreenMenu) -> Unit,
+    initialPage: SettingsScreenPage = SettingsScreenPage.Appearance,
+    content: @Composable (SettingsScreenPage) -> Unit,
 ) {
     val screenChannel = rememberScreenChannel<SettingsScreenScaffoldAction, Nothing>()
     val uiState = context(screenContext.presenterContext) {
         settingsScreenScaffoldPresenter(
             screenChannel = screenChannel,
-            initialMenu = initialMenu,
+            initialPage = initialPage,
         )
     }
 
     SettingsScreenScaffold(
         uiState = uiState,
-        onSelectMenu = { menu ->
-            screenChannel.send(SettingsScreenScaffoldAction.SelectMenu(menu))
-        },
+        onSelectPage = { screenChannel.send(SettingsScreenScaffoldAction.SelectPage(it)) },
+        onToggleSection = { screenChannel.send(SettingsScreenScaffoldAction.ToggleSection(it)) },
         onClickClose = onClickClose,
-    ) { selectedMenu ->
-        content(selectedMenu)
-    }
+        content = content,
+    )
 }
