@@ -11,8 +11,8 @@ import com.kitakkun.jetwhale.plugins.nav3.protocol.GetNavState
 import com.kitakkun.jetwhale.plugins.nav3.protocol.MutateBackStack
 import com.kitakkun.jetwhale.plugins.nav3.protocol.MutationResult
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NAV3_PLUGIN_ID
-import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackEntry
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
+import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeySnapshot
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavState
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.reply
@@ -74,6 +74,12 @@ class JetWhaleNav3AgentPlugin<K : NavKey>(
      *
      * Prefer [TrackNavBackStack] from a composable; call this directly only when the stack's
      * lifetime is managed outside composition — and then pair it with [unregisterBackStack].
+     *
+     * Takes any [MutableList] so it fits both a `NavBackStack` and the `SnapshotStateList` an app
+     * may drive `NavDisplay` with directly. Changes are observed through the snapshot system, so a
+     * list that is not snapshot-backed would only ever report its initial contents — but such a
+     * list would already keep `NavDisplay` itself from recomposing, so it is not a state a working
+     * app can be in.
      *
      * @param stackId Names the stack for the host. The default suits the common single-stack app;
      *   an app with nested navigation gives each stack its own id.
@@ -155,7 +161,7 @@ class JetWhaleNav3AgentPlugin<K : NavKey>(
         stackId = stackId,
         entries = keys.map { key ->
             val encoded = codec.encode(key)
-            NavBackStackEntry(
+            NavKeySnapshot(
                 typeName = encoded.typeNameOrNull() ?: key::class.simpleName ?: "NavKey",
                 display = key.toString(),
                 key = encoded,

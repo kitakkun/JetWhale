@@ -7,16 +7,20 @@ import kotlinx.serialization.json.JsonElement
 const val DEFAULT_NAV_STACK_ID: String = "main"
 
 /**
- * One entry of a tracked back stack.
+ * One key of a tracked back stack, as the agent observed it.
  *
- * A `NavKey` type is defined by the app being debugged, so the host cannot know it statically: an
- * entry carries both a rendering-friendly [display] and the machine-readable [key], which is the
- * key encoded with the app's own serializers. [key] is null when the agent could not encode it —
- * the entry is still listed and can still be popped or removed by index, it just cannot be copied
- * into a new push.
+ * A `NavKey` type is defined by the app being debugged, so the host cannot know it statically: this
+ * carries both a rendering-friendly [display] and the machine-readable [key], which is the key
+ * encoded with the app's own serializers. [key] is null when the agent could not encode it — the
+ * entry is still listed and can still be popped or removed by index, it just cannot be copied into
+ * a new push.
+ *
+ * Deliberately not named after Navigation's own entry types: this is an observation of a key at a
+ * point in time, not a live entry, and it must not be mistaken for `androidx.navigation`'s
+ * `NavBackStackEntry`.
  */
 @Serializable
-data class NavBackStackEntry(
+data class NavKeySnapshot(
     /** Serial name of the key's type (the `type` discriminator of [key]), or its class name. */
     val typeName: String,
     /** `toString()` of the key, for display. */
@@ -29,7 +33,7 @@ data class NavBackStackEntry(
 @Serializable
 data class NavBackStackSnapshot(
     val stackId: String,
-    val entries: List<NavBackStackEntry>,
+    val entries: List<NavKeySnapshot>,
 )
 
 /**

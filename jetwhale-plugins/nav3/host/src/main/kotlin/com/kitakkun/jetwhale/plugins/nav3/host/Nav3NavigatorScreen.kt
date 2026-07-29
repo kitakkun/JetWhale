@@ -40,9 +40,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
-import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackEntry
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
+import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeySnapshot
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -195,7 +195,7 @@ private fun BackStackPane(
 @Composable
 private fun BackStackEntryCard(
     index: Int,
-    entry: NavBackStackEntry,
+    entry: NavKeySnapshot,
     isCurrent: Boolean,
     canRemove: Boolean,
     onApplyOperation: (NavBackStackOperation) -> Unit,

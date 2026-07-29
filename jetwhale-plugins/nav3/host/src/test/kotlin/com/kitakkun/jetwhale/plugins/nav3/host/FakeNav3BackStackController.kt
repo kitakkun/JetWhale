@@ -1,9 +1,9 @@
 package com.kitakkun.jetwhale.plugins.nav3.host
 
 import com.kitakkun.jetwhale.plugins.nav3.protocol.MutationResult
-import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackEntry
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
+import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeySnapshot
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.buildJsonObject
@@ -35,6 +35,6 @@ internal fun navKey(type: String, id: String? = null): JsonElement = buildJsonOb
 internal fun snapshot(stackId: String, vararg typeNames: String): NavBackStackSnapshot = NavBackStackSnapshot(
     stackId = stackId,
     entries = typeNames.map { typeName ->
-        NavBackStackEntry(typeName = typeName, display = "$typeName()", key = navKey(typeName))
+        NavKeySnapshot(typeName = typeName, display = "$typeName()", key = navKey(typeName))
     },
 )
