@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.data.settings
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -12,15 +13,19 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
@@ -39,27 +44,47 @@ class DefaultDebuggerSettingsRepository(
     // ports actually in use. Picking a port in the settings screen drops the matching override.
     private val portOverrides = MutableStateFlow(launchPortOverrides)
 
-    override val adbAutoPortMappingEnabledFlow = dataStore.data
+    /**
+     * Completes once [preferences] has read the store, or once that read has failed. Writes wait on
+     * it, see [editPreferences].
+     */
+    private val storeRead = CompletableDeferred<Unit>()
+
+    /**
+     * The one collection of the store behind every flow below. Sharing a single collection is what
+     * makes [storeRead] enough to order writes after all of them.
+     */
+    private val preferences: Flow<Preferences> = dataStore.data
+        .onEach { storeRead.complete(Unit) }
+        .onCompletion { storeRead.complete(Unit) }
+        .stateIn(
+            scope = coroutineScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null,
+        )
+        .filterNotNull()
+
+    override val adbAutoPortMappingEnabledFlow = preferences
         .mapNotNull { it[KEY_ADB_AUTO_PORT_MAPPING_ENABLED] }
         .stateIn(
             scope = coroutineScope,
             started = SharingStarted.Eagerly,
             initialValue = false,
         )
-    override val checkForUpdatesOnStartupFlow = dataStore.data
+    override val checkForUpdatesOnStartupFlow = preferences
         .map { it[KEY_CHECK_FOR_UPDATES_ON_STARTUP] ?: DEFAULT_CHECK_FOR_UPDATES_ON_STARTUP }
         .stateIn(
             scope = coroutineScope,
             started = SharingStarted.Eagerly,
             initialValue = DEFAULT_CHECK_FOR_UPDATES_ON_STARTUP,
         )
-    override val persistDataFlow = dataStore.data.mapNotNull { it[KEY_PERSIST_DATA] }
+    override val persistDataFlow = preferences.mapNotNull { it[KEY_PERSIST_DATA] }
         .stateIn(
             scope = coroutineScope,
             started = SharingStarted.Eagerly,
             initialValue = false,
         )
-    override val serverPortFlow = dataStore.data
+    override val serverPortFlow = preferences
         .map { it[KEY_SERVER_PORT] ?: DEFAULT_SERVER_PORT }
         .overriddenBy(ServerPortOverrides::serverPort)
         .stateIn(
@@ -67,7 +92,7 @@ class DefaultDebuggerSettingsRepository(
             started = SharingStarted.Eagerly,
             initialValue = launchPortOverrides.serverPort ?: DEFAULT_SERVER_PORT,
         )
-    override val mcpServerPortFlow = dataStore.data
+    override val mcpServerPortFlow = preferences
         .map { it[KEY_MCP_SERVER_PORT] ?: DEFAULT_MCP_SERVER_PORT }
         .overriddenBy(ServerPortOverrides::mcpServerPort)
         .stateIn(
@@ -75,7 +100,7 @@ class DefaultDebuggerSettingsRepository(
             started = SharingStarted.Eagerly,
             initialValue = launchPortOverrides.mcpServerPort ?: DEFAULT_MCP_SERVER_PORT,
         )
-    override val wssPortFlow = dataStore.data
+    override val wssPortFlow = preferences
         .map { it[KEY_WSS_PORT] ?: DEFAULT_WSS_PORT }
         .overriddenBy(ServerPortOverrides::wssPort)
         .stateIn(
@@ -83,14 +108,14 @@ class DefaultDebuggerSettingsRepository(
             started = SharingStarted.Eagerly,
             initialValue = launchPortOverrides.wssPort ?: DEFAULT_WSS_PORT,
         )
-    override val wssEnabledFlow = dataStore.data
+    override val wssEnabledFlow = preferences
         .map { it[KEY_WSS_ENABLED] ?: DEFAULT_WSS_ENABLED }
         .stateIn(
             scope = coroutineScope,
             started = SharingStarted.Eagerly,
             initialValue = DEFAULT_WSS_ENABLED,
         )
-    override val mcpPluginInstallAllowedFlow = dataStore.data
+    override val mcpPluginInstallAllowedFlow = preferences
         .map { it[KEY_MCP_PLUGIN_INSTALL_ALLOWED] ?: DEFAULT_MCP_PLUGIN_INSTALL_ALLOWED }
         .stateIn(
             scope = coroutineScope,
@@ -98,8 +123,19 @@ class DefaultDebuggerSettingsRepository(
             initialValue = DEFAULT_MCP_PLUGIN_INSTALL_ALLOWED,
         )
 
+    /**
+     * Writes to the store, but not before [preferences] has read it. DataStore stamps a read that
+     * overlaps a write with the version the write is about to publish, so the collection behind
+     * [preferences] would discard that write and every flow above would serve the pre-write value
+     * for the rest of the process.
+     */
+    private suspend fun editPreferences(transform: suspend (MutablePreferences) -> Unit) {
+        storeRead.await()
+        dataStore.edit(transform)
+    }
+
     override suspend fun updateAdbAutoPortMappingEnabled(enabled: Boolean) {
-        dataStore.edit { prefs ->
+        editPreferences { prefs ->
             prefs[KEY_ADB_AUTO_PORT_MAPPING_ENABLED] = enabled
         }
     }
@@ -107,19 +143,19 @@ class DefaultDebuggerSettingsRepository(
     override suspend fun readCheckForUpdatesOnStartup(): Boolean = dataStore.data.first()[KEY_CHECK_FOR_UPDATES_ON_STARTUP] ?: DEFAULT_CHECK_FOR_UPDATES_ON_STARTUP
 
     override suspend fun updateCheckForUpdatesOnStartup(enabled: Boolean) {
-        dataStore.edit { prefs ->
+        editPreferences { prefs ->
             prefs[KEY_CHECK_FOR_UPDATES_ON_STARTUP] = enabled
         }
     }
 
     override suspend fun updatePersistData(enabled: Boolean) {
-        dataStore.edit { prefs ->
+        editPreferences { prefs ->
             prefs[KEY_PERSIST_DATA] = enabled
         }
     }
 
     override suspend fun updateServerPort(port: Int) {
-        dataStore.edit { prefs ->
+        editPreferences { prefs ->
             prefs[KEY_SERVER_PORT] = port
         }
         dropOverride { it.copy(serverPort = null) }
@@ -130,7 +166,7 @@ class DefaultDebuggerSettingsRepository(
     override suspend fun readMcpServerPort(): Int = portOverrides.value.mcpServerPort ?: dataStore.data.first()[KEY_MCP_SERVER_PORT] ?: DEFAULT_MCP_SERVER_PORT
 
     override suspend fun updateMcpServerPort(port: Int) {
-        dataStore.edit { prefs ->
+        editPreferences { prefs ->
             prefs[KEY_MCP_SERVER_PORT] = port
         }
         dropOverride { it.copy(mcpServerPort = null) }
@@ -139,20 +175,20 @@ class DefaultDebuggerSettingsRepository(
     override suspend fun readWssPort(): Int = portOverrides.value.wssPort ?: dataStore.data.first()[KEY_WSS_PORT] ?: DEFAULT_WSS_PORT
 
     override suspend fun updateWssPort(port: Int) {
-        dataStore.edit { prefs ->
+        editPreferences { prefs ->
             prefs[KEY_WSS_PORT] = port
         }
         dropOverride { it.copy(wssPort = null) }
     }
 
     override suspend fun updateWssEnabled(enabled: Boolean) {
-        dataStore.edit { prefs ->
+        editPreferences { prefs ->
             prefs[KEY_WSS_ENABLED] = enabled
         }
     }
 
     override suspend fun updateMcpPluginInstallAllowed(enabled: Boolean) {
-        dataStore.edit { prefs ->
+        editPreferences { prefs ->
             prefs[KEY_MCP_PLUGIN_INSTALL_ALLOWED] = enabled
         }
     }
