@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
@@ -543,6 +544,7 @@ class DefaultMcpServerServiceTest {
             pluginInstanceService = pluginInstanceService,
             mcpActivityRepository = mcpActivityRepository,
             builtInTools = setOf(MirroredStructuredMcpTool("fake.mirrored")),
+            statusHolder = McpServerStatusHolder(),
         )
         val mirroredPort = java.net.ServerSocket(0).use { it.localPort }
         serviceWithTool.start(host, mirroredPort)

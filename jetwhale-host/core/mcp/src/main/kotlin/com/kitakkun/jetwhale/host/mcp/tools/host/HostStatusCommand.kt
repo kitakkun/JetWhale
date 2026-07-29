@@ -44,7 +44,7 @@ class HostStatusCommand(
     override val description: String =
         "Host-wide: one snapshot of the debug tool — its version, both servers, how many sessions and plugins are live, and the current settings. Call this first to orient yourself before any other jetwhale tool."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String {
         val sessions = debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty()
 
         return Json.encodeToString(

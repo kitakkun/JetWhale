@@ -1,10 +1,8 @@
 package com.kitakkun.jetwhale.host.mcp
 
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpException
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpTextCommand
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonObject
 
@@ -28,7 +26,7 @@ import kotlinx.serialization.json.JsonObject
  * ```
  */
 abstract class HostMcpCommand :
-    JetWhaleMcpCommand(),
+    JetWhaleMcpTextCommand(),
     JetWhaleMcpTool {
 
     // Lazy, never an eager property: base-class initializers run before the subclass declares its
@@ -43,11 +41,10 @@ abstract class HostMcpCommand :
             inputSchema = descriptor.toToolSchema(),
         ) { request ->
             try {
-                val result = execute(JetWhaleMcpArguments(JsonObject(request.arguments ?: emptyMap())))
-                CallToolResult(content = listOf(TextContent(result)))
+                execute(JetWhaleMcpArguments(JsonObject(request.arguments ?: emptyMap()))).toCallToolResult()
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: JetWhaleMcpArgumentException) {
+            } catch (e: JetWhaleMcpException) {
                 errorResult(e.message.orEmpty())
             } catch (e: Exception) {
                 // Host tools do real I/O — downloads, socket binds, plugin loading. A failure has to

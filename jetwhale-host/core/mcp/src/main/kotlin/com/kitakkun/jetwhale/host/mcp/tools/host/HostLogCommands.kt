@@ -32,7 +32,7 @@ class GetLogsCommand(
     private val level by enumOrNull("Only return entries logged at this level.", LogLevel.entries)
     private val contains by stringOrNull("Only return entries whose message contains this substring, case-insensitively.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String {
         val requestedLimit = arguments[limit] ?: DEFAULT_LIMIT
         if (requestedLimit !in 1..MAX_LIMIT) {
             throw JetWhaleMcpArgumentException("invalid limit: expected 1..$MAX_LIMIT but was $requestedLimit")
@@ -65,7 +65,7 @@ class ClearLogsCommand(
     override val description: String =
         "Host-wide: discards every captured host log entry. Clear before reproducing an issue so that jetwhale.getLogs afterwards shows only what the reproduction produced."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String {
         val cleared = logCaptureService.logs.value.size
         logCaptureService.clearLogs()
         return Json.encodeToString(ClearLogsResult(cleared = cleared))
