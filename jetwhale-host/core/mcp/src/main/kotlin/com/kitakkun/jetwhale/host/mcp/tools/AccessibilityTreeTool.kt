@@ -70,6 +70,9 @@ class GetAccessibilityTreeMcpTool(
  * bounds (in pixels), and interactivity flags. AI agents can use this to identify
  * elements by name/role and calculate precise click coordinates from [NodeInfo.bounds].
  *
+ * Must be called on the UI thread (Dispatchers.Main): it applies the viewport, renders, and flips
+ * the capture flag, all of which mutate the ComposeScene.
+ *
  * The tree carries the same strings the screenshot shows, so it is captured under
  * [com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture] exactly like a screenshot is —
  * otherwise it would hand an agent the values a plugin redacts from captures.

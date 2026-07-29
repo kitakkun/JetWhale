@@ -51,6 +51,8 @@ class AccessibilityTreeRedactionTest {
         val tree = withContext(Dispatchers.Main) { captureAccessibilityTree(scene) }
 
         assertFalse(SECRET in tree, "Unredacted content description leaked into the semantics tree: $tree")
+        // Without this the test would also pass if content descriptions stopped being captured at all.
+        assertTrue(MASKED in tree, "Expected the redacted content description in the tree instead: $tree")
     }
 
     @Test
