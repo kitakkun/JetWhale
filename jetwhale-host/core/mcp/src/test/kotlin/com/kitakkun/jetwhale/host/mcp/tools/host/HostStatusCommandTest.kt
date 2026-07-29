@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.HostViewState
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
@@ -29,12 +30,15 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class HostStatusCommandTest {
+
+    private val permissions = FakeMcpPermissionsRepository()
 
     private val currentView = MutableStateFlow<HostViewState?>(null)
     private val mcpServerStatusHolder = McpServerStatusHolder().apply {
@@ -72,7 +76,7 @@ class HostStatusCommandTest {
             every { checkForUpdatesOnStartupFlow } returns MutableStateFlow(true)
             every { persistDataFlow } returns MutableStateFlow(false)
         },
-        mcpPermissionsRepository = FakeMcpPermissionsRepository(),
+        mcpPermissionsRepository = permissions,
         hostNavigationService = mock<HostNavigationService> {
             every { this@mock.currentView } returns this@HostStatusCommandTest.currentView
         },
@@ -127,6 +131,29 @@ class HostStatusCommandTest {
     @Test
     fun `getStatus reports that no install is in flight`() = runBlocking {
         assertFalse(command.execute(arguments()).decode().plugins.installInProgress)
+    }
+
+    @Test
+    fun `getStatus reports which permissions the agent has`() = runBlocking {
+        // Without this an agent could only discover a denial by calling a tool and being refused.
+        val permissions = command.execute(arguments()).decode().permissions
+
+        assertEquals(McpHostToolGroup.entries.map { it.name }.sorted(), permissions.allowedHostGroups)
+        assertTrue(permissions.deniedHostGroups.isEmpty())
+        assertTrue(permissions.pluginsWithUiDenied.isEmpty())
+        assertContains(permissions.changeableIn, "MCP Server")
+    }
+
+    @Test
+    fun `getStatus separates the denied host groups from the allowed ones`() = runBlocking {
+        permissions.setHostGroupAllowed(McpHostToolGroup.SETTINGS_AND_SERVERS, allowed = false)
+        permissions.setPluginUiAllowed("com.example.secret", allowed = false)
+
+        val reported = command.execute(arguments()).decode().permissions
+
+        assertContains(reported.deniedHostGroups, McpHostToolGroup.SETTINGS_AND_SERVERS.name)
+        assertFalse(McpHostToolGroup.SETTINGS_AND_SERVERS.name in reported.allowedHostGroups)
+        assertEquals(listOf("com.example.secret"), reported.pluginsWithUiDenied)
     }
 }
 

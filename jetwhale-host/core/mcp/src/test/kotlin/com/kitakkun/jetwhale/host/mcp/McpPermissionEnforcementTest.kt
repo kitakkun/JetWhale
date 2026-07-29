@@ -79,19 +79,22 @@ class McpPermissionEnforcementTest {
 
         val result = client.callTool("jetwhale.test.restart", emptyMap())
         assertEquals(true, result.isError)
-        assertContains(result.content.filterIsInstance<TextContent>().first().text, "Settings & servers")
+        val message = result.content.filterIsInstance<TextContent>().first().text
+        // The refusal has to be actionable: which permission blocked it, and where to change it.
+        assertContains(message, "Settings & servers")
+        assertContains(message, "Settings → Server → MCP Server → Permissions")
     }
 
     @Test
-    fun `a refusal names the screen that lifts it`() = withServer(
+    fun `re-allowing a group does not add its tools back to a live connection`() = withServer(
         permissions = FakeMcpPermissionsRepository(
             McpPermissions.Default.copy(allowedHostGroups = emptySet()),
         ),
         tools = setOf(ObserveCommand()),
     ) { client, permissions ->
         permissions.setHostGroupAllowed(McpHostToolGroup.OBSERVE, allowed = true)
-        // Re-allowed after registration was skipped, so the tool is absent from this connection but
-        // would be back on the next one — the reconnect rule the docs describe.
+        // Registration was skipped while it was denied, and a tool list is fixed for the life of a
+        // connection, so it only comes back on the next one — the reconnect rule the docs describe.
         assertFalse("jetwhale.test.observe" in client.listTools().tools.map { it.name })
     }
 

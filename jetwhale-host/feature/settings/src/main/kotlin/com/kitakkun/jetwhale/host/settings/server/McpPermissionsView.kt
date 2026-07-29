@@ -78,6 +78,8 @@ fun McpPermissionsView(
         ParentRow(
             label = stringResource(Res.string.mcp_permission_plugins_label),
             state = toggleStateOf(uiState.plugins.flatMap { listOf(it.uiAllowed, it.ownToolsAllowed) }),
+            // Nothing to toggle with no plugins installed, so the parent does not pretend otherwise.
+            enabled = uiState.plugins.isNotEmpty(),
             onClick = { allowAll ->
                 uiState.plugins.forEach {
                     onSetPluginUiAllowed(it.pluginId, allowAll)
@@ -121,9 +123,10 @@ fun McpPermissionsView(
 
 private val INDENT_STEP = 24.dp
 
+/** An empty subtree reads as Off rather than On: nothing is allowed there, because nothing is there. */
 private fun toggleStateOf(children: List<Boolean>): ToggleableState = when {
-    children.isEmpty() || children.all { it } -> ToggleableState.On
-    children.none { it } -> ToggleableState.Off
+    children.isEmpty() || children.none { it } -> ToggleableState.Off
+    children.all { it } -> ToggleableState.On
     else -> ToggleableState.Indeterminate
 }
 
@@ -133,6 +136,7 @@ private fun ParentRow(
     state: ToggleableState,
     onClick: (allowAll: Boolean) -> Unit,
     indent: Int = 0,
+    enabled: Boolean = true,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -140,6 +144,7 @@ private fun ParentRow(
     ) {
         TriStateCheckbox(
             state = state,
+            enabled = enabled,
             // A partially-ticked parent turns everything on: the alternative — clearing a mixed
             // selection — throws away choices the user made one by one.
             onClick = { onClick(state != ToggleableState.On) },
