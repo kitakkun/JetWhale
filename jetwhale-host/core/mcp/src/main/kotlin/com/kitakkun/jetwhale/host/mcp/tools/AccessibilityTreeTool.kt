@@ -96,7 +96,7 @@ fun captureAccessibilityTree(scene: PluginComposeScene): String {
         // drawn with the stale value. Flush explicitly here so the flag-flip recomposition is applied
         // within this render pass.
         Snapshot.sendApplyNotifications()
-        scene.composeScene.render(Canvas(ImageBitmap(size.width, size.height)), System.nanoTime())
+        scene.render(Canvas(ImageBitmap(size.width, size.height)))
         // Read the semantics while the flag is still raised: lowering it first would leave the tree
         // one recomposition away from the values that were actually rendered.
         scene.semanticsOwners.map { it.rootSemanticsNode }.flatMap { traverseSemanticsTree(it) }

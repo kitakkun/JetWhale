@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.model
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.semantics.SemanticsOwner
@@ -20,7 +21,23 @@ data class PluginComposeScene(
     // The cursor the plugin's composition currently asks for via Modifier.pointerHoverIcon. The
     // nested scene owns no window, so whoever renders it must apply this to the real one.
     val pointerIcon: State<PointerIcon>,
-)
+) {
+    /**
+     * Renders the scene, driving its animations from [System.nanoTime].
+     *
+     * The scene must never be handed a frame time that moves backwards, and it has more than one
+     * renderer: the host window's draw pass and the MCP tools. The host window's frame time comes
+     * from skiko, which counts from the moment its redrawer was created, while the MCP tools run
+     * off-screen renders with [System.nanoTime], which counts from boot; the two are minutes and
+     * days apart. A backwards jump makes a running animation see a negative elapsed time, and an
+     * underdamped spring then overflows to infinity - Material3's floating text field label
+     * interpolates a NaN lineHeight from it and throws out of the AWT event thread, killing the
+     * host. Owning the clock here keeps every renderer on the same monotonic timeline.
+     */
+    fun render(canvas: Canvas) {
+        composeScene.render(canvas, System.nanoTime())
+    }
+}
 
 interface WindowInfoUpdater {
     val currentIntSize: IntSize

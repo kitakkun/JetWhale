@@ -42,7 +42,7 @@ fun createTestScene(content: @Composable () -> Unit = {}): PluginComposeScene {
 @OptIn(InternalComposeUiApi::class)
 fun renderTestScene(scene: PluginComposeScene) {
     scene.composeScene.size = IntSize(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT)
-    scene.composeScene.render(Canvas(ImageBitmap(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT)), System.nanoTime())
+    scene.render(Canvas(ImageBitmap(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT)))
 }
 
 @OptIn(InternalComposeUiApi::class)

@@ -118,8 +118,14 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                 }
             },
     ) {
+        // Reading the host's frame time here is what keeps this draw invalidated once per frame, so
+        // the plugin's own animations keep advancing. It is deliberately not the scene's animation
+        // clock: PluginComposeScene.render owns that, because this scene is also rendered by the MCP
+        // tools on a different clock.
+        @Suppress("UNUSED_EXPRESSION")
+        frameNanoTime
         this.drawIntoCanvas {
-            pluginComposeScene.composeScene.render(it, frameNanoTime)
+            pluginComposeScene.render(it)
         }
     }
 }
