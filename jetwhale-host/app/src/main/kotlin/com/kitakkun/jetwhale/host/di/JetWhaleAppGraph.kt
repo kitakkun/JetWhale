@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.BuildConfig
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.drawer.McpToolsScreenContext
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldScreenContext
+import com.kitakkun.jetwhale.host.headless.HeadlessHostRunner
 import com.kitakkun.jetwhale.host.mcp.McpServerService
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
@@ -38,6 +39,7 @@ import soil.query.SwrClientPlus
 @DependencyGraph(AppScope::class)
 interface JetWhaleAppGraph : ScreenContext {
     val applicationLifecycleOwner: ApplicationLifecycleOwner
+    val headlessHostRunner: HeadlessHostRunner
     val mcpServerService: McpServerService
     val swrClient: SwrClientPlus
 

@@ -1,3 +1,4 @@
+import org.gradle.process.CommandLineArgumentProvider
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
@@ -93,6 +94,29 @@ tasks.withType<org.gradle.jvm.tasks.Jar>().matching { it.name.contains("UberJar"
 
 compose.resources {
     packageOfResClass = "com.kitakkun.jetwhale.host"
+}
+
+// Headless launch, for CI and agent-driven QA: the same entry point and the same DI graph as the
+// windowed `run` task, minus the window. Host options go through `--args`, e.g.
+// `--args="--server-port 5081 --wss-port 5444 --mcp-server-port 7081 --mcp-allow-all-permissions"`.
+tasks.register<JavaExec>("runHeadless") {
+    group = "application"
+    description = "Runs the JetWhale host with no GUI window — agent WebSocket server, MCP server, plugins and adb auto-wiring only."
+
+    mainClass.set("com.kitakkun.jetwhale.host.MainKt")
+    classpath = sourceSets.main.get().runtimeClasspath
+
+    // Prepended, so a caller's `--args` cannot end up before the flag that selects this mode.
+    argumentProviders.add(CommandLineArgumentProvider { listOf("--headless") })
+
+    // A CI run must not share the developer's `~/.jetwhale`: `-PjetwhaleAppDataDir=<path>` gives it
+    // its own settings, plugin jars and trust registry.
+    val appDataDir = providers.gradleProperty("jetwhaleAppDataDir")
+    jvmArgumentProviders.add(
+        CommandLineArgumentProvider {
+            appDataDir.map { listOf("-Djetwhale.appDataDir=$it") }.getOrElse(emptyList())
+        },
+    )
 }
 
 val aboutLibrariesDir = layout.buildDirectory.dir("generated/aboutlibraries")

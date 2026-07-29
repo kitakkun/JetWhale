@@ -31,6 +31,29 @@ share this machine.
 `:jetwhale-host:app:run` also works and skips the plugin staging, but it uses the developer's real
 `~/.jetwhale` instead of a sandbox. Prefer `runJetWhaleLocal`.
 
+## Launch without a window (CI, or a machine with no display)
+
+Add `--headless` to either launcher. The agent WebSocket server, the MCP server, plugin instances
+and adb auto-wiring all come up as usual; only the window is skipped, so every MCP tool that works
+against a plugin's UI — screenshot, accessibility tree, click, drag, scroll, type — works unchanged.
+
+```bash
+./gradlew :jetwhale-plugins:<plugin>:host:runJetWhaleLocal \
+  --args="--headless --server-port 5081 --wss-port 5444 --mcp-server-port 7081 --mcp-allow-all-permissions"
+
+# Or, without staging a plugin (`-PjetwhaleAppDataDir` keeps it out of the real ~/.jetwhale):
+./gradlew :jetwhale-host:app:runHeadless -PjetwhaleAppDataDir=/tmp/jetwhale-ci \
+  --args="--server-port 5081 --wss-port 5444 --mcp-server-port 7081 --mcp-allow-all-permissions"
+```
+
+A headless run prints `JetWhale headless: ready` on stdout once both listeners are bound — wait for
+that line rather than sleeping. Unlike a windowed run, it **exits 1** if a port is taken, so the
+"two hosts silently fighting over one port" failure surfaces immediately.
+
+What is not there: `jetwhale.navigate` reports `applied: false` (there is no window to navigate),
+and nothing enables a plugin for you — either reuse an app-data dir where it is already enabled, or
+call `jetwhale.setPluginEnabled` over MCP first.
+
 ## Run the QA agent from this build
 
 ```bash
