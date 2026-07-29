@@ -28,16 +28,18 @@ Can:
 - persisted plugin state, and whether it survives a host restart
 - the plugin's own contributed MCP tools
 - **the host shell itself** — enabling a plugin, changing settings, restarting the debug server, and
-  switching the main window to another screen, through the host tools in §4
+  switching the main window to another screen, through the host tools in §4, once the launch grants
+  them (see `--mcp-allow-all-permissions` there)
 
 Cannot:
 
 - **popout windows** — a plugin can be sent to the main window, but nothing pops it out or docks it
   back.
-- **anything that needs the user's consent.** Installing a plugin is off by default and the agent
-  cannot lift that gate itself: `jetwhale.updateSettings` deliberately does not expose
-  `mcpPluginInstallAllowed`, so a refusal means asking the user to flip it in
-  **Settings → AI Agents → MCP Server**.
+- **anything that needs the user's consent, on a host you did not launch.** The tools that change
+  something are permission-gated: on a host started without `--mcp-allow-all-permissions` they are
+  not in the tool list at all, and nothing the agent can call turns them on — a human grants them in
+  **Settings → AI Agents → Permissions**. Launching the host yourself (§2) is the QA route around
+  it; attaching to someone else's is not.
 - the mouse cursor's appearance. An AWT cursor is not part of the rendered scene, so
   `Modifier.pointerHoverIcon` results never show up in a screenshot. Cover that with a unit test
   (see §7) and say plainly that the visual was not verified.
@@ -104,16 +106,47 @@ describes someone else's host.
 
   Readiness far sooner than a cold build takes is a warning, not a win: it usually means the port was
   already open. Check the PID against the `lsof` above before believing it.
+- **Waiting on a Gradle build is a different problem, with a trap of its own.** `pgrep -f "<pattern>"`
+  matches the polling shell too — its own command line contains the pattern — so an
+  `until ! pgrep -f …` loop never exits and reports "still building" forever, including after the
+  build has finished. Wait on the log instead, which also tells you the outcome:
+
+  ```bash
+  ./gradlew build … > build.log 2>&1 &
+  until grep -qE "BUILD SUCCESSFUL|BUILD FAILED" build.log; do sleep 10; done
+  ```
+
+  Believe a stalled log only after checking the daemon: `ps -o %cpu= -p $(pgrep -f GradleDaemon)`
+  distinguishes a long task from a hang.
+- **Do not verify with a bare `./gradlew build`.** It drags in `:demo:shared:linkReleaseFrameworkIos*`
+  and `:demo:android:{assembleRelease,lintVitalRelease}`; Kotlin/Native release linking is fully
+  optimised and can turn a three-minute check into twenty. Debug output proves the change compiles:
+
+  ```bash
+  ./gradlew build -x :demo:web:build \
+    -x :demo:shared:linkReleaseFrameworkIosArm64 \
+    -x :demo:shared:linkReleaseFrameworkIosSimulatorArm64 \
+    -x :demo:android:assembleRelease -x :demo:android:lintVitalRelease
+  ```
 - App data lives in an isolated sandbox, `<module>/build/jetwhale-sandbox`, not the developer's
   `~/.jetwhale`. **`clean` wipes it** — never clean between the save and restore halves of a
   persistence check.
 - The plugin is staged to `<module>/build/jetwhale/devPlugins` and hot-reloaded from there.
+- **Renaming `pluginArchiveName` leaves the old jar behind.** `stageDevPlugin` copies the new
+  archive in but removes nothing, so the directory ends up with two jars declaring the **same
+  pluginId** and the host loads one of them — in practice the stale one, which shows up as a rename
+  that "did not take" while the manifest on disk plainly has the new name. Delete the old jar; the
+  watcher does not react to a deletion, so restart the host afterwards.
+
+  ```bash
+  ls <module>/build/jetwhale/devPlugins   # expect exactly one jar
+  ```
 
 ## 3. Get a debuggee you can actually drive
 
 Every UI tool needs a `sessionId`, which means a connected debuggee. Your own app is a poor fit for
-an agent-driven run: it fires only what its buttons are wired to, and **a GUI app cannot be driven
-from an agent at all** — MCP reaches plugin scenes, never a debuggee.
+an agent-driven run: it fires only what its buttons are wired to, and the built-in tools cannot
+drive it — `jetwhale.click` and friends reach plugin scenes, never a debuggee.
 
 Use the headless QA agent instead. It connects as an ordinary session and exposes a control API, so
 messages can be injected on demand. Name the plugin ids it should impersonate:
@@ -208,6 +241,43 @@ those from the plugin's own MCP tools instead.
 - On startup the agent logs a failed plain-HTTP CA fetch followed by a successful HTTPS one. That
   is the trust-on-first-use probe, not an error.
 
+### When the plugin's own tools reach the app
+
+The paragraph above is about the **built-in** tools. A plugin that contributes tools which act on
+the debuggee — reading its UI, invoking something in it — turns a real app into a drivable debuggee
+after all, through `<pluginId>.*`. For such a plugin the headless agent is often the wrong debuggee
+entirely: a plugin that reads a running UI has nothing to read from an agent that has none.
+
+Running against a real app costs a device, and `adb` is where the time goes:
+
+- **A wedged adb server looks like an absent device.** A server that accepts the connection and
+  never answers leaves every client printing `ADB server didn't ACK` / `failed to start daemon`.
+  Probe it rather than guessing — a `host:version` request that times out is the proof:
+
+  ```bash
+  python3 -c 'import socket;s=socket.create_connection(("127.0.0.1",5037),5);s.settimeout(5);s.sendall(b"000chost:version");print(s.recv(64))'
+  ```
+
+  Do not kill somebody else's server: start your own on another port with
+  `ANDROID_ADB_SERVER_PORT=5038` and pass it to everything, the `android` CLI included.
+- **Your own server will not rediscover an emulator whose transport dropped.** `adb devices` goes
+  empty and stays empty while the emulator is still running, so check for the process before
+  concluding anything, then reattach:
+
+  ```bash
+  pgrep -f qemu-system | wc -l          # still alive?
+  adb connect localhost:5555            # reattach; the serial is now localhost:5555, not emulator-5554
+  ```
+
+  Starting a second emulator for the same AVD does not work and wastes minutes on a lock.
+- **A tool that reads the device through the default server reads nothing** once you are on a
+  private one. `android layout` fails quietly and leaves its previous output file in place, so a
+  comparison against it silently compares today's UI with a stale screen. Pass the server port
+  through, and delete the output file before each run.
+
+Everything else in this document applies unchanged — the plugin's own tools take the same
+`sessionId` the built-ins do.
+
 ## 4. Reaching the tools
 
 The host's MCP server is SSE on `http://localhost:<mcp-server-port>/sse`, with **no
@@ -245,7 +315,27 @@ HTTP: open `GET /sse`, take the `endpoint` event's path, and POST JSON-RPC to it
 | `<pluginId>.*` | tools the plugin itself contributes |
 
 Host-scoped tools take neither `pluginId` nor `sessionId`, and cover the setup a QA run used to need
-a human for:
+a human for. **The ones that change something are permission-gated and absent by default** — a
+`tools/list` on a stock host shows only the read-only members of the table below, and calling a
+missing one comes back `Tool jetwhale.setPluginEnabled not found` rather than a refusal that names
+the reason. Grant them for the launch with `--mcp-allow-all-permissions`:
+
+```bash
+./gradlew runJetWhale \
+  --args="--server-port 5081 --wss-port 5444 --mcp-server-port 7081 --mcp-allow-all-permissions"
+```
+
+The flag holds for that launch only; a human grants them per group in **Settings → AI Agents →
+Permissions**.
+
+The two kinds of gate fail differently, so read the symptom:
+
+| Gate | Symptom |
+|---|---|
+| a **host** group (observe / navigate / manage plugins / settings & servers) | decidable up front, so a denied group's tools are **not listed** — the call fails with `Tool … not found` |
+| a **plugin** permission (a plugin's UI, or its own `<pluginId>.*` tools) | the same tool is allowed for one plugin and denied for another, so it **stays listed** and the call comes back refused, naming the setting |
+
+List the tools before planning around one, and do not read a refusal as a bug in the plugin.
 
 | Tool | Purpose |
 |------|---------|
