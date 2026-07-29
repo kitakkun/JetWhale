@@ -15,7 +15,10 @@ import com.kitakkun.jetwhale.host.model.GenerateSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.LogCaptureService
-import com.kitakkun.jetwhale.host.model.McpPluginInstallAllowedMutationKey
+import com.kitakkun.jetwhale.host.model.McpHostGroupPermissionMutationKey
+import com.kitakkun.jetwhale.host.model.McpPermissionsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.McpPluginOwnToolsPermissionMutationKey
+import com.kitakkun.jetwhale.host.model.McpPluginUiPermissionMutationKey
 import com.kitakkun.jetwhale.host.model.McpServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.McpServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.OfficialPluginInstallMutationKey
@@ -46,7 +49,9 @@ class SettingsPresenterContext(
     val adbAutoPortMappingMutationKey: AdbAutoPortMappingMutationKey,
     val serverPortMutationKey: ServerPortMutationKey,
     val mcpServerPortMutationKey: McpServerPortMutationKey,
-    val mcpPluginInstallAllowedMutationKey: McpPluginInstallAllowedMutationKey,
+    val mcpHostGroupPermissionMutationKey: McpHostGroupPermissionMutationKey,
+    val mcpPluginUiPermissionMutationKey: McpPluginUiPermissionMutationKey,
+    val mcpPluginOwnToolsPermissionMutationKey: McpPluginOwnToolsPermissionMutationKey,
     val pluginInstallMutationKey: PluginInstallMutationKey,
     val pluginInstallFromMavenMutationKey: PluginInstallFromMavenMutationKey,
     val trustPluginMutationKey: TrustPluginMutationKey,
@@ -69,6 +74,7 @@ class SettingsPresenterContext(
 @Inject
 class SettingsScreenContext(
     val settingsSubscriptionKey: SettingsSubscriptionKey,
+    val mcpPermissionsSubscriptionKey: McpPermissionsSubscriptionKey,
     val appearanceSettingsSubscriptionKey: AppearanceSettingsSubscriptionKey,
     val diagnosticsQueryKey: DiagnosticsQueryKey,
     val loadedPluginsMetaDataSubscriptionKey: LoadedPluginsMetaDataSubscriptionKey,

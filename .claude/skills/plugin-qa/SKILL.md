@@ -15,9 +15,37 @@ This file covers only what is different when the working tree *is* JetWhale.
 
 ## Launch the host from this build, not from a release
 
+<<<<<<< HEAD
 `runJetWhale` downloads the released host matching `jetwhalePlugin.hostVersion`, which is wrong when
 you are changing the host. Use the in-repo launcher, which runs `:jetwhale-host:app` from the
 working tree:
+=======
+Can:
+
+- layout and rendering (screenshot), at a chosen viewport
+- gestures: click, drag, scroll, typing, and the state changes they cause
+- the Compose semantics tree (`getAccessibilityTree`) for locating elements
+- persisted plugin state, and whether it survives a host restart
+- the plugin's own contributed MCP tools
+- **the host shell itself** — enabling a plugin, changing settings, restarting the debug server, and
+  switching the main window to another screen, through the host tools in §4
+
+Cannot:
+
+- **popout windows** — a plugin can be sent to the main window, but nothing pops it out or docks it
+  back.
+- **anything the permissions tree denies.** Managing plugins and changing settings/servers are off
+  by default, and the agent cannot grant itself anything — no tool writes permissions. A refusal
+  names the group or plugin that blocked it; ask the user to tick it in
+  **Settings → Server → MCP Server → Permissions**. `jetwhale.getStatus` reports the whole
+  permission state, so check there first when a QA run needs a group that is off.
+- the mouse cursor's appearance. An AWT cursor is not part of the rendered scene, so
+  `Modifier.pointerHoverIcon` results never show up in a screenshot. Cover that with a unit test
+  (see §7) and say plainly that the visual was not verified.
+- native window chrome, real DPI switching, multi-window behaviour.
+
+## 2. Launch the host
+>>>>>>> 61428e6d (feat(mcp): gate MCP tools behind a permission tree)
 
 ```bash
 ./gradlew :jetwhale-plugins:<plugin>:host:runJetWhaleLocal \

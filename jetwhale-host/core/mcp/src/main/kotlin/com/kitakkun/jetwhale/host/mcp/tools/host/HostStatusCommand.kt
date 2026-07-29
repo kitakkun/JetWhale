@@ -12,6 +12,9 @@ import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.HostOs
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.HostViewState
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
+import com.kitakkun.jetwhale.host.model.McpPermissions
+import com.kitakkun.jetwhale.host.model.McpPermissionsRepository
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
@@ -38,9 +41,11 @@ class HostStatusCommand(
     private val pluginTrustService: PluginTrustService,
     private val pluginInstallProgressRepository: PluginInstallProgressRepository,
     private val settingsRepository: DebuggerSettingsRepository,
+    private val mcpPermissionsRepository: McpPermissionsRepository,
     private val hostNavigationService: HostNavigationService,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.getStatus"
+    override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String =
         "Host-wide: one snapshot of the debug tool — its version, both servers, how many sessions and plugins are live, and the current settings. Call this first to orient yourself before any other jetwhale tool."
 
@@ -75,13 +80,20 @@ class HostStatusCommand(
                     adbAutoPortMappingEnabled = settingsRepository.adbAutoPortMappingEnabledFlow.value,
                     checkForUpdatesOnStartup = settingsRepository.checkForUpdatesOnStartupFlow.value,
                     persistData = settingsRepository.persistDataFlow.value,
-                    mcpPluginInstallAllowed = settingsRepository.mcpPluginInstallAllowedFlow.value,
                 ),
+                permissions = mcpPermissionsRepository.permissionsFlow.value.toJson(),
                 ui = hostNavigationService.currentView.value?.toJson(),
             ),
         )
     }
 }
+
+private fun McpPermissions.toJson() = PermissionsJson(
+    allowedHostGroups = allowedHostGroups.map { it.name }.sorted(),
+    deniedHostGroups = McpHostToolGroup.entries.filterNot { it in allowedHostGroups }.map { it.name },
+    pluginsWithUiDenied = pluginsDeniedUi.sorted(),
+    pluginsWithOwnToolsDenied = pluginsDeniedOwnTools.sorted(),
+)
 
 private fun HostViewState.toJson() = UiStateJson(
     destination = destination.kind.name,
@@ -117,8 +129,22 @@ data class HostStatusResult(
     val sessions: SessionCountsJson,
     val plugins: PluginCountsJson,
     val settings: SettingsJson,
+    val permissions: PermissionsJson,
     /** Null until the host window has composed. */
     val ui: UiStateJson? = null,
+)
+
+/**
+ * What this agent is allowed to do. Reported so a refusal can be anticipated — and explained to the
+ * user — rather than only discovered by calling a tool and being turned away.
+ */
+@Serializable
+data class PermissionsJson(
+    val allowedHostGroups: List<String>,
+    val deniedHostGroups: List<String>,
+    val pluginsWithUiDenied: List<String>,
+    val pluginsWithOwnToolsDenied: List<String>,
+    val changeableIn: String = "Settings → Server → MCP Server → Permissions",
 )
 
 @Serializable
@@ -178,6 +204,4 @@ data class SettingsJson(
     val adbAutoPortMappingEnabled: Boolean,
     val checkForUpdatesOnStartup: Boolean,
     val persistData: Boolean,
-    /** Whether jetwhale.installOfficialPlugin is permitted; see Settings → Server → MCP Server. */
-    val mcpPluginInstallAllowed: Boolean,
 )

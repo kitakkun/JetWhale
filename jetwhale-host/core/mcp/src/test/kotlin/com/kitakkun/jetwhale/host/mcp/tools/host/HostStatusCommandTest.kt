@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools.host
 
+import com.kitakkun.jetwhale.host.mcp.FakeMcpPermissionsRepository
 import com.kitakkun.jetwhale.host.mcp.McpServerStatusHolder
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
@@ -70,8 +71,8 @@ class HostStatusCommandTest {
             every { adbAutoPortMappingEnabledFlow } returns MutableStateFlow(true)
             every { checkForUpdatesOnStartupFlow } returns MutableStateFlow(true)
             every { persistDataFlow } returns MutableStateFlow(false)
-            every { mcpPluginInstallAllowedFlow } returns MutableStateFlow(false)
         },
+        mcpPermissionsRepository = FakeMcpPermissionsRepository(),
         hostNavigationService = mock<HostNavigationService> {
             every { this@mock.currentView } returns this@HostStatusCommandTest.currentView
         },
@@ -126,12 +127,6 @@ class HostStatusCommandTest {
     @Test
     fun `getStatus reports that no install is in flight`() = runBlocking {
         assertFalse(command.execute(arguments()).decode().plugins.installInProgress)
-    }
-
-    @Test
-    fun `getStatus reports whether installing plugins over MCP is allowed`() = runBlocking {
-        // Without this an agent could only discover the gate by attempting an install and being refused.
-        assertFalse(command.execute(arguments()).decode().settings.mcpPluginInstallAllowed)
     }
 }
 

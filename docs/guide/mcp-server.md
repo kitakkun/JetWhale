@@ -63,7 +63,7 @@ and what the window is showing.
 | `jetwhale.clearLogs` | Discards every captured host log entry |
 | `jetwhale.listInstalledPlugins` | Lists installed plugins and their enabled state, official plugins still available, and any failed or untrusted jar |
 | `jetwhale.setPluginEnabled` | Enables or disables an installed plugin, like the drawer toggle |
-| `jetwhale.installOfficialPlugin` | Installs a plugin from the official catalog (see below) |
+| `jetwhale.installOfficialPlugin` | Installs a plugin from the official catalog (see Permissions) |
 | `jetwhale.updateSettings` | Changes host settings; only the arguments you supply are touched |
 | `jetwhale.restartDebugServer` | Restarts the debug WebSocket server |
 | `jetwhale.navigate` | Switches the main window to another screen, selecting the session and plugin as it goes |
@@ -81,13 +81,46 @@ Changing `mcpServerPort` never restarts the MCP server, because that would drop 
 connection. The new port takes effect the next time the host starts.
 :::
 
+## Permissions
+
+What an agent may do is controlled in **Settings → Server → MCP Server → Permissions**, as a tree of
+nested checkboxes.
+
+| Group | Tools | Default |
+|-------|-------|---------|
+| **Observe** | `getStatus`, `getLogs`, `clearLogs`, `listInstalledPlugins` | on |
+| **Navigate** | `navigate` | on |
+| **Manage plugins** | `setPluginEnabled`, `installOfficialPlugin` | **off** |
+| **Settings & servers** | `updateSettings`, `restartDebugServer` | **off** |
+
+Each installed plugin gets two of its own: **Drive UI** (the screenshot/click/type/scroll/semantics
+tools, for that plugin) and **Own tools** (the MCP tools the plugin contributes). Both default to on
+— you installed and enabled the plugin deliberately — and either can be revoked per plugin.
+
+`jetwhale.listSessions` and `jetwhale.listPlugins` are never gated. They are the discovery calls
+every other tool's arguments come from, so denying them would only leave an agent unable to name
+what it is asking about.
+
+The two defaults that are off both do something you cannot undo by unticking a box afterwards:
+installing a plugin runs new code inside JetWhale, and restarting the debug server disconnects every
+session. Groups are stored as what you allowed, so a group added by a future release starts off
+rather than inheriting a yes you never gave.
+
+**A permission bites in two places.** A denied group's tools are not listed at all on a new
+connection, and every call is checked again as it arrives — so revoking something mid-session stops
+the agent that is already connected, without waiting for it to reconnect. Re-allowing works the
+other way round: the tool reappears on the agent's next connection, because a tool list is fixed
+when the connection opens.
+
+A refused call says which group or plugin blocked it and names the settings screen, so an agent can
+tell you what to turn on rather than just failing. `jetwhale.getStatus` also reports the whole
+permission state, so it can check before trying.
+
 ## Installing plugins from an AI agent
 
 `jetwhale.installOfficialPlugin` is deliberately narrow. It accepts only a `pluginId` from the
-**official catalog** — there is no MCP tool that installs arbitrary Maven coordinates — and it is
-**off by default**. Turn it on in **Settings → Server → MCP Server → "Allow AI agents to install
-official plugins"**. While it is off the tool still appears in the tool list but refuses with a
-message naming that setting, so an agent can tell you what to enable.
+**official catalog** — there is no MCP tool that installs arbitrary Maven coordinates — and it lives
+in the **Manage plugins** group, which is off by default.
 
 Installing does not enable: the sequence is
 

@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
@@ -40,8 +41,6 @@ import com.kitakkun.jetwhale.host.settings.debug_server_port_apply_confirm_title
 import com.kitakkun.jetwhale.host.settings.debug_server_port_label
 import com.kitakkun.jetwhale.host.settings.dialog_cancel
 import com.kitakkun.jetwhale.host.settings.dialog_ok
-import com.kitakkun.jetwhale.host.settings.mcp_plugin_install_allowed_label
-import com.kitakkun.jetwhale.host.settings.mcp_plugin_install_allowed_note
 import com.kitakkun.jetwhale.host.settings.mcp_server_label
 import com.kitakkun.jetwhale.host.settings.mcp_server_port_apply_confirm_message
 import com.kitakkun.jetwhale.host.settings.mcp_server_port_apply_confirm_title
@@ -85,7 +84,9 @@ fun ServerSettingsScreen(
     onConfirmApplyMcpPortChange: () -> Unit,
     onDismissApplyMcpPortDialog: () -> Unit,
     onClickOpenMcpGuide: () -> Unit,
-    onMcpPluginInstallAllowedChange: (Boolean) -> Unit,
+    onSetHostGroupAllowed: (McpHostToolGroup, Boolean) -> Unit,
+    onSetPluginUiAllowed: (pluginId: String, allowed: Boolean) -> Unit,
+    onSetPluginOwnToolsAllowed: (pluginId: String, allowed: Boolean) -> Unit,
     onAddCertificate: () -> Unit,
     onSetActiveCertificate: (String) -> Unit,
     onDeleteCertificate: (String) -> Unit,
@@ -240,15 +241,11 @@ fun ServerSettingsScreen(
                         Text(stringResource(Res.string.mcp_setup_open_guide))
                     }
                     Spacer(Modifier.height(12.dp))
-                    SwitchSettingsItemView(
-                        label = stringResource(Res.string.mcp_plugin_install_allowed_label),
-                        isChecked = uiState.mcpPluginInstallAllowed,
-                        onCheckedChange = onMcpPluginInstallAllowedChange,
-                    )
-                    Text(
-                        text = stringResource(Res.string.mcp_plugin_install_allowed_note),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    McpPermissionsView(
+                        uiState = uiState.mcpPermissions,
+                        onSetHostGroupAllowed = onSetHostGroupAllowed,
+                        onSetPluginUiAllowed = onSetPluginUiAllowed,
+                        onSetPluginOwnToolsAllowed = onSetPluginOwnToolsAllowed,
                     )
                 }
             }

@@ -1,6 +1,9 @@
 package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.McpActivityRepository
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
+import com.kitakkun.jetwhale.host.model.McpPermissionsRepository
+import com.kitakkun.jetwhale.host.model.McpToolPermission
 import io.modelcontextprotocol.kotlin.sdk.server.ClientConnection
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequest
@@ -18,6 +21,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 class McpToolRegistrar(
     private val server: Server,
     private val activityRepository: McpActivityRepository,
+    private val permissionsRepository: McpPermissionsRepository,
 ) {
     /**
      * Registers a built-in tool, attributed to whatever `pluginId` the caller passed in.
@@ -26,12 +30,14 @@ class McpToolRegistrar(
         name: String,
         description: String,
         inputSchema: ToolSchema,
+        permission: McpToolPermission,
         handler: suspend ClientConnection.(CallToolRequest) -> CallToolResult,
     ) {
         addTrackedTool(
             name = name,
             description = description,
             inputSchema = inputSchema,
+            permission = permission,
             // Tools that drive a plugin UI declare this argument; the rest report no target.
             resolvePluginId = { request -> request.arguments?.get("pluginId")?.jsonContent },
             handler = handler,
@@ -56,6 +62,7 @@ class McpToolRegistrar(
             name = name,
             description = description,
             inputSchema = inputSchema,
+            permission = McpToolPermission.PluginOwnTools,
             resolvePluginId = { request ->
                 request.arguments?.get("sessionId")?.jsonContent?.let(resolvePluginIdForSession)
             },
@@ -67,17 +74,34 @@ class McpToolRegistrar(
         name: String,
         description: String,
         inputSchema: ToolSchema,
+        permission: McpToolPermission,
         resolvePluginId: (CallToolRequest) -> String?,
         handler: suspend ClientConnection.(CallToolRequest) -> CallToolResult,
     ) {
+        // A host group is decidable now, so a denied one is not listed at all rather than listed and
+        // refused. Per-plugin permissions are not: the same tool is allowed for one plugin and denied
+        // for another, so those stay listed and are settled per call.
+        if (permission is McpToolPermission.HostGroup &&
+            !permissionsRepository.permissionsFlow.value.allows(permission, pluginId = null)
+        ) {
+            return
+        }
+
         server.addTool(
             name = name,
             description = description,
             inputSchema = inputSchema,
         ) { request ->
+            val targetPluginId = resolvePluginId(request)
+            // Checked per call, not only when the tool list was built: a tool list is fixed for the
+            // life of an SSE connection, so a permission revoked now has to bite the agent that is
+            // already connected.
+            if (!permissionsRepository.permissionsFlow.value.allows(permission, targetPluginId)) {
+                return@addTool deniedResult(name, permission, targetPluginId)
+            }
             val invocationId = activityRepository.toolInvocationStarted(
                 toolName = name,
-                pluginId = resolvePluginId(request),
+                pluginId = targetPluginId,
                 sessionId = request.arguments?.get("sessionId")?.jsonContent,
                 // Every argument key is reported, including the ones the UI already shows as
                 // attribution, so history describes the call exactly as the agent made it.
@@ -107,6 +131,42 @@ class McpToolRegistrar(
         }
     }
 }
+
+/**
+ * Explains a refusal in terms of the switch that lifts it, so an agent can tell the user what to
+ * turn on instead of reporting an opaque failure and stopping.
+ */
+private fun deniedResult(
+    toolName: String,
+    permission: McpToolPermission,
+    pluginId: String?,
+): CallToolResult {
+    val reason = when (permission) {
+        McpToolPermission.Unrestricted -> "is not permitted"
+
+        is McpToolPermission.HostGroup ->
+            "is in the ${permission.group.displayName} group, which is not allowed for AI agents"
+
+        McpToolPermission.PluginUi -> when (pluginId) {
+            null -> "could not tell which plugin it targets, so it cannot be permission-checked"
+            else -> "drives '$pluginId', whose UI is not exposed to AI agents"
+        }
+
+        McpToolPermission.PluginOwnTools -> when (pluginId) {
+            null -> "could not tell which plugin owns it, so it cannot be permission-checked"
+            else -> "belongs to '$pluginId', whose tools are not exposed to AI agents"
+        }
+    }
+    return errorResult("$toolName $reason. Review it in Settings → Server → MCP Server → Permissions.")
+}
+
+private val McpHostToolGroup.displayName: String
+    get() = when (this) {
+        McpHostToolGroup.OBSERVE -> "Observe"
+        McpHostToolGroup.NAVIGATE -> "Navigate"
+        McpHostToolGroup.MANAGE_PLUGINS -> "Manage plugins"
+        McpHostToolGroup.SETTINGS_AND_SERVERS -> "Settings & servers"
+    }
 
 /**
  * Renders a tool result to the text kept in call history.

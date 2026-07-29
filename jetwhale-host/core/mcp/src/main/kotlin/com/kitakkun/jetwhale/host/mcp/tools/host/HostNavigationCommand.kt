@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.HostSettingsSection
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginSessionReconciliationService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
@@ -39,6 +40,7 @@ class HostNavigationCommand(
     private val reconciliationService: PluginSessionReconciliationService,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.navigate"
+    override val group: McpHostToolGroup = McpHostToolGroup.NAVIGATE
     override val description: String =
         "Host-wide: switches the main JetWhale window to another screen. Navigating to PLUGIN also selects that session in the drawer, which is what jetwhale.screenshot of the same plugin will then show."
 

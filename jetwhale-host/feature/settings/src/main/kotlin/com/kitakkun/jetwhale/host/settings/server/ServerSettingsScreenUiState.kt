@@ -7,7 +7,7 @@ data class ServerSettingsScreenUiState(
     val editingMcpPortText: String,
     val mcpClaudeCodeCommand: String,
     val mcpJsonConfig: String,
-    val mcpPluginInstallAllowed: Boolean,
+    val mcpPermissions: McpPermissionsUiState,
     val isDebugApplyVisible: Boolean,
     val isMcpApplyVisible: Boolean,
     val isDebugApplyEnabled: Boolean,

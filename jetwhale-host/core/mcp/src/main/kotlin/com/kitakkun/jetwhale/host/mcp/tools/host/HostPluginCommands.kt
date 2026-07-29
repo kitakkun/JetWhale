@@ -3,8 +3,8 @@ package com.kitakkun.jetwhale.host.mcp.tools.host
 import com.kitakkun.jetwhale.host.mcp.HostMcpCommand
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
-import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
+import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.OfficialPluginCatalog
 import com.kitakkun.jetwhale.host.model.OfficialPluginInstallService
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -38,6 +38,7 @@ class ListInstalledPluginsCommand(
     private val pluginTrustService: PluginTrustService,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.listInstalledPlugins"
+    override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String =
         "Host-wide: lists every plugin installed into the debug tool and whether it is enabled, plus the official plugins that could still be installed and any jar that failed to load or is awaiting trust. Use jetwhale.listPlugins instead to see what a particular debug session advertises."
 
@@ -85,6 +86,7 @@ class SetPluginEnabledCommand(
     private val debugSessionRepository: DebugSessionRepository,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.setPluginEnabled"
+    override val group: McpHostToolGroup = McpHostToolGroup.MANAGE_PLUGINS
     override val description: String =
         "Host-wide: enables or disables an installed plugin across the whole debug tool, exactly like the toggle in the plugin drawer. A newly enabled plugin's own MCP tools only become visible after you reconnect to this MCP server."
 
@@ -132,23 +134,17 @@ class InstallOfficialPluginCommand(
     private val officialPluginInstallService: OfficialPluginInstallService,
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val pluginInstallProgressRepository: PluginInstallProgressRepository,
-    private val settingsRepository: DebuggerSettingsRepository,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.installOfficialPlugin"
+    override val group: McpHostToolGroup = McpHostToolGroup.MANAGE_PLUGINS
     override val description: String =
-        "Host-wide: downloads and installs a plugin from JetWhale's official catalog, then enable it with jetwhale.setPluginEnabled. Only catalog plugins can be installed this way, and only when the user has allowed it in Settings → Server → MCP Server."
+        "Host-wide: downloads and installs a plugin from JetWhale's official catalog, then enable it with jetwhale.setPluginEnabled. Only catalog plugins can be installed this way, and only when the user has allowed the Manage plugins permission."
 
     private val pluginId by string("The official plugin to install; from the availableOfficial list of jetwhale.listInstalledPlugins.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        if (!settingsRepository.mcpPluginInstallAllowedFlow.value) {
-            // Listed but refused on purpose: an agent that can read the reason can tell the user
-            // which switch to flip, where a hidden tool would only produce confusion.
-            throw JetWhaleMcpArgumentException(
-                "plugin installation over MCP is disabled. Ask the user to enable it in Settings → Server → MCP Server.",
-            )
-        }
-
+        // Whether an agent may install at all is the Manage plugins permission, enforced for every
+        // tool in the group by McpToolRegistrar before this runs.
         val targetPluginId = arguments[pluginId]
         val plugin = OfficialPluginCatalog.plugins.find { it.pluginId == targetPluginId }
             ?: throw JetWhaleMcpArgumentException(
