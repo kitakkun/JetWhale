@@ -103,7 +103,7 @@ fun captureScreenshot(
     val composeCanvas = Canvas(imageBitmap)
     // Raised only for this off-screen render; being on the UI thread, no interactive frame can
     // observe the raised state.
-    scene.isScreenshotCapture.value = true
+    scene.isMcpCapture.value = true
     try {
         // render() only flushes snapshot apply notifications at its end (before draw), so a write
         // made right before it is not yet observed by the scene's recomposer and the frame would be
@@ -112,7 +112,7 @@ fun captureScreenshot(
         Snapshot.sendApplyNotifications()
         scene.composeScene.render(composeCanvas, System.nanoTime())
     } finally {
-        scene.isScreenshotCapture.value = false
+        scene.isMcpCapture.value = false
         // Flush the restore so the next interactive render observes capture=false immediately rather
         // than lagging a frame behind.
         Snapshot.sendApplyNotifications()

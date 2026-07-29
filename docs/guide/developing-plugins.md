@@ -359,7 +359,7 @@ example — see `jetwhale-plugins/network/host`.
 `jetwhale.screenshot` renders the same Compose scene the host window shows, and
 `jetwhale.getAccessibilityTree` reads that scene's semantics — which carry your `Text` and
 `contentDescription` strings verbatim. If your plugin UI displays values that AI agents should not
-see, read the `LocalIsScreenshotCapture` CompositionLocal — it is `true` only while the scene is
+see, read the `LocalIsMcpCapture` CompositionLocal — it is `true` only while the scene is
 being rendered for either of those captures — and blank or mask the sensitive content while it is
 raised. Masking only in the drawing layer is not enough: the semantics tree would still hand over
 the original string. The interactive window never observes the raised state, so there is no

@@ -8,7 +8,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
-import com.kitakkun.jetwhale.host.sdk.LocalIsScreenshotCapture
+import com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -22,14 +22,14 @@ private const val MASKED = "Bearer ***"
 /**
  * The semantics tree carries the same strings the screenshot does, so a plugin that redacts for
  * capture has to be redacted here too — otherwise the tree is a way around
- * [LocalIsScreenshotCapture], which exists to keep values on screen but away from MCP agents.
+ * [LocalIsMcpCapture], which exists to keep values on screen but away from MCP agents.
  */
 class AccessibilityTreeRedactionTest {
 
     @Test
     fun `a value the plugin redacts for capture does not reach the semantics tree`() = runBlocking {
         val scene = createTestScene {
-            val shown = if (LocalIsScreenshotCapture.current) MASKED else SECRET
+            val shown = if (LocalIsMcpCapture.current) MASKED else SECRET
             Box(Modifier.size(100.dp).semantics { text = AnnotatedString(shown) })
         }
         renderTestScene(scene)
@@ -43,7 +43,7 @@ class AccessibilityTreeRedactionTest {
     @Test
     fun `a content description the plugin redacts for capture does not reach the semantics tree`() = runBlocking {
         val scene = createTestScene {
-            val label = if (LocalIsScreenshotCapture.current) MASKED else SECRET
+            val label = if (LocalIsMcpCapture.current) MASKED else SECRET
             Box(Modifier.size(100.dp).semantics { contentDescription = label })
         }
         renderTestScene(scene)
@@ -57,7 +57,7 @@ class AccessibilityTreeRedactionTest {
     fun `the interactive composition is left unredacted after a tree capture`() = runBlocking {
         val observed = mutableListOf<Boolean>()
         val scene = createTestScene {
-            observed.add(LocalIsScreenshotCapture.current)
+            observed.add(LocalIsMcpCapture.current)
         }
         renderTestScene(scene)
 

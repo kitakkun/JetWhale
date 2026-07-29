@@ -311,6 +311,10 @@ public abstract interface class com/kitakkun/jetwhale/host/sdk/JetWhalePluginSto
 	public abstract fun remove (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public final class com/kitakkun/jetwhale/host/sdk/McpCaptureKt {
+	public static final fun getLocalIsMcpCapture ()Landroidx/compose/runtime/ProvidableCompositionLocal;
+}
+
 public final class com/kitakkun/jetwhale/host/sdk/RememberPersistentKt {
 	public static final fun getLocalJetWhalePluginStorage ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 	public static final fun rememberPersistent (Ljava/lang/String;Ljava/lang/Object;Lkotlinx/serialization/KSerializer;Landroidx/compose/runtime/Composer;I)Landroidx/compose/runtime/MutableState;

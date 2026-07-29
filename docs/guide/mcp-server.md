@@ -110,7 +110,7 @@ The [Network Inspector](/guide/network-inspector#mcp-tools) ships a full set of 
 
 ::: tip Sensitive values
 Plugin UIs can hide sensitive content from `jetwhale.screenshot` **and**
-`jetwhale.getAccessibilityTree` — both raise the same `LocalIsScreenshotCapture` CompositionLocal,
+`jetwhale.getAccessibilityTree` — both raise the same `LocalIsMcpCapture` CompositionLocal,
 because the semantics tree carries the same strings the pixels do. The Network Inspector's
 [redaction rules](/guide/network-inspector#redacting-sensitive-values) support an `MCP_ONLY` scope
 that keeps values visible to you but hidden from AI agents.

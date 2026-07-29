@@ -71,7 +71,7 @@ class GetAccessibilityTreeMcpTool(
  * elements by name/role and calculate precise click coordinates from [NodeInfo.bounds].
  *
  * The tree carries the same strings the screenshot shows, so it is captured under
- * [com.kitakkun.jetwhale.host.sdk.LocalIsScreenshotCapture] exactly like a screenshot is —
+ * [com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture] exactly like a screenshot is —
  * otherwise it would hand an agent the values a plugin redacts from captures.
  */
 @OptIn(InternalComposeUiApi::class)
@@ -86,7 +86,7 @@ fun captureAccessibilityTree(scene: PluginComposeScene): String {
 
     // Raised only for this off-screen render; being on the UI thread, no interactive frame can
     // observe the raised state.
-    scene.isScreenshotCapture.value = true
+    scene.isMcpCapture.value = true
     val nodes = try {
         // render() only flushes snapshot apply notifications at its end (before draw), so a write
         // made right before it is not yet observed by the scene's recomposer and the frame would be
@@ -98,7 +98,7 @@ fun captureAccessibilityTree(scene: PluginComposeScene): String {
         // one recomposition away from the values that were actually rendered.
         scene.semanticsOwners.map { it.rootSemanticsNode }.flatMap { traverseSemanticsTree(it) }
     } finally {
-        scene.isScreenshotCapture.value = false
+        scene.isMcpCapture.value = false
         // Flush the restore so the next interactive render observes capture=false immediately rather
         // than lagging a frame behind.
         Snapshot.sendApplyNotifications()

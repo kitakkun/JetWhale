@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
 import com.kitakkun.jetwhale.host.mcp.viewport.applyViewport
-import com.kitakkun.jetwhale.host.sdk.LocalIsScreenshotCapture
+import com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -88,10 +88,10 @@ class ScreenshotToolTest {
     }
 
     @Test
-    fun `LocalIsScreenshotCapture is true only while capturing`() {
+    fun `LocalIsMcpCapture is true only while capturing`() {
         val observed = mutableListOf<Boolean>()
         val scene = createTestScene {
-            observed.add(LocalIsScreenshotCapture.current)
+            observed.add(LocalIsMcpCapture.current)
         }
         renderTestScene(scene)
         captureScreenshot(scene, McpViewport(size = IntSize(100, 100), density = Density(1f)))
