@@ -79,7 +79,7 @@ class ScreenshotToolTest {
         applyViewport(scene, viewport)
 
         val imageBitmap = ImageBitmap(100, 50)
-        scene.composeScene.render(Canvas(imageBitmap), System.nanoTime())
+        scene.render(Canvas(imageBitmap))
         val pixels = imageBitmap.toPixelMap()
 
         // Sample the center of each box

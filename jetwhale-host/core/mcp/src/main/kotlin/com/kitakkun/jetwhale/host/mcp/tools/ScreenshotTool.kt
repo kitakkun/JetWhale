@@ -110,7 +110,7 @@ fun captureScreenshot(
         // drawn with the stale value. Flush explicitly here so the flag-flip recomposition is applied
         // within this render pass.
         Snapshot.sendApplyNotifications()
-        scene.composeScene.render(composeCanvas, System.nanoTime())
+        scene.render(composeCanvas)
     } finally {
         scene.isMcpCapture.value = false
         // Flush the restore so the next interactive render observes capture=false immediately rather

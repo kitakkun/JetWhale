@@ -30,7 +30,7 @@ internal fun ensureSceneRendered(scene: PluginComposeScene) {
         ?: IntSize(1280, 720)
     val viewport = McpViewport(size = size, density = scene.composeScene.density)
     applyViewport(scene, viewport)
-    scene.composeScene.render(Canvas(ImageBitmap(size.width, size.height)), System.nanoTime())
+    scene.render(Canvas(ImageBitmap(size.width, size.height)))
 }
 
 @OptIn(InternalComposeUiApi::class)
