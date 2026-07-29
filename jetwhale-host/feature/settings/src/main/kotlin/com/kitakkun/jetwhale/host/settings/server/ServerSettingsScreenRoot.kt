@@ -19,8 +19,8 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
         state2 = rememberSubscription(screenContext.mcpServerStatusSubscriptionKey),
         state3 = rememberSubscription(screenContext.settingsSubscriptionKey),
         state4 = rememberSubscription(screenContext.sslCertificatesSubscriptionKey),
-        state5 = rememberSubscription(screenContext.mcpPermissionsViewSubscriptionKey),
-    ) { serverStatus, mcpServerStatus, debuggerSettings, sslCertificates, mcpPermissionsView ->
+        state5 = rememberSubscription(screenContext.mcpPermissionsSnapshotSubscriptionKey),
+    ) { serverStatus, mcpServerStatus, debuggerSettings, sslCertificates, mcpPermissionsSnapshot ->
         val screenChannel = rememberScreenChannel<ServerSettingsScreenAction, Nothing>()
         val uiState = context(screenContext.presenterContext) {
             serverSettingsScreenPresenter(
@@ -29,7 +29,7 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
                 mcpServerStatus = mcpServerStatus,
                 debuggerSettings = debuggerSettings,
                 sslCertificates = sslCertificates,
-                mcpPermissionsView = mcpPermissionsView,
+                mcpPermissionsSnapshot = mcpPermissionsSnapshot,
             )
         }
 

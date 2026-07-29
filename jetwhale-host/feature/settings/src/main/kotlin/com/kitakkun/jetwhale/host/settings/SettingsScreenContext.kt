@@ -16,7 +16,7 @@ import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.McpHostGroupPermissionMutationKey
-import com.kitakkun.jetwhale.host.model.McpPermissionsViewSubscriptionKey
+import com.kitakkun.jetwhale.host.model.McpPermissionsSnapshotSubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpPluginInspectPermissionMutationKey
 import com.kitakkun.jetwhale.host.model.McpPluginInteractPermissionMutationKey
 import com.kitakkun.jetwhale.host.model.McpPluginToolPermissionMutationKey
@@ -76,7 +76,7 @@ class SettingsPresenterContext(
 @Inject
 class SettingsScreenContext(
     val settingsSubscriptionKey: SettingsSubscriptionKey,
-    val mcpPermissionsViewSubscriptionKey: McpPermissionsViewSubscriptionKey,
+    val mcpPermissionsSnapshotSubscriptionKey: McpPermissionsSnapshotSubscriptionKey,
     val appearanceSettingsSubscriptionKey: AppearanceSettingsSubscriptionKey,
     val diagnosticsQueryKey: DiagnosticsQueryKey,
     val loadedPluginsMetaDataSubscriptionKey: LoadedPluginsMetaDataSubscriptionKey,

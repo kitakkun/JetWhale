@@ -4,8 +4,8 @@ import com.kitakkun.jetwhale.host.mcp.McpServerService
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpPermissionPlugin
 import com.kitakkun.jetwhale.host.model.McpPermissionsRepository
-import com.kitakkun.jetwhale.host.model.McpPermissionsView
-import com.kitakkun.jetwhale.host.model.McpPermissionsViewSubscriptionKey
+import com.kitakkun.jetwhale.host.model.McpPermissionsSnapshot
+import com.kitakkun.jetwhale.host.model.McpPermissionsSnapshotSubscriptionKey
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -16,11 +16,11 @@ import soil.query.buildSubscriptionKey
 
 @Inject
 @ContributesBinding(AppScope::class)
-class DefaultMcpPermissionsViewSubscriptionKey(
+class DefaultMcpPermissionsSnapshotSubscriptionKey(
     private val permissionsRepository: McpPermissionsRepository,
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val mcpServerService: McpServerService,
-) : McpPermissionsViewSubscriptionKey by buildSubscriptionKey(
+) : McpPermissionsSnapshotSubscriptionKey by buildSubscriptionKey(
     id = SubscriptionId("mcp_permissions_view"),
     subscribe = {
         combine(
@@ -28,7 +28,7 @@ class DefaultMcpPermissionsViewSubscriptionKey(
             pluginFactoryRepository.loadedPluginsFlow,
             mcpServerService.mcpCapablePluginsFlow,
         ) { permissions, loadedPlugins, capablePlugins ->
-            McpPermissionsView(
+            McpPermissionsSnapshot(
                 permissions = permissions,
                 // Every installed plugin is listed, whether or not it currently publishes tools:
                 // Inspect and Interact apply to any plugin's UI, so a plugin with no live instance

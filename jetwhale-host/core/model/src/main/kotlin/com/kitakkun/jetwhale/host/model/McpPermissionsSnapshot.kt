@@ -22,9 +22,9 @@ data class McpPermissionPlugin(
  * Combined here rather than subscribed separately by the screen: the tree is one control, and three
  * independently-arriving sources would let it draw a plugin against another plugin's tools.
  */
-data class McpPermissionsView(
+data class McpPermissionsSnapshot(
     val permissions: McpPermissions,
     val plugins: List<McpPermissionPlugin>,
 )
 
-typealias McpPermissionsViewSubscriptionKey = SubscriptionKey<McpPermissionsView>
+typealias McpPermissionsSnapshotSubscriptionKey = SubscriptionKey<McpPermissionsSnapshot>

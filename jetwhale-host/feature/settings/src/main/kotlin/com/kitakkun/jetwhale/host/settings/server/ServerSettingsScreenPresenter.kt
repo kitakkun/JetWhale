@@ -13,7 +13,7 @@ import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
 import com.kitakkun.jetwhale.host.model.McpHostGroupPermissionParams
-import com.kitakkun.jetwhale.host.model.McpPermissionsView
+import com.kitakkun.jetwhale.host.model.McpPermissionsSnapshot
 import com.kitakkun.jetwhale.host.model.McpPluginPermissionParams
 import com.kitakkun.jetwhale.host.model.McpPluginToolPermissionParams
 import com.kitakkun.jetwhale.host.model.McpServerStatus
@@ -29,7 +29,7 @@ context(presenterContext: SettingsPresenterContext)
 fun serverSettingsScreenPresenter(
     screenChannel: ScreenChannel<ServerSettingsScreenAction, Nothing>,
     serverStatus: DebugWebSocketServerStatus,
-    mcpPermissionsView: McpPermissionsView,
+    mcpPermissionsSnapshot: McpPermissionsSnapshot,
     mcpServerStatus: McpServerStatus,
     debuggerSettings: DebuggerBehaviorSettings,
     sslCertificates: List<SslCertificateEntry>,
@@ -244,17 +244,17 @@ fun serverSettingsScreenPresenter(
             }
         """.trimIndent(),
         mcpPermissions = McpPermissionsUiState(
-            allowedHostGroups = mcpPermissionsView.permissions.allowedHostGroups,
-            plugins = mcpPermissionsView.plugins.map { plugin ->
+            allowedHostGroups = mcpPermissionsSnapshot.permissions.allowedHostGroups,
+            plugins = mcpPermissionsSnapshot.plugins.map { plugin ->
                 McpPluginPermissionUiState(
                     pluginId = plugin.pluginId,
                     displayName = plugin.displayName,
-                    inspectAllowed = plugin.pluginId !in mcpPermissionsView.permissions.pluginsDeniedInspect,
-                    interactAllowed = plugin.pluginId !in mcpPermissionsView.permissions.pluginsDeniedInteract,
+                    inspectAllowed = plugin.pluginId !in mcpPermissionsSnapshot.permissions.pluginsDeniedInspect,
+                    interactAllowed = plugin.pluginId !in mcpPermissionsSnapshot.permissions.pluginsDeniedInteract,
                     tools = plugin.tools.map { tool ->
                         McpPluginToolUiState(
                             toolName = tool.name,
-                            allowed = tool.name !in mcpPermissionsView.permissions.deniedPluginTools,
+                            allowed = tool.name !in mcpPermissionsSnapshot.permissions.deniedPluginTools,
                         )
                     },
                 )
