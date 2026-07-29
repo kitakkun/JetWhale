@@ -15,7 +15,7 @@ sealed interface HostNavigationRequest {
     data object LogViewer : HostNavigationRequest
 }
 
-enum class HostSettingsSection { GENERAL, SERVER, PLUGINS }
+enum class HostSettingsSection { GENERAL, SERVER, AI_AGENTS, PLUGINS }
 
 /**
  * MCP_TOOLS is reported but cannot be requested: the tool browser exists so a person can watch what
