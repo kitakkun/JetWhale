@@ -54,10 +54,12 @@ class Nav3KeyCodecTest {
     }
 
     @Test
-    fun `catalog lists every type registered against NavKey`() {
+    fun `catalog lists every type registered against NavKey in a stable order`() {
         val codec = Nav3KeyCodec.openPolymorphic(openModule)
 
-        assertEquals(listOf("Home", "Detail", "Catalog"), codec.keyTypes.map { it.serialName })
+        // Sorted by name, because a SerializersModule enumerates its registrations in no defined
+        // order — the host would otherwise show the types shuffled differently every session.
+        assertEquals(listOf("Catalog", "Detail", "Home"), codec.keyTypes.map { it.serialName })
     }
 
     @Test
@@ -98,8 +100,7 @@ class Nav3KeyCodecTest {
     fun `catalog reads a sealed hierarchy without any module`() {
         val codec = Nav3KeyCodec.closedPolymorphic(Screen.serializer())
 
-        // A sealed serializer keeps its subclasses in its own (alphabetical) order, not the source's.
-        assertEquals(setOf("screen.home", "screen.detail"), codec.keyTypes.map { it.serialName }.toSet())
+        assertEquals(listOf("screen.detail", "screen.home"), codec.keyTypes.map { it.serialName })
         assertEquals(Screen.Detail("7"), codec.decode(codec.encode(Screen.Detail("7"))!!))
     }
 

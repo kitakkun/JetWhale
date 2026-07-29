@@ -51,7 +51,9 @@ internal fun describeNavKeyTypes(
         NavKeyRegistrationCollector { descriptor -> descriptors.getOrPut(descriptor.serialName) { descriptor } },
     )
 
-    return descriptors.values.map { it.toNavKeyTypeDescriptor() }
+    // Sorted by name: a SerializersModule enumerates its registrations in no defined order, so
+    // without this the host's key-type list would come out shuffled differently every session.
+    return descriptors.values.map { it.toNavKeyTypeDescriptor() }.sortedBy { it.serialName }
 }
 
 /** Collects the `polymorphic(NavKey::class, ...)` registrations of a module and ignores the rest. */
