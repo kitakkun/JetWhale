@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.agent.runtime.startJetWhale
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.agent.ktor.ktorClientPlugin
 import io.ktor.client.HttpClient
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** Device the agent's apps are reported under, so the host groups them into one two-level selector entry. */
 private const val QA_DEVICE_ID = "jetwhale-qa-agent"
@@ -26,13 +27,13 @@ internal class QaApp(
     val httpClient: HttpClient,
     private val session: JetWhaleSession,
 ) {
+    private val connected = AtomicBoolean(true)
+
     /**
      * Whether this app's session is still held. False once [disconnect] gave it up — which is
      * terminal, since a stopped session cannot be revived.
      */
-    @Volatile
-    var isConnected: Boolean = true
-        private set
+    val isConnected: Boolean get() = connected.get()
 
     /** Whether every impersonated plugin could reach the host right now. Vacuously true with none registered. */
     val isReady: Boolean get() = isConnected && wirePluginsById.values.all { it.isReady }
@@ -42,11 +43,13 @@ internal class QaApp(
      * connected. This is the point of running several: it exercises the host's disconnect handling
      * without taking the whole process down.
      *
+     * Ktor serves requests in parallel, so the claim is staked with a compare-and-set: only one
+     * caller of two concurrent disconnects is told it did the disconnecting.
+     *
      * @return false when the session had already been given up.
      */
     fun disconnect(): Boolean {
-        if (!isConnected) return false
-        isConnected = false
+        if (!connected.compareAndSet(true, false)) return false
         session.stop()
         httpClient.close()
         return true
@@ -114,6 +117,9 @@ internal fun resolveAppName(requested: String?, known: Collection<String>): AppR
     else -> AppResolution.Failed("Several apps are running (${known.joinToString()}); name one with \"app\".")
 }
 
+/** Why nothing addressed to an app that has been given up can arrive. */
+internal fun disconnectedAppHint(appName: String): String = "App '$appName' was disconnected via /disconnect, so it holds no session. Restart the agent to get it back."
+
 /**
  * Why a send was dropped. Every case looks identical from the caller's side — `sent: false` — but
  * only one of them is worth waiting out.
@@ -125,9 +131,7 @@ internal fun sendDropHint(
     activated: Boolean,
     ready: Boolean,
 ): String = when {
-    !appConnected ->
-        "App '$appName' was disconnected via /disconnect, so it holds no session. " +
-            "Restart the agent to get it back."
+    !appConnected -> disconnectedAppHint(appName)
 
     !activated ->
         "The host has not enabled '$pluginId' for app '$appName', so nothing is listening. " +

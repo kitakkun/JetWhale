@@ -2,17 +2,18 @@ package com.kitakkun.jetwhale.tools.qaagent
 
 import com.kitakkun.jetwhale.agent.runtime.JetWhaleSession
 import io.ktor.client.HttpClient
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 private class RecordingSession : JetWhaleSession {
-    var stopCount: Int = 0
-        private set
+    private val stops = AtomicInteger()
+    val stopCount: Int get() = stops.get()
 
     override fun stop() {
-        stopCount++
+        stops.incrementAndGet()
     }
 }
 

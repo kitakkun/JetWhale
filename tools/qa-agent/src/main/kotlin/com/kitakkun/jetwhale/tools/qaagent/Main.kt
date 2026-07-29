@@ -211,6 +211,13 @@ fun main(args: Array<String>) {
                     call.respond(HttpStatusCode.BadRequest, unknownPluginError(spec.pluginId, app.wirePluginsById.keys))
                     return@post
                 }
+                // Refuse before touching the messenger: stop() returns once teardown is scheduled, so
+                // a send here can still succeed for a moment and report an app as reachable after it
+                // was given up. Timing-dependent answers are the last thing a QA run needs.
+                if (!app.isConnected) {
+                    call.respond(SendResponse(sent = false, hint = disconnectedAppHint(app.name)))
+                    return@post
+                }
                 try {
                     val sent = plugin.send(spec.messageType, spec.payload.toString(), spec.policy)
                     val hint = if (sent) {
@@ -242,6 +249,10 @@ fun main(args: Array<String>) {
                 val app = call.resolveApp(apps, spec.app) ?: return@post
                 val plugin = app.wirePluginsById[spec.pluginId] ?: run {
                     call.respond(HttpStatusCode.BadRequest, unknownPluginError(spec.pluginId, app.wirePluginsById.keys))
+                    return@post
+                }
+                if (!app.isConnected) {
+                    call.respond(HttpStatusCode.OK, ErrorResponse(disconnectedAppHint(app.name)))
                     return@post
                 }
                 try {
