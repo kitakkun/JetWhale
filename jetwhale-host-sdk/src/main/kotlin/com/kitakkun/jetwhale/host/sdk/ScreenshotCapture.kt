@@ -1,14 +1,12 @@
+// The alias lives on in its original file so the `ScreenshotCaptureKt` facade class keeps existing:
+// a plugin jar compiled against an earlier host-sdk calls it by that name, and moving the
+// declaration would turn a rename into a NoClassDefFoundError at plugin load time.
 package com.kitakkun.jetwhale.host.sdk
 
 import androidx.compose.runtime.ProvidableCompositionLocal
-import androidx.compose.runtime.compositionLocalOf
 
-/**
- * True while the composition is being rendered for an MCP screenshot capture (the
- * `jetwhale.screenshot` tool) instead of the interactive host window.
- *
- * A plugin whose [JetWhaleHostPluginUi.Content] shows sensitive values can read this to render
- * them redacted in captures, keeping them visible on screen while hiding them from MCP-connected
- * AI agents.
- */
-public val LocalIsScreenshotCapture: ProvidableCompositionLocal<Boolean> = compositionLocalOf { false }
+@Deprecated(
+    "Renamed to LocalIsMcpCapture: the flag is raised for jetwhale.getAccessibilityTree too, not only for screenshots.",
+    ReplaceWith("LocalIsMcpCapture", "com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture"),
+)
+public val LocalIsScreenshotCapture: ProvidableCompositionLocal<Boolean> get() = LocalIsMcpCapture

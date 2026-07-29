@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
@@ -68,6 +69,13 @@ class GetAccessibilityTreeMcpTool(
  * Returns a JSON string representing the full node tree, including roles, labels,
  * bounds (in pixels), and interactivity flags. AI agents can use this to identify
  * elements by name/role and calculate precise click coordinates from [NodeInfo.bounds].
+ *
+ * Must be called on the UI thread (Dispatchers.Main): it applies the viewport, renders, and flips
+ * the capture flag, all of which mutate the ComposeScene.
+ *
+ * The tree carries the same strings the screenshot shows, so it is captured under
+ * [com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture] exactly like a screenshot is —
+ * otherwise it would hand an agent the values a plugin redacts from captures.
  */
 @OptIn(InternalComposeUiApi::class)
 fun captureAccessibilityTree(scene: PluginComposeScene): String {
@@ -78,11 +86,26 @@ fun captureAccessibilityTree(scene: PluginComposeScene): String {
         ?: IntSize(1280, 720)
     val viewport = McpViewport(size = size, density = scene.composeScene.density)
     applyViewport(scene, viewport)
-    scene.composeScene.render(Canvas(ImageBitmap(size.width, size.height)), System.nanoTime())
 
-    val rootNodes = scene.semanticsOwners.map { it.rootSemanticsNode }
-
-    val nodes = rootNodes.flatMap { traverseSemanticsTree(it) }
+    // Raised only for this off-screen render; being on the UI thread, no interactive frame can
+    // observe the raised state.
+    scene.isMcpCapture.value = true
+    val nodes = try {
+        // render() only flushes snapshot apply notifications at its end (before draw), so a write
+        // made right before it is not yet observed by the scene's recomposer and the frame would be
+        // drawn with the stale value. Flush explicitly here so the flag-flip recomposition is applied
+        // within this render pass.
+        Snapshot.sendApplyNotifications()
+        scene.composeScene.render(Canvas(ImageBitmap(size.width, size.height)), System.nanoTime())
+        // Read the semantics while the flag is still raised: lowering it first would leave the tree
+        // one recomposition away from the values that were actually rendered.
+        scene.semanticsOwners.map { it.rootSemanticsNode }.flatMap { traverseSemanticsTree(it) }
+    } finally {
+        scene.isMcpCapture.value = false
+        // Flush the restore so the next interactive render observes capture=false immediately rather
+        // than lagging a frame behind.
+        Snapshot.sendApplyNotifications()
+    }
     return Json.encodeToString(AccessibilityTreeResult(nodes))
 }
 

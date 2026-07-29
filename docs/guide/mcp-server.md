@@ -109,8 +109,9 @@ The [Network Inspector](/guide/network-inspector#mcp-tools) ships a full set of 
 (`com.kitakkun.jetwhale.network.*`) for reading captured traffic and managing mock rules.
 
 ::: tip Sensitive values
-Plugin UIs can hide sensitive content from `jetwhale.screenshot` captures via the
-`LocalIsScreenshotCapture` CompositionLocal, and the Network Inspector's
+Plugin UIs can hide sensitive content from `jetwhale.screenshot` **and**
+`jetwhale.getAccessibilityTree` — both raise the same `LocalIsMcpCapture` CompositionLocal,
+because the semantics tree carries the same strings the pixels do. The Network Inspector's
 [redaction rules](/guide/network-inspector#redacting-sensitive-values) support an `MCP_ONLY` scope
 that keeps values visible to you but hidden from AI agents.
 :::

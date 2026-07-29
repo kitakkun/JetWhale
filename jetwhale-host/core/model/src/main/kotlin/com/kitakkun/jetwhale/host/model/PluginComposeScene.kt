@@ -14,9 +14,9 @@ data class PluginComposeScene(
     val composeScene: ComposeScene,
     val windowInfoUpdater: WindowInfoUpdater,
     val semanticsOwners: Set<SemanticsOwner>,
-    // Backs LocalIsScreenshotCapture inside the scene's composition; the screenshot tool flips
+    // Backs LocalIsMcpCapture inside the scene's composition; the screenshot tool flips
     // it around its off-screen render so plugins can hide sensitive values from captures.
-    val isScreenshotCapture: MutableState<Boolean>,
+    val isMcpCapture: MutableState<Boolean>,
     // The cursor the plugin's composition currently asks for via Modifier.pointerHoverIcon. The
     // nested scene owns no window, so whoever renders it must apply this to the real one.
     val pointerIcon: State<PointerIcon>,
