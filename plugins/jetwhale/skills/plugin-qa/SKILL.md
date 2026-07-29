@@ -279,9 +279,10 @@ Always `Read` the screenshot afterwards. A screenshot you never open verifies no
 - A pixel landmark is therefore only portable if you **pin the density**: `screenshot` takes a
   `density` argument — pass `2` and the geometry is identical on any machine. Omit it to inherit
   whatever the window is at. Values that are not finite and > 0 are rejected.
-- Passing `width`/`height`/`density` **mutates the live scene** — they are applied to the very scene
-  the host window is showing, and it keeps rendering that way until the window next resizes. Omit
-  them to capture as-is unless a fixed viewport is the point.
+- `width`/`height`/`density` are **scoped to the capture** — the scene is put back on the viewport
+  it was showing at before the tool returns, so the on-screen UI is untouched and the next
+  screenshot does not inherit them. Still omit them to capture as-is unless a fixed viewport is the
+  point.
 - Prefer asserting **relationships** — "the left pane grew", "the divider stopped moving" — over
   absolute pixel values.
 

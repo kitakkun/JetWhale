@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.viewport
 
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
@@ -47,4 +48,68 @@ internal fun applyViewport(scene: PluginComposeScene, viewport: McpViewport) {
         DpSize(viewport.size.width.toDp(), viewport.size.height.toDp())
     }
     scene.windowInfoUpdater.updateWindowSize(intSize = viewport.size, dpSize = dpSize)
+}
+
+/**
+ * Applies [viewport] for the duration of [block], then puts the scene back on the size, density and
+ * window info it had.
+ *
+ * The scene is the live, on-screen one and the interactive renderer only pushes its own size and
+ * density when the host window resizes, so a viewport left applied here would keep the visible
+ * plugin UI rendering at it and every later capture would inherit it.
+ *
+ * Must be called on the UI thread (Dispatchers.Main).
+ */
+internal fun <T> withScopedViewport(
+    scene: PluginComposeScene,
+    viewport: McpViewport,
+    block: () -> T,
+): T {
+    val previous = readSceneViewportState(scene)
+    applyViewport(scene, viewport)
+    try {
+        return block()
+    } finally {
+        restoreSceneViewportState(scene, previous)
+    }
+}
+
+/**
+ * The scene state [applyViewport] overwrites.
+ *
+ * [composeSceneSize] is nullable because a ComposeScene may have no size of its own, which means
+ * "measure against the window instead of a fixed constraint" — a state worth putting back verbatim.
+ */
+private class SceneViewportState(
+    val composeSceneSize: IntSize?,
+    val density: Density,
+    val windowIntSize: IntSize,
+    val windowDpSize: DpSize,
+)
+
+/** Null when the scene cannot be read, i.e. it is being disposed and has nothing left to restore. */
+@OptIn(InternalComposeUiApi::class)
+private fun readSceneViewportState(scene: PluginComposeScene): SceneViewportState? = runCatching {
+    SceneViewportState(
+        composeSceneSize = scene.composeScene.size,
+        density = scene.composeScene.density,
+        windowIntSize = scene.windowInfoUpdater.currentIntSize,
+        windowDpSize = scene.windowInfoUpdater.currentDpSize,
+    )
+}.getOrNull()
+
+@OptIn(InternalComposeUiApi::class)
+private fun restoreSceneViewportState(scene: PluginComposeScene, state: SceneViewportState?) {
+    if (state == null) return
+    try {
+        scene.composeScene.density = state.density
+        scene.composeScene.size = state.composeSceneSize
+    } catch (_: IllegalStateException) {
+        // May happen during dispose/close; ignore to avoid crashing MCP calls.
+    }
+    scene.windowInfoUpdater.updateWindowSize(intSize = state.windowIntSize, dpSize = state.windowDpSize)
+    // The scene density and the window info override are snapshot state. Flush the restore so the
+    // next interactive render observes the original viewport immediately rather than lagging a
+    // frame behind on the capture's one.
+    Snapshot.sendApplyNotifications()
 }
