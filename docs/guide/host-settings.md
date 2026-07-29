@@ -19,12 +19,6 @@ The **Settings → General** screen groups the host-wide options:
 | **Language** | UI language of the host: **English** or **Japanese**. |
 | **Theme** | Color scheme: `builtin:dynamic`, `builtin:light`, or `builtin:dark`. |
 
-### ADB support
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| **ADB auto port mapping** | on | Automatically runs `adb reverse` for Android devices as they connect. Inactive on machines without `adb`. See [ADB Auto Port Mapping](/guide/adb-auto-port-mapping). |
-
 ### Maintenance
 
 - **Application data directory** — shows the host's app-data path (normally `~/.jetwhale/`) with a
@@ -38,7 +32,14 @@ The **Settings → General** screen groups the host-wide options:
 - **Check for updates** — check immediately; when an update is found you can install it or open the
   download page.
 
-### Health check
+## ADB support
+
+The **Settings → Connection → ADB support** page carries the Android port forwarding, plus where
+the host found the tool it needs for it:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **ADB auto port mapping** | on | Automatically runs `adb reverse` for Android devices as they connect. Inactive on machines without `adb`. See [ADB Auto Port Mapping](/guide/adb-auto-port-mapping). |
 
 - **adb executable path** — shows where JetWhale found `adb` (see
   [How adb is found](/guide/adb-auto-port-mapping#how-adb-is-found)), or that it is unavailable.

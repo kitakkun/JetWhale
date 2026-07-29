@@ -38,12 +38,15 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
     private val adbPath: String by lazy { findAdbPath() }
 
     override fun startAutoWiring(port: Int) {
-        if (!wiredPorts.add(port)) return
+        if (wiredPorts.add(port)) {
+            // Devices that connected before this port was registered still need the new forwarding.
+            wiredDevices.forEach { serial -> wire(serial, port) }
+        }
 
-        // Devices that connected before this port was registered still need the new forwarding.
-        wiredDevices.forEach { serial -> wire(serial, port) }
-
-        if (wiringJob != null) return
+        // A job that has finished — it stood down over a missing adb — must not read as running, or
+        // a port that is already registered would never get tracking back. Restarting the server
+        // calls this again, which is the retry.
+        if (wiringJob?.isActive == true) return
 
         wiringJob = coroutineScope.launch {
             // `adb track-devices` can end at any time (adb server restart/crash, USB hiccup, version
@@ -63,8 +66,7 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
                 } catch (e: AdbUnavailableException) {
                     // Auto wiring is on by default, so a machine with no Android SDK would otherwise
                     // retry a binary that will never appear, every RECONNECT_DELAY_MS, forever.
-                    // Report once and stand down; stopping the server clears the job so toggling the
-                    // setting (which restarts the server) tries again.
+                    // Report once and stand down until the next startAutoWiring call.
                     System.err.println("ADB auto port mapping is inactive: ${e.message}")
                     return@launch
                 } catch (e: Exception) {
