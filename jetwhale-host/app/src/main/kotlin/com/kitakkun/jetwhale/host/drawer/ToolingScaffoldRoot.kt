@@ -16,7 +16,7 @@ import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.navigation.toSegmentedMenu
 import com.kitakkun.jetwhale.host.session_disconnected_message
 import com.kitakkun.jetwhale.host.sessions_disconnected_message
-import com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu
+import com.kitakkun.jetwhale.host.settings.SettingsScreenMenu
 import org.jetbrains.compose.resources.getString
 import soil.query.compose.rememberSubscription
 
@@ -33,7 +33,7 @@ fun ToolingScaffoldRoot(
     onClickBringBack: (pluginId: String, sessionId: String) -> Unit,
     onSelectedSessionChange: (selectedSession: DebugSession) -> Unit,
     onNavigateHome: () -> Unit,
-    onNavigateSettings: (SettingsScreenSegmentedMenu) -> Unit,
+    onNavigateSettings: (SettingsScreenMenu) -> Unit,
     onNavigateLogViewer: () -> Unit,
     content: @Composable () -> Unit,
 ) {

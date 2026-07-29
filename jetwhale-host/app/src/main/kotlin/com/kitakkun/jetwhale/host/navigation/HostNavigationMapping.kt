@@ -5,7 +5,7 @@ import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostSettingsSection
 import com.kitakkun.jetwhale.host.model.PoppedOutPlugin
-import com.kitakkun.jetwhale.host.settings.SettingsScreenSegmentedMenu
+import com.kitakkun.jetwhale.host.settings.SettingsScreenMenu
 
 /**
  * Translates the back stack into the destination model that [com.kitakkun.jetwhale.host.model.HostNavigationService]
@@ -50,14 +50,14 @@ fun List<NavKey>.toHostDestination(): HostDestination {
     }
 }
 
-fun HostSettingsSection.toSegmentedMenu(): SettingsScreenSegmentedMenu = when (this) {
-    HostSettingsSection.GENERAL -> SettingsScreenSegmentedMenu.General
-    HostSettingsSection.SERVER -> SettingsScreenSegmentedMenu.Server
-    HostSettingsSection.PLUGINS -> SettingsScreenSegmentedMenu.Plugins
+fun HostSettingsSection.toSegmentedMenu(): SettingsScreenMenu = when (this) {
+    HostSettingsSection.GENERAL -> SettingsScreenMenu.General
+    HostSettingsSection.SERVER -> SettingsScreenMenu.Server
+    HostSettingsSection.PLUGINS -> SettingsScreenMenu.Plugins
 }
 
-private fun SettingsScreenSegmentedMenu.toHostSettingsSection(): HostSettingsSection = when (this) {
-    SettingsScreenSegmentedMenu.General -> HostSettingsSection.GENERAL
-    SettingsScreenSegmentedMenu.Server -> HostSettingsSection.SERVER
-    SettingsScreenSegmentedMenu.Plugins -> HostSettingsSection.PLUGINS
+private fun SettingsScreenMenu.toHostSettingsSection(): HostSettingsSection = when (this) {
+    SettingsScreenMenu.General -> HostSettingsSection.GENERAL
+    SettingsScreenMenu.Server -> HostSettingsSection.SERVER
+    SettingsScreenMenu.Plugins -> HostSettingsSection.PLUGINS
 }
