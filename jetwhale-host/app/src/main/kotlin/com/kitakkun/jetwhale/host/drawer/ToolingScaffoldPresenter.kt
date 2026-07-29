@@ -34,8 +34,25 @@ sealed interface ToolingScaffoldScreenAction {
 }
 
 sealed interface ToolingScaffoldScreenActionResult {
-    data class SessionClosed(val closedSessionIds: List<String>) : ToolingScaffoldScreenActionResult
+    /** Carries the sessions themselves, since a handler wants to name what went, not just its id. */
+    data class SessionClosed(val closedSessions: ImmutableList<DebugSession>) : ToolingScaffoldScreenActionResult
     data class SetPluginEnabledFailed(val error: Throwable) : ToolingScaffoldScreenActionResult
+}
+
+/**
+ * The sessions that were connected in [previouslyConnected] and are not any more — either marked
+ * inactive or gone from the list entirely.
+ *
+ * Comparing against the previous snapshot is what keeps a disconnect reported once. Reading the
+ * current list alone cannot: a disconnected session stays in it, so every later update would
+ * re-report it.
+ */
+internal fun closedSessions(
+    previouslyConnected: List<DebugSession>,
+    current: List<DebugSession>,
+): List<DebugSession> {
+    val stillConnected = current.filter { it.isActive }.mapTo(mutableSetOf()) { it.id }
+    return previouslyConnected.filterNot { it.id in stillConnected }
 }
 
 @Composable
@@ -113,10 +130,12 @@ fun toolingScaffoldPresenter(
         }
     }
 
+    var connectedSessions by remember { mutableStateOf<List<DebugSession>>(emptyList()) }
     LaunchedEffect(debugSessions) {
-        val inactiveSessionIds = debugSessions.filterNot { it.isActive }.map { it.id }
-        if (inactiveSessionIds.isEmpty()) return@LaunchedEffect
-        screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(inactiveSessionIds))
+        val closedSessions = closedSessions(previouslyConnected = connectedSessions, current = debugSessions)
+        connectedSessions = debugSessions.filter { it.isActive }
+        if (closedSessions.isEmpty()) return@LaunchedEffect
+        screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(closedSessions.toImmutableList()))
     }
 
     ActionEffect(screenChannel) { action ->
