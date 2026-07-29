@@ -17,6 +17,9 @@ compose.desktop {
 dependencies {
     implementation(projects.demo.shared)
     implementation(compose.desktop.currentOs)
+    // Compose Semantics Inspector probe: on desktop it is scoped to a window, so it is wired up here
+    // rather than in the shared module.
+    implementation(projects.jetwhalePlugins.semantics.agent)
 
     // Self-contained local API the demo client calls, so the demo never depends on a public endpoint.
     implementation(libs.ktorServerNetty)

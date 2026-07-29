@@ -26,6 +26,7 @@ fun initializeJetWhale() {
             register(DIModule.exampleAgentPlugin)
             register(DIModule.networkAgentPlugin)
             register(DIModule.nav3AgentPlugin)
+            register(DIModule.semanticsAgentPlugin)
         }
     }
 }
