@@ -40,11 +40,11 @@ class DefaultDebuggerSettingsRepository(
     private val portOverrides = MutableStateFlow(launchPortOverrides)
 
     override val adbAutoPortMappingEnabledFlow = dataStore.data
-        .mapNotNull { it[KEY_ADB_AUTO_PORT_MAPPING_ENABLED] }
+        .map { it[KEY_ADB_AUTO_PORT_MAPPING_ENABLED] ?: DEFAULT_ADB_AUTO_PORT_MAPPING_ENABLED }
         .stateIn(
             scope = coroutineScope,
             started = SharingStarted.Eagerly,
-            initialValue = false,
+            initialValue = DEFAULT_ADB_AUTO_PORT_MAPPING_ENABLED,
         )
     override val checkForUpdatesOnStartupFlow = dataStore.data
         .map { it[KEY_CHECK_FOR_UPDATES_ON_STARTUP] ?: DEFAULT_CHECK_FOR_UPDATES_ON_STARTUP }
@@ -174,6 +174,7 @@ class DefaultDebuggerSettingsRepository(
 
     companion object Companion {
         private val KEY_ADB_AUTO_PORT_MAPPING_ENABLED = booleanPreferencesKey("adb_auto_port_mapping_enabled")
+        private const val DEFAULT_ADB_AUTO_PORT_MAPPING_ENABLED = true
         private val KEY_CHECK_FOR_UPDATES_ON_STARTUP = booleanPreferencesKey("check_for_updates_on_startup")
         private const val DEFAULT_CHECK_FOR_UPDATES_ON_STARTUP = true
         private val KEY_PERSIST_DATA = booleanPreferencesKey("persist_data")

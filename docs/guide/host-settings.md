@@ -23,7 +23,7 @@ The **Settings → General** screen groups the host-wide options:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| **ADB auto port mapping** | off | Automatically runs `adb reverse` for Android devices as they connect. See [ADB Auto Port Mapping](/guide/adb-auto-port-mapping). |
+| **ADB auto port mapping** | on | Automatically runs `adb reverse` for Android devices as they connect. Inactive on machines without `adb`. See [ADB Auto Port Mapping](/guide/adb-auto-port-mapping). |
 
 ### Maintenance
 
