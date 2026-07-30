@@ -49,7 +49,7 @@ stable — changing one breaks compatibility with older implementations — so t
 
 | Step | Agent → host | Host → agent |
 |------|--------------|--------------|
-| Protocol version | `negotiation/agent/protocol_version` | `negotiation/host/protocol_version_response/accept` or `.../reject` |
+| Protocol version | `negotiation/agent/protocol_version` | `negotiation/host/protocol_version_response/accept` or `negotiation/host/protocol_version_response/reject` |
 | Session | `negotiation/agent/session` | `negotiation/host/accept_session` |
 | Capabilities | `negotiation/agent/capabilities` | `negotiation/host/capabilities_response` |
 | Plugins | `negotiation/agent/available_plugins` | `negotiation/host/available_plugins_response` |

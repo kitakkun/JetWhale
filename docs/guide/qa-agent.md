@@ -52,7 +52,7 @@ It binds loopback IPv4 only. `localhost` may resolve to `::1` first and be refus
 
 | Route | Body | What it does |
 |-------|------|--------------|
-| `GET /health` | — | `{status, ready, apps:{<name>:{connected, ready}}}`. **Poll this before sending anything**: the control API answers long before the debug session is up, and a send in that window is silently dropped. |
+| `GET /health` | — | `{status, ready, apps:{<name>:{connected, ready}}}`. **Poll this before sending anything**: the control API answers long before the debug session is up, and a send in that window is dropped — `/send` reports it as `sent: false` with a `hint`, but nothing retries it for you. |
 | `GET /plugins` | — | Per registered plugin id: `{version, activated, ready, apps:{…}}`. `activated: false` means the host has that plugin **disabled**, so waiting will not help. |
 | `POST /send` | `{app?, pluginId, messageType, payload, policy?}` | Sends a fire-and-forget event. `policy` is `DROP` (default), `QUEUE` or `FAIL`. Answers `{sent, hint?}` — `hint` says *why* a `false` happened. |
 | `POST /request` | `{app?, pluginId, messageType, payload, timeoutMs?}` | Sends a request and waits for the host's reply: `{durationMs, reply}`. |
