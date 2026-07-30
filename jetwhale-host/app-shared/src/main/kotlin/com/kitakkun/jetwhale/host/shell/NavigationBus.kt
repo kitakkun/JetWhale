@@ -6,11 +6,18 @@ import com.kitakkun.jetwhale.host.model.PoppedOutPlugin
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+
+/**
+ * How many pending commands the bus holds. A collector drains them one at a time as they arrive, so
+ * a backlog only forms before the window has composed, or in a host running without one.
+ */
+private const val BUFFER_CAPACITY = 32
 
 /** A plugin screen asked for from outside the composition, by the MCP server. */
 data class ExternalPluginRequest(val pluginId: String, val sessionId: String?)
@@ -23,14 +30,16 @@ data class ExternalPluginRequest(val pluginId: String, val sessionId: String?)
  * after every change, which is what lets a navigator answer questions about the current state — and
  * what lets a caller outside the composition confirm that its own request was applied.
  *
- * The channels are unbounded so sending never suspends and a command sent before the window has
- * composed waits for the collector rather than being dropped.
+ * Sending never suspends, so a command sent before the window has composed waits for the collector
+ * rather than being dropped. The buffer is bounded because the MCP server sends from outside the
+ * composition and a host running without a window has no collector at all: past [BUFFER_CAPACITY]
+ * pending commands the oldest are discarded, which for navigation means the newest intent wins.
  */
 @Inject
 @SingleIn(AppScope::class)
 class NavigationBus {
-    private val commandChannel = Channel<NavCommand>(Channel.UNLIMITED)
-    private val pluginRequestChannel = Channel<ExternalPluginRequest>(Channel.UNLIMITED)
+    private val commandChannel = Channel<NavCommand>(BUFFER_CAPACITY, BufferOverflow.DROP_OLDEST)
+    private val pluginRequestChannel = Channel<ExternalPluginRequest>(BUFFER_CAPACITY, BufferOverflow.DROP_OLDEST)
     private val selectionFlow = MutableStateFlow(Selection(sessionId = null, pluginId = null))
 
     /** Delivered exactly once each, so this must have a single collector: the navigation host. */
