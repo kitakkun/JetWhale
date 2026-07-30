@@ -1,6 +1,6 @@
 # Network Inspector
 
-The Network Inspector is a built-in JetWhale plugin for inspecting the HTTP traffic of your app —
+The Network Inspector is an official JetWhale plugin for inspecting the HTTP traffic of your app —
 and for **mocking responses** without touching your backend.
 
 - 📡 Live view of HTTP transactions (request/response headers, bodies, timing)
@@ -14,6 +14,15 @@ and for **mocking responses** without touching your backend.
 It works with **Ktor** and **OkHttp** clients.
 
 ## Setup
+
+### Install the host plugin
+
+The Network Inspector is in the host's **official catalog**, so no coordinates are needed: open
+**Settings → Plugins → Add Plugins → Official Plugins** and install it with one click. The version
+matching your host is fetched automatically. See
+[Host Settings → Plugins](/guide/host-settings#plugins) for the other install routes.
+
+### Add the agent to your app
 
 Add the core agent plus the adapter for your HTTP client to the app being debugged:
 
@@ -106,6 +115,14 @@ transaction appears live as your app makes requests. Select a transaction to ins
 and response — headers, bodies (with a dedicated JSON view), and status. Use **copy** on a
 transaction to share it or reproduce the request elsewhere.
 
+The host keeps the **latest 500 transactions** per session; older ones are dropped as new traffic
+arrives. Use **clear** (or `com.kitakkun.jetwhale.network.clearTransactions`) before reproducing an
+issue so what you capture afterwards is only what the reproduction produced.
+
+Traffic captured while the host is away is **not** lost: the agent buffers up to **256** events
+(dropping the oldest past that) and flushes them on reconnect, so requests fired before you opened
+the host still show up.
+
 ## Redacting sensitive values
 
 Captured traffic often contains secrets — `Authorization` headers, session cookies, tokens in query
@@ -141,7 +158,34 @@ Without a `redaction` argument no rules apply and captured data is forwarded ver
 The Mocks view lets you define **mock rules** on the host and push them to the running app: when
 mocking is enabled, requests matching a rule get the mocked response instead of hitting the
 network. This is handy for reproducing error states, empty lists, or slow-path payloads without a
-test backend. Toggle mocking on/off at any time from the host — no app restart needed.
+test backend. Toggle **Mocking enabled** on/off at any time from the host — no app restart needed.
+
+### What a rule looks like
+
+**Add rule** opens an editor with these fields. The same shape is what the
+[MCP tools](#mcp-tools) take, so a rule written by hand and one written by an AI agent are
+interchangeable.
+
+| Field | Default | Meaning |
+|-------|---------|---------|
+| **Name** | empty | Human-readable label, shown in the list. |
+| **enabled** | on | Whether the rule takes effect. Rules can be parked without deleting them. |
+| **Method** | any | HTTP method to match, compared case-insensitively. Blank matches any method. |
+| **URL pattern** | — | The pattern, interpreted per the match type. |
+| **match type** | `CONTAINS` | `CONTAINS` (substring), `EXACT` (whole URL), or `REGEX` (a regex that must match somewhere in the URL). An invalid regex simply never matches. |
+| **Status** | `200` | Status code of the mocked response. |
+| **Content-Type** | none | Convenience field for the header of the same name. |
+| **Response body** | empty | The body to return. |
+| **Delay ms** | `0` | Artificial delay before the mocked response is delivered. |
+
+The **first enabled rule that matches** wins, so order the list from most specific to most general.
+Matching is identical in every adapter, because they share one implementation.
+
+::: tip The app owns the mock config
+The mock rules and the enabled flag live on the **agent**, not the host — they survive a host
+restart, and the host fetches them back when it reconnects. That is also why a rule you add applies
+immediately without restarting the app.
+:::
 
 ## MCP tools
 
@@ -150,15 +194,29 @@ an AI agent can read captured traffic and manage mock rules for a session:
 
 | Tool | What it does |
 |------|--------------|
-| `com.kitakkun.jetwhale.network.listTransactions` | Lists captured HTTP transactions |
-| `com.kitakkun.jetwhale.network.getTransaction` | Returns one transaction in full (headers, bodies, timing) |
+| `com.kitakkun.jetwhale.network.listTransactions` | Lists captured HTTP transactions, filterable |
+| `com.kitakkun.jetwhale.network.getTransaction` | Returns one transaction in full (headers, bodies, timing) — takes `txId` from `listTransactions` |
 | `com.kitakkun.jetwhale.network.clearTransactions` | Clears the captured transaction list |
 | `com.kitakkun.jetwhale.network.getMockConfig` | Returns the current mock rules and whether mocking is enabled |
-| `com.kitakkun.jetwhale.network.addMockRule` | Adds a mock rule |
-| `com.kitakkun.jetwhale.network.removeMockRule` | Removes a mock rule |
+| `com.kitakkun.jetwhale.network.addMockRule` | Adds one mock rule from flat arguments |
+| `com.kitakkun.jetwhale.network.removeMockRule` | Removes the rule with a given `id` |
+| `com.kitakkun.jetwhale.network.setMockRules` | Replaces the **whole** rule list in one call |
 | `com.kitakkun.jetwhale.network.setMockingEnabled` | Turns mocking on or off |
 
 Like every MCP tool, they take a required `sessionId` (from `jetwhale.listSessions`).
+
+`listTransactions` narrows a busy capture rather than dumping it: `limit`, `afterTxId` (everything
+recorded after a transaction you already have — the cheap way to poll), `sinceTimestampMs` /
+`untilTimestampMs`, `urlContains` and `method`.
+
+`addMockRule` takes the rule's fields flat (`urlPattern`, `matchType`, `method`, `name`,
+`statusCode`, `body`, `headers`, `contentType`, `delayMs`), appends one enabled rule with a generated
+id, and returns it. `contentType` is a convenience that only fills in a `Content-Type` header when
+`headers` did not already set one.
+
+`setMockRules` instead takes a JSON list of complete rules and **replaces** the whole set — the tool
+to reach for when setting up a scenario, editing a rule (reuse its `id`), or disabling one
+(`enabled: false`) rather than deleting it.
 
 [Redaction rules](#redacting-sensitive-values) apply to MCP output as well: values redacted with
 `RedactionScope.MCP_ONLY` are hidden from these tools' results **and** from `jetwhale.screenshot`

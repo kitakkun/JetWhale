@@ -1,6 +1,6 @@
 # Compose Semantics Inspector
 
-The Compose Semantics Inspector is a built-in JetWhale plugin that reads the **Compose node tree of your
+The Compose Semantics Inspector is an official JetWhale plugin that reads the **Compose node tree of your
 running app** — every node, its labels, its bounds, and the actions it exposes — and lets you both
 browse it in the host and hand it to an AI agent over [MCP](/guide/mcp-server).
 
@@ -66,7 +66,7 @@ suspicious coordinate can be traced back to the window it came from.
 The tree is also richer than what the CLIs return: `android layout` gives a flat list with text,
 `content-desc` and bounds, but no `testTag`, no role and no per-node id, so an agent can only aim by
 label or by pixel. This plugin reports all three, which is what makes
-[`performNodeAction`](#com-kitakkun-jetwhale-compose-performnodeaction) able to address a node
+[`performNodeAction`](#com-kitakkun-jetwhale-semantics-performnodeaction) able to address a node
 directly.
 
 ## What the tree contains
@@ -83,6 +83,22 @@ Two views of it are available, switchable in the host and per MCP call:
 | **Unmerged** | Every semantics node stays separate, closer to how the UI is written. Useful when you need to see exactly which composable contributed which property. |
 
 ## Setup
+
+### Install the host plugin
+
+The Compose Semantics Inspector is **not** in the host's official catalog yet, so install it by
+coordinates: **Settings → Plugins → Add Plugins → Install from Maven**, repository *Maven Central*,
+and
+
+```
+com.kitakkun.jetwhale:jetwhale-compose-semantics-inspector:<version>
+```
+
+where `<version>` is your host's version (shown under **Settings → General → Application**). Pasting
+that whole line into the dialog's **Paste coordinates** field fills the rest in for you. See
+[Host Settings → Plugins](/guide/host-settings#plugins) for the other install routes.
+
+### Add the agent to your app
 
 Add the agent to the app being debugged — one artifact, carrying both the plugin and the probes
 (see [Platform support](#platform-support) for which targets have a probe):

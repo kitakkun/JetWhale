@@ -79,6 +79,13 @@ fun initializeJetWhale() {
 }
 ```
 
+::: warning Always set `port`
+The agent's `connection { }` defaults are `host = "localhost"` and **`port = 8080`**, while the
+host's debug server listens on **5080**. The defaults deliberately do not match, so set `port`
+explicitly to whichever port the host reports in
+[Settings → Connection → Debug Server](/guide/host-settings#debug-server).
+:::
+
 Where to call it, per platform:
 
 - **Android** — in `Application.onCreate()`
@@ -89,8 +96,56 @@ Where to call it, per platform:
 The [demo apps](https://github.com/kitakkun/JetWhale/tree/main/demo) show a complete multiplatform
 setup with a shared `initializeJetWhale()` function.
 
-An optional `logging { }` block controls agent-side logging
-(`enabled = true`, `logLevel = LogLevel.WARN` by default).
+### Logging
+
+An optional `logging { }` block controls agent-side logging:
+
+```kotlin
+startJetWhale {
+    connection { /* ... */ }
+    logging {
+        enabled = true                      // default
+        logLevel = LogLevel.WARN            // default
+        ktorLogLevel = KtorLogLevel.NONE    // default
+    }
+}
+```
+
+- **`logLevel`** is a minimum threshold over `LogLevel.VERBOSE`, `DEBUG`, `INFO`, `WARN`, `ERROR`,
+  `ASSERT`. Nothing is logged at `ASSERT`, so setting it silences the agent entirely.
+- **`ktorLogLevel`** gates the underlying Ktor client's own HTTP logging: `NONE` (default), `HEADERS`,
+  `BODY`, `ALL`. Raise it only when diagnosing the connection itself — it is noisy.
+
+There is no custom-logger hook, and the configuration is process-global: with several concurrent
+sessions, the last `startJetWhale` call wins.
+
+### Stopping a session
+
+`startJetWhale` returns a **`JetWhaleSession`** handle:
+
+```kotlin
+val session = startJetWhale { /* ... */ }
+// later
+session.stop()
+```
+
+`stop()` tears the reconnect loop down and drops the plugins. It is **terminal** — a stopped session
+cannot be revived, and repeated calls are ignored. To connect again, call `startJetWhale` a second
+time with **fresh plugin instances** (a plugin is bound to the session it was registered with).
+Teardown is asynchronous: `stop()` returns as soon as it is scheduled, and the host observes the
+disconnect shortly after. Holding the handle is optional — most apps start one session for the
+process lifetime and never stop it.
+
+### Reconnecting
+
+The agent retries **forever**. After a failed connection or negotiation it drops the plugins'
+peers, waits, and tries again with a linear backoff that grows by one second per attempt and is
+capped at five (1s, 2s, 3s, 4s, 5s, 5s, …); the counter resets on the first success. None of this is
+configurable, and there is no connection-state API to poll — start the host before the app, or just
+leave the app running until the host comes up.
+
+A disconnect is **not** a deactivation: registered plugins stay activated across it, so an agent
+plugin that buffers events keeps buffering for the next connection.
 
 ### Session metadata
 
@@ -115,11 +170,31 @@ startJetWhale {
 }
 ```
 
+How much is resolved for you differs sharply by platform — Android and iOS fill in everything,
+desktop and web mostly do not:
+
+| Platform | `appName` | `deviceId` | `deviceName` |
+|----------|-----------|------------|--------------|
+| **Android** | the application label | `Settings.Secure.ANDROID_ID` | `Build.MODEL` |
+| **iOS** | `CFBundleDisplayName` / `CFBundleName` | `identifierForVendor` | the device name |
+| **macOS (native)** | `CFBundleDisplayName` / `CFBundleName` | — | the host's localized name |
+| **Desktop (JVM)** | — | — | the `os.name` system property |
+| **Linux / Windows (native)** | — | — | the machine's host name |
+| **Web (JS / WasmJS)** | — | — | `"Web Browser"` |
+
+A dash means nothing is resolved and the field stays empty unless you set it in `app { }`. On
+desktop and web in particular, setting `appName` is what makes a session readable in the host's
+[device / app selector](/guide/host-window#choosing-a-session).
+
+An `appIconPng` whose base64 form exceeds the 32KB cap is dropped with a warning — which is visible,
+since `WARN` is the default log level.
+
 ## Secure connections (wss)
 
 By default the agent connects over plain **ws** (port **5080**). The host can additionally serve
 **secure WebSocket (wss)** on port **5443**, backed by a locally-issued CA — see
-[Host Settings → Server](/guide/host-settings#server) for generating and activating a certificate.
+[Host Settings → SSL certificates](/guide/host-settings#ssl-certificates) for generating and
+activating a certificate.
 
 To make the agent connect over wss, add an `ssl { }` block to `connection { }`. As soon as at least
 one trusted certificate is configured, the connection switches from ws to wss:
@@ -134,7 +209,7 @@ startJetWhale {
             // Option A: fetch and pin the host's active CA automatically (trust-on-first-use).
             trustServerCertificate()
 
-            // Option B: pin a CA you exported from the host's Server settings.
+            // Option B: pin a CA you exported from the host's SSL Certificate settings.
             // trustCertificate(pem = "-----BEGIN CERTIFICATE-----\n...")
         }
     }
@@ -158,8 +233,9 @@ startJetWhale {
   pins the subsequent wss session). Over ADB port forwarding (the usual case) the download never
   leaves the machine, so it is as trustworthy as the ADB link. If the CA cannot be fetched over
   either channel, the connection falls back to plain ws.
-- **`trustCertificate(pem)`** — pins a CA PEM you exported yourself from the host's Server settings
-  (**Show Details → Copy to Clipboard**). Prefer this on an untrusted LAN, where strict pinning
+- **`trustCertificate(pem)`** — pins a CA PEM you exported yourself from the host's
+  [SSL Certificate](/guide/host-settings#ssl-certificates) settings (**Show Details → Copy to
+  Clipboard**). Prefer this on an untrusted LAN, where strict pinning
   matters.
 
 ### Per-platform pinning support
@@ -201,8 +277,37 @@ falls back to `https` over the wss port, no App Transport Security exception for
 Launch your app — it appears as a new session in the host. JetWhale supports multiple simultaneous
 sessions, so you can debug several apps or devices at once.
 
+## Published artifacts
+
+Everything is published to Maven Central under the group **`com.kitakkun.jetwhale`**, all at the same
+version as the host release they belong to.
+
+| Artifact | Where it goes |
+|----------|---------------|
+| `jetwhale-agent-runtime` | The app being debugged. Brings `jetwhale-agent-sdk` and `jetwhale-protocol-core` with it, so you rarely need to name those. |
+| `jetwhale-agent-sdk` | Only when a module writes agent plugins without depending on the runtime. |
+| `jetwhale-protocol-core` | The shared module of a plugin pair, for `JetWhaleEvent` / `JetWhaleRequest`. |
+| `jetwhale-annotations` | `@McpDescription`. Reaches both SDKs transitively; rarely named directly. |
+| `jetwhale-host-sdk` | A host plugin module, as `compileOnly` — see [Developing Plugins](/guide/developing-plugins). |
+| `jetwhale-gradle-plugin` | Applied as the `com.kitakkun.jetwhale.host` Gradle plugin id. |
+| `jetwhale-qa-agent` | Run, not depended on — see [QA Agent](/guide/qa-agent). |
+| `jetwhale-network-inspector`, `-agent`, `-agent-ktor`, `-agent-okhttp`, `-protocol` | [Network Inspector](/guide/network-inspector). |
+| `jetwhale-nav3-navigator`, `jetwhale-nav3-agent`, `jetwhale-nav3-protocol` | [Nav3 Navigator](/guide/nav3-navigator). |
+| `jetwhale-compose-semantics-inspector`, `-agent`, `-protocol` | [Compose Semantics Inspector](/guide/compose-semantics-inspector). |
+
+The `-navigator` / `-inspector` artifacts (no suffix) are the **host** plugin jars — you install
+those into the host rather than into your app; see [Host Settings → Plugins](/guide/host-settings#plugins).
+
+::: warning Published Kotlin Multiplatform targets
+The multiplatform artifacts ship `jvm`, `android`, `js(IR)`, `wasmJs`, `iosArm64`,
+`iosSimulatorArm64`, `macosArm64`, `mingwX64`, `linuxX64` and `linuxArm64`. There is **no `iosX64`
+and no `macosX64`**, so an Intel Mac (and the Intel iOS simulator) cannot resolve them; and there are
+no watchOS/tvOS targets.
+:::
+
 ## Next steps
 
+- [The Host Window](/guide/host-window) — find your way around the debugger UI
 - [Network Inspector](/guide/network-inspector) — inspect and mock HTTP traffic
 - [Compose Semantics Inspector](/guide/compose-semantics-inspector) — browse your app's Compose node tree and
   drive it by node

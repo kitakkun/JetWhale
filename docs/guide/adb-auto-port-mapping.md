@@ -12,7 +12,8 @@ manual `adb reverse` commands needed.
 ## Enabling it
 
 It is **on by default** — Android debugging needs no setup. The toggle lives under
-**ADB support** in the JetWhale host's settings if you want to turn it off.
+[**Settings → Connection → ADB Support**](/guide/host-settings#adb-support) if you want to turn it
+off.
 
 While enabled, the host:
 
@@ -59,7 +60,8 @@ If you'd rather manage the forwarding yourself, turn the setting off and run:
 adb reverse tcp:<serverPort> tcp:<serverPort>
 ```
 
-after each device connection, using the ports shown in **Settings → Server** (repeat for the wss
+after each device connection, using the port shown in
+[**Settings → Connection → Debug Server**](/guide/host-settings#debug-server) (repeat for the wss
 port if the agent connects over wss).
 
 ::: tip Non-Android platforms

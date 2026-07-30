@@ -12,8 +12,8 @@ can inspect and drive your debugging sessions. The built-in tools come in two fa
 
 ## Connecting an AI agent
 
-The server speaks MCP over **SSE**, listening on port **7080** by default (configurable in
-**Settings**):
+The server speaks MCP over **SSE**, bound to **localhost** on port **7080** by default (configurable
+in **Settings → AI Agents → MCP Server**):
 
 - `GET http://localhost:7080/sse` — the SSE stream
 - `POST http://localhost:7080/message?sessionId=...` — client-to-server messages
@@ -24,9 +24,18 @@ For example, to register it with Claude Code:
 claude mcp add --transport sse jetwhale http://localhost:7080/sse
 ```
 
-The host's **Settings → AI Agents → MCP Server** section shows this command — and an equivalent JSON
+The host's **Settings → AI Agents → MCP Server** page shows this command — and an equivalent JSON
 config block for other MCP clients — already filled in with the port the server is actually running
 on, ready to copy.
+
+::: tip Two different things called `sessionId`
+The `sessionId` in the `/message` query string is the **MCP transport** session — one per SSE
+connection, minted by the MCP library. It has nothing to do with the JetWhale **debug** session ids
+that `jetwhale.listSessions` returns and the tools below take as arguments.
+:::
+
+The tool list is computed **when a client connects** and never changes for that connection, so a
+plugin enabled (or a permission re-allowed) mid-session only shows up after the client reconnects.
 
 ## Plugin UI tools
 
@@ -44,6 +53,48 @@ on, ready to copy.
 Because a single host can debug multiple apps at once — each with several plugins — every tool that
 targets a plugin UI takes required `sessionId` **and** `pluginId` parameters: call
 `jetwhale.listSessions` first, then `jetwhale.listPlugins` to pick the plugin.
+
+### Parameters
+
+Beyond that pair, each tool takes:
+
+| Tool | Parameter | Required | Default | Meaning |
+|------|-----------|----------|---------|---------|
+| `screenshot` | `width`, `height` | no | the UI's current size (fallback 1280×720) | Render at a different size for this capture only. Must be supplied **together**. |
+| | `density` | no | the scene's own density | e.g. `2` for HiDPI. Must be finite and greater than 0. |
+| `click` | `x`, `y` | yes | — | Pixels from the plugin UI's left/top edge. |
+| `type` | `text` | no | — | Printable characters to type. |
+| | `specialKey` | no | — | A key name instead of text. **Exactly one** of `text` / `specialKey` must be given. |
+| `scroll` | `x`, `y` | yes | — | Where to scroll. |
+| | `deltaX` | no | `0` | Positive scrolls right, negative left. |
+| | `deltaY` | no | `0` | Positive scrolls down, negative up. |
+| `drag` | `startX`, `startY`, `endX`, `endY` | yes | — | The gesture's endpoints, in pixels. |
+| | `steps` | no | `10` | Intermediate move events between them. |
+
+`specialKey` accepts (case-insensitively): `ENTER`, `BACKSPACE`, `DELETE`, `TAB`, `ESCAPE`, `UP`,
+`DOWN`, `LEFT`, `RIGHT`, `HOME`, `END`, `PAGE_UP`, `PAGE_DOWN`. There are no modifier parameters.
+
+Two implementation details worth knowing when a call does not do what you expect:
+
+- **`jetwhale.click` is not a raw pointer event.** It finds the deepest clickable node containing the
+  point and invokes its `OnClick` semantics action, so a point with nothing clickable under it comes
+  back as *No clickable element found*, rather than silently doing nothing.
+- **`jetwhale.type`'s `text` goes to the first editable node in the scene**, not to whatever has
+  focus. Use `specialKey` (or a click first) when the target matters. A special key is dispatched as
+  a real key-down/key-up pair.
+- `jetwhale.drag` is for drag-and-drop gestures; use `jetwhale.scroll` to scroll a list.
+
+`jetwhale.getAccessibilityTree` returns each node's `id`, `role`, `text`, `contentDescription`,
+`bounds` (relative to the plugin UI's root) and the `isClickable` / `isEnabled` / `isFocused` /
+`isSelected` / `isChecked` / `isEditable` flags, nested by `children`. Both it and
+`jetwhale.screenshot` raise the plugin's `LocalIsMcpCapture`, so
+[redaction](#plugin-provided-tools) applies to either.
+
+::: tip Reading the *app's* UI, not the plugin's
+These tools read the **host window's** Compose UI. To read the debugged app's own Compose tree — and
+to invoke a node's action there rather than aiming at pixels — use the
+[Compose Semantics Inspector](/guide/compose-semantics-inspector#mcp-tools).
+:::
 
 ## Host tools
 
@@ -69,7 +120,49 @@ and what the window is showing.
 | `jetwhale.navigate` | Switches the main window to another screen, selecting the session and plugin as it goes |
 
 `jetwhale.getLogs` reads the **host's** log, not the debuggee app's — use it to diagnose JetWhale
-itself, for example a plugin jar that failed to load.
+itself, for example a plugin jar that failed to load. It takes `limit` (default 200, maximum 1000),
+`level` and `contains` (a case-insensitive substring), and answers oldest-first with the matched and
+total counts. Individual messages longer than 2000 characters are truncated.
+
+`level` is `INFO` or `ERROR` — the buffer is the host's captured **stdout** and **stderr**, which is
+all the distinction there is. That is unrelated to the `--log-level` startup option, which decides
+how much the host writes to stdout in the first place.
+
+### `jetwhale.updateSettings`
+
+Every argument is optional; only the ones you supply are touched.
+
+| Argument | Type | What it changes |
+|----------|------|-----------------|
+| `serverPort` | integer | The plain **ws** debug server port. |
+| `wssPort` | integer | The **wss** port. |
+| `wssEnabled` | boolean | Whether the wss connector is exposed at all. |
+| `mcpServerPort` | integer | This server's port. Persisted only — see the warning below. |
+| `adbAutoPortMappingEnabled` | boolean | [ADB auto port mapping](/guide/adb-auto-port-mapping). |
+| `checkForUpdatesOnStartup` | boolean | The startup update check. |
+| `persistData` | boolean | Whether captured debug data survives a host restart. |
+| `restartDebugServer` | boolean | Whether to restart the debug server now. Defaults to `true` when any of `serverPort`, `wssPort`, `wssEnabled` or `adbAutoPortMappingEnabled` changed. |
+
+Ports are validated (`1..65535`) before anything is written, and a call that supplies no settings at
+all is rejected. The result reports exactly which keys were applied, whether the debug server was
+restarted, and notes explaining any deferred effect.
+
+### `jetwhale.navigate`
+
+| Argument | Required | Accepted values |
+|----------|----------|-----------------|
+| `destination` | yes | `HOME`, `PLUGIN`, `SETTINGS`, `INFO`, `LOG_VIEWER` |
+| `pluginId` | for `PLUGIN` | An installed, **enabled** plugin id. |
+| `sessionId` | no | Only for `PLUGIN`; defaults to the session already selected in the drawer. |
+| `settingsSection` | no | Only for `SETTINGS`: `GENERAL`, `SERVER`, `AI_AGENTS`, `PLUGINS`. Defaults to `GENERAL`. |
+
+Navigating to `PLUGIN` also selects that session in the drawer, which is what a subsequent
+`jetwhale.screenshot` of the same plugin will show. The call waits up to two seconds for the window
+to confirm, and reports `applied: false` with a reason if it does not.
+
+`jetwhale.getStatus` can report destinations the tool cannot request — `DISABLED_PLUGIN`, `LICENSES`
+and `MCP_TOOLS`. The tools browser in particular exists so a *person* can watch what an agent is
+doing, so an agent has no reason to send itself there.
 
 ::: warning Destructive host tools
 `jetwhale.restartDebugServer` — and `jetwhale.updateSettings` when it changes a ws/wss setting —
@@ -169,7 +262,10 @@ The [Network Inspector](/guide/network-inspector#mcp-tools) ships a full set of 
 (`com.kitakkun.jetwhale.network.*`) for reading captured traffic and managing mock rules, and the
 [Compose Semantics Inspector](/guide/compose-semantics-inspector#mcp-tools) contributes
 `com.kitakkun.jetwhale.semantics.*` for reading the **debuggee's** Compose node tree and invoking a
-node's own action — the structural counterpart to the coordinate-based `jetwhale.click` below.
+node's own action — the structural counterpart to the coordinate-based `jetwhale.click` above.
+
+A plugin's `mcpCommands` list is read **once per plugin instance activation** and treated as static
+for that instance's lifetime, so a list that changes at runtime is not picked up.
 
 ::: tip Sensitive values
 Plugin UIs can hide sensitive content from `jetwhale.screenshot` **and**
@@ -178,6 +274,31 @@ because the semantics tree carries the same strings the pixels do. The Network I
 [redaction rules](/guide/network-inspector#redacting-sensitive-values) support an `MCP_ONLY` scope
 that keeps values visible to you but hidden from AI agents.
 :::
+
+## The MCP tools browser
+
+The host has its own view of what agents can do and what they have done. Open it from the **wrench
+icon** at the top of the [drawer](/guide/host-window#the-rest-of-the-drawer), or from the **MCP
+badge** on a plugin's drawer row — which lands you already filtered to that plugin.
+
+Two filter rows across the top narrow everything below by **Plugin** and by **Session**. Each is a
+multi-select: pick as many values as you like from the dropdown (it stays open so you can add
+several), and remove one by clicking its chip. With nothing picked the filter reads *All*. A label at
+the right says *MCP available*, or *MCP executing* while a call is running.
+
+**Tools** — a searchable list of every tool in scope on the left (search matches the tool name, its
+description, and the plugin name), and the selected tool's detail on the right: its short and fully
+qualified names, the plugin that publishes it, its description, and each parameter with its type,
+whether it is **required**, and its description. A trailing badge counts how many times that tool has
+been called; while an agent is calling it, the badge takes an accent fill and a rotating ring.
+
+**History** — every call made in the current scope, newest first: the tool, the time of day, and
+whether it succeeded. Selecting one shows the arguments it was called with and the response it
+returned. Each section has an inline copy button, and **Copy details** takes the whole record — a
+right-click on a history row offers the same four copy actions.
+
+This is the fastest way to answer "what did the agent actually send, and what did it get back?" when
+a plugin behaves unexpectedly under automation.
 
 ::: warning The MCP port is unauthenticated
 The SSE endpoint has no authentication, so **any process on the machine** can reach it — and it is
