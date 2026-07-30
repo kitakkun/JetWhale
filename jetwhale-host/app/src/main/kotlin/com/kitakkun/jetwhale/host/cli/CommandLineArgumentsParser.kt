@@ -8,6 +8,8 @@ data class JetWhaleCliOptions(
     val logLevel: JetWhaleLogLevel,
     val serverPortOverrides: ServerPortOverrides,
     val mcpPermissionOverride: McpPermissionOverride,
+    /** Runs the servers with no window, for CI and agent-driven QA. See [com.kitakkun.jetwhale.host.headless.HeadlessHostRunner]. */
+    val headless: Boolean,
 )
 
 enum class JetWhaleLogLevel {
@@ -25,6 +27,7 @@ class CommandLineArgumentsParser {
         var wssPort: Int? = null
         var mcpServerPort: Int? = null
         var mcpAllowAllPermissions = false
+        var headless = false
 
         val iterator = args.iterator()
 
@@ -60,6 +63,8 @@ class CommandLineArgumentsParser {
 
                 "--mcp-allow-all-permissions" -> mcpAllowAllPermissions = true
 
+                "--headless" -> headless = true
+
                 else -> {
                     // Ignore unknown arguments
                 }
@@ -75,6 +80,7 @@ class CommandLineArgumentsParser {
                 mcpServerPort = mcpServerPort,
             ),
             mcpPermissionOverride = McpPermissionOverride(allowAll = mcpAllowAllPermissions),
+            headless = headless,
         )
     }
 

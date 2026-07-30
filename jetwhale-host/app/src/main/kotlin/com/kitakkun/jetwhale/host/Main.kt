@@ -31,6 +31,7 @@ import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.painterResource
 import java.awt.Taskbar
 import javax.imageio.ImageIO
+import kotlin.system.exitProcess
 
 /**
  * Applies the application name and icon at runtime so they are correct even when the host is
@@ -56,9 +57,16 @@ private val DefaultWindowSize = DpSize(1280.dp, 800.dp)
 
 @OptIn(FlowPreview::class)
 fun main(args: Array<String>) = runBlocking {
-    configureAppMetadata()
-
     val cliOptions = CommandLineArgumentsParser().parse(args)
+
+    if (cliOptions.headless) {
+        // AWT reads this once, when its first class is loaded, so it has to be set before anything
+        // else here touches AWT. A headless run has no window to attach to, and a CI machine has no
+        // display for AWT to find.
+        System.setProperty("java.awt.headless", "true")
+    } else {
+        configureAppMetadata()
+    }
 
     val appGraph: JetWhaleAppGraph = createGraphFactory<JetWhaleAppGraph.Factory>()
         .create(
@@ -70,6 +78,11 @@ fun main(args: Array<String>) = runBlocking {
     appGraph.logCaptureService.startCapture()
 
     appGraph.applicationLifecycleOwner.initialize()
+
+    if (cliOptions.headless) {
+        // Serves until signalled; the window and everything that drives it stays uncreated.
+        exitProcess(appGraph.headlessHostRunner.run())
+    }
 
     val persistedWindowState = appGraph.windowStateRepository.loadWindowState()
     val initialWindowSize = persistedWindowState

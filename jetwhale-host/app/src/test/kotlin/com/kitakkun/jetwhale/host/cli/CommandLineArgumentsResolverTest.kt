@@ -6,6 +6,8 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class CommandLineArgumentsResolverTest {
     @Test
@@ -115,6 +117,21 @@ class CommandLineArgumentsResolverTest {
         val options = CommandLineArgumentsParser().parse(arrayOf("--mcp-allow-all-permissions"))
 
         assertEquals(McpPermissionOverride(allowAll = true), options.mcpPermissionOverride)
+    }
+
+    @Test
+    fun `a launch is windowed unless the headless flag is passed`() {
+        val options = CommandLineArgumentsParser().parse(arrayOf("--server-port", "5081"))
+
+        assertFalse(options.headless)
+    }
+
+    @Test
+    fun `the headless flag takes no value and runs the servers without a window`() {
+        val options = CommandLineArgumentsParser().parse(arrayOf("--headless", "--server-port", "5081"))
+
+        assertTrue(options.headless)
+        assertEquals(5081, options.serverPortOverrides.serverPort)
     }
 
     @Test
