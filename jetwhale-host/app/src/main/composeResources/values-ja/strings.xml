@@ -55,4 +55,5 @@
     <string name="mcp_tools_filter_all">すべて</string>
     <string name="mcp_tools_filter_add">フィルターを追加</string>
     <string name="mcp_tools_filter_remove">フィルターを解除</string>
+    <string name="disabled_plugin_message">このプラグインは無効化されています。</string>
 </resources>

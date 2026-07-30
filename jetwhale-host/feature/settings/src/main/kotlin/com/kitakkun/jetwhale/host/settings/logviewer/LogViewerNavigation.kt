@@ -38,7 +38,7 @@ class LogViewerNavEntryProvider(
             val window = LocalComposeWindow.current
             val windowTitle = stringResource(Res.string.log_viewer_window_title)
 
-            LaunchedEffect(window) {
+            LaunchedEffect(window, windowTitle) {
                 window.title = windowTitle
             }
 

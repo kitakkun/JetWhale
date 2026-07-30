@@ -55,4 +55,5 @@
     <string name="mcp_tools_filter_all">All</string>
     <string name="mcp_tools_filter_add">Add filter</string>
     <string name="mcp_tools_filter_remove">Remove filter</string>
+    <string name="disabled_plugin_message">This plugin is disabled.</string>
 </resources>

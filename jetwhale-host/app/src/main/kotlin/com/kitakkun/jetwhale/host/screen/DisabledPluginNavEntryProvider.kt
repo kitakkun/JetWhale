@@ -8,11 +8,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import com.kitakkun.jetwhale.host.Res
+import com.kitakkun.jetwhale.host.disabled_plugin_message
 import com.kitakkun.jetwhale.host.navigation.NavEntryProvider
 import com.kitakkun.jetwhale.host.shell.DisabledPluginNavKey
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
+import org.jetbrains.compose.resources.stringResource
 
 @Inject
 @ContributesIntoSet(AppScope::class)
@@ -25,7 +28,7 @@ class DisabledPluginNavEntryProvider : NavEntryProvider {
                     Modifier.fillMaxSize(),
                     Alignment.Center,
                 ) {
-                    Text("This plugin is disabled.")
+                    Text(stringResource(Res.string.disabled_plugin_message))
                 }
             }
         }

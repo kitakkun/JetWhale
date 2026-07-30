@@ -15,7 +15,7 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun PluginPoppedOutScreen(
-    onBringbackToMainWindow: () -> Unit,
+    onBringBackToMainWindow: () -> Unit,
 ) {
     Surface {
         Column(
@@ -24,7 +24,7 @@ fun PluginPoppedOutScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         ) {
             Text(stringResource(Res.string.plugin_popped_out_message))
-            Button(onClick = onBringbackToMainWindow) {
+            Button(onClick = onBringBackToMainWindow) {
                 Text(stringResource(Res.string.bring_back_to_main_window))
             }
         }
@@ -35,6 +35,6 @@ fun PluginPoppedOutScreen(
 @Composable
 private fun PluginPoppedOutScreenPreview() {
     PluginPoppedOutScreen(
-        onBringbackToMainWindow = {},
+        onBringBackToMainWindow = {},
     )
 }

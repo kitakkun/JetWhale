@@ -31,7 +31,7 @@ class PluginNavEntryProvider(
             ) {
                 if (poppedOutPlugins.isPoppedOut(navKey.pluginId, navKey.sessionId)) {
                     PluginPoppedOutScreen(
-                        onBringbackToMainWindow = {
+                        onBringBackToMainWindow = {
                             navigator.bringBackToMainWindow(navKey.pluginId, navKey.sessionId)
                         },
                     )
