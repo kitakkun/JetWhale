@@ -86,16 +86,9 @@ Two views of it are available, switchable in the host and per MCP call:
 
 ### Install the host plugin
 
-The Compose Semantics Inspector is **not** in the host's official catalog yet, so install it by
-coordinates: **Settings → Plugins → Add Plugins → Install from Maven**, repository *Maven Central*,
-and
-
-```
-com.kitakkun.jetwhale:jetwhale-compose-semantics-inspector:<version>
-```
-
-where `<version>` is your host's version (shown under **Settings → General → Application**). Pasting
-that whole line into the dialog's **Paste coordinates** field fills the rest in for you. See
+The Compose Semantics Inspector is in the host's **official catalog**, so no coordinates are needed:
+open **Settings → Plugins → Add Plugins → Official Plugins** and install it with one click. The
+version matching your host is fetched automatically. See
 [Host Settings → Plugins](/guide/host-settings#plugins) for the other install routes.
 
 ### Add the agent to your app

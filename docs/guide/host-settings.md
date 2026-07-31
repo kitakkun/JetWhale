@@ -156,10 +156,11 @@ The **Installed Plugins** page lists what is loaded; **Add Plugins** is where ne
 Installed plugins live in `~/.jetwhale/plugins/`. There are three ways to install one:
 
 - **Official Plugins** — one-click install from the official catalog, no coordinates needed. The
-  catalog currently holds the [Network Inspector](/guide/network-inspector) and the
-  [Nav3 Navigator](/guide/nav3-navigator). The artifact version matching the running host is fetched
-  from Maven Central, falling back to the matching snapshot build when the release is not
-  published yet (snapshot hosts fetch their matching snapshot directly).
+  catalog currently holds the [Network Inspector](/guide/network-inspector), the
+  [Nav3 Navigator](/guide/nav3-navigator) and the
+  [Compose Semantics Inspector](/guide/compose-semantics-inspector). The artifact version matching
+  the running host is fetched from Maven Central, falling back to the matching snapshot build when
+  the release is not published yet (snapshot hosts fetch their matching snapshot directly).
 - **Install from Maven** — enter the plugin's `group:artifact:version` and pick a repository
   preset (Maven Central, Central Snapshots, Google, JitPack) or a custom URL. Pasting a plain
   coordinate line (optionally with `@https://your.repo/url`), a Gradle dependency line, or a Maven
