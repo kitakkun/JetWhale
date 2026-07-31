@@ -238,7 +238,7 @@ The capture and action layer is written against `SemanticsOwner`, which lives in
 |---|---|---|
 | **Android** | ✅ | `installJetWhaleSemanticsProbe(application)`, or `JetWhaleSemanticsProbe()` in a composition |
 | **Desktop (JVM)** | ✅ | `JetWhaleSemanticsProbe()` inside your `Window { }` |
-| iOS, JS, Wasm | — | register a `SemanticsOwner` yourself (below) |
+| iOS, JS, Wasm | — | not yet reachable — see [iOS and web](#ios-and-web) |
 
 Those are the targets the agent artifact ships for — Compose Multiplatform's own set. Linux, mingw
 and macOS are absent: the first two have no `androidx.compose.ui` at all, and macOS needs the whole
@@ -250,7 +250,25 @@ a composition. Desktop has no such callback, so its probe is scoped to a window 
 that window appears and disappears on its own. A second `Window { }` is a second composition and
 needs its own call.
 
-On a target with no probe, register an owner you already hold and everything else works unchanged:
+### iOS and web
+
+There is no probe on iOS, JS or Wasm because Compose Multiplatform currently hands out no
+`SemanticsOwner` on those targets — not to a probe, and not to your own code either.
+
+`ComposeUIViewController`, `ComposeUIView` and `ComposeViewport` build their `ComposeScene`
+internally. `PlatformContext.SemanticsOwnerListener` is the seam that would deliver the owners, but
+it is only consulted for a scene the caller constructs, so an app cannot supply one. Nor is there a
+route from inside the composition: `SemanticsNode.root` is public, but reaching a `SemanticsNode`
+needs an owner to begin with.
+
+Desktop was in the same position until Compose Multiplatform 1.10 exposed
+`ComposeWindow.semanticsOwners`; iOS and web have no equivalent yet. The plugin's capture and action
+layer is already common code, so a probe for both targets is a small addition once an owner can be
+reached.
+
+Until then, `registerSemanticsOwner` is the seam to use for any host you build yourself on top of
+`ComposeScene` — including `ImageComposeScene`, whose `semanticsOwners` *is* available on these
+targets:
 
 ```kotlin
 import com.kitakkun.jetwhale.plugins.semantics.agent.ComposeNodeSourceRegistry
@@ -275,7 +293,7 @@ your classpath; pass your own `ComposeUiThread` to `registerSemanticsOwner` if t
 
 **"The app reported no Compose root."** No probe is installed. Add
 `installJetWhaleSemanticsProbe(application)`, or `JetWhaleSemanticsProbe()` inside your
-composition.
+composition. On iOS, JS and Wasm this is expected — see [iOS and web](#ios-and-web).
 
 **A dialog's contents are missing.** A dialog is a separate Compose root. The Application-level
 probe finds it; an in-composition probe only registers the root it was called in.
