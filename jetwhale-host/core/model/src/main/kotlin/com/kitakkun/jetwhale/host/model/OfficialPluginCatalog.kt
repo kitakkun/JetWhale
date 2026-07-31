@@ -59,5 +59,11 @@ object OfficialPluginCatalog {
             description = "Inspect and drive the Navigation 3 back stack of connected debug sessions.",
             artifactId = "jetwhale-nav3-navigator",
         ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.semantics",
+            displayName = "Compose Semantics Inspector",
+            description = "Browse and drive the Compose node tree of connected debug sessions.",
+            artifactId = "jetwhale-compose-semantics-inspector",
+        ),
     )
 }
