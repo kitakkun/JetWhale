@@ -238,7 +238,7 @@ The capture and action layer is written against `SemanticsOwner`, which lives in
 |---|---|---|
 | **Android** | ✅ | `installJetWhaleSemanticsProbe(application)`, or `JetWhaleSemanticsProbe()` in a composition |
 | **Desktop (JVM)** | ✅ | `JetWhaleSemanticsProbe()` inside your `Window { }` |
-| iOS, JS, Wasm | — | not yet reachable — see [iOS and web](#ios-and-web) |
+| iOS, JS, Wasm | — | the standard entry points expose no owner — see [iOS and web](#ios-and-web) |
 
 Those are the targets the agent artifact ships for — Compose Multiplatform's own set. Linux, mingw
 and macOS are absent: the first two have no `androidx.compose.ui` at all, and macOS needs the whole
@@ -252,8 +252,8 @@ needs its own call.
 
 ### iOS and web
 
-There is no probe on iOS, JS or Wasm because Compose Multiplatform currently hands out no
-`SemanticsOwner` on those targets — not to a probe, and not to your own code either.
+There is no probe on iOS, JS or Wasm because Compose Multiplatform hands out no `SemanticsOwner` for
+the scene your app actually shows — not to a probe, and not to your own code either.
 
 `ComposeUIViewController`, `ComposeUIView` and `ComposeViewport` build their `ComposeScene`
 internally. `PlatformContext.SemanticsOwnerListener` is the seam that would deliver the owners, but
