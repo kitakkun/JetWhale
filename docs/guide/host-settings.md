@@ -272,9 +272,47 @@ When you launch the host from a plugin project with
 | `--plugin-dir <path>` | — | Load plugins from an additional directory, on top of `~/.jetwhale/plugins/`. **Repeatable.** |
 | `--log-level <level>` | `WARN` | Minimum level the host's own logging emits: `DEBUG`, `INFO`, `WARN` or `ERROR`. Raise it when diagnosing a plugin that will not load, then read the result in the [log viewer](/guide/host-window#the-log-viewer). |
 | `--mcp-allow-all-permissions` | off | Allows every MCP tool for that process only — see [MCP Server → Lifting every permission for one launch](/guide/mcp-server#lifting-every-permission-for-one-launch). |
+| `--headless` | off | Runs without the application window — see [Headless mode](#headless-mode) below. |
 
 Ports are validated at parse time (they must be in `1..65535`), so a typo is reported immediately
 rather than as a bind failure later. Unrecognized arguments are ignored.
+
+### Headless mode
+
+`--headless` runs the host without opening its window. The debug server, the MCP server and plugin
+instances all come up as usual, so a CI job or an AI agent can drive plugins on a machine with no
+display.
+
+```bash
+./gradlew :myPlugin:runJetWhale \
+  --args="--headless --server-port 5081 --wss-port 5444 --mcp-server-port 7081"
+```
+
+The host prints the ports it bound and then `JetWhale headless: ready`; wait for that line before
+connecting. If a port cannot be bound the process exits non-zero rather than staying up unable to
+serve. `SIGTERM` and `SIGINT` stop it gracefully.
+
+Plugins do not need a window to work. Plugin state is fed by the messages their agent sends, and a
+plugin's Compose scene is created on demand by whichever MCP tool asks for it, so
+[`screenshot`](/guide/mcp-server) and the interaction tools render exactly as they do with a window.
+
+Three differences are worth knowing before you script against it:
+
+- **`jetwhale.navigate` does not work.** It moves the main window's back stack, so with no window it
+  always reports `applied: false` after its confirmation timeout. Tools that address a plugin
+  directly are unaffected.
+- **Coordinates differ from a windowed run.** With no window reporting a density, scenes render at
+  density 1.0, so the same element sits at different coordinates than it would on a HiDPI display.
+  Always read coordinates from `jetwhale.accessibilityTree` in the same run rather than carrying
+  them over from a windowed session.
+- **A fresh app-data directory enables no plugins.** Enable them with `jetwhale.setPluginEnabled`
+  over MCP, or point `-Djetwhale.appDataDir` at a directory where they already are. Approving a new
+  plugin jar's signature is still a settings-UI action, so headless runs load already-trusted jars
+  and the dev-plugins directory.
+
+Headless is a little lighter than a windowed run — it starts a few hundred milliseconds sooner and
+uses roughly 15% less memory — but that is not the reason to use it. Use it because a windowed host
+cannot start at all where there is no display.
 
 ::: tip Plugin developers use a sandbox, not `~/.jetwhale`
 `runJetWhale` / `runJetWhaleHot` also set `-Djetwhale.appDataDir` and `-Djetwhale.devPluginsDir`, so

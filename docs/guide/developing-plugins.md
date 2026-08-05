@@ -19,6 +19,10 @@ The `com.kitakkun.jetwhale.host` plugin gives your plugin's module these tasks:
 | `runJetWhaleHot`         | Like `runJetWhale`, but runs the host on the JetBrains Runtime so structural changes hot-reload in place (see [Limitations](#limitations)), and auto re-stages your plugin in the background — the whole hot-reload loop in one command. |
 | `runJetWhaleQaAgent`     | Runs a headless debuggee your plugin can render against, driven over HTTP — see [QA Agent](/guide/qa-agent). |
 
+Pass `--args="--headless"` to `runJetWhale` to launch the host without its window, which is how a
+plugin is exercised on a machine with no display — see
+[Headless mode](/guide/host-settings#headless-mode).
+
 `runJetWhale` and `runJetWhaleHot` launch the host on a **Java 21** toolchain (`runJetWhaleHot`
 additionally requires the JetBrains vendor), independently of the toolchain your plugin module
 itself compiles with.
