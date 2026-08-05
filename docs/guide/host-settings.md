@@ -279,9 +279,9 @@ rather than as a bind failure later. Unrecognized arguments are ignored.
 
 ### Headless mode
 
-`--headless` runs the host without opening its window. The agent WebSocket server, the MCP server
-and plugin instances all come up as usual, so a CI job or an AI agent can drive plugins on a machine
-with no display.
+`--headless` runs the host without opening its window. The debug server, the MCP server and plugin
+instances all come up as usual, so a CI job or an AI agent can drive plugins on a machine with no
+display.
 
 ```bash
 ./gradlew :myPlugin:runJetWhale \
