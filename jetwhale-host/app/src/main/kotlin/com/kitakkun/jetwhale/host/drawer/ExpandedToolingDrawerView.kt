@@ -177,7 +177,6 @@ fun ExpandedToolingDrawerView(
                                         selected = it.id == selectedPluginId,
                                         underAiControl = it.underAiControl,
                                         exposesMcpTools = it.exposesMcpTools,
-                                        isHeadless = it.isHeadless,
                                         onClickMcpBadge = { onOpenMcpTools(it.id) },
                                         onClick = { onClickPlugin(it) },
                                         popupMenuContent = { dismiss ->
@@ -253,7 +252,6 @@ fun ExpandedToolingDrawerView(
                                         selected = false,
                                         underAiControl = it.underAiControl,
                                         exposesMcpTools = it.exposesMcpTools,
-                                        isHeadless = it.isHeadless,
                                         onClickMcpBadge = { onOpenMcpTools(it.id) },
                                         onClick = {
                                             // do nothing
@@ -301,7 +299,6 @@ fun ExpandedToolingDrawerView(
                                     selected = false,
                                     underAiControl = it.underAiControl,
                                     exposesMcpTools = it.exposesMcpTools,
-                                    isHeadless = it.isHeadless,
                                     onClickMcpBadge = { onOpenMcpTools(it.id) },
                                     onClick = {
                                         // do nothing

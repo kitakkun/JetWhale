@@ -15,17 +15,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipAnchorPosition
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,12 +34,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.model.PluginIconResource
-import com.kitakkun.jetwhale.host.plugin_headless_badge
-import com.kitakkun.jetwhale.host.plugin_headless_badge_tooltip
 import com.kitakkun.jetwhale.host.puzzle_filled
 import com.kitakkun.jetwhale.host.puzzle_outlined
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun PluginDrawerItemView(
@@ -54,7 +45,6 @@ fun PluginDrawerItemView(
     selected: Boolean,
     underAiControl: Boolean,
     exposesMcpTools: Boolean,
-    isHeadless: Boolean,
     activeIconResource: PluginIconResource?,
     inactiveIconResource: PluginIconResource?,
     onClick: () -> Unit,
@@ -84,9 +74,6 @@ fun PluginDrawerItemView(
                             operating = underAiControl,
                             onClick = onClickMcpBadge,
                         )
-                    }
-                    if (isHeadless) {
-                        NoUiBadge()
                     }
                 }
             },
@@ -179,35 +166,6 @@ private fun McpBadge(
             contentDescription = null,
             tint = contentColor,
             modifier = Modifier.size(11.dp),
-        )
-    }
-}
-
-/**
- * A compact "No UI" badge shown after a plugin's name when the plugin renders nothing. Without it a
- * headless plugin is indistinguishable in the list from one whose UI failed to draw.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun NoUiBadge() {
-    val shape = RoundedCornerShape(4.dp)
-    TooltipBox(
-        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-        tooltip = {
-            PlainTooltip {
-                Text(stringResource(Res.string.plugin_headless_badge_tooltip))
-            }
-        },
-        state = rememberTooltipState(),
-    ) {
-        Text(
-            text = stringResource(Res.string.plugin_headless_badge),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .clip(shape)
-                .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, shape)
-                .padding(horizontal = 5.dp, vertical = 1.dp),
         )
     }
 }
