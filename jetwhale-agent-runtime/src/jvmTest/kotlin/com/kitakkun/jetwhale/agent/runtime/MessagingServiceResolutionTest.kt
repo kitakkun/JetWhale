@@ -5,9 +5,11 @@ import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Collections
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -18,8 +20,14 @@ private const val RESOLUTION_TIMEOUT_MILLIS = 10_000L
 /** Comfortably under the shortest backoff (1s), so waiting one out would blow this window. */
 private const val BACKOFF_FREE_WINDOW_MILLIS = 800L
 
+/** Comfortably over the two seconds a session has to last before it counts as having worked. */
+private const val HELD_SESSION_MILLIS = 2_500L
+
 /** Records every address dialled, and refuses all of them except those named in [reachable]. */
-private class RecordingSocketClient(private val reachable: Set<ResolvedEndpoint> = emptySet()) : JetWhaleSocketClient {
+private class RecordingSocketClient(
+    private val reachable: Set<ResolvedEndpoint> = emptySet(),
+    private val closeImmediately: Boolean = false,
+) : JetWhaleSocketClient {
     val attempts: MutableList<ResolvedEndpoint> = Collections.synchronizedList(mutableListOf())
     val attemptCount: Channel<ResolvedEndpoint> = Channel(Channel.UNLIMITED)
     val connected: CompletableDeferred<ResolvedEndpoint> = CompletableDeferred()
@@ -35,6 +43,8 @@ private class RecordingSocketClient(private val reachable: Set<ResolvedEndpoint>
         if (endpoint !in reachable) throw IllegalStateException("unreachable")
         connected.complete(endpoint)
         debuggerEvents = Channel(Channel.UNLIMITED)
+        // A closed event flow ends the session as soon as the service starts collecting it.
+        if (closeImmediately) debuggerEvents.close()
         return JetWhaleConnection(
             negotiationResult = ClientSessionNegotiationResult.Success(availablePluginIds = emptyList()),
             debuggerEventFlow = debuggerEvents.receiveAsFlow(),
@@ -97,8 +107,8 @@ class MessagingServiceResolutionTest {
     }
 
     @Test
-    fun `a session that ends reconnects without waiting out a backoff`() = runBlocking {
-        // Refusals before the candidate that worked are not the round's verdict, so an ended session
+    fun `a session that held reconnects without waiting out a backoff`() = runBlocking {
+        // Refusals before the candidate that worked are not the round's verdict, so a session that ran
         // is not treated as a failed round: it reconnects at once, as it did before candidates were
         // tried in turn.
         val refused = ResolvedEndpoint("refused", 1)
@@ -109,7 +119,9 @@ class MessagingServiceResolutionTest {
         try {
             withTimeout(RESOLUTION_TIMEOUT_MILLIS) {
                 socketClient.connected.await()
-                // End the session; a backoff-free reconnect dials the whole round again promptly.
+                // Long enough that the session counts as having worked rather than as a host dropping
+                // it straight away, which is a failed round and does owe a backoff.
+                delay(HELD_SESSION_MILLIS)
                 socketClient.closeConnection()
                 withTimeout(BACKOFF_FREE_WINDOW_MILLIS) {
                     while (socketClient.attempts.size < 4) socketClient.attemptCount.receive()
@@ -120,6 +132,28 @@ class MessagingServiceResolutionTest {
         }
 
         assertEquals(listOf(refused, reachable, refused, reachable), socketClient.attempts.take(4))
+    }
+
+    @Test
+    fun `a host that accepts and drops straight away does not spin the loop`() = runBlocking {
+        // Seen for real: a host whose websocket handler threw after the upgrade, accepting and closing
+        // each time. Reconnecting with no delay would dial it as fast as it can close.
+        val flapping = ResolvedEndpoint("flapping", 1)
+        val socketClient = RecordingSocketClient(reachable = setOf(flapping), closeImmediately = true)
+        val service = service(socketClient, ScriptedEndpointResolver(listOf(listOf(flapping))))
+
+        try {
+            withTimeout(RESOLUTION_TIMEOUT_MILLIS) {
+                socketClient.attemptCount.receive()
+                socketClient.attemptCount.receive()
+            }
+            // A backoff was owed between them, so a third cannot arrive inside the window a
+            // delay-free loop would have filled with hundreds.
+            val third = withTimeoutOrNull(BACKOFF_FREE_WINDOW_MILLIS) { socketClient.attemptCount.receive() }
+            assertEquals(null, third, "expected the loop to be backing off, got another attempt")
+        } finally {
+            service.stopService()
+        }
     }
 
     @Test
