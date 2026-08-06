@@ -30,3 +30,10 @@ jobs:
 
       - name: Run tests
         run: ./gradlew check
+
+      # `check` on the root build does not descend into included builds — it pulls in the agent
+      # plugin's `jar` (the demo consumes it) but none of its tests. The Kotlin matrix runs them,
+      # but only when jetwhale-agent-plugin/** changes, which is precisely not the case for the
+      # change most likely to break them: a rename in the runtime DSL the plugin rewrites.
+      - name: Run agent plugin tests
+        run: ./gradlew -p jetwhale-agent-plugin check

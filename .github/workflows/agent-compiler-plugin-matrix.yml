@@ -12,10 +12,14 @@ on:
       - main
     paths:
       - 'jetwhale-agent-plugin/**'
+      # The plugin rewrites JetWhaleEndpointScope's members by name, so a change there can break it
+      # without touching a single file under jetwhale-agent-plugin/.
+      - 'jetwhale-agent-runtime/src/commonMain/**'
       - '.github/workflows/agent-compiler-plugin-matrix.yml'
   pull_request:
     paths:
       - 'jetwhale-agent-plugin/**'
+      - 'jetwhale-agent-runtime/src/commonMain/**'
       - '.github/workflows/agent-compiler-plugin-matrix.yml'
 
 concurrency:
