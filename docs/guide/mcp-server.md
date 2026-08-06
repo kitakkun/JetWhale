@@ -125,8 +125,8 @@ itself, for example a plugin jar that failed to load. It takes `limit` (default 
 total counts. Individual messages longer than 2000 characters are truncated.
 
 `level` is `INFO` or `ERROR` — the buffer is the host's captured **stdout** and **stderr**, which is
-all the distinction there is. It has nothing to do with the `--log-level` startup option, which the
-host currently parses but does not act on.
+all the distinction there is. It has nothing to do with the `--log-level` startup option, which sets
+the root logger's threshold rather than choosing between these two streams.
 
 ### `jetwhale.updateSettings`
 
