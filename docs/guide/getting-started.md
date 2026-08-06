@@ -68,7 +68,10 @@ import com.kitakkun.jetwhale.agent.runtime.startJetWhale
 fun initializeJetWhale() {
     startJetWhale {
         connection {
-            endpoints { ws("localhost", 5080) } // the host's plain WebSocket server port
+            endpoints {
+                // the host's plain WebSocket server port
+                ws("localhost", 5080)
+            }
         }
         plugins {
             // register agent plugins here, e.g. the Network Inspector:
@@ -85,9 +88,10 @@ reports in [Settings → Connection → Debug Server](/guide/host-settings#debug
 :::
 
 ::: info `host` / `port` are deprecated
-Earlier releases configured the address with separate `host` and `port` properties. They still work
-and amount to a single candidate taking its scheme from `ssl { }`, but new code should declare
-`endpoints { }` — it is what
+Earlier releases configured the address with separate `host` and `port` properties. They still work,
+as a single candidate — and they are the one case where `ssl { }` does decide the scheme, because
+unlike `ws(...)` and `wss(...)` they carry none of their own. New code should declare
+`endpoints { }`; it is what
 [host discovery](#zero-config-host-discovery-recommended-for-physical-devices) extends.
 :::
 
@@ -143,11 +147,19 @@ process lifetime and never stop it.
 
 ### Reconnecting
 
-The agent retries **forever**. After a failed connection or negotiation it drops the plugins'
-peers, waits, and tries again with a linear backoff that grows by one second per attempt and is
-capped at five (1s, 2s, 3s, 4s, 5s, 5s, …); the counter resets on the first success. None of this is
-configurable, and there is no connection-state API to poll — start the host before the app, or just
-leave the app running until the host comes up.
+The agent retries **forever**. The unit it retries is a whole **round**: every candidate in
+`endpoints { }`, in order. A candidate that refuses costs nothing but a move to the next one; a
+candidate that swallows packets rather than refusing is abandoned after 30 seconds.
+
+Only a round where *nothing* accepted waits before the next one, with a linear backoff that grows by
+one second per round and is capped at five (1s, 2s, 3s, 4s, 5s, 5s, …). A round that served a session
+costs no delay, however many candidates refused first. Either way the plugins' peers are dropped and
+the next round starts from the top of the list.
+
+The counter resets on a connection that **held** — a session that ends within two seconds of opening
+counts as a failure, so a host that accepts the upgrade and immediately drops it cannot make the
+agent spin. None of this is configurable, and there is no connection-state API to poll — start the
+host before the app, or just leave the app running until the host comes up.
 
 A disconnect is **not** a deactivation: registered plugins stay activated across it, so an agent
 plugin that buffers events keeps buffering for the next connection.
@@ -155,9 +167,8 @@ plugin that buffers events keeps buffering for the next connection.
 ### Session metadata
 
 The agent reports app/device metadata to the host during connection, and the host uses it to label
-and group sessions (for example, all sessions from the same physical device). Everything is
-resolved automatically on a best-effort basis — the app name on Android/iOS/macOS, a stable device
-identifier and the device name per platform — so usually you configure nothing.
+and group sessions (for example, all sessions from the same physical device). Most of it is resolved
+automatically, on a best-effort basis, so usually you configure nothing.
 
 To override any of it (or supply values on platforms where auto-resolution is unavailable), add an
 `app { }` block; explicit values always win over the auto-resolved defaults:
@@ -194,14 +205,27 @@ desktop and web in particular, setting `appName` is what makes a session readabl
 An `appIconPng` whose base64 form exceeds the 32KB cap is dropped with a warning — which is visible,
 since `WARN` is the default log level.
 
+## 4. Connect a device
+
+- **Desktop / iOS Simulator / Web** debuggees reach the host directly on `localhost` — no extra
+  setup.
+- **Android** devices and emulators need `adb reverse` port forwarding.
+  [ADB auto port mapping](/guide/adb-auto-port-mapping) is on by default, so JetWhale wires it up
+  automatically; turn it off in the host settings to run `adb reverse tcp:5080 tcp:5080` yourself.
+- **Physical devices over Wi-Fi** can use neither route, and need the host's LAN address over wss —
+  see [host discovery](#zero-config-host-discovery-recommended-for-physical-devices) below.
+
+Launch your app — it appears as a new session in the host. JetWhale supports multiple simultaneous
+sessions, so you can debug several apps or devices at once.
+
 ## Zero-config host discovery (recommended for physical devices)
 
 A physical iPhone or Android device on the same Wi-Fi cannot reach the host over `localhost`. Rather
 than hardcoding the host machine's LAN IP (which changes between machines and networks), declare a
 `discoverWss` candidate and let the agent find the host over mDNS/Bonjour.
 
-Candidates are tried **in the order they are declared**, and each names its own scheme — which is
-what lets one configuration serve targets that disagree about which one is possible:
+Candidates are tried **in the order they are declared**, and each names its own scheme — so a single
+configuration can serve targets that cannot use the same one:
 
 ```kotlin
 startJetWhale {
@@ -212,7 +236,7 @@ startJetWhale {
             // In the clear, because it never leaves the machine.
             ws("localhost", 5080)
 
-            // A physical device reaches neither, so it falls through to here and connects over wss.
+            // A physical device reaches none of those, so it falls through to here and connects over wss.
             discoverWss { allowHostName("my-macbook") }
         }
 
@@ -284,8 +308,7 @@ endpoint is a different origin with no CORS headers, so the certificate cannot e
 
 ### Narrowing discovery
 
-`discoverWss { }` has to say which hosts it will accept — an empty block accepts none, and logs why.
-Every host that passes is a candidate, tried in turn until one accepts:
+`discoverWss { }` accepts hosts by advertised name, by resolved address, or by both:
 
 ```kotlin
 connection {
@@ -338,15 +361,14 @@ discovery enabled: start the app first and the host later, and the next browse p
 applies when a host restarts on a different port. A failed round is reported once and not repeated
 while the outcome stays the same, so an unreachable host does not flood the log.
 
-On a platform without mDNS support (**JS/Wasm, Linux, Windows**) there is nothing to browse, and the
-agent goes straight to whatever was declared next.
+The backend doing the browsing differs by target:
 
 | Platform | Discovery backend |
 |----------|-------------------|
 | **JVM (Desktop)** | jmDNS |
 | **Android** | `NsdManager` (`android.net.nsd`) |
-| **iOS / macOS** | `NSNetServiceBrowser` (Network.framework / Bonjour) |
-| **JS / Wasm / Linux / Windows** | Not supported — falls back to the configured host |
+| **iOS / macOS** | `NSNetServiceBrowser` (Foundation / Bonjour) |
+| **JS / Wasm / Linux / Windows** | Not supported — contributes nothing, and the next candidate is reached immediately |
 
 On **iOS**, browsing for the service also requires listing it under `NSBonjourServices` in
 `Info.plist` (see [iOS Local Network permission](#ios-local-network-permission)).
@@ -355,7 +377,8 @@ On **iOS**, browsing for the service also requires listing it under `NSBonjourSe
 
 Discovery exists because a physical device cannot reach the host over loopback. But when the host
 runs on the same machine as the compiler — the usual arrangement — that address is already known at
-build time, and a browse is a slow way to rediscover it. `buildMachineWss(port)` bakes it in:
+build time, and a browse is a slow way to rediscover it. `buildMachineWss(port)` bakes it in. Apply
+the agent Gradle plugin:
 
 ```kotlin
 // the app being debugged — build.gradle.kts
@@ -363,6 +386,8 @@ plugins {
     id("com.kitakkun.jetwhale.agent") version "<version>"
 }
 ```
+
+…then declare the candidate:
 
 ```kotlin
 endpoints {
@@ -384,8 +409,16 @@ refuse a plain connection anyway.
 ::: warning `@ExperimentalJetWhaleApi`
 Unlike the rest of `endpoints { }`, this one's behaviour comes from a Kotlin compiler plugin, and the
 compiler plugin API is `@ExperimentalCompilerApi` — JetBrains breaks it across minor versions by
-design. Supported Kotlin versions are those in the project's CI matrix (currently **2.3.0 – 2.4.x**).
-On a Kotlin the plugin has not caught up with, calls are simply left unrewritten.
+design. CI proves the shipped plugin against **Kotlin 2.3.0 – 2.4.x**, and the Gradle plugin checks
+your Kotlin version up front rather than letting a mismatch surface as a linkage error inside a
+compilation:
+
+- **Below 2.3** — the build **fails** with an explanation. `CompilerPluginRegistrar.pluginId` is
+  abstract from 2.3 and absent before it, so the plugin provably cannot load; write the address out
+  with `wss()` instead.
+- **Above the highest tested minor** — a warning, and the build carries on. It may well work; nobody
+  has shown that it does. If the compilation fails to load the plugin, drop the plugin and use
+  `wss()` until JetWhale catches up.
 :::
 
 ### Without the Gradle plugin
@@ -430,18 +463,22 @@ The address is a **compile task input**, deliberately. Two consequences:
 
 ## Secure connections (wss)
 
-By default the agent connects over plain **ws** (port **5080**). The host can additionally serve
-**secure WebSocket (wss)** on port **5443**, backed by a locally-issued CA — see
-[Host Settings → SSL certificates](/guide/host-settings#ssl-certificates) for generating and
-activating a certificate.
+The host serves plain **ws** on port **5080** and, unless you turn it off, **secure WebSocket (wss)**
+on port **5443** as well, backed by a locally-issued CA. The CA is generated the first time the TLS
+connector starts, so there is nothing to set up — see
+[Host Settings → SSL certificates](/guide/host-settings#ssl-certificates) only when you want to
+export, replace or activate a different one.
 
-To make the agent connect over wss, add an `ssl { }` block to `connection { }`. As soon as at least
-one trusted certificate is configured, the connection switches from ws to wss:
+As above, whether TLS is spoken is the **candidate's** business — write `wss(host, port)` instead of
+`ws(host, port)` — and `ssl { }` only says what to trust once it is:
 
 ```kotlin
 startJetWhale {
     connection {
-        endpoints { wss("localhost", 5443) } // the host's wss port
+        endpoints {
+            // the host's wss port
+            wss("localhost", 5443)
+        }
 
         ssl {
             // Option A: fetch and pin the host's active CA automatically (trust-on-first-use).
@@ -470,7 +507,9 @@ startJetWhale {
   verification in step 2 is security-equivalent to the plain fetch in step 1 (the fetched CA still
   pins the subsequent wss session). Over ADB port forwarding (the usual case) the download never
   leaves the machine, so it is as trustworthy as the ADB link. If the CA cannot be fetched over
-  either channel, the connection falls back to plain ws.
+  either channel, the candidate is still dialled over wss — against the platform's trust store, which
+  a locally-issued CA is not in, so it fails visibly on trust rather than quietly sending in the clear
+  at a TLS port.
 - **`trustCertificate(pem)`** — pins a CA PEM you exported yourself from the host's
   [SSL Certificate](/guide/host-settings#ssl-certificates) settings (**Show Details → Copy to
   Clipboard**). Prefer this on an untrusted LAN, where strict pinning
@@ -511,17 +550,6 @@ iOS silently blocks browsing for a service type that is not declared. If you dia
 explicit address instead of discovering it, `NSBonjourServices` can be omitted. Because the CA fetch
 falls back to `https` over the wss port, no App Transport Security exception for plain HTTP is needed.
 
-## 4. Connect a device
-
-- **Desktop / iOS Simulator / Web** debuggees reach the host directly on `localhost` — no extra
-  setup.
-- **Android** devices and emulators need `adb reverse` port forwarding.
-  [ADB auto port mapping](/guide/adb-auto-port-mapping) is on by default, so JetWhale wires it up
-  automatically; turn it off in the host settings to run `adb reverse tcp:5080 tcp:5080` yourself.
-
-Launch your app — it appears as a new session in the host. JetWhale supports multiple simultaneous
-sessions, so you can debug several apps or devices at once.
-
 ## Published artifacts
 
 Everything is published to Maven Central under the group **`com.kitakkun.jetwhale`**, all at the same
@@ -532,7 +560,7 @@ version as the host release they belong to.
 | `jetwhale-agent-runtime` | The app being debugged. Brings `jetwhale-agent-sdk` and `jetwhale-protocol-core` with it, so you rarely need to name those. |
 | `jetwhale-agent-sdk` | Only when a module writes agent plugins without depending on the runtime. |
 | `jetwhale-protocol-core` | The shared module of a plugin pair, for `JetWhaleEvent` / `JetWhaleRequest`. |
-| `jetwhale-annotations` | `@McpDescription`. Reaches both SDKs transitively; rarely named directly. |
+| `jetwhale-annotations` | `@McpDescription` and the opt-in markers `@ExperimentalJetWhaleApi` / `@InternalJetWhaleApi`. Reaches both SDKs transitively, so it rarely needs declaring. |
 | `jetwhale-host-sdk` | A host plugin module, as `compileOnly` — see [Developing Plugins](/guide/developing-plugins). |
 | `jetwhale-host-gradle-plugin` | Applied as the `com.kitakkun.jetwhale.host` Gradle plugin id. |
 | `jetwhale-agent-gradle-plugin` | Applied as the `com.kitakkun.jetwhale.agent` Gradle plugin id — see [Baking in the build machine's address](#baking-in-the-build-machine-s-address-no-browse). |

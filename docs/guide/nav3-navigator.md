@@ -8,18 +8,24 @@ MCP.
 It is generic: it knows nothing about your screens. Everything it can show and construct is derived
 from the serializers your app **already** gives `rememberNavBackStack`.
 
-## Install the host plugin
+## Setup
+
+### Install the host plugin
 
 The Nav3 Navigator is in the host's **official catalog**: open **Settings → Plugins → Add Plugins →
 Official Plugins** and install it with one click — no coordinates needed. See
 [Host Settings → Plugins](/guide/host-settings#plugins) for the other install routes.
 
-## Add it to your app
+### Add the agent to your app
 
-The agent side is a normal dependency of the app being debugged:
+The agent side is a normal dependency of the app being debugged, alongside the agent runtime that
+`startJetWhale` lives in:
 
 ```kotlin
-implementation("com.kitakkun.jetwhale:jetwhale-nav3-agent:<version>")
+dependencies {
+    implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
+    implementation("com.kitakkun.jetwhale:jetwhale-nav3-agent:<version>")
+}
 ```
 
 A Navigation 3 app already declares how its `NavKey`s serialize, because saved state needs it. Hand
@@ -37,6 +43,11 @@ val navKeyModule = SerializersModule {
 val nav3Plugin = JetWhaleNav3AgentPlugin(Nav3KeyCodec.openPolymorphic(navKeyModule))
 
 startJetWhale {
+    connection {
+        endpoints {
+            ws("localhost", 5080)
+        }
+    }
     plugins {
         register(nav3Plugin)
     }
@@ -72,7 +83,7 @@ JetWhaleNav3AgentPlugin(Nav3KeyCodec.closedPolymorphic(Screen.serializer()))
 ```
 :::
 
-### Several back stacks
+#### Several back stacks
 
 An app that nests navigation registers each stack under its own id, and the host lets you pick:
 

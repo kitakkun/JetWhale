@@ -32,7 +32,7 @@ Pass the agent's own options with `-PjetwhaleQaAgentArgs` (space-separated):
 
 ```shell
 ./gradlew :myPlugin:runJetWhaleQaAgent \
-  -PjetwhaleQaAgentArgs="--plugin com.example.myplugin --port 5080"
+  -PjetwhaleQaAgentArgs="--plugin com.example.myplugin --port 5443"
 ```
 
 | Option | Default | What it does |
@@ -40,7 +40,7 @@ Pass the agent's own options with `-PjetwhaleQaAgentArgs` (space-separated):
 | `--app <name>` | one app named `qa-agent` | Connect as an app of this name, as its own session. **Repeatable** — one process can hold several apps under one device, which is how the host groups them. Names must be unique. |
 | `--plugin <id>[@<version>]` | none | Register a raw-messaging plugin under this id so `/send` and `/request` can drive its host counterpart. Registered for **every** app. Repeatable; the version defaults to `1.0.0`. |
 | `--host <name>` | `localhost` | The JetWhale host to connect to. |
-| `--port <n>` | `5443` | The host's debug port. The agent trusts the host's active CA automatically, so the default is the **wss** port; pass `--port 5080` to use plain ws. |
+| `--port <n>` | `5443` | The host's **wss** port. The agent always dials wss — it trusts the host's active CA automatically — so this is never the plain-ws port (`5080` by default). |
 | `--control-port <n>` | `7100` | Port for the agent's own control API. |
 | `--help`, `-h` | — | Print the usage text and exit. |
 
@@ -52,13 +52,17 @@ It binds loopback IPv4 only. `localhost` may resolve to `::1` first and be refus
 
 | Route | Body | What it does |
 |-------|------|--------------|
-| `GET /health` | — | `{status, ready, apps:{<name>:{connected, ready}}}`. **Poll this before sending anything**: the control API answers long before the debug session is up, and a send in that window is dropped — `/send` reports it as `sent: false` with a `hint`, but nothing retries it for you. |
+| `GET /health` | — | `{status, ready, apps:{<name>:{connected, ready}}}`. **Poll this before sending anything** — see below. |
 | `GET /plugins` | — | Per registered plugin id: `{version, activated, ready, apps:{…}}`. `activated: false` means the host has that plugin **disabled**, so waiting will not help. |
 | `POST /send` | `{app?, pluginId, messageType, payload, policy?}` | Sends a fire-and-forget event. `policy` is `DROP` (default), `QUEUE` or `FAIL`. Answers `{sent, hint?}` — `hint` says *why* a `false` happened. |
 | `POST /request` | `{app?, pluginId, messageType, payload, timeoutMs?}` | Sends a request and waits for the host's reply: `{durationMs, reply}`. |
 | `POST /fire` | `{app?, url, method?, headers?, body?, contentType?}` | Issues a real HTTP request through an instrumented client, so the [Network Inspector](/guide/network-inspector) captures it. Answers `{status, durationMs, bodyPreview}`. |
 | `POST /disconnect` | `{app?}` | Gives one app's session up while the process keeps running — this is how the host's disconnect handling gets exercised. Terminal for that app. |
 | `POST /shutdown` | — | Stops the process. |
+
+The control API answers long before the debug session is up, and a send in that window is dropped —
+`/send` reports it as `sent: false` with a `hint`, but nothing retries it for you. Wait for
+`/health` to report `ready` first.
 
 `app` is optional while only one app is running; with several, a call that does not name one is
 rejected rather than guessed at. `messageType` is the **serial name** of the message class — the

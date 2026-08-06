@@ -17,9 +17,8 @@ It works with **Ktor** and **OkHttp** clients.
 
 ### Install the host plugin
 
-The Network Inspector is in the host's **official catalog**, so no coordinates are needed: open
-**Settings → Plugins → Add Plugins → Official Plugins** and install it with one click. The version
-matching your host is fetched automatically. See
+The Network Inspector is in the host's **official catalog**: open **Settings → Plugins → Add Plugins
+→ Official Plugins** and install it with one click — no coordinates needed. See
 [Host Settings → Plugins](/guide/host-settings#plugins) for the other install routes.
 
 ### Add the agent to your app
@@ -52,8 +51,14 @@ val client = HttpClient {
 }
 
 startJetWhale {
-    connection { endpoints { ws("localhost", 5080) } }
-    plugins { register(networkAgent) }
+    connection {
+        endpoints {
+            ws("localhost", 5080)
+        }
+    }
+    plugins {
+        register(networkAgent)
+    }
 }
 ```
 
@@ -90,8 +95,14 @@ val client = OkHttpClient.Builder()
     .build()
 
 startJetWhale {
-    connection { endpoints { ws("localhost", 5080) } }
-    plugins { register(networkAgent) }
+    connection {
+        endpoints {
+            ws("localhost", 5080)
+        }
+    }
+    plugins {
+        register(networkAgent)
+    }
 }
 ```
 
@@ -112,8 +123,9 @@ networkAgent.okHttpInterceptor(maxBodyChars = 500_000)
 
 Open the **Network Inspector** plugin in the JetWhale host and select your app's session. Each HTTP
 transaction appears live as your app makes requests. Select a transaction to inspect its request
-and response — headers, bodies (with a dedicated JSON view), and status. Use **copy** on a
-transaction to share it or reproduce the request elsewhere.
+and response — headers, bodies (with a dedicated JSON view), and status. Right-click a transaction
+for **Copy as cURL**, **Copy URL** and its request/response bodies, to share it or reproduce the
+request elsewhere.
 
 The host keeps the **latest 500 transactions** per session; older ones are dropped as new traffic
 arrives. Use **clear** (or `com.kitakkun.jetwhale.network.clearTransactions`) before reproducing an
@@ -172,7 +184,7 @@ interchangeable.
 | **enabled** | on | Whether the rule takes effect. Rules can be parked without deleting them. |
 | **Method** | any | HTTP method to match, compared case-insensitively. Blank matches any method. |
 | **URL pattern** | — | The pattern, interpreted per the match type. |
-| **match type** | `CONTAINS` | `CONTAINS` (substring), `EXACT` (whole URL), or `REGEX` (a regex that must match somewhere in the URL). An invalid regex simply never matches. |
+| **match type** | `CONTAINS` | `CONTAINS` (substring), `EXACT` (whole URL), or `REGEX` (a regex that must match somewhere in the URL). An invalid regex never matches. |
 | **Status** | `200` | Status code of the mocked response. |
 | **Content-Type** | none | Convenience field for the header of the same name. |
 | **Response body** | empty | The body to return. |

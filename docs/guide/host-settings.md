@@ -65,9 +65,10 @@ only reads them when it binds, so one restart covers the whole change.
 The status line above them shows the running ports, e.g. *Running on port 5080 (WSS: 5443)* when wss
 is active, and offers **Retry** if the server failed to bind.
 
-The two ports cannot be the same, and each has to be in `1..65535`; **Apply** stays disabled until
-they are. The wss port is stored even while **Enable WSS** is off, so switching wss back on brings
-back the port you last picked.
+Each port has to be in `1..65535` — the wss one too, even while **Enable WSS** is off — and while
+wss is enabled the two cannot be the same. **Apply** stays disabled until both hold. The wss port is
+stored even while **Enable WSS** is off, so switching wss back on brings back the port you last
+picked.
 
 ::: tip Also settable outside the UI
 The same settings are available at launch with [`--wss-port`](#overriding-the-ports-at-startup), and
@@ -118,12 +119,12 @@ unaffected.
 
 ### ADB support
 
-The **Settings → Connection → ADB Support** page carries the Android port forwarding, plus where
-the host found the tool it needs for it:
+The **Settings → Connection → ADB Support** page holds the Android port-forwarding toggle, plus
+where the host found the `adb` it needs for it:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| **Automatically wire ADB port to host PC port** | on | Runs `adb reverse` for Android devices as they connect. Inactive on machines without `adb`. See [ADB Auto Port Mapping](/guide/adb-auto-port-mapping). |
+| **Automatically wire ADB port to host PC port** | on | Runs `adb reverse` for Android devices as they connect. Inactive on machines without `adb`. Read only when the debug server starts, so a change lands on the next server restart. See [ADB Auto Port Mapping](/guide/adb-auto-port-mapping). |
 
 Under **Health Check**, **ADB Executable Path** shows where JetWhale found `adb` (see
 [How adb is found](/guide/adb-auto-port-mapping#how-adb-is-found)), or *ADB command not found*.
@@ -169,8 +170,8 @@ offers **Stop following**, which turns the setting off without a trip back to th
 
 ## Plugins
 
-The **Installed Plugins** page lists what is loaded; **Add Plugins** is where new ones come from and
-**Security** holds the trust settings below.
+The **Installed Plugins** page lists what is loaded, **Add Plugins** is where new ones come from,
+and **Security** holds the [plugin trust](#plugin-trust) settings.
 
 Installed plugins live in `~/.jetwhale/plugins/`. There are three ways to install one:
 
@@ -289,8 +290,8 @@ When you launch the host from a plugin project with
 
 | Option | Default | What it does |
 |--------|---------|--------------|
-| `--plugin-dir <path>` | — | Also load the jars in this directory, on top of `~/.jetwhale/plugins/`. **Repeatable.** These are not trust-gated — naming the directory on the command line *is* the approval — and they are not managed: they do not appear as installed plugins and cannot be uninstalled or revoked from the UI. |
-| `--log-level <level>` | the host's configured level | Minimum level the host's own logging emits: `DEBUG`, `INFO`, `WARN` or `ERROR`. Lower it when diagnosing a plugin that will not load, then read the result in the [log viewer](/guide/host-window#the-log-viewer). Left unset, whatever the host ships configured is used — this option only ever overrides. |
+| `--plugin-dir <path>` | — | Also load the jars in this directory, on top of `~/.jetwhale/plugins/`. **Repeatable.** Not trust-gated — naming the directory on the command line *is* the approval — and not managed: these jars do not appear as installed plugins and cannot be uninstalled or revoked from the UI. |
+| `--log-level <level>` | the host's configured level | Minimum level the host's own logging emits: `DEBUG`, `INFO`, `WARN` or `ERROR`. Lower it when diagnosing a plugin that will not load, then read the result in the [log viewer](/guide/host-window#the-log-viewer). |
 | `--mcp-allow-all-permissions` | off | Allows every MCP tool for that process only — see [MCP Server → Lifting every permission for one launch](/guide/mcp-server#lifting-every-permission-for-one-launch). |
 | `--headless` | off | Runs without the application window — see [Headless mode](#headless-mode) below. |
 
@@ -323,12 +324,13 @@ Three differences are worth knowing before you script against it:
   directly are unaffected.
 - **Coordinates differ from a windowed run.** With no window reporting a density, scenes render at
   density 1.0, so the same element sits at different coordinates than it would on a HiDPI display.
-  Always read coordinates from `jetwhale.accessibilityTree` in the same run rather than carrying
+  Always read coordinates from `jetwhale.getAccessibilityTree` in the same run rather than carrying
   them over from a windowed session.
 - **A fresh app-data directory enables no plugins.** Enable them with `jetwhale.setPluginEnabled`
   over MCP, or point `-Djetwhale.appDataDir` at a directory where they already are. Approving a new
-  plugin jar's signature is still a settings-UI action, so headless runs load already-trusted jars
-  and the dev-plugins directory.
+  plugin jar is still a settings-UI action (the **Approve** button under
+  [Security](#plugin-trust)), so headless runs load already-trusted jars and the dev-plugins
+  directory.
 
 Headless is a little lighter than a windowed run — it starts a few hundred milliseconds sooner and
 uses roughly 15% less memory — but that is not the reason to use it. Use it because a windowed host

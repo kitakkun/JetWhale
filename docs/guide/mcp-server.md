@@ -37,12 +37,20 @@ that `jetwhale.listSessions` returns and the tools below take as arguments.
 The tool list is computed **when a client connects** and never changes for that connection, so a
 plugin enabled (or a permission re-allowed) mid-session only shows up after the client reconnects.
 
+## Discovery tools
+
+Every other tool is addressed to one plugin in one session, and these are where those two ids come
+from. Start here.
+
+| Tool | What it does |
+|------|--------------|
+| `jetwhale.listSessions` | Lists connected debug sessions. Takes no arguments |
+| `jetwhale.listPlugins` | Lists the plugins available in a session. Takes a `sessionId` |
+
 ## Plugin UI tools
 
 | Tool | What it does |
 |------|--------------|
-| `jetwhale.listSessions` | Lists connected debug sessions; other tools take a `sessionId` from here |
-| `jetwhale.listPlugins` | Lists the plugins available in a session |
 | `jetwhale.screenshot` | Captures the current rendered frame of a plugin's Compose UI as a PNG |
 | `jetwhale.click` | Dispatches a mouse click at pixel coordinates in a plugin's UI |
 | `jetwhale.type` | Types text or a special key into a plugin's UI |
@@ -50,9 +58,9 @@ plugin enabled (or a permission re-allowed) mid-session only shows up after the 
 | `jetwhale.drag` | Simulates a drag gesture in a plugin's UI |
 | `jetwhale.getAccessibilityTree` | Returns the Compose semantics (accessibility) tree of a plugin's UI |
 
-Because a single host can debug multiple apps at once — each with several plugins — every tool that
-targets a plugin UI takes required `sessionId` **and** `pluginId` parameters: call
-`jetwhale.listSessions` first, then `jetwhale.listPlugins` to pick the plugin.
+Because a single host can debug multiple apps at once — each with several plugins — every one of
+these takes required `sessionId` **and** `pluginId` parameters: call `jetwhale.listSessions` first,
+then `jetwhale.listPlugins` to pick the plugin.
 
 ### Parameters
 
@@ -74,7 +82,7 @@ Beyond that pair, each tool takes:
 `specialKey` accepts (case-insensitively): `ENTER`, `BACKSPACE`, `DELETE`, `TAB`, `ESCAPE`, `UP`,
 `DOWN`, `LEFT`, `RIGHT`, `HOME`, `END`, `PAGE_UP`, `PAGE_DOWN`. There are no modifier parameters.
 
-Two implementation details worth knowing when a call does not do what you expect:
+Worth knowing when a call does not do what you expect:
 
 - **`jetwhale.click` is not a raw pointer event.** It finds the deepest clickable node containing the
   point and invokes its `OnClick` semantics action, so a point with nothing clickable under it comes
@@ -98,14 +106,10 @@ to invoke a node's action there rather than aiming at pixels — use the
 
 ## Host tools
 
-These target the debug tool itself rather than one plugin instance, so none of them takes the
-required `sessionId` + `pluginId` pair the plugin UI tools route on. Some do take a `pluginId` or an
-optional `sessionId` as ordinary arguments — which plugin to enable, which session to open — but the
-tool is not scoped to them.
-
-`jetwhale.getStatus` is the recommended first call: one parameter-free request tells an agent the
-host version, both servers' endpoints, how many sessions and plugins are live, the current settings,
-and what the window is showing.
+These target the debug tool itself rather than one plugin instance. `jetwhale.getStatus` is the
+recommended first call: one parameter-free request tells an agent the host version, both servers'
+endpoints, how many sessions and plugins are live, the current settings, and what the window is
+showing.
 
 | Tool | What it does |
 |------|--------------|
@@ -119,14 +123,18 @@ and what the window is showing.
 | `jetwhale.restartDebugServer` | Restarts the debug WebSocket server |
 | `jetwhale.navigate` | Switches the main window to another screen, selecting the session and plugin as it goes |
 
+None of them takes the required `sessionId` + `pluginId` pair the plugin UI tools route on. Some do
+take a `pluginId` or an optional `sessionId` as ordinary arguments — which plugin to enable, which
+session to open — but the tool is not scoped to them.
+
 `jetwhale.getLogs` reads the **host's** log, not the debuggee app's — use it to diagnose JetWhale
 itself, for example a plugin jar that failed to load. It takes `limit` (default 200, maximum 1000),
 `level` and `contains` (a case-insensitive substring), and answers oldest-first with the matched and
 total counts. Individual messages longer than 2000 characters are truncated.
 
 `level` is `INFO` or `ERROR` — the buffer is the host's captured **stdout** and **stderr**, which is
-all the distinction there is. That is unrelated to the `--log-level` startup option, which decides
-how much the host writes to stdout in the first place.
+all the distinction there is. It has nothing to do with the `--log-level` startup option, which sets
+the root logger's threshold rather than choosing between these two streams.
 
 ### `jetwhale.updateSettings`
 
@@ -154,7 +162,7 @@ restarted, and notes explaining any deferred effect.
 | `destination` | yes | `HOME`, `PLUGIN`, `SETTINGS`, `INFO`, `LOG_VIEWER` |
 | `pluginId` | for `PLUGIN` | An installed, **enabled** plugin id. |
 | `sessionId` | no | Only for `PLUGIN`; defaults to the session already selected in the drawer. |
-| `settingsSection` | no | Only for `SETTINGS`: `GENERAL`, `SERVER`, `AI_AGENTS`, `PLUGINS`. Defaults to `GENERAL`. |
+| `settingsSection` | no | Only for `SETTINGS`: `GENERAL`, `SERVER`, `AI_AGENTS`, `PLUGINS`. Defaults to `GENERAL`. `SERVER` is the page the window titles **Connection**. |
 
 Navigating to `PLUGIN` also selects that session in the drawer, which is what a subsequent
 `jetwhale.screenshot` of the same plugin will show. The call waits up to two seconds for the window
@@ -292,10 +300,11 @@ qualified names, the plugin that publishes it, its description, and each paramet
 whether it is **required**, and its description. A trailing badge counts how many times that tool has
 been called; while an agent is calling it, the badge takes an accent fill and a rotating ring.
 
-**History** — every call made in the current scope, newest first: the tool, the time of day, and
-whether it succeeded. Selecting one shows the arguments it was called with and the response it
+**History** — the last 100 calls made in the current scope, newest first: the tool, the time of day,
+and whether it succeeded. Selecting one shows the arguments it was called with and the response it
 returned. Each section has an inline copy button, and **Copy details** takes the whole record — a
-right-click on a history row offers the same four copy actions.
+right-click on a history row offers the same copy actions (up to four; the argument and response
+ones only appear when there are any).
 
 This is the fastest way to answer "what did the agent actually send, and what did it get back?" when
 a plugin behaves unexpectedly under automation.
