@@ -19,17 +19,11 @@ private const val NSD_SERVICE_TYPE = "$JETWHALE_SERVICE_TYPE."
  * Every instance found and resolved within the timeout window is returned; resolves are serialized
  * because older API levels reject a resolve while another is in flight.
  */
-internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): List<DiscoveredService> {
+internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): DiscoveryResult {
     val context = currentApplicationContext()
-    if (context == null) {
-        JetWhaleLogger.w("mDNS host discovery unavailable: could not obtain the application Context; using the configured host")
-        return emptyList()
-    }
+        ?: return DiscoveryResult.Unavailable("the application Context could not be obtained")
     val nsdManager = context.getSystemService(Context.NSD_SERVICE) as? NsdManager
-    if (nsdManager == null) {
-        JetWhaleLogger.w("mDNS host discovery unavailable: NsdManager not present; using the configured host")
-        return emptyList()
-    }
+        ?: return DiscoveryResult.Unavailable("NsdManager is not present on this device")
 
     val results = Collections.synchronizedList(mutableListOf<DiscoveredService>())
     // A single-slot serialized resolve queue: NsdManager rejects concurrent resolveService calls on
@@ -92,7 +86,7 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): List<Di
         }
     }
 
-    return results.toList()
+    return DiscoveryResult.Browsed(results.toList())
 }
 
 private fun NsdServiceInfo.toDiscoveredService(): DiscoveredService? {

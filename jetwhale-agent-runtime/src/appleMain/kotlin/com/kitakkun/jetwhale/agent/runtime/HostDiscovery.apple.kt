@@ -29,7 +29,7 @@ private const val RESOLVE_TIMEOUT_SECONDS = 5.0
  * requires `_jetwhale._tcp` under `NSBonjourServices` in Info.plist, otherwise the OS silently blocks
  * the browse.
  */
-internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): List<DiscoveredService> {
+internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): DiscoveryResult {
     val results = mutableListOf<DiscoveredService>()
     // Strong references kept for the whole browse so the delegates and services outlive the enclosing
     // frame; their callbacks fire asynchronously on the run loop.
@@ -89,7 +89,7 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): List<Di
         }
     }
 
-    return results.toList()
+    return DiscoveryResult.Browsed(results.toList())
 }
 
 private fun NSNetService.toDiscoveredService(): DiscoveredService? {

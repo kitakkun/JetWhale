@@ -26,15 +26,12 @@ internal class DefaultJetWhaleMessagingService(
         JetWhaleLogger.i("Starting JetWhale Messaging Service")
         keepAwakeJob?.cancel()
         keepAwakeJob = coroutineScope.launch {
-            // Resolve the host once before the connect/retry loop: discovery browses the LAN for an
-            // advertised host and falls back to the configured host/port when disabled or unresolved.
-            val (resolvedHost, resolvedPort) = resolveHost(
-                fallbackHost = host,
-                fallbackPort = port,
-                discovery = discovery,
-            )
+            val resolver = HostResolver(fallbackHost = host, fallbackPort = port, discovery = discovery)
             while (isActive) {
                 try {
+                    // Resolved per attempt rather than once up front: a host started after the app, or
+                    // one that came back on a different port, is only reached by browsing again.
+                    val (resolvedHost, resolvedPort) = resolver.resolve()
                     openConnection(resolvedHost, resolvedPort)
                 } catch (e: CancellationException) {
                     throw e

@@ -81,10 +81,10 @@ internal fun JetWhaleConnectionConfiguration.resolveTarget(): ResolvedConnection
         discovery = HostDiscoveryConfig(
             hostName = endpoint.hostName,
             addresses = endpoint.addresses,
-            // Prefer the advertised wss port when SSL is configured, so a discovered LAN host is
-            // reached over the encrypted connector rather than plain ws. Read here rather than in
-            // `discovered()` so `ssl {}` and `endpoint =` can appear in either order.
-            preferWss = sslConfiguration.isEnabled,
+            // The connection uses wss exactly when SSL is configured, so a discovered host has to
+            // advertise that scheme's port. Read here rather than in `discovered()` so `ssl {}` and
+            // `endpoint =` can appear in either order.
+            useWss = sslConfiguration.isEnabled,
         ),
     )
 }

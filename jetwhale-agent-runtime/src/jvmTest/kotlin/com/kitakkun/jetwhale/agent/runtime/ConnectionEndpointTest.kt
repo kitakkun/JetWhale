@@ -68,19 +68,19 @@ class ConnectionEndpointTest {
     }
 
     @Test
-    fun `ssl declared after the endpoint still selects the advertised wss port`() {
+    fun `ssl declared after the endpoint still uses wss`() {
         val target = connection {
             endpoint = discovered(fallback = fixed("localhost", 5443))
             ssl { trustServerCertificate() }
         }
 
-        assertEquals(true, target.discovery?.preferWss)
+        assertEquals(true, target.discovery?.useWss)
     }
 
     @Test
-    fun `an endpoint without ssl selects the advertised plain-ws port`() {
+    fun `an endpoint without ssl uses plain ws`() {
         val target = connection { endpoint = discovered(fallback = fixed("localhost", 5080)) }
 
-        assertEquals(false, target.discovery?.preferWss)
+        assertEquals(false, target.discovery?.useWss)
     }
 }

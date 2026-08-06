@@ -12,15 +12,17 @@ private const val SERVICE_TYPE_LOCAL = "$JETWHALE_SERVICE_TYPE.local."
  * JVM mDNS host discovery via jmDNS. Browses for `_jetwhale._tcp.local.` and returns every instance
  * resolved within the timeout window.
  */
-internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): List<DiscoveredService> = withContext(Dispatchers.IO) {
+internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): DiscoveryResult = withContext(Dispatchers.IO) {
     var jmdns: JmDNS? = null
     try {
         jmdns = JmDNS.create(InetAddress.getLocalHost())
         // Blocking browse: returns the services resolved within the timeout window.
-        jmdns.list(SERVICE_TYPE_LOCAL, timeoutMillis).mapNotNull { it.toDiscoveredService() }
+        DiscoveryResult.Browsed(jmdns.list(SERVICE_TYPE_LOCAL, timeoutMillis).mapNotNull { it.toDiscoveredService() })
     } catch (e: Exception) {
-        JetWhaleLogger.w("mDNS host discovery failed", e)
-        emptyList()
+        // The detail goes to debug; the caller reports the failure itself, deduplicated across the
+        // retries that would otherwise repeat it forever.
+        JetWhaleLogger.d("jmDNS browse failed", e)
+        DiscoveryResult.Unavailable("the jmDNS browse failed (${e.message})")
     } finally {
         try {
             jmdns?.close()

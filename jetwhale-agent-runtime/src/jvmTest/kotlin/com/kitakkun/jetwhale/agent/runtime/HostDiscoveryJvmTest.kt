@@ -30,7 +30,9 @@ class HostDiscoveryJvmTest {
             jmdns.registerService(serviceInfo)
 
             val discovered = browseJetWhaleServices(timeoutMillis = 6_000)
-            val match = discovered.firstOrNull { it.instanceName.contains(instanceName) }
+            val match = (discovered as? DiscoveryResult.Browsed)
+                ?.services
+                ?.firstOrNull { it.instanceName.contains(instanceName) }
 
             if (match == null) {
                 // CI machines sometimes block multicast; skip gracefully rather than failing.

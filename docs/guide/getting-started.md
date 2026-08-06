@@ -219,9 +219,14 @@ never be left without one.
 
 While its debug server runs, the host advertises a `_jetwhale._tcp.local.` service whose TXT records
 carry the `wsPort` and `wssPort` (the latter only when wss is enabled), the host machine's `hostName`,
-and a protocol marker `v=1`. Discovery therefore resolves the **port** as well as the address — the
-agent picks the **wss** port when an `ssl { }` block is configured, otherwise the **ws** port, and the
+and a protocol marker `v=1`. Discovery therefore resolves the **port** as well as the address, and the
 fallback's port applies only when discovery finds nothing.
+
+The scheme is not negotiable: the agent uses wss exactly when an `ssl { }` block is configured. So a
+host counts as a candidate only if it advertises the port for that scheme — an ssl-configured agent
+**skips** a host whose wss is disabled, rather than dialling `wss://` at its plain-ws port. If every
+matching host is skipped that way, the log says so by name, since the host being there but serving
+the wrong scheme looks nothing like the host being absent.
 
 ### Narrowing discovery
 
@@ -254,6 +259,12 @@ Everything inside the block is a filter, and when both are set a host must satis
 Discovery is best-effort: if no matching host is found within a few seconds — or on a platform
 without mDNS support (**JS/Wasm, Linux, Windows**) — the agent logs a warning and falls back to the
 endpoint passed as `fallback`.
+
+Falling back is **per attempt, not permanent**. The agent browses again before every connection
+attempt, so [the usual reconnect promise](#reconnecting) still holds with discovery enabled: start the
+app first and the host later, and the next browse picks it up. The same applies when a host restarts
+on a different port. Warnings are not repeated while the outcome stays the same, so an unreachable
+host does not flood the log.
 
 | Platform | Discovery backend |
 |----------|-------------------|

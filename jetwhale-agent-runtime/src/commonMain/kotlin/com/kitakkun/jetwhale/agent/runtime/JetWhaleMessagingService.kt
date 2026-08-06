@@ -32,12 +32,13 @@ internal interface JetWhaleMessagingService {
  * @property hostName When non-null, only a host whose advertised hostname matches this (exact,
  *   case-insensitive) is selected.
  * @property addresses When non-empty, only a host resolving to one of these IP addresses is selected.
- * @property preferWss Whether to prefer the advertised wss port (true when `ssl {}` is configured).
+ * @property useWss Whether the connection will use wss (true when `ssl {}` is configured). A host is
+ *   usable only when it advertises the port for that scheme, since the scheme is not negotiable.
  */
 internal data class HostDiscoveryConfig(
     val hostName: String?,
     val addresses: List<String>,
-    val preferWss: Boolean,
+    val useWss: Boolean,
 ) {
     /** True when at least one selection filter narrows the discovered hosts. */
     val hasFilter: Boolean get() = hostName != null || addresses.isNotEmpty()
