@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.drawer.McpToolsScreenContext
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldScreenContext
 import com.kitakkun.jetwhale.host.headless.HeadlessHostRunner
 import com.kitakkun.jetwhale.host.mcp.McpServerService
+import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
@@ -72,6 +73,7 @@ interface JetWhaleAppGraph : ScreenContext {
         fun create(
             @Provides serverPortOverrides: ServerPortOverrides,
             @Provides mcpPermissionOverride: McpPermissionOverride,
+            @Provides additionalPluginDirectories: AdditionalPluginDirectories,
         ): JetWhaleAppGraph
     }
 

@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data
 
+import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -9,7 +10,9 @@ import java.io.File
 
 @SingleIn(AppScope::class)
 @Inject
-class AppDataDirectoryProvider {
+class AppDataDirectoryProvider(
+    private val additionalPluginDirectories: AdditionalPluginDirectories,
+) {
     private val homeDir = System.getProperty("user.home")
 
     // The app data root. Normally `~/.jetwhale`, but a launch may point it elsewhere via the
@@ -141,6 +144,23 @@ class AppDataDirectoryProvider {
      * sandbox, the sandbox root's `plugins` subdirectory).
      */
     fun getDevPluginsDir(): String? = System.getProperty(DEV_PLUGINS_DIR_PROPERTY)?.takeIf { it.isNotBlank() }
+
+    /**
+     * Absolute paths of every jar in the directories named with `--plugin-dir`, if any.
+     *
+     * Directories that do not exist, or that cannot be listed, contribute nothing rather than failing
+     * the launch: a stale path in a shell alias should not stop the host from starting.
+     */
+    fun getAdditionalPluginJarFilePaths(): List<String> = additionalPluginDirectories.paths
+        .flatMap { path ->
+            // listFiles returns null for a missing path or a plain file, but *throws* SecurityException
+            // when a directory exists and cannot be read. Both are the same thing from here — one
+            // unusable directory — and neither should take the launch down with it.
+            runCatching { File(path).listFiles { file -> file.extension == "jar" }?.toList() }
+                .getOrNull()
+                .orEmpty()
+        }
+        .map { it.absolutePath }
 
     /** Returns the absolute paths of every jar currently in the dev plugins directory, if configured. */
     fun getDevPluginJarFilePaths(): List<String> {

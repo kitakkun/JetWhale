@@ -289,8 +289,8 @@ When you launch the host from a plugin project with
 
 | Option | Default | What it does |
 |--------|---------|--------------|
-| `--plugin-dir <path>` | — | Load plugins from an additional directory, on top of `~/.jetwhale/plugins/`. **Repeatable.** |
-| `--log-level <level>` | `WARN` | Minimum level the host's own logging emits: `DEBUG`, `INFO`, `WARN` or `ERROR`. Raise it when diagnosing a plugin that will not load, then read the result in the [log viewer](/guide/host-window#the-log-viewer). |
+| `--plugin-dir <path>` | — | Also load the jars in this directory, on top of `~/.jetwhale/plugins/`. **Repeatable.** These are not trust-gated — naming the directory on the command line *is* the approval — and they are not managed: they do not appear as installed plugins and cannot be uninstalled or revoked from the UI. |
+| `--log-level <level>` | the host's configured level | Minimum level the host's own logging emits: `DEBUG`, `INFO`, `WARN` or `ERROR`. Lower it when diagnosing a plugin that will not load, then read the result in the [log viewer](/guide/host-window#the-log-viewer). Left unset, whatever the host ships configured is used — this option only ever overrides. |
 | `--mcp-allow-all-permissions` | off | Allows every MCP tool for that process only — see [MCP Server → Lifting every permission for one launch](/guide/mcp-server#lifting-every-permission-for-one-launch). |
 | `--headless` | off | Runs without the application window — see [Headless mode](#headless-mode) below. |
 

@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
+import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -42,7 +43,7 @@ class DefaultPluginTrustServiceTest {
         trustRepository = FakePluginTrustRepository()
         factoryRepository = FakePluginFactoryRepository()
         signer = FakeTrustRegistrySigner(keyPresent = false)
-        service = DefaultPluginTrustService(AppDataDirectoryProvider(), trustRepository, factoryRepository, signer)
+        service = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), trustRepository, factoryRepository, signer)
     }
 
     @AfterTest
@@ -146,9 +147,9 @@ class DefaultPluginTrustServiceTest {
         val jar = File(pluginsDir, "plugin.jar").apply { writeBytes(byteArrayOf(1, 2, 3)) }
         val diskSigner = FakeTrustRegistrySigner(keyPresent = false)
 
-        val diskRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(), diskSigner)
+        val diskRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskSigner)
         val diskFactory = FakePluginFactoryRepository()
-        val diskService = DefaultPluginTrustService(AppDataDirectoryProvider(), diskRepository, diskFactory, diskSigner)
+        val diskService = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskRepository, diskFactory, diskSigner)
 
         // Approve with signing off: the registry is written unsigned.
         diskService.trustAndLoad(jar.absolutePath)
@@ -157,9 +158,9 @@ class DefaultPluginTrustServiceTest {
 
         // Fresh start with the same (now-present) key. Without the re-sign the unsigned registry would
         // verify INVALID and drop every plugin; re-signing lets it verify and load.
-        val reloadedRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(), diskSigner)
+        val reloadedRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskSigner)
         val reloadedFactory = FakePluginFactoryRepository()
-        val reloadedService = DefaultPluginTrustService(AppDataDirectoryProvider(), reloadedRepository, reloadedFactory, diskSigner)
+        val reloadedService = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), reloadedRepository, reloadedFactory, diskSigner)
         reloadedService.loadTrustedPlugins()
 
         assertEquals(listOf(jar.absolutePath), reloadedFactory.loadedJarPaths)

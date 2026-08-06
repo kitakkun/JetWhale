@@ -5,7 +5,12 @@ import com.kitakkun.jetwhale.host.model.ServerPortOverrides
 
 data class JetWhaleCliOptions(
     val pluginDirs: List<String>,
-    val logLevel: JetWhaleLogLevel,
+    /**
+     * Null when `--log-level` was not passed, which leaves whatever `logback.xml` configures in
+     * place. Applying a default here would quietly reduce what the host logs — and so what the log
+     * viewer can show — for every launch that never asked for it.
+     */
+    val logLevel: JetWhaleLogLevel?,
     val serverPortOverrides: ServerPortOverrides,
     val mcpPermissionOverride: McpPermissionOverride,
     /** Runs the servers with no window, for CI and agent-driven QA. See [com.kitakkun.jetwhale.host.headless.HeadlessHostRunner]. */
@@ -22,7 +27,7 @@ enum class JetWhaleLogLevel {
 class CommandLineArgumentsParser {
     fun parse(args: Array<String>): JetWhaleCliOptions {
         val pluginDirs = mutableListOf<String>()
-        var logLevel: JetWhaleLogLevel = JetWhaleLogLevel.WARN
+        var logLevel: JetWhaleLogLevel? = null
         var serverPort: Int? = null
         var wssPort: Int? = null
         var mcpServerPort: Int? = null

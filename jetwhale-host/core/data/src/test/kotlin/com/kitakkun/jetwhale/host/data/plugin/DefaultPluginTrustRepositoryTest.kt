@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
+import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.security.MessageDigest
@@ -36,7 +37,7 @@ class DefaultPluginTrustRepositoryTest {
     // A fresh repository each time so we exercise the on-disk read path, not just the in-memory
     // cache. Whether the registry is signed is decided entirely by the injected signer (key present
     // or not); the repository holds no policy of its own.
-    private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) = DefaultPluginTrustRepository(AppDataDirectoryProvider(), signer)
+    private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), signer)
 
     /**
      * Deterministic stand-in for the keyring-backed signer. "Signing enabled" is modeled by
@@ -103,7 +104,7 @@ class DefaultPluginTrustRepositoryTest {
 
         // Simulate a malicious process rewriting the file: swap in a different hash while leaving the
         // recorded signature untouched. With a key present the signature no longer matches → INVALID.
-        val registryFile = AppDataDirectoryProvider().getTrustRegistryFile()
+        val registryFile = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())).getTrustRegistryFile()
         registryFile.writeText(registryFile.readText().replace("hash-a", "forged-hash"))
 
         val reloaded = newRepository().apply { load() }
@@ -116,7 +117,7 @@ class DefaultPluginTrustRepositoryTest {
         // signature it cannot produce. A key exists, so a missing signature must be rejected wholesale.
         newRepository().trust("/plugins/a.jar", "hash-a")
 
-        val registryFile = AppDataDirectoryProvider().getTrustRegistryFile()
+        val registryFile = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())).getTrustRegistryFile()
         val stripped = registryFile.readText().replace(Regex("\"signature\"\\s*:\\s*\"[^\"]*\""), "\"signature\": null")
         registryFile.writeText(stripped)
 

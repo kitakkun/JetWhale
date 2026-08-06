@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data
 
+import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import java.nio.file.Files
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -26,7 +27,7 @@ class AppDataDirectoryProviderTest {
         System.setProperty("user.home", home)
         System.clearProperty(AppDataDirectoryProvider.APP_DATA_DIR_PROPERTY)
 
-        val provider = AppDataDirectoryProvider()
+        val provider = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList()))
 
         assertEquals("~/.jetwhale", provider.getAppDataPath())
         assertTrue(provider.getPluginDirectory().path.startsWith("$home/.jetwhale"))
@@ -43,7 +44,7 @@ class AppDataDirectoryProviderTest {
         System.setProperty("user.home", home)
         System.setProperty(AppDataDirectoryProvider.APP_DATA_DIR_PROPERTY, sandbox)
 
-        val provider = AppDataDirectoryProvider()
+        val provider = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList()))
 
         // Nothing resolves under the real home; everything flows from the sandbox root.
         assertEquals(sandbox, provider.getAppDataPath())
@@ -63,7 +64,7 @@ class AppDataDirectoryProviderTest {
         System.setProperty("user.home", home)
         System.setProperty(AppDataDirectoryProvider.APP_DATA_DIR_PROPERTY, "   ")
 
-        val provider = AppDataDirectoryProvider()
+        val provider = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList()))
 
         assertEquals("~/.jetwhale", provider.getAppDataPath())
         assertTrue(provider.getPluginDirectory().path.startsWith("$home/.jetwhale"))

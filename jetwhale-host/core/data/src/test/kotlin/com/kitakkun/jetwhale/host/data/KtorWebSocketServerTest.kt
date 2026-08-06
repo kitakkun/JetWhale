@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.data.cert.KeyPairFactory
 import com.kitakkun.jetwhale.host.data.cert.ServerCertificateIssuer
 import com.kitakkun.jetwhale.host.data.server.KtorWebSocketServer
 import com.kitakkun.jetwhale.host.data.ssl.DefaultSslCertificateManager
+import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.SslCertificateEntry
 import com.kitakkun.jetwhale.host.model.SslCertificateManager
@@ -93,7 +94,7 @@ class KtorWebSocketServerTest {
         val originalHome = System.getProperty("user.home")
         System.setProperty("user.home", tempHome.absolutePath)
         try {
-            val sslCertificateManager = DefaultSslCertificateManager(AppDataDirectoryProvider())
+            val sslCertificateManager = DefaultSslCertificateManager(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())))
             sslCertificateManager.generateAndAddCertificate("first")
 
             val server = KtorWebSocketServer(
@@ -187,7 +188,7 @@ class KtorWebSocketServerTest {
         val originalHome = System.getProperty("user.home")
         System.setProperty("user.home", tempHome.absolutePath)
         try {
-            val sslCertificateManager = DefaultSslCertificateManager(AppDataDirectoryProvider())
+            val sslCertificateManager = DefaultSslCertificateManager(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())))
             sslCertificateManager.generateAndAddCertificate("tls-ca")
             val expectedPem = sslCertificateManager.getActiveCertificate()?.caCertificatePem
 

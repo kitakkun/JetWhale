@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
+import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.get
@@ -29,7 +30,7 @@ class DefaultPluginDataStoreRepositoryTest {
     private fun newRepository(): DefaultPluginDataStoreRepository {
         val tempHome = Files.createTempDirectory("jetwhale-plugin-data-test").toString()
         System.setProperty("user.home", tempHome)
-        return DefaultPluginDataStoreRepository(AppDataDirectoryProvider())
+        return DefaultPluginDataStoreRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())))
     }
 
     @Test
