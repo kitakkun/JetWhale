@@ -68,8 +68,7 @@ import com.kitakkun.jetwhale.agent.runtime.startJetWhale
 fun initializeJetWhale() {
     startJetWhale {
         connection {
-            host = "localhost"
-            port = 5080 // the host's WebSocket server port
+            endpoint = fixed("localhost", 5080) // the host's WebSocket server port
         }
         plugins {
             // register agent plugins here, e.g. the Network Inspector:
@@ -79,11 +78,17 @@ fun initializeJetWhale() {
 }
 ```
 
-::: warning Always set `port`
-The agent's `connection { }` defaults are `host = "localhost"` and **`port = 8080`**, while the
-host's debug server listens on **5080**. The defaults deliberately do not match, so set `port`
-explicitly to whichever port the host reports in
+::: warning Always set `endpoint`
+The agent's `connection { }` defaults to `fixed("localhost", 8080)`, while the host's debug server
+listens on **5080**. The defaults deliberately do not match, so set `endpoint` explicitly to
+whichever port the host reports in
 [Settings → Connection → Debug Server](/guide/host-settings#debug-server).
+:::
+
+::: info `host` / `port` are deprecated
+Earlier releases configured the address with separate `host` and `port` properties. They still work
+and mean exactly `endpoint = fixed(host, port)`, but new code should assign `endpoint` — it is what
+[host discovery](#zero-config-host-discovery-recommended-for-physical-devices) extends.
 :::
 
 Where to call it, per platform:
@@ -189,6 +194,90 @@ desktop and web in particular, setting `appName` is what makes a session readabl
 An `appIconPng` whose base64 form exceeds the 32KB cap is dropped with a warning — which is visible,
 since `WARN` is the default log level.
 
+## Zero-config host discovery (recommended for physical devices)
+
+A physical iPhone or Android device on the same Wi-Fi cannot reach the host over `localhost`. Rather
+than hardcoding the host machine's LAN IP (which changes between machines and networks), assign a
+`discovered(...)` endpoint and let the agent find the host over mDNS/Bonjour:
+
+```kotlin
+startJetWhale {
+    connection {
+        // Browse the LAN for the host advertised as `_jetwhale._tcp` and connect to it. The fallback
+        // applies when nothing is discovered in time (or the platform lacks mDNS), which keeps
+        // emulators/simulators and ADB-forwarded devices working over localhost.
+        endpoint = discovered(fallback = fixed("localhost", 5443))
+
+        ssl { trustServerCertificate() }
+    }
+    plugins { /* ... */ }
+}
+```
+
+The fallback is a required argument rather than a separate property, so a discovered endpoint can
+never be left without one.
+
+While its debug server runs, the host advertises a `_jetwhale._tcp.local.` service whose TXT records
+carry the `wsPort` and `wssPort` (the latter only when wss is enabled), the host machine's `hostName`,
+and a protocol marker `v=1`. Discovery therefore resolves the **port** as well as the address, and the
+fallback's port applies only when discovery finds nothing.
+
+The scheme is not negotiable: the agent uses wss exactly when an `ssl { }` block is configured. So a
+host counts as a candidate only if it advertises the port for that scheme — an ssl-configured agent
+**skips** a host whose wss is disabled, rather than dialling `wss://` at its plain-ws port. If every
+matching host is skipped that way, the log says so by name, since the host being there but serving
+the wrong scheme looks nothing like the host being absent.
+
+### Narrowing discovery
+
+When several JetWhale hosts run on the same network, first-match is ambiguous (the agent logs a
+warning listing all discovered hosts). Narrow the selection with a filter block:
+
+```kotlin
+connection {
+    endpoint = discovered(fallback = fixed("localhost", 5443)) {
+        // Accept only a host advertising this machine hostname (exact, case-insensitive).
+        allowHostName("my-macbook")
+
+        // ...and/or only hosts resolving to specific IPs, e.g. to pin discovery to your build
+        // machine — which may answer on both Wi-Fi and Ethernet.
+        allowAddress("192.168.3.26")
+        allowAddress("192.168.3.27")
+    }
+    ssl { trustServerCertificate() }
+}
+```
+
+- **`allowHostName(name)`** — matches the advertised hostname exactly, compared case-insensitively.
+  The compared value is the host machine's hostname (from the `hostName` TXT record, falling back to
+  the mDNS instance name).
+- **`allowAddress(ip)`** — matches a resolved IP. Every platform connects by the resolved IP, so this
+  matches what the connection actually uses.
+
+Both are **repeatable allowlists**: calling one twice widens it rather than replacing the earlier
+value. An empty allowlist means "no restriction on this", so a host must match every allowlist that
+has entries — name **and** address when both are set, either entry within each.
+
+Discovery is best-effort: if no matching host is found within a few seconds — or on a platform
+without mDNS support (**JS/Wasm, Linux, Windows**) — the agent logs a warning and falls back to the
+endpoint passed as `fallback`.
+
+Falling back is **per attempt, not permanent**. The agent browses again before every connection
+attempt, so [the usual reconnect promise](#reconnecting) still holds with discovery enabled: start the
+app first and the host later, and the next browse picks it up. The same applies when a host restarts
+on a different port. Warnings are not repeated while the outcome stays the same, so an unreachable
+host does not flood the log.
+
+| Platform | Discovery backend |
+|----------|-------------------|
+| **JVM (Desktop)** | jmDNS |
+| **Android** | `NsdManager` (`android.net.nsd`) |
+| **iOS / macOS** | `NSNetServiceBrowser` (Network.framework / Bonjour) |
+| **JS / Wasm / Linux / Windows** | Not supported — falls back to the configured host |
+
+On **iOS**, browsing for the service also requires listing it under `NSBonjourServices` in
+`Info.plist` (see [iOS Local Network permission](#ios-local-network-permission)).
+
 ## Secure connections (wss)
 
 By default the agent connects over plain **ws** (port **5080**). The host can additionally serve
@@ -202,8 +291,7 @@ one trusted certificate is configured, the connection switches from ws to wss:
 ```kotlin
 startJetWhale {
     connection {
-        host = "localhost"
-        port = 5443 // the host's wss port
+        endpoint = fixed("localhost", 5443) // the host's wss port
 
         ssl {
             // Option A: fetch and pin the host's active CA automatically (trust-on-first-use).
@@ -260,10 +348,17 @@ behind a user permission, so add a usage-description string to the app's `Info.p
 ```xml
 <key>NSLocalNetworkUsageDescription</key>
 <string>JetWhale connects to the debugger host running on your local network.</string>
+<!-- Required when using discovered(): iOS blocks the Bonjour browse without it. -->
+<key>NSBonjourServices</key>
+<array>
+    <string>_jetwhale._tcp</string>
+</array>
 ```
 
 iOS prompts the user to allow local-network access on the first connection. `NSBonjourServices` is
-not required — the agent dials the host by address, not via Bonjour discovery. Because the CA fetch
+required whenever you use [`discovered()`](#zero-config-host-discovery-recommended-for-physical-devices):
+iOS silently blocks browsing for a service type that is not declared. If you dial the host by an
+explicit address instead of discovering it, `NSBonjourServices` can be omitted. Because the CA fetch
 falls back to `https` over the wss port, no App Transport Security exception for plain HTTP is needed.
 
 ## 4. Connect a device

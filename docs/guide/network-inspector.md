@@ -52,7 +52,7 @@ val client = HttpClient {
 }
 
 startJetWhale {
-    connection { host = "localhost"; port = 5080 }
+    connection { endpoint = fixed("localhost", 5080) }
     plugins { register(networkAgent) }
 }
 ```
@@ -90,7 +90,7 @@ val client = OkHttpClient.Builder()
     .build()
 
 startJetWhale {
-    connection { host = "localhost"; port = 5080 }
+    connection { endpoint = fixed("localhost", 5080) }
     plugins { register(networkAgent) }
 }
 ```

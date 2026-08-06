@@ -43,6 +43,7 @@ dependencies {
     implementation(libs.logbackClassic)
     implementation(libs.bouncyCastleBcprov)
     implementation(libs.bouncyCastleBcpkix)
+    implementation(libs.jmdns)
     implementation(libs.kotlinTest)
     testImplementation(libs.ktorClientMock)
 }

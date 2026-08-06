@@ -21,17 +21,24 @@ internal class DefaultJetWhaleMessagingService(
     private val coroutineScope: CoroutineScope = CoroutineScope(messagingServiceCoroutineDispatcher() + SupervisorJob())
     private var keepAwakeJob: Job? = null
     private var retryCount = 0
+    private var lastReportedFailure: String? = null
 
-    override fun startService(host: String, port: Int) {
+    override fun startService(resolver: EndpointResolver) {
         JetWhaleLogger.i("Starting JetWhale Messaging Service")
         keepAwakeJob?.cancel()
         keepAwakeJob = coroutineScope.launch {
             while (isActive) {
+                var attempted: ResolvedEndpoint? = null
                 try {
-                    openConnection(host, port)
+                    // Asked per attempt rather than once up front: an address that only becomes
+                    // correct later is reached without restarting the session.
+                    val resolved = resolver.resolve()
+                    attempted = resolved
+                    openConnection(resolved.host, resolved.port)
                 } catch (e: CancellationException) {
                     throw e
-                } catch (_: Throwable) {
+                } catch (e: Throwable) {
+                    reportFailure(attempted, e)
                     pluginService.disconnectAll()
                     retryCount++
                     val delayMillis = (retryCount * RETRY_DELAY_INCREMENT_MILLIS).coerceAtMost(MAX_RECONNECT_DELAY_MILLIS)
@@ -60,10 +67,27 @@ internal class DefaultJetWhaleMessagingService(
         }
     }
 
+    /**
+     * Reports why an attempt failed. The socket client rethrows without logging, so this is the only
+     * place a refused host, a wrong port or a failed TLS handshake becomes visible — and at the
+     * default WARN level, the only sign the agent is doing anything at all.
+     *
+     * The same cause repeats on every retry, so it is reported once and again only when it changes,
+     * or when a connection succeeded in between.
+     */
+    private fun reportFailure(attempted: ResolvedEndpoint?, cause: Throwable) {
+        val where = attempted?.toString() ?: "the JetWhale host"
+        val message = "Could not connect to $where: $cause"
+        if (message == lastReportedFailure) return
+        lastReportedFailure = message
+        JetWhaleLogger.w("$message. Retrying with backoff until it succeeds.")
+    }
+
     private suspend fun openConnection(host: String, port: Int) {
         val connection = socketClient.openConnection(host, port)
 
         retryCount = 0
+        lastReportedFailure = null
 
         pluginService.startConnection(
             scope = coroutineScope,
