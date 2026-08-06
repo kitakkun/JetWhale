@@ -79,8 +79,9 @@ private fun SemanticsOwner.findNodeById(id: Int): SemanticsNode? = getAllSemanti
 /**
  * Registers a [SemanticsOwner] the caller already holds and keeps alive itself.
  *
- * The platform probes ([installJetWhaleSemanticsProbe] on Android, [JetWhaleSemanticsProbe] on
- * either platform) find owners for you; reach for this only on a target with no probe of its own.
+ * The Android and desktop probes find owners for you; reach for this when you host a `ComposeScene`
+ * yourself and so already hold one. iOS and web have no probe because Compose Multiplatform exposes
+ * no owner for their entry points — see the Compose Semantics Inspector guide.
  *
  * @see SemanticsOwnerNodeSource
  */
