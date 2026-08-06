@@ -46,7 +46,10 @@ kotlin {
         commonMain.dependencies {
             api(projects.jetwhalePlugins.semantics.protocol)
             api(projects.jetwhaleAgentSdk)
-            implementation(libs.jetbrainsComposeUi)
+            // SemanticsOwner is part of this module's public API: `registerSemanticsOwner` takes one,
+            // and `SemanticsOwnerNodeSource` is constructed with one. A consumer calling either needs
+            // compose-ui on its compile classpath from this artifact's POM.
+            api(libs.jetbrainsComposeUi)
             implementation(libs.kotlinxCoroutinesCore)
         }
         commonTest.dependencies {
