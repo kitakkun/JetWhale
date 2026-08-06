@@ -36,6 +36,10 @@ sealed interface ToolingScaffoldScreenAction {
 sealed interface ToolingScaffoldScreenActionResult {
     /** Carries the sessions themselves, since a handler wants to name what went, not just its id. */
     data class SessionClosed(val closedSessions: ImmutableList<DebugSession>) : ToolingScaffoldScreenActionResult
+
+    /** Carries the sessions themselves, since a handler wants to name what arrived, not just its id. */
+    data class SessionConnected(val connectedSessions: ImmutableList<DebugSession>) : ToolingScaffoldScreenActionResult
+
     data class SetPluginEnabledFailed(val error: Throwable) : ToolingScaffoldScreenActionResult
 }
 
@@ -53,6 +57,20 @@ internal fun closedSessions(
 ): List<DebugSession> {
     val stillConnected = current.filter { it.isActive }.mapTo(mutableSetOf()) { it.id }
     return previouslyConnected.filterNot { it.id in stillConnected }
+}
+
+/**
+ * The sessions that are connected in [current] and were not in [previouslyConnected].
+ *
+ * "Connected" is what the diff is on, not "present": a disconnected session keeps its entry in the
+ * list, so an id reappearing as active is a genuine arrival and is announced — a reconnect included.
+ */
+internal fun newlyConnectedSessions(
+    previouslyConnected: List<DebugSession>,
+    current: List<DebugSession>,
+): List<DebugSession> {
+    val alreadyConnected = previouslyConnected.mapTo(mutableSetOf()) { it.id }
+    return current.filter { it.isActive && it.id !in alreadyConnected }
 }
 
 /**
@@ -139,12 +157,20 @@ fun toolingScaffoldPresenter(
         }
     }
 
-    var connectedSessions by remember { mutableStateOf<List<DebugSession>>(emptyList()) }
+    // Seeded from the sessions of the first composition so opening the window announces nothing:
+    // whoever was already connected is not an arrival. Read only inside the effect below, never
+    // during composition, so writing it back cannot drive a recomposition loop.
+    var connectedSessions by remember { mutableStateOf(debugSessions.filter { it.isActive }) }
     LaunchedEffect(debugSessions) {
         val closedSessions = closedSessions(previouslyConnected = connectedSessions, current = debugSessions)
+        val connectedSessionsToAnnounce = newlyConnectedSessions(previouslyConnected = connectedSessions, current = debugSessions)
         connectedSessions = debugSessions.filter { it.isActive }
-        if (closedSessions.isEmpty()) return@LaunchedEffect
-        screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(closedSessions.toImmutableList()))
+        if (closedSessions.isNotEmpty()) {
+            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(closedSessions.toImmutableList()))
+        }
+        if (connectedSessionsToAnnounce.isNotEmpty()) {
+            screenChannel.emit(ToolingScaffoldScreenActionResult.SessionConnected(connectedSessionsToAnnounce.toImmutableList()))
+        }
     }
 
     ActionEffect(screenChannel) { action ->
