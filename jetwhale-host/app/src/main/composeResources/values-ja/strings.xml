@@ -32,6 +32,8 @@
     <string name="disable">無効化</string>
     <string name="ai_agent_connected">AI エージェント接続中</string>
     <string name="ai_agent_operating">AI エージェントが操作中</string>
+    <string name="following_ai_operation">AI エージェントに追従中 — %1$s</string>
+    <string name="stop_following_ai_operation">追従をやめる</string>
     <string name="plugin_exposes_mcp_tools">AI エージェントに MCP tools を公開中</string>
     <string name="plugin_headless_badge">画面なし</string>
     <string name="plugin_headless_badge_tooltip">表示する画面はありません。バックグラウンドで動作しています。</string>

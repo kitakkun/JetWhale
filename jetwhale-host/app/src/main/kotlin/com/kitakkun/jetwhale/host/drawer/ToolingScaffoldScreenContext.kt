@@ -5,12 +5,14 @@ import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.model.DebugSessionsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.EnabledPluginsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.FailedPluginJarPathsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.FollowAiOperationMutationKey
 import com.kitakkun.jetwhale.host.model.HeadlessPluginsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpActivitySubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpCapablePluginsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledMutationKey
+import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
 import dev.zacsweers.metro.Inject
 
 /**
@@ -19,6 +21,7 @@ import dev.zacsweers.metro.Inject
 @Inject
 class ToolingScaffoldPresenterContext(
     val setPluginEnabledMutationKey: SetPluginEnabledMutationKey,
+    val followAiOperationMutationKey: FollowAiOperationMutationKey,
 ) : PresenterContext
 
 /**
@@ -33,6 +36,7 @@ class ToolingScaffoldScreenContext(
     val failedPluginJarPathsSubscriptionKey: FailedPluginJarPathsSubscriptionKey,
     val mcpActivitySubscriptionKey: McpActivitySubscriptionKey,
     val mcpCapablePluginsSubscriptionKey: McpCapablePluginsSubscriptionKey,
+    val settingsSubscriptionKey: SettingsSubscriptionKey,
     val headlessPluginsSubscriptionKey: HeadlessPluginsSubscriptionKey,
     val hostNavigationService: HostNavigationService,
     val presenterContext: ToolingScaffoldPresenterContext,

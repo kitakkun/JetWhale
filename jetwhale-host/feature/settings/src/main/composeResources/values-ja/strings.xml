@@ -4,6 +4,9 @@
     <string name="settings_section_ai_agents">AIエージェント</string>
     <string name="settings_page_application">アプリケーション</string>
     <string name="settings_page_add_plugins">プラグインの追加</string>
+    <string name="settings_page_ai_activity">アクティビティ</string>
+    <string name="follow_ai_operation">AI エージェントが操作したプラグインに追従する</string>
+    <string name="follow_ai_operation_description">AI エージェントが MCP 経由でプラグインを操作している間、メインウィンドウがそのプラグインに切り替わり、作業の様子を追えます。すでにポップアウトして別ウィンドウで開いているプラグインはそのままです。</string>
     <string name="general">一般</string>
     <string name="server">サーバー</string>
     <string name="plugins">プラグイン</string>

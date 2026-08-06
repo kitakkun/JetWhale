@@ -76,6 +76,9 @@ enum class SettingsScreenPage(
     /** What a connected agent may then do. A separate question, and a page that keeps growing. */
     McpPermissions(SettingsScreenSection.AiAgents, Res.string.mcp_permission_title, SettingsScreenPageOwner.Server),
 
+    /** How the host itself behaves while an agent works — following its operations, for now. */
+    AiActivity(SettingsScreenSection.AiAgents, Res.string.settings_page_ai_activity, SettingsScreenPageOwner.General),
+
     InstalledPlugins(SettingsScreenSection.Plugins, Res.string.installed_plugins, SettingsScreenPageOwner.Plugin),
 
     /** Every way a plugin gets in: the official catalog, a local jar, or Maven coordinates. */
