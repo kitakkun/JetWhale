@@ -3,7 +3,6 @@ package com.kitakkun.jetwhale.agent.runtime
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.util.Collections
@@ -31,13 +30,9 @@ private class UnreachableSocketClient : JetWhaleSocketClient {
 
 /** Hands out each address in turn, standing on the last one once they run out. */
 private class ScriptedEndpointResolver(private val script: List<ResolvedEndpoint>) : EndpointResolver {
-    val calls: Channel<Unit> = Channel(Channel.UNLIMITED)
     private var index = 0
 
-    override suspend fun resolve(): ResolvedEndpoint {
-        calls.send(Unit)
-        return script[minOf(index++, script.lastIndex)]
-    }
+    override suspend fun resolve(): ResolvedEndpoint = script[minOf(index++, script.lastIndex)]
 }
 
 @OptIn(InternalJetWhaleApi::class)
@@ -54,10 +49,10 @@ class MessagingServiceResolutionTest {
         val service = service(socketClient, resolver)
 
         try {
-            withTimeout(RESOLUTION_TIMEOUT_MILLIS) {
-                resolver.calls.receive()
-                resolver.calls.receive()
-            }
+            // Wait for the second *attempt*, not the second resolution: resolve() returns before the
+            // address it produced has been dialled, so waiting on the resolver would leave a window
+            // where only one attempt has been recorded.
+            withTimeout(RESOLUTION_TIMEOUT_MILLIS) { socketClient.secondAttempt.await() }
         } finally {
             service.stopService()
         }
