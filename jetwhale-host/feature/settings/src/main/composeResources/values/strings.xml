@@ -65,6 +65,11 @@
     <string name="server_port_apply_confirm_message">Restart server on port %1$s?</string>
     <string name="debug_server_port_apply_confirm_title">Apply Debug Server Port Change</string>
     <string name="debug_server_port_apply_confirm_message">Restart Debug Server on port %1$s?</string>
+    <string name="debug_server_port_apply_confirm_message_with_wss">Restart Debug Server on port %1$s (WSS: %2$s)?</string>
+    <string name="wss_enabled_label">Enable WSS</string>
+    <string name="wss_port_label">WSS Port</string>
+    <string name="debug_server_port_invalid_error">Enter a port number between 1 and 65535.</string>
+    <string name="debug_server_port_conflict_error">The debug server port and the WSS port must be different.</string>
     <string name="mcp_server_port_apply_confirm_title">Apply MCP Server Port Change</string>
     <string name="mcp_server_port_apply_confirm_message">Restart MCP Server on port %1$s?</string>
     <string name="mcp_setup_note">Connect an AI agent to this MCP server by registering the SSE endpoint below.</string>

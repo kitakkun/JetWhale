@@ -37,7 +37,10 @@ import com.kitakkun.jetwhale.host.settings.component.TextFieldSettingsItemView
 import com.kitakkun.jetwhale.host.settings.copy_to_clipboard
 import com.kitakkun.jetwhale.host.settings.debug_server_label
 import com.kitakkun.jetwhale.host.settings.debug_server_port_apply_confirm_message
+import com.kitakkun.jetwhale.host.settings.debug_server_port_apply_confirm_message_with_wss
 import com.kitakkun.jetwhale.host.settings.debug_server_port_apply_confirm_title
+import com.kitakkun.jetwhale.host.settings.debug_server_port_conflict_error
+import com.kitakkun.jetwhale.host.settings.debug_server_port_invalid_error
 import com.kitakkun.jetwhale.host.settings.debug_server_port_label
 import com.kitakkun.jetwhale.host.settings.dialog_cancel
 import com.kitakkun.jetwhale.host.settings.dialog_ok
@@ -70,6 +73,8 @@ import com.kitakkun.jetwhale.host.settings.ssl_certificate_detail_title
 import com.kitakkun.jetwhale.host.settings.ssl_certificate_no_certificate
 import com.kitakkun.jetwhale.host.settings.ssl_certificate_set_active
 import com.kitakkun.jetwhale.host.settings.ssl_certificate_show_detail
+import com.kitakkun.jetwhale.host.settings.wss_enabled_label
+import com.kitakkun.jetwhale.host.settings.wss_port_label
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -77,9 +82,11 @@ fun ServerSettingsScreen(
     page: SettingsScreenPage,
     uiState: ServerSettingsScreenUiState,
     onDebugPortTextChange: (String) -> Unit,
-    onApplyDebugPortChange: () -> Unit,
-    onConfirmApplyDebugPortChange: () -> Unit,
-    onDismissApplyDebugPortDialog: () -> Unit,
+    onWssPortTextChange: (String) -> Unit,
+    onWssEnabledChange: (Boolean) -> Unit,
+    onApplyDebugServerSettingsChange: () -> Unit,
+    onConfirmApplyDebugServerSettingsChange: () -> Unit,
+    onDismissApplyDebugServerSettingsDialog: () -> Unit,
     onMcpPortTextChange: (String) -> Unit,
     onApplyMcpPortChange: () -> Unit,
     onConfirmApplyMcpPortChange: () -> Unit,
@@ -97,23 +104,31 @@ fun ServerSettingsScreen(
 ) {
     if (uiState.showDebugApplyConfirmDialog) {
         AlertDialog(
-            onDismissRequest = onDismissApplyDebugPortDialog,
+            onDismissRequest = onDismissApplyDebugServerSettingsDialog,
             title = { Text(stringResource(Res.string.debug_server_port_apply_confirm_title)) },
             text = {
                 Text(
-                    stringResource(
-                        Res.string.debug_server_port_apply_confirm_message,
-                        uiState.editingDebugPortText,
-                    ),
+                    if (uiState.editingWssEnabled) {
+                        stringResource(
+                            Res.string.debug_server_port_apply_confirm_message_with_wss,
+                            uiState.editingDebugPortText,
+                            uiState.editingWssPortText,
+                        )
+                    } else {
+                        stringResource(
+                            Res.string.debug_server_port_apply_confirm_message,
+                            uiState.editingDebugPortText,
+                        )
+                    },
                 )
             },
             confirmButton = {
-                Button(onClick = onConfirmApplyDebugPortChange) {
+                Button(onClick = onConfirmApplyDebugServerSettingsChange) {
                     Text(stringResource(Res.string.dialog_ok))
                 }
             },
             dismissButton = {
-                Button(onClick = onDismissApplyDebugPortDialog) {
+                Button(onClick = onDismissApplyDebugServerSettingsDialog) {
                     Text(stringResource(Res.string.dialog_cancel))
                 }
             },
@@ -193,9 +208,26 @@ fun ServerSettingsScreen(
                         text = uiState.editingDebugPortText,
                         onTextChange = onDebugPortTextChange,
                     )
+                    SwitchSettingsItemView(
+                        label = stringResource(Res.string.wss_enabled_label),
+                        isChecked = uiState.editingWssEnabled,
+                        onCheckedChange = onWssEnabledChange,
+                    )
+                    TextFieldSettingsItemView(
+                        label = stringResource(Res.string.wss_port_label),
+                        text = uiState.editingWssPortText,
+                        onTextChange = onWssPortTextChange,
+                    )
+                    uiState.debugServerSettingsError?.let { error ->
+                        Text(
+                            text = debugServerSettingsErrorText(error),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                     if (uiState.isDebugApplyVisible) {
                         Button(
-                            onClick = onApplyDebugPortChange,
+                            onClick = onApplyDebugServerSettingsChange,
                             enabled = uiState.isDebugApplyEnabled,
                         ) {
                             Text(applyButtonText(isRetry = uiState.isDebugRetry))
@@ -352,6 +384,12 @@ private fun McpSnippetView(
             Text(stringResource(Res.string.copy_to_clipboard))
         }
     }
+}
+
+@Composable
+private fun debugServerSettingsErrorText(error: DebugServerSettingsError): String = when (error) {
+    DebugServerSettingsError.InvalidPort -> stringResource(Res.string.debug_server_port_invalid_error)
+    DebugServerSettingsError.PortConflict -> stringResource(Res.string.debug_server_port_conflict_error)
 }
 
 @Composable

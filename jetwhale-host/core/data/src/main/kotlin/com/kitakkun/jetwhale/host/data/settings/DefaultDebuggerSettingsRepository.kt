@@ -148,6 +148,15 @@ class DefaultDebuggerSettingsRepository(
         }
     }
 
+    override suspend fun updateDebugServerSettings(serverPort: Int, wssPort: Int, wssEnabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[KEY_SERVER_PORT] = serverPort
+            prefs[KEY_WSS_PORT] = wssPort
+            prefs[KEY_WSS_ENABLED] = wssEnabled
+        }
+        dropOverride { it.copy(serverPort = null, wssPort = null) }
+    }
+
     /** Lets a launch override win over the stored value this flow carries. */
     private fun Flow<Int>.overriddenBy(selectOverride: (ServerPortOverrides) -> Int?): Flow<Int> = combine(portOverrides) { storedPort, overrides -> selectOverride(overrides) ?: storedPort }
 

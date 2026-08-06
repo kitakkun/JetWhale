@@ -39,14 +39,20 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
             onDebugPortTextChange = {
                 screenChannel.send(ServerSettingsScreenAction.ChangeDebugPortText(it))
             },
-            onApplyDebugPortChange = {
-                screenChannel.send(ServerSettingsScreenAction.ApplyDebugPortChange)
+            onWssPortTextChange = {
+                screenChannel.send(ServerSettingsScreenAction.ChangeWssPortText(it))
             },
-            onConfirmApplyDebugPortChange = {
-                screenChannel.send(ServerSettingsScreenAction.ConfirmApplyDebugPortChange)
+            onWssEnabledChange = {
+                screenChannel.send(ServerSettingsScreenAction.ChangeWssEnabled(it))
             },
-            onDismissApplyDebugPortDialog = {
-                screenChannel.send(ServerSettingsScreenAction.DismissApplyDebugPortDialog)
+            onApplyDebugServerSettingsChange = {
+                screenChannel.send(ServerSettingsScreenAction.ApplyDebugServerSettingsChange)
+            },
+            onConfirmApplyDebugServerSettingsChange = {
+                screenChannel.send(ServerSettingsScreenAction.ConfirmApplyDebugServerSettingsChange)
+            },
+            onDismissApplyDebugServerSettingsDialog = {
+                screenChannel.send(ServerSettingsScreenAction.DismissApplyDebugServerSettingsDialog)
             },
             onMcpPortTextChange = {
                 screenChannel.send(ServerSettingsScreenAction.ChangeMcpPortText(it))

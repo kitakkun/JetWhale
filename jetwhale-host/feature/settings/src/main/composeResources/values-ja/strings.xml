@@ -65,6 +65,11 @@
     <string name="server_port_apply_confirm_message">ポート %1$s でサーバーを再起動しますか？</string>
     <string name="debug_server_port_apply_confirm_title">デバッグサーバーのポート変更を適用</string>
     <string name="debug_server_port_apply_confirm_message">デバッグサーバーをポート %1$s で再起動しますか？</string>
+    <string name="debug_server_port_apply_confirm_message_with_wss">デバッグサーバーをポート %1$s (WSS: %2$s) で再起動しますか？</string>
+    <string name="wss_enabled_label">WSSを有効にする</string>
+    <string name="wss_port_label">WSSポート</string>
+    <string name="debug_server_port_invalid_error">1〜65535 のポート番号を入力してください。</string>
+    <string name="debug_server_port_conflict_error">デバッグサーバーポートとWSSポートには異なる値を指定してください。</string>
     <string name="mcp_server_port_apply_confirm_title">MCPサーバーのポート変更を適用</string>
     <string name="mcp_server_port_apply_confirm_message">MCPサーバーをポート %1$s で再起動しますか？</string>
     <string name="mcp_setup_note">以下の SSE エンドポイントを登録すると、AIエージェントからこのMCPサーバーに接続できます。</string>

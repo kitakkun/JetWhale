@@ -55,19 +55,24 @@ connect to.
 | Setting | Default | Description |
 |---------|---------|-------------|
 | **Debug Server Port** | `5080` | The plain **ws** port. Must match the `port` in your app's `startJetWhale { connection { ... } }` block. |
+| **Enable WSS** | on | Whether the secure **wss** connector is exposed at all. |
+| **WSS Port** | `5443` | The **wss** port. Must match the `port` in your app's connection block when it connects over wss. |
 
-Editing the port reveals an **Apply** button, which confirms before restarting the server —
-restarting disconnects every session.
+Changing any of the three reveals a single **Apply** button, which confirms before restarting the
+server — restarting disconnects every session. All three are applied together, because the server
+only reads them when it binds, so one restart covers the whole change.
 
-The status line above it shows the running ports, e.g. *Running on port 5080 (WSS: 5443)* when wss is
-active, and offers **Retry** if the server failed to bind.
+The status line above them shows the running ports, e.g. *Running on port 5080 (WSS: 5443)* when wss
+is active, and offers **Retry** if the server failed to bind.
 
-::: tip The wss port has no field of its own
-The **secure WebSocket (wss)** port (default `5443`) and whether the wss connector is exposed at all
-are not editable on this screen. They are set at launch with [`--wss-port`](#overriding-the-ports-at-startup),
-or by an AI agent through `jetwhale.updateSettings` (`wssPort` / `wssEnabled`). In practice you only
-need to generate a certificate under [SSL Certificate](#ssl-certificates) and point the agent's
-`port` at 5443.
+The two ports cannot be the same, and each has to be in `1..65535`; **Apply** stays disabled until
+they are. The wss port is stored even while **Enable WSS** is off, so switching wss back on brings
+back the port you last picked.
+
+::: tip Also settable outside the UI
+The same settings are available at launch with [`--wss-port`](#overriding-the-ports-at-startup), and
+to an AI agent through `jetwhale.updateSettings` (`wssPort` / `wssEnabled`). Before connecting over
+wss, generate a certificate under [SSL Certificate](#ssl-certificates).
 :::
 
 ### SSL certificates
@@ -241,7 +246,7 @@ the same defaults:
 | Option | Overrides |
 |--------|-----------|
 | `--server-port <port>` | **Debug Server Port** |
-| `--wss-port <port>` | **wss port** |
+| `--wss-port <port>` | **WSS Port** |
 | `--mcp-server-port <port>` | **MCP Server Port** |
 
 An option that is not passed keeps using the saved setting. `--wss-port` only picks the port: wss is
@@ -250,7 +255,8 @@ still served only when it is enabled in the settings.
 An override applies to that launch only and is never written back, but for as long as it is in force
 it *is* the port the host reports — the settings screen shows it, so the screen and the running
 server never disagree. Changing a port on that screen afterwards wins: the new value is saved and the
-override for that port is retired for the rest of the session.
+override for that port is retired for the rest of the session. Applying the Debug Server page retires
+the `--server-port` and `--wss-port` overrides together, since it writes both ports at once.
 
 Pass them to the [runnable uber jar](/guide/getting-started):
 
