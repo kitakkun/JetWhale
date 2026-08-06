@@ -8,13 +8,15 @@ MCP.
 It is generic: it knows nothing about your screens. Everything it can show and construct is derived
 from the serializers your app **already** gives `rememberNavBackStack`.
 
-## Install the host plugin
+## Setup
+
+### Install the host plugin
 
 The Nav3 Navigator is in the host's **official catalog**: open **Settings → Plugins → Add Plugins →
 Official Plugins** and install it with one click — no coordinates needed. See
 [Host Settings → Plugins](/guide/host-settings#plugins) for the other install routes.
 
-## Add it to your app
+### Add the agent to your app
 
 The agent side is a normal dependency of the app being debugged, alongside the agent runtime that
 `startJetWhale` lives in:
@@ -81,7 +83,7 @@ JetWhaleNav3AgentPlugin(Nav3KeyCodec.closedPolymorphic(Screen.serializer()))
 ```
 :::
 
-### Several back stacks
+#### Several back stacks
 
 An app that nests navigation registers each stack under its own id, and the host lets you pick:
 
