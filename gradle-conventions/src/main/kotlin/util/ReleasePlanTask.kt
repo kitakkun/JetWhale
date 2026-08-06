@@ -69,7 +69,9 @@ abstract class ReleasePlanTask : DefaultTask() {
 
         val previousTag = published.previousTrainVersion
         check(git("rev-parse", "--verify", "--quiet", "refs/tags/$previousTag^{commit}").isNotBlank()) {
-            "Tag $previousTag (the previous release) is missing. Fetch tags with `git fetch --tags`."
+            "No tag $previousTag, which ${PublishedVersions.RELATIVE_PATH} names as the previous release. " +
+                "Either the tags are not fetched (`git fetch --tags`), or `previous.train.version` names a " +
+                "version that was never released — it must be a release tag, not a -SNAPSHOT one."
         }
 
         val plan = ReleasePlanner.compute(

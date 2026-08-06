@@ -31,6 +31,11 @@ jobs:
       - name: Run tests
         run: ./gradlew check
 
+      # `check` on the root build does not descend into included builds, so the release-plan tests
+      # have to be asked for separately. They are pure JVM unit tests, cheap enough to share this job.
+      - name: Run convention tests
+        run: ./gradlew -p gradle-conventions check
+
   # A job of its own rather than a second step in `test`. `check` on the root build does not descend
   # into included builds — it pulls in the agent plugin's jar, because the demo consumes it, but none
   # of its tests — so these have to be asked for separately. Running them beside the root build
