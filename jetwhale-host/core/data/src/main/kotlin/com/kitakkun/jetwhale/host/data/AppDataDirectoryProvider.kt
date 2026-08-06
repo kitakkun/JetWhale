@@ -153,7 +153,12 @@ class AppDataDirectoryProvider(
      */
     fun getAdditionalPluginJarFilePaths(): List<String> = additionalPluginDirectories.paths
         .flatMap { path ->
-            File(path).listFiles { file -> file.extension == "jar" }?.toList().orEmpty()
+            // listFiles returns null for a missing path or a plain file, but *throws* SecurityException
+            // when a directory exists and cannot be read. Both are the same thing from here — one
+            // unusable directory — and neither should take the launch down with it.
+            runCatching { File(path).listFiles { file -> file.extension == "jar" }?.toList() }
+                .getOrNull()
+                .orEmpty()
         }
         .map { it.absolutePath }
 
