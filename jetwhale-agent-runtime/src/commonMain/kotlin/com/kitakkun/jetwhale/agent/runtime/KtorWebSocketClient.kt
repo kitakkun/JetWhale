@@ -126,8 +126,9 @@ internal class KtorWebSocketClient(
     /**
      * Produces the SSL configuration effective for this connection. When
      * [JetWhaleSslConfiguration.trustServerCertificate] is set, the host's active CA is fetched and
-     * pinned; on failure the manually configured certificates (if any) are used, otherwise the
-     * connection falls back to plain ws.
+     * pinned; on failure only the manually configured certificates (if any) remain. The scheme is not
+     * revisited either way — it comes from the endpoint, so a failed fetch surfaces as a trust failure
+     * rather than as traffic quietly sent in the clear.
      */
     private suspend fun resolveSslConfiguration(host: String, port: Int): JetWhaleSslConfiguration {
         val fetchedCaPem = if (sslConfiguration.trustServerCertificate) {
@@ -155,7 +156,7 @@ internal class KtorWebSocketClient(
      *    verification here is security-equivalent to the plain fetch: both are trust-on-first-use and
      *    the fetched CA still pins the subsequent wss session.
      *
-     * Returns null when neither attempt succeeds, so the caller falls back to plain ws.
+     * Returns null when neither attempt succeeds, leaving the caller with nothing to pin.
      */
     private suspend fun fetchCaCertificate(host: String, port: Int): String? {
         fetchCaCertificate("http://$host:$port/jetwhale/ca", disableVerification = false)?.let { return it }

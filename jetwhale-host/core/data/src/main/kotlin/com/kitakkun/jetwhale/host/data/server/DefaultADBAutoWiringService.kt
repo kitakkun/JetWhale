@@ -145,18 +145,30 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
         }
     }
 
-    /** Runs an adb command to completion and returns its exit code together with its merged output. */
-    private fun runAdb(vararg args: String): Pair<Int, String> {
+    /**
+     * Runs an adb command to completion and returns its exit code together with its merged output.
+     *
+     * A failure to launch adb at all is reported as a non-zero exit rather than thrown. The wiring
+     * job catches everything, but teardown does not run inside it — [stopAutoWiring] and [unwire]
+     * call this directly, and an adb that has been uninstalled or unmounted since wiring would
+     * otherwise throw IOException out of a shutdown path, where nothing is waiting to handle it.
+     * Callers already treat a non-zero exit as a failure to report.
+     */
+    private fun runAdb(vararg args: String): Pair<Int, String> = try {
         val process = ProcessBuilder(adbPath, *args)
             .redirectErrorStream(true)
             .start()
         val output = process.inputStream.bufferedReader().readText().trim()
-        val exitCode = process.waitFor()
-        return exitCode to output
+        process.waitFor() to output
+    } catch (e: IOException) {
+        ADB_LAUNCH_FAILED to "adb could not be launched from \"$adbPath\": ${e.message}"
     }
 }
 
 /** The adb executable itself could not be launched — no amount of retrying will bring it back. */
+// Distinct from any exit code adb itself returns, which are small positive integers.
+private const val ADB_LAUNCH_FAILED = -1
+
 private class AdbUnavailableException(adbPath: String, cause: IOException) : Exception("adb could not be launched from \"$adbPath\": ${cause.message}", cause)
 
 private sealed interface DeviceEvent {
