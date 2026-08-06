@@ -3,9 +3,14 @@
 package com.kitakkun.jetwhale.agent.runtime
 
 import kotlinx.cinterop.BetaInteropApi
+import kotlinx.cinterop.ByteVar
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.UnsafeNumber
+import kotlinx.cinterop.get
+import kotlinx.cinterop.reinterpret
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
+import platform.Foundation.NSData
 import platform.Foundation.NSNetService
 import platform.Foundation.NSNetServiceBrowser
 import platform.Foundation.NSNetServiceBrowserDelegateProtocol
@@ -16,10 +21,17 @@ import platform.Foundation.create
 import platform.darwin.NSObject
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
+import platform.posix.AF_INET
 
 private const val SERVICE_TYPE_DOT = "$JETWHALE_SERVICE_TYPE."
 private const val SEARCH_DOMAIN = "local."
 private const val RESOLVE_TIMEOUT_SECONDS = 5.0
+
+// Darwin `sockaddr_in` layout: sa_len, sin_family, sin_port[2], sin_addr[4].
+private const val SIN_FAMILY_OFFSET = 1
+private const val SIN_ADDR_OFFSET = 4
+private const val IPV4_OCTETS = 4
+private const val IPV4_SOCKADDR_LENGTH = SIN_ADDR_OFFSET + IPV4_OCTETS
 
 /**
  * Apple (iOS/macOS) mDNS host discovery via [NSNetServiceBrowser] + [NSNetService] resolution.
@@ -93,15 +105,39 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
 }
 
 private fun NSNetService.toDiscoveredService(): DiscoveredService? {
-    val host = hostName ?: return null
+    // The resolved IPv4 address, not [hostName]. The host's certificate carries its addresses as IP
+    // SANs, and the mDNS host name is whatever the advertising stack synthesised — jmDNS names its
+    // host record after the address, e.g. "192-168-3-9.local." — which no certificate covers, so
+    // dialling it fails hostname verification. Using the address also makes `allowAddress` mean what
+    // it says on this platform.
+    val address = resolvedIpv4Address() ?: return null
     val txt = TXTRecordData()?.let { NSNetService.dictionaryFromTXTRecordData(it) }
     return DiscoveredService(
         instanceName = name,
         advertisedHostName = txt?.get(TXT_KEY_HOST_NAME)?.toDecodedString(),
-        address = host.removeSuffix("."),
+        address = address,
         wsPort = txt?.get(TXT_KEY_WS_PORT)?.toDecodedString()?.toIntOrNull(),
         wssPort = txt?.get(TXT_KEY_WSS_PORT)?.toDecodedString()?.toIntOrNull(),
     )
+}
+
+/**
+ * The first IPv4 address this service resolved to, read out of the `sockaddr` blobs it carries.
+ *
+ * The bytes are read positionally rather than through the `sockaddr_in` bindings: the address is
+ * already in network byte order there, so taking the four octets in place is both simpler and free of
+ * any endianness assumption.
+ */
+@OptIn(UnsafeNumber::class)
+private fun NSNetService.resolvedIpv4Address(): String? {
+    val sockaddrs = addresses?.filterIsInstance<NSData>() ?: return null
+    for (data in sockaddrs) {
+        if (data.length.toInt() < IPV4_SOCKADDR_LENGTH) continue
+        val bytes = data.bytes?.reinterpret<ByteVar>() ?: continue
+        if (bytes[SIN_FAMILY_OFFSET].toInt() != AF_INET) continue
+        return (0 until IPV4_OCTETS).joinToString(".") { bytes[SIN_ADDR_OFFSET + it].toUByte().toInt().toString() }
+    }
+    return null
 }
 
 /** TXT record values arrive as `NSData`; decode them as UTF-8 strings. */

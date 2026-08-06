@@ -251,8 +251,8 @@ connection {
 - **`allowHostName(name)`** — matches the advertised hostname exactly, compared case-insensitively.
   The compared value is the host machine's hostname (from the `hostName` TXT record, falling back to
   the mDNS instance name).
-- **`allowAddress(ip)`** — matches a resolved IP. (On iOS/macOS the agent connects by the resolved
-  `.local.` hostname, so prefer `allowHostName` there.)
+- **`allowAddress(ip)`** — matches a resolved IP. Every platform connects by the resolved IP, so this
+  matches what the connection actually uses.
 
 Both are **repeatable allowlists**: calling one twice widens it rather than replacing the earlier
 value. An empty allowlist means "no restriction on this", so a host must match every allowlist that
