@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.agent.runtime
 
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -146,6 +147,43 @@ class ConnectionEndpointTest {
                 addresses = silent.addresses,
                 acceptsAnyHost = silent.acceptsAnyHost,
             ).acceptsNothing,
+        )
+    }
+
+    @Test
+    fun `an unrewritten buildMachineWss contributes no candidate`() {
+        // Without the agent Gradle plugin the call reaches its own body, which only explains itself.
+        // Contributing a candidate here would be worse than contributing none: there is no address
+        // to contribute, so anything it added would be invented.
+        val declared = candidates {
+            endpoints {
+                @OptIn(ExperimentalJetWhaleApi::class)
+                buildMachineWss(5443)
+            }
+        }
+
+        assertEquals(emptyList(), declared)
+    }
+
+    @Test
+    fun `an unrewritten buildMachineWss does not disturb the order of its neighbours`() {
+        // It drops out of the list rather than leaving a gap, so whatever was declared after it is
+        // still reached — and still in the order it was written.
+        val declared = candidates {
+            endpoints {
+                ws("localhost", 5080)
+                @OptIn(ExperimentalJetWhaleApi::class)
+                buildMachineWss(5443)
+                wss("192.168.3.26", 5443)
+            }
+        }
+
+        assertEquals(
+            listOf(
+                EndpointCandidate.Static("localhost", 5080, useWss = false),
+                EndpointCandidate.Static("192.168.3.26", 5443, useWss = true),
+            ),
+            declared,
         )
     }
 

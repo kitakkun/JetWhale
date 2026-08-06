@@ -31,9 +31,19 @@ jobs:
       - name: Run tests
         run: ./gradlew check
 
-      # `check` on the root build does not descend into included builds — it pulls in the agent
-      # plugin's `jar` (the demo consumes it) but none of its tests. The Kotlin matrix runs them,
-      # but only when jetwhale-agent-plugin/** changes, which is precisely not the case for the
-      # change most likely to break them: a rename in the runtime DSL the plugin rewrites.
+  # A job of its own rather than a second step in `test`. `check` on the root build does not descend
+  # into included builds — it pulls in the agent plugin's jar, because the demo consumes it, but none
+  # of its tests — so these have to be asked for separately. Running them beside the root build
+  # rather than after it keeps two Gradle daemons and the compiler test framework off one runner's
+  # memory, and the two finish in parallel.
+  agent-plugin:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-java
+
       - name: Run agent plugin tests
         run: ./gradlew -p jetwhale-agent-plugin check

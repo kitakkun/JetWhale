@@ -23,7 +23,11 @@ val kotlinPluginApi: String = providers.gradleProperty("kotlin.plugin.api")
     .get()
 
 kotlin {
-    jvmToolchain(21)
+    // 17, matching gradle-conventions/jvm.gradle.kts — and not a matter of tidiness. Both of these
+    // JARs are loaded by someone else's JVM: the Gradle daemon for the Gradle plugin, the Kotlin
+    // compile daemon for the compiler plugin. Emitting Java 21 bytecode makes a consumer building on
+    // JDK 17 fail with UnsupportedClassVersionError before any of this runs.
+    jvmToolchain(17)
     compilerOptions {
         // The plugin API is @ExperimentalCompilerApi by design; opting in per-file would be noise.
         freeCompilerArgs.add("-opt-in=org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi")

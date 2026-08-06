@@ -84,8 +84,8 @@ private class BuildMachineCallTransformer(
             messageCollector.report(
                 CompilerMessageSeverity.ERROR,
                 "JetWhale: found $BUILD_MACHINE_WSS_NAME but no matching wss(String, Int) on " +
-                    "${ENDPOINT_SCOPE_FQ_NAME.asString()}. The JetWhale Gradle plugin and " +
-                    "jetwhale-agent-runtime versions do not match.",
+                    "${ENDPOINT_SCOPE_FQ_NAME.asString()}. jetwhale-agent-compiler-plugin and " +
+                    "jetwhale-agent-runtime are at versions that do not agree; align them.",
             )
             return call
         }

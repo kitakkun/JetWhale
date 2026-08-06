@@ -390,11 +390,12 @@ On a Kotlin the plugin has not caught up with, calls are simply left unrewritten
 
 ### Without the Gradle plugin
 
-The call still compiles. It contributes no candidate and says why, once:
+The call still compiles. It contributes no candidate and logs why:
 
 ```
-buildMachineWss(5443) was declared but the JetWhale Gradle plugin is not applied, so no build
-machine address was baked in and this contributes no candidate.
+buildMachineWss(5443) was declared but the agent Gradle plugin ('com.kitakkun.jetwhale.agent')
+is not applied to this module, so no build machine address was baked in and this contributes no
+candidate. Apply that plugin, or write the address out with wss().
 ```
 
 That is deliberate. A generated constant would have been simpler to build, but referencing it from

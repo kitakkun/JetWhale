@@ -274,8 +274,8 @@ public interface JetWhaleEndpointScope {
      *
      * **Requires the `com.kitakkun.jetwhale.agent` Gradle plugin**, which resolves the address and
      * hands it to a compiler plugin that rewrites this call. Without it this compiles and runs — it
-     * simply contributes no candidate, and says so once in the log. Baking in an address is a
-     * build-time convenience, and a missing convenience should not be a broken build.
+     * simply contributes no candidate, and logs why. Baking in an address is a build-time
+     * convenience, and a missing convenience should not be a broken build.
      *
      * The address is a compile task input, so moving between networks recompiles rather than leaving
      * a stale address in place. It is also machine-specific, so those compilations will not be shared
@@ -465,9 +465,10 @@ private class JetWhaleEndpointConfiguration(
     @ExperimentalJetWhaleApi
     override fun buildMachineWss(port: Int) {
         JetWhaleLogger.w(
-            "buildMachineWss($port) was declared but the JetWhale Gradle plugin is not applied, so no " +
-                "build machine address was baked in and this contributes no candidate. Apply the " +
-                "'com.kitakkun.jetwhale.agent' plugin to this module, or write the address out with wss().",
+            "buildMachineWss($port) was declared but the agent Gradle plugin " +
+                "('com.kitakkun.jetwhale.agent') is not applied to this module, so no build machine " +
+                "address was baked in and this contributes no candidate. Apply that plugin, or write " +
+                "the address out with wss().",
         )
     }
 }

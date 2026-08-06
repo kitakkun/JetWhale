@@ -9,7 +9,11 @@ group = "com.kitakkun.jetwhale"
 version = libs.versions.jetwhale.get() + if (hasProperty("jetwhaleSnapshot")) "-SNAPSHOT" else ""
 
 kotlin {
-    jvmToolchain(21)
+    // 17, matching gradle-conventions/jvm.gradle.kts — and not a matter of tidiness. Both of these
+    // JARs are loaded by someone else's JVM: the Gradle daemon for the Gradle plugin, the Kotlin
+    // compile daemon for the compiler plugin. Emitting Java 21 bytecode makes a consumer building on
+    // JDK 17 fail with UnsupportedClassVersionError before any of this runs.
+    jvmToolchain(17)
 }
 
 dependencies {
