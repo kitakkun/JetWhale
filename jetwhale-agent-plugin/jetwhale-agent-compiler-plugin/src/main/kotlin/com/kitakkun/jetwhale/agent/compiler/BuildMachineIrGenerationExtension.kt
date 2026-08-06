@@ -48,23 +48,30 @@ private class BuildMachineCallTransformer(
         private set
 
     override fun visitCall(expression: IrCall): IrExpression {
-        // Recurse first, so a buildMachineWss nested inside another call's arguments is rewritten too.
-        //
-        // Safe-cast rather than `as IrCall`: today the base chain ends in visitExpression, which
-        // transforms children in place and hands back the very same instance, so the cast could not
-        // fail. But every method in that chain is `open` on an API JetBrains breaks at minor
-        // versions, and the cast failing would throw a ClassCastException from inside a user's
-        // compilation. Returning whatever came back costs nothing and owes nothing to that chain.
+        // Decide before recursing. The recursion is needed so a buildMachineWss nested inside another
+        // call's arguments is rewritten too, but its result is only trustworthy for calls that are
+        // not ours — see below.
+        val isOurs = expression.symbol.owner.isBuildMachineWss()
         val transformed = super.visitCall(expression)
-        val call = transformed as? IrCall ?: return transformed
-        val callee = call.symbol.owner
-        if (callee.name.asString() != BUILD_MACHINE_WSS_NAME) return call
+        if (!isOurs) return transformed
 
-        // Name alone proves nothing — anyone may declare a buildMachineWss. The declaring interface
-        // is what identifies ours, and it has to be looked for through overrides: inside
-        // `with(recordingScope) { }` the receiver's static type is the implementation, so the call
-        // resolves to *its* override rather than to the interface member.
-        if (!callee.overridesEndpointScope()) return call
+        // Not `as IrCall`. Today the base chain ends in visitExpression, which transforms children in
+        // place and returns the same instance, so a cast could not fail — but every method in that
+        // chain is `open`, and another compiler plugin's IR extension may have replaced this call
+        // with something else entirely before we ran. Crashing a consumer's build with a
+        // ClassCastException is the wrong answer, and so is skipping quietly: an unrewritten call
+        // falls back to contributing no candidate and then blames a Gradle plugin that *is* applied.
+        // Say what actually happened instead.
+        val call = transformed as? IrCall ?: run {
+            messageCollector.report(
+                CompilerMessageSeverity.WARNING,
+                "JetWhale: a $BUILD_MACHINE_WSS_NAME call was replaced by another compiler plugin " +
+                    "before this one ran, so no address could be baked into it. It will contribute no " +
+                    "endpoint at runtime — write the address out with wss() if you need that candidate.",
+            )
+            return transformed
+        }
+        val callee = call.symbol.owner
 
         // Look wss up on whatever class the call resolved against, so an implementation's own
         // override is dispatched to exactly as the original call would have been. Any class that

@@ -72,7 +72,15 @@ internal fun IrClass.findWss(): IrSimpleFunction? = functions
     .firstOrNull { it.name.asString() == WSS_NAME && it.parameters.size == WSS_ARITY }
 
 /**
- * Whether [this] is `JetWhaleEndpointScope.buildMachineWss`, or any override of it.
+ * Whether a call to [this] is one this plugin rewrites.
+ *
+ * Name alone proves nothing — anyone may declare a `buildMachineWss` — so the declaring interface
+ * decides.
+ */
+internal fun IrSimpleFunction.isBuildMachineWss(): Boolean = name.asString() == BUILD_MACHINE_WSS_NAME && overridesEndpointScope()
+
+/**
+ * Whether [this] is declared on `JetWhaleEndpointScope`, or overrides something that is.
  *
  * Overrides matter more than they look: inside `with(someImplementation) { }` the receiver's static
  * type is the implementation, so the call resolves to its override and the interface member is never
