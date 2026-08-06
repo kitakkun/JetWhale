@@ -10,6 +10,9 @@ import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.util.deepCopyWithSymbols
 import org.jetbrains.kotlin.ir.util.functions
+import org.jetbrains.kotlin.ir.util.kotlinFqName
+import org.jetbrains.kotlin.ir.util.parentClassOrNull
+import org.jetbrains.kotlin.name.FqName
 
 /**
  * Every compiler-API call this plugin makes that JetBrains has moved, or has said they will.
@@ -67,6 +70,26 @@ internal fun IrBuilderWithScope.buildWssCall(
 )
 internal fun IrClass.findWss(): IrSimpleFunction? = functions
     .firstOrNull { it.name.asString() == WSS_NAME && it.parameters.size == WSS_ARITY }
+
+/**
+ * Whether [this] is `JetWhaleEndpointScope.buildMachineWss`, or any override of it.
+ *
+ * Overrides matter more than they look: inside `with(someImplementation) { }` the receiver's static
+ * type is the implementation, so the call resolves to its override and the interface member is never
+ * the callee. Matching only the interface silently skipped those, which is the worst shape of bug
+ * here — the untransformed call falls back to contributing no candidate, so nothing complains.
+ */
+@CompatSensitive(
+    since = "2.2.0",
+    what = "`overriddenSymbols` is walked directly rather than via the `allOverridden()` helper, " +
+        "whose overloads and defaults have moved between minors while the property has not.",
+)
+internal fun IrSimpleFunction.overridesEndpointScope(): Boolean {
+    if (parentClassOrNull?.kotlinFqName == ENDPOINT_SCOPE_FQ_NAME) return true
+    return overriddenSymbols.any { it.owner.overridesEndpointScope() }
+}
+
+internal val ENDPOINT_SCOPE_FQ_NAME: FqName = FqName("com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope")
 
 internal const val BUILD_MACHINE_WSS_NAME: String = "buildMachineWss"
 private const val WSS_NAME = "wss"

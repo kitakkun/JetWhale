@@ -11,12 +11,8 @@ import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
-import org.jetbrains.kotlin.ir.util.kotlinFqName
 import org.jetbrains.kotlin.ir.util.parentClassOrNull
 import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
-import org.jetbrains.kotlin.name.FqName
-
-private val ENDPOINT_SCOPE = FqName("com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope")
 
 /**
  * Rewrites `buildMachineWss(port)` into `wss("<build machine address>", port)`.
@@ -58,10 +54,15 @@ private class BuildMachineCallTransformer(
         if (callee.name.asString() != BUILD_MACHINE_WSS_NAME) return call
 
         // Name alone proves nothing — anyone may declare a buildMachineWss. The declaring interface
-        // is what identifies ours.
-        val scope = callee.parentClassOrNull ?: return call
-        if (scope.kotlinFqName != ENDPOINT_SCOPE) return call
+        // is what identifies ours, and it has to be looked for through overrides: inside
+        // `with(recordingScope) { }` the receiver's static type is the implementation, so the call
+        // resolves to *its* override rather than to the interface member.
+        if (!callee.overridesEndpointScope()) return call
 
+        // Look wss up on whatever class the call resolved against, so an implementation's own
+        // override is dispatched to exactly as the original call would have been. Any class that
+        // reaches here implements the interface, so it carries wss as a declaration or fake override.
+        val scope = callee.parentClassOrNull ?: return call
         val wss = scope.findWss() ?: run {
             // The runtime on the classpath declares buildMachineWss but no matching wss. That is a
             // version mismatch between this plugin and jetwhale-agent-runtime, and rewriting into a
@@ -69,7 +70,7 @@ private class BuildMachineCallTransformer(
             messageCollector.report(
                 CompilerMessageSeverity.ERROR,
                 "JetWhale: found $BUILD_MACHINE_WSS_NAME but no matching wss(String, Int) on " +
-                    "${ENDPOINT_SCOPE.asString()}. The JetWhale Gradle plugin and " +
+                    "${ENDPOINT_SCOPE_FQ_NAME.asString()}. The JetWhale Gradle plugin and " +
                     "jetwhale-agent-runtime versions do not match.",
             )
             return call

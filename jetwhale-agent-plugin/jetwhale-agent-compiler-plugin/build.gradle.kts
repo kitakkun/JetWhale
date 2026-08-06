@@ -35,6 +35,61 @@ dependencies {
     // produces duplicate-class conflicts that stop the plugin loading at all.
     compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable:$kotlinPluginApi")
     compileOnly(kotlin("stdlib"))
+
+    // Runners live in `test` rather than test-fixtures so they can see the plugin's `internal`
+    // declarations — Kotlin associates `test` with `main`, test-fixtures is its own compilation.
+    // The test framework links against the *un-shaded* kotlin-compiler, so the tests get that while
+    // the published JAR keeps compiling against the embeddable one. Safe here only because this
+    // plugin references no IntelliJ classes at all — verified by grepping the compiled bytecode for
+    // `com/intellij` — so the same .class files load under either compiler.
+    testImplementation("org.jetbrains.kotlin:kotlin-compiler:$kotlinPluginApi")
+    testImplementation("org.jetbrains.kotlin:kotlin-compiler-internal-test-framework:$kotlinPluginApi")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:$kotlinPluginApi")
+    // The framework still reaches for JUnit 4 at runtime despite running on the JUnit 5 platform.
+    testRuntimeOnly("junit:junit:4.13.2")
+}
+
+/** Jars the test framework locates by absolute path, handed over as system properties below. */
+val testArtifacts: Configuration by configurations.creating
+
+dependencies {
+    testArtifacts("org.jetbrains.kotlin:kotlin-stdlib:$kotlinPluginApi")
+    testArtifacts("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinPluginApi")
+    testArtifacts("org.jetbrains.kotlin:kotlin-reflect:$kotlinPluginApi")
+    testArtifacts("org.jetbrains.kotlin:kotlin-test:$kotlinPluginApi")
+    testArtifacts("org.jetbrains.kotlin:kotlin-script-runtime:$kotlinPluginApi")
+    testArtifacts("org.jetbrains.kotlin:kotlin-annotations-jvm:$kotlinPluginApi")
+}
+
+sourceSets {
+    test {
+        resources.setSrcDirs(listOf("testData"))
+    }
+}
+
+tasks.test {
+    dependsOn(testArtifacts)
+    useJUnitPlatform()
+    // testData paths in the runners are resolved against this.
+    workingDir = layout.projectDirectory.asFile
+
+    systemProperty("idea.home.path", layout.projectDirectory.asFile.path)
+    systemProperty("idea.ignore.disabled.plugins", "true")
+
+    setLibraryProperty("org.jetbrains.kotlin.test.kotlin-stdlib", "kotlin-stdlib")
+    setLibraryProperty("org.jetbrains.kotlin.test.kotlin-stdlib-jdk8", "kotlin-stdlib-jdk8")
+    setLibraryProperty("org.jetbrains.kotlin.test.kotlin-reflect", "kotlin-reflect")
+    setLibraryProperty("org.jetbrains.kotlin.test.kotlin-test", "kotlin-test")
+    setLibraryProperty("org.jetbrains.kotlin.test.kotlin-script-runtime", "kotlin-script-runtime")
+    setLibraryProperty("org.jetbrains.kotlin.test.kotlin-annotations-jvm", "kotlin-annotations-jvm")
+}
+
+fun Test.setLibraryProperty(propName: String, jarName: String) {
+    val path = testArtifacts.files
+        .find { """$jarName-\d.*""".toRegex().matches(it.name) }
+        ?.absolutePath
+        ?: error("testArtifacts is missing $jarName")
+    systemProperty(propName, path)
 }
 
 jetwhalePublish {

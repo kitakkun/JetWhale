@@ -1,0 +1,164 @@
+FILE fqName:<root> fileName:/box.kt
+  CLASS CLASS name:Recording modality:FINAL visibility:public superTypes:[com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope]
+    thisReceiver: VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> type:<root>.Recording
+    PROPERTY name:dialled visibility:public modality:FINAL [val]
+      FIELD PROPERTY_BACKING_FIELD name:dialled type:kotlin.collections.MutableList<kotlin.String> visibility:private [final]
+        EXPRESSION_BODY
+          CALL 'public final fun mutableListOf <T> (): kotlin.collections.MutableList<T of kotlin.collections.mutableListOf> declared in kotlin.collections' type=kotlin.collections.MutableList<kotlin.String> origin=null
+            TYPE_ARG T: kotlin.String
+      FUN DEFAULT_PROPERTY_ACCESSOR name:<get-dialled> visibility:public modality:FINAL returnType:kotlin.collections.MutableList<kotlin.String>
+        VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:<root>.Recording
+        correspondingProperty: PROPERTY name:dialled visibility:public modality:FINAL [val]
+        BLOCK_BODY
+          RETURN type=kotlin.Nothing from='public final fun <get-dialled> (): kotlin.collections.MutableList<kotlin.String> declared in <root>.Recording'
+            GET_FIELD 'FIELD PROPERTY_BACKING_FIELD name:dialled type:kotlin.collections.MutableList<kotlin.String> visibility:private [final]' type=kotlin.collections.MutableList<kotlin.String> origin=null
+              receiver: GET_VAR '<this>: <root>.Recording declared in <root>.Recording.<get-dialled>' type=<root>.Recording origin=null
+    CONSTRUCTOR visibility:public returnType:<root>.Recording [primary]
+      BLOCK_BODY
+        DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in kotlin.Any'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:Recording modality:FINAL visibility:public superTypes:[com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope]' type=kotlin.Unit
+    FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN returnType:kotlin.Boolean [fake_override,operator]
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:kotlin.Any
+      VALUE_PARAMETER kind:Regular name:other index:1 type:kotlin.Any?
+      overridden:
+        public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope
+    FUN FAKE_OVERRIDE name:hashCode visibility:public modality:OPEN returnType:kotlin.Int [fake_override]
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:kotlin.Any
+      overridden:
+        public open fun hashCode (): kotlin.Int declared in com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope
+    FUN FAKE_OVERRIDE name:toString visibility:public modality:OPEN returnType:kotlin.String [fake_override]
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:kotlin.Any
+      overridden:
+        public open fun toString (): kotlin.String declared in com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope
+    FUN name:buildMachineWss visibility:public modality:OPEN returnType:kotlin.Unit
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:<root>.Recording
+      VALUE_PARAMETER kind:Regular name:port index:1 type:kotlin.Int
+      overridden:
+        public abstract fun buildMachineWss (port: kotlin.Int): kotlin.Unit declared in com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope
+      BLOCK_BODY
+        CALL 'public final fun plusAssign <T> (<this>: kotlin.collections.MutableCollection<in T of kotlin.collections.plusAssign>, element: T of kotlin.collections.plusAssign): kotlin.Unit declared in kotlin.collections' type=kotlin.Unit origin=PLUSEQ
+          TYPE_ARG T: kotlin.String
+          ARG <this>: CALL 'public final fun <get-dialled> (): kotlin.collections.MutableList<kotlin.String> declared in <root>.Recording' type=kotlin.collections.MutableList<kotlin.String> origin=PLUSEQ
+            ARG <this>: GET_VAR '<this>: <root>.Recording declared in <root>.Recording.buildMachineWss' type=<root>.Recording origin=IMPLICIT_ARGUMENT
+          ARG element: STRING_CONCATENATION type=kotlin.String
+            CONST String type=kotlin.String value="unrewritten:"
+            GET_VAR 'port: kotlin.Int declared in <root>.Recording.buildMachineWss' type=kotlin.Int origin=null
+    FUN name:ws visibility:public modality:OPEN returnType:kotlin.Unit
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:<root>.Recording
+      VALUE_PARAMETER kind:Regular name:host index:1 type:kotlin.String
+      VALUE_PARAMETER kind:Regular name:port index:2 type:kotlin.Int
+      overridden:
+        public abstract fun ws (host: kotlin.String, port: kotlin.Int): kotlin.Unit declared in com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope
+      BLOCK_BODY
+        CALL 'public final fun plusAssign <T> (<this>: kotlin.collections.MutableCollection<in T of kotlin.collections.plusAssign>, element: T of kotlin.collections.plusAssign): kotlin.Unit declared in kotlin.collections' type=kotlin.Unit origin=PLUSEQ
+          TYPE_ARG T: kotlin.String
+          ARG <this>: CALL 'public final fun <get-dialled> (): kotlin.collections.MutableList<kotlin.String> declared in <root>.Recording' type=kotlin.collections.MutableList<kotlin.String> origin=PLUSEQ
+            ARG <this>: GET_VAR '<this>: <root>.Recording declared in <root>.Recording.ws' type=<root>.Recording origin=IMPLICIT_ARGUMENT
+          ARG element: STRING_CONCATENATION type=kotlin.String
+            CONST String type=kotlin.String value="ws://"
+            GET_VAR 'host: kotlin.String declared in <root>.Recording.ws' type=kotlin.String origin=null
+            CONST String type=kotlin.String value=":"
+            GET_VAR 'port: kotlin.Int declared in <root>.Recording.ws' type=kotlin.Int origin=null
+    FUN name:wss visibility:public modality:OPEN returnType:kotlin.Unit
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:<root>.Recording
+      VALUE_PARAMETER kind:Regular name:host index:1 type:kotlin.String
+      VALUE_PARAMETER kind:Regular name:port index:2 type:kotlin.Int
+      overridden:
+        public abstract fun wss (host: kotlin.String, port: kotlin.Int): kotlin.Unit declared in com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope
+      BLOCK_BODY
+        CALL 'public final fun plusAssign <T> (<this>: kotlin.collections.MutableCollection<in T of kotlin.collections.plusAssign>, element: T of kotlin.collections.plusAssign): kotlin.Unit declared in kotlin.collections' type=kotlin.Unit origin=PLUSEQ
+          TYPE_ARG T: kotlin.String
+          ARG <this>: CALL 'public final fun <get-dialled> (): kotlin.collections.MutableList<kotlin.String> declared in <root>.Recording' type=kotlin.collections.MutableList<kotlin.String> origin=PLUSEQ
+            ARG <this>: GET_VAR '<this>: <root>.Recording declared in <root>.Recording.wss' type=<root>.Recording origin=IMPLICIT_ARGUMENT
+          ARG element: STRING_CONCATENATION type=kotlin.String
+            CONST String type=kotlin.String value="wss://"
+            GET_VAR 'host: kotlin.String declared in <root>.Recording.wss' type=kotlin.String origin=null
+            CONST String type=kotlin.String value=":"
+            GET_VAR 'port: kotlin.Int declared in <root>.Recording.wss' type=kotlin.Int origin=null
+  FUN name:box visibility:public modality:FINAL returnType:kotlin.String
+    BLOCK_BODY
+      VAR name:scope type:<root>.Recording [val]
+        CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Recording' type=<root>.Recording origin=null
+      CALL 'public open fun wss (host: kotlin.String, port: kotlin.Int): kotlin.Unit declared in <root>.Recording' type=kotlin.Unit origin=null
+        ARG <this>: GET_VAR 'val scope: <root>.Recording declared in <root>.box' type=<root>.Recording origin=null
+        ARG host: CONST String type=kotlin.String value="198.51.100.7"
+        ARG port: CONST Int type=kotlin.Int value=5443
+      CALL 'public final fun endpoints (scope: com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope, configure: @[ExtensionFunctionType] kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope, kotlin.Unit>): kotlin.Unit declared in <root>' type=kotlin.Unit origin=null
+        ARG scope: GET_VAR 'val scope: <root>.Recording declared in <root>.box' type=<root>.Recording origin=null
+        ARG configure: FUN_EXPR type=@[ExtensionFunctionType] kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope, kotlin.Unit> origin=LAMBDA
+          FUN LOCAL_FUNCTION_FOR_LAMBDA name:<anonymous> visibility:local modality:FINAL returnType:kotlin.Unit
+            VALUE_PARAMETER kind:ExtensionReceiver name:$this$endpoints index:0 type:com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope
+            BLOCK_BODY
+              CALL 'public abstract fun wss (host: kotlin.String, port: kotlin.Int): kotlin.Unit declared in com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope' type=kotlin.Unit origin=null
+                ARG <this>: GET_VAR '$this$endpoints: com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope declared in <root>.box.<anonymous>' type=com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope origin=IMPLICIT_ARGUMENT
+                ARG host: CONST String type=kotlin.String value="198.51.100.7"
+                ARG port: CONST Int type=kotlin.Int value=5444
+              CALL 'public final fun forEach <T> (<this>: kotlin.collections.Iterable<T of kotlin.collections.forEach>, action: kotlin.Function1<T of kotlin.collections.forEach, kotlin.Unit>): kotlin.Unit declared in kotlin.collections' type=kotlin.Unit origin=null
+                TYPE_ARG T: kotlin.Int
+                ARG <this>: CALL 'public final fun listOf <T> (element: T of kotlin.collections.listOf): kotlin.collections.List<T of kotlin.collections.listOf> declared in kotlin.collections' type=kotlin.collections.List<kotlin.Int> origin=null
+                  TYPE_ARG T: kotlin.Int
+                  ARG element: CONST Int type=kotlin.Int value=5445
+                ARG action: FUN_EXPR type=kotlin.Function1<kotlin.Int, kotlin.Unit> origin=LAMBDA
+                  FUN LOCAL_FUNCTION_FOR_LAMBDA name:<anonymous> visibility:local modality:FINAL returnType:kotlin.Unit
+                    VALUE_PARAMETER kind:Regular name:it index:0 type:kotlin.Int
+                    BLOCK_BODY
+                      CALL 'public abstract fun wss (host: kotlin.String, port: kotlin.Int): kotlin.Unit declared in com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope' type=kotlin.Unit origin=null
+                        ARG <this>: GET_VAR '$this$endpoints: com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope declared in <root>.box.<anonymous>' type=com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope origin=IMPLICIT_ARGUMENT
+                        ARG host: CONST String type=kotlin.String value="198.51.100.7"
+                        ARG port: GET_VAR 'it: kotlin.Int declared in <root>.box.<anonymous>.<anonymous>' type=kotlin.Int origin=null
+      VAR name:expected type:kotlin.collections.List<kotlin.String> [val]
+        CALL 'public final fun listOf <T> (vararg elements: T of kotlin.collections.listOf): kotlin.collections.List<T of kotlin.collections.listOf> declared in kotlin.collections' type=kotlin.collections.List<kotlin.String> origin=null
+          TYPE_ARG T: kotlin.String
+          ARG elements: VARARG type=kotlin.Array<out kotlin.String> varargElementType=kotlin.String
+            CONST String type=kotlin.String value="wss://198.51.100.7:5443"
+            CONST String type=kotlin.String value="wss://198.51.100.7:5444"
+            CONST String type=kotlin.String value="wss://198.51.100.7:5445"
+      RETURN type=kotlin.Nothing from='public final fun box (): kotlin.String declared in <root>'
+        WHEN type=kotlin.String origin=IF
+          BRANCH
+            if: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=EQEQ
+              ARG arg0: CALL 'public final fun <get-dialled> (): kotlin.collections.MutableList<kotlin.String> declared in <root>.Recording' type=kotlin.collections.MutableList<kotlin.String> origin=GET_PROPERTY
+                ARG <this>: GET_VAR 'val scope: <root>.Recording declared in <root>.box' type=<root>.Recording origin=null
+              ARG arg1: GET_VAR 'val expected: kotlin.collections.List<kotlin.String> declared in <root>.box' type=kotlin.collections.List<kotlin.String> origin=null
+            then: CONST String type=kotlin.String value="OK"
+          BRANCH
+            if: CONST Boolean type=kotlin.Boolean value=true
+            then: STRING_CONCATENATION type=kotlin.String
+              CONST String type=kotlin.String value="FAIL: "
+              CALL 'public final fun <get-dialled> (): kotlin.collections.MutableList<kotlin.String> declared in <root>.Recording' type=kotlin.collections.MutableList<kotlin.String> origin=GET_PROPERTY
+                ARG <this>: GET_VAR 'val scope: <root>.Recording declared in <root>.box' type=<root>.Recording origin=null
+  FUN name:endpoints visibility:public modality:FINAL returnType:kotlin.Unit
+    VALUE_PARAMETER kind:Regular name:scope index:0 type:com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope
+    VALUE_PARAMETER kind:Regular name:configure index:1 type:@[ExtensionFunctionType] kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope, kotlin.Unit>
+    BLOCK_BODY
+      RETURN type=kotlin.Nothing from='public final fun endpoints (scope: com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope, configure: @[ExtensionFunctionType] kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope, kotlin.Unit>): kotlin.Unit declared in <root>'
+        CALL 'public abstract fun invoke (p1: P1 of kotlin.Function1): R of kotlin.Function1 declared in kotlin.Function1' type=kotlin.Unit origin=INVOKE
+          ARG <this>: GET_VAR 'configure: @[ExtensionFunctionType] kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope, kotlin.Unit> declared in <root>.endpoints' type=@[ExtensionFunctionType] kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope, kotlin.Unit> origin=VARIABLE_AS_FUNCTION
+          ARG p1: GET_VAR 'scope: com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope declared in <root>.endpoints' type=com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope origin=null
+FILE fqName:com.kitakkun.jetwhale.agent.runtime fileName:/scope.kt
+  CLASS INTERFACE name:JetWhaleEndpointScope modality:ABSTRACT visibility:public superTypes:[kotlin.Any]
+    thisReceiver: VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> type:com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope
+    FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN returnType:kotlin.Boolean [fake_override,operator]
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:kotlin.Any
+      VALUE_PARAMETER kind:Regular name:other index:1 type:kotlin.Any?
+      overridden:
+        public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in kotlin.Any
+    FUN FAKE_OVERRIDE name:hashCode visibility:public modality:OPEN returnType:kotlin.Int [fake_override]
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:kotlin.Any
+      overridden:
+        public open fun hashCode (): kotlin.Int declared in kotlin.Any
+    FUN FAKE_OVERRIDE name:toString visibility:public modality:OPEN returnType:kotlin.String [fake_override]
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:kotlin.Any
+      overridden:
+        public open fun toString (): kotlin.String declared in kotlin.Any
+    FUN name:buildMachineWss visibility:public modality:ABSTRACT returnType:kotlin.Unit
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope
+      VALUE_PARAMETER kind:Regular name:port index:1 type:kotlin.Int
+    FUN name:ws visibility:public modality:ABSTRACT returnType:kotlin.Unit
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope
+      VALUE_PARAMETER kind:Regular name:host index:1 type:kotlin.String
+      VALUE_PARAMETER kind:Regular name:port index:2 type:kotlin.Int
+    FUN name:wss visibility:public modality:ABSTRACT returnType:kotlin.Unit
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope
+      VALUE_PARAMETER kind:Regular name:host index:1 type:kotlin.String
+      VALUE_PARAMETER kind:Regular name:port index:2 type:kotlin.Int
