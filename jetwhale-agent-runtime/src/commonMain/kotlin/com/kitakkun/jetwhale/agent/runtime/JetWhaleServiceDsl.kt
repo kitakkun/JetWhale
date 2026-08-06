@@ -56,28 +56,15 @@ public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit): JetW
                 plugins = configuration.plugins.plugins,
             ),
         )
-    val target = configuration.connection.resolveTarget()
-    service.startService(host = target.host, port = target.port, discovery = target.discovery)
+    service.startService(configuration.connection.endpointResolver())
     return MessagingServiceSession(service)
 }
 
-/** The [JetWhaleMessagingService.startService] arguments a configured [endpoint] amounts to. */
-internal data class ResolvedConnectionTarget(
-    val host: String,
-    val port: Int,
-    val discovery: HostDiscoveryConfig?,
-)
+/** The resolver a configured `endpoint` amounts to, once `ssl {}` is known. */
+internal fun JetWhaleConnectionConfiguration.endpointResolver(): EndpointResolver = when (val endpoint = endpoint) {
+    is JetWhaleFixedEndpoint -> FixedEndpointResolver(endpoint.resolved())
 
-internal fun JetWhaleConnectionConfiguration.resolveTarget(): ResolvedConnectionTarget = when (val endpoint = endpoint) {
-    is JetWhaleFixedEndpoint -> ResolvedConnectionTarget(
-        host = endpoint.host,
-        port = endpoint.port,
-        discovery = null,
-    )
-
-    is JetWhaleDiscoveredEndpoint -> ResolvedConnectionTarget(
-        host = endpoint.fallback.host,
-        port = endpoint.fallback.port,
+    is JetWhaleDiscoveredEndpoint -> MdnsEndpointResolver(
         discovery = HostDiscoveryConfig(
             hostName = endpoint.hostName,
             addresses = endpoint.addresses,
@@ -86,8 +73,11 @@ internal fun JetWhaleConnectionConfiguration.resolveTarget(): ResolvedConnection
             // `endpoint =` can appear in either order.
             useWss = sslConfiguration.isEnabled,
         ),
+        fallback = endpoint.fallback.resolved(),
     )
 }
+
+private fun JetWhaleFixedEndpoint.resolved(): ResolvedEndpoint = ResolvedEndpoint(host, port)
 
 private class MessagingServiceSession(private val service: JetWhaleMessagingService) : JetWhaleSession {
     override fun stop() {

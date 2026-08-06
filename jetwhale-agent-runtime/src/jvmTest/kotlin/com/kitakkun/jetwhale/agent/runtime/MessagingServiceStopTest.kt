@@ -74,7 +74,7 @@ class MessagingServiceStopTest {
     ): JetWhaleMessagingService = DefaultJetWhaleMessagingService(
         socketClient = socketClient,
         pluginService = JetWhaleAgentPluginService(plugins = listOf(plugin)),
-    ).also { it.startService(host = "localhost", port = 1, discovery = null) }
+    ).also { it.startService(FixedEndpointResolver(ResolvedEndpoint(host = "localhost", port = 1))) }
 
     @Test
     fun `stopService closes the socket so the host sees the session go away`() = runBlocking {

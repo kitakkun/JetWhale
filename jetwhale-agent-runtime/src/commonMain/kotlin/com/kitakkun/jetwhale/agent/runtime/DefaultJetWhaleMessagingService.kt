@@ -22,17 +22,16 @@ internal class DefaultJetWhaleMessagingService(
     private var keepAwakeJob: Job? = null
     private var retryCount = 0
 
-    override fun startService(host: String, port: Int, discovery: HostDiscoveryConfig?) {
+    override fun startService(resolver: EndpointResolver) {
         JetWhaleLogger.i("Starting JetWhale Messaging Service")
         keepAwakeJob?.cancel()
         keepAwakeJob = coroutineScope.launch {
-            val resolver = HostResolver(fallbackHost = host, fallbackPort = port, discovery = discovery)
             while (isActive) {
                 try {
-                    // Resolved per attempt rather than once up front: a host started after the app, or
-                    // one that came back on a different port, is only reached by browsing again.
-                    val (resolvedHost, resolvedPort) = resolver.resolve()
-                    openConnection(resolvedHost, resolvedPort)
+                    // Asked per attempt rather than once up front: an address that only becomes
+                    // correct later is reached without restarting the session.
+                    val resolved = resolver.resolve()
+                    openConnection(resolved.host, resolved.port)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (_: Throwable) {

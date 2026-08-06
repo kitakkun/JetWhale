@@ -69,44 +69,40 @@ internal fun selectHost(services: List<DiscoveredService>, discovery: HostDiscov
     .firstOrNull()
 
 /**
- * Resolves the address to connect to, preferring an mDNS-discovered host over
- * [fallbackHost]/[fallbackPort].
+ * Browses for a JetWhale host over mDNS, standing [fallback] in whenever a browse yields none that
+ * this agent can use.
  *
- * Consulted before every connection attempt, because a host started after the app — or one that came
- * back on a different port — is only reached by browsing again. That makes it repetitive by nature,
- * so it remembers the outcome it last reported and stays quiet while nothing changes.
+ * Browsing on every call is the point: a host started after the app, or one that came back on a
+ * different port, is only reached by looking again. That makes the outcome repetitive by nature, so
+ * the resolver remembers what it last reported and stays quiet while nothing changes.
  */
-internal class HostResolver(
-    private val fallbackHost: String,
-    private val fallbackPort: Int,
-    private val discovery: HostDiscoveryConfig?,
-) {
+internal class MdnsEndpointResolver(
+    val discovery: HostDiscoveryConfig,
+    val fallback: ResolvedEndpoint,
+) : EndpointResolver {
     private var lastReported: String? = null
 
-    suspend fun resolve(): Pair<String, Int> {
-        if (discovery == null) return fallbackHost to fallbackPort
-
-        return when (val result = browseJetWhaleServices(HOST_DISCOVERY_TIMEOUT_MILLIS)) {
+    override suspend fun resolve(): ResolvedEndpoint {
+        val result = browseJetWhaleServices(HOST_DISCOVERY_TIMEOUT_MILLIS)
+        return when (result) {
             is DiscoveryResult.Unavailable -> {
                 report("mDNS host discovery is unavailable because ${result.reason}; using $fallback", warn = true)
-                fallbackHost to fallbackPort
+                fallback
             }
 
             is DiscoveryResult.Browsed -> {
                 val selected = selectHost(result.services, discovery)
                 if (selected == null) {
-                    report(noHostMessage(result.services, discovery), warn = true)
-                    fallbackHost to fallbackPort
+                    report(noHostMessage(result.services), warn = true)
+                    fallback
                 } else {
                     val ambiguous = !discovery.hasFilter && result.services.size > 1
                     report(chosenMessage(selected, result.services, ambiguous), warn = ambiguous)
-                    selected.service.address to selected.port
+                    ResolvedEndpoint(selected.service.address, selected.port)
                 }
             }
         }
     }
-
-    private val fallback: String get() = "$fallbackHost:$fallbackPort"
 
     private fun report(message: String, warn: Boolean) {
         if (message == lastReported) return
@@ -114,7 +110,7 @@ internal class HostResolver(
         if (warn) JetWhaleLogger.w(message) else JetWhaleLogger.i(message)
     }
 
-    private fun noHostMessage(services: List<DiscoveredService>, discovery: HostDiscoveryConfig): String {
+    private fun noHostMessage(services: List<DiscoveredService>): String {
         val matched = services.filter { it.matches(discovery) }
         if (matched.isEmpty()) {
             return "mDNS host discovery found no matching host within ${HOST_DISCOVERY_TIMEOUT_MILLIS}ms; using $fallback"

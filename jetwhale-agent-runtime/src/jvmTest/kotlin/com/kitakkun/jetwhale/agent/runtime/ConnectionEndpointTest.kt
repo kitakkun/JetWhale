@@ -1,50 +1,54 @@
 package com.kitakkun.jetwhale.agent.runtime
 
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
+import kotlin.test.assertIs
 
 class ConnectionEndpointTest {
     private fun connection(
         configure: JetWhaleConnectionConfigurationScope.() -> Unit,
-    ): ResolvedConnectionTarget = JetWhaleConnectionConfiguration().apply(configure).resolveTarget()
+    ): EndpointResolver = JetWhaleConnectionConfiguration().apply(configure).endpointResolver()
+
+    private fun fixedEndpoint(
+        configure: JetWhaleConnectionConfigurationScope.() -> Unit,
+    ): ResolvedEndpoint = runBlocking { assertIs<FixedEndpointResolver>(connection(configure)).resolve() }
+
+    private fun mdns(
+        configure: JetWhaleConnectionConfigurationScope.() -> Unit,
+    ): MdnsEndpointResolver = assertIs<MdnsEndpointResolver>(connection(configure))
 
     @Test
     fun `an unconfigured connection targets the default host and port`() {
-        val target = connection { }
-
-        assertEquals("localhost", target.host)
-        assertEquals(8080, target.port)
-        assertNull(target.discovery)
+        assertEquals(ResolvedEndpoint("localhost", 8080), fixedEndpoint { })
     }
 
     @Suppress("DEPRECATION")
     @Test
-    fun `the deprecated host and port amount to the same target as a fixed endpoint`() {
-        val legacy = connection {
+    fun `the deprecated host and port amount to the same address as a fixed endpoint`() {
+        val legacy = fixedEndpoint {
             host = "192.168.3.26"
             port = 5443
         }
 
-        assertEquals(connection { endpoint = fixed("192.168.3.26", 5443) }, legacy)
+        assertEquals(fixedEndpoint { endpoint = fixed("192.168.3.26", 5443) }, legacy)
     }
 
     @Suppress("DEPRECATION")
     @Test
     fun `an assigned endpoint wins over the deprecated host and port`() {
-        val target = connection {
+        val resolved = fixedEndpoint {
             host = "ignored"
             port = 1
             endpoint = fixed("192.168.3.26", 5443)
         }
 
-        assertEquals("192.168.3.26", target.host)
-        assertEquals(5443, target.port)
+        assertEquals(ResolvedEndpoint("192.168.3.26", 5443), resolved)
     }
 
     @Test
-    fun `a discovered endpoint carries its filters and falls back to its fixed endpoint`() {
-        val target = connection {
+    fun `a discovered endpoint carries its filters and its fallback`() {
+        val resolver = mdns {
             endpoint = discovered(fallback = fixed("localhost", 5443)) {
                 matchHostName("build-machine")
                 allowAddress("192.168.3.26")
@@ -52,35 +56,34 @@ class ConnectionEndpointTest {
             }
         }
 
-        assertEquals("localhost", target.host)
-        assertEquals(5443, target.port)
-        assertEquals("build-machine", target.discovery?.hostName)
-        assertEquals(listOf("192.168.3.26", "192.168.3.27"), target.discovery?.addresses)
+        assertEquals(ResolvedEndpoint("localhost", 5443), resolver.fallback)
+        assertEquals("build-machine", resolver.discovery.hostName)
+        assertEquals(listOf("192.168.3.26", "192.168.3.27"), resolver.discovery.addresses)
     }
 
     @Test
     fun `a discovered endpoint without filters accepts any advertised host`() {
-        val target = connection { endpoint = discovered(fallback = fixed("localhost", 5443)) }
+        val resolver = mdns { endpoint = discovered(fallback = fixed("localhost", 5443)) }
 
-        assertNull(target.discovery?.hostName)
-        assertEquals(emptyList(), target.discovery?.addresses)
-        assertEquals(false, target.discovery?.hasFilter)
+        assertEquals(null, resolver.discovery.hostName)
+        assertEquals(emptyList(), resolver.discovery.addresses)
+        assertEquals(false, resolver.discovery.hasFilter)
     }
 
     @Test
     fun `ssl declared after the endpoint still uses wss`() {
-        val target = connection {
+        val resolver = mdns {
             endpoint = discovered(fallback = fixed("localhost", 5443))
             ssl { trustServerCertificate() }
         }
 
-        assertEquals(true, target.discovery?.useWss)
+        assertEquals(true, resolver.discovery.useWss)
     }
 
     @Test
     fun `an endpoint without ssl uses plain ws`() {
-        val target = connection { endpoint = discovered(fallback = fixed("localhost", 5080)) }
+        val resolver = mdns { endpoint = discovered(fallback = fixed("localhost", 5080)) }
 
-        assertEquals(false, target.discovery?.useWss)
+        assertEquals(false, resolver.discovery.useWss)
     }
 }

@@ -7,14 +7,11 @@ internal interface JetWhaleMessagingService {
     /**
      * Starts the messaging service to connect to the JetWhale debugger server.
      *
-     * @param host The hostname or IP address of the JetWhale debugger server, used when [discovery]
-     *   is null or finds no advertised host in time.
-     * @param port The port number of the JetWhale debugger server, used alongside [host] as the
-     *   fallback.
-     * @param discovery When non-null, mDNS host discovery is attempted before connecting and its
-     *   result overrides [host]/[port]; when null, [host]/[port] are used directly.
+     * @param resolver Asked for an address before every connection attempt. How that address is
+     *   arrived at — a literal one, or one browsed for over mDNS with a fallback — is the resolver's
+     *   business, not the service's.
      */
-    fun startService(host: String, port: Int, discovery: HostDiscoveryConfig?)
+    fun startService(resolver: EndpointResolver)
 
     /**
      * Stops the messaging service: the reconnect loop is torn down, the current connection is closed
@@ -27,7 +24,7 @@ internal interface JetWhaleMessagingService {
 }
 
 /**
- * Configures mDNS host discovery for the agent.
+ * Which advertised host the agent will accept, and on which port.
  *
  * @property hostName When non-null, only a host whose advertised hostname matches this (exact,
  *   case-insensitive) is selected.
