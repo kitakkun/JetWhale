@@ -9,6 +9,8 @@ dependencies {
     implementation(libs.kotlinxDatetime)
     implementation(libs.aboutLibrariesComposeM3)
     testImplementation(libs.kotlinTest)
+    testImplementation(compose.desktop.currentOs)
+    testImplementation(libs.jetbrainsComposeUiTestJUnit4)
 }
 
 compose.resources {

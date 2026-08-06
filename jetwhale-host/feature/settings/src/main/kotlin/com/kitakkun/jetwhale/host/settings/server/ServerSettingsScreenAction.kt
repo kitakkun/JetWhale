@@ -4,9 +4,11 @@ import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 
 sealed interface ServerSettingsScreenAction {
     data class ChangeDebugPortText(val text: String) : ServerSettingsScreenAction
-    data object ApplyDebugPortChange : ServerSettingsScreenAction
-    data object ConfirmApplyDebugPortChange : ServerSettingsScreenAction
-    data object DismissApplyDebugPortDialog : ServerSettingsScreenAction
+    data class ChangeWssPortText(val text: String) : ServerSettingsScreenAction
+    data class ChangeWssEnabled(val enabled: Boolean) : ServerSettingsScreenAction
+    data object ApplyDebugServerSettingsChange : ServerSettingsScreenAction
+    data object ConfirmApplyDebugServerSettingsChange : ServerSettingsScreenAction
+    data object DismissApplyDebugServerSettingsDialog : ServerSettingsScreenAction
 
     data class ChangeMcpPortText(val text: String) : ServerSettingsScreenAction
     data object ApplyMcpPortChange : ServerSettingsScreenAction

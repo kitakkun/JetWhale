@@ -32,4 +32,10 @@ interface DebuggerSettingsRepository {
     suspend fun updateWssPort(port: Int)
     suspend fun updateWssEnabled(enabled: Boolean)
     suspend fun updateFollowAiOperationEnabled(enabled: Boolean)
+
+    /**
+     * Stores everything the debug server binds from in a single write, so a collector never observes
+     * a half-applied configuration — a ws port paired with the wss port it is about to replace.
+     */
+    suspend fun updateDebugServerSettings(serverPort: Int, wssPort: Int, wssEnabled: Boolean)
 }

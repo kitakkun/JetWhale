@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.AppColorSchemeMutationKey
 import com.kitakkun.jetwhale.host.model.AppLanguageMutationKey
 import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.CheckForUpdatesOnStartupMutationKey
+import com.kitakkun.jetwhale.host.model.DebugServerSettingsMutationKey
 import com.kitakkun.jetwhale.host.model.DeleteSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
 import com.kitakkun.jetwhale.host.model.FailedPluginJarPathsSubscriptionKey
@@ -27,7 +28,6 @@ import com.kitakkun.jetwhale.host.model.OfficialPluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.PluginInstallFromMavenMutationKey
 import com.kitakkun.jetwhale.host.model.PluginInstallMutationKey
 import com.kitakkun.jetwhale.host.model.PluginInstallProgressSubscriptionKey
-import com.kitakkun.jetwhale.host.model.ServerPortMutationKey
 import com.kitakkun.jetwhale.host.model.ServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SignPluginTrustRegistryMutationKey
@@ -49,7 +49,7 @@ class SettingsPresenterContext(
     val appLanguageMutationKey: AppLanguageMutationKey,
     val appColorSchemeMutationKey: AppColorSchemeMutationKey,
     val adbAutoPortMappingMutationKey: AdbAutoPortMappingMutationKey,
-    val serverPortMutationKey: ServerPortMutationKey,
+    val debugServerSettingsMutationKey: DebugServerSettingsMutationKey,
     val mcpServerPortMutationKey: McpServerPortMutationKey,
     val mcpHostGroupPermissionMutationKey: McpHostGroupPermissionMutationKey,
     val mcpPluginInspectPermissionMutationKey: McpPluginInspectPermissionMutationKey,

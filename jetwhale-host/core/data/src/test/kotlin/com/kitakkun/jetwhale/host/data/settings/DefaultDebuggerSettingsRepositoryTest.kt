@@ -132,4 +132,34 @@ class DefaultDebuggerSettingsRepositoryTest {
         assertEquals(5444, repository.readWssPort())
         assertEquals(7081, repository.readMcpServerPort())
     }
+
+    @Test
+    fun `applying the debug server settings stores every field the server binds from`() = runBlocking {
+        val dataStore = newDataStore()
+
+        DefaultDebuggerSettingsRepository(dataStore, noOverrides)
+            .updateDebugServerSettings(serverPort = 5082, wssPort = 5445, wssEnabled = false)
+
+        val repository = DefaultDebuggerSettingsRepository(dataStore, noOverrides)
+        assertEquals(5082, repository.readServerPort())
+        assertEquals(5445, repository.readWssPort())
+        assertEquals(false, repository.readWssEnabled())
+    }
+
+    @Test
+    fun `applying the debug server settings retires both port overrides`() = runBlocking {
+        val repository = DefaultDebuggerSettingsRepository(
+            newDataStore(),
+            ServerPortOverrides(serverPort = 5081, wssPort = 5444, mcpServerPort = 7081),
+        )
+
+        repository.updateDebugServerSettings(serverPort = 5082, wssPort = 5445, wssEnabled = true)
+
+        assertEquals(5082, repository.readServerPort())
+        assertEquals(5445, repository.readWssPort())
+        assertEmits(5082, repository.serverPortFlow)
+        assertEmits(5445, repository.wssPortFlow)
+        // The MCP port was not part of this change, so its override still stands.
+        assertEquals(7081, repository.readMcpServerPort())
+    }
 }

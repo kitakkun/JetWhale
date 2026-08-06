@@ -4,6 +4,9 @@ data class ServerSettingsScreenUiState(
     val debugServerState: ServerState,
     val mcpServerState: ServerState,
     val editingDebugPortText: String,
+    val editingWssPortText: String,
+    val editingWssEnabled: Boolean,
+    val debugServerSettingsError: DebugServerSettingsError?,
     val editingMcpPortText: String,
     val mcpClaudeCodeCommand: String,
     val mcpJsonConfig: String,
@@ -19,6 +22,14 @@ data class ServerSettingsScreenUiState(
     val certificates: List<CertificateUiEntry>,
     val certificateDetailDialogEntry: CertificateUiEntry?,
 )
+
+/** Why the debug server settings cannot be applied as they currently stand. */
+enum class DebugServerSettingsError {
+    InvalidPort,
+
+    /** Both connectors bind on the same host, so they cannot share a port. */
+    PortConflict,
+}
 
 data class CertificateUiEntry(
     val id: String,
