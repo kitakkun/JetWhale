@@ -1,6 +1,6 @@
 package com.kitakkun.jetwhale.plugins.nav3.host
 
-import com.kitakkun.jetwhale.host.sdk.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.plugins.nav3.protocol.MutationResult
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NAV3_PLUGIN_ID
