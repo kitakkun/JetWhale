@@ -42,8 +42,8 @@ Add the agent to the app being debugged — one artifact, carrying both the plug
 
 ```kotlin
 dependencies {
-    implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
-    implementation("com.kitakkun.jetwhale:jetwhale-compose-semantics-inspector-agent:<version>")
+    implementation(jetwhale.agent.runtime)
+    implementation(jetwhale.compose.semantics.inspector.agent)
 }
 ```
 

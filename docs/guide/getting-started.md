@@ -23,14 +23,51 @@ Launch the host. By default it listens for debuggee connections on **port 5080**
 
 ## 2. Add the agent runtime to your app
 
-All artifacts are published to Maven Central under the group `com.kitakkun.jetwhale`:
+All artifacts are published to Maven Central under the group `com.kitakkun.jetwhale`. A release only
+republishes the artifacts that changed, so their versions differ within one release — name the
+release once through the published version catalog and let it supply the rest:
+
+```kotlin
+// settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        google()
+    }
+    versionCatalogs {
+        create("jetwhale") {
+            from("com.kitakkun.jetwhale:jetwhale-catalog:<version>")
+        }
+    }
+}
+```
 
 ```kotlin
 // the app being debugged — build.gradle.kts
 dependencies {
-    implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
+    implementation(jetwhale.agent.runtime)
 }
 ```
+
+::: details Alternative: the BOM
+If you cannot use a version catalog — a Maven build, for instance — the BOM pins the same
+combination:
+
+```kotlin
+dependencies {
+    implementation(platform("com.kitakkun.jetwhale:jetwhale-bom:<version>"))
+    implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime")
+}
+```
+
+In a Kotlin Multiplatform module the source-set DSL has no `platform()`, so declare it at the top
+level (`dependencies { commonMainImplementation(platform("...")) }`) or write
+`project.dependencies.platform("...")` inside `sourceSets.commonMain.dependencies { }`.
+
+The BOM cannot carry the `com.kitakkun.jetwhale.host` Gradle plugin, because `plugins { }` needs a
+literal version. The version catalog can — see
+[Developing plugins](./developing-plugins.md).
+:::
 
 ::: warning Kotlin version compatibility
 JetWhale artifacts are built with a recent Kotlin release (currently **2.4.10**), and your app needs
@@ -383,7 +420,7 @@ the agent Gradle plugin:
 ```kotlin
 // the app being debugged — build.gradle.kts
 plugins {
-    id("com.kitakkun.jetwhale.agent") version "<version>"
+    alias(jetwhale.plugins.agent)
 }
 ```
 

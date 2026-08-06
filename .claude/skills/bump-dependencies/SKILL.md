@@ -69,5 +69,8 @@ On ANY Kotlin bump, update the hardcoded "built with" version:
 ## 5. Verify
 
 - `./gradlew build` and `./gradlew check` must both pass before committing.
+- `./gradlew printReleasePlan` — a Kotlin/Compose bump touches `gradle/libs.versions.toml` beyond the
+  `jetwhale` line, so it correctly forces a full release. Confirm the plan says so rather than
+  publishing a partial one. See `RELEASING.md`.
 - Major bumps (new major version of anything) deserve a skim of the library's changelog even if
   the build is green.
