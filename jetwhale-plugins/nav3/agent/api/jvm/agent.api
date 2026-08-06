@@ -1,0 +1,24 @@
+public final class com/kitakkun/jetwhale/plugins/nav3/agent/JetWhaleNav3AgentPlugin : com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
+	public static final field $stable I
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/nav3/agent/Nav3KeyCodec;)V
+	public fun getPluginId ()Ljava/lang/String;
+	public fun getPluginVersion ()Ljava/lang/String;
+	public final fun registerBackStack (Ljava/util/List;Ljava/lang/String;)V
+	public static synthetic fun registerBackStack$default (Lcom/kitakkun/jetwhale/plugins/nav3/agent/JetWhaleNav3AgentPlugin;Ljava/util/List;Ljava/lang/String;ILjava/lang/Object;)V
+	public final fun unregisterBackStack (Ljava/lang/String;)V
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/agent/Nav3KeyCodec {
+	public static final field $stable I
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/agent/Nav3KeyCodec$Companion;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/agent/Nav3KeyCodec$Companion {
+	public final fun closedPolymorphic (Lkotlinx/serialization/KSerializer;)Lcom/kitakkun/jetwhale/plugins/nav3/agent/Nav3KeyCodec;
+	public final fun openPolymorphic (Lkotlinx/serialization/modules/SerializersModule;)Lcom/kitakkun/jetwhale/plugins/nav3/agent/Nav3KeyCodec;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/agent/TrackNavBackStackKt {
+	public static final fun TrackNavBackStack (Lcom/kitakkun/jetwhale/plugins/nav3/agent/JetWhaleNav3AgentPlugin;Ljava/util/List;Ljava/lang/String;Landroidx/compose/runtime/Composer;II)V
+}
+

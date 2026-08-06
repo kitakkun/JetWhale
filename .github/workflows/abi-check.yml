@@ -13,6 +13,10 @@ on:
       - 'jetwhale-agent-runtime/**'
       - 'jetwhale-annotations/**'
       - 'jetwhale-protocol/core/**'
+      # The official plugins are published artifacts too; `example` is a sample and is not.
+      - 'jetwhale-plugins/network/**'
+      - 'jetwhale-plugins/nav3/**'
+      - 'jetwhale-plugins/semantics/**'
       # Adding or removing a target here rewrites the `// Targets: [...]` header of every klib dump,
       # so a change confined to the convention would otherwise slip past unchecked.
       - 'gradle-conventions/**'
@@ -44,4 +48,15 @@ jobs:
             :jetwhale-agent-sdk:checkKotlinAbi \
             :jetwhale-agent-runtime:checkKotlinAbi \
             :jetwhale-annotations:checkKotlinAbi \
-            :jetwhale-protocol:core:checkKotlinAbi
+            :jetwhale-protocol:core:checkKotlinAbi \
+            :jetwhale-plugins:network:protocol:checkKotlinAbi \
+            :jetwhale-plugins:network:agent:checkKotlinAbi \
+            :jetwhale-plugins:network:agent-ktor:checkKotlinAbi \
+            :jetwhale-plugins:network:agent-okhttp:checkKotlinAbi \
+            :jetwhale-plugins:network:host:checkKotlinAbi \
+            :jetwhale-plugins:nav3:protocol:checkKotlinAbi \
+            :jetwhale-plugins:nav3:agent:checkKotlinAbi \
+            :jetwhale-plugins:nav3:host:checkKotlinAbi \
+            :jetwhale-plugins:semantics:protocol:checkKotlinAbi \
+            :jetwhale-plugins:semantics:agent:checkKotlinAbi \
+            :jetwhale-plugins:semantics:host:checkKotlinAbi

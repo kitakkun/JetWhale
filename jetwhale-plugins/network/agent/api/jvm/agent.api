@@ -1,0 +1,42 @@
+public final class com/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin : com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin$Companion;
+	public static final field PLUGIN_ID Ljava/lang/String;
+	public fun <init> ()V
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules;)V
+	public synthetic fun <init> (Lcom/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun findMock (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;
+	public fun getPluginId ()Ljava/lang/String;
+	public fun getPluginVersion ()Ljava/lang/String;
+	public final fun newTransactionId ()Ljava/lang/String;
+	public final fun recordFailure (Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;)V
+	public final fun recordRequest (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;)V
+	public final fun recordResponse (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;)V
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin$Companion {
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules$Companion;
+	public final fun getMcpOnlyRules ()Ljava/util/List;
+	public final fun redactAtCapture (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
+	public final fun redactAtCapture (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules$Builder {
+	public final fun bodyJsonField ([Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;)V
+	public static synthetic fun bodyJsonField$default (Lcom/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules$Builder;[Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;ILjava/lang/Object;)V
+	public final fun header ([Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;)V
+	public static synthetic fun header$default (Lcom/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules$Builder;[Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;ILjava/lang/Object;)V
+	public final fun urlQueryParam ([Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;)V
+	public static synthetic fun urlQueryParam$default (Lcom/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules$Builder;[Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;ILjava/lang/Object;)V
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules$Companion {
+	public final fun getNone ()Lcom/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRulesKt {
+	public static final fun NetworkRedactionRules (Lkotlin/jvm/functions/Function1;)Lcom/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules;
+}
+

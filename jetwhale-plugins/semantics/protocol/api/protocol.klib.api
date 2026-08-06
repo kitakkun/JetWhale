@@ -1,0 +1,369 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, linuxArm64, linuxX64, macosArm64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.semantics:protocol>
+final enum class com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction : kotlin/Enum<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction> { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction|null[0]
+    enum entry Click // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.Click|null[0]
+    enum entry Collapse // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.Collapse|null[0]
+    enum entry Dismiss // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.Dismiss|null[0]
+    enum entry Expand // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.Expand|null[0]
+    enum entry ImeAction // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.ImeAction|null[0]
+    enum entry InsertText // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.InsertText|null[0]
+    enum entry LongClick // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.LongClick|null[0]
+    enum entry RequestFocus // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.RequestFocus|null[0]
+    enum entry ScrollBy // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.ScrollBy|null[0]
+    enum entry SetText // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.SetText|null[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.values|values#static(){}[0]
+
+    final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.Companion.serializer|serializer(){}[0]
+        final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot> { // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree|null[0]
+    constructor <init>(com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.<init>|<init>(com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions){}[0]
+
+    final val options // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.options|{}options[0]
+        final fun <get-options>(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.options.<get-options>|<get-options>(){}[0]
+
+    final fun component1(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.component1|component1(){}[0]
+    final fun copy(com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.copy|copy(com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree> { // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree) // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.CaptureNodeTree){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree> // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode { // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode|null[0]
+    constructor <init>(kotlin/Int, kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds, kotlin.collections/List<kotlin/String> = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode> = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.<init>|<init>(kotlin.Int;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;kotlin.collections.List<kotlin.String>;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode>){}[0]
+
+    final val actions // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.actions|{}actions[0]
+        final fun <get-actions>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.actions.<get-actions>|<get-actions>(){}[0]
+    final val bounds // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.bounds|{}bounds[0]
+        final fun <get-bounds>(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.bounds.<get-bounds>|<get-bounds>(){}[0]
+    final val boundsInScreen // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.boundsInScreen|{}boundsInScreen[0]
+        final fun <get-boundsInScreen>(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.boundsInScreen.<get-boundsInScreen>|<get-boundsInScreen>(){}[0]
+    final val children // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.children|{}children[0]
+        final fun <get-children>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.children.<get-children>|<get-children>(){}[0]
+    final val contentDescription // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.contentDescription|{}contentDescription[0]
+        final fun <get-contentDescription>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.contentDescription.<get-contentDescription>|<get-contentDescription>(){}[0]
+    final val editableText // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.editableText|{}editableText[0]
+        final fun <get-editableText>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.editableText.<get-editableText>|<get-editableText>(){}[0]
+    final val id // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.id|{}id[0]
+        final fun <get-id>(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.id.<get-id>|<get-id>(){}[0]
+    final val isClickable // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isClickable|{}isClickable[0]
+        final fun <get-isClickable>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isClickable.<get-isClickable>|<get-isClickable>(){}[0]
+    final val isEditable // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isEditable|{}isEditable[0]
+        final fun <get-isEditable>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isEditable.<get-isEditable>|<get-isEditable>(){}[0]
+    final val isEnabled // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isEnabled|{}isEnabled[0]
+        final fun <get-isEnabled>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isEnabled.<get-isEnabled>|<get-isEnabled>(){}[0]
+    final val isFocused // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isFocused|{}isFocused[0]
+        final fun <get-isFocused>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isFocused.<get-isFocused>|<get-isFocused>(){}[0]
+    final val isScrollable // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isScrollable|{}isScrollable[0]
+        final fun <get-isScrollable>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isScrollable.<get-isScrollable>|<get-isScrollable>(){}[0]
+    final val isSelected // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isSelected|{}isSelected[0]
+        final fun <get-isSelected>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isSelected.<get-isSelected>|<get-isSelected>(){}[0]
+    final val isVisible // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isVisible|{}isVisible[0]
+        final fun <get-isVisible>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isVisible.<get-isVisible>|<get-isVisible>(){}[0]
+    final val role // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.role|{}role[0]
+        final fun <get-role>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.role.<get-role>|<get-role>(){}[0]
+    final val stateDescription // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.stateDescription|{}stateDescription[0]
+        final fun <get-stateDescription>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.stateDescription.<get-stateDescription>|<get-stateDescription>(){}[0]
+    final val testTag // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.testTag|{}testTag[0]
+        final fun <get-testTag>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.testTag.<get-testTag>|<get-testTag>(){}[0]
+    final val text // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.text|{}text[0]
+        final fun <get-text>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.text.<get-text>|<get-text>(){}[0]
+    final val toggleableState // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.toggleableState|{}toggleableState[0]
+        final fun <get-toggleableState>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.toggleableState.<get-toggleableState>|<get-toggleableState>(){}[0]
+
+    final fun component1(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component1|component1(){}[0]
+    final fun component10(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component10|component10(){}[0]
+    final fun component11(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component11|component11(){}[0]
+    final fun component12(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component12|component12(){}[0]
+    final fun component13(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component13|component13(){}[0]
+    final fun component14(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component14|component14(){}[0]
+    final fun component15(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component15|component15(){}[0]
+    final fun component16(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component16|component16(){}[0]
+    final fun component17(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component17|component17(){}[0]
+    final fun component18(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component18|component18(){}[0]
+    final fun component19(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component19|component19(){}[0]
+    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component2|component2(){}[0]
+    final fun component3(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component3|component3(){}[0]
+    final fun component4(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component4|component4(){}[0]
+    final fun component5(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component5|component5(){}[0]
+    final fun component6(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component6|component6(){}[0]
+    final fun component7(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component7|component7(){}[0]
+    final fun component8(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component8|component8(){}[0]
+    final fun component9(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component9|component9(){}[0]
+    final fun copy(kotlin/Int = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode> = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.copy|copy(kotlin.Int;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;kotlin.collections.List<kotlin.String>;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode) // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot { // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot|null[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/Float, kotlin/Float, kotlin/Float, com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode?) // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.<init>|<init>(kotlin.String;kotlin.String;kotlin.Float;kotlin.Float;kotlin.Float;com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode?){}[0]
+
+    final val density // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.density|{}density[0]
+        final fun <get-density>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.density.<get-density>|<get-density>(){}[0]
+    final val label // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.label|{}label[0]
+        final fun <get-label>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.label.<get-label>|<get-label>(){}[0]
+    final val node // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.node|{}node[0]
+        final fun <get-node>(): com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.node.<get-node>|<get-node>(){}[0]
+    final val rootId // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.rootId|{}rootId[0]
+        final fun <get-rootId>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.rootId.<get-rootId>|<get-rootId>(){}[0]
+    final val windowOffsetX // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.windowOffsetX|{}windowOffsetX[0]
+        final fun <get-windowOffsetX>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.windowOffsetX.<get-windowOffsetX>|<get-windowOffsetX>(){}[0]
+    final val windowOffsetY // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.windowOffsetY|{}windowOffsetY[0]
+        final fun <get-windowOffsetY>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.windowOffsetY.<get-windowOffsetY>|<get-windowOffsetY>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.component2|component2(){}[0]
+    final fun component3(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.component3|component3(){}[0]
+    final fun component4(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.component4|component4(){}[0]
+    final fun component5(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.component5|component5(){}[0]
+    final fun component6(): com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.component6|component6(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/Float = ..., kotlin/Float = ..., kotlin/Float = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode? = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.copy|copy(kotlin.String;kotlin.String;kotlin.Float;kotlin.Float;kotlin.Float;com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot) // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult|null[0]
+    constructor <init>(kotlin/Boolean, kotlin/String? = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.<init>|<init>(kotlin.Boolean;kotlin.String?){}[0]
+
+    final val message // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.message|{}message[0]
+        final fun <get-message>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.message.<get-message>|<get-message>(){}[0]
+    final val performed // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.performed|{}performed[0]
+        final fun <get-performed>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.performed.<get-performed>|<get-performed>(){}[0]
+
+    final fun component1(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.component1|component1(){}[0]
+    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.component2|component2(){}[0]
+    final fun copy(kotlin/Boolean = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.copy|copy(kotlin.Boolean;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult> { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult) // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds|null[0]
+    constructor <init>(kotlin/Float, kotlin/Float, kotlin/Float, kotlin/Float) // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.<init>|<init>(kotlin.Float;kotlin.Float;kotlin.Float;kotlin.Float){}[0]
+
+    final val bottom // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.bottom|{}bottom[0]
+        final fun <get-bottom>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.bottom.<get-bottom>|<get-bottom>(){}[0]
+    final val centerX // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.centerX|{}centerX[0]
+        final fun <get-centerX>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.centerX.<get-centerX>|<get-centerX>(){}[0]
+    final val centerY // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.centerY|{}centerY[0]
+        final fun <get-centerY>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.centerY.<get-centerY>|<get-centerY>(){}[0]
+    final val height // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.height|{}height[0]
+        final fun <get-height>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.height.<get-height>|<get-height>(){}[0]
+    final val isEmpty // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.isEmpty|{}isEmpty[0]
+        final fun <get-isEmpty>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.isEmpty.<get-isEmpty>|<get-isEmpty>(){}[0]
+    final val left // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.left|{}left[0]
+        final fun <get-left>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.left.<get-left>|<get-left>(){}[0]
+    final val right // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.right|{}right[0]
+        final fun <get-right>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.right.<get-right>|<get-right>(){}[0]
+    final val top // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.top|{}top[0]
+        final fun <get-top>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.top.<get-top>|<get-top>(){}[0]
+    final val width // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.width|{}width[0]
+        final fun <get-width>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.width.<get-width>|<get-width>(){}[0]
+
+    final fun component1(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.component1|component1(){}[0]
+    final fun component2(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.component2|component2(){}[0]
+    final fun component3(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.component3|component3(){}[0]
+    final fun component4(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.component4|component4(){}[0]
+    final fun copy(kotlin/Float = ..., kotlin/Float = ..., kotlin/Float = ..., kotlin/Float = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.copy|copy(kotlin.Float;kotlin.Float;kotlin.Float;kotlin.Float){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds> { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds) // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions|null[0]
+    constructor <init>(kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Int? = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.<init>|<init>(kotlin.Boolean;kotlin.Boolean;kotlin.Int?){}[0]
+
+    final val includeInvisible // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.includeInvisible|{}includeInvisible[0]
+        final fun <get-includeInvisible>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.includeInvisible.<get-includeInvisible>|<get-includeInvisible>(){}[0]
+    final val maxDepth // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.maxDepth|{}maxDepth[0]
+        final fun <get-maxDepth>(): kotlin/Int? // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.maxDepth.<get-maxDepth>|<get-maxDepth>(){}[0]
+    final val merged // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.merged|{}merged[0]
+        final fun <get-merged>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.merged.<get-merged>|<get-merged>(){}[0]
+
+    final fun component1(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.component1|component1(){}[0]
+    final fun component2(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.component2|component2(){}[0]
+    final fun component3(): kotlin/Int? // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.component3|component3(){}[0]
+    final fun copy(kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Int? = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.copy|copy(kotlin.Boolean;kotlin.Boolean;kotlin.Int?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions> { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions) // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot|null[0]
+    constructor <init>(kotlin/Long, kotlin/Long, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions, kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot>, kotlin.collections/List<kotlin/String> = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.<init>|<init>(kotlin.Long;kotlin.Long;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions;kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot>;kotlin.collections.List<kotlin.String>){}[0]
+
+    final val captureDurationMs // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.captureDurationMs|{}captureDurationMs[0]
+        final fun <get-captureDurationMs>(): kotlin/Long // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.captureDurationMs.<get-captureDurationMs>|<get-captureDurationMs>(){}[0]
+    final val capturedAtMs // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.capturedAtMs|{}capturedAtMs[0]
+        final fun <get-capturedAtMs>(): kotlin/Long // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.capturedAtMs.<get-capturedAtMs>|<get-capturedAtMs>(){}[0]
+    final val options // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.options|{}options[0]
+        final fun <get-options>(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.options.<get-options>|<get-options>(){}[0]
+    final val roots // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.roots|{}roots[0]
+        final fun <get-roots>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.roots.<get-roots>|<get-roots>(){}[0]
+    final val warnings // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.warnings|{}warnings[0]
+        final fun <get-warnings>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.warnings.<get-warnings>|<get-warnings>(){}[0]
+
+    final fun component1(): kotlin/Long // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.component1|component1(){}[0]
+    final fun component2(): kotlin/Long // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.component2|component2(){}[0]
+    final fun component3(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.component3|component3(){}[0]
+    final fun component4(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.component4|component4(){}[0]
+    final fun component5(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.component5|component5(){}[0]
+    final fun copy(kotlin/Long = ..., kotlin/Long = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot> = ..., kotlin.collections/List<kotlin/String> = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.copy|copy(kotlin.Long;kotlin.Long;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions;kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot>;kotlin.collections.List<kotlin.String>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot> { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot) // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult> { // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction|null[0]
+    constructor <init>(kotlin/String, kotlin/Int, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction, kotlin/String? = ..., kotlin/Float = ..., kotlin/Float = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.<init>|<init>(kotlin.String;kotlin.Int;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction;kotlin.String?;kotlin.Float;kotlin.Float){}[0]
+
+    final val action // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.action|{}action[0]
+        final fun <get-action>(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.action.<get-action>|<get-action>(){}[0]
+    final val nodeId // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.nodeId|{}nodeId[0]
+        final fun <get-nodeId>(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.nodeId.<get-nodeId>|<get-nodeId>(){}[0]
+    final val rootId // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.rootId|{}rootId[0]
+        final fun <get-rootId>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.rootId.<get-rootId>|<get-rootId>(){}[0]
+    final val scrollX // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.scrollX|{}scrollX[0]
+        final fun <get-scrollX>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.scrollX.<get-scrollX>|<get-scrollX>(){}[0]
+    final val scrollY // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.scrollY|{}scrollY[0]
+        final fun <get-scrollY>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.scrollY.<get-scrollY>|<get-scrollY>(){}[0]
+    final val text // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.text|{}text[0]
+        final fun <get-text>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.text.<get-text>|<get-text>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.component1|component1(){}[0]
+    final fun component2(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.component2|component2(){}[0]
+    final fun component3(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.component3|component3(){}[0]
+    final fun component4(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.component4|component4(){}[0]
+    final fun component5(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.component5|component5(){}[0]
+    final fun component6(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.component6|component6(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Int = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction = ..., kotlin/String? = ..., kotlin/Float = ..., kotlin/Float = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.copy|copy(kotlin.String;kotlin.Int;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction;kotlin.String?;kotlin.Float;kotlin.Float){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction> { // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction) // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction> // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.Companion.serializer|serializer(){}[0]
+    }
+}

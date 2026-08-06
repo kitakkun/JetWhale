@@ -1,0 +1,48 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, linuxArm64, linuxX64, macosArm64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.network:agent>
+final class com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin|null[0]
+    constructor <init>(com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules = ...) // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.<init>|<init>(com.kitakkun.jetwhale.plugins.network.agent.NetworkRedactionRules){}[0]
+
+    final val pluginId // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.pluginId|{}pluginId[0]
+        final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    final val pluginVersion // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.pluginVersion|{}pluginVersion[0]
+        final fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+
+    final fun findMock(kotlin/String, kotlin/String): com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec? // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.findMock|findMock(kotlin.String;kotlin.String){}[0]
+    final fun newTransactionId(): kotlin/String // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.newTransactionId|newTransactionId(){}[0]
+    final fun recordFailure(com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure) // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.recordFailure|recordFailure(com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure){}[0]
+    final fun recordRequest(com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest) // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.recordRequest|recordRequest(com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest){}[0]
+    final fun recordResponse(com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse) // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.recordResponse|recordResponse(com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse){}[0]
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.Companion|null[0]
+        final const val PLUGIN_ID // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.Companion.PLUGIN_ID|{}PLUGIN_ID[0]
+            final fun <get-PLUGIN_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.Companion.PLUGIN_ID.<get-PLUGIN_ID>|<get-PLUGIN_ID>(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules { // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules|null[0]
+    final val mcpOnlyRules // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules.mcpOnlyRules|{}mcpOnlyRules[0]
+        final fun <get-mcpOnlyRules>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.network.protocol/RedactionRule> // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules.mcpOnlyRules.<get-mcpOnlyRules>|<get-mcpOnlyRules>(){}[0]
+
+    final fun redactAtCapture(com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest): com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules.redactAtCapture|redactAtCapture(com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest){}[0]
+    final fun redactAtCapture(com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse): com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules.redactAtCapture|redactAtCapture(com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse){}[0]
+
+    final class Builder { // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules.Builder|null[0]
+        final fun bodyJsonField(kotlin/Array<out kotlin/String>..., com.kitakkun.jetwhale.plugins.network.protocol/RedactionScope = ..., com.kitakkun.jetwhale.plugins.network.protocol/RedactionStrategy = ...) // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules.Builder.bodyJsonField|bodyJsonField(kotlin.Array<out|kotlin.String>...;com.kitakkun.jetwhale.plugins.network.protocol.RedactionScope;com.kitakkun.jetwhale.plugins.network.protocol.RedactionStrategy){}[0]
+        final fun header(kotlin/Array<out kotlin/String>..., com.kitakkun.jetwhale.plugins.network.protocol/RedactionScope = ..., com.kitakkun.jetwhale.plugins.network.protocol/RedactionStrategy = ...) // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules.Builder.header|header(kotlin.Array<out|kotlin.String>...;com.kitakkun.jetwhale.plugins.network.protocol.RedactionScope;com.kitakkun.jetwhale.plugins.network.protocol.RedactionStrategy){}[0]
+        final fun urlQueryParam(kotlin/Array<out kotlin/String>..., com.kitakkun.jetwhale.plugins.network.protocol/RedactionScope = ..., com.kitakkun.jetwhale.plugins.network.protocol/RedactionStrategy = ...) // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules.Builder.urlQueryParam|urlQueryParam(kotlin.Array<out|kotlin.String>...;com.kitakkun.jetwhale.plugins.network.protocol.RedactionScope;com.kitakkun.jetwhale.plugins.network.protocol.RedactionStrategy){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules.Companion|null[0]
+        final val None // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules.Companion.None|{}None[0]
+            final fun <get-None>(): com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules.Companion.None.<get-None>|<get-None>(){}[0]
+    }
+}
+
+final fun com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules(kotlin/Function1<com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules.Builder, kotlin/Unit>): com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules|NetworkRedactionRules(kotlin.Function1<com.kitakkun.jetwhale.plugins.network.agent.NetworkRedactionRules.Builder,kotlin.Unit>){}[0]

@@ -1,0 +1,455 @@
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/BackStackChanged : com/kitakkun/jetwhale/protocol/messaging/JetWhaleEvent {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackChanged$Companion;
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;
+	public final fun copy (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackChanged;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackChanged;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackChanged;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSnapshot ()Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/BackStackChanged$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackChanged$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackChanged;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackChanged;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/BackStackChanged$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/BackStackUnregistered : com/kitakkun/jetwhale/protocol/messaging/JetWhaleEvent {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackUnregistered$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackUnregistered;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackUnregistered;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackUnregistered;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getStackId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/BackStackUnregistered$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackUnregistered$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackUnregistered;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/BackStackUnregistered;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/BackStackUnregistered$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/GetNavState : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/GetNavState;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/MutateBackStack : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutateBackStack$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutateBackStack;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutateBackStack;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutateBackStack;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOperations ()Ljava/util/List;
+	public final fun getStackId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/MutateBackStack$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutateBackStack$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutateBackStack;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutateBackStack;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/MutateBackStack$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/MutationResult {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutationResult$Companion;
+	public fun <init> (Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;
+	public final fun copy (Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutationResult;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutationResult;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutationResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Ljava/lang/String;
+	public final fun getSnapshot ()Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/MutationResult$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutationResult$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutationResult;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/MutationResult;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/MutationResult$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/Nav3MessagesKt {
+	public static final field NAV3_PLUGIN_ID Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/Nav3ModelsKt {
+	public static final field DEFAULT_NAV_STACK_ID Ljava/lang/String;
+}
+
+public abstract interface class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Companion;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$MoveToTop : com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$MoveToTop$Companion;
+	public fun <init> (I)V
+	public final fun component1 ()I
+	public final fun copy (I)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$MoveToTop;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$MoveToTop;IILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$MoveToTop;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIndex ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$MoveToTop$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$MoveToTop$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$MoveToTop;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$MoveToTop;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$MoveToTop$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Pop : com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Pop$Companion;
+	public fun <init> (I)V
+	public final fun component1 ()I
+	public final fun copy (I)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Pop;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Pop;IILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Pop;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCount ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Pop$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Pop$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Pop;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Pop;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Pop$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$PopTo : com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$PopTo$Companion;
+	public fun <init> (IZ)V
+	public final fun component1 ()I
+	public final fun component2 ()Z
+	public final fun copy (IZ)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$PopTo;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$PopTo;IZILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$PopTo;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getInclusive ()Z
+	public final fun getIndex ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$PopTo$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$PopTo$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$PopTo;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$PopTo;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$PopTo$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Push : com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Push$Companion;
+	public fun <init> (Lkotlinx/serialization/json/JsonElement;Ljava/lang/Integer;)V
+	public final fun component1 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun component2 ()Ljava/lang/Integer;
+	public final fun copy (Lkotlinx/serialization/json/JsonElement;Ljava/lang/Integer;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Push;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Push;Lkotlinx/serialization/json/JsonElement;Ljava/lang/Integer;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Push;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIndex ()Ljava/lang/Integer;
+	public final fun getKey ()Lkotlinx/serialization/json/JsonElement;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Push$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Push$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Push;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Push;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$Push$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$RemoveAt : com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$RemoveAt$Companion;
+	public fun <init> (I)V
+	public final fun component1 ()I
+	public final fun copy (I)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$RemoveAt;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$RemoveAt;IILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$RemoveAt;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIndex ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$RemoveAt$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$RemoveAt$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$RemoveAt;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$RemoveAt;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$RemoveAt$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$ReplaceAll : com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$ReplaceAll$Companion;
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$ReplaceAll;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$ReplaceAll;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$ReplaceAll;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getKeys ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$ReplaceAll$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$ReplaceAll$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$ReplaceAll;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$ReplaceAll;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackOperation$ReplaceAll$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEntries ()Ljava/util/List;
+	public final fun getStackId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavBackStackSnapshot$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyFieldDescriptor {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyFieldDescriptor$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZZ)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun component4 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ZZ)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyFieldDescriptor;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyFieldDescriptor;Ljava/lang/String;Ljava/lang/String;ZZILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyFieldDescriptor;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getName ()Ljava/lang/String;
+	public final fun getNullable ()Z
+	public final fun getOptional ()Z
+	public final fun getType ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyFieldDescriptor$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyFieldDescriptor$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyFieldDescriptor;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyFieldDescriptor;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyFieldDescriptor$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavKeySnapshot {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeySnapshot$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeySnapshot;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeySnapshot;Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonElement;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeySnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDisplay ()Ljava/lang/String;
+	public final fun getKey ()Lkotlinx/serialization/json/JsonElement;
+	public final fun getTypeName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/NavKeySnapshot$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeySnapshot$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeySnapshot;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeySnapshot;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavKeySnapshot$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyTypeDescriptor {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyTypeDescriptor$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Lkotlinx/serialization/json/JsonElement;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyTypeDescriptor;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyTypeDescriptor;Ljava/lang/String;Ljava/util/List;Lkotlinx/serialization/json/JsonElement;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyTypeDescriptor;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFields ()Ljava/util/List;
+	public final fun getSerialName ()Ljava/lang/String;
+	public final fun getTemplate ()Lkotlinx/serialization/json/JsonElement;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyTypeDescriptor$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyTypeDescriptor$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyTypeDescriptor;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyTypeDescriptor;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavKeyTypeDescriptor$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavState {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavState$Companion;
+	public fun <init> (Ljava/util/List;Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;Ljava/util/List;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavState;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavState;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavState;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getKeyTypes ()Ljava/util/List;
+	public final fun getStacks ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/nav3/protocol/NavState$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavState$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavState;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/nav3/protocol/NavState;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/nav3/protocol/NavState$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+

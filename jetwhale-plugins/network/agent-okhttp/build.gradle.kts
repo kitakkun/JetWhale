@@ -1,6 +1,15 @@
+@file:OptIn(ExperimentalAbiValidation::class)
+
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
+
 plugins {
     alias(libs.plugins.jvm)
     alias(libs.plugins.publish)
+}
+
+kotlin {
+    abiValidation {
+    }
 }
 
 // Distinct group so this module doesn't collide with other leaf-name-sharing modules.

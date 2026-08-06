@@ -1,0 +1,326 @@
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/CaptureNodeTree : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/CaptureNodeTree$Companion;
+	public fun <init> ()V
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;)V
+	public synthetic fun <init> (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;
+	public final fun copy (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/CaptureNodeTree;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/CaptureNodeTree;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/CaptureNodeTree;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOptions ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/CaptureNodeTree$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/CaptureNodeTree$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/CaptureNodeTree;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/CaptureNodeTree;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/CaptureNodeTree$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode$Companion;
+	public fun <init> (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Ljava/util/List;ZZZZZZZLjava/util/List;)V
+	public synthetic fun <init> (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Ljava/util/List;ZZZZZZZLjava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()I
+	public final fun component10 ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public final fun component11 ()Ljava/util/List;
+	public final fun component12 ()Z
+	public final fun component13 ()Z
+	public final fun component14 ()Z
+	public final fun component15 ()Z
+	public final fun component16 ()Z
+	public final fun component17 ()Z
+	public final fun component18 ()Z
+	public final fun component19 ()Ljava/util/List;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun component8 ()Ljava/lang/String;
+	public final fun component9 ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public final fun copy (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Ljava/util/List;ZZZZZZZLjava/util/List;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Ljava/util/List;ZZZZZZZLjava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getActions ()Ljava/util/List;
+	public final fun getBounds ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public final fun getBoundsInScreen ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public final fun getChildren ()Ljava/util/List;
+	public final fun getContentDescription ()Ljava/lang/String;
+	public final fun getEditableText ()Ljava/lang/String;
+	public final fun getId ()I
+	public final fun getRole ()Ljava/lang/String;
+	public final fun getStateDescription ()Ljava/lang/String;
+	public final fun getTestTag ()Ljava/lang/String;
+	public final fun getText ()Ljava/lang/String;
+	public final fun getToggleableState ()Ljava/lang/String;
+	public fun hashCode ()I
+	public final fun isClickable ()Z
+	public final fun isEditable ()Z
+	public final fun isEnabled ()Z
+	public final fun isFocused ()Z
+	public final fun isScrollable ()Z
+	public final fun isSelected ()Z
+	public final fun isVisible ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;FFFLcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()F
+	public final fun component4 ()F
+	public final fun component5 ()F
+	public final fun component6 ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;FFFLcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot;Ljava/lang/String;Ljava/lang/String;FFFLcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDensity ()F
+	public final fun getLabel ()Ljava/lang/String;
+	public final fun getNode ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;
+	public final fun getRootId ()Ljava/lang/String;
+	public final fun getWindowOffsetX ()F
+	public final fun getWindowOffsetY ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction : java/lang/Enum {
+	public static final field Click Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public static final field Collapse Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction$Companion;
+	public static final field Dismiss Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public static final field Expand Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public static final field ImeAction Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public static final field InsertText Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public static final field LongClick Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public static final field RequestFocus Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public static final field ScrollBy Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public static final field SetText Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeActionResult {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeActionResult$Companion;
+	public fun <init> (ZLjava/lang/String;)V
+	public synthetic fun <init> (ZLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (ZLjava/lang/String;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeActionResult;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeActionResult;ZLjava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeActionResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getPerformed ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeActionResult$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeActionResult$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeActionResult;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeActionResult;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeActionResult$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds$Companion;
+	public fun <init> (FFFF)V
+	public final fun component1 ()F
+	public final fun component2 ()F
+	public final fun component3 ()F
+	public final fun component4 ()F
+	public final fun copy (FFFF)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;FFFFILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBottom ()F
+	public final fun getCenterX ()F
+	public final fun getCenterY ()F
+	public final fun getHeight ()F
+	public final fun getLeft ()F
+	public final fun getRight ()F
+	public final fun getTop ()F
+	public final fun getWidth ()F
+	public fun hashCode ()I
+	public final fun isEmpty ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions$Companion;
+	public fun <init> ()V
+	public fun <init> (ZZLjava/lang/Integer;)V
+	public synthetic fun <init> (ZZLjava/lang/Integer;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Z
+	public final fun component3 ()Ljava/lang/Integer;
+	public final fun copy (ZZLjava/lang/Integer;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;ZZLjava/lang/Integer;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIncludeInvisible ()Z
+	public final fun getMaxDepth ()Ljava/lang/Integer;
+	public final fun getMerged ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeSnapshot {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeSnapshot$Companion;
+	public fun <init> (JJLcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;Ljava/util/List;Ljava/util/List;)V
+	public synthetic fun <init> (JJLcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;Ljava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()J
+	public final fun component2 ()J
+	public final fun component3 ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/util/List;
+	public final fun copy (JJLcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;Ljava/util/List;Ljava/util/List;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeSnapshot;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeSnapshot;JJLcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCaptureDurationMs ()J
+	public final fun getCapturedAtMs ()J
+	public final fun getOptions ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;
+	public final fun getRoots ()Ljava/util/List;
+	public final fun getWarnings ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeSnapshot$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeSnapshot$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeSnapshot;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeSnapshot;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeSnapshot$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction$Companion;
+	public fun <init> (Ljava/lang/String;ILcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;Ljava/lang/String;FF)V
+	public synthetic fun <init> (Ljava/lang/String;ILcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;Ljava/lang/String;FFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()F
+	public final fun component6 ()F
+	public final fun copy (Ljava/lang/String;ILcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;Ljava/lang/String;FF)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;Ljava/lang/String;ILcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;Ljava/lang/String;FFILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAction ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public final fun getNodeId ()I
+	public final fun getRootId ()Ljava/lang/String;
+	public final fun getScrollX ()F
+	public final fun getScrollY ()F
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
