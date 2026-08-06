@@ -3,8 +3,9 @@ package com.kitakkun.jetwhale.agent.runtime
 /**
  * A concrete address to dial — what resolution produces.
  *
- * [useWss] travels with the address rather than being read from `ssl { }` at dial time: `ssl { }`
- * still decides it for every endpoint but one, and `plainLoopback` is that one.
+ * [useWss] travels with the address rather than being read from `ssl { }` at dial time: every
+ * candidate in `endpoints { }` names its own scheme, so one list can hold both a plain loopback
+ * address and a wss one. `ssl { }` decides the scheme only for the deprecated `host`/`port` pair.
  */
 internal data class ResolvedEndpoint(val host: String, val port: Int, val useWss: Boolean) {
     override fun toString(): String = "${if (useWss) "wss" else "ws"}://$host:$port"
