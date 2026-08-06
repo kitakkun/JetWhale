@@ -17,13 +17,18 @@ Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal lea
 
 ## Features
 
-- 🐳 **Multi-session debugging** — an Android device and a desktop build side by side, grouped by device
-- 🔌 **Runtime plugins** — loaded from JAR files; the built-in ones and your own alike
-- 🛜 **Type-safe messaging** — kotlinx.serialization between the host and your app
-- ✅ **Multiplatform** — Android, Desktop (JVM), iOS (simulator & physical devices), Web (JS / WasmJS)
-- ⚙️ **Zero Android setup** — the host wires `adb reverse` for you
-- 🤖 **[MCP server](https://kitakkun.github.io/JetWhale/guide/mcp-server)** *(experimental)* — let an AI agent drive the app
-- 🔥 **Hot-reloadable plugin development** — against the published SDK, from your own repository
+- 🐳 **Multi-session debugging.** Several apps stay connected at once, grouped by the device they
+  run on.
+- 🔌 **Every tool is a plugin.** Add one to a running host; the shipped inspectors work the same way
+  as yours.
+- 🛜 **Type-safe messaging.** Plugins exchange Kotlin types rather than hand-parsed JSON.
+- ✅ **Multiplatform.** Android, Desktop (JVM), iOS (simulator and physical devices) and Web
+  (JS / WasmJS).
+- ⚙️ **Zero Android setup.** The host wires `adb reverse` for you.
+- 🤖 **[MCP server](https://kitakkun.github.io/JetWhale/guide/mcp-server)** *(experimental)*. An AI
+  agent can drive the app — screenshot, click, type, scroll, drag, read the accessibility tree.
+- 🔥 **Hot-reloadable plugin development.** Edit a plugin and the host reloads it, without
+  restarting.
 
 > [!NOTE]
 > Under active development. Feedback is welcome as we work toward a stable release; the Plugin SDK
@@ -82,8 +87,8 @@ from its plugin catalog, add the matching artifact to your app, and register it 
 
 ## Developing plugins
 
-Your own plugins live in **your** repository — no fork needed. One command gives you a hot-reload
-loop:
+Plugins are ordinary Gradle projects built against the published SDK. One command gives you a
+hot-reload loop:
 
 ```bash
 ./gradlew :myPlugin:runJetWhaleHot
