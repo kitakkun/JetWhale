@@ -36,8 +36,10 @@ runs:
       with:
         path: |
           ~/.konan
-        key: v1-konan-${{ runner.os }}-${{ hashFiles('.xcode-version') }}-${{ steps.konan-cache-key.outputs.KOTLIN_VERSION }}
-        # Warm start after a Kotlin/Xcode bump instead of re-downloading everything.
+        # Keyed on the Kotlin version alone: that is what decides the konan toolchain and the
+        # platform libraries under ~/.konan. An earlier key also hashed `.xcode-version`, a file this
+        # repository does not have — so it hashed to a constant and narrowed nothing.
+        key: v2-konan-${{ runner.os }}-${{ steps.konan-cache-key.outputs.KOTLIN_VERSION }}
+        # Warm start after a Kotlin bump instead of re-downloading everything.
         restore-keys: |
-          v1-konan-${{ runner.os }}-${{ hashFiles('.xcode-version') }}-
-          v1-konan-${{ runner.os }}-
+          v2-konan-${{ runner.os }}-

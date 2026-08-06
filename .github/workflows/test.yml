@@ -47,3 +47,29 @@ jobs:
 
       - name: Run agent plugin tests
         run: ./gradlew -p jetwhale-agent-plugin check
+
+  # Kotlin/Native cannot build Apple targets on Linux, so the two jobs above skip every one of them —
+  # including `jetwhale-agent-runtime`'s appleMain, which reads `sockaddr_in` bytes positionally and
+  # subclasses two Objective-C delegate protocols. Without this job that code is first compiled by the
+  # release tag build, which is the worst place to discover it does not.
+  #
+  # macOS runners bill at a multiple of Linux ones, so this compiles and tests rather than running the
+  # whole `check` the Linux job already covers. Warm, it is well under a minute.
+  apple:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-java
+
+      - name: Compile Apple targets
+        run: >
+          ./gradlew
+          compileKotlinIosArm64
+          compileKotlinIosSimulatorArm64
+          compileKotlinMacosArm64
+
+      - name: Run Apple tests
+        run: ./gradlew macosArm64Test iosSimulatorArm64Test

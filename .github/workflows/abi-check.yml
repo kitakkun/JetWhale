@@ -1,6 +1,11 @@
 name: ABI Check
 
 on:
+  # Also on main, so a merge refreshes the Gradle cache these PR runs read from — and so a change
+  # that reached main without a PR is still checked.
+  push:
+    branches:
+      - main
   pull_request:
     paths:
       - 'jetwhale-host-sdk/**'
@@ -8,8 +13,9 @@ on:
       - 'jetwhale-agent-runtime/**'
       - 'jetwhale-annotations/**'
       - 'jetwhale-protocol/core/**'
-      - 'jetwhale-protocol/agent/**'
-      - 'jetwhale-protocol/host/**'
+      # Adding or removing a target here rewrites the `// Targets: [...]` header of every klib dump,
+      # so a change confined to the convention would otherwise slip past unchecked.
+      - 'gradle-conventions/**'
       - '**/build.gradle.kts'
       - 'gradle/libs.versions.toml'
       - '.github/workflows/abi-check.yml'
@@ -20,7 +26,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-legacy-abi:
+  check-abi:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,11 +35,13 @@ jobs:
 
       - uses: ./.github/actions/setup-java
 
+      # checkKotlinAbi, not checkLegacyAbi: the latter now warns that it is deprecated in favour of
+      # this one on every run, and would break outright at some future Kotlin bump.
       - name: Run ABI check
         run: |
           ./gradlew \
-            :jetwhale-host-sdk:checkLegacyAbi \
-            :jetwhale-agent-sdk:checkLegacyAbi \
-            :jetwhale-agent-runtime:checkLegacyAbi \
-            :jetwhale-annotations:checkLegacyAbi \
-            :jetwhale-protocol:core:checkLegacyAbi
+            :jetwhale-host-sdk:checkKotlinAbi \
+            :jetwhale-agent-sdk:checkKotlinAbi \
+            :jetwhale-agent-runtime:checkKotlinAbi \
+            :jetwhale-annotations:checkKotlinAbi \
+            :jetwhale-protocol:core:checkKotlinAbi
