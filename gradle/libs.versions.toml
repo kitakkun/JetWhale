@@ -197,6 +197,8 @@ multiplatform = { id = "multiplatform" }
 serialization = { id = "serialization" }
 debuggerComposeFeature = { id = "debugger-compose-feature" }
 publish = { id = "publish" }
+# Root build only: owns gradle/published-versions.properties and the changed-only publish tasks.
+release = { id = "release" }
 jetwhalePlugin = { id = "com.kitakkun.jetwhale.host" }
 jetwhaleAgent = { id = "com.kitakkun.jetwhale.agent" }
 # In-repo only: adds `runJetWhale` (launches the local :jetwhale-host:app). Not published.

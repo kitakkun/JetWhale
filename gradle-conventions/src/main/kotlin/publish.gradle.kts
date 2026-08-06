@@ -1,5 +1,6 @@
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import util.JetWhalePublishExtension
+import util.PublishedVersions
 
 plugins {
     id("com.vanniktech.maven.publish")
@@ -14,27 +15,23 @@ afterEvaluate {
     val artifactId = jetwhalePublish.artifactId
     val artifactDescription = jetwhalePublish.description
 
-    if (artifactName.isBlank()) {
-        logger.warn("jetwhalePublish.name is not set. Skipping publishing configuration.")
-        return@afterEvaluate
-    }
+    // Hard failures rather than warnings: a module that silently skips publishing also breaks the
+    // coordinates the BOM and the published version catalog promise for it.
+    require(artifactName.isNotBlank()) { "jetwhalePublish.name is not set for $path." }
+    require(artifactId.isNotBlank()) { "jetwhalePublish.artifactId is not set for $path." }
+    require(artifactDescription.isNotBlank()) { "jetwhalePublish.description is not set for $path." }
 
-    if (artifactId.isBlank()) {
-        logger.warn("jetwhalePublish.artifactId is not set. Skipping publishing configuration.")
-        return@afterEvaluate
-    }
+    val trainVersion = version.toString()
+    // Each artifact keeps the release version it was last published under, so an unchanged module is
+    // not re-uploaded.
+    val publishVersion = PublishedVersions.publishVersionFor(project, artifactId)
 
-    if (artifactDescription.isBlank()) {
-        logger.warn("jetwhalePublish.description is not set. Skipping publishing configuration.")
-        return@afterEvaluate
-    }
-
-    logger.info("Configuring publishing for $artifactName ($artifactId)")
+    logger.info("Configuring publishing for $artifactName ($artifactId:$publishVersion)")
 
     configure<MavenPublishBaseExtension> {
         publishToMavenCentral()
         signAllPublications()
-        coordinates("com.kitakkun.jetwhale", artifactId, version.toString())
+        coordinates("com.kitakkun.jetwhale", artifactId, publishVersion)
 
         pom {
             name = artifactName
@@ -60,6 +57,15 @@ afterEvaluate {
                 connection = "scm:git:git://github.com/kitakkun/jetwhale.git"
                 developerConnection = "scm:git:ssh://git@github.com/kitakkun/jetwhale.git"
             }
+        }
+    }
+
+    // Only the modules due for republishing join the aggregate task, so the Central Portal
+    // deployment holds exactly them. The `release` convention is applied by the root build alone, so
+    // the jetwhale-gradle-plugin included build skips this and CI publishes it separately.
+    if (publishVersion == trainVersion && rootProject.plugins.hasPlugin("release")) {
+        rootProject.tasks.named("publishChangedToMavenCentral").configure {
+            dependsOn(tasks.named("publishToMavenCentral"))
         }
     }
 }
