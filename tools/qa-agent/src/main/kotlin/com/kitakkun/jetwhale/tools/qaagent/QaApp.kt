@@ -70,7 +70,9 @@ internal fun startQaApp(name: String, options: QaAgentOptions): QaApp {
             deviceId = QA_DEVICE_ID
         }
         connection {
-            endpoint = fixed(options.hostName, options.hostPort)
+            endpoints {
+                wss(options.hostName, options.hostPort)
+            }
             ssl {
                 trustServerCertificate()
             }

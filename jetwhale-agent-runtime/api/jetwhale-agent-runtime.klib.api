@@ -57,9 +57,6 @@ abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScop
 }
 
 abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope|null[0]
-    abstract var endpoint // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.endpoint|{}endpoint[0]
-        abstract fun <get-endpoint>(): com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpoint // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.endpoint.<get-endpoint>|<get-endpoint>(){}[0]
-        abstract fun <set-endpoint>(com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpoint) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.endpoint.<set-endpoint>|<set-endpoint>(com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpoint){}[0]
     abstract var host // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.host|{}host[0]
         abstract fun <get-host>(): kotlin/String // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.host.<get-host>|<get-host>(){}[0]
         abstract fun <set-host>(kotlin/String) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.host.<set-host>|<set-host>(kotlin.String){}[0]
@@ -67,15 +64,20 @@ abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigu
         abstract fun <get-port>(): kotlin/Int // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.port.<get-port>|<get-port>(){}[0]
         abstract fun <set-port>(kotlin/Int) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.port.<set-port>|<set-port>(kotlin.Int){}[0]
 
-    abstract fun discovered(com.kitakkun.jetwhale.agent.runtime/JetWhaleLiteralEndpoint, kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveredEndpointScope, kotlin/Unit> = ...): com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpoint // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.discovered|discovered(com.kitakkun.jetwhale.agent.runtime.JetWhaleLiteralEndpoint;kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleDiscoveredEndpointScope,kotlin.Unit>){}[0]
-    abstract fun fixed(kotlin/String, kotlin/Int): com.kitakkun.jetwhale.agent.runtime/JetWhaleFixedEndpoint // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.fixed|fixed(kotlin.String;kotlin.Int){}[0]
-    abstract fun plainLoopback(kotlin/Int): com.kitakkun.jetwhale.agent.runtime/JetWhalePlainLoopbackEndpoint // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.plainLoopback|plainLoopback(kotlin.Int){}[0]
+    abstract fun endpoints(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpointScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.endpoints|endpoints(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleEndpointScope,kotlin.Unit>){}[0]
     abstract fun ssl(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleSslConfigurationScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigurationScope.ssl|ssl(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleSslConfigurationScope,kotlin.Unit>){}[0]
 }
 
-abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveredEndpointScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveredEndpointScope|null[0]
-    abstract fun allowAddress(kotlin/String) // com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveredEndpointScope.allowAddress|allowAddress(kotlin.String){}[0]
-    abstract fun allowHostName(kotlin/String) // com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveredEndpointScope.allowHostName|allowHostName(kotlin.String){}[0]
+abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveryScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveryScope|null[0]
+    abstract fun allowAddress(kotlin/String) // com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveryScope.allowAddress|allowAddress(kotlin.String){}[0]
+    abstract fun allowAll() // com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveryScope.allowAll|allowAll(){}[0]
+    abstract fun allowHostName(kotlin/String) // com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveryScope.allowHostName|allowHostName(kotlin.String){}[0]
+}
+
+abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpointScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpointScope|null[0]
+    abstract fun discoverWss(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveryScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpointScope.discoverWss|discoverWss(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleDiscoveryScope,kotlin.Unit>){}[0]
+    abstract fun ws(kotlin/String, kotlin/Int) // com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpointScope.ws|ws(kotlin.String;kotlin.Int){}[0]
+    abstract fun wss(kotlin/String, kotlin/Int) // com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpointScope.wss|wss(kotlin.String;kotlin.Int){}[0]
 }
 
 abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope|null[0]
@@ -102,13 +104,5 @@ abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleSslConfigurationS
     abstract fun trustCertificate(kotlin/String) // com.kitakkun.jetwhale.agent.runtime/JetWhaleSslConfigurationScope.trustCertificate|trustCertificate(kotlin.String){}[0]
     abstract fun trustServerCertificate() // com.kitakkun.jetwhale.agent.runtime/JetWhaleSslConfigurationScope.trustServerCertificate|trustServerCertificate(){}[0]
 }
-
-sealed interface com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpoint // com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpoint|null[0]
-
-sealed interface com.kitakkun.jetwhale.agent.runtime/JetWhaleLiteralEndpoint : com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpoint // com.kitakkun.jetwhale.agent.runtime/JetWhaleLiteralEndpoint|null[0]
-
-final class com.kitakkun.jetwhale.agent.runtime/JetWhaleFixedEndpoint : com.kitakkun.jetwhale.agent.runtime/JetWhaleLiteralEndpoint // com.kitakkun.jetwhale.agent.runtime/JetWhaleFixedEndpoint|null[0]
-
-final class com.kitakkun.jetwhale.agent.runtime/JetWhalePlainLoopbackEndpoint : com.kitakkun.jetwhale.agent.runtime/JetWhaleLiteralEndpoint // com.kitakkun.jetwhale.agent.runtime/JetWhalePlainLoopbackEndpoint|null[0]
 
 final fun com.kitakkun.jetwhale.agent.runtime/startJetWhale(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleConfigurationScope, kotlin/Unit>): com.kitakkun.jetwhale.agent.runtime/JetWhaleSession // com.kitakkun.jetwhale.agent.runtime/startJetWhale|startJetWhale(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleConfigurationScope,kotlin.Unit>){}[0]

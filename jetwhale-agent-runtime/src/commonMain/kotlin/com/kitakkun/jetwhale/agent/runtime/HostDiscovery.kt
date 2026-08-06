@@ -58,52 +58,63 @@ internal data class SelectedHost(val service: DiscoveredService, val port: Int)
 /**
  * Every host among [services] this agent could use, in the order they were browsed.
  *
- * A host qualifies only when it satisfies every configured filter **and** advertises the port for the
- * scheme the connection will use. The scheme comes from the `ssl {}` block alone, so an ssl-configured
- * agent cannot use a host that advertises no wss port: dialling `wss://` at its plain-ws port would
- * fail every handshake. Such a host is dropped rather than dialled.
+ * A host qualifies only when it satisfies every configured filter **and** advertises a wss port. A
+ * host that advertises none is dropped rather than dialled: it serves plain ws on loopback, which is
+ * not the address that was discovered.
  *
  * All of them are returned, not just the first: browse order is arbitrary and a host that answers mDNS
  * may still refuse a connection, so the caller tries them in turn.
  */
-internal fun selectHosts(services: List<DiscoveredService>, discovery: HostDiscoveryConfig): List<SelectedHost> = services
-    .filter { it.matches(discovery) }
-    .mapNotNull { service -> service.portFor(discovery.useWss)?.let { SelectedHost(service, it) } }
+internal fun selectHosts(services: List<DiscoveredService>, discovery: HostDiscoveryConfig): List<SelectedHost> {
+    if (discovery.acceptsNothing) return emptyList()
+    return services
+        .filter { it.matches(discovery) }
+        .mapNotNull { service -> service.wssPort?.let { SelectedHost(service, it) } }
+}
 
 /**
- * Browses for JetWhale hosts over mDNS and offers every usable one, with [fallback] last.
+ * Browses for JetWhale hosts over mDNS and offers every usable one, in browse order.
  *
  * Browsing on every call is the point: a host started after the app, or one that came back on a
  * different port, is only reached by looking again. That makes the outcome repetitive by nature, so
  * the resolver remembers what it last reported and stays quiet while nothing changes.
  *
- * [fallback] is offered even when hosts were found. Answering mDNS says a host is advertising, not
- * that it will accept a connection — a firewall between them is invisible to the browse — so the
- * configured address stays available behind the discovered ones.
+ * Contributing nothing is a normal outcome, not a failure: nothing advertised, nothing matched, or
+ * the platform cannot browse. Whatever was declared after this is reached either way.
  */
-internal class MdnsEndpointResolver(
-    val discovery: HostDiscoveryConfig,
-    val fallback: ResolvedEndpoint,
-) : EndpointResolver {
+internal class MdnsEndpointResolver(val discovery: HostDiscoveryConfig) : EndpointResolver {
     private var lastReported: String? = null
 
     override suspend fun resolve(): List<ResolvedEndpoint> {
+        if (discovery.acceptsAnyHost && discovery.hasFilter) {
+            // Two different answers to the same question. Taking the wider one is what the code does,
+            // but it is the opposite of what naming a machine asks for, so it is not done quietly.
+            report(
+                "discoverWss { } states allowAll() alongside an allowlist. allowAll() wins, so hosts " +
+                    "the allowlist would have excluded are accepted too — drop one of the two.",
+            )
+        }
+        if (discovery.acceptsNothing) {
+            report(
+                "discoverWss { } was declared without a policy, so no discovered host can be accepted. " +
+                    "Name the machine with allowHostName/allowAddress, or state allowAll() to take any " +
+                    "JetWhale host on the network.",
+            )
+            return emptyList()
+        }
         val result = browseJetWhaleServices(HOST_DISCOVERY_TIMEOUT_MILLIS)
-        val discovered = when (result) {
+        return when (result) {
             is DiscoveryResult.Unavailable -> {
-                report("mDNS host discovery is unavailable because ${result.reason}; using $fallback")
+                report("mDNS host discovery is unavailable because ${result.reason}; the remaining candidates carry the connection")
                 emptyList()
             }
 
             is DiscoveryResult.Browsed -> {
                 val usable = selectHosts(result.services, discovery)
                 report(if (usable.isEmpty()) noHostMessage(result.services) else foundMessage(usable))
-                usable.map { ResolvedEndpoint(it.service.address, it.port, useWss = discovery.useWss) }
+                usable.map { ResolvedEndpoint(it.service.address, it.port, useWss = true) }
             }
         }
-        // Deduplicated, order kept: the fallback may well be an address that was also advertised, and
-        // dialling the same endpoint twice in a round only spends the establishment budget twice.
-        return (discovered + fallback).distinct()
     }
 
     private fun report(message: String) {
@@ -114,19 +125,18 @@ internal class MdnsEndpointResolver(
 
     private fun foundMessage(usable: List<SelectedHost>): String {
         val listed = usable.joinToString { "${it.service.displayName()} at ${it.service.address}:${it.port}" }
-        return "Discovered ${usable.size} JetWhale host(s) over mDNS: $listed. Falling back to $fallback if none accepts a connection."
+        return "Discovered ${usable.size} JetWhale host(s) over mDNS: $listed"
     }
 
     private fun noHostMessage(services: List<DiscoveredService>): String {
         val matched = services.filter { it.matches(discovery) }
         if (matched.isEmpty()) {
-            return "mDNS host discovery found no matching host within ${HOST_DISCOVERY_TIMEOUT_MILLIS}ms; using $fallback"
+            return "mDNS host discovery found no matching host within ${HOST_DISCOVERY_TIMEOUT_MILLIS}ms"
         }
         // Matched but unusable is worth spelling out: the agent would otherwise look like it simply
         // found nothing, when in fact the host is there and only its wss connector is missing.
-        val scheme = if (discovery.useWss) "wss" else "ws"
         val listed = matched.joinToString { it.displayName() }
-        return "mDNS host discovery matched ${matched.size} host(s) ($listed) but none advertised a $scheme port; using $fallback. " +
+        return "mDNS host discovery matched ${matched.size} host(s) ($listed) but none advertised a wss port. " +
             "A host advertises its wss port only while wss is enabled in its settings."
     }
 }
@@ -145,5 +155,3 @@ private fun DiscoveredService.matches(discovery: HostDiscoveryConfig): Boolean {
     }
     return true
 }
-
-private fun DiscoveredService.portFor(useWss: Boolean): Int? = if (useWss) wssPort else wsPort

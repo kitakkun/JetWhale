@@ -26,3 +26,14 @@ internal fun interface EndpointResolver {
 internal class FixedEndpointResolver(private val endpoint: ResolvedEndpoint) : EndpointResolver {
     override suspend fun resolve(): List<ResolvedEndpoint> = listOf(endpoint)
 }
+
+/**
+ * Every declared candidate in the order it was declared, each contributing what it resolves to — one
+ * address for a literal, however many answered for a discovered one, none where mDNS is unavailable.
+ *
+ * Deduplicated with the order kept: the same address reached two ways is one address, and dialling it
+ * twice in a round would only spend the establishment budget twice.
+ */
+internal class CandidateListResolver(private val candidates: List<EndpointResolver>) : EndpointResolver {
+    override suspend fun resolve(): List<ResolvedEndpoint> = candidates.flatMap { it.resolve() }.distinct()
+}

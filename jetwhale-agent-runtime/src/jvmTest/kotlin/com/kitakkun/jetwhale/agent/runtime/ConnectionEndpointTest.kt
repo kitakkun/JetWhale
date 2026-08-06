@@ -4,125 +4,160 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class ConnectionEndpointTest {
-    private fun connection(
+    private fun candidates(
         configure: JetWhaleConnectionConfigurationScope.() -> Unit,
-    ): EndpointResolver = JetWhaleConnectionConfiguration().apply(configure).endpointResolver()
+    ): List<EndpointCandidate> = JetWhaleConnectionConfiguration().apply(configure).candidates
 
-    private fun fixedEndpoint(
+    /** Only for configurations without a discovered candidate, which would browse the network for real. */
+    private fun literalAddresses(
         configure: JetWhaleConnectionConfigurationScope.() -> Unit,
-    ): ResolvedEndpoint = runBlocking { assertIs<FixedEndpointResolver>(connection(configure)).resolve().single() }
-
-    private fun mdns(
-        configure: JetWhaleConnectionConfigurationScope.() -> Unit,
-    ): MdnsEndpointResolver = assertIs<MdnsEndpointResolver>(connection(configure))
-
-    @Test
-    fun `an unconfigured connection targets the default host and port`() {
-        assertEquals(ResolvedEndpoint("localhost", 8080, useWss = false), fixedEndpoint { })
+    ): List<ResolvedEndpoint> = runBlocking {
+        JetWhaleConnectionConfiguration().apply(configure).endpointResolver().resolve()
     }
 
     @Suppress("DEPRECATION")
     @Test
-    fun `the deprecated host and port amount to the same address as a fixed endpoint`() {
-        val legacy = fixedEndpoint {
+    fun `the deprecated host and port stand in for undeclared endpoints`() {
+        val resolved = literalAddresses {
             host = "192.168.3.26"
             port = 5443
-        }
-
-        assertEquals(fixedEndpoint { endpoint = fixed("192.168.3.26", 5443) }, legacy)
-    }
-
-    @Suppress("DEPRECATION")
-    @Test
-    fun `an assigned endpoint wins over the deprecated host and port`() {
-        val resolved = fixedEndpoint {
-            host = "ignored"
-            port = 1
-            endpoint = fixed("192.168.3.26", 5443)
-        }
-
-        assertEquals(ResolvedEndpoint("192.168.3.26", 5443, useWss = false), resolved)
-    }
-
-    @Test
-    fun `a fixed endpoint follows the ssl block`() {
-        val plain = fixedEndpoint { endpoint = fixed("192.168.3.26", 5080) }
-        val secure = fixedEndpoint {
-            endpoint = fixed("192.168.3.26", 5443)
             ssl { trustServerCertificate() }
         }
 
-        assertEquals(false, plain.useWss)
-        assertEquals(true, secure.useWss)
+        assertEquals(listOf(ResolvedEndpoint("192.168.3.26", 5443, useWss = true)), resolved)
     }
 
     @Test
-    fun `a plain loopback endpoint stays plain whatever the ssl block says`() {
-        // The one exception to ssl {} deciding the scheme, and the reason it takes no host: plain text
-        // is only safe because loopback cannot leave the machine.
-        val resolved = fixedEndpoint {
-            endpoint = plainLoopback(5080)
-            ssl { trustServerCertificate() }
-        }
-
-        assertEquals(ResolvedEndpoint("localhost", 5080, useWss = false), resolved)
+    fun `undeclared endpoints keep the old defaults`() {
+        assertEquals(listOf(ResolvedEndpoint("localhost", 8080, useWss = false)), literalAddresses { })
     }
 
     @Test
-    fun `a plain loopback endpoint can be the fallback for discovery`() {
-        // One shared configuration for every target: a physical device discovers a host over wss, and
-        // anything that can only reach loopback — a browser above all — takes the plain fallback.
-        val resolver = mdns {
-            endpoint = discovered(fallback = plainLoopback(5080))
-            ssl { trustServerCertificate() }
-        }
-
-        assertEquals(ResolvedEndpoint("localhost", 5080, useWss = false), resolver.fallback)
-        assertEquals(true, resolver.discovery.useWss)
-    }
-
-    @Test
-    fun `a discovered endpoint carries its filters and its fallback`() {
-        val resolver = mdns {
-            endpoint = discovered(fallback = fixed("localhost", 5443)) {
-                allowHostName("build-machine")
-                allowHostName("spare-machine")
-                allowAddress("192.168.3.26")
-                allowAddress("192.168.3.27")
+    fun `candidates are kept in the order they were declared`() {
+        val declared = candidates {
+            endpoints {
+                wss("localhost", 5443)
+                discoverWss { allowAll() }
+                ws("localhost", 5080)
             }
         }
 
-        assertEquals(ResolvedEndpoint("localhost", 5443, useWss = false), resolver.fallback)
-        // Both allowlists accumulate, so neither call silently drops the one before it.
-        assertEquals(listOf("build-machine", "spare-machine"), resolver.discovery.hostNames)
-        assertEquals(listOf("192.168.3.26", "192.168.3.27"), resolver.discovery.addresses)
+        assertEquals(
+            listOf(
+                EndpointCandidate.Static("localhost", 5443, useWss = true),
+                EndpointCandidate.Dynamic(emptyList(), emptyList(), acceptsAnyHost = true),
+                EndpointCandidate.Static("localhost", 5080, useWss = false),
+            ),
+            declared,
+        )
     }
 
     @Test
-    fun `a discovered endpoint without filters accepts any advertised host`() {
-        val resolver = mdns { endpoint = discovered(fallback = fixed("localhost", 5443)) }
+    fun `the scheme is per candidate, so one configuration can mix them`() {
+        // The whole point of stating it per candidate: the targets a single configuration serves do
+        // not agree on whether wss is possible.
+        val resolved = literalAddresses {
+            endpoints {
+                wss("192.168.3.26", 5443)
+                ws("localhost", 5080)
+            }
+        }
 
-        assertEquals(emptyList(), resolver.discovery.hostNames)
-        assertEquals(emptyList(), resolver.discovery.addresses)
-        assertEquals(false, resolver.discovery.hasFilter)
+        assertEquals(
+            listOf(
+                ResolvedEndpoint("192.168.3.26", 5443, useWss = true),
+                ResolvedEndpoint("localhost", 5080, useWss = false),
+            ),
+            resolved,
+        )
     }
 
     @Test
-    fun `ssl declared after the endpoint still uses wss`() {
-        val resolver = mdns {
-            endpoint = discovered(fallback = fixed("localhost", 5443))
+    fun `a candidate's scheme owes nothing to the ssl block`() {
+        // ssl { } says what to trust; the candidate says whether TLS is spoken at all.
+        val resolved = literalAddresses {
+            endpoints { ws("localhost", 5080) }
             ssl { trustServerCertificate() }
         }
 
-        assertEquals(true, resolver.discovery.useWss)
+        assertEquals(listOf(ResolvedEndpoint("localhost", 5080, useWss = false)), resolved)
     }
 
     @Test
-    fun `an endpoint without ssl uses plain ws`() {
-        val resolver = mdns { endpoint = discovered(fallback = fixed("localhost", 5080)) }
+    fun `a repeated endpoints block adds to the list rather than replacing it`() {
+        val declared = candidates {
+            endpoints { ws("first", 1) }
+            endpoints { ws("second", 2) }
+        }
 
-        assertEquals(false, resolver.discovery.useWss)
+        assertEquals(listOf("first", "second"), declared.map { (it as EndpointCandidate.Static).host })
+    }
+
+    @Test
+    fun `a discovered candidate carries its allowlists`() {
+        val declared = candidates {
+            endpoints {
+                discoverWss {
+                    allowHostName("build-machine")
+                    allowHostName("spare-machine")
+                    allowAddress("192.168.3.26")
+                    allowAddress("192.168.3.27")
+                }
+            }
+        }
+
+        // Both allowlists accumulate, so neither call silently drops the one before it.
+        assertEquals(
+            EndpointCandidate.Dynamic(
+                hostNames = listOf("build-machine", "spare-machine"),
+                addresses = listOf("192.168.3.26", "192.168.3.27"),
+                acceptsAnyHost = false,
+            ),
+            declared.single(),
+        )
+    }
+
+    @Test
+    fun `discovery takes any host only when allowAll says so`() {
+        val open = assertIs<EndpointCandidate.Dynamic>(
+            candidates { endpoints { discoverWss { allowAll() } } }.single(),
+        )
+
+        assertTrue(open.acceptsAnyHost)
+        assertEquals(emptyList(), open.hostNames)
+        assertEquals(emptyList(), open.addresses)
+    }
+
+    @Test
+    fun `a discovery block that states nothing accepts nothing`() {
+        // Discovery reaches every JetWhale host on the network, which on a shared one is other
+        // people's. Saying nothing must not amount to taking all of them.
+        val silent = assertIs<EndpointCandidate.Dynamic>(
+            candidates { endpoints { discoverWss { } } }.single(),
+        )
+
+        assertTrue(!silent.acceptsAnyHost)
+        assertTrue(
+            HostDiscoveryConfig(
+                hostNames = silent.hostNames,
+                addresses = silent.addresses,
+                acceptsAnyHost = silent.acceptsAnyHost,
+            ).acceptsNothing,
+        )
+    }
+
+    @Test
+    fun `the same address declared twice is dialled once`() {
+        val resolved = literalAddresses {
+            endpoints {
+                ws("localhost", 5080)
+                ws("localhost", 5080)
+            }
+        }
+
+        assertEquals(1, resolved.size)
     }
 }
