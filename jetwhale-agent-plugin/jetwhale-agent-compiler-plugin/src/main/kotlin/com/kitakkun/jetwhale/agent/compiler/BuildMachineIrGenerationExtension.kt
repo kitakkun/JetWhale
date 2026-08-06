@@ -49,7 +49,14 @@ private class BuildMachineCallTransformer(
 
     override fun visitCall(expression: IrCall): IrExpression {
         // Recurse first, so a buildMachineWss nested inside another call's arguments is rewritten too.
-        val call = super.visitCall(expression) as IrCall
+        //
+        // Safe-cast rather than `as IrCall`: today the base chain ends in visitExpression, which
+        // transforms children in place and hands back the very same instance, so the cast could not
+        // fail. But every method in that chain is `open` on an API JetBrains breaks at minor
+        // versions, and the cast failing would throw a ClassCastException from inside a user's
+        // compilation. Returning whatever came back costs nothing and owes nothing to that chain.
+        val transformed = super.visitCall(expression)
+        val call = transformed as? IrCall ?: return transformed
         val callee = call.symbol.owner
         if (callee.name.asString() != BUILD_MACHINE_WSS_NAME) return call
 
