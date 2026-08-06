@@ -324,7 +324,7 @@ Three differences are worth knowing before you script against it:
   directly are unaffected.
 - **Coordinates differ from a windowed run.** With no window reporting a density, scenes render at
   density 1.0, so the same element sits at different coordinates than it would on a HiDPI display.
-  Always read coordinates from `jetwhale.accessibilityTree` in the same run rather than carrying
+  Always read coordinates from `jetwhale.getAccessibilityTree` in the same run rather than carrying
   them over from a windowed session.
 - **A fresh app-data directory enables no plugins.** Enable them with `jetwhale.setPluginEnabled`
   over MCP, or point `-Djetwhale.appDataDir` at a directory where they already are. Approving a new

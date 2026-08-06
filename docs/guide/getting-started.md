@@ -88,9 +88,10 @@ reports in [Settings → Connection → Debug Server](/guide/host-settings#debug
 :::
 
 ::: info `host` / `port` are deprecated
-Earlier releases configured the address with separate `host` and `port` properties. They still work
-and amount to a single candidate taking its scheme from `ssl { }`, but new code should declare
-`endpoints { }` — it is what
+Earlier releases configured the address with separate `host` and `port` properties. They still work,
+as a single candidate — and they are the one case where `ssl { }` does decide the scheme, because
+unlike `ws(...)` and `wss(...)` they carry none of their own. New code should declare
+`endpoints { }`; it is what
 [host discovery](#zero-config-host-discovery-recommended-for-physical-devices) extends.
 :::
 

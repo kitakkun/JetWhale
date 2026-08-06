@@ -37,12 +37,20 @@ that `jetwhale.listSessions` returns and the tools below take as arguments.
 The tool list is computed **when a client connects** and never changes for that connection, so a
 plugin enabled (or a permission re-allowed) mid-session only shows up after the client reconnects.
 
+## Discovery tools
+
+Every other tool is addressed to one plugin in one session, and these are where those two ids come
+from. Start here.
+
+| Tool | What it does |
+|------|--------------|
+| `jetwhale.listSessions` | Lists connected debug sessions. Takes no arguments |
+| `jetwhale.listPlugins` | Lists the plugins available in a session. Takes a `sessionId` |
+
 ## Plugin UI tools
 
 | Tool | What it does |
 |------|--------------|
-| `jetwhale.listSessions` | Lists connected debug sessions; other tools take a `sessionId` from here |
-| `jetwhale.listPlugins` | Lists the plugins available in a session |
 | `jetwhale.screenshot` | Captures the current rendered frame of a plugin's Compose UI as a PNG |
 | `jetwhale.click` | Dispatches a mouse click at pixel coordinates in a plugin's UI |
 | `jetwhale.type` | Types text or a special key into a plugin's UI |
@@ -50,9 +58,9 @@ plugin enabled (or a permission re-allowed) mid-session only shows up after the 
 | `jetwhale.drag` | Simulates a drag gesture in a plugin's UI |
 | `jetwhale.getAccessibilityTree` | Returns the Compose semantics (accessibility) tree of a plugin's UI |
 
-Because a single host can debug multiple apps at once — each with several plugins — every tool that
-targets a plugin UI takes required `sessionId` **and** `pluginId` parameters: call
-`jetwhale.listSessions` first, then `jetwhale.listPlugins` to pick the plugin.
+Because a single host can debug multiple apps at once — each with several plugins — every one of
+these takes required `sessionId` **and** `pluginId` parameters: call `jetwhale.listSessions` first,
+then `jetwhale.listPlugins` to pick the plugin.
 
 ### Parameters
 
@@ -154,7 +162,7 @@ restarted, and notes explaining any deferred effect.
 | `destination` | yes | `HOME`, `PLUGIN`, `SETTINGS`, `INFO`, `LOG_VIEWER` |
 | `pluginId` | for `PLUGIN` | An installed, **enabled** plugin id. |
 | `sessionId` | no | Only for `PLUGIN`; defaults to the session already selected in the drawer. |
-| `settingsSection` | no | Only for `SETTINGS`: `GENERAL`, `SERVER`, `AI_AGENTS`, `PLUGINS`. Defaults to `GENERAL`. |
+| `settingsSection` | no | Only for `SETTINGS`: `GENERAL`, `SERVER`, `AI_AGENTS`, `PLUGINS`. Defaults to `GENERAL`. `SERVER` is the page the window titles **Connection**. |
 
 Navigating to `PLUGIN` also selects that session in the drawer, which is what a subsequent
 `jetwhale.screenshot` of the same plugin will show. The call waits up to two seconds for the window
