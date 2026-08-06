@@ -41,7 +41,11 @@ val navKeyModule = SerializersModule {
 val nav3Plugin = JetWhaleNav3AgentPlugin(Nav3KeyCodec.openPolymorphic(navKeyModule))
 
 startJetWhale {
-    connection { endpoints { ws("localhost", 5080) } }
+    connection {
+        endpoints {
+            ws("localhost", 5080)
+        }
+    }
     plugins {
         register(nav3Plugin)
     }

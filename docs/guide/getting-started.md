@@ -68,7 +68,10 @@ import com.kitakkun.jetwhale.agent.runtime.startJetWhale
 fun initializeJetWhale() {
     startJetWhale {
         connection {
-            endpoints { ws("localhost", 5080) } // the host's plain WebSocket server port
+            endpoints {
+                // the host's plain WebSocket server port
+                ws("localhost", 5080)
+            }
         }
         plugins {
             // register agent plugins here, e.g. the Network Inspector:
@@ -457,7 +460,10 @@ over nor is required by a `wss` one (without it, the platform's own trust store 
 ```kotlin
 startJetWhale {
     connection {
-        endpoints { wss("localhost", 5443) } // the host's wss port
+        endpoints {
+            // the host's wss port
+            wss("localhost", 5443)
+        }
 
         ssl {
             // Option A: fetch and pin the host's active CA automatically (trust-on-first-use).
