@@ -8,66 +8,83 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![License](https://img.shields.io/github/license/kitakkun/JetWhale)](LICENSE)
 
-JetWhale is a next-generation, extensible debugging tool inspired
+JetWhale is an extensible debugging tool for Kotlin apps, inspired
 by [Flipper](https://github.com/facebook/flipper).
 
-It is built with Kotlin and Jetpack Compose, making it especially familiar and approachable for
-Kotlin / Android developers.
-Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal learning curve.
-
-> [!NOTE]
-> This project is under active development.
-> We welcome feedback as we work toward a stable release.
-> Please note that the Plugin SDK APIs are not yet finalized and may change in the future.
-
-📖 **Documentation: <https://kitakkun.github.io/JetWhale/>**
+It is built with Kotlin and Jetpack Compose, so the debugger you run — and the plugins you write for
+it — use the APIs you already know.
 
 ## Features
 
-- 🐳 **Powerful Debugging Platform**
-    - Provides a modern and rich debugging experience powered by **Kotlin** and **Jetpack Compose**
-    - Supports debugging **multiple sessions simultaneously**
-    - Debugging tools are implemented as **plugins**, which can be dynamically loaded at runtime as
-      JAR files
+- 🐳 **Multi-session debugging** — an Android device and a desktop build side by side, grouped by device
+- 🔌 **Runtime plugins** — loaded from JAR files; the built-in ones and your own alike
+- 🛜 **Type-safe messaging** — kotlinx.serialization between the host and your app
+- ✅ **Multiplatform** — Android, Desktop (JVM), iOS (simulator & physical devices), Web (JS / WasmJS)
+- ⚙️ **Zero Android setup** — the host wires `adb reverse` for you
+- 🤖 **[MCP server](https://kitakkun.github.io/JetWhale/guide/mcp-server)** *(experimental)* — let an AI agent drive the app
+- 🔥 **Hot-reloadable plugin development** — against the published SDK, from your own repository
 
-- ⚙️ **Easy Integration and Customization**
-    - DSL-based APIs allow you to quickly set up and configure JetWhale in your application
-    - Customize the debugging experience by creating your own plugins using familiar **Kotlin**
-      and **Jetpack Compose** paradigms
+> [!NOTE]
+> Under active development. Feedback is welcome as we work toward a stable release; the Plugin SDK
+> APIs are not finalized and may still change.
 
-- 🛜 **Type-safe Communication with kotlinx.serialization**
-    - Leverages **kotlinx.serialization** to enable type-safe communication between the debugger
-      and debuggees
+📖 **Documentation: <https://kitakkun.github.io/JetWhale/>**
 
-- ✅ **Multiplatform Support**
-    - Supports **Android**, **Desktop(JVM)**, **iOS** (Simulator & physical devices over the local network), and **Web** (Js, WasmJs)
-      debuggees
+## Getting started
 
-- 🤖 **MCP Server Support** *(Experimental)*
-    - JetWhale exposes a built-in **MCP (Model Context Protocol) HTTP+SSE server**, allowing AI
-      agents (e.g. Claude) to interact with debuggee apps directly
-    - Built-in tools include `screenshot`, `click`, `type`, `scroll`, `drag`, and
-      `getAccessibilityTree`
-    - Plugins can expose their own custom MCP tools by implementing `JetWhaleMcpCapablePlugin`
+**1. Install the host** — download the installer for your OS from
+the [releases page](https://github.com/kitakkun/JetWhale/releases) (`.dmg` for macOS, `.deb` for
+Linux, `.msi` for Windows), and launch it.
 
-- 🔥 **Hot-Reloadable Plugin Development**
-    - Build your own plugins in your **own** repository against the published SDK — no fork needed
-    - `runJetWhale` downloads a real JetWhale host and launches it with your plugin loaded;
-      edit your plugin, re-stage, and the host **hot-reloads** it — no restart
-    - See [Developing plugins](https://kitakkun.github.io/JetWhale/guide/developing-plugins)
+**2. Add the runtime** to the app you want to debug:
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
+}
+```
+
+**3. Start a session** as early as you can in your app's startup:
+
+```kotlin
+startJetWhale {
+    connection {
+        endpoints {
+            ws("localhost", 5080)
+        }
+    }
+    plugins {
+        // each inspector below is its own artifact; register the ones you want
+    }
+}
+```
+
+That is the whole integration — the app shows up in the host as soon as it runs.
+
+See **[Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started)** for physical iOS
+devices, secure connections, and the rest.
+
+## What you can inspect
+
+| | |
+|---|---|
+| **[Network Inspector](https://kitakkun.github.io/JetWhale/guide/network-inspector)** | HTTP traffic, with request/response bodies — and mock rules to reshape responses without touching the server |
+| **[Compose Semantics Inspector](https://kitakkun.github.io/JetWhale/guide/compose-semantics-inspector)** | The Compose node tree of a running screen |
+| **[Nav3 Navigator](https://kitakkun.github.io/JetWhale/guide/nav3-navigator)** | The Navigation 3 back stack, and pushing or popping entries from the host |
+| **[MCP server](https://kitakkun.github.io/JetWhale/guide/mcp-server)** *(experimental)* | Lets an AI agent drive the app — screenshot, click, type, scroll, drag, read the accessibility tree |
 
 ## Developing plugins
 
-JetWhale's debugging tools are plugins, and you can build your own in your **own** repository with a
-fast, **hot-reload** dev loop:
+JetWhale's debugging tools are plugins, and yours live in **your** repository — no fork needed. One
+command gives you a hot-reload loop:
 
-- Apply the published `com.kitakkun.jetwhale.host` Gradle plugin and compile against the published SDK.
-- Run the whole loop with one command: `./gradlew :myPlugin:runJetWhaleHot` downloads a real host for
-  your OS (no manual install), launches it with your plugin loaded, and re-stages the plugin on every
-  source change. The host reloads it without a restart.
-- Prefer a plain JDK? `./gradlew :myPlugin:runJetWhale` in one terminal and
-  `./gradlew :myPlugin:stageDevPlugin -t` in another does the same, keeping the plugin's state for
-  simple (method-body) edits and recreating it for structural
-  changes (see the [limitations](https://kitakkun.github.io/JetWhale/guide/developing-plugins#limitations)).
+```bash
+./gradlew :myPlugin:runJetWhaleHot
+```
 
-See **[Developing plugins](https://kitakkun.github.io/JetWhale/guide/developing-plugins)** for the full guide.
+It downloads a real host for your OS, launches it with your plugin loaded, and reloads the plugin on
+every source change without restarting.
+
+See **[Developing plugins](https://kitakkun.github.io/JetWhale/guide/developing-plugins)** for the
+full guide.

@@ -1,11 +1,11 @@
 # What is JetWhale?
 
-JetWhale is a next-generation, extensible debugging tool inspired by
-[Flipper](https://github.com/facebook/flipper).
+JetWhale is an extensible debugging tool for Kotlin apps, inspired by
+[Flipper](https://github.com/facebook/flipper). You run a desktop app on your machine, add a small
+runtime to the app you are debugging, and inspect it live through plugins.
 
-It is built with Kotlin and Jetpack Compose, making it especially familiar and approachable for
-Kotlin / Android developers. Thanks to its Kotlin-first design, JetWhale can be introduced with a
-minimal learning curve.
+Both sides are written in Kotlin and Jetpack Compose, so the plugins you write — and the API you
+write them against — are the ones you already know.
 
 ::: warning Active development
 This project is under active development. We welcome feedback as we work toward a stable release.
@@ -38,21 +38,11 @@ Each session in the host shows a lock indicator for how its transport is secured
   never leaves the machine, so it is effectively secure.
 - **No lock** — plain ws to a non-loopback peer; the traffic is unencrypted on the network.
 
-## Features
-
-- 🐳 **Powerful debugging platform** — modern UI built with Kotlin and Jetpack Compose;
-  multi-session debugging; runtime-loadable JAR plugins
-- ⚙️ **Easy integration** — DSL-based setup in your app;
-  [ADB auto port mapping](/guide/adb-auto-port-mapping) for zero-setup Android debugging
-- 🛜 **Type-safe communication** — kotlinx.serialization between debugger and debuggee
-- ✅ **Multiplatform debuggees** — Android, Desktop (JVM), iOS (Simulator & physical devices over wss), Web (JS, WasmJS)
-- 🤖 **[MCP server](/guide/mcp-server)** *(experimental)* — AI agents can interact with your app
-- 🔥 **[Hot-reloadable plugin development](/guide/developing-plugins)** — build plugins in your own
-  repository against the published SDK
-
 ## Next steps
 
 - [Getting Started](/guide/getting-started) — install the host and integrate the agent into your app
 - [The Host Window](/guide/host-window) — sessions, the plugin drawer, and popping a plugin out
+- [ADB auto port mapping](/guide/adb-auto-port-mapping) — zero-setup Android debugging
 - [Network Inspector](/guide/network-inspector) — inspect and mock HTTP traffic
+- [MCP Server](/guide/mcp-server) *(experimental)* — let an AI agent drive the app
 - [Developing Plugins](/guide/developing-plugins) — build your own debugging tools
