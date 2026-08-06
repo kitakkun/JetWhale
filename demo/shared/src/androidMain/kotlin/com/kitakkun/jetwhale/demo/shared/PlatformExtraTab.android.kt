@@ -88,7 +88,7 @@ actual fun PlatformExtraTabScreen() {
                     fire("GET /todos/1") { base ->
                         val request = Request.Builder().url("$base/todos/1").build()
                         okHttpClient.newCall(request).execute().use { response ->
-                            "${response.code} ${response.body?.string()}"
+                            "${response.code} ${response.body.string()}"
                         }
                     }
                 },
@@ -103,7 +103,7 @@ actual fun PlatformExtraTabScreen() {
                         val body = """{"title":"New todo"}""".toRequestBody("application/json".toMediaType())
                         val request = Request.Builder().url("$base/todos").post(body).build()
                         okHttpClient.newCall(request).execute().use { response ->
-                            "${response.code} ${response.body?.string()}"
+                            "${response.code} ${response.body.string()}"
                         }
                     }
                 },
@@ -117,7 +117,7 @@ actual fun PlatformExtraTabScreen() {
                     fire("DELETE /todos/1") { base ->
                         val request = Request.Builder().url("$base/todos/1").delete().build()
                         okHttpClient.newCall(request).execute().use { response ->
-                            "${response.code} ${response.body?.string()}"
+                            "${response.code} ${response.body.string()}"
                         }
                     }
                 },
@@ -131,7 +131,7 @@ actual fun PlatformExtraTabScreen() {
                     fire("GET /nonexistent-path") { base ->
                         val request = Request.Builder().url("$base/nonexistent-path").build()
                         okHttpClient.newCall(request).execute().use { response ->
-                            "${response.code} ${response.body?.string()}"
+                            "${response.code} ${response.body.string()}"
                         }
                     }
                 },

@@ -3,7 +3,7 @@ package com.kitakkun.jetwhale.plugins.network.host
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,7 +32,7 @@ fun NetworkInspectorScreen(
     // swaps the tab content composable out of the composition entirely.
     var selectedTxId by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selectedTab) {
+        SecondaryTabRow(selectedTabIndex = selectedTab) {
             Tab(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },

@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalSerializationApi::class)
+@file:OptIn(ExperimentalSerializationApi::class, ExperimentalJetWhaleApi::class)
 
 package com.kitakkun.jetwhale.host.sdk
 

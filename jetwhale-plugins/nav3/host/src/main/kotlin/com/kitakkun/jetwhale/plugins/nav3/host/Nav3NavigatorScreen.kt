@@ -23,7 +23,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -82,7 +82,7 @@ internal fun Nav3NavigatorScreen(
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             if (stacks.size > 1) {
-                ScrollableTabRow(
+                SecondaryScrollableTabRow(
                     selectedTabIndex = stacks.indexOfFirst { it.stackId == selected?.stackId }.coerceAtLeast(0),
                 ) {
                     stacks.forEach { stack ->

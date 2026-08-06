@@ -12,7 +12,7 @@ plugins {
 configure<KotlinMultiplatformExtension> {
     jvm()
     jvmToolchain(17)
-    js(IR) {
+    js {
         browser()
         nodejs()
     }

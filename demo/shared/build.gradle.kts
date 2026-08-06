@@ -22,7 +22,7 @@ kotlin {
     jvm()
     jvmToolchain(17)
 
-    js(IR) {
+    js {
         browser {
             testTask {
                 enabled = false

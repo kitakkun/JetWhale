@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package com.kitakkun.jetwhale.host.sdk
 
 import com.kitakkun.jetwhale.annotations.McpDescription
@@ -34,7 +36,6 @@ import kotlinx.serialization.json.putJsonObject
  * The schema follows [json]'s configuration — its class discriminator and naming strategy — so the
  * shape advertised to the caller is the shape the same format decodes.
  */
-@OptIn(ExperimentalSerializationApi::class)
 internal fun SerialDescriptor.toJsonSchema(json: Json): JsonObject = buildSchema(
     SchemaContext(
         classDiscriminator = json.configuration.classDiscriminator,
@@ -121,7 +122,6 @@ private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes:
  * flattened into the value's own object, so each variant is that subclass' object schema with the
  * discriminator pinned to a constant.
  */
-@OptIn(ExperimentalSerializationApi::class)
 private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
     // A type-level annotation overrides the format-wide discriminator, the same way Json resolves it.
     val discriminator = annotations.filterIsInstance<JsonClassDiscriminator>().firstOrNull()?.discriminator
@@ -169,7 +169,6 @@ private fun SerialDescriptor.elementSchema(index: Int, context: SchemaContext, e
     return schema.withDescription(description)
 }
 
-@OptIn(ExperimentalSerializationApi::class)
 private fun SchemaContext.jsonNameOf(descriptor: SerialDescriptor, index: Int): String {
     val serialName = descriptor.getElementName(index)
     return namingStrategy?.serialNameForJson(descriptor, index, serialName) ?: serialName

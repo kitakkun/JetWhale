@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.agent.runtime
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.os.Build
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Collections
@@ -90,7 +91,7 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
 }
 
 private fun NsdServiceInfo.toDiscoveredService(): DiscoveredService? {
-    val address = host?.hostAddress ?: return null
+    val address = resolvedHostAddress() ?: return null
     return DiscoveredService(
         instanceName = serviceName,
         advertisedHostName = attributes[TXT_KEY_HOST_NAME]?.decodeToString(),
@@ -108,4 +109,18 @@ private fun currentApplicationContext(): Context? = try {
 } catch (e: Exception) {
     JetWhaleLogger.d("Reflective Context lookup failed", e)
     null
+}
+
+/**
+ * The resolved address, however this API level exposes it.
+ *
+ * API 34 added `hostAddresses` and deprecated `host` in the same breath; below it there is only
+ * `host`, and minSdk here is 23. Taking the first of the list matches what `host` documented itself
+ * to return, so the two branches agree rather than merely both compiling.
+ */
+private fun NsdServiceInfo.resolvedHostAddress(): String? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+    hostAddresses.firstOrNull()?.hostAddress
+} else {
+    @Suppress("DEPRECATION")
+    host?.hostAddress
 }
