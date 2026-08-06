@@ -14,9 +14,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalDensity
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.savedstate.serialization.SavedStateConfiguration
@@ -25,21 +25,13 @@ import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
 import com.kitakkun.jetwhale.host.component.UpdateAvailableBanner
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldRoot
-import com.kitakkun.jetwhale.host.navigation.EmptyPluginNavKey
-import com.kitakkun.jetwhale.host.navigation.InfoNavKey
-import com.kitakkun.jetwhale.host.navigation.JetWhaleNavDisplay
-import com.kitakkun.jetwhale.host.navigation.LicensesNavKey
-import com.kitakkun.jetwhale.host.navigation.LogViewerNavKey
-import com.kitakkun.jetwhale.host.navigation.PluginNavKey
-import com.kitakkun.jetwhale.host.navigation.PluginPopoutNavKey
-import com.kitakkun.jetwhale.host.navigation.SettingsNavKey
-import com.kitakkun.jetwhale.host.navigation.addSingleTop
-import com.kitakkun.jetwhale.host.navigation.bringPluginBackToMainWindow
-import com.kitakkun.jetwhale.host.navigation.followPluginToSession
-import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
-import com.kitakkun.jetwhale.host.navigation.openMcpTools
-import com.kitakkun.jetwhale.host.navigation.toHostDestination
+import com.kitakkun.jetwhale.host.plugin.PluginNavKey
+import com.kitakkun.jetwhale.host.plugin.isPoppedOut
+import com.kitakkun.jetwhale.host.settings.SettingsNavKey
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
+import com.kitakkun.jetwhale.host.settings.licenses.LicensesNavKey
+import com.kitakkun.jetwhale.host.shell.EmptyPluginNavKey
+import com.kitakkun.jetwhale.host.shell.InfoNavKey
 import com.kitakkun.jetwhale.host.ui.AppEnvironment
 import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
 import kotlinx.serialization.modules.SerializersModule
@@ -63,6 +55,14 @@ fun JetWhaleApp() {
         EmptyPluginNavKey,
     )
 
+    val navigator = appGraph.toolingScaffoldNavigator
+    val pluginNavigator = appGraph.pluginNavigator
+    val poppedOutPlugins by pluginNavigator.poppedOutPlugins.collectAsStateWithLifecycle()
+
+    // The only writer of the back stack, and what publishes it back so the navigators — and the MCP
+    // server through them — can read what the window shows.
+    NavigatorEffect(backStack = backStack, navigationBus = appGraph.navigationBus)
+
     // Scenes created for a caller that never displays them (the MCP screenshot tool, say) would
     // otherwise lay out at density 1.0 and disagree with what this window shows.
     val density = LocalDensity.current
@@ -70,54 +70,36 @@ fun JetWhaleApp() {
         appGraph.pluginComposeSceneService.updateHostDensity(density)
     }
 
-    // Publish what the window shows so the MCP server can report it and confirm its own navigation
-    // requests were applied. ToolingScaffoldRoot publishes the drawer selection alongside it.
-    LaunchedEffect(backStack) {
-        snapshotFlow { backStack.toList() }.collect { keys ->
-            appGraph.hostNavigationService.updateDestination(keys.toHostDestination())
-        }
-    }
-
     LaunchedEffect(Unit) {
         // dispose plugin scenes when the debug websocket server is stopped, as all plugin sessions will be closed
         appGraph.debugWebSocketServer.serverStoppedFlow.collect {
-            backStack.removeAll { navKey ->
-                navKey is PluginNavKey || navKey is PluginPopoutNavKey
-            }
+            pluginNavigator.closeAllPluginScreens()
 
             appGraph.pluginComposeSceneService.disposeAllPluginScenes()
         }
     }
 
-    LaunchedEffect(backStack) {
+    LaunchedEffect(Unit) {
         appGraph.debugWebSocketServer.sessionClosedFlow.collect {
             // automatically remove closed plugin sessions from back stack
-            backStack.removeAll { navKey ->
-                navKey is PluginNavKey && navKey.sessionId == it
-            }
+            pluginNavigator.closePluginScreensForSession(it)
             // dispose compose scenes when plugin sessions are closed
             // this cannot be done in the debugWebSocketServer directly because of circular dependencies
             appGraph.pluginComposeSceneService.disposePluginSceneForSession(it)
         }
     }
 
-    LaunchedEffect(backStack) {
+    LaunchedEffect(Unit) {
         appGraph.enabledPluginsRepository.disabledPluginIdFlow.collect { disabledPluginId ->
             // automatically remove disabled plugin entries from back stack
-            backStack.removeAll { navKey ->
-                when (navKey) {
-                    is PluginNavKey -> navKey.pluginId == disabledPluginId
-                    is PluginPopoutNavKey -> navKey.pluginId == disabledPluginId
-                    else -> false
-                }
-            }
+            pluginNavigator.closePluginScreensForPlugin(disabledPluginId)
 
             appGraph.pluginComposeSceneService.disposePluginScenesForPlugin(disabledPluginId)
         }
     }
 
     KeyboardShortcutHandlerProvider(
-        onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey()) },
+        onPressSettingsShortcut = navigator::openSettings,
     ) {
         SwrClientProvider(appGraph.swrClient) {
             // Startup update check: notify-only. Installing always requires an explicit
@@ -141,48 +123,24 @@ fun JetWhaleApp() {
                         Surface {
                             context(retain { appGraph.toolingScaffoldScreenContext }) {
                                 ToolingScaffoldRoot(
-                                    onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },
+                                    onClickSettings = navigator::openSettings,
                                     onClickPluginSettings = {
-                                        backStack.addSingleTop(
-                                            SettingsNavKey(initialPage = SettingsScreenPage.InstalledPlugins),
-                                        )
+                                        navigator.openSettings(SettingsScreenPage.InstalledPlugins)
                                     },
-                                    onClickInfo = { backStack.addSingleTop(InfoNavKey) },
-                                    onClickPlugin = { pluginId, sessionId ->
-                                        backStack.addSingleTop(PluginNavKey(pluginId, sessionId))
-                                    },
-                                    onOpenMcpTools = { pluginId, sessionId ->
-                                        backStack.openMcpTools(pluginId = pluginId, sessionId = sessionId)
-                                    },
-                                    onClickPopout = { pluginId, pluginName, sessionId ->
-                                        backStack.addSingleTop(
-                                            PluginPopoutNavKey(
-                                                pluginId = pluginId,
-                                                sessionId = sessionId,
-                                                pluginName = pluginName,
-                                            ),
-                                        )
-                                    },
-                                    isPoppedOut = backStack::isPluginPoppedOut,
-                                    onClickBringBack = backStack::bringPluginBackToMainWindow,
-                                    onNavigateHome = {
-                                        // Popouts live in their own windows; going home in the main
-                                        // window must not close them.
-                                        backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey }
-                                    },
-                                    onNavigateSettings = { page ->
-                                        backStack.addSingleTop(SettingsNavKey(initialPage = page))
-                                    },
-                                    onNavigateLogViewer = { backStack.addSingleTop(LogViewerNavKey) },
+                                    onClickInfo = navigator::openInfo,
+                                    onClickPlugin = pluginNavigator::openPlugin,
+                                    onOpenMcpTools = navigator::openMcpTools,
+                                    onClickPopout = pluginNavigator::popOut,
+                                    isPoppedOut = poppedOutPlugins::isPoppedOut,
+                                    onClickBringBack = pluginNavigator::bringBackToMainWindow,
                                     onSelectedSessionChange = { selectedSession ->
                                         // When the user switches the active session, make any plugin screen
                                         // currently on top follow the newly-selected session instead of
                                         // lingering on the previous one.
-                                        backStack.followPluginToSession(
+                                        pluginNavigator.followPluginToSession(
                                             newSessionId = selectedSession.id,
-                                            isPluginAvailableOnNewSession = { pluginId ->
-                                                selectedSession.installedPlugins.any { it.pluginId == pluginId }
-                                            },
+                                            availablePluginIds = selectedSession.installedPlugins
+                                                .mapTo(mutableSetOf()) { it.pluginId },
                                         )
                                     },
                                 ) {
@@ -199,13 +157,17 @@ fun JetWhaleApp() {
                                                     latestVersion = update.latestVersion,
                                                     onClickOpenSettings = {
                                                         updateBannerDismissed = true
-                                                        backStack.addSingleTop(SettingsNavKey())
+                                                        navigator.openSettings()
                                                     },
                                                     onDismiss = { updateBannerDismissed = true },
                                                 )
                                             }
                                         }
-                                        JetWhaleNavDisplay(backStack)
+                                        JetWhaleNavDisplay(
+                                            backStack = backStack,
+                                            entryProviders = appGraph.navEntryProviders,
+                                            navigationBus = appGraph.navigationBus,
+                                        )
                                     }
                                 }
                             }

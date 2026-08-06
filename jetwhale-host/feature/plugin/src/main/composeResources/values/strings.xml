@@ -5,4 +5,6 @@
     <string name="plugin_ui_crash_reload">Reload</string>
     <string name="plugin_ui_crash_copy_full_stacktrace">Copy Stacktrace</string>
     <string name="plugin_ui_crash_stacktrace">StackTrace: %1$s</string>
+    <string name="plugin_popped_out_message">This plugin is popped out. Please check the separate window.</string>
+    <string name="bring_back_to_main_window">Bring back to main window</string>
 </resources>

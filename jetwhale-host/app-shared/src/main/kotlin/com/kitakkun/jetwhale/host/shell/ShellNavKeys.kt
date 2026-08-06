@@ -1,41 +1,23 @@
-package com.kitakkun.jetwhale.host.navigation
+package com.kitakkun.jetwhale.host.shell
 
 import androidx.navigation3.runtime.NavKey
-import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import kotlinx.serialization.Serializable
 
+/**
+ * The nav keys for screens the app module itself owns.
+ *
+ * They live here rather than next to their screens because the navigator implementations in this
+ * module have to construct them, and this module is the lowest one that every screen's navigation
+ * is visible from.
+ */
 @Serializable
 data object EmptyPluginNavKey : NavKey
-
-@Serializable
-data class SettingsNavKey(
-    val initialPage: SettingsScreenPage = SettingsScreenPage.Appearance,
-) : NavKey
-
-@Serializable
-data object LicensesNavKey : NavKey
 
 @Serializable
 data object InfoNavKey : NavKey
 
 @Serializable
-data class PluginNavKey(
-    val pluginId: String,
-    val sessionId: String,
-) : NavKey
-
-@Serializable
-data class PluginPopoutNavKey(
-    val pluginId: String,
-    val sessionId: String,
-    val pluginName: String,
-) : NavKey
-
-@Serializable
 data object DisabledPluginNavKey : NavKey
-
-@Serializable
-data object LogViewerNavKey : NavKey
 
 /**
  * The MCP tools browser. [pluginId] and [sessionId] seed the screen's filters — null means

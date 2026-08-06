@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.host
+package com.kitakkun.jetwhale.host.navigation
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.awt.ComposeWindow

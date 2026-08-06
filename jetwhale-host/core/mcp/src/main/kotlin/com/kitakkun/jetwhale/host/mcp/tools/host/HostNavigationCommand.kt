@@ -6,8 +6,7 @@ import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
-import com.kitakkun.jetwhale.host.model.HostNavigationRequest
-import com.kitakkun.jetwhale.host.model.HostNavigationService
+import com.kitakkun.jetwhale.host.model.HostNavigator
 import com.kitakkun.jetwhale.host.model.HostSettingsSection
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -30,10 +29,19 @@ private const val CONFIRMATION_TIMEOUT_MILLIS = 2_000L
 
 enum class NavigationDestination { HOME, PLUGIN, SETTINGS, INFO, LOG_VIEWER }
 
+/** The screen this call asked for, kept so the reported destination can be checked against it. */
+private sealed interface RequestedScreen {
+    data object Home : RequestedScreen
+    data object Info : RequestedScreen
+    data object LogViewer : RequestedScreen
+    data class Settings(val section: HostSettingsSection) : RequestedScreen
+    data class Plugin(val pluginId: String, val sessionId: String?) : RequestedScreen
+}
+
 @Inject
 @ContributesIntoSet(AppScope::class, binding = binding<JetWhaleMcpTool>())
 class HostNavigationCommand(
-    private val hostNavigationService: HostNavigationService,
+    private val hostNavigator: HostNavigator,
     private val debugSessionRepository: DebugSessionRepository,
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val enabledPluginsRepository: EnabledPluginsRepository,
@@ -50,14 +58,14 @@ class HostNavigationCommand(
     private val settingsSection by enumOrNull("Only for SETTINGS. Defaults to GENERAL.", HostSettingsSection.entries)
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val request = arguments.toRequest()
-        hostNavigationService.navigate(request)
+        val requested = arguments.toRequestedScreen()
+        requested.navigate()
 
         // Report what the window actually shows rather than assuming the request landed: the drawer
         // resets its selection when the selected session goes inactive, and the window may not have
         // composed yet.
         val applied = withTimeoutOrNull(CONFIRMATION_TIMEOUT_MILLIS) {
-            hostNavigationService.currentView.filterNotNull().first { request.matches(it.destination) }
+            hostNavigator.currentView.filterNotNull().first { requested.matches(it.destination) }
         }?.destination
             ?: return Json.encodeToString(
                 NavigateResult(
@@ -78,20 +86,28 @@ class HostNavigationCommand(
         )
     }
 
-    private suspend fun JetWhaleMcpArguments.toRequest(): HostNavigationRequest = when (this[destination]) {
-        NavigationDestination.HOME -> HostNavigationRequest.Home
+    private fun RequestedScreen.navigate() = when (this) {
+        RequestedScreen.Home -> hostNavigator.navigateHome()
+        RequestedScreen.Info -> hostNavigator.navigateToInfo()
+        RequestedScreen.LogViewer -> hostNavigator.navigateToLogViewer()
+        is RequestedScreen.Settings -> hostNavigator.navigateToSettings(section)
+        is RequestedScreen.Plugin -> hostNavigator.navigateToPlugin(pluginId, sessionId)
+    }
 
-        NavigationDestination.INFO -> HostNavigationRequest.Info
+    private suspend fun JetWhaleMcpArguments.toRequestedScreen(): RequestedScreen = when (this[destination]) {
+        NavigationDestination.HOME -> RequestedScreen.Home
 
-        NavigationDestination.LOG_VIEWER -> HostNavigationRequest.LogViewer
+        NavigationDestination.INFO -> RequestedScreen.Info
 
-        NavigationDestination.SETTINGS -> HostNavigationRequest.Settings(this[settingsSection] ?: HostSettingsSection.GENERAL)
+        NavigationDestination.LOG_VIEWER -> RequestedScreen.LogViewer
+
+        NavigationDestination.SETTINGS -> RequestedScreen.Settings(this[settingsSection] ?: HostSettingsSection.GENERAL)
 
         NavigationDestination.PLUGIN -> {
             val targetPluginId = this[pluginId]
                 ?: throw JetWhaleMcpArgumentException("missing required argument: pluginId is required when destination is PLUGIN")
             validatePlugin(targetPluginId, this[sessionId])
-            HostNavigationRequest.Plugin(targetPluginId, this[sessionId])
+            RequestedScreen.Plugin(targetPluginId, this[sessionId])
         }
     }
 
@@ -113,16 +129,16 @@ class HostNavigationCommand(
     }
 }
 
-private fun HostNavigationRequest.matches(destination: HostDestination): Boolean = when (this) {
-    HostNavigationRequest.Home -> destination.kind == HostDestinationKind.HOME
+private fun RequestedScreen.matches(destination: HostDestination): Boolean = when (this) {
+    RequestedScreen.Home -> destination.kind == HostDestinationKind.HOME
 
-    HostNavigationRequest.Info -> destination.kind == HostDestinationKind.INFO
+    RequestedScreen.Info -> destination.kind == HostDestinationKind.INFO
 
-    HostNavigationRequest.LogViewer -> destination.kind == HostDestinationKind.LOG_VIEWER
+    RequestedScreen.LogViewer -> destination.kind == HostDestinationKind.LOG_VIEWER
 
-    is HostNavigationRequest.Settings -> destination.kind == HostDestinationKind.SETTINGS && destination.settingsSection == section
+    is RequestedScreen.Settings -> destination.kind == HostDestinationKind.SETTINGS && destination.settingsSection == section
 
-    is HostNavigationRequest.Plugin ->
+    is RequestedScreen.Plugin ->
         destination.kind == HostDestinationKind.PLUGIN &&
             destination.pluginId == pluginId &&
             (sessionId == null || destination.sessionId == sessionId)

@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.host.navigation
+package com.kitakkun.jetwhale.host
 
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.tween
@@ -16,20 +16,36 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
+import com.kitakkun.jetwhale.host.navigation.NavEntryProvider
+import com.kitakkun.jetwhale.host.navigation.StableDialogSceneStrategy
+import com.kitakkun.jetwhale.host.navigation.WindowSceneStrategy
+import com.kitakkun.jetwhale.host.navigation.rememberRetainedNavEntryDecorator
+import com.kitakkun.jetwhale.host.shell.NavCommand
+import com.kitakkun.jetwhale.host.shell.NavigationBus
+import org.jetbrains.compose.resources.painterResource
 
+/**
+ * The navigation host: it renders whichever entry the back stack points at.
+ *
+ * Every screen contributes its own [NavEntryProvider] to the dependency graph, so this builds its
+ * entry provider by iterating [entryProviders] rather than naming the screens itself. Closing a
+ * window goes to the bus like any other navigation, keeping [NavigatorEffect] the only writer of
+ * the back stack.
+ */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-context(appGraph: JetWhaleAppGraph)
 fun JetWhaleNavDisplay(
     backStack: NavBackStack<NavKey>,
+    entryProviders: Set<NavEntryProvider>,
+    navigationBus: NavigationBus,
     modifier: Modifier = Modifier,
 ) {
     val listDetailSceneStrategy = rememberListDetailSceneStrategy<NavKey>()
     val dialogSceneStrategy = remember { StableDialogSceneStrategy<NavKey>() }
-    val windowSceneStrategy = remember(backStack) {
-        WindowSceneStrategy<NavKey> { contentKey ->
-            backStack.removeAll { it.toString() == contentKey.toString() }
+    val windowIcon = painterResource(Res.drawable.app_icon)
+    val windowSceneStrategy = remember(windowIcon, navigationBus) {
+        WindowSceneStrategy<NavKey>(windowIcon) { contentKey ->
+            navigationBus.send(NavCommand.CloseWindow(contentKey))
         }
     }
 
@@ -54,20 +70,11 @@ fun JetWhaleNavDisplay(
             rememberViewModelStoreNavEntryDecorator(),
         ),
         entryProvider = entryProvider {
-            infoEntry(onClickOSSLicenses = { backStack.addSingleTop(LicensesNavKey) })
-            emptyPluginEntry()
-            settingsEntry(
-                onClickClose = { backStack.removeIf { it is SettingsNavKey } },
-                onOpenLogViewer = { backStack.addSingleTop(0, LogViewerNavKey) },
-            )
-            licensesEntry(onClickBack = backStack::removeLastOrNull)
-            logViewerEntry()
-            mcpToolsEntry()
-            pluginEntries(
-                isOpenedOnPopout = backStack::isPluginPoppedOut,
-                onBringbackToMainWindow = backStack::bringPluginBackToMainWindow,
-            )
-            disabledPluginEntry()
+            entryProviders.forEach { provider ->
+                context(this) {
+                    provider.provideEntry()
+                }
+            }
         },
         modifier = modifier.fillMaxSize(),
     )

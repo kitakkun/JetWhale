@@ -12,11 +12,8 @@ import com.kitakkun.jetwhale.host.architecture.ActionResultEffect
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugSession
-import com.kitakkun.jetwhale.host.model.HostNavigationRequest
-import com.kitakkun.jetwhale.host.navigation.toPage
 import com.kitakkun.jetwhale.host.session_disconnected_message
 import com.kitakkun.jetwhale.host.sessions_disconnected_message
-import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import org.jetbrains.compose.resources.getString
 import soil.query.compose.rememberSubscription
 
@@ -32,9 +29,6 @@ fun ToolingScaffoldRoot(
     isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
     onClickBringBack: (pluginId: String, sessionId: String) -> Unit,
     onSelectedSessionChange: (selectedSession: DebugSession) -> Unit,
-    onNavigateHome: () -> Unit,
-    onNavigateSettings: (SettingsScreenPage) -> Unit,
-    onNavigateLogViewer: () -> Unit,
     content: @Composable () -> Unit,
 ) {
     SoilDataBoundary(
@@ -83,9 +77,9 @@ fun ToolingScaffoldRoot(
         }
 
         // Publish the drawer's selection so a caller outside the composition (the MCP server) can
-        // read what the window is pointed at; the destination itself is published by JetWhaleApp.
+        // read what the window is pointed at; the destination itself is published by the navigation host.
         LaunchedEffect(uiState.selectedSessionId, uiState.selectedPluginId) {
-            screenContext.hostNavigationService.updateSelection(
+            screenContext.navigator.updateSelection(
                 selectedSessionId = uiState.selectedSessionId.takeIf { it.isNotEmpty() },
                 selectedPluginId = uiState.selectedPluginId.takeIf { it.isNotEmpty() },
             )
@@ -96,36 +90,24 @@ fun ToolingScaffoldRoot(
         val currentSessions by rememberUpdatedState(debugSessions)
         val currentUiState by rememberUpdatedState(uiState)
 
-        // The single collector of navigation requests: only here are both the screen channel and
-        // the navigation callbacks in scope, and the request channel delivers each request once.
+        // The single collector of plugin requests from outside the composition: only here is the
+        // screen channel in scope, and each request is delivered once.
         LaunchedEffect(screenChannel) {
-            screenContext.hostNavigationService.requests.collect { request ->
-                when (request) {
-                    HostNavigationRequest.Home -> onNavigateHome()
-
-                    HostNavigationRequest.Info -> onClickInfo()
-
-                    HostNavigationRequest.LogViewer -> onNavigateLogViewer()
-
-                    is HostNavigationRequest.Settings -> onNavigateSettings(request.section.toPage())
-
-                    is HostNavigationRequest.Plugin -> {
-                        // Only a request that named no session falls back to the drawer's selection.
-                        // A named session that has gone away since the request was validated must
-                        // drop the request rather than navigate to some other app.
-                        val targetSession = when (val requestedSessionId = request.sessionId) {
-                            null -> currentUiState.selectedSession
-                            else -> currentSessions.firstOrNull { it.id == requestedSessionId }
-                        } ?: return@collect
-                        // Drive the same path a drawer click takes, so an MCP-driven navigation and a
-                        // click are indistinguishable downstream.
-                        if (targetSession.id != currentUiState.selectedSessionId) {
-                            screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
-                        }
-                        screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
-                        onClickPlugin(request.pluginId, targetSession.id)
-                    }
+            screenContext.navigator.externalPluginRequests.collect { request ->
+                // Only a request that named no session falls back to the drawer's selection.
+                // A named session that has gone away since the request was validated must
+                // drop the request rather than navigate to some other app.
+                val targetSession = when (val requestedSessionId = request.sessionId) {
+                    null -> currentUiState.selectedSession
+                    else -> currentSessions.firstOrNull { it.id == requestedSessionId }
+                } ?: return@collect
+                // Drive the same path a drawer click takes, so an MCP-driven navigation and a
+                // click are indistinguishable downstream.
+                if (targetSession.id != currentUiState.selectedSessionId) {
+                    screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
                 }
+                screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
+                onClickPlugin(request.pluginId, targetSession.id)
             }
         }
 

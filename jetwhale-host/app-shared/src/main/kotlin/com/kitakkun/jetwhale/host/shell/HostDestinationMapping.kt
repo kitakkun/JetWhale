@@ -1,23 +1,26 @@
-package com.kitakkun.jetwhale.host.navigation
+package com.kitakkun.jetwhale.host.shell
 
 import androidx.navigation3.runtime.NavKey
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostSettingsSection
 import com.kitakkun.jetwhale.host.model.PoppedOutPlugin
+import com.kitakkun.jetwhale.host.plugin.PluginNavKey
+import com.kitakkun.jetwhale.host.plugin.PluginPopoutNavKey
+import com.kitakkun.jetwhale.host.settings.SettingsNavKey
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.settings.SettingsScreenSection
+import com.kitakkun.jetwhale.host.settings.licenses.LicensesNavKey
+import com.kitakkun.jetwhale.host.settings.logviewer.LogViewerNavKey
 
 /**
- * Translates the back stack into the destination model that [com.kitakkun.jetwhale.host.model.HostNavigationService]
- * publishes. Nav keys and the settings menu are app-level types, so the mapping lives here rather
- * than leaking into `core/model`.
+ * Translates the back stack into the destination model a caller outside the composition reads.
  *
  * The top-most entry that is not a popout wins: popouts render in their own windows and are
  * reported alongside whatever the main window shows.
  */
 fun List<NavKey>.toHostDestination(): HostDestination {
-    val poppedOut = filterIsInstance<PluginPopoutNavKey>().map { PoppedOutPlugin(it.pluginId, it.sessionId) }
+    val poppedOut = poppedOutPlugins()
     return when (val top = lastOrNull { it !is PluginPopoutNavKey }) {
         is PluginNavKey -> HostDestination(
             kind = HostDestinationKind.PLUGIN,
@@ -50,6 +53,8 @@ fun List<NavKey>.toHostDestination(): HostDestination {
         else -> HostDestination(HostDestinationKind.HOME, poppedOutPlugins = poppedOut)
     }
 }
+
+fun List<NavKey>.poppedOutPlugins(): List<PoppedOutPlugin> = filterIsInstance<PluginPopoutNavKey>().map { PoppedOutPlugin(it.pluginId, it.sessionId) }
 
 fun HostSettingsSection.toPage(): SettingsScreenPage = when (this) {
     HostSettingsSection.GENERAL -> SettingsScreenSection.General.firstPage

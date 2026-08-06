@@ -5,7 +5,7 @@ import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
-import com.kitakkun.jetwhale.host.model.HostNavigationService
+import com.kitakkun.jetwhale.host.model.HostNavigator
 import com.kitakkun.jetwhale.host.model.HostSettingsSection
 import com.kitakkun.jetwhale.host.model.HostViewState
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
@@ -23,6 +23,7 @@ import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock
+import dev.mokkery.verify
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -49,7 +50,7 @@ class HostNavigationCommandTest {
     private val currentView = MutableStateFlow<HostViewState?>(null)
     private val enabledPluginIds = MutableStateFlow(setOf("com.example.agent", "com.example.hostonly"))
 
-    private val hostNavigationService = mock<HostNavigationService>(MockMode.autoUnit) {
+    private val hostNavigator = mock<HostNavigator>(MockMode.autoUnit) {
         every { this@mock.currentView } returns this@HostNavigationCommandTest.currentView
     }
     private val debugSessionRepository = mock<DebugSessionRepository> {
@@ -71,7 +72,7 @@ class HostNavigationCommandTest {
     }
 
     private val command = HostNavigationCommand(
-        hostNavigationService,
+        hostNavigator,
         debugSessionRepository,
         pluginFactoryRepository,
         enabledPluginsRepository,
@@ -91,6 +92,34 @@ class HostNavigationCommandTest {
         assertTrue(result.applied)
         assertEquals("SETTINGS", result.destination)
         assertEquals("SERVER", result.settingsSection)
+    }
+
+    @Test
+    fun `navigate asks the navigator for the screen it was given`() = runBlocking {
+        currentView.value = viewState(
+            HostDestination(kind = HostDestinationKind.SETTINGS, settingsSection = HostSettingsSection.AI_AGENTS),
+        )
+
+        command.execute(arguments("destination" to JsonPrimitive("SETTINGS"), "settingsSection" to JsonPrimitive("AI_AGENTS")))
+
+        verify { hostNavigator.navigateToSettings(HostSettingsSection.AI_AGENTS) }
+    }
+
+    @Test
+    fun `navigate asks the navigator for the plugin and session it was given`() = runBlocking {
+        currentView.value = viewState(
+            HostDestination(kind = HostDestinationKind.PLUGIN, pluginId = "com.example.agent", sessionId = "session-1"),
+        )
+
+        command.execute(
+            arguments(
+                "destination" to JsonPrimitive("PLUGIN"),
+                "pluginId" to JsonPrimitive("com.example.agent"),
+                "sessionId" to JsonPrimitive("session-1"),
+            ),
+        )
+
+        verify { hostNavigator.navigateToPlugin("com.example.agent", "session-1") }
     }
 
     @Test
