@@ -248,8 +248,8 @@ pinning the CA fetched over the same link, for instance.
 
 ### Narrowing discovery
 
-When several JetWhale hosts run on the same network, first-match is ambiguous (the agent logs a
-warning listing all discovered hosts). Narrow the selection with a filter block:
+Every advertised host the agent can use is a candidate, tried in turn until one accepts. When several
+run on the same network and you want a particular one, say which:
 
 ```kotlin
 connection {
@@ -257,8 +257,8 @@ connection {
         // Accept only a host advertising this machine hostname (exact, case-insensitive).
         allowHostName("my-macbook")
 
-        // ...and/or only hosts resolving to specific IPs, e.g. to pin discovery to your build
-        // machine — which may answer on both Wi-Fi and Ethernet.
+        // ...and/or only hosts resolving to specific IPs — your build machine, say, which may
+        // answer on both Wi-Fi and Ethernet.
         allowAddress("192.168.3.26")
         allowAddress("192.168.3.27")
     }
@@ -276,15 +276,29 @@ Both are **repeatable allowlists**: calling one twice widens it rather than repl
 value. An empty allowlist means "no restriction on this", so a host must match every allowlist that
 has entries — name **and** address when both are set, either entry within each.
 
-Discovery is best-effort: if no matching host is found within a few seconds — or on a platform
-without mDNS support (**JS/Wasm, Linux, Windows**) — the agent logs a warning and falls back to the
-endpoint passed as `fallback`.
+::: warning These filters choose, they do not authenticate
+mDNS advertisements are unauthenticated. Anyone on the network can advertise `_jetwhale._tcp` with
+any `hostName` TXT record they like, so `allowHostName("my-macbook")` does not establish that the
+host answering *is* your MacBook — it only stops the agent picking a different one that is honest
+about its name.
 
-Falling back is **per attempt, not permanent**. The agent browses again before every connection
-attempt, so [the usual reconnect promise](#reconnecting) still holds with discovery enabled: start the
-app first and the host later, and the next browse picks it up. The same applies when a host restarts
-on a different port. Warnings are not repeated while the outcome stays the same, so an unreachable
-host does not flood the log.
+Authentication is the certificate's job. `trustCertificate(pem = "...")` with a CA you exported from
+the host completes a handshake only with a host holding the matching key; `trustServerCertificate()`
+takes the CA from whoever answered, which is trust-on-first-use and no stronger than the network it
+runs over. See [Which one to use](#which-one-to-use).
+:::
+
+`fallback` is offered **after** the discovered hosts, not only when none were found: answering mDNS
+says a host is advertising, not that it will accept a connection. The whole list is worked through in
+turn, and only once every entry has refused does the agent wait and start again.
+
+That next round browses afresh, so [the usual reconnect promise](#reconnecting) still holds with
+discovery enabled: start the app first and the host later, and the next browse picks it up. The same
+applies when a host restarts on a different port. A failed round is reported once and not repeated
+while the outcome stays the same, so an unreachable host does not flood the log.
+
+On a platform without mDNS support (**JS/Wasm, Linux, Windows**) there is nothing to browse, and the
+agent goes straight to `fallback`.
 
 | Platform | Discovery backend |
 |----------|-------------------|

@@ -190,20 +190,22 @@ public interface JetWhaleConnectionConfigurationScope {
      * reach the host over `localhost`.
      *
      * The advertised wss port is used when `ssl {}` is configured, otherwise the plain-ws port — so
-     * discovery resolves the port too, and [fallback]'s port applies only when discovery finds nothing.
+     * discovery resolves the port too, and [fallback]'s port is its own.
      *
-     * Discovery is best-effort, which is why [fallback] is required: when no matching host is found
-     * within a short timeout, or the platform does not support mDNS (JS/Wasm/Linux/Windows), the
-     * connection falls back to it with a warning log.
+     * Every advertised host this agent can use becomes a candidate and they are tried in turn, with
+     * [fallback] last. It is required rather than optional because answering mDNS says a host is
+     * advertising, not that it will accept a connection, and because a platform without mDNS
+     * (JS/Wasm/Linux/Windows) has nothing to browse at all.
      *
      * iOS requires `_jetwhale._tcp` to be listed under `NSBonjourServices` in `Info.plist` alongside
      * `NSLocalNetworkUsageDescription`, otherwise the OS blocks the browse.
      *
-     * When several JetWhale hosts advertise on the network, narrow the selection with [configure]
-     * (see [JetWhaleDiscoveredEndpointScope]); with no filter the first discovered host is used and a
-     * warning listing all discovered hosts is logged when more than one is found.
+     * Use [configure] to say which host you want when several advertise (see
+     * [JetWhaleDiscoveredEndpointScope]). Those filters choose; they do not authenticate — mDNS
+     * advertisements are unauthenticated, so a certificate pinned with `trustCertificate` is what
+     * establishes who answered.
      *
-     * @param fallback Used when discovery finds no matching host in time, or the platform lacks mDNS.
+     * @param fallback Tried after every discovered candidate, and on its own where mDNS is unavailable.
      * @param configure Optional filters narrowing which discovered host is accepted.
      */
     public fun discovered(
@@ -249,6 +251,10 @@ public class JetWhalePlainLoopbackEndpoint internal constructor(
  * Allowlists narrowing which discovered host is accepted. Each is repeatable and independently
  * optional; a host has to satisfy every allowlist that has entries, and one that does not is skipped
  * rather than connected to.
+ *
+ * They choose between hosts; they do not authenticate one. An mDNS advertisement is unauthenticated,
+ * so anything on the network can claim any hostname — matching one proves nothing about who answered.
+ * That is what pinning a certificate with `trustCertificate` is for.
  */
 @JetWhaleDsl
 public interface JetWhaleDiscoveredEndpointScope {
