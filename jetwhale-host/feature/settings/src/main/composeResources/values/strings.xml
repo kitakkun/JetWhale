@@ -4,6 +4,9 @@
     <string name="settings_section_ai_agents">AI Agents</string>
     <string name="settings_page_application">Application</string>
     <string name="settings_page_add_plugins">Add Plugins</string>
+    <string name="settings_page_ai_activity">Activity</string>
+    <string name="follow_ai_operation">Follow the plugin an AI agent operates</string>
+    <string name="follow_ai_operation_description">While an AI agent drives a plugin over MCP, the main window switches to that plugin so you can watch it work. A plugin already popped out into its own window is left where it is.</string>
     <string name="general">General</string>
     <string name="server">Server</string>
     <string name="plugins">Plugins</string>

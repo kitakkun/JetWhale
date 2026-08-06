@@ -61,6 +61,17 @@ class DefaultDebuggerSettingsRepositoryTest {
     }
 
     @Test
+    fun `following ai operations is on until it is turned off`() = runBlocking {
+        val dataStore = newDataStore()
+
+        assertEmits(true, DefaultDebuggerSettingsRepository(dataStore, noOverrides).followAiOperationEnabledFlow)
+
+        DefaultDebuggerSettingsRepository(dataStore, noOverrides).updateFollowAiOperationEnabled(false)
+
+        assertEmits(false, DefaultDebuggerSettingsRepository(dataStore, noOverrides).followAiOperationEnabledFlow)
+    }
+
+    @Test
     fun `launch overrides win over the stored ports`() = runBlocking {
         val dataStore = newDataStore()
         DefaultDebuggerSettingsRepository(dataStore, noOverrides).run {

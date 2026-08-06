@@ -32,6 +32,8 @@
     <string name="disable">Disable</string>
     <string name="ai_agent_connected">AI agent connected</string>
     <string name="ai_agent_operating">AI agent is operating</string>
+    <string name="following_ai_operation">Following the AI agent — %1$s</string>
+    <string name="stop_following_ai_operation">Stop following</string>
     <string name="plugin_exposes_mcp_tools">Exposes MCP tools to AI agents</string>
     <string name="mcp_tool_executing">MCP executing</string>
     <string name="mcp_tools_available">MCP available</string>

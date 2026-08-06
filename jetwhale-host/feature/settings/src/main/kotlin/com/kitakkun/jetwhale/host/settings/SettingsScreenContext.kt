@@ -12,6 +12,7 @@ import com.kitakkun.jetwhale.host.model.DebugServerSettingsMutationKey
 import com.kitakkun.jetwhale.host.model.DeleteSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.DiagnosticsQueryKey
 import com.kitakkun.jetwhale.host.model.FailedPluginJarPathsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.FollowAiOperationMutationKey
 import com.kitakkun.jetwhale.host.model.GenerateSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
@@ -62,6 +63,7 @@ class SettingsPresenterContext(
     val updateCheckMutationKey: UpdateCheckMutationKey,
     val updateInstallMutationKey: UpdateInstallMutationKey,
     val checkForUpdatesOnStartupMutationKey: CheckForUpdatesOnStartupMutationKey,
+    val followAiOperationMutationKey: FollowAiOperationMutationKey,
     val hostVersionInfo: HostVersionInfo,
     val generateSslCertificateMutationKey: GenerateSslCertificateMutationKey,
     val activateSslCertificateMutationKey: ActivateSslCertificateMutationKey,

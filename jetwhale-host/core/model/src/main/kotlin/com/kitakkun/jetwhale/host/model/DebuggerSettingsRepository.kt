@@ -10,6 +10,7 @@ interface DebuggerSettingsRepository {
     val mcpServerPortFlow: StateFlow<Int>
     val wssPortFlow: StateFlow<Int>
     val wssEnabledFlow: StateFlow<Boolean>
+    val followAiOperationEnabledFlow: StateFlow<Boolean>
 
     /**
      * The stored values, awaiting the initial read rather than reporting the default while it is
@@ -30,6 +31,7 @@ interface DebuggerSettingsRepository {
     suspend fun updateMcpServerPort(port: Int)
     suspend fun updateWssPort(port: Int)
     suspend fun updateWssEnabled(enabled: Boolean)
+    suspend fun updateFollowAiOperationEnabled(enabled: Boolean)
 
     /**
      * Stores everything the debug server binds from in a single write, so a collector never observes
