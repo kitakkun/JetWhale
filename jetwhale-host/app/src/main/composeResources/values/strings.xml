@@ -12,6 +12,8 @@
     <string name="select_app">Select App</string>
     <string name="session_secure_connection">Secure connection (wss)</string>
     <string name="session_local_connection">Local connection (ADB)</string>
+    <string name="session_connected_message">%1$s connected</string>
+    <string name="sessions_connected_message">%1$d sessions connected</string>
     <string name="session_disconnected_message">%1$s disconnected</string>
     <string name="sessions_disconnected_message">%1$d sessions disconnected</string>
     <string name="initializing">Initializing...</string>

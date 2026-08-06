@@ -12,6 +12,8 @@
     <string name="select_app">アプリを選択</string>
     <string name="session_secure_connection">暗号化された接続 (wss)</string>
     <string name="session_local_connection">ローカル接続 (ADB)</string>
+    <string name="session_connected_message">%1$s が接続されました</string>
+    <string name="sessions_connected_message">%1$d 件のセッションが接続されました</string>
     <string name="session_disconnected_message">%1$s が切断されました</string>
     <string name="sessions_disconnected_message">%1$d 件のセッションが切断されました</string>
     <string name="initializing">初期化中...</string>

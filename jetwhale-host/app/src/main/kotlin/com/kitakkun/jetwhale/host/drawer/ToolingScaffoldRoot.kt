@@ -14,7 +14,9 @@ import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.navigation.toPage
+import com.kitakkun.jetwhale.host.session_connected_message
 import com.kitakkun.jetwhale.host.session_disconnected_message
+import com.kitakkun.jetwhale.host.sessions_connected_message
 import com.kitakkun.jetwhale.host.sessions_disconnected_message
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import org.jetbrains.compose.resources.getString
@@ -64,6 +66,16 @@ fun ToolingScaffoldRoot(
                         val message = closedSessions.singleOrNull()
                             ?.let { getString(Res.string.session_disconnected_message, it.deviceAndAppDisplayName) }
                             ?: getString(Res.string.sessions_disconnected_message, closedSessions.size)
+                        snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
+                    }
+
+                    is ToolingScaffoldScreenActionResult.SessionConnected -> {
+                        // Same shape as the disconnect above: a single arrival names the session, a
+                        // simultaneous batch is collapsed into a count.
+                        val connectedSessions = result.connectedSessions
+                        val message = connectedSessions.singleOrNull()
+                            ?.let { getString(Res.string.session_connected_message, it.deviceAndAppDisplayName) }
+                            ?: getString(Res.string.sessions_connected_message, connectedSessions.size)
                         snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
                     }
 
