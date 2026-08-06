@@ -60,6 +60,9 @@ fun GeneralSettingsScreenRoot(
             onCheckForUpdatesOnStartupChange = {
                 screenChannel.send(GeneralSettingsScreenAction.ChangeCheckForUpdatesOnStartup(it))
             },
+            onFollowAiOperationChange = {
+                screenChannel.send(GeneralSettingsScreenAction.ChangeFollowAiOperation(it))
+            },
             onClickInstallUpdate = {
                 screenChannel.send(GeneralSettingsScreenAction.InstallUpdate)
             },

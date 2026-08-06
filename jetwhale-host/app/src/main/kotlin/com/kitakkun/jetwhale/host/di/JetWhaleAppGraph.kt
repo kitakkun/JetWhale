@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.model.AppearanceSettingsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
+import com.kitakkun.jetwhale.host.model.FollowAiOperationService
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.LogCaptureService
@@ -53,6 +54,7 @@ interface JetWhaleAppGraph : ScreenContext {
     val appearanceSettingsSubscriptionKey: AppearanceSettingsSubscriptionKey
     val debugWebSocketServer: DebugWebSocketServer
     val hostNavigationService: HostNavigationService
+    val followAiOperationService: FollowAiOperationService
     val pluginComposeSceneService: PluginComposeSceneService
     val pluginInstanceService: PluginInstanceService
     val pluginHotReloadService: PluginHotReloadService

@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.MutationErrorEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
+import com.kitakkun.jetwhale.host.component.rememberAiOperating
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.McpActivity
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
@@ -20,17 +21,15 @@ import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.delay
 import soil.query.compose.rememberMutation
-import kotlin.time.Duration.Companion.milliseconds
-
-/** How long an MCP tool call keeps showing after it completes. */
-private val AI_OPERATION_INDICATOR_LINGER = 1500.milliseconds
 
 sealed interface ToolingScaffoldScreenAction {
     data class SelectSession(val session: DebugSession) : ToolingScaffoldScreenAction
     data class UpdateSelectedPlugin(val pluginId: String) : ToolingScaffoldScreenAction
     data class SetPluginEnabled(val pluginId: String, val enabled: Boolean) : ToolingScaffoldScreenAction
+
+    /** Turns the follow mode off from the banner it puts on screen, without a trip to the settings. */
+    data object StopFollowingAiOperation : ToolingScaffoldScreenAction
 }
 
 sealed interface ToolingScaffoldScreenActionResult {
@@ -65,6 +64,7 @@ fun toolingScaffoldPresenter(
     hasFailedJars: Boolean,
     mcpActivity: McpActivity,
     mcpCapablePlugins: McpCapablePlugins,
+    followAiOperationEnabled: Boolean,
 ): ToolingScaffoldUiState {
     var selectedSessionId by retain { mutableStateOf("") }
     var selectedPluginId by retain { mutableStateOf("") }
@@ -72,22 +72,11 @@ fun toolingScaffoldPresenter(
         derivedStateOf { debugSessions.firstOrNull { it.id == selectedSessionId } }
     }
 
-    // A tool call can start and finish faster than the UI samples runningInvocations, so watching
-    // that list drops fast calls entirely. Latch "operating" on whenever startedCount changes and
-    // hold it briefly instead: a fast call still registers, and a burst reads as one continuous
-    // operation because each new call restarts the hold. Keying the effect on the monotonic counter
-    // means a skipped intermediate value still re-fires, since the value differs across frames.
-    var operating by remember { mutableStateOf(false) }
-    LaunchedEffect(mcpActivity.startedCount) {
-        if (mcpActivity.startedCount > 0L) {
-            operating = true
-            delay(AI_OPERATION_INDICATOR_LINGER)
-            operating = false
-        }
-    }
+    val operating = rememberAiOperating(mcpActivity.startedCount)
     val activeInvocation = mcpActivity.lastStartedInvocation?.takeIf { operating }
 
     val setPluginEnabledMutation = rememberMutation(presenterContext.setPluginEnabledMutationKey)
+    val followAiOperationMutation = rememberMutation(presenterContext.followAiOperationMutationKey)
 
     val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, activeInvocation) {
         derivedStateOf {
@@ -151,6 +140,10 @@ fun toolingScaffoldPresenter(
             is ToolingScaffoldScreenAction.SetPluginEnabled -> {
                 setPluginEnabledMutation.mutateAsync(SetPluginEnabledParams(action.pluginId, action.enabled))
             }
+
+            ToolingScaffoldScreenAction.StopFollowingAiOperation -> {
+                followAiOperationMutation.mutateAsync(false)
+            }
         }
     }
 
@@ -167,6 +160,8 @@ fun toolingScaffoldPresenter(
         aiActivity = AiActivityUiState(
             isAgentConnected = mcpActivity.hasConnectedClient,
             operatingToolName = activeInvocation?.toolName,
+            // Only a call that names a plugin moves the window, so only that one is announced.
+            isFollowingOperation = followAiOperationEnabled && activeInvocation?.pluginId != null,
         ),
     )
 }
