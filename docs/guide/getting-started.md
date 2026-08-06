@@ -257,27 +257,27 @@ discoverWss { allowHostName("my-macbook") }  // or allowAddress("192.168.3.26")
 exclusively yours, and something to ask for rather than receive by omission.
 :::
 
-Where mDNS is unavailable (**JS/Wasm, Linux, Windows**) `discovered` contributes nothing at all, and
-whatever comes next is reached immediately.
+Where mDNS is unavailable (**JS/Wasm, Linux, Windows**) `discoverWss` contributes nothing at all,
+and whatever comes next is reached immediately.
 
-### `ssl` belongs to the candidate; `ssl { }` says what to trust
+### The candidate says whether; `ssl { }` says what to trust
 
 These answer different questions and sit in different places:
 
 | | |
 |---|---|
-| `ssl = true` on a candidate | whether TLS is spoken to *this* host |
+| `ws(...)` vs `wss(...)` | whether TLS is spoken to *this* host |
 | `ssl { trustCertificate(...) }` | which certificates are trusted when it is |
 
-`ssl = true` with no `ssl { }` block is meaningful: the platform's own trust store applies, as it
-would for any ordinary HTTPS. `ssl { }` adds to that rather than switching it on.
+A `wss(...)` candidate with no `ssl { }` block is meaningful: the platform's own trust store applies,
+as it would for any ordinary HTTPS. `ssl { }` adds to that rather than switching wss on.
 
-`ssl = false` sends in the clear. Over loopback that is unremarkable — the traffic cannot leave the
+`ws(...)` sends in the clear. Over loopback that is unremarkable — the traffic cannot leave the
 machine, and the host serves its plain-ws port there alone. Anywhere else it means plain text on the
 network, so the agent logs a line saying so at startup. It is your call to make; it is not made
 quietly.
 
-**A browser cannot use wss with JetWhale at all**, which is the clearest case for `ssl = false`. TLS
+**A browser cannot use wss with JetWhale at all**, which is the clearest case for `ws(...)`. TLS
 trust belongs to the browser, so `trustServerCertificate()` has nothing to pin with — and the CA
 endpoint is a different origin with no CORS headers, so the certificate cannot even be read.
 `ws://localhost` has neither problem.
@@ -328,9 +328,10 @@ takes the CA from whoever answered, which is trust-on-first-use and no stronger 
 runs over. See [Which one to use](#which-one-to-use).
 :::
 
-`fallback` is offered **after** the discovered hosts, not only when none were found: answering mDNS
-says a host is advertising, not that it will accept a connection. The whole list is worked through in
-turn, and only once every entry has refused does the agent wait and start again.
+Whatever is declared after `discoverWss` is reached even when discovery found hosts, not only when it
+found none: answering mDNS says a host is advertising, not that it will accept a connection. The whole
+list is worked through in turn, and only once every entry has refused does the agent wait and start
+again.
 
 That next round browses afresh, so [the usual reconnect promise](#reconnecting) still holds with
 discovery enabled: start the app first and the host later, and the next browse picks it up. The same
@@ -338,7 +339,7 @@ applies when a host restarts on a different port. A failed round is reported onc
 while the outcome stays the same, so an unreachable host does not flood the log.
 
 On a platform without mDNS support (**JS/Wasm, Linux, Windows**) there is nothing to browse, and the
-agent goes straight to `fallback`.
+agent goes straight to whatever was declared next.
 
 | Platform | Discovery backend |
 |----------|-------------------|

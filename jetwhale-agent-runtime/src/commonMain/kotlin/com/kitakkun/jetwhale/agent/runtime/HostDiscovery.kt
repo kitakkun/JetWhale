@@ -87,11 +87,11 @@ internal class MdnsEndpointResolver(val discovery: HostDiscoveryConfig) : Endpoi
 
     override suspend fun resolve(): List<ResolvedEndpoint> {
         if (discovery.acceptsAnyHost && discovery.hasFilter) {
-            // Two different answers to the same question. Taking the wider one is what the code does,
-            // but it is the opposite of what naming a machine asks for, so it is not done quietly.
+            // Two answers to one question. The narrower is kept, because widening a stated allowlist
+            // by accident is the failure that costs something; it is still worth saying out loud.
             report(
-                "discoverWss { } states allowAll() alongside an allowlist. allowAll() wins, so hosts " +
-                    "the allowlist would have excluded are accepted too — drop one of the two.",
+                "discoverWss { } states allowAll() alongside an allowlist. The allowlist still " +
+                    "applies, so allowAll() adds nothing here — drop one of the two.",
             )
         }
         if (discovery.acceptsNothing) {

@@ -181,8 +181,16 @@ public interface JetWhaleConnectionConfigurationScope {
     public var port: Int
 
     /**
-     * Configures SSL settings for the connection. When at least one trusted certificate is
-     * registered, the connection is established over wss instead of plain ws.
+     * What TLS trusts, wherever it is spoken. Whether it is spoken at all is each candidate's own
+     * business, stated by [JetWhaleEndpointScope.ws] or [JetWhaleEndpointScope.wss] — so this block
+     * neither switches wss on nor implies it.
+     *
+     * A `wss` candidate with no `ssl { }` at all is perfectly meaningful: the platform's own trust
+     * store applies, as it would for any ordinary HTTPS. This adds to that store rather than
+     * replacing it.
+     *
+     * The deprecated [host]/[port] are the one exception: having no scheme of their own, they take
+     * one from here.
      *
      * @param configure A lambda function to configure SSL settings.
      */

@@ -74,6 +74,15 @@ class SelectHostTest {
     }
 
     @Test
+    fun `an allowlist still applies when allowAll is stated alongside it`() {
+        // Two answers to one question, which the resolver warns about. The narrower is kept: widening
+        // a stated allowlist by accident is the failure that costs something.
+        val contradictory = discovery(hostNames = listOf("secure-host"), acceptsAnyHost = true)
+
+        assertEquals(listOf("192.168.3.27"), selectHosts(listOf(secureHost, spareHost), contradictory).map { it.service.address })
+    }
+
+    @Test
     fun `hostName is matched case-insensitively`() {
         assertEquals(
             "192.168.3.27",

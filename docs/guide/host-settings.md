@@ -56,7 +56,7 @@ connect to.
 |---------|---------|-------------|
 | **Debug Server Port** | `5080` | The plain **ws** port. Must match the port your app dials in `startJetWhale { connection { endpoints { ... } } }`, unless it discovers the host — discovery reads the port from what the host advertises. |
 | **Enable WSS** | on | Whether the secure **wss** connector is exposed at all. |
-| **WSS Port** | `5443` | The **wss** port, matched the same way: your app's `endpoint` when it names one, or the advertised port when it discovers the host. |
+| **WSS Port** | `5443` | The **wss** port, matched the same way: your app's `wss(host, port)` when it names one, or the advertised port when it discovers the host. |
 
 Changing any of the three reveals a single **Apply** button, which confirms before restarting the
 server — restarting disconnects every session. All three are applied together, because the server
