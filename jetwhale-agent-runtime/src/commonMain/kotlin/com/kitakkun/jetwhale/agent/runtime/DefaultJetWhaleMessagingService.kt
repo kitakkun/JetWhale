@@ -73,9 +73,10 @@ internal class DefaultJetWhaleMessagingService(
             try {
                 // The cap covers establishment only — never the session that follows, which is meant
                 // to last. Establishment is the CA fetch, the TLS handshake, the upgrade and the
-                // negotiation together, measured at over six seconds on a physical device over Wi-Fi,
-                // so the cap is loose. Its job is only to stop a candidate that swallows packets — a
-                // firewall that drops rather than refuses — from holding up the ones behind it.
+                // negotiation together, and that has been measured at 13s on a physical device over
+                // Wi-Fi, half of it spent in the CA fetch's plain-channel probe. The cap is therefore
+                // generous: its job is to bound a candidate that swallows packets — a firewall that
+                // drops rather than refuses — not to be tight.
                 val connection = withTimeoutOrNull(CANDIDATE_TIMEOUT_MILLIS) {
                     socketClient.openConnection(candidate.host, candidate.port)
                 }
@@ -150,6 +151,6 @@ internal class DefaultJetWhaleMessagingService(
     companion object {
         private const val RETRY_DELAY_INCREMENT_MILLIS = 1000L
         private const val MAX_RECONNECT_DELAY_MILLIS = 5000L
-        private const val CANDIDATE_TIMEOUT_MILLIS = 15_000L
+        private const val CANDIDATE_TIMEOUT_MILLIS = 30_000L
     }
 }
