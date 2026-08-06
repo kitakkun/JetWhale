@@ -22,7 +22,10 @@ plugins {
 spotless {
     kotlin {
         target("**/*.kt")
-        targetExclude("**/build/**")
+        // Compiler-plugin fixtures are compiled by the test framework and compared against IR dumps
+        // that record source offsets, so reformatting them would invalidate the golden files rather
+        // than tidy anything. Their shape is part of what they assert.
+        targetExclude("**/build/**", "**/testData/**")
         ktlint()
     }
     kotlinGradle {

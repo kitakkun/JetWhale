@@ -13,6 +13,9 @@ plugins {
     // The demo's NavKeys are @Serializable: that is what Navigation 3 saved state — and the Nav3
     // plugin's key catalog — are both built on.
     alias(libs.plugins.kotlinxSerialization)
+    // Bakes this machine's LAN address into the demo's buildMachineWss(5443) candidate, so a
+    // physical device reaches the host without waiting out an mDNS browse.
+    alias(libs.plugins.jetwhaleAgent)
 }
 
 kotlin {

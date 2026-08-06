@@ -15,7 +15,7 @@ group = "com.kitakkun.jetwhale"
 version = libs.versions.jetwhale.get() + if (hasProperty("jetwhaleSnapshot")) "-SNAPSHOT" else ""
 
 jetwhalePublish {
-    artifactId = "jetwhale-gradle-plugin"
-    name = "JetWhale Gradle Plugin"
+    artifactId = "jetwhale-host-gradle-plugin"
+    name = "JetWhale Host Gradle Plugin"
     description = "Gradle plugin for developing JetWhale host plugins (packagePlugin, runJetWhale, runJetWhaleHot)."
 }

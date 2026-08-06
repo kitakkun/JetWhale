@@ -1,0 +1,66 @@
+name: Agent Compiler Plugin (Kotlin matrix)
+
+# The Kotlin compiler plugin API is @ExperimentalCompilerApi and JetBrains breaks it across minor
+# versions by design, so "supports Kotlin 2.3 through 2.4" is only true for the versions actually
+# exercised here. A version missing from this matrix is not supported, whatever the docs say.
+#
+# Keep in step with SupportedKotlinVersions.kt, which turns this same range into a diagnostic for
+# consumers outside it.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'jetwhale-agent-plugin/**'
+      # The plugin rewrites JetWhaleEndpointScope's members by name, so a change there can break it
+      # without touching a single file under jetwhale-agent-plugin/.
+      - 'jetwhale-agent-runtime/src/commonMain/**'
+      - '.github/workflows/agent-compiler-plugin-matrix.yml'
+  pull_request:
+    paths:
+      - 'jetwhale-agent-plugin/**'
+      - 'jetwhale-agent-runtime/src/commonMain/**'
+      - '.github/workflows/agent-compiler-plugin-matrix.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      # Every cell is reported: which Kotlin broke is the whole point of a matrix.
+      fail-fast: false
+      matrix:
+        # 2.3.0 is the floor: CompilerPluginRegistrar.pluginId became abstract there and does not
+        # exist before it, so supporting 2.2 would mean a per-version registrar source set.
+        kotlin: ['2.3.0', '2.3.21', '2.4.0', '2.4.10']
+
+    name: Kotlin ${{ matrix.kotlin }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-java
+
+      # The one that matters. `kotlin.compiler` moves only the *consumer* — the Kotlin Gradle plugin
+      # and therefore `sample` — while the compiler plugin stays built against the shipped Kotlin.
+      # That is exactly what a consumer on 2.3 downloads: one artifact, built elsewhere, acting on
+      # their code. Rebuilding the plugin per version would prove something nobody experiences.
+      - name: Shipped plugin against a Kotlin ${{ matrix.kotlin }} consumer
+        run: >
+          ./gradlew -p jetwhale-agent-plugin build
+          -Pkotlin.compiler=${{ matrix.kotlin }}
+          --no-configuration-cache
+
+      # Source compatibility, separately: pinning both properties compiles the plugin itself against
+      # the old API, which catches a 2.4-only call the runtime test would only find if `sample`
+      # happened to exercise that path.
+      - name: Plugin source against the Kotlin ${{ matrix.kotlin }} API
+        run: >
+          ./gradlew -p jetwhale-agent-plugin :jetwhale-agent-compiler-plugin:compileKotlin
+          -Pkotlin.compiler=${{ matrix.kotlin }}
+          -Pkotlin.plugin.api=${{ matrix.kotlin }}
+          --no-configuration-cache

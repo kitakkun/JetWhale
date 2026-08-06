@@ -1,0 +1,88 @@
+FILE fqName:<root> fileName:/box.kt
+  CLASS CLASS name:Impostor modality:FINAL visibility:public superTypes:[someone.elses.library.JetWhaleEndpointScope]
+    thisReceiver: VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> type:<root>.Impostor
+    PROPERTY name:seen visibility:public modality:FINAL [var]
+      FIELD PROPERTY_BACKING_FIELD name:seen type:kotlin.Int visibility:private
+        EXPRESSION_BODY
+          CONST Int type=kotlin.Int value=0
+      FUN DEFAULT_PROPERTY_ACCESSOR name:<get-seen> visibility:public modality:FINAL returnType:kotlin.Int
+        VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:<root>.Impostor
+        correspondingProperty: PROPERTY name:seen visibility:public modality:FINAL [var]
+        BLOCK_BODY
+          RETURN type=kotlin.Nothing from='public final fun <get-seen> (): kotlin.Int declared in <root>.Impostor'
+            GET_FIELD 'FIELD PROPERTY_BACKING_FIELD name:seen type:kotlin.Int visibility:private' type=kotlin.Int origin=null
+              receiver: GET_VAR '<this>: <root>.Impostor declared in <root>.Impostor.<get-seen>' type=<root>.Impostor origin=null
+      FUN DEFAULT_PROPERTY_ACCESSOR name:<set-seen> visibility:public modality:FINAL returnType:kotlin.Unit
+        VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:<root>.Impostor
+        VALUE_PARAMETER kind:Regular name:<set-?> index:1 type:kotlin.Int
+        correspondingProperty: PROPERTY name:seen visibility:public modality:FINAL [var]
+        BLOCK_BODY
+          SET_FIELD 'FIELD PROPERTY_BACKING_FIELD name:seen type:kotlin.Int visibility:private' type=kotlin.Unit origin=null
+            receiver: GET_VAR '<this>: <root>.Impostor declared in <root>.Impostor.<set-seen>' type=<root>.Impostor origin=null
+            value: GET_VAR '<set-?>: kotlin.Int declared in <root>.Impostor.<set-seen>' type=kotlin.Int origin=null
+    CONSTRUCTOR visibility:public returnType:<root>.Impostor [primary]
+      BLOCK_BODY
+        DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> () declared in kotlin.Any'
+        INSTANCE_INITIALIZER_CALL classDescriptor='CLASS CLASS name:Impostor modality:FINAL visibility:public superTypes:[someone.elses.library.JetWhaleEndpointScope]' type=kotlin.Unit
+    FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN returnType:kotlin.Boolean [fake_override,operator]
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:kotlin.Any
+      VALUE_PARAMETER kind:Regular name:other index:1 type:kotlin.Any?
+      overridden:
+        public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in someone.elses.library.JetWhaleEndpointScope
+    FUN FAKE_OVERRIDE name:hashCode visibility:public modality:OPEN returnType:kotlin.Int [fake_override]
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:kotlin.Any
+      overridden:
+        public open fun hashCode (): kotlin.Int declared in someone.elses.library.JetWhaleEndpointScope
+    FUN FAKE_OVERRIDE name:toString visibility:public modality:OPEN returnType:kotlin.String [fake_override]
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:kotlin.Any
+      overridden:
+        public open fun toString (): kotlin.String declared in someone.elses.library.JetWhaleEndpointScope
+    FUN name:buildMachineWss visibility:public modality:OPEN returnType:kotlin.Unit
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:<root>.Impostor
+      VALUE_PARAMETER kind:Regular name:port index:1 type:kotlin.Int
+      overridden:
+        public abstract fun buildMachineWss (port: kotlin.Int): kotlin.Unit declared in someone.elses.library.JetWhaleEndpointScope
+      BLOCK_BODY
+        CALL 'public final fun <set-seen> (<set-?>: kotlin.Int): kotlin.Unit declared in <root>.Impostor' type=kotlin.Unit origin=EQ
+          ARG <this>: GET_VAR '<this>: <root>.Impostor declared in <root>.Impostor.buildMachineWss' type=<root>.Impostor origin=IMPLICIT_ARGUMENT
+          ARG <set-?>: GET_VAR 'port: kotlin.Int declared in <root>.Impostor.buildMachineWss' type=kotlin.Int origin=null
+  FUN name:box visibility:public modality:FINAL returnType:kotlin.String
+    BLOCK_BODY
+      VAR name:impostor type:<root>.Impostor [val]
+        CONSTRUCTOR_CALL 'public constructor <init> () declared in <root>.Impostor' type=<root>.Impostor origin=null
+      CALL 'public open fun buildMachineWss (port: kotlin.Int): kotlin.Unit declared in <root>.Impostor' type=kotlin.Unit origin=null
+        ARG <this>: GET_VAR 'val impostor: <root>.Impostor declared in <root>.box' type=<root>.Impostor origin=null
+        ARG port: CONST Int type=kotlin.Int value=5443
+      RETURN type=kotlin.Nothing from='public final fun box (): kotlin.String declared in <root>'
+        WHEN type=kotlin.String origin=IF
+          BRANCH
+            if: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=EQEQ
+              ARG arg0: CALL 'public final fun <get-seen> (): kotlin.Int declared in <root>.Impostor' type=kotlin.Int origin=GET_PROPERTY
+                ARG <this>: GET_VAR 'val impostor: <root>.Impostor declared in <root>.box' type=<root>.Impostor origin=null
+              ARG arg1: CONST Int type=kotlin.Int value=5443
+            then: CONST String type=kotlin.String value="OK"
+          BRANCH
+            if: CONST Boolean type=kotlin.Boolean value=true
+            then: STRING_CONCATENATION type=kotlin.String
+              CONST String type=kotlin.String value="FAIL: "
+              CALL 'public final fun <get-seen> (): kotlin.Int declared in <root>.Impostor' type=kotlin.Int origin=GET_PROPERTY
+                ARG <this>: GET_VAR 'val impostor: <root>.Impostor declared in <root>.box' type=<root>.Impostor origin=null
+FILE fqName:someone.elses.library fileName:/other.kt
+  CLASS INTERFACE name:JetWhaleEndpointScope modality:ABSTRACT visibility:public superTypes:[kotlin.Any]
+    thisReceiver: VALUE_PARAMETER INSTANCE_RECEIVER kind:DispatchReceiver name:<this> type:someone.elses.library.JetWhaleEndpointScope
+    FUN FAKE_OVERRIDE name:equals visibility:public modality:OPEN returnType:kotlin.Boolean [fake_override,operator]
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:kotlin.Any
+      VALUE_PARAMETER kind:Regular name:other index:1 type:kotlin.Any?
+      overridden:
+        public open fun equals (other: kotlin.Any?): kotlin.Boolean declared in kotlin.Any
+    FUN FAKE_OVERRIDE name:hashCode visibility:public modality:OPEN returnType:kotlin.Int [fake_override]
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:kotlin.Any
+      overridden:
+        public open fun hashCode (): kotlin.Int declared in kotlin.Any
+    FUN FAKE_OVERRIDE name:toString visibility:public modality:OPEN returnType:kotlin.String [fake_override]
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:kotlin.Any
+      overridden:
+        public open fun toString (): kotlin.String declared in kotlin.Any
+    FUN name:buildMachineWss visibility:public modality:ABSTRACT returnType:kotlin.Unit
+      VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:someone.elses.library.JetWhaleEndpointScope
+      VALUE_PARAMETER kind:Regular name:port index:1 type:kotlin.Int

@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.agent.runtime
 
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 
@@ -253,6 +254,37 @@ public interface JetWhaleEndpointScope {
      *   on the network and on a shared one those belong to other people.
      */
     public fun discoverWss(configure: JetWhaleDiscoveryScope.() -> Unit)
+
+    /**
+     * The machine that compiled this code, at [port], over wss.
+     *
+     * Discovery's answer to "a physical device cannot reach loopback" costs a network browse, needs
+     * `NSBonjourServices` on iOS, and does not exist on JS/Wasm/Linux/Windows. But when the host runs
+     * on the same machine as the compiler — which is the usual way of working — the address is already
+     * known at build time. This bakes it in, and the browse is not needed to learn it.
+     *
+     * wss for the same reason [discoverWss] is: the host binds ws to loopback, so its LAN address
+     * would refuse a plain connection anyway.
+     *
+     * Experimental, and for a sharper reason than most: unlike the rest of this scope, the behaviour
+     * rests on a Kotlin compiler plugin, whose API JetBrains breaks across minor versions by design.
+     * A Kotlin release the plugin has not caught up with leaves calls unrewritten — which degrades
+     * to the same explained silence as never applying the Gradle plugin, but is worth knowing about
+     * before depending on it.
+     *
+     * **Requires the `com.kitakkun.jetwhale.agent` Gradle plugin**, which resolves the address and
+     * hands it to a compiler plugin that rewrites this call. Without it this compiles and runs — it
+     * simply contributes no candidate, and logs why. Baking in an address is a build-time
+     * convenience, and a missing convenience should not be a broken build.
+     *
+     * The address is a compile task input, so moving between networks recompiles rather than leaving
+     * a stale address in place. It is also machine-specific, so those compilations will not be shared
+     * through a remote build cache — worth knowing before applying the Gradle plugin widely.
+     *
+     * @param port The port serving wss on the build machine.
+     */
+    @ExperimentalJetWhaleApi
+    public fun buildMachineWss(port: Int)
 }
 
 /**
@@ -426,6 +458,18 @@ private class JetWhaleEndpointConfiguration(
     override fun discoverWss(configure: JetWhaleDiscoveryScope.() -> Unit) {
         val policy = JetWhaleDiscoveryConfiguration().apply(configure)
         candidates += EndpointCandidate.Dynamic(policy.hostNames, policy.addresses, policy.acceptsAnyHost)
+    }
+
+    // Reaching this body means the call was never rewritten, because rewriting replaces it outright
+    // with wss(<baked address>, port). So there is no address to contribute — only an explanation.
+    @ExperimentalJetWhaleApi
+    override fun buildMachineWss(port: Int) {
+        JetWhaleLogger.w(
+            "buildMachineWss($port) was declared but the agent Gradle plugin " +
+                "('com.kitakkun.jetwhale.agent') is not applied to this module, so no build machine " +
+                "address was baked in and this contributes no candidate. Apply that plugin, or write " +
+                "the address out with wss().",
+        )
     }
 }
 

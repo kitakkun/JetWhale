@@ -32,6 +32,7 @@ public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleDisc
 }
 
 public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleEndpointScope {
+	public abstract fun buildMachineWss (I)V
 	public abstract fun discoverWss (Lkotlin/jvm/functions/Function1;)V
 	public abstract fun ws (Ljava/lang/String;I)V
 	public abstract fun wss (Ljava/lang/String;I)V

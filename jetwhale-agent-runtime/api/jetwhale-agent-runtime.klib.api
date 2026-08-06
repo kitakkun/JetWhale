@@ -75,6 +75,7 @@ abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveryScope { 
 }
 
 abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpointScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpointScope|null[0]
+    abstract fun buildMachineWss(kotlin/Int) // com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpointScope.buildMachineWss|buildMachineWss(kotlin.Int){}[0]
     abstract fun discoverWss(kotlin/Function1<com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveryScope, kotlin/Unit>) // com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpointScope.discoverWss|discoverWss(kotlin.Function1<com.kitakkun.jetwhale.agent.runtime.JetWhaleDiscoveryScope,kotlin.Unit>){}[0]
     abstract fun ws(kotlin/String, kotlin/Int) // com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpointScope.ws|ws(kotlin.String;kotlin.Int){}[0]
     abstract fun wss(kotlin/String, kotlin/Int) // com.kitakkun.jetwhale.agent.runtime/JetWhaleEndpointScope.wss|wss(kotlin.String;kotlin.Int){}[0]
