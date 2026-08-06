@@ -2,10 +2,12 @@
 
 ## Project Structure & Module Organization
 - Multi-module Gradle (Kotlin) project. Top-level modules are declared in `settings.gradle.kts`.
-- Core libraries live under `jetwhale-protocol`, `jetwhale-agent-sdk`, `jetwhale-agent-runtime`, and `jetwhale-host-sdk`.
+- Core libraries live under `jetwhale-annotations`, `jetwhale-protocol`, `jetwhale-agent-sdk`, `jetwhale-agent-runtime`, and `jetwhale-host-sdk`.
 - Host application code is under `jetwhale-host/` (desktop Compose app with features in `jetwhale-host/feature/*` and shared layers in `jetwhale-host/core/*`).
-- Example plugins are in `jetwhale-plugins/example/*`.
-- Demo apps live in `demo/` (`demo/desktop`, `demo/android`, `demo/shared`).
+- Gradle plugins are separate included builds: `jetwhale-gradle-plugin` (published as the `com.kitakkun.jetwhale.host` id, for host plugin modules) and `jetwhale-agent-plugin` (the `com.kitakkun.jetwhale.agent` id plus the Kotlin compiler plugin it points at).
+- Bundled plugins are in `jetwhale-plugins/*` (`example`, `network`, `nav3`, `semantics`), each split into `protocol` / `agent` / `host` modules.
+- Developer tooling lives in `tools/` (e.g. `tools/qa-agent`).
+- Demo apps live in `demo/` (`demo/shared`, `demo/desktop`, `demo/android`, `demo/web`, and the Xcode project `demo/ios-cmp`).
 - Tests appear alongside modules (e.g., `jetwhale-host/app/src/test` or `jetwhale-agent-runtime/src/commonTest`).
 
 ## Build, Test, and Development Commands

@@ -125,8 +125,8 @@ itself, for example a plugin jar that failed to load. It takes `limit` (default 
 total counts. Individual messages longer than 2000 characters are truncated.
 
 `level` is `INFO` or `ERROR` — the buffer is the host's captured **stdout** and **stderr**, which is
-all the distinction there is. That is unrelated to the `--log-level` startup option, which decides
-how much the host writes to stdout in the first place.
+all the distinction there is. It has nothing to do with the `--log-level` startup option, which the
+host currently parses but does not act on.
 
 ### `jetwhale.updateSettings`
 
@@ -292,10 +292,11 @@ qualified names, the plugin that publishes it, its description, and each paramet
 whether it is **required**, and its description. A trailing badge counts how many times that tool has
 been called; while an agent is calling it, the badge takes an accent fill and a rotating ring.
 
-**History** — every call made in the current scope, newest first: the tool, the time of day, and
-whether it succeeded. Selecting one shows the arguments it was called with and the response it
+**History** — the last 100 calls made in the current scope, newest first: the tool, the time of day,
+and whether it succeeded. Selecting one shows the arguments it was called with and the response it
 returned. Each section has an inline copy button, and **Copy details** takes the whole record — a
-right-click on a history row offers the same four copy actions.
+right-click on a history row offers the same copy actions (up to four; the argument and response
+ones only appear when there are any).
 
 This is the fastest way to answer "what did the agent actually send, and what did it get back?" when
 a plugin behaves unexpectedly under automation.

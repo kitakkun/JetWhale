@@ -65,9 +65,10 @@ only reads them when it binds, so one restart covers the whole change.
 The status line above them shows the running ports, e.g. *Running on port 5080 (WSS: 5443)* when wss
 is active, and offers **Retry** if the server failed to bind.
 
-The two ports cannot be the same, and each has to be in `1..65535`; **Apply** stays disabled until
-they are. The wss port is stored even while **Enable WSS** is off, so switching wss back on brings
-back the port you last picked.
+Each port has to be in `1..65535` — the wss one too, even while **Enable WSS** is off — and while
+wss is enabled the two cannot be the same; **Apply** stays disabled until they are. The wss port is
+stored even while **Enable WSS** is off, so switching wss back on brings back the port you last
+picked.
 
 ::: tip Also settable outside the UI
 The same settings are available at launch with [`--wss-port`](#overriding-the-ports-at-startup), and
@@ -123,7 +124,7 @@ the host found the tool it needs for it:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| **Automatically wire ADB port to host PC port** | on | Runs `adb reverse` for Android devices as they connect. Inactive on machines without `adb`. See [ADB Auto Port Mapping](/guide/adb-auto-port-mapping). |
+| **Automatically wire ADB port to host PC port** | on | Runs `adb reverse` for Android devices as they connect. Inactive on machines without `adb`. Read only when the debug server starts, so a change lands on the next server restart. See [ADB Auto Port Mapping](/guide/adb-auto-port-mapping). |
 
 Under **Health Check**, **ADB Executable Path** shows where JetWhale found `adb` (see
 [How adb is found](/guide/adb-auto-port-mapping#how-adb-is-found)), or *ADB command not found*.
@@ -327,8 +328,9 @@ Three differences are worth knowing before you script against it:
   them over from a windowed session.
 - **A fresh app-data directory enables no plugins.** Enable them with `jetwhale.setPluginEnabled`
   over MCP, or point `-Djetwhale.appDataDir` at a directory where they already are. Approving a new
-  plugin jar's signature is still a settings-UI action, so headless runs load already-trusted jars
-  and the dev-plugins directory.
+  plugin jar is still a settings-UI action (the **Approve** button under
+  [Security](#plugin-trust)), so headless runs load already-trusted jars and the dev-plugins
+  directory.
 
 Headless is a little lighter than a windowed run — it starts a few hundred milliseconds sooner and
 uses roughly 15% less memory — but that is not the reason to use it. Use it because a windowed host

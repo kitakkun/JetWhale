@@ -13,7 +13,9 @@ manual `adb reverse` commands needed.
 
 It is **on by default** — Android debugging needs no setup. The toggle lives under
 [**Settings → Connection → ADB Support**](/guide/host-settings#adb-support) if you want to turn it
-off.
+off. The debug server reads the setting only when it starts, so a change takes effect the next time
+the server is restarted (Apply on the Debug Server page, `jetwhale.restartDebugServer`, or a host
+restart).
 
 While enabled, the host:
 
@@ -30,10 +32,12 @@ While enabled, the host:
 4. When a device goes offline, removes its reverse mappings.
 
 If the ADB server restarts or crashes (for example, another tool ran `adb kill-server`), JetWhale
-automatically re-attaches to the device tracking stream after a short backoff — you don't need to
-toggle the setting again.
+automatically re-attaches to the device tracking stream two seconds later, and keeps retrying — you
+don't need to toggle the setting again.
 
-Disabling the setting stops the device tracking and removes all reverse mappings JetWhale created.
+Stopping the debug server stops the device tracking and removes all reverse mappings JetWhale
+created. Turning the setting off does not, on its own, tear anything down: it only decides whether
+the *next* server start wires anything up.
 
 ## How adb is found
 

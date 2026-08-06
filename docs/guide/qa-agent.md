@@ -40,7 +40,7 @@ Pass the agent's own options with `-PjetwhaleQaAgentArgs` (space-separated):
 | `--app <name>` | one app named `qa-agent` | Connect as an app of this name, as its own session. **Repeatable** — one process can hold several apps under one device, which is how the host groups them. Names must be unique. |
 | `--plugin <id>[@<version>]` | none | Register a raw-messaging plugin under this id so `/send` and `/request` can drive its host counterpart. Registered for **every** app. Repeatable; the version defaults to `1.0.0`. |
 | `--host <name>` | `localhost` | The JetWhale host to connect to. |
-| `--port <n>` | `5443` | The host's debug port. The agent trusts the host's active CA automatically, so the default is the **wss** port; pass `--port 5080` to use plain ws. |
+| `--port <n>` | `5443` | The host's **wss** port. The agent always dials wss — it trusts the host's active CA automatically — so this is never the plain-ws port (`5080` by default). |
 | `--control-port <n>` | `7100` | Port for the agent's own control API. |
 | `--help`, `-h` | — | Print the usage text and exit. |
 

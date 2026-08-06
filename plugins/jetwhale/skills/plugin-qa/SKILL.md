@@ -340,7 +340,8 @@ List the tools before planning around one, and do not read a refusal as a bug in
 | Tool | Purpose |
 |------|---------|
 | `jetwhale.getStatus` | version, both servers, session/plugin counts, settings, current screen — call it first |
-| `jetwhale.listInstalledPlugins` | what is installed and whether it is enabled |
+| `jetwhale.listInstalledPlugins` | what is installed and whether it is enabled, plus the official catalog under `availableOfficial` |
+| `jetwhale.installOfficialPlugin` | install a plugin from that catalog — catalog entries only, and `setPluginEnabled` still has to follow |
 | `jetwhale.setPluginEnabled` | enable the plugin under test; reports which sessions got an instance |
 | `jetwhale.navigate` | move the main window (`HOME` / `PLUGIN` / `SETTINGS` / `INFO` / `LOG_VIEWER`) |
 | `jetwhale.getLogs` / `jetwhale.clearLogs` | the **host's** own log — clear, reproduce, read |

@@ -16,10 +16,14 @@ Official Plugins** and install it with one click — no coordinates needed. See
 
 ## Add it to your app
 
-The agent side is a normal dependency of the app being debugged:
+The agent side is a normal dependency of the app being debugged, alongside the agent runtime that
+`startJetWhale` lives in:
 
 ```kotlin
-implementation("com.kitakkun.jetwhale:jetwhale-nav3-agent:<version>")
+dependencies {
+    implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
+    implementation("com.kitakkun.jetwhale:jetwhale-nav3-agent:<version>")
+}
 ```
 
 A Navigation 3 app already declares how its `NavKey`s serialize, because saved state needs it. Hand
@@ -37,6 +41,7 @@ val navKeyModule = SerializersModule {
 val nav3Plugin = JetWhaleNav3AgentPlugin(Nav3KeyCodec.openPolymorphic(navKeyModule))
 
 startJetWhale {
+    connection { endpoints { ws("localhost", 5080) } }
     plugins {
         register(nav3Plugin)
     }

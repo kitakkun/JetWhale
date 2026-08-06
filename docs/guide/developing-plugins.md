@@ -493,8 +493,9 @@ class MyPlugin : JetWhaleMessagingHostPlugin() {
 ```
 
 The API is suspend/`Flow` based: `put` / `get` / `getFlow` / `contains` / `remove` / `clear`, plus
-`keysFlow` to observe the stored key set. Each has an explicit-`KSerializer` overload alongside the
-reified one, for types whose serializer you resolve yourself.
+`keysFlow` to observe the stored key set. The three that carry a value — `put` / `get` / `getFlow` —
+are the ones with a serializer: each is an explicit-`KSerializer` member with a reified extension
+alongside it, so you can resolve the serializer yourself when the type needs it.
 
 The key `__jetwhale_storage_version` is **reserved** — writing it throws, and it never shows up in
 `keysFlow` or `contains`. `clear()` wipes the store and re-stamps the current `storageVersion`, so a

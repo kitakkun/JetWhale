@@ -143,11 +143,18 @@ process lifetime and never stop it.
 
 ### Reconnecting
 
-The agent retries **forever**. After a failed connection or negotiation it drops the plugins'
-peers, waits, and tries again with a linear backoff that grows by one second per attempt and is
-capped at five (1s, 2s, 3s, 4s, 5s, 5s, …); the counter resets on the first success. None of this is
-configurable, and there is no connection-state API to poll — start the host before the app, or just
-leave the app running until the host comes up.
+The agent retries **forever**. The unit it retries is a whole **round** — every candidate in
+`endpoints { }`, in order — so a candidate that refuses costs nothing but a move to the next one, and
+a candidate that swallows packets rather than refusing is abandoned after 30 seconds. A round that
+served a session costs no delay however many candidates refused first; only a round where nothing
+accepted waits, with a linear backoff that grows by one second per round and is capped at five (1s,
+2s, 3s, 4s, 5s, 5s, …). Either way the plugins' peers are dropped and the next round starts from the
+top of the list.
+
+The counter resets on a connection that **held** — a session that ends within two seconds of opening
+counts as a failure, so a host that accepts the upgrade and immediately drops it cannot make the
+agent spin. None of this is configurable, and there is no connection-state API to poll — start the
+host before the app, or just leave the app running until the host comes up.
 
 A disconnect is **not** a deactivation: registered plugins stay activated across it, so an agent
 plugin that buffers events keeps buffering for the next connection.
@@ -212,7 +219,7 @@ startJetWhale {
             // In the clear, because it never leaves the machine.
             ws("localhost", 5080)
 
-            // A physical device reaches neither, so it falls through to here and connects over wss.
+            // A physical device reaches none of those, so it falls through to here and connects over wss.
             discoverWss { allowHostName("my-macbook") }
         }
 
@@ -338,15 +345,14 @@ discovery enabled: start the app first and the host later, and the next browse p
 applies when a host restarts on a different port. A failed round is reported once and not repeated
 while the outcome stays the same, so an unreachable host does not flood the log.
 
-On a platform without mDNS support (**JS/Wasm, Linux, Windows**) there is nothing to browse, and the
-agent goes straight to whatever was declared next.
+The backend doing the browsing differs by target:
 
 | Platform | Discovery backend |
 |----------|-------------------|
 | **JVM (Desktop)** | jmDNS |
 | **Android** | `NsdManager` (`android.net.nsd`) |
-| **iOS / macOS** | `NSNetServiceBrowser` (Network.framework / Bonjour) |
-| **JS / Wasm / Linux / Windows** | Not supported — falls back to the configured host |
+| **iOS / macOS** | `NSNetServiceBrowser` (Foundation / Bonjour) |
+| **JS / Wasm / Linux / Windows** | Not supported — contributes nothing, and the next candidate is reached immediately |
 
 On **iOS**, browsing for the service also requires listing it under `NSBonjourServices` in
 `Info.plist` (see [iOS Local Network permission](#ios-local-network-permission)).
@@ -384,8 +390,16 @@ refuse a plain connection anyway.
 ::: warning `@ExperimentalJetWhaleApi`
 Unlike the rest of `endpoints { }`, this one's behaviour comes from a Kotlin compiler plugin, and the
 compiler plugin API is `@ExperimentalCompilerApi` — JetBrains breaks it across minor versions by
-design. Supported Kotlin versions are those in the project's CI matrix (currently **2.3.0 – 2.4.x**).
-On a Kotlin the plugin has not caught up with, calls are simply left unrewritten.
+design. CI proves the shipped plugin against **Kotlin 2.3.0 – 2.4.x**, and the Gradle plugin checks
+your Kotlin version up front rather than letting a mismatch surface as a linkage error inside a
+compilation:
+
+- **Below 2.3** — the build **fails** with an explanation. `CompilerPluginRegistrar.pluginId` is
+  abstract from 2.3 and absent before it, so the plugin provably cannot load; write the address out
+  with `wss()` instead.
+- **Above the highest tested minor** — a warning, and the build carries on. It may well work; nobody
+  has shown that it does. If the compilation fails to load the plugin, drop the plugin and use
+  `wss()` until JetWhale catches up.
 :::
 
 ### Without the Gradle plugin
@@ -430,13 +444,15 @@ The address is a **compile task input**, deliberately. Two consequences:
 
 ## Secure connections (wss)
 
-By default the agent connects over plain **ws** (port **5080**). The host can additionally serve
-**secure WebSocket (wss)** on port **5443**, backed by a locally-issued CA — see
-[Host Settings → SSL certificates](/guide/host-settings#ssl-certificates) for generating and
-activating a certificate.
+The host serves plain **ws** on port **5080** and, unless you turn it off, **secure WebSocket (wss)**
+on port **5443** as well, backed by a locally-issued CA. The CA is generated the first time the TLS
+connector starts, so there is nothing to set up — see
+[Host Settings → SSL certificates](/guide/host-settings#ssl-certificates) only when you want to
+export, replace or activate a different one.
 
-To make the agent connect over wss, add an `ssl { }` block to `connection { }`. As soon as at least
-one trusted certificate is configured, the connection switches from ws to wss:
+Whether TLS is spoken at all is the **candidate's** business: write `wss(host, port)` instead of
+`ws(host, port)`. `ssl { }` only says what to trust once it is — it neither switches a `ws` candidate
+over nor is required by a `wss` one (without it, the platform's own trust store applies):
 
 ```kotlin
 startJetWhale {
@@ -470,7 +486,9 @@ startJetWhale {
   verification in step 2 is security-equivalent to the plain fetch in step 1 (the fetched CA still
   pins the subsequent wss session). Over ADB port forwarding (the usual case) the download never
   leaves the machine, so it is as trustworthy as the ADB link. If the CA cannot be fetched over
-  either channel, the connection falls back to plain ws.
+  either channel, the candidate is still dialled over wss — against the platform's trust store, which
+  a locally-issued CA is not in, so it fails visibly on trust rather than quietly sending in the clear
+  at a TLS port.
 - **`trustCertificate(pem)`** — pins a CA PEM you exported yourself from the host's
   [SSL Certificate](/guide/host-settings#ssl-certificates) settings (**Show Details → Copy to
   Clipboard**). Prefer this on an untrusted LAN, where strict pinning
@@ -532,7 +550,7 @@ version as the host release they belong to.
 | `jetwhale-agent-runtime` | The app being debugged. Brings `jetwhale-agent-sdk` and `jetwhale-protocol-core` with it, so you rarely need to name those. |
 | `jetwhale-agent-sdk` | Only when a module writes agent plugins without depending on the runtime. |
 | `jetwhale-protocol-core` | The shared module of a plugin pair, for `JetWhaleEvent` / `JetWhaleRequest`. |
-| `jetwhale-annotations` | `@McpDescription`. Reaches both SDKs transitively; rarely named directly. |
+| `jetwhale-annotations` | `@McpDescription` and the opt-in markers `@ExperimentalJetWhaleApi` / `@InternalJetWhaleApi`. Reaches both SDKs transitively, so it rarely needs declaring. |
 | `jetwhale-host-sdk` | A host plugin module, as `compileOnly` — see [Developing Plugins](/guide/developing-plugins). |
 | `jetwhale-host-gradle-plugin` | Applied as the `com.kitakkun.jetwhale.host` Gradle plugin id. |
 | `jetwhale-agent-gradle-plugin` | Applied as the `com.kitakkun.jetwhale.agent` Gradle plugin id — see [Baking in the build machine's address](#baking-in-the-build-machine-s-address-no-browse). |

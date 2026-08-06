@@ -237,7 +237,7 @@ The capture and action layer is written against `SemanticsOwner`, which lives in
 | Target | Probe | What you write |
 |---|---|---|
 | **Android** | ✅ | `installJetWhaleSemanticsProbe(application)`, or `JetWhaleSemanticsProbe()` in a composition |
-| **Desktop (JVM)** | ✅ | `JetWhaleSemanticsProbe()` inside your `Window { }` |
+| **Desktop (JVM)** | ✅ | `JetWhaleSemanticsProbe()` inside your `Window { }`, under `@OptIn(ExperimentalComposeUiApi::class)` |
 | iOS, JS, Wasm | — | the standard entry points expose no owner — see [iOS and web](#ios-and-web) |
 
 Those are the targets the agent artifact ships for — Compose Multiplatform's own set. Linux, mingw
@@ -248,7 +248,10 @@ Android finds roots process-wide through the callback Compose fires when it crea
 a composition. Desktop has no such callback, so its probe is scoped to a window and reads
 `ComposeWindow.semanticsOwners` — which is snapshot-backed, so a dialog or popup rendered inside
 that window appears and disappears on its own. A second `Window { }` is a second composition and
-needs its own call.
+needs its own call. `ComposeWindow.semanticsOwners` is `@ExperimentalComposeUiApi`, so the desktop
+probe carries that marker too — opt in at the call site
+(`@OptIn(ExperimentalComposeUiApi::class)`), or the module will not compile. The Android probe has
+no such requirement.
 
 ### iOS and web
 

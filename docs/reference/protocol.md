@@ -6,9 +6,28 @@ debuggee application. The protocol is defined in the
 published as `com.kitakkun.jetwhale:jetwhale-protocol-core`.
 
 Messages travel as JSON over one WebSocket connection (plain **ws**, or **wss** when the agent
-configures a trusted certificate — see
+declares a `wss` endpoint — `ssl { }` says what TLS trusts, not whether it is spoken; see
 [Secure connections](/guide/getting-started#secure-connections-wss)). Every message carries a stable
 `type` discriminator; the current **protocol version is 2**.
+
+## Finding the Host
+
+Before any of the below, the agent has to know where the host is. Besides a written-out address, it
+can browse for one: while its debug server runs, the host advertises a `_jetwhale._tcp` DNS-SD service
+over mDNS, named after the machine's hostname (its first label only), whose service port is the
+plain-ws port. The rest is carried in TXT records:
+
+| Record | Meaning |
+|--------|---------|
+| `v=1` | Version of the advertisement itself. The host writes it and no agent reads it yet — it is the marker by which a later format change can be recognized. |
+| `wsPort` | The port serving plain **ws**. |
+| `wssPort` | The port serving **wss**. Absent while the host has wss disabled. |
+| `hostName` | The host machine's hostname. Carried separately from the instance name because mDNS may uniquify that on collision (`name (2)`), and this is what the agent's `allowHostName` filter compares against. |
+
+A discovered host is only ever dialled over **wss**, on `wssPort`: the host binds plain ws to
+loopback, which is not the address discovery returns, so a host advertising no `wssPort` is skipped.
+See [Zero-config host discovery](/guide/getting-started#zero-config-host-discovery-recommended-for-physical-devices)
+for the agent-side configuration.
 
 ## Two Phases Before Starting a Debugging Session
 
@@ -57,10 +76,10 @@ stable — changing one breaks compatibility with older implementations — so t
 A **reject** carries a human-readable `reason` and the versions the host does support. The session
 response carries the assigned `sessionId`, which the agent may send back in a later
 `negotiation/agent/session` to resume. The plugin response splits the agent's list into
-`availablePlugins` (paired, and enabled on the host) and `incompatiblePlugins` (the plugin exists on
-both sides, but the agent's `pluginVersion` falls outside the host plugin manifest's
+`availablePlugins` (paired, and enabled on the host) and `incompatiblePlugins` (the host has that
+plugin enabled, but the agent's `pluginVersion` falls outside the host plugin manifest's
 [`agentVersionRange`](/guide/developing-plugins#manifest-reference)); a plugin the host does not have
-at all is simply absent from both.
+at all — or has, but has disabled — is simply absent from both.
 
 Capabilities are exchanged as a plain `Map<String, String>` in both directions. Nothing consumes them
 yet — the step exists so future versions can negotiate optional features without another protocol

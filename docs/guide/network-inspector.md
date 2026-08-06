@@ -112,8 +112,9 @@ networkAgent.okHttpInterceptor(maxBodyChars = 500_000)
 
 Open the **Network Inspector** plugin in the JetWhale host and select your app's session. Each HTTP
 transaction appears live as your app makes requests. Select a transaction to inspect its request
-and response — headers, bodies (with a dedicated JSON view), and status. Use **copy** on a
-transaction to share it or reproduce the request elsewhere.
+and response — headers, bodies (with a dedicated JSON view), and status. Right-click a transaction
+for **Copy as cURL**, **Copy URL** and its request/response bodies, to share it or reproduce the
+request elsewhere.
 
 The host keeps the **latest 500 transactions** per session; older ones are dropped as new traffic
 arrives. Use **clear** (or `com.kitakkun.jetwhale.network.clearTransactions`) before reproducing an

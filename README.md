@@ -62,10 +62,12 @@ JetWhale's debugging tools are plugins, and you can build your own in your **own
 fast, **hot-reload** dev loop:
 
 - Apply the published `com.kitakkun.jetwhale.host` Gradle plugin and compile against the published SDK.
-- Run a real host with `./gradlew :myPlugin:runJetWhale` (it downloads the host for your
-  OS — no manual install).
-- Re-stage on save with `./gradlew :myPlugin:stageDevPlugin -t`; the host reloads your plugin without
-  a restart — keeping its state for simple (method-body) edits, and recreating it for structural
+- Run the whole loop with one command: `./gradlew :myPlugin:runJetWhaleHot` downloads a real host for
+  your OS (no manual install), launches it with your plugin loaded, and re-stages the plugin on every
+  source change. The host reloads it without a restart.
+- Prefer a plain JDK? `./gradlew :myPlugin:runJetWhale` in one terminal and
+  `./gradlew :myPlugin:stageDevPlugin -t` in another does the same, keeping the plugin's state for
+  simple (method-body) edits and recreating it for structural
   changes (see the [limitations](https://kitakkun.github.io/JetWhale/guide/developing-plugins#limitations)).
 
 See **[Developing plugins](https://kitakkun.github.io/JetWhale/guide/developing-plugins)** for the full guide.
