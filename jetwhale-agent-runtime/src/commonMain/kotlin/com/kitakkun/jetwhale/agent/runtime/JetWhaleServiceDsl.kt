@@ -268,9 +268,9 @@ public interface JetWhaleEndpointScope {
      *
      * Experimental, and for a sharper reason than most: unlike the rest of this scope, the behaviour
      * rests on a Kotlin compiler plugin, whose API JetBrains breaks across minor versions by design.
-     * A Kotlin release the plugin has not caught up with leaves calls unrewritten — which degrades
-     * to the same explained silence as never applying the Gradle plugin, but is worth knowing about
-     * before depending on it.
+     * Below the supported floor the Gradle plugin fails the build with an explanation rather than
+     * letting a plugin that cannot load take the blame later; above the tested ceiling it warns and
+     * proceeds, since the plugin may well work there and has simply not been shown to.
      *
      * **Requires the `com.kitakkun.jetwhale.agent` Gradle plugin**, which resolves the address and
      * hands it to a compiler plugin that rewrites this call. Without it this compiles and runs — it
@@ -358,7 +358,10 @@ public interface JetWhaleSslConfigurationScope {
      * traffic never leaves the machine. On an untrusted LAN prefer [trustCertificate] with a
      * manually exported CA for strict pinning.
      *
-     * When the CA cannot be fetched over either channel, the connection falls back to plain ws.
+     * When the CA cannot be fetched over either channel, nothing is pinned and the connection is
+     * still attempted over wss — it then fails on trust rather than quietly sending in the clear
+     * at a TLS port. Declare a `ws(...)` candidate if you want a plain fallback; the endpoint list
+     * is where that choice belongs.
      */
     public fun trustServerCertificate()
 }

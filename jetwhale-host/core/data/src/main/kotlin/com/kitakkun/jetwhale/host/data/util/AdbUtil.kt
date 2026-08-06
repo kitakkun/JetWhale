@@ -3,33 +3,36 @@ package com.kitakkun.jetwhale.host.data.util
 import java.io.File
 
 /**
- * Finds the absolute path to the adb executable by checking common installation locations.
+ * The absolute path to the adb executable, or `"adb"` to let the OS resolve it from PATH.
  *
- * This function checks the following locations in order:
- * 1. /usr/bin/adb
- * 2. /usr/local/bin/adb
- * 3. $HOME/Android/Sdk/platform-tools/adb
- * 4. $HOME/Library/Android/sdk/platform-tools/adb (macOS)
- * 5. $ANDROID_HOME/platform-tools/adb
- * 6. $ANDROID_SDK_ROOT/platform-tools/adb
- *
- * @return The absolute path to adb if found, otherwise "adb" as a fallback
+ * `ANDROID_HOME` and `ANDROID_SDK_ROOT` are consulted first: someone who has set them has said which
+ * SDK they mean, and a stray `/usr/local/bin/adb` from an unrelated install should not outrank that.
+ * The rest are the conventional install locations, per OS — Windows keeps the SDK under LOCALAPPDATA
+ * and names the executable `adb.exe`, so a Windows host found nothing here before and fell through to
+ * PATH.
  */
 fun findAdbPath(): String {
     val homeDir = System.getProperty("user.home")
-    val androidHome = System.getenv("ANDROID_HOME")
-    val androidSdkRoot = System.getenv("ANDROID_SDK_ROOT")
+    val localAppData = System.getenv("LOCALAPPDATA")
+    val isWindows = System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)
+    val executable = if (isWindows) "adb.exe" else "adb"
 
-    val candidatePaths = listOfNotNull(
-        "/usr/bin/adb",
-        "/usr/local/bin/adb",
-        homeDir?.let { "$it/Android/Sdk/platform-tools/adb" },
-        homeDir?.let { "$it/Library/Android/sdk/platform-tools/adb" },
-        androidHome?.let { "$it/platform-tools/adb" },
-        androidSdkRoot?.let { "$it/platform-tools/adb" },
+    val sdkRoots = listOfNotNull(
+        System.getenv("ANDROID_HOME"),
+        System.getenv("ANDROID_SDK_ROOT"),
+        homeDir?.let { "$it/Android/Sdk" },
+        // macOS
+        homeDir?.let { "$it/Library/Android/sdk" },
+        // Windows
+        localAppData?.let { "$it/Android/Sdk" },
+    )
+
+    val candidatePaths = sdkRoots.map { "$it/platform-tools/$executable" } + listOfNotNull(
+        "/usr/bin/$executable".takeUnless { isWindows },
+        "/usr/local/bin/$executable".takeUnless { isWindows },
     )
 
     return candidatePaths.firstOrNull { path ->
-        File(path).exists() && File(path).canExecute()
-    } ?: "adb" // Fallback to "adb" if not found
+        File(path).let { it.exists() && it.canExecute() }
+    } ?: executable
 }
