@@ -56,25 +56,30 @@ internal expect suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
 internal data class SelectedHost(val service: DiscoveredService, val port: Int)
 
 /**
- * Picks the host to connect to among [services], or null when none can serve this agent.
+ * Every host among [services] this agent could use, in the order they were browsed.
  *
  * A host qualifies only when it satisfies every configured filter **and** advertises the port for the
  * scheme the connection will use. The scheme comes from the `ssl {}` block alone, so an ssl-configured
  * agent cannot use a host that advertises no wss port: dialling `wss://` at its plain-ws port would
- * fail every handshake. Such a host is skipped rather than chosen, leaving the next match a chance.
+ * fail every handshake. Such a host is dropped rather than dialled.
+ *
+ * All of them are returned, not just the first: browse order is arbitrary and a host that answers mDNS
+ * may still refuse a connection, so the caller tries them in turn.
  */
-internal fun selectHost(services: List<DiscoveredService>, discovery: HostDiscoveryConfig): SelectedHost? = services.asSequence()
+internal fun selectHosts(services: List<DiscoveredService>, discovery: HostDiscoveryConfig): List<SelectedHost> = services
     .filter { it.matches(discovery) }
     .mapNotNull { service -> service.portFor(discovery.useWss)?.let { SelectedHost(service, it) } }
-    .firstOrNull()
 
 /**
- * Browses for a JetWhale host over mDNS, standing [fallback] in whenever a browse yields none that
- * this agent can use.
+ * Browses for JetWhale hosts over mDNS and offers every usable one, with [fallback] last.
  *
  * Browsing on every call is the point: a host started after the app, or one that came back on a
  * different port, is only reached by looking again. That makes the outcome repetitive by nature, so
  * the resolver remembers what it last reported and stays quiet while nothing changes.
+ *
+ * [fallback] is offered even when hosts were found. Answering mDNS says a host is advertising, not
+ * that it will accept a connection — a firewall between them is invisible to the browse — so the
+ * configured address stays available behind the discovered ones.
  */
 internal class MdnsEndpointResolver(
     val discovery: HostDiscoveryConfig,
@@ -82,32 +87,32 @@ internal class MdnsEndpointResolver(
 ) : EndpointResolver {
     private var lastReported: String? = null
 
-    override suspend fun resolve(): ResolvedEndpoint {
+    override suspend fun resolve(): List<ResolvedEndpoint> {
         val result = browseJetWhaleServices(HOST_DISCOVERY_TIMEOUT_MILLIS)
-        return when (result) {
+        val discovered = when (result) {
             is DiscoveryResult.Unavailable -> {
-                report("mDNS host discovery is unavailable because ${result.reason}; using $fallback", warn = true)
-                fallback
+                report("mDNS host discovery is unavailable because ${result.reason}; using $fallback")
+                emptyList()
             }
 
             is DiscoveryResult.Browsed -> {
-                val selected = selectHost(result.services, discovery)
-                if (selected == null) {
-                    report(noHostMessage(result.services), warn = true)
-                    fallback
-                } else {
-                    val ambiguous = !discovery.hasFilter && result.services.size > 1
-                    report(chosenMessage(selected, result.services, ambiguous), warn = ambiguous)
-                    ResolvedEndpoint(selected.service.address, selected.port)
-                }
+                val usable = selectHosts(result.services, discovery)
+                report(if (usable.isEmpty()) noHostMessage(result.services) else foundMessage(usable))
+                usable.map { ResolvedEndpoint(it.service.address, it.port) }
             }
         }
+        return discovered + fallback
     }
 
-    private fun report(message: String, warn: Boolean) {
+    private fun report(message: String) {
         if (message == lastReported) return
         lastReported = message
-        if (warn) JetWhaleLogger.w(message) else JetWhaleLogger.i(message)
+        JetWhaleLogger.i(message)
+    }
+
+    private fun foundMessage(usable: List<SelectedHost>): String {
+        val listed = usable.joinToString { "${it.service.displayName()} at ${it.service.address}:${it.port}" }
+        return "Discovered ${usable.size} JetWhale host(s) over mDNS: $listed. Falling back to $fallback if none accepts a connection."
     }
 
     private fun noHostMessage(services: List<DiscoveredService>): String {
@@ -121,16 +126,6 @@ internal class MdnsEndpointResolver(
         val listed = matched.joinToString { it.displayName() }
         return "mDNS host discovery matched ${matched.size} host(s) ($listed) but none advertised a $scheme port; using $fallback. " +
             "A host advertises its wss port only while wss is enabled in its settings."
-    }
-
-    private fun chosenMessage(selected: SelectedHost, services: List<DiscoveredService>, ambiguous: Boolean): String {
-        val chosen = "Discovered JetWhale host over mDNS: ${selected.service.displayName()} at ${selected.service.address}:${selected.port}"
-        // With no filter, first-match is ambiguous when several hosts advertise; make that visible
-        // instead of silently picking one.
-        if (!ambiguous) return chosen
-        val listed = services.joinToString { "${it.displayName()}@${it.address}" }
-        return "$chosen — but ${services.size} hosts advertised and no filter was set. Discovered: $listed. " +
-            "Narrow with discovered(fallback) { allowHostName(...) } or allowAddress(...)."
     }
 }
 

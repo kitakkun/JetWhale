@@ -6,16 +6,18 @@ internal data class ResolvedEndpoint(val host: String, val port: Int) {
 }
 
 /**
- * Supplies the address for the next connection attempt.
+ * Supplies the addresses worth trying, best first.
  *
- * Asked before every attempt rather than once per session, so an address that only becomes correct
- * later is still reached without restarting the session.
+ * Asked before every round of attempts rather than once per session, so an address that only becomes
+ * correct later is still reached without restarting the session. Returning a list rather than one
+ * address is what lets a host that answers discovery but refuses connections be passed over: the
+ * caller works down the list and only gives up once every entry has been tried.
  */
 internal fun interface EndpointResolver {
-    suspend fun resolve(): ResolvedEndpoint
+    suspend fun resolve(): List<ResolvedEndpoint>
 }
 
 /** Resolves to the same literal address every time. */
 internal class FixedEndpointResolver(private val endpoint: ResolvedEndpoint) : EndpointResolver {
-    override suspend fun resolve(): ResolvedEndpoint = endpoint
+    override suspend fun resolve(): List<ResolvedEndpoint> = listOf(endpoint)
 }

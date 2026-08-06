@@ -12,7 +12,7 @@ class ConnectionEndpointTest {
 
     private fun fixedEndpoint(
         configure: JetWhaleConnectionConfigurationScope.() -> Unit,
-    ): ResolvedEndpoint = runBlocking { assertIs<FixedEndpointResolver>(connection(configure)).resolve() }
+    ): ResolvedEndpoint = runBlocking { assertIs<FixedEndpointResolver>(connection(configure)).resolve().single() }
 
     private fun mdns(
         configure: JetWhaleConnectionConfigurationScope.() -> Unit,

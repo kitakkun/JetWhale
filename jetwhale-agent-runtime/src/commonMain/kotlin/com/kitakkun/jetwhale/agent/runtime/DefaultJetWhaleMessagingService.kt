@@ -12,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.cancellation.CancellationException
 
 internal class DefaultJetWhaleMessagingService(
@@ -28,22 +29,15 @@ internal class DefaultJetWhaleMessagingService(
         keepAwakeJob?.cancel()
         keepAwakeJob = coroutineScope.launch {
             while (isActive) {
-                var attempted: ResolvedEndpoint? = null
-                try {
-                    // Asked per attempt rather than once up front: an address that only becomes
-                    // correct later is reached without restarting the session.
-                    val resolved = resolver.resolve()
-                    attempted = resolved
-                    openConnection(resolved.host, resolved.port)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Throwable) {
-                    reportFailure(attempted, e)
-                    pluginService.disconnectAll()
-                    retryCount++
-                    val delayMillis = (retryCount * RETRY_DELAY_INCREMENT_MILLIS).coerceAtMost(MAX_RECONNECT_DELAY_MILLIS)
-                    delay(delayMillis)
-                }
+                // Resolved per round rather than once up front: an address that only becomes correct
+                // later is reached without restarting the session.
+                val failures = tryEachCandidate(resolver.resolve())
+                // Only once the whole round is spent: a reachable host further down the list should
+                // not be kept waiting by the backoff owed to the ones before it.
+                reportRoundFailed(failures)
+                pluginService.disconnectAll()
+                retryCount++
+                delay((retryCount * RETRY_DELAY_INCREMENT_MILLIS).coerceAtMost(MAX_RECONNECT_DELAY_MILLIS))
             }
         }
     }
@@ -68,24 +62,61 @@ internal class DefaultJetWhaleMessagingService(
     }
 
     /**
-     * Reports why an attempt failed. The socket client rethrows without logging, so this is the only
-     * place a refused host, a wrong port or a failed TLS handshake becomes visible — and at the
-     * default WARN level, the only sign the agent is doing anything at all.
+     * Works down [candidates] until one connects, and returns why each of them did not.
      *
-     * The same cause repeats on every retry, so it is reported once and again only when it changes,
-     * or when a connection succeeded in between.
+     * Returns only once the list is spent — a connection that succeeds keeps this suspended for as
+     * long as it lasts, and the candidates after it are never dialled.
      */
-    private fun reportFailure(attempted: ResolvedEndpoint?, cause: Throwable) {
-        val where = attempted?.toString() ?: "the JetWhale host"
-        val message = "Could not connect to $where: $cause"
-        if (message == lastReportedFailure) return
-        lastReportedFailure = message
-        JetWhaleLogger.w("$message. Retrying with backoff until it succeeds.")
+    private suspend fun tryEachCandidate(candidates: List<ResolvedEndpoint>): List<CandidateFailure> {
+        val failures = mutableListOf<CandidateFailure>()
+        for (candidate in candidates) {
+            try {
+                // The cap covers establishment only — never the session that follows, which is meant
+                // to last. Establishment is the CA fetch, the TLS handshake, the upgrade and the
+                // negotiation together, measured at over six seconds on a physical device over Wi-Fi,
+                // so the cap is loose. Its job is only to stop a candidate that swallows packets — a
+                // firewall that drops rather than refuses — from holding up the ones behind it.
+                val connection = withTimeoutOrNull(CANDIDATE_TIMEOUT_MILLIS) {
+                    socketClient.openConnection(candidate.host, candidate.port)
+                }
+                if (connection == null) {
+                    failures += CandidateFailure(candidate, "timed out after ${CANDIDATE_TIMEOUT_MILLIS}ms")
+                    JetWhaleLogger.d("Gave up on $candidate after ${CANDIDATE_TIMEOUT_MILLIS}ms")
+                } else {
+                    // Suspends for as long as the connection lasts. Once it ends, the next round starts
+                    // from the top of the list so a preferred candidate gets its turn back.
+                    serveConnection(connection)
+                    return failures
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                failures += CandidateFailure(candidate, e.toString())
+                JetWhaleLogger.d("Could not connect to $candidate", e)
+            }
+        }
+        return failures
     }
 
-    private suspend fun openConnection(host: String, port: Int) {
-        val connection = socketClient.openConnection(host, port)
+    /**
+     * Reports a round in which nothing accepted a connection. The socket client rethrows without
+     * logging, so this is the only place a refused host, a wrong port or a failed TLS handshake
+     * becomes visible — and at the default WARN level, the only sign the agent is doing anything.
+     *
+     * One line per round rather than one per candidate, so the same set of failures repeating is a
+     * repeating message and stays suppressed until something about it changes.
+     */
+    private fun reportRoundFailed(failures: List<CandidateFailure>) {
+        if (failures.isEmpty()) return
+        val listed = failures.joinToString { "${it.endpoint} (${it.reason})" }
+        val message = "No JetWhale host accepted a connection. Tried ${failures.size}: $listed"
+        if (message == lastReportedFailure) return
+        lastReportedFailure = message
+        JetWhaleLogger.w("$message. Retrying with backoff until one does.")
+    }
 
+    /** Runs an established connection until it ends. */
+    private suspend fun serveConnection(connection: JetWhaleConnection) {
         retryCount = 0
         lastReportedFailure = null
 
@@ -113,8 +144,12 @@ internal class DefaultJetWhaleMessagingService(
         }
     }
 
+    /** Why one candidate did not take the connection, kept so the round can report itself as a whole. */
+    private data class CandidateFailure(val endpoint: ResolvedEndpoint, val reason: String)
+
     companion object {
         private const val RETRY_DELAY_INCREMENT_MILLIS = 1000L
         private const val MAX_RECONNECT_DELAY_MILLIS = 5000L
+        private const val CANDIDATE_TIMEOUT_MILLIS = 15_000L
     }
 }

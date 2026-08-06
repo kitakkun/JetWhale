@@ -2,7 +2,10 @@ package com.kitakkun.jetwhale.agent.runtime
 
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
+import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.util.Collections
@@ -12,27 +15,39 @@ import kotlin.test.assertTrue
 
 private const val RESOLUTION_TIMEOUT_MILLIS = 10_000L
 
-/** A socket client that never connects, so the service keeps retrying and keeps re-resolving. */
-private class UnreachableSocketClient : JetWhaleSocketClient {
-    val attemptedEndpoints: MutableList<ResolvedEndpoint> = Collections.synchronizedList(mutableListOf())
-    val secondAttempt: CompletableDeferred<Unit> = CompletableDeferred()
+/** Records every address dialled, and refuses all of them except those named in [reachable]. */
+private class RecordingSocketClient(private val reachable: Set<ResolvedEndpoint> = emptySet()) : JetWhaleSocketClient {
+    val attempts: MutableList<ResolvedEndpoint> = Collections.synchronizedList(mutableListOf())
+    val attemptCount: Channel<ResolvedEndpoint> = Channel(Channel.UNLIMITED)
+    val connected: CompletableDeferred<ResolvedEndpoint> = CompletableDeferred()
+
+    private var debuggerEvents: Channel<JetWhaleDebuggerEvent> = Channel(Channel.UNLIMITED)
 
     override suspend fun sendDebuggeeEvent(event: JetWhaleDebuggeeEvent) = Unit
 
     override suspend fun openConnection(host: String, port: Int): JetWhaleConnection {
-        attemptedEndpoints.add(ResolvedEndpoint(host, port))
-        if (attemptedEndpoints.size >= 2) secondAttempt.complete(Unit)
-        throw IllegalStateException("unreachable")
+        val endpoint = ResolvedEndpoint(host, port)
+        attempts.add(endpoint)
+        attemptCount.send(endpoint)
+        if (endpoint !in reachable) throw IllegalStateException("unreachable")
+        connected.complete(endpoint)
+        debuggerEvents = Channel(Channel.UNLIMITED)
+        return JetWhaleConnection(
+            negotiationResult = ClientSessionNegotiationResult.Success(availablePluginIds = emptyList()),
+            debuggerEventFlow = debuggerEvents.receiveAsFlow(),
+        )
     }
 
-    override suspend fun closeConnection() = Unit
+    override suspend fun closeConnection() {
+        debuggerEvents.close()
+    }
 }
 
-/** Hands out each address in turn, standing on the last one once they run out. */
-private class ScriptedEndpointResolver(private val script: List<ResolvedEndpoint>) : EndpointResolver {
+/** Hands out each candidate list in turn, standing on the last once they run out. */
+private class ScriptedEndpointResolver(private val rounds: List<List<ResolvedEndpoint>>) : EndpointResolver {
     private var index = 0
 
-    override suspend fun resolve(): ResolvedEndpoint = script[minOf(index++, script.lastIndex)]
+    override suspend fun resolve(): List<ResolvedEndpoint> = rounds[minOf(index++, rounds.lastIndex)]
 }
 
 @OptIn(InternalJetWhaleApi::class)
@@ -43,43 +58,65 @@ class MessagingServiceResolutionTest {
     ).also { it.startService(resolver) }
 
     @Test
-    fun `the address is resolved again for every connection attempt`() = runBlocking {
-        val socketClient = UnreachableSocketClient()
-        val resolver = ScriptedEndpointResolver(listOf(ResolvedEndpoint("first", 1), ResolvedEndpoint("second", 2)))
-        val service = service(socketClient, resolver)
+    fun `a candidate that refuses is passed over for the next one in the same round`() = runBlocking {
+        // The point of the whole list: a host that answers discovery but refuses connections must not
+        // strand the session. Both are dialled before any backoff is owed.
+        val unreachable = ResolvedEndpoint("unreachable", 1)
+        val reachable = ResolvedEndpoint("reachable", 2)
+        val socketClient = RecordingSocketClient(reachable = setOf(reachable))
+        val service = service(socketClient, ScriptedEndpointResolver(listOf(listOf(unreachable, reachable))))
 
         try {
-            // Wait for the second *attempt*, not the second resolution: resolve() returns before the
-            // address it produced has been dialled, so waiting on the resolver would leave a window
-            // where only one attempt has been recorded.
-            withTimeout(RESOLUTION_TIMEOUT_MILLIS) { socketClient.secondAttempt.await() }
+            withTimeout(RESOLUTION_TIMEOUT_MILLIS) { socketClient.connected.await() }
         } finally {
             service.stopService()
         }
 
-        // A resolver consulted once per session would have produced "first" twice.
-        assertTrue(socketClient.attemptedEndpoints.size >= 2, "expected a retry, got ${socketClient.attemptedEndpoints}")
-        assertEquals(ResolvedEndpoint("first", 1), socketClient.attemptedEndpoints[0])
-        assertEquals(ResolvedEndpoint("second", 2), socketClient.attemptedEndpoints[1])
+        assertEquals(listOf(unreachable, reachable), socketClient.attempts.take(2))
     }
 
     @Test
-    fun `an address that only becomes reachable later is still dialled`() = runBlocking {
-        // The host was not up at startup, so the first resolution yields the unreachable fallback and a
-        // later one yields the host that has since appeared. Without per-attempt resolution the session
-        // would stay pinned to the fallback for good.
-        val socketClient = UnreachableSocketClient()
+    fun `the fallback is reached when the discovered candidate refuses`() = runBlocking {
+        // Resolving once per round is not enough on its own: before the chain, a discovered host that
+        // refused was re-picked every round and the configured fallback was never dialled at all.
+        val discovered = ResolvedEndpoint("192.168.3.26", 5443)
+        val fallback = ResolvedEndpoint("localhost", 5443)
+        val socketClient = RecordingSocketClient(reachable = setOf(fallback))
+        val service = service(socketClient, ScriptedEndpointResolver(listOf(listOf(discovered, fallback))))
+
+        try {
+            withTimeout(RESOLUTION_TIMEOUT_MILLIS) { socketClient.connected.await() }
+        } finally {
+            service.stopService()
+        }
+
+        assertEquals(fallback, socketClient.connected.getCompleted())
+    }
+
+    @Test
+    fun `a spent round is resolved again rather than retried as it was`() = runBlocking {
+        // A host started after the app is only reached by browsing again, so each round asks the
+        // resolver afresh instead of reusing what the last one produced.
+        val socketClient = RecordingSocketClient()
         val resolver = ScriptedEndpointResolver(
-            listOf(ResolvedEndpoint("localhost", 5443), ResolvedEndpoint("192.168.3.26", 5443)),
+            listOf(
+                listOf(ResolvedEndpoint("first-round", 1)),
+                listOf(ResolvedEndpoint("second-round", 2)),
+            ),
         )
         val service = service(socketClient, resolver)
 
         try {
-            withTimeout(RESOLUTION_TIMEOUT_MILLIS) { socketClient.secondAttempt.await() }
+            withTimeout(RESOLUTION_TIMEOUT_MILLIS) {
+                socketClient.attemptCount.receive()
+                socketClient.attemptCount.receive()
+            }
         } finally {
             service.stopService()
         }
 
-        assertEquals(ResolvedEndpoint("192.168.3.26", 5443), socketClient.attemptedEndpoints[1])
+        assertTrue(socketClient.attempts.size >= 2, "expected a second round, got ${socketClient.attempts}")
+        assertEquals(ResolvedEndpoint("first-round", 1), socketClient.attempts[0])
+        assertEquals(ResolvedEndpoint("second-round", 2), socketClient.attempts[1])
     }
 }
