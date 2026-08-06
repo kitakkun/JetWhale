@@ -7,6 +7,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CommandLineArgumentsResolverTest {
@@ -159,5 +160,20 @@ class CommandLineArgumentsResolverTest {
         assertFailsWith<IllegalStateException> {
             resolver.parse(arrayOf("--mcp-server-port", "65536"))
         }
+    }
+
+    @Test
+    fun `an absent log level leaves the configured one alone`() {
+        // Null rather than WARN: logback.xml sets the root at trace, so defaulting here would quietly
+        // reduce what every launch logs, and what the log viewer can show.
+        assertNull(CommandLineArgumentsParser().parse(arrayOf()).logLevel)
+    }
+
+    @Test
+    fun `an explicit log level is parsed`() {
+        assertEquals(
+            JetWhaleLogLevel.DEBUG,
+            CommandLineArgumentsParser().parse(arrayOf("--log-level", "DEBUG")).logLevel,
+        )
     }
 }

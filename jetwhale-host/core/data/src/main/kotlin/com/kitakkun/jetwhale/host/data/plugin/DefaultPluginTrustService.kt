@@ -64,6 +64,15 @@ class DefaultPluginTrustService(
             }
         }
         untrustedJarPathsFlow.value = untrusted
+
+        // Directories named with `--plugin-dir` load without consulting the trust registry, exactly as
+        // the dev plugins directory already does. The registry answers "did the person running this
+        // host approve this jar", and typing the directory on the command line is that approval —
+        // there is also no UI path to approve them, since trusting is defined over the managed
+        // directory alone.
+        for (jarPath in appDataDirectoryProvider.getAdditionalPluginJarFilePaths()) {
+            pluginFactoryRepository.loadPlugin(jarPath)
+        }
     }
 
     override suspend fun trustAndLoad(jarPath: String) {

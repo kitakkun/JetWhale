@@ -151,6 +151,9 @@ dependencies {
     implementation(projects.jetwhaleHost.feature.plugin)
     implementation(projects.jetwhaleHost.core.model)
     implementation(projects.jetwhaleHost.core.data)
+    // main() applies --log-level to the root logger; logback is on the runtime classpath through
+    // core:data either way, but configuring it needs it visible at compile time here.
+    implementation(libs.logbackClassic)
     implementation(projects.jetwhaleHost.core.mcp)
     implementation(projects.jetwhaleHost.core.architecture)
     implementation(projects.jetwhaleHost.core.ui)

@@ -3,7 +3,8 @@ package com.kitakkun.jetwhale.host.data.util
 import java.io.File
 
 /**
- * The absolute path to the adb executable, or `"adb"` to let the OS resolve it from PATH.
+ * The absolute path to the adb executable, or the bare executable name — `adb`, or `adb.exe` on
+ * Windows — to let the OS resolve it from PATH.
  *
  * `ANDROID_HOME` and `ANDROID_SDK_ROOT` are consulted first: someone who has set them has said which
  * SDK they mean, and a stray `/usr/local/bin/adb` from an unrelated install should not outrank that.
