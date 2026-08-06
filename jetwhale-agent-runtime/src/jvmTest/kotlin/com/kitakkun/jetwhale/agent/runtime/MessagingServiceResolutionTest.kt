@@ -15,6 +15,9 @@ import kotlin.test.assertTrue
 
 private const val RESOLUTION_TIMEOUT_MILLIS = 10_000L
 
+/** Comfortably under the shortest backoff (1s), so waiting one out would blow this window. */
+private const val BACKOFF_FREE_WINDOW_MILLIS = 800L
+
 /** Records every address dialled, and refuses all of them except those named in [reachable]. */
 private class RecordingSocketClient(private val reachable: Set<ResolvedEndpoint> = emptySet()) : JetWhaleSocketClient {
     val attempts: MutableList<ResolvedEndpoint> = Collections.synchronizedList(mutableListOf())
@@ -91,6 +94,56 @@ class MessagingServiceResolutionTest {
         }
 
         assertEquals(fallback, socketClient.connected.getCompleted())
+    }
+
+    @Test
+    fun `a session that ends reconnects without waiting out a backoff`() = runBlocking {
+        // Refusals before the candidate that worked are not the round's verdict, so an ended session
+        // is not treated as a failed round: it reconnects at once, as it did before candidates were
+        // tried in turn.
+        val refused = ResolvedEndpoint("refused", 1)
+        val reachable = ResolvedEndpoint("reachable", 2)
+        val socketClient = RecordingSocketClient(reachable = setOf(reachable))
+        val service = service(socketClient, ScriptedEndpointResolver(listOf(listOf(refused, reachable))))
+
+        try {
+            withTimeout(RESOLUTION_TIMEOUT_MILLIS) {
+                socketClient.connected.await()
+                // End the session; a backoff-free reconnect dials the whole round again promptly.
+                socketClient.closeConnection()
+                withTimeout(BACKOFF_FREE_WINDOW_MILLIS) {
+                    while (socketClient.attempts.size < 4) socketClient.attemptCount.receive()
+                }
+            }
+        } finally {
+            service.stopService()
+        }
+
+        assertEquals(listOf(refused, reachable, refused, reachable), socketClient.attempts.take(4))
+    }
+
+    @Test
+    fun `a resolver that throws is a failed round, not the end of the session`() = runBlocking {
+        val reachable = ResolvedEndpoint("reachable", 1)
+        val socketClient = RecordingSocketClient(reachable = setOf(reachable))
+        var firstCall = true
+        val service = service(socketClient) {
+            // Resolution is not supposed to throw, but one escaping used to take the loop down with
+            // it, leaving the agent silently dead for the life of the process.
+            if (firstCall) {
+                firstCall = false
+                throw IllegalStateException("resolver blew up")
+            }
+            listOf(reachable)
+        }
+
+        try {
+            withTimeout(RESOLUTION_TIMEOUT_MILLIS) { socketClient.connected.await() }
+        } finally {
+            service.stopService()
+        }
+
+        assertEquals(reachable, socketClient.connected.getCompleted())
     }
 
     @Test

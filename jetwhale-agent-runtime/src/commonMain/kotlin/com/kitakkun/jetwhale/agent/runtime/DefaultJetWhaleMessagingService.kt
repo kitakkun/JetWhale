@@ -29,12 +29,12 @@ internal class DefaultJetWhaleMessagingService(
         keepAwakeJob?.cancel()
         keepAwakeJob = coroutineScope.launch {
             while (isActive) {
-                // Resolved per round rather than once up front: an address that only becomes correct
-                // later is reached without restarting the session.
-                val failures = tryEachCandidate(resolver.resolve())
-                // Only once the whole round is spent: a reachable host further down the list should
-                // not be kept waiting by the backoff owed to the ones before it.
-                reportRoundFailed(failures)
+                // A round that connected costs no delay, however many candidates were refused before
+                // the one that worked: backoff is owed by a round where nothing accepted at all.
+                val outcome = runRound(resolver)
+                if (outcome is RoundResult.Connected) continue
+
+                reportRoundFailed((outcome as RoundResult.Failed).summary)
                 pluginService.disconnectAll()
                 retryCount++
                 delay((retryCount * RETRY_DELAY_INCREMENT_MILLIS).coerceAtMost(MAX_RECONNECT_DELAY_MILLIS))
@@ -62,12 +62,26 @@ internal class DefaultJetWhaleMessagingService(
     }
 
     /**
-     * Works down [candidates] until one connects, and returns why each of them did not.
+     * Resolves the candidates and works down them until one connects.
      *
-     * Returns only once the list is spent — a connection that succeeds keeps this suspended for as
-     * long as it lasts, and the candidates after it are never dialled.
+     * A connection that succeeds keeps this suspended for as long as it lasts, and the candidates
+     * after it are never dialled; the ones refused before it are not the round's verdict.
      */
-    private suspend fun tryEachCandidate(candidates: List<ResolvedEndpoint>): List<CandidateFailure> {
+    private suspend fun runRound(resolver: EndpointResolver): RoundResult {
+        val candidates = try {
+            // Resolved per round rather than once up front: an address that only becomes correct
+            // later is reached without restarting the session.
+            resolver.resolve()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            // Resolution is not supposed to throw — discovery reports its own failures and falls back
+            // — but letting one escape would end the loop and the session with it.
+            JetWhaleLogger.d("Working out where to connect failed", e)
+            return RoundResult.Failed("Could not work out where to connect: $e")
+        }
+        if (candidates.isEmpty()) return RoundResult.Failed("No address to connect to.")
+
         val failures = mutableListOf<CandidateFailure>()
         for (candidate in candidates) {
             try {
@@ -87,7 +101,7 @@ internal class DefaultJetWhaleMessagingService(
                     // Suspends for as long as the connection lasts. Once it ends, the next round starts
                     // from the top of the list so a preferred candidate gets its turn back.
                     serveConnection(connection)
-                    return failures
+                    return RoundResult.Connected
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -96,7 +110,8 @@ internal class DefaultJetWhaleMessagingService(
                 JetWhaleLogger.d("Could not connect to $candidate", e)
             }
         }
-        return failures
+        val listed = failures.joinToString { "${it.endpoint} (${it.reason})" }
+        return RoundResult.Failed("No JetWhale host accepted a connection. Tried ${failures.size}: $listed")
     }
 
     /**
@@ -107,13 +122,10 @@ internal class DefaultJetWhaleMessagingService(
      * One line per round rather than one per candidate, so the same set of failures repeating is a
      * repeating message and stays suppressed until something about it changes.
      */
-    private fun reportRoundFailed(failures: List<CandidateFailure>) {
-        if (failures.isEmpty()) return
-        val listed = failures.joinToString { "${it.endpoint} (${it.reason})" }
-        val message = "No JetWhale host accepted a connection. Tried ${failures.size}: $listed"
-        if (message == lastReportedFailure) return
-        lastReportedFailure = message
-        JetWhaleLogger.w("$message. Retrying with backoff until one does.")
+    private fun reportRoundFailed(summary: String) {
+        if (summary == lastReportedFailure) return
+        lastReportedFailure = summary
+        JetWhaleLogger.w("$summary. Retrying with backoff until one does.")
     }
 
     /** Runs an established connection until it ends. */
@@ -147,6 +159,12 @@ internal class DefaultJetWhaleMessagingService(
 
     /** Why one candidate did not take the connection, kept so the round can report itself as a whole. */
     private data class CandidateFailure(val endpoint: ResolvedEndpoint, val reason: String)
+
+    /** How a round ended. Only a round where nothing connected owes a backoff. */
+    private sealed interface RoundResult {
+        data object Connected : RoundResult
+        data class Failed(val summary: String) : RoundResult
+    }
 
     companion object {
         private const val RETRY_DELAY_INCREMENT_MILLIS = 1000L

@@ -101,7 +101,9 @@ internal class MdnsEndpointResolver(
                 usable.map { ResolvedEndpoint(it.service.address, it.port) }
             }
         }
-        return discovered + fallback
+        // Deduplicated, order kept: the fallback may well be an address that was also advertised, and
+        // dialling the same endpoint twice in a round only spends the establishment budget twice.
+        return (discovered + fallback).distinct()
     }
 
     private fun report(message: String) {
