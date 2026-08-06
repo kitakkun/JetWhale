@@ -5,4 +5,7 @@
     <string name="plugin_ui_crash_reload">再読み込み</string>
     <string name="plugin_ui_crash_copy_full_stacktrace">スタックトレースをコピー</string>
     <string name="plugin_ui_crash_stacktrace">スタックトレース: %1$s</string>
+    <string name="headless_plugin_title">このプラグインには画面がありません</string>
+    <string name="headless_plugin_description">このセッションでバックグラウンド動作しています。アプリとのデータのやり取りや AI エージェントへの MCP tools の提供は行いますが、ここに表示するものはありません。</string>
+    <string name="headless_plugin_plugin_id">プラグイン ID: %1$s</string>
 </resources>

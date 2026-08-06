@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.model
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 
 data class LoadedPluginInstance(
     val pluginId: String,
@@ -13,6 +14,13 @@ data class LoadedPluginInstance(
 interface PluginInstanceService {
     /** Emits lifecycle events as plugin instances are created or disposed. */
     val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent>
+
+    /**
+     * Which of the currently loaded instances render no UI, so the UI can say so instead of showing
+     * an empty scene. Only this service can tell: UI-ness is a property of the instantiated plugin,
+     * not of anything the manifest declares.
+     */
+    val headlessPluginsFlow: StateFlow<HeadlessPlugins>
 
     /** Returns all currently loaded plugin instances. */
     fun getLoadedPluginInstances(): List<LoadedPluginInstance>

@@ -221,7 +221,9 @@ the agent. A failed/timed-out request throws `JetWhaleRequestException` (and `se
 throw `JetWhaleConnectionClosedException` while disconnected — both are `JetWhaleMessagingException`);
 pass `timeout` to `request`
 to override the default per call (e.g. `request(SlowOp, timeout = 30.seconds)`). Implement `JetWhaleHostPluginUi`
-(`@Composable Content()`) to render a UI; plugins that don't are **headless** (e.g. MCP-only).
+(`@Composable Content()`) to render a UI; plugins that don't are **headless** (e.g. MCP-only). The
+host marks a headless plugin with a **No UI** badge in the drawer, shows a "this plugin has no
+screen" notice in place of the plugin view, and does not offer to pop it out into a window.
 
 ::: tip `onDispose()` is public
 `onCreate()` is `protected`, but `onDispose()` is `public open` — override it without a `protected`

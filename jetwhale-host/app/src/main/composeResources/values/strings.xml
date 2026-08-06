@@ -33,6 +33,8 @@
     <string name="ai_agent_connected">AI agent connected</string>
     <string name="ai_agent_operating">AI agent is operating</string>
     <string name="plugin_exposes_mcp_tools">Exposes MCP tools to AI agents</string>
+    <string name="plugin_headless_badge">No UI</string>
+    <string name="plugin_headless_badge_tooltip">No screen to show — this plugin works in the background.</string>
     <string name="mcp_tool_executing">MCP executing</string>
     <string name="mcp_tools_available">MCP available</string>
     <string name="close">Close</string>

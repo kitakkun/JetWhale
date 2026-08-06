@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.plugin
 
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
+import com.kitakkun.jetwhale.host.model.HeadlessPluginsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneQueryKey
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneQueryKeyFactory
 import com.kitakkun.jetwhale.host.model.PluginHotReloadService
@@ -21,6 +22,7 @@ class PluginScreenContext(
     @Assisted val sessionId: String,
     pluginComposeSceneQueryKeyFactory: PluginComposeSceneQueryKeyFactory,
     pluginHotReloadService: PluginHotReloadService,
+    val headlessPluginsSubscriptionKey: HeadlessPluginsSubscriptionKey,
 ) : ScreenContext {
     val pluginComposeSceneQueryKey: PluginComposeSceneQueryKey =
         pluginComposeSceneQueryKeyFactory.create(pluginId, sessionId)

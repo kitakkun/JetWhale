@@ -28,6 +28,7 @@ import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
 import kotlinx.coroutines.delay
 import soil.query.compose.rememberQuery
+import soil.query.compose.rememberSubscription
 
 @OptIn(InternalComposeUiApi::class)
 @Composable
@@ -49,20 +50,30 @@ fun PluginScreenRoot() {
     Box(Modifier.fillMaxSize()) {
         key(reset) {
             SoilDataBoundary(
-                state = rememberQuery(screenContext.pluginComposeSceneQueryKey),
-                fallback = SoilFallbackDefaults.custom(
-                    suspenseFallback = SoilFallbackDefaults.default().suspenseFallback,
-                    errorFallback = {
-                        PluginScreenErrorFallback(
-                            pluginId = screenContext.pluginId,
-                            errorBoundaryContext = it,
-                            // force recompose when reset is clicked
-                            onClickReset = { reset = !reset },
-                        )
-                    },
-                ),
-            ) { pluginComposeScene ->
-                PluginScreen(pluginComposeScene = pluginComposeScene)
+                state = rememberSubscription(screenContext.headlessPluginsSubscriptionKey),
+            ) { headlessPlugins ->
+                // Branch before the scene query so a headless plugin never gets a ComposeScene
+                // built for it: there is no content to put in one, and it would render blank.
+                if (headlessPlugins.isHeadless(screenContext.sessionId, screenContext.pluginId)) {
+                    HeadlessPluginScreen(pluginId = screenContext.pluginId)
+                    return@SoilDataBoundary
+                }
+                SoilDataBoundary(
+                    state = rememberQuery(screenContext.pluginComposeSceneQueryKey),
+                    fallback = SoilFallbackDefaults.custom(
+                        suspenseFallback = SoilFallbackDefaults.default().suspenseFallback,
+                        errorFallback = {
+                            PluginScreenErrorFallback(
+                                pluginId = screenContext.pluginId,
+                                errorBoundaryContext = it,
+                                // force recompose when reset is clicked
+                                onClickReset = { reset = !reset },
+                            )
+                        },
+                    ),
+                ) { pluginComposeScene ->
+                    PluginScreen(pluginComposeScene = pluginComposeScene)
+                }
             }
         }
 
