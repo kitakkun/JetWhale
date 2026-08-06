@@ -534,6 +534,8 @@ version as the host release they belong to.
 | `jetwhale-annotations` | `@McpDescription`. Reaches both SDKs transitively; rarely named directly. |
 | `jetwhale-host-sdk` | A host plugin module, as `compileOnly` — see [Developing Plugins](/guide/developing-plugins). |
 | `jetwhale-host-gradle-plugin` | Applied as the `com.kitakkun.jetwhale.host` Gradle plugin id. |
+| `jetwhale-agent-gradle-plugin` | Applied as the `com.kitakkun.jetwhale.agent` Gradle plugin id — see [Baking in the build machine's address](#baking-in-the-build-machine-s-address-no-browse). |
+| `jetwhale-agent-compiler-plugin` | The Kotlin compiler plugin the above points at. Never named directly. |
 | `jetwhale-qa-agent` | Run, not depended on — see [QA Agent](/guide/qa-agent). |
 | `jetwhale-network-inspector`, `-agent`, `-agent-ktor`, `-agent-okhttp`, `-protocol` | [Network Inspector](/guide/network-inspector). |
 | `jetwhale-nav3-navigator`, `jetwhale-nav3-agent`, `jetwhale-nav3-protocol` | [Nav3 Navigator](/guide/nav3-navigator). |
