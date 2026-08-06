@@ -20,7 +20,7 @@ class ConnectionEndpointTest {
 
     @Test
     fun `an unconfigured connection targets the default host and port`() {
-        assertEquals(ResolvedEndpoint("localhost", 8080), fixedEndpoint { })
+        assertEquals(ResolvedEndpoint("localhost", 8080, useWss = false), fixedEndpoint { })
     }
 
     @Suppress("DEPRECATION")
@@ -43,7 +43,44 @@ class ConnectionEndpointTest {
             endpoint = fixed("192.168.3.26", 5443)
         }
 
-        assertEquals(ResolvedEndpoint("192.168.3.26", 5443), resolved)
+        assertEquals(ResolvedEndpoint("192.168.3.26", 5443, useWss = false), resolved)
+    }
+
+    @Test
+    fun `a fixed endpoint follows the ssl block`() {
+        val plain = fixedEndpoint { endpoint = fixed("192.168.3.26", 5080) }
+        val secure = fixedEndpoint {
+            endpoint = fixed("192.168.3.26", 5443)
+            ssl { trustServerCertificate() }
+        }
+
+        assertEquals(false, plain.useWss)
+        assertEquals(true, secure.useWss)
+    }
+
+    @Test
+    fun `a plain loopback endpoint stays plain whatever the ssl block says`() {
+        // The one exception to ssl {} deciding the scheme, and the reason it takes no host: plain text
+        // is only safe because loopback cannot leave the machine.
+        val resolved = fixedEndpoint {
+            endpoint = plainLoopback(5080)
+            ssl { trustServerCertificate() }
+        }
+
+        assertEquals(ResolvedEndpoint("localhost", 5080, useWss = false), resolved)
+    }
+
+    @Test
+    fun `a plain loopback endpoint can be the fallback for discovery`() {
+        // One shared configuration for every target: a physical device discovers a host over wss, and
+        // anything that can only reach loopback — a browser above all — takes the plain fallback.
+        val resolver = mdns {
+            endpoint = discovered(fallback = plainLoopback(5080))
+            ssl { trustServerCertificate() }
+        }
+
+        assertEquals(ResolvedEndpoint("localhost", 5080, useWss = false), resolver.fallback)
+        assertEquals(true, resolver.discovery.useWss)
     }
 
     @Test
@@ -57,7 +94,7 @@ class ConnectionEndpointTest {
             }
         }
 
-        assertEquals(ResolvedEndpoint("localhost", 5443), resolver.fallback)
+        assertEquals(ResolvedEndpoint("localhost", 5443, useWss = false), resolver.fallback)
         // Both allowlists accumulate, so neither call silently drops the one before it.
         assertEquals(listOf("build-machine", "spare-machine"), resolver.discovery.hostNames)
         assertEquals(listOf("192.168.3.26", "192.168.3.27"), resolver.discovery.addresses)

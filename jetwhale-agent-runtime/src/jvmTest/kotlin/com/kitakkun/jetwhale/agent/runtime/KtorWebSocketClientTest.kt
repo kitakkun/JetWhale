@@ -30,10 +30,7 @@ class KtorWebSocketClientTest {
         val webSocketClient = webSocketClient()
 
         assertFailsWith<Throwable> {
-            webSocketClient.openConnection(
-                host = TEST_SERVER_HOST,
-                port = TEST_SERVER_PORT,
-            )
+            webSocketClient.openConnection(ResolvedEndpoint(TEST_SERVER_HOST, TEST_SERVER_PORT, useWss = false))
         }
     }
 
@@ -43,10 +40,7 @@ class KtorWebSocketClientTest {
 
         val webSocketClient = webSocketClient()
 
-        webSocketClient.openConnection(
-            host = TEST_SERVER_HOST,
-            port = TEST_SERVER_PORT,
-        )
+        webSocketClient.openConnection(ResolvedEndpoint(TEST_SERVER_HOST, TEST_SERVER_PORT, useWss = false))
     }
 
     @Test
@@ -55,10 +49,7 @@ class KtorWebSocketClientTest {
 
         val webSocketClient = webSocketClient()
 
-        webSocketClient.openConnection(
-            host = TEST_SERVER_HOST,
-            port = TEST_SERVER_PORT,
-        )
+        webSocketClient.openConnection(ResolvedEndpoint(TEST_SERVER_HOST, TEST_SERVER_PORT, useWss = false))
 
         webSocketClient.sendDebuggeeEvent(
             event = JetWhaleDebuggeeEvent.PluginFrameMessage(
@@ -81,10 +72,7 @@ class KtorWebSocketClientTest {
 
         val webSocketClient = webSocketClient()
 
-        val connectionResult = webSocketClient.openConnection(
-            host = TEST_SERVER_HOST,
-            port = TEST_SERVER_PORT,
-        )
+        val connectionResult = webSocketClient.openConnection(ResolvedEndpoint(TEST_SERVER_HOST, TEST_SERVER_PORT, useWss = false))
 
         assertEquals(
             expected = expectedEvent,

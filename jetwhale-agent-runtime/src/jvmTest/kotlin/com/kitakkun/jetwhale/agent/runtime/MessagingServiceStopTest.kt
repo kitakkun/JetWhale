@@ -31,7 +31,7 @@ private class FakeSocketClient : JetWhaleSocketClient {
 
     override suspend fun sendDebuggeeEvent(event: JetWhaleDebuggeeEvent) = Unit
 
-    override suspend fun openConnection(host: String, port: Int): JetWhaleConnection {
+    override suspend fun openConnection(endpoint: ResolvedEndpoint): JetWhaleConnection {
         debuggerEvents = Channel(Channel.UNLIMITED)
         openedConnections.send(Unit)
         return JetWhaleConnection(
@@ -74,7 +74,7 @@ class MessagingServiceStopTest {
     ): JetWhaleMessagingService = DefaultJetWhaleMessagingService(
         socketClient = socketClient,
         pluginService = JetWhaleAgentPluginService(plugins = listOf(plugin)),
-    ).also { it.startService(FixedEndpointResolver(ResolvedEndpoint(host = "localhost", port = 1))) }
+    ).also { it.startService(FixedEndpointResolver(ResolvedEndpoint("localhost", 1, useWss = false))) }
 
     @Test
     fun `stopService closes the socket so the host sees the session go away`() = runBlocking {

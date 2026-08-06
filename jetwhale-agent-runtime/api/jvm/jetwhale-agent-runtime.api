@@ -17,12 +17,13 @@ public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleConf
 }
 
 public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleConnectionConfigurationScope {
-	public abstract fun discovered (Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleFixedEndpoint;Lkotlin/jvm/functions/Function1;)Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint;
-	public static synthetic fun discovered$default (Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleConnectionConfigurationScope;Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleFixedEndpoint;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint;
+	public abstract fun discovered (Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleLiteralEndpoint;Lkotlin/jvm/functions/Function1;)Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint;
+	public static synthetic fun discovered$default (Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleConnectionConfigurationScope;Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleLiteralEndpoint;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint;
 	public abstract fun fixed (Ljava/lang/String;I)Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleFixedEndpoint;
 	public abstract fun getEndpoint ()Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint;
 	public abstract fun getHost ()Ljava/lang/String;
 	public abstract fun getPort ()I
+	public abstract fun plainLoopback (I)Lcom/kitakkun/jetwhale/agent/runtime/JetWhalePlainLoopbackEndpoint;
 	public abstract fun setEndpoint (Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint;)V
 	public abstract fun setHost (Ljava/lang/String;)V
 	public abstract fun setPort (I)V
@@ -30,7 +31,7 @@ public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleConn
 }
 
 public final class com/kitakkun/jetwhale/agent/runtime/JetWhaleConnectionConfigurationScope$DefaultImpls {
-	public static synthetic fun discovered$default (Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleConnectionConfigurationScope;Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleFixedEndpoint;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint;
+	public static synthetic fun discovered$default (Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleConnectionConfigurationScope;Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleLiteralEndpoint;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint;
 }
 
 public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleDiscoveredEndpointScope {
@@ -41,7 +42,10 @@ public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleDisc
 public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint {
 }
 
-public final class com/kitakkun/jetwhale/agent/runtime/JetWhaleFixedEndpoint : com/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint {
+public final class com/kitakkun/jetwhale/agent/runtime/JetWhaleFixedEndpoint : com/kitakkun/jetwhale/agent/runtime/JetWhaleLiteralEndpoint {
+}
+
+public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleLiteralEndpoint : com/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint {
 }
 
 public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleLoggingConfigurationScope {
@@ -51,6 +55,9 @@ public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleLogg
 	public abstract fun setEnabled (Z)V
 	public abstract fun setKtorLogLevel (Lcom/kitakkun/jetwhale/agent/runtime/KtorLogLevel;)V
 	public abstract fun setLogLevel (Lcom/kitakkun/jetwhale/agent/runtime/LogLevel;)V
+}
+
+public final class com/kitakkun/jetwhale/agent/runtime/JetWhalePlainLoopbackEndpoint : com/kitakkun/jetwhale/agent/runtime/JetWhaleLiteralEndpoint {
 }
 
 public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhalePluginConfigurationScope {

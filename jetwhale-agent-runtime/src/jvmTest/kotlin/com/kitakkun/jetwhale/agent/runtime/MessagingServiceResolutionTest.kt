@@ -36,8 +36,7 @@ private class RecordingSocketClient(
 
     override suspend fun sendDebuggeeEvent(event: JetWhaleDebuggeeEvent) = Unit
 
-    override suspend fun openConnection(host: String, port: Int): JetWhaleConnection {
-        val endpoint = ResolvedEndpoint(host, port)
+    override suspend fun openConnection(endpoint: ResolvedEndpoint): JetWhaleConnection {
         attempts.add(endpoint)
         attemptCount.send(endpoint)
         if (endpoint !in reachable) throw IllegalStateException("unreachable")
@@ -74,8 +73,8 @@ class MessagingServiceResolutionTest {
     fun `a candidate that refuses is passed over for the next one in the same round`() = runBlocking {
         // The point of the whole list: a host that answers discovery but refuses connections must not
         // strand the session. Both are dialled before any backoff is owed.
-        val unreachable = ResolvedEndpoint("unreachable", 1)
-        val reachable = ResolvedEndpoint("reachable", 2)
+        val unreachable = ResolvedEndpoint("unreachable", 1, useWss = false)
+        val reachable = ResolvedEndpoint("reachable", 2, useWss = false)
         val socketClient = RecordingSocketClient(reachable = setOf(reachable))
         val service = service(socketClient, ScriptedEndpointResolver(listOf(listOf(unreachable, reachable))))
 
@@ -92,8 +91,8 @@ class MessagingServiceResolutionTest {
     fun `the fallback is reached when the discovered candidate refuses`() = runBlocking {
         // Resolving once per round is not enough on its own: before the chain, a discovered host that
         // refused was re-picked every round and the configured fallback was never dialled at all.
-        val discovered = ResolvedEndpoint("192.168.3.26", 5443)
-        val fallback = ResolvedEndpoint("localhost", 5443)
+        val discovered = ResolvedEndpoint("192.168.3.26", 5443, useWss = false)
+        val fallback = ResolvedEndpoint("localhost", 5443, useWss = false)
         val socketClient = RecordingSocketClient(reachable = setOf(fallback))
         val service = service(socketClient, ScriptedEndpointResolver(listOf(listOf(discovered, fallback))))
 
@@ -111,8 +110,8 @@ class MessagingServiceResolutionTest {
         // Refusals before the candidate that worked are not the round's verdict, so a session that ran
         // is not treated as a failed round: it reconnects at once, as it did before candidates were
         // tried in turn.
-        val refused = ResolvedEndpoint("refused", 1)
-        val reachable = ResolvedEndpoint("reachable", 2)
+        val refused = ResolvedEndpoint("refused", 1, useWss = false)
+        val reachable = ResolvedEndpoint("reachable", 2, useWss = false)
         val socketClient = RecordingSocketClient(reachable = setOf(reachable))
         val service = service(socketClient, ScriptedEndpointResolver(listOf(listOf(refused, reachable))))
 
@@ -138,7 +137,7 @@ class MessagingServiceResolutionTest {
     fun `a host that accepts and drops straight away does not spin the loop`() = runBlocking {
         // Seen for real: a host whose websocket handler threw after the upgrade, accepting and closing
         // each time. Reconnecting with no delay would dial it as fast as it can close.
-        val flapping = ResolvedEndpoint("flapping", 1)
+        val flapping = ResolvedEndpoint("flapping", 1, useWss = false)
         val socketClient = RecordingSocketClient(reachable = setOf(flapping), closeImmediately = true)
         val service = service(socketClient, ScriptedEndpointResolver(listOf(listOf(flapping))))
 
@@ -158,7 +157,7 @@ class MessagingServiceResolutionTest {
 
     @Test
     fun `a resolver that throws is a failed round, not the end of the session`() = runBlocking {
-        val reachable = ResolvedEndpoint("reachable", 1)
+        val reachable = ResolvedEndpoint("reachable", 1, useWss = false)
         val socketClient = RecordingSocketClient(reachable = setOf(reachable))
         var firstCall = true
         val service = service(socketClient) {
@@ -187,8 +186,8 @@ class MessagingServiceResolutionTest {
         val socketClient = RecordingSocketClient()
         val resolver = ScriptedEndpointResolver(
             listOf(
-                listOf(ResolvedEndpoint("first-round", 1)),
-                listOf(ResolvedEndpoint("second-round", 2)),
+                listOf(ResolvedEndpoint("first-round", 1, useWss = false)),
+                listOf(ResolvedEndpoint("second-round", 2, useWss = false)),
             ),
         )
         val service = service(socketClient, resolver)
@@ -203,7 +202,7 @@ class MessagingServiceResolutionTest {
         }
 
         assertTrue(socketClient.attempts.size >= 2, "expected a second round, got ${socketClient.attempts}")
-        assertEquals(ResolvedEndpoint("first-round", 1), socketClient.attempts[0])
-        assertEquals(ResolvedEndpoint("second-round", 2), socketClient.attempts[1])
+        assertEquals(ResolvedEndpoint("first-round", 1, useWss = false), socketClient.attempts[0])
+        assertEquals(ResolvedEndpoint("second-round", 2, useWss = false), socketClient.attempts[1])
     }
 }

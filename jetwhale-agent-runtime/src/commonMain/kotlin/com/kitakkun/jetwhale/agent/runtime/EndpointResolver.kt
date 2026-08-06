@@ -1,8 +1,13 @@
 package com.kitakkun.jetwhale.agent.runtime
 
-/** A concrete address to dial — what resolution produces. */
-internal data class ResolvedEndpoint(val host: String, val port: Int) {
-    override fun toString(): String = "$host:$port"
+/**
+ * A concrete address to dial — what resolution produces.
+ *
+ * [useWss] travels with the address rather than being read from `ssl { }` at dial time: `ssl { }`
+ * still decides it for every endpoint but one, and `plainLoopback` is that one.
+ */
+internal data class ResolvedEndpoint(val host: String, val port: Int, val useWss: Boolean) {
+    override fun toString(): String = "${if (useWss) "wss" else "ws"}://$host:$port"
 }
 
 /**
