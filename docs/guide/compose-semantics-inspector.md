@@ -14,61 +14,6 @@ browse it in the host and hand it to an AI agent over [MCP](/guide/mcp-server).
 - 🪟 Dialogs and popups appear as their own roots, because that is what they are in Compose
 - 🤖 Three MCP tools so an agent can see the screen structurally instead of guessing at pixels
 
-## Why not the CLI?
-
-`android layout` and `adb shell uiautomator dump` both go out to the accessibility framework across
-a process boundary and write a file on the device before anything can read it. This plugin reads the
-semantics tree **inside** the app, on its main thread, and sends it back over the JetWhale
-connection that is already open — so a capture costs about as much as a frame.
-
-Measured on one machine, on the same screen, back to back — a Pixel-class emulator (1080×2400,
-density 2.625) showing the demo app's *Compose nodes* screen, 38–39 elements:
-
-| | median | 
-|---|---|
-| **`com.kitakkun.jetwhale.semantics.getNodeTree`** (host → app → host) | **14 ms** (min 12, p90 15) |
-| ⤷ of which reading the tree on the device | **1 ms** (max 6) |
-| **`com.kitakkun.jetwhale.semantics.findNodes`** | **11 ms** |
-| `adb shell uiautomator dump` + `adb pull` | 1,960 ms |
-| `android layout` (Google's Android CLI) | 2,703 ms |
-
-That is **~190× faster than `android layout`** on this setup — fast enough that an agent can capture
-between every action instead of budgeting for the dump. Treat the ratio as indicative rather than a
-spec: an emulator is slower than a physical device, and a bigger screen means more nodes.
-
-The host shows both numbers live — what the capture cost on the device, and the round trip from the
-host — so a slow capture says where the time went.
-
-### Are the coordinates right?
-
-`bounds` and `tap` are screen pixels, so they have to survive whatever the device does to the
-window. They were checked two ways at once — cross-checked against `android layout`'s reading of the
-same screen, and proved by tapping the reported point and watching the intended node react — across
-the conditions that move a window around:
-
-| Condition | nodes cross-checked | worst disagreement | tap reached the node |
-|---|---|---|---|
-| gesture nav, portrait, density 420 | 19 | 1 px | ✅ |
-| 3-button navigation bar | 18 | 1 px | ✅ |
-| landscape | 10 | 1 px | ✅ |
-| density 320 | 29 | 1 px | ✅ |
-| 800×1280 @ density 320 | 12 | 1 px | ✅ |
-
-The residual 1 px is rounding: this plugin rounds, `android layout` truncates.
-
-Each condition was also re-run with a dialog open, which is the case that actually exercises the
-arithmetic — a dialog is its own window and does **not** start at the screen origin, so a
-window-relative coordinate reported as if it were absolute would be off by the whole offset. In
-landscape that offset reaches `(717, 298)`; the dialog's nodes still agreed to within 1 px, and
-tapping the reported point closed the dialog. Every root reports its own `windowOffset`, so a
-suspicious coordinate can be traced back to the window it came from.
-
-The tree is also richer than what the CLIs return: `android layout` gives a flat list with text,
-`content-desc` and bounds, but no `testTag`, no role and no per-node id, so an agent can only aim by
-label or by pixel. This plugin reports all three, which is what makes
-[`performNodeAction`](#com-kitakkun-jetwhale-semantics-performnodeaction) able to address a node
-directly.
-
 ## What the tree contains
 
 The tree is the Compose **semantics** tree: the same tree an accessibility service sees, and the one
@@ -86,9 +31,8 @@ Two views of it are available, switchable in the host and per MCP call:
 
 ### Install the host plugin
 
-The Compose Semantics Inspector is in the host's **official catalog**, so no coordinates are needed:
-open **Settings → Plugins → Add Plugins → Official Plugins** and install it with one click. The
-version matching your host is fetched automatically. See
+The Compose Semantics Inspector is in the host's **official catalog**: open **Settings → Plugins →
+Add Plugins → Official Plugins** and install it with one click — no coordinates needed. See
 [Host Settings → Plugins](/guide/host-settings#plugins) for the other install routes.
 
 ### Add the agent to your app
@@ -179,7 +123,8 @@ JetWhale connection. Wire both up in debug builds only, exactly as you would the
 
 ## Using the host UI
 
-Open the **Compose Semantics Inspector** tab for a session and press **Refresh**.
+Open the **Compose Semantics Inspector** in the host, select your app's session, and press
+**Refresh**.
 
 - **Auto** re-captures once a second. It is off by default: a capture reads the app's semantics on
   its main thread, so leaving it on makes the app do that work forever.
@@ -223,7 +168,7 @@ whatever moved into that spot in the meantime — prefer it over `adb shell inpu
 optional: without it the node is looked up in the most recent capture.
 
 It is also the more *reliable* route, not just the tidier one: on the emulator used for the
-benchmark above, `adb shell input swipe` did not scroll a `LazyColumn` at all, while
+[benchmarks](#why-not-the-cli), `adb shell input swipe` did not scroll a `LazyColumn` at all, while
 `ScrollBy` moved it by exactly the requested distance on the first try.
 
 A typical agent loop:
@@ -233,6 +178,61 @@ findNodes(testTag: "login-button")     → { "nodes": [{ "rootId": "compose-root
 performNodeAction(nodeId: 42, action: "Click")
 findNodes()                            → the new screen's interactive nodes
 ```
+
+## Why not the CLI?
+
+`android layout` and `adb shell uiautomator dump` both go out to the accessibility framework across
+a process boundary and write a file on the device before anything can read it. This plugin reads the
+semantics tree **inside** the app, on its main thread, and sends it back over the JetWhale
+connection that is already open — so a capture costs about as much as a frame.
+
+Measured on one machine, on the same screen, back to back — a Pixel-class emulator (1080×2400,
+density 2.625) showing the demo app's *Compose nodes* screen, 38–39 elements:
+
+| | median | 
+|---|---|
+| **`com.kitakkun.jetwhale.semantics.getNodeTree`** (host → app → host) | **14 ms** (min 12, p90 15) |
+| ⤷ of which reading the tree on the device | **1 ms** (max 6) |
+| **`com.kitakkun.jetwhale.semantics.findNodes`** | **11 ms** |
+| `adb shell uiautomator dump` + `adb pull` | 1,960 ms |
+| `android layout` (Google's Android CLI) | 2,703 ms |
+
+That is **~190× faster than `android layout`** on this setup — fast enough that an agent can capture
+between every action instead of budgeting for the dump. Treat the ratio as indicative rather than a
+spec: an emulator is slower than a physical device, and a bigger screen means more nodes.
+
+The host shows both numbers live — what the capture cost on the device, and the round trip from the
+host — so a slow capture says where the time went.
+
+The tree is also richer than what the CLIs return: `android layout` gives a flat list with text,
+`content-desc` and bounds, but no `testTag`, no role and no per-node id, so an agent can only aim by
+label or by pixel. This plugin reports all three, which is what makes
+[`performNodeAction`](#com-kitakkun-jetwhale-semantics-performnodeaction) able to address a node
+directly.
+
+### Are the coordinates right?
+
+`bounds` and `tap` are screen pixels, so they have to survive whatever the device does to the
+window. They were checked two ways at once — cross-checked against `android layout`'s reading of the
+same screen, and proved by tapping the reported point and watching the intended node react — across
+the conditions that move a window around:
+
+| Condition | nodes cross-checked | worst disagreement | tap reached the node |
+|---|---|---|---|
+| gesture nav, portrait, density 420 | 19 | 1 px | ✅ |
+| 3-button navigation bar | 18 | 1 px | ✅ |
+| landscape | 10 | 1 px | ✅ |
+| density 320 | 29 | 1 px | ✅ |
+| 800×1280 @ density 320 | 12 | 1 px | ✅ |
+
+The residual 1 px is rounding: this plugin rounds, `android layout` truncates.
+
+Each condition was also re-run with a dialog open, which is the case that actually exercises the
+arithmetic — a dialog is its own window and does **not** start at the screen origin, so a
+window-relative coordinate reported as if it were absolute would be off by the whole offset. In
+landscape that offset reaches `(717, 298)`; the dialog's nodes still agreed to within 1 px, and
+tapping the reported point closed the dialog. Every root reports its own `windowOffset`, so a
+suspicious coordinate can be traced back to the window it came from.
 
 ## Platform support
 

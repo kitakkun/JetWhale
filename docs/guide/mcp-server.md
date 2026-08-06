@@ -74,7 +74,7 @@ Beyond that pair, each tool takes:
 `specialKey` accepts (case-insensitively): `ENTER`, `BACKSPACE`, `DELETE`, `TAB`, `ESCAPE`, `UP`,
 `DOWN`, `LEFT`, `RIGHT`, `HOME`, `END`, `PAGE_UP`, `PAGE_DOWN`. There are no modifier parameters.
 
-Two implementation details worth knowing when a call does not do what you expect:
+Worth knowing when a call does not do what you expect:
 
 - **`jetwhale.click` is not a raw pointer event.** It finds the deepest clickable node containing the
   point and invokes its `OnClick` semantics action, so a point with nothing clickable under it comes
@@ -98,14 +98,10 @@ to invoke a node's action there rather than aiming at pixels — use the
 
 ## Host tools
 
-These target the debug tool itself rather than one plugin instance, so none of them takes the
-required `sessionId` + `pluginId` pair the plugin UI tools route on. Some do take a `pluginId` or an
-optional `sessionId` as ordinary arguments — which plugin to enable, which session to open — but the
-tool is not scoped to them.
-
-`jetwhale.getStatus` is the recommended first call: one parameter-free request tells an agent the
-host version, both servers' endpoints, how many sessions and plugins are live, the current settings,
-and what the window is showing.
+These target the debug tool itself rather than one plugin instance. `jetwhale.getStatus` is the
+recommended first call: one parameter-free request tells an agent the host version, both servers'
+endpoints, how many sessions and plugins are live, the current settings, and what the window is
+showing.
 
 | Tool | What it does |
 |------|--------------|
@@ -118,6 +114,10 @@ and what the window is showing.
 | `jetwhale.updateSettings` | Changes host settings; only the arguments you supply are touched |
 | `jetwhale.restartDebugServer` | Restarts the debug WebSocket server |
 | `jetwhale.navigate` | Switches the main window to another screen, selecting the session and plugin as it goes |
+
+None of them takes the required `sessionId` + `pluginId` pair the plugin UI tools route on. Some do
+take a `pluginId` or an optional `sessionId` as ordinary arguments — which plugin to enable, which
+session to open — but the tool is not scoped to them.
 
 `jetwhale.getLogs` reads the **host's** log, not the debuggee app's — use it to diagnose JetWhale
 itself, for example a plugin jar that failed to load. It takes `limit` (default 200, maximum 1000),

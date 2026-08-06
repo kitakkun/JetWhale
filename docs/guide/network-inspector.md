@@ -17,9 +17,8 @@ It works with **Ktor** and **OkHttp** clients.
 
 ### Install the host plugin
 
-The Network Inspector is in the host's **official catalog**, so no coordinates are needed: open
-**Settings → Plugins → Add Plugins → Official Plugins** and install it with one click. The version
-matching your host is fetched automatically. See
+The Network Inspector is in the host's **official catalog**: open **Settings → Plugins → Add Plugins
+→ Official Plugins** and install it with one click — no coordinates needed. See
 [Host Settings → Plugins](/guide/host-settings#plugins) for the other install routes.
 
 ### Add the agent to your app
@@ -185,7 +184,7 @@ interchangeable.
 | **enabled** | on | Whether the rule takes effect. Rules can be parked without deleting them. |
 | **Method** | any | HTTP method to match, compared case-insensitively. Blank matches any method. |
 | **URL pattern** | — | The pattern, interpreted per the match type. |
-| **match type** | `CONTAINS` | `CONTAINS` (substring), `EXACT` (whole URL), or `REGEX` (a regex that must match somewhere in the URL). An invalid regex simply never matches. |
+| **match type** | `CONTAINS` | `CONTAINS` (substring), `EXACT` (whole URL), or `REGEX` (a regex that must match somewhere in the URL). An invalid regex never matches. |
 | **Status** | `200` | Status code of the mocked response. |
 | **Content-Type** | none | Convenience field for the header of the same name. |
 | **Response body** | empty | The body to return. |

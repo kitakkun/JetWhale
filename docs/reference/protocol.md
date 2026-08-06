@@ -29,7 +29,7 @@ loopback, which is not the address discovery returns, so a host advertising no `
 See [Zero-config host discovery](/guide/getting-started#zero-config-host-discovery-recommended-for-physical-devices)
 for the agent-side configuration.
 
-## Two Phases Before Starting a Debugging Session
+## The two phases
 
 There are two main phases in the JetWhale Debugger Protocol:
 
@@ -79,7 +79,7 @@ response carries the assigned `sessionId`, which the agent may send back in a la
 `availablePlugins` (paired, and enabled on the host) and `incompatiblePlugins` (the host has that
 plugin enabled, but the agent's `pluginVersion` falls outside the host plugin manifest's
 [`agentVersionRange`](/guide/developing-plugins#manifest-reference)); a plugin the host does not have
-at all — or has, but has disabled — is simply absent from both.
+at all — or has, but has disabled — is absent from both.
 
 Capabilities are exchanged as a plain `Map<String, String>` in both directions. Nothing consumes them
 yet — the step exists so future versions can negotiate optional features without another protocol

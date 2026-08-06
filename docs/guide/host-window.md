@@ -7,20 +7,6 @@ Everything below is the host itself — the plugins it shows are documented on t
 ([Network Inspector](/guide/network-inspector), [Nav3 Navigator](/guide/nav3-navigator),
 [Compose Semantics Inspector](/guide/compose-semantics-inspector)).
 
-## The drawer
-
-The drawer can be **collapsed** to a narrow icon rail with the **✕** button at its top left, and
-expanded again with the unfold button on the rail. Collapsed, it keeps the same entries as icons —
-the device picker, the plugin list, the MCP tools button, Settings, and Info — but shortened: the
-rail lists only the **enabled** plugins, with no grouping and no overflow menu, and its device
-picker is a single flat list of *device · app* rather than the two dropdowns below. **Info** is only
-on the rail; the expanded drawer has no entry for it.
-
-::: tip Window size and position
-The host remembers its window size and position across launches (while the window is in its normal
-floating state; maximized/fullscreen is not persisted). There is nothing to configure.
-:::
-
 ## Choosing a session
 
 Sessions are picked with **two dropdowns**, because one host commonly holds several apps from the
@@ -90,6 +76,15 @@ is in flight.
 When a newer release is available, a banner appears above the content with a **View in Settings**
 shortcut. Updates are never applied automatically — see
 [Host Settings → Application](/guide/host-settings#application).
+
+## Collapsing the drawer
+
+The **✕** button at the drawer's top left collapses it to a narrow icon rail; the unfold button on
+the rail expands it again. Collapsed, it keeps the same entries as icons — the device picker, the
+plugin list, the MCP tools button, Settings, and Info — but shortened: the rail lists only the
+**enabled** plugins, with no grouping and no overflow menu, and its device picker is a single flat
+list of *device · app* rather than two dropdowns. **Info** is only on the rail; the expanded drawer
+has no entry for it.
 
 ## The log viewer
 
