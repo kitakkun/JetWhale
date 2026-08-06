@@ -66,19 +66,24 @@ That is the whole integration — the app shows up in the host as soon as it run
 See **[Getting Started](https://kitakkun.github.io/JetWhale/guide/getting-started)** for physical iOS
 devices, secure connections, and the rest.
 
-## What you can inspect
+## Official plugins
 
-| | |
-|---|---|
-| **[Network Inspector](https://kitakkun.github.io/JetWhale/guide/network-inspector)** | HTTP traffic, with request/response bodies — and mock rules to reshape responses without touching the server |
-| **[Compose Semantics Inspector](https://kitakkun.github.io/JetWhale/guide/compose-semantics-inspector)** | The Compose node tree of a running screen |
-| **[Nav3 Navigator](https://kitakkun.github.io/JetWhale/guide/nav3-navigator)** | The Navigation 3 back stack, and pushing or popping entries from the host |
-| **[MCP server](https://kitakkun.github.io/JetWhale/guide/mcp-server)** *(experimental)* | Lets an AI agent drive the app — screenshot, click, type, scroll, drag, read the accessibility tree |
+The debugging tools themselves are plugins. These ship with JetWhale — install one into the host
+from its plugin catalog, add the matching artifact to your app, and register it in
+`startJetWhale { }`:
+
+- **[Network Inspector](https://kitakkun.github.io/JetWhale/guide/network-inspector)** — HTTP
+  traffic with request and response bodies, plus mock rules that reshape responses without touching
+  the server
+- **[Compose Semantics Inspector](https://kitakkun.github.io/JetWhale/guide/compose-semantics-inspector)**
+  — the Compose node tree of a running screen
+- **[Nav3 Navigator](https://kitakkun.github.io/JetWhale/guide/nav3-navigator)** — the Navigation 3
+  back stack, and pushing or popping entries from the host
 
 ## Developing plugins
 
-JetWhale's debugging tools are plugins, and yours live in **your** repository — no fork needed. One
-command gives you a hot-reload loop:
+Your own plugins live in **your** repository — no fork needed. One command gives you a hot-reload
+loop:
 
 ```bash
 ./gradlew :myPlugin:runJetWhaleHot
