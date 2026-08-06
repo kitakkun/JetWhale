@@ -32,7 +32,7 @@ Pass the agent's own options with `-PjetwhaleQaAgentArgs` (space-separated):
 
 ```shell
 ./gradlew :myPlugin:runJetWhaleQaAgent \
-  -PjetwhaleQaAgentArgs="--plugin com.example.myplugin --port 5080"
+  -PjetwhaleQaAgentArgs="--plugin com.example.myplugin --port 5443"
 ```
 
 | Option | Default | What it does |
