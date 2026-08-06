@@ -8,11 +8,9 @@ fun initializeJetWhale() {
     startJetWhale {
         connection {
             // Zero-config discovery of the host over mDNS for physical LAN devices. When no host is
-            // advertised (or the platform lacks mDNS), the connection falls back to host/port below,
+            // advertised (or the platform lacks mDNS), the connection falls back to the fixed endpoint,
             // keeping "localhost" working for emulators/simulators and ADB-forwarded devices.
-            discoverHost()
-            host = "localhost"
-            port = 5443
+            endpoint = discovered(fallback = fixed("localhost", 5443))
             ssl {
                 // Fetches the host's active CA over the plain channel (via ADB forwarding) and pins
                 // the wss connection to it, so the app never has to hardcode a CA certificate.

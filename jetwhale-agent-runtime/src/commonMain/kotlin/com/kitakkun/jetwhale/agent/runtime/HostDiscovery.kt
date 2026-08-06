@@ -63,7 +63,7 @@ internal suspend fun resolveHost(
     // the ambiguity visible instead of silently picking one.
     if (!discovery.hasFilter && matches.size > 1) {
         val listed = matches.joinToString { "${it.displayName()}@${it.address}" }
-        JetWhaleLogger.w("mDNS discovery found ${matches.size} JetWhale hosts and no filter was set; using the first. Discovered: $listed. Constrain with discoverHost { hostName(...) } or address(...).")
+        JetWhaleLogger.w("mDNS discovery found ${matches.size} JetWhale hosts and no filter was set; using the first. Discovered: $listed. Narrow with discovered(fallback) { matchHostName(...) } or allowAddress(...).")
     }
 
     val chosen = matches.first()

@@ -17,22 +17,31 @@ public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleConf
 }
 
 public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleConnectionConfigurationScope {
-	public abstract fun discoverHost (Lkotlin/jvm/functions/Function1;)V
-	public static synthetic fun discoverHost$default (Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleConnectionConfigurationScope;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public abstract fun discovered (Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleFixedEndpoint;Lkotlin/jvm/functions/Function1;)Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint;
+	public static synthetic fun discovered$default (Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleConnectionConfigurationScope;Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleFixedEndpoint;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint;
+	public abstract fun fixed (Ljava/lang/String;I)Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleFixedEndpoint;
+	public abstract fun getEndpoint ()Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint;
 	public abstract fun getHost ()Ljava/lang/String;
 	public abstract fun getPort ()I
+	public abstract fun setEndpoint (Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint;)V
 	public abstract fun setHost (Ljava/lang/String;)V
 	public abstract fun setPort (I)V
 	public abstract fun ssl (Lkotlin/jvm/functions/Function1;)V
 }
 
 public final class com/kitakkun/jetwhale/agent/runtime/JetWhaleConnectionConfigurationScope$DefaultImpls {
-	public static synthetic fun discoverHost$default (Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleConnectionConfigurationScope;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public static synthetic fun discovered$default (Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleConnectionConfigurationScope;Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleFixedEndpoint;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint;
 }
 
-public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleHostDiscoveryScope {
-	public abstract fun address (Ljava/lang/String;)V
-	public abstract fun hostName (Ljava/lang/String;)V
+public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleDiscoveredEndpointScope {
+	public abstract fun allowAddress (Ljava/lang/String;)V
+	public abstract fun matchHostName (Ljava/lang/String;)V
+}
+
+public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint {
+}
+
+public final class com/kitakkun/jetwhale/agent/runtime/JetWhaleFixedEndpoint : com/kitakkun/jetwhale/agent/runtime/JetWhaleEndpoint {
 }
 
 public abstract interface class com/kitakkun/jetwhale/agent/runtime/JetWhaleLoggingConfigurationScope {

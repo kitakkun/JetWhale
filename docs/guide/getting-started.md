@@ -68,8 +68,7 @@ import com.kitakkun.jetwhale.agent.runtime.startJetWhale
 fun initializeJetWhale() {
     startJetWhale {
         connection {
-            host = "localhost"
-            port = 5080 // the host's WebSocket server port
+            endpoint = fixed("localhost", 5080) // the host's WebSocket server port
         }
         plugins {
             // register agent plugins here, e.g. the Network Inspector:
@@ -79,11 +78,17 @@ fun initializeJetWhale() {
 }
 ```
 
-::: warning Always set `port`
-The agent's `connection { }` defaults are `host = "localhost"` and **`port = 8080`**, while the
-host's debug server listens on **5080**. The defaults deliberately do not match, so set `port`
-explicitly to whichever port the host reports in
+::: warning Always set `endpoint`
+The agent's `connection { }` defaults to `fixed("localhost", 8080)`, while the host's debug server
+listens on **5080**. The defaults deliberately do not match, so set `endpoint` explicitly to
+whichever port the host reports in
 [Settings → Connection → Debug Server](/guide/host-settings#debug-server).
+:::
+
+::: info `host` / `port` are deprecated
+Earlier releases configured the address with separate `host` and `port` properties. They still work
+and mean exactly `endpoint = fixed(host, port)`, but new code should assign `endpoint` — it is what
+[host discovery](#zero-config-host-discovery-recommended-for-physical-devices) extends.
 :::
 
 Where to call it, per platform:
@@ -192,19 +197,16 @@ since `WARN` is the default log level.
 ## Zero-config host discovery (recommended for physical devices)
 
 A physical iPhone or Android device on the same Wi-Fi cannot reach the host over `localhost`. Rather
-than hardcoding the host machine's LAN IP (which changes between machines and networks), call
-`discoverHost()` and let the agent find the host over mDNS/Bonjour:
+than hardcoding the host machine's LAN IP (which changes between machines and networks), assign a
+`discovered(...)` endpoint and let the agent find the host over mDNS/Bonjour:
 
 ```kotlin
 startJetWhale {
     connection {
-        // Browse the LAN for the host advertised as `_jetwhale._tcp` and connect to it.
-        discoverHost()
-
-        // Fallback used when nothing is discovered in time (or the platform lacks mDNS):
-        // keeps emulators/simulators and ADB-forwarded devices working over localhost.
-        host = "localhost"
-        port = 5443
+        // Browse the LAN for the host advertised as `_jetwhale._tcp` and connect to it. The fallback
+        // applies when nothing is discovered in time (or the platform lacks mDNS), which keeps
+        // emulators/simulators and ADB-forwarded devices working over localhost.
+        endpoint = discovered(fallback = fixed("localhost", 5443))
 
         ssl { trustServerCertificate() }
     }
@@ -212,44 +214,46 @@ startJetWhale {
 }
 ```
 
+The fallback is a required argument rather than a separate property, so a discovered endpoint can
+never be left without one.
+
 While its debug server runs, the host advertises a `_jetwhale._tcp.local.` service whose TXT records
 carry the `wsPort` and `wssPort` (the latter only when wss is enabled), the host machine's `hostName`,
-and a protocol marker `v=1`. The agent picks the **wss** port when an `ssl { }` block is configured,
-otherwise the **ws** port.
+and a protocol marker `v=1`. Discovery therefore resolves the **port** as well as the address — the
+agent picks the **wss** port when an `ssl { }` block is configured, otherwise the **ws** port, and the
+fallback's port applies only when discovery finds nothing.
 
-### Constraining discovery
+### Narrowing discovery
 
 When several JetWhale hosts run on the same network, first-match is ambiguous (the agent logs a
-warning listing all discovered hosts). Constrain the selection with a `discoverHost { }` block:
+warning listing all discovered hosts). Narrow the selection with a filter block:
 
 ```kotlin
 connection {
-    discoverHost {
-        // Match only the host whose machine hostname equals this (exact, case-insensitive).
-        hostName("my-macbook")
+    endpoint = discovered(fallback = fixed("localhost", 5443)) {
+        // Accept only the host whose machine hostname equals this (exact, case-insensitive).
+        matchHostName("my-macbook")
 
-        // ...or only accept hosts resolving to specific IPs (repeatable allowlist), e.g. to pin
+        // ...and/or only hosts resolving to specific IPs (repeatable allowlist), e.g. to pin
         // discovery to your build machine.
-        address("192.168.3.26")
+        allowAddress("192.168.3.26")
     }
-    host = "localhost"
-    port = 5443
     ssl { trustServerCertificate() }
 }
 ```
 
-- **`hostName(name)`** — matches the advertised hostname exactly, compared case-insensitively. The
-  compared value is the host machine's hostname (from the `hostName` TXT record, falling back to the
-  mDNS instance name).
-- **`address(ip)`** — an allowlist of resolved IPs; repeatable. A host is accepted only when it
+- **`matchHostName(name)`** — matches the advertised hostname exactly, compared case-insensitively.
+  The compared value is the host machine's hostname (from the `hostName` TXT record, falling back to
+  the mDNS instance name).
+- **`allowAddress(ip)`** — an allowlist of resolved IPs; repeatable. A host is accepted only when it
   resolves to one of them. (On iOS/macOS the agent connects by the resolved `.local.` hostname, so
-  prefer `hostName` there.)
+  prefer `matchHostName` there.)
 
-When both are set, a host must satisfy both.
+Everything inside the block is a filter, and when both are set a host must satisfy both.
 
 Discovery is best-effort: if no matching host is found within a few seconds — or on a platform
 without mDNS support (**JS/Wasm, Linux, Windows**) — the agent logs a warning and falls back to the
-configured `host`/`port`. So keep an explicit `host`/`port` as the fallback.
+endpoint passed as `fallback`.
 
 | Platform | Discovery backend |
 |----------|-------------------|
@@ -274,8 +278,7 @@ one trusted certificate is configured, the connection switches from ws to wss:
 ```kotlin
 startJetWhale {
     connection {
-        host = "localhost"
-        port = 5443 // the host's wss port
+        endpoint = fixed("localhost", 5443) // the host's wss port
 
         ssl {
             // Option A: fetch and pin the host's active CA automatically (trust-on-first-use).
@@ -332,7 +335,7 @@ behind a user permission, so add a usage-description string to the app's `Info.p
 ```xml
 <key>NSLocalNetworkUsageDescription</key>
 <string>JetWhale connects to the debugger host running on your local network.</string>
-<!-- Required when using discoverHost(): iOS blocks the Bonjour browse without it. -->
+<!-- Required when using discovered(): iOS blocks the Bonjour browse without it. -->
 <key>NSBonjourServices</key>
 <array>
     <string>_jetwhale._tcp</string>
@@ -340,7 +343,7 @@ behind a user permission, so add a usage-description string to the app's `Info.p
 ```
 
 iOS prompts the user to allow local-network access on the first connection. `NSBonjourServices` is
-required whenever you use [`discoverHost()`](#zero-config-host-discovery-recommended-for-physical-devices):
+required whenever you use [`discovered()`](#zero-config-host-discovery-recommended-for-physical-devices):
 iOS silently blocks browsing for a service type that is not declared. If you dial the host by an
 explicit address instead of discovering it, `NSBonjourServices` can be omitted. Because the CA fetch
 falls back to `https` over the wss port, no App Transport Security exception for plain HTTP is needed.

@@ -56,20 +56,37 @@ public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit): JetW
                 plugins = configuration.plugins.plugins,
             ),
         )
-    service.startService(
-        host = configuration.connection.host,
-        port = configuration.connection.port,
-        discovery = configuration.connection.discoveryConfiguration?.let { filter ->
-            HostDiscoveryConfig(
-                hostName = filter.hostName,
-                addresses = filter.addresses,
-                // Prefer the advertised wss port when SSL is configured, so a discovered LAN host is
-                // reached over the encrypted connector rather than plain ws.
-                preferWss = configuration.connection.sslConfiguration.isEnabled,
-            )
-        },
-    )
+    val target = configuration.connection.resolveTarget()
+    service.startService(host = target.host, port = target.port, discovery = target.discovery)
     return MessagingServiceSession(service)
+}
+
+/** The [JetWhaleMessagingService.startService] arguments a configured [endpoint] amounts to. */
+internal data class ResolvedConnectionTarget(
+    val host: String,
+    val port: Int,
+    val discovery: HostDiscoveryConfig?,
+)
+
+internal fun JetWhaleConnectionConfiguration.resolveTarget(): ResolvedConnectionTarget = when (val endpoint = endpoint) {
+    is JetWhaleFixedEndpoint -> ResolvedConnectionTarget(
+        host = endpoint.host,
+        port = endpoint.port,
+        discovery = null,
+    )
+
+    is JetWhaleDiscoveredEndpoint -> ResolvedConnectionTarget(
+        host = endpoint.fallback.host,
+        port = endpoint.fallback.port,
+        discovery = HostDiscoveryConfig(
+            hostName = endpoint.hostName,
+            addresses = endpoint.addresses,
+            // Prefer the advertised wss port when SSL is configured, so a discovered LAN host is
+            // reached over the encrypted connector rather than plain ws. Read here rather than in
+            // `discovered()` so `ssl {}` and `endpoint =` can appear in either order.
+            preferWss = sslConfiguration.isEnabled,
+        ),
+    )
 }
 
 private class MessagingServiceSession(private val service: JetWhaleMessagingService) : JetWhaleSession {
@@ -118,29 +135,64 @@ public interface JetWhaleAppConfigurationScope {
 
 @JetWhaleDsl
 public interface JetWhaleConnectionConfigurationScope {
+    /**
+     * The JetWhale host this agent connects to. Assign either [at] for a literal address, or
+     * [discovered] to find the host on the local network over mDNS/Bonjour.
+     *
+     * Defaults to `fixed("localhost", 8080)`.
+     */
+    public var endpoint: JetWhaleEndpoint
+
+    @Deprecated(
+        message = "Superseded by 'endpoint'. Assign endpoint = fixed(host, port) instead. " +
+            "Setting host/port still works and is equivalent to that assignment.",
+        level = DeprecationLevel.WARNING,
+    )
     public var host: String
+
+    @Deprecated(
+        message = "Superseded by 'endpoint'. Assign endpoint = fixed(host, port) instead. " +
+            "Setting host/port still works and is equivalent to that assignment.",
+        level = DeprecationLevel.WARNING,
+    )
     public var port: Int
 
     /**
-     * Enables zero-config host discovery over mDNS/DNS-SD (Bonjour). When enabled, the agent browses
-     * the local network for a `_jetwhale._tcp` service the host advertises while its debug server
-     * runs, resolves that host's address and port, and connects to it instead of [host]/[port].
+     * A literal address to connect to, e.g. `localhost` for an emulator/simulator or an
+     * ADB-forwarded device.
      *
-     * The wss port advertised by the host is used when `ssl {}` is configured, otherwise the plain-ws
-     * port. When no host is discovered within a short timeout, or the platform does not support mDNS
-     * (JS/Wasm/Linux/Windows), the connection falls back to the configured [host]/[port] with a
-     * warning log, so an explicit host stays a valid override (e.g. `localhost` for emulator/ADB).
+     * @param host The hostname or IP address of the JetWhale host.
+     * @param port The port the JetWhale host's debug server listens on.
+     */
+    public fun fixed(host: String, port: Int): JetWhaleFixedEndpoint
+
+    /**
+     * A host found by zero-config discovery over mDNS/DNS-SD (Bonjour): the agent browses the local
+     * network for the `_jetwhale._tcp` service the host advertises while its debug server runs, and
+     * connects to the address and port it advertises. Use this for physical LAN devices, which cannot
+     * reach the host over `localhost`.
+     *
+     * The advertised wss port is used when `ssl {}` is configured, otherwise the plain-ws port — so
+     * discovery resolves the port too, and [fallback]'s port applies only when discovery finds nothing.
+     *
+     * Discovery is best-effort, which is why [fallback] is required: when no matching host is found
+     * within a short timeout, or the platform does not support mDNS (JS/Wasm/Linux/Windows), the
+     * connection falls back to it with a warning log.
      *
      * iOS requires `_jetwhale._tcp` to be listed under `NSBonjourServices` in `Info.plist` alongside
      * `NSLocalNetworkUsageDescription`, otherwise the OS blocks the browse.
      *
-     * When several JetWhale hosts advertise on the network, constrain the selection with [configure]
-     * (see [JetWhaleHostDiscoveryScope]); with no filter the first discovered host is used and an
-     * explicit warning listing all discovered hosts is logged when more than one is found.
+     * When several JetWhale hosts advertise on the network, narrow the selection with [configure]
+     * (see [JetWhaleDiscoveredEndpointScope]); with no filter the first discovered host is used and a
+     * warning listing all discovered hosts is logged when more than one is found.
      *
-     * @param configure Optional filter for which discovered host to connect to.
+     * @param fallback Used when discovery finds no matching host in time, or the platform lacks mDNS.
+     * @param configure Optional filters narrowing which discovered host is accepted.
      */
-    public fun discoverHost(configure: JetWhaleHostDiscoveryScope.() -> Unit = {})
+    public fun discovered(
+        fallback: JetWhaleFixedEndpoint,
+        configure: JetWhaleDiscoveredEndpointScope.() -> Unit = {},
+    ): JetWhaleEndpoint
 
     /**
      * Configures SSL settings for the connection. When at least one trusted certificate is
@@ -151,25 +203,41 @@ public interface JetWhaleConnectionConfigurationScope {
     public fun ssl(configure: JetWhaleSslConfigurationScope.() -> Unit)
 }
 
+/**
+ * Where the agent connects to. Build one with [JetWhaleConnectionConfigurationScope.at] or
+ * [JetWhaleConnectionConfigurationScope.discovered].
+ */
+public sealed interface JetWhaleEndpoint
+
+/** A literal host/port, as built by [JetWhaleConnectionConfigurationScope.at]. */
+public class JetWhaleFixedEndpoint internal constructor(
+    internal val host: String,
+    internal val port: Int,
+) : JetWhaleEndpoint
+
+/**
+ * Filters narrowing which discovered host is accepted. Every filter set here must match, and a host
+ * that matches none of them is skipped rather than connected to.
+ */
 @JetWhaleDsl
-public interface JetWhaleHostDiscoveryScope {
+public interface JetWhaleDiscoveredEndpointScope {
     /**
-     * Restricts discovery to a host whose advertised hostname matches [name] exactly, compared
-     * case-insensitively. The compared value is the host machine's hostname (the mDNS instance name,
-     * or the `hostName` TXT record when the instance name was uniquified on collision).
+     * Accepts only a host whose advertised hostname equals [name], compared case-insensitively. The
+     * compared value is the host machine's hostname (the `hostName` TXT record, falling back to the
+     * mDNS instance name).
      *
      * @param name The host machine's hostname to match.
      */
-    public fun hostName(name: String)
+    public fun matchHostName(name: String)
 
     /**
-     * Adds an IP address to the allowlist: a discovered host is only accepted when it resolves to one
+     * Adds an IP address to the allowlist: a discovered host is accepted only when it resolves to one
      * of the added addresses. Repeatable. Use this to pin discovery to a specific machine, e.g. your
      * build machine's LAN IP.
      *
-     * @param ip The IP address a discovered host must resolve to.
+     * @param ip An IP address a discovered host is allowed to resolve to.
      */
-    public fun address(ip: String)
+    public fun allowAddress(ip: String)
 }
 
 @JetWhaleDsl
@@ -253,16 +321,41 @@ private class JetWhaleAppConfiguration : JetWhaleAppConfigurationScope {
     )
 }
 
-private class JetWhaleConnectionConfiguration : JetWhaleConnectionConfigurationScope {
+/** A host to be discovered over mDNS, as built by [JetWhaleConnectionConfigurationScope.discovered]. */
+internal class JetWhaleDiscoveredEndpoint(
+    val hostName: String?,
+    val addresses: List<String>,
+    val fallback: JetWhaleFixedEndpoint,
+) : JetWhaleEndpoint
+
+@Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+internal class JetWhaleConnectionConfiguration : JetWhaleConnectionConfigurationScope {
     override var host: String = "localhost"
     override var port: Int = 8080
     val sslConfiguration: JetWhaleSslConfiguration = JetWhaleSslConfiguration()
 
-    var discoveryConfiguration: JetWhaleHostDiscoveryConfiguration? = null
-        private set
+    private var assignedEndpoint: JetWhaleEndpoint? = null
 
-    override fun discoverHost(configure: JetWhaleHostDiscoveryScope.() -> Unit) {
-        discoveryConfiguration = JetWhaleHostDiscoveryConfiguration().apply(configure)
+    // Falling back to host/port keeps the deprecated properties working: leaving `endpoint` unassigned
+    // resolves to whatever they hold, defaults included.
+    override var endpoint: JetWhaleEndpoint
+        get() = assignedEndpoint ?: fixed(host, port)
+        set(value) {
+            assignedEndpoint = value
+        }
+
+    override fun fixed(host: String, port: Int): JetWhaleFixedEndpoint = JetWhaleFixedEndpoint(host, port)
+
+    override fun discovered(
+        fallback: JetWhaleFixedEndpoint,
+        configure: JetWhaleDiscoveredEndpointScope.() -> Unit,
+    ): JetWhaleEndpoint {
+        val filters = JetWhaleDiscoveredEndpointConfiguration().apply(configure)
+        return JetWhaleDiscoveredEndpoint(
+            hostName = filters.hostName,
+            addresses = filters.addresses,
+            fallback = fallback,
+        )
     }
 
     override fun ssl(configure: JetWhaleSslConfigurationScope.() -> Unit) {
@@ -270,18 +363,18 @@ private class JetWhaleConnectionConfiguration : JetWhaleConnectionConfigurationS
     }
 }
 
-internal class JetWhaleHostDiscoveryConfiguration : JetWhaleHostDiscoveryScope {
+private class JetWhaleDiscoveredEndpointConfiguration : JetWhaleDiscoveredEndpointScope {
     var hostName: String? = null
         private set
 
     private val mutableAddresses: MutableList<String> = mutableListOf()
     val addresses: List<String> get() = mutableAddresses
 
-    override fun hostName(name: String) {
+    override fun matchHostName(name: String) {
         hostName = name
     }
 
-    override fun address(ip: String) {
+    override fun allowAddress(ip: String) {
         mutableAddresses.add(ip)
     }
 }
