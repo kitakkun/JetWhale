@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.agent.runtime
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.net.InetAddress
 import javax.jmdns.JmDNS
 import javax.jmdns.ServiceInfo
 
@@ -13,9 +12,12 @@ private const val SERVICE_TYPE_LOCAL = "$JETWHALE_SERVICE_TYPE.local."
  * resolved within the timeout window.
  */
 internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): DiscoveryResult = withContext(Dispatchers.IO) {
+    val address = primaryMulticastAddress()
+        ?: return@withContext DiscoveryResult.Unavailable("no multicast-capable network interface is available")
+
     var jmdns: JmDNS? = null
     try {
-        jmdns = JmDNS.create(InetAddress.getLocalHost())
+        jmdns = JmDNS.create(address)
         // Blocking browse: returns the services resolved within the timeout window.
         DiscoveryResult.Browsed(jmdns.list(SERVICE_TYPE_LOCAL, timeoutMillis).mapNotNull { it.toDiscoveredService() })
     } catch (e: Exception) {

@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.agent.runtime
 
 import kotlinx.coroutines.runBlocking
-import java.net.InetAddress
 import javax.jmdns.JmDNS
 import javax.jmdns.ServiceInfo
 import kotlin.test.Test
@@ -11,9 +10,17 @@ class HostDiscoveryJvmTest {
     @Test
     fun `browse resolves a jmDNS-advertised JetWhale host round-trip`() = runBlocking {
         val instanceName = "jetwhale-test-${System.nanoTime()}"
+        // Advertise on the same kind of address the browse listens on. Binding this to
+        // InetAddress.getLocalHost() would put the service on loopback wherever the hostname resolves
+        // there, so the assertion below would be skipped forever instead of ever running.
+        val address = primaryMulticastAddress()
+        if (address == null) {
+            println("Skipping mDNS round-trip test: no multicast-capable interface")
+            return@runBlocking
+        }
         var jmdns: JmDNS? = null
         try {
-            jmdns = JmDNS.create(InetAddress.getLocalHost())
+            jmdns = JmDNS.create(address)
             val serviceInfo = ServiceInfo.create(
                 "_jetwhale._tcp.local.",
                 instanceName,

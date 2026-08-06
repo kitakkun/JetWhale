@@ -5,9 +5,52 @@ import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import org.slf4j.LoggerFactory
+import java.net.DatagramSocket
+import java.net.Inet4Address
 import java.net.InetAddress
+import java.net.NetworkInterface
+import java.util.Collections
 import javax.jmdns.JmDNS
 import javax.jmdns.ServiceInfo
+
+/** RFC 5737 documentation address: never routable, but enough for the kernel to pick a source address. */
+private const val ROUTE_PROBE_ADDRESS = "192.0.2.1"
+
+/**
+ * The address to advertise on: the one the OS would use to reach the network, since that is where the
+ * devices looking for this host are.
+ *
+ * `InetAddress.getLocalHost()` is not it. On a machine whose hostname resolves to loopback — the
+ * default on macOS and common on Linux — it returns `127.0.0.1`, so the service is announced on `lo0`
+ * and advertises `127.0.0.1` as its address: invisible to the network, and useless to anything that
+ * did see it.
+ *
+ * One address, not one per interface: jmDNS gives each stack its own identity, so two stacks on the
+ * same machine probe for the same instance name and declare a conflict against each other.
+ *
+ * @return null when the machine has no multicast-capable interface at all.
+ */
+internal fun primaryMulticastAddress(): Inet4Address? {
+    val candidates = multicastInterfaceAddresses()
+    val routed = routedSourceAddress()
+    return candidates.firstOrNull { it == routed } ?: candidates.firstOrNull()
+}
+
+/** Every IPv4 address mDNS can usefully be spoken on: up, multicast-capable, not loopback or a tunnel. */
+private fun multicastInterfaceAddresses(): List<Inet4Address> = Collections.list(NetworkInterface.getNetworkInterfaces())
+    .filter { it.isUp && !it.isLoopback && !it.isPointToPoint && it.supportsMulticast() }
+    .flatMap { Collections.list(it.inetAddresses) }
+    .filterIsInstance<Inet4Address>()
+
+/** The source address the OS would route from. Connecting a UDP socket sends nothing over the wire. */
+private fun routedSourceAddress(): InetAddress? = try {
+    DatagramSocket().use { socket ->
+        socket.connect(InetAddress.getByName(ROUTE_PROBE_ADDRESS), 9)
+        socket.localAddress
+    }
+} catch (e: Exception) {
+    null
+}
 
 /**
  * A thin seam over the mDNS/DNS-SD stack so the advertising logic (status observation, port tracking)
@@ -31,7 +74,7 @@ interface MdnsRegistrar {
     fun close()
 }
 
-/** jmDNS-backed [MdnsRegistrar]. The [JmDNS] instance is created lazily on the first registration. */
+/** jmDNS-backed [MdnsRegistrar]. The [JmDNS] stacks are created lazily on the first registration. */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 @Inject
@@ -44,7 +87,12 @@ class JmDnsRegistrar : MdnsRegistrar {
     override fun register(instanceName: String, wsPort: Int, wssPort: Int?) {
         unregister()
         try {
-            val instance = jmdns ?: JmDNS.create(InetAddress.getLocalHost()).also { jmdns = it }
+            val address = primaryMulticastAddress()
+            if (address == null) {
+                logger.warn("No multicast-capable network interface to advertise on; agents must use an explicit host")
+                return
+            }
+            val instance = jmdns ?: JmDNS.create(address).also { jmdns = it }
             val props = buildMap {
                 put(TXT_KEY_PROTOCOL_VERSION, PROTOCOL_VERSION)
                 put(TXT_KEY_WS_PORT, wsPort.toString())
@@ -57,7 +105,9 @@ class JmDnsRegistrar : MdnsRegistrar {
             val serviceInfo = ServiceInfo.create(SERVICE_TYPE, instanceName, wsPort, 0, 0, props)
             instance.registerService(serviceInfo)
             registeredService = serviceInfo
-            logger.info("Advertising JetWhale host over mDNS: $SERVICE_TYPE ws=$wsPort wss=$wssPort")
+            logger.info(
+                "Advertising JetWhale host over mDNS: $SERVICE_TYPE ws=$wsPort wss=$wssPort on ${address.hostAddress}",
+            )
         } catch (e: Exception) {
             // mDNS advertising is a convenience; a failure (e.g. multicast blocked) must not stop the
             // debug server. Explicit host/port configuration remains the fallback for agents.
