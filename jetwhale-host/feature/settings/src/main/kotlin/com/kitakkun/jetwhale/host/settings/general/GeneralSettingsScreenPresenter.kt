@@ -23,6 +23,7 @@ fun generalSettingsScreenPresenter(
     val updateCheckMutation = rememberMutation(presenterContext.updateCheckMutationKey)
     val updateInstallMutation = rememberMutation(presenterContext.updateInstallMutationKey)
     val checkForUpdatesOnStartupMutation = rememberMutation(presenterContext.checkForUpdatesOnStartupMutationKey)
+    val followAiOperationMutation = rememberMutation(presenterContext.followAiOperationMutationKey)
 
     ActionEffect(screenChannel) { action ->
         when (action) {
@@ -52,6 +53,10 @@ fun generalSettingsScreenPresenter(
             is GeneralSettingsScreenAction.ChangeCheckForUpdatesOnStartup -> {
                 checkForUpdatesOnStartupMutation.mutateAsync(action.enabled)
             }
+
+            is GeneralSettingsScreenAction.ChangeFollowAiOperation -> {
+                followAiOperationMutation.mutateAsync(action.enabled)
+            }
         }
     }
 
@@ -64,6 +69,7 @@ fun generalSettingsScreenPresenter(
         adbPath = diagnostics.adbPath,
         currentVersion = presenterContext.hostVersionInfo.version,
         checkForUpdatesOnStartup = debuggerBehaviorSettings.checkForUpdatesOnStartup,
+        followAiOperation = debuggerBehaviorSettings.followAiOperationEnabled,
         isCheckingForUpdates = updateCheckMutation.isPending,
         updateCheckResult = updateCheckMutation.data,
         updateCheckError = updateCheckMutation.error?.message,

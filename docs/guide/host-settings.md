@@ -9,7 +9,7 @@ Settings are organized into four **sections**, each holding one or more **pages*
 |---------|-------|
 | **General** | [Appearance](#appearance), [Application](#application) |
 | **Connection** | [Debug Server](#debug-server), [SSL Certificate](#ssl-certificates), [ADB Support](#adb-support) |
-| **AI Agents** | [MCP Server](#mcp-server), [Permissions](#mcp-permissions) |
+| **AI Agents** | [MCP Server](#mcp-server), [Permissions](#mcp-permissions), [Activity](#ai-activity) |
 | **Plugins** | [Installed Plugins](#plugins), [Add Plugins](#plugins), [Security](#plugin-trust) |
 
 ::: tip Window size and position
@@ -147,6 +147,20 @@ the agent's own connection — so that change takes effect on the next host star
 The **Settings → AI Agents → Permissions** page is a checkbox tree deciding what an AI agent may do,
 from read-only observation through to restarting the debug server. See
 [MCP Server → Permissions](/guide/mcp-server#permissions).
+
+### AI Activity
+
+The **Settings → AI Agents → Activity** page decides how the host window behaves while an agent is
+working.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **Follow the plugin an AI agent operates** | On | While an agent drives a plugin over MCP, the main window switches to that plugin so you can watch it work. |
+
+Only a tool call that names a plugin moves the window; host-level calls (navigation, settings,
+status) leave it alone, and so does a plugin already popped out into its own window — it is visible
+where it is. While the window is following, a banner above the plugin names the tool running and
+offers **Stop following**, which turns the setting off without a trip back to this page.
 
 ## Plugins
 

@@ -78,6 +78,12 @@ fun JetWhaleApp() {
         }
     }
 
+    // Started from the window rather than at app start: it drives the navigation this window owns,
+    // and a headless run has nothing to point anywhere.
+    LaunchedEffect(Unit) {
+        appGraph.followAiOperationService.followAiOperations()
+    }
+
     LaunchedEffect(Unit) {
         // dispose plugin scenes when the debug websocket server is stopped, as all plugin sessions will be closed
         appGraph.debugWebSocketServer.serverStoppedFlow.collect {

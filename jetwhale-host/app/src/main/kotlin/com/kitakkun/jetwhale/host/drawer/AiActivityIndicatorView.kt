@@ -260,7 +260,11 @@ fun CompactAiActivityIndicatorView(
 @Composable
 private fun AiActivityIndicatorConnectedPreview() {
     AiActivityIndicatorView(
-        uiState = AiActivityUiState(isAgentConnected = true, operatingToolName = null),
+        uiState = AiActivityUiState(
+            isAgentConnected = true,
+            operatingToolName = null,
+            isFollowingOperation = false,
+        ),
     )
 }
 
@@ -268,6 +272,10 @@ private fun AiActivityIndicatorConnectedPreview() {
 @Composable
 private fun AiActivityIndicatorOperatingPreview() {
     AiActivityIndicatorView(
-        uiState = AiActivityUiState(isAgentConnected = true, operatingToolName = "jetwhale.click"),
+        uiState = AiActivityUiState(
+            isAgentConnected = true,
+            operatingToolName = "jetwhale.click",
+            isFollowingOperation = true,
+        ),
     )
 }

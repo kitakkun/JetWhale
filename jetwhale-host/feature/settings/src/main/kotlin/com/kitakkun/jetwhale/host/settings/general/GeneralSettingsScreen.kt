@@ -47,11 +47,14 @@ import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
 import com.kitakkun.jetwhale.host.settings.component.SettingsItemRow
 import com.kitakkun.jetwhale.host.settings.component.SwitchSettingsItemView
 import com.kitakkun.jetwhale.host.settings.current_version
+import com.kitakkun.jetwhale.host.settings.follow_ai_operation
+import com.kitakkun.jetwhale.host.settings.follow_ai_operation_description
 import com.kitakkun.jetwhale.host.settings.health_check
 import com.kitakkun.jetwhale.host.settings.install_update
 import com.kitakkun.jetwhale.host.settings.language_option
 import com.kitakkun.jetwhale.host.settings.maintenance
 import com.kitakkun.jetwhale.host.settings.open_download_page
+import com.kitakkun.jetwhale.host.settings.settings_page_ai_activity
 import com.kitakkun.jetwhale.host.settings.theme_option
 import com.kitakkun.jetwhale.host.settings.update_available
 import com.kitakkun.jetwhale.host.settings.update_available_hint
@@ -74,6 +77,7 @@ fun GeneralSettingsScreen(
     onClickOpenLogViewer: () -> Unit,
     onClickCheckForUpdates: () -> Unit,
     onCheckForUpdatesOnStartupChange: (Boolean) -> Unit,
+    onFollowAiOperationChange: (Boolean) -> Unit,
     onClickInstallUpdate: () -> Unit,
     onClickOpenDownloadPage: (url: String) -> Unit,
 ) {
@@ -111,6 +115,22 @@ fun GeneralSettingsScreen(
                         label = stringResource(Res.string.automatically_wire_adb_transport),
                         isChecked = uiState.automaticallyWireADBTransport,
                         onCheckedChange = onAutomaticallyWireADBTransportChange,
+                    )
+                }
+            }
+        }
+        if (page == SettingsScreenPage.AiActivity) {
+            item {
+                SettingOptionView(stringResource(Res.string.settings_page_ai_activity)) {
+                    SwitchSettingsItemView(
+                        label = stringResource(Res.string.follow_ai_operation),
+                        isChecked = uiState.followAiOperation,
+                        onCheckedChange = onFollowAiOperationChange,
+                    )
+                    Text(
+                        text = stringResource(Res.string.follow_ai_operation_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -282,6 +302,7 @@ private fun GeneralSettingsScreenPreview() {
             adbPath = "/path/to/adb",
             currentVersion = "1.0.0-alpha08",
             checkForUpdatesOnStartup = true,
+            followAiOperation = true,
             isCheckingForUpdates = false,
             updateCheckResult = null,
             updateCheckError = null,
@@ -294,6 +315,7 @@ private fun GeneralSettingsScreenPreview() {
         onClickOpenLogViewer = {},
         onClickCheckForUpdates = {},
         onCheckForUpdatesOnStartupChange = {},
+        onFollowAiOperationChange = {},
         onClickInstallUpdate = {},
         onClickOpenDownloadPage = {},
     )

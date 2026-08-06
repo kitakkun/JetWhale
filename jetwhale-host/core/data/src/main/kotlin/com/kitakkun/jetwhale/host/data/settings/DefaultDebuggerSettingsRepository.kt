@@ -90,6 +90,13 @@ class DefaultDebuggerSettingsRepository(
             started = SharingStarted.Eagerly,
             initialValue = DEFAULT_WSS_ENABLED,
         )
+    override val followAiOperationEnabledFlow = dataStore.data
+        .map { it[KEY_FOLLOW_AI_OPERATION_ENABLED] ?: DEFAULT_FOLLOW_AI_OPERATION_ENABLED }
+        .stateIn(
+            scope = coroutineScope,
+            started = SharingStarted.Eagerly,
+            initialValue = DEFAULT_FOLLOW_AI_OPERATION_ENABLED,
+        )
 
     override suspend fun readAdbAutoPortMappingEnabled(): Boolean = dataStore.data.first()[KEY_ADB_AUTO_PORT_MAPPING_ENABLED] ?: DEFAULT_ADB_AUTO_PORT_MAPPING_ENABLED
 
@@ -148,6 +155,12 @@ class DefaultDebuggerSettingsRepository(
         }
     }
 
+    override suspend fun updateFollowAiOperationEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[KEY_FOLLOW_AI_OPERATION_ENABLED] = enabled
+        }
+    }
+
     /** Lets a launch override win over the stored value this flow carries. */
     private fun Flow<Int>.overriddenBy(selectOverride: (ServerPortOverrides) -> Int?): Flow<Int> = combine(portOverrides) { storedPort, overrides -> selectOverride(overrides) ?: storedPort }
 
@@ -173,6 +186,13 @@ class DefaultDebuggerSettingsRepository(
         private val KEY_MCP_SERVER_PORT = intPreferencesKey("mcp_server_port")
         private val KEY_WSS_PORT = intPreferencesKey("wss_port")
         private val KEY_WSS_ENABLED = booleanPreferencesKey("wss_enabled")
+        private val KEY_FOLLOW_AI_OPERATION_ENABLED = booleanPreferencesKey("follow_ai_operation_enabled")
+
+        /**
+         * On by default: an agent driving a plugin the window is not showing is exactly the case
+         * this exists for, and someone who would rather stay put can say so in the settings.
+         */
+        private const val DEFAULT_FOLLOW_AI_OPERATION_ENABLED = true
         private const val DEFAULT_SERVER_PORT = 5080
         private const val DEFAULT_MCP_SERVER_PORT = 7080
         private const val DEFAULT_WSS_PORT = 5443
