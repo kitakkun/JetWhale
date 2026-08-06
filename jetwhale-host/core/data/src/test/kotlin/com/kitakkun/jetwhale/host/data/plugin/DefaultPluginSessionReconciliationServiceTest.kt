@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
+import com.kitakkun.jetwhale.host.model.HeadlessPlugins
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -137,6 +139,8 @@ class DefaultPluginSessionReconciliationServiceTest {
         private val initializedSessionIds = mutableSetOf<String>()
 
         override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent> = MutableSharedFlow()
+
+        override val headlessPluginsFlow: StateFlow<HeadlessPlugins> = MutableStateFlow(HeadlessPlugins.Empty)
 
         override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
             // Mirrors the real service: an id with no loaded plugin yields no instance.

@@ -45,12 +45,13 @@ fun ToolingScaffoldRoot(
         state5 = rememberSubscription(screenContext.mcpActivitySubscriptionKey),
         state6 = rememberSubscription(screenContext.mcpCapablePluginsSubscriptionKey),
     ) { loadedPlugins, debugSessions, enabledPluginIds, failedJars, mcpActivity, mcpCapablePlugins ->
-        // Nested rather than a seventh state: the boundary above is already at the arity it
-        // provides, and the settings read here are backed by an eagerly-started store, so the extra
-        // level resolves in the same frame.
+        // Nested rather than further states: the boundary above is already at the arity it provides,
+        // and both reads here are backed by an eagerly-started store, so the extra level resolves in
+        // the same frame.
         SoilDataBoundary(
-            state = rememberSubscription(screenContext.settingsSubscriptionKey),
-        ) { debuggerSettings ->
+            state1 = rememberSubscription(screenContext.settingsSubscriptionKey),
+            state2 = rememberSubscription(screenContext.headlessPluginsSubscriptionKey),
+        ) { debuggerSettings, headlessPlugins ->
             val screenChannel = rememberScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>()
             val snackbarHostState = remember { SnackbarHostState() }
             ActionResultEffect(screenChannel) { result ->
@@ -78,6 +79,7 @@ fun ToolingScaffoldRoot(
                     hasFailedJars = failedJars.isNotEmpty(),
                     mcpActivity = mcpActivity,
                     mcpCapablePlugins = mcpCapablePlugins,
+                    headlessPlugins = headlessPlugins,
                     followAiOperationEnabled = debuggerSettings.followAiOperationEnabled,
                     isPluginPoppedOut = isPoppedOut,
                 )

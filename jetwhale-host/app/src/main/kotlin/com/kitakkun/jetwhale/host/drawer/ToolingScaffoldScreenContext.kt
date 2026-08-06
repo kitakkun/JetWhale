@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.host.model.DebugSessionsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.EnabledPluginsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.FailedPluginJarPathsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.FollowAiOperationMutationKey
+import com.kitakkun.jetwhale.host.model.HeadlessPluginsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpActivitySubscriptionKey
@@ -36,6 +37,7 @@ class ToolingScaffoldScreenContext(
     val mcpActivitySubscriptionKey: McpActivitySubscriptionKey,
     val mcpCapablePluginsSubscriptionKey: McpCapablePluginsSubscriptionKey,
     val settingsSubscriptionKey: SettingsSubscriptionKey,
+    val headlessPluginsSubscriptionKey: HeadlessPluginsSubscriptionKey,
     val hostNavigationService: HostNavigationService,
     val presenterContext: ToolingScaffoldPresenterContext,
 ) : ScreenContext

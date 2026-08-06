@@ -207,7 +207,9 @@ fun ExpandedToolingDrawerView(
                                                         dismiss()
                                                     },
                                                 )
-                                            } else {
+                                            } else if (!it.isHeadless) {
+                                                // A window of its own would only carry the "no UI"
+                                                // notice, so a headless plugin is not offered one.
                                                 DropdownMenuItem(
                                                     text = { Text(stringResource(Res.string.popout)) },
                                                     leadingIcon = {

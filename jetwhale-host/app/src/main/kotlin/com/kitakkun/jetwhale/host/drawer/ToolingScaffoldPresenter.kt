@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.host.architecture.MutationErrorEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.component.rememberAiOperating
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.HeadlessPlugins
 import com.kitakkun.jetwhale.host.model.McpActivity
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
@@ -80,6 +81,7 @@ fun toolingScaffoldPresenter(
     hasFailedJars: Boolean,
     mcpActivity: McpActivity,
     mcpCapablePlugins: McpCapablePlugins,
+    headlessPlugins: HeadlessPlugins,
     followAiOperationEnabled: Boolean,
     isPluginPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
 ): ToolingScaffoldUiState {
@@ -95,7 +97,7 @@ fun toolingScaffoldPresenter(
     val setPluginEnabledMutation = rememberMutation(presenterContext.setPluginEnabledMutationKey)
     val followAiOperationMutation = rememberMutation(presenterContext.followAiOperationMutationKey)
 
-    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, activeInvocation) {
+    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, activeInvocation) {
         derivedStateOf {
             // Attribute the operation only when it targets the session the drawer is showing;
             // highlighting a plugin for some other device would be misleading.
@@ -125,6 +127,7 @@ fun toolingScaffoldPresenter(
                     },
                     underAiControl = aiControlledPluginId == metaData.id,
                     exposesMcpTools = mcpCapablePlugins.toolsFor(selectedSession?.id, metaData.id).isNotEmpty(),
+                    isHeadless = headlessPlugins.isHeadless(selectedSession?.id, metaData.id),
                 )
             }.toImmutableList()
         }
