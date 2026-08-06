@@ -1,11 +1,11 @@
 # What is JetWhale?
 
-JetWhale is an extensible debugging tool for Kotlin apps, inspired by
-[Flipper](https://github.com/facebook/flipper). You run a desktop app on your machine, add a small
-runtime to the app you are debugging, and inspect it live through plugins.
+JetWhale is an extensible debugging tool inspired by
+[Flipper](https://github.com/facebook/flipper).
 
-Both sides are written in Kotlin and Jetpack Compose, so the plugins you write — and the API you
-write them against — are the ones you already know.
+It is built with Kotlin and Jetpack Compose, making it especially familiar and approachable for
+Kotlin / Android developers. Thanks to its Kotlin-first design, JetWhale can be introduced with a
+minimal learning curve.
 
 ::: warning Active development
 This project is under active development. We welcome feedback as we work toward a stable release.

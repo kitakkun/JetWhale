@@ -8,11 +8,12 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![License](https://img.shields.io/github/license/kitakkun/JetWhale)](LICENSE)
 
-JetWhale is an extensible debugging tool for Kotlin apps, inspired
+JetWhale is an extensible debugging tool inspired
 by [Flipper](https://github.com/facebook/flipper).
 
-It is built with Kotlin and Jetpack Compose, so the debugger you run — and the plugins you write for
-it — use the APIs you already know.
+It is built with Kotlin and Jetpack Compose, making it especially familiar and approachable for
+Kotlin / Android developers.
+Thanks to its Kotlin-first design, JetWhale can be introduced with a minimal learning curve.
 
 ## Features
 
