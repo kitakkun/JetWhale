@@ -66,7 +66,7 @@ internal fun JetWhaleConnectionConfiguration.endpointResolver(): EndpointResolve
 
     is JetWhaleDiscoveredEndpoint -> MdnsEndpointResolver(
         discovery = HostDiscoveryConfig(
-            hostName = endpoint.hostName,
+            hostNames = endpoint.hostNames,
             addresses = endpoint.addresses,
             // The connection uses wss exactly when SSL is configured, so a discovered host has to
             // advertise that scheme's port. Read here rather than in `discovered()` so `ssl {}` and
@@ -206,19 +206,21 @@ public class JetWhaleFixedEndpoint internal constructor(
 ) : JetWhaleEndpoint
 
 /**
- * Filters narrowing which discovered host is accepted. Every filter set here must match, and a host
- * that matches none of them is skipped rather than connected to.
+ * Allowlists narrowing which discovered host is accepted. Each is repeatable and independently
+ * optional; a host has to satisfy every allowlist that has entries, and one that does not is skipped
+ * rather than connected to.
  */
 @JetWhaleDsl
 public interface JetWhaleDiscoveredEndpointScope {
     /**
-     * Accepts only a host whose advertised hostname equals [name], compared case-insensitively. The
-     * compared value is the host machine's hostname (the `hostName` TXT record, falling back to the
-     * mDNS instance name).
+     * Adds a hostname to the allowlist: a discovered host is accepted only when its advertised
+     * hostname equals one of the added names, compared case-insensitively. Repeatable. The compared
+     * value is the host machine's hostname (the `hostName` TXT record, falling back to the mDNS
+     * instance name).
      *
-     * @param name The host machine's hostname to match.
+     * @param name A hostname a discovered host is allowed to advertise.
      */
-    public fun matchHostName(name: String)
+    public fun allowHostName(name: String)
 
     /**
      * Adds an IP address to the allowlist: a discovered host is accepted only when it resolves to one
@@ -313,7 +315,7 @@ private class JetWhaleAppConfiguration : JetWhaleAppConfigurationScope {
 
 /** A host to be discovered over mDNS, as built by [JetWhaleConnectionConfigurationScope.discovered]. */
 internal class JetWhaleDiscoveredEndpoint(
-    val hostName: String?,
+    val hostNames: List<String>,
     val addresses: List<String>,
     val fallback: JetWhaleFixedEndpoint,
 ) : JetWhaleEndpoint
@@ -342,7 +344,7 @@ internal class JetWhaleConnectionConfiguration : JetWhaleConnectionConfiguration
     ): JetWhaleEndpoint {
         val filters = JetWhaleDiscoveredEndpointConfiguration().apply(configure)
         return JetWhaleDiscoveredEndpoint(
-            hostName = filters.hostName,
+            hostNames = filters.hostNames,
             addresses = filters.addresses,
             fallback = fallback,
         )
@@ -354,14 +356,14 @@ internal class JetWhaleConnectionConfiguration : JetWhaleConnectionConfiguration
 }
 
 private class JetWhaleDiscoveredEndpointConfiguration : JetWhaleDiscoveredEndpointScope {
-    var hostName: String? = null
-        private set
+    private val mutableHostNames: MutableList<String> = mutableListOf()
+    val hostNames: List<String> get() = mutableHostNames
 
     private val mutableAddresses: MutableList<String> = mutableListOf()
     val addresses: List<String> get() = mutableAddresses
 
-    override fun matchHostName(name: String) {
-        hostName = name
+    override fun allowHostName(name: String) {
+        mutableHostNames.add(name)
     }
 
     override fun allowAddress(ip: String) {

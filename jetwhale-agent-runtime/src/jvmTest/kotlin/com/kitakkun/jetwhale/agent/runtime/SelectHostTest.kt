@@ -18,10 +18,10 @@ private fun service(
 )
 
 private fun discovery(
-    hostName: String? = null,
+    hostNames: List<String> = emptyList(),
     addresses: List<String> = emptyList(),
     useWss: Boolean = false,
-) = HostDiscoveryConfig(hostName = hostName, addresses = addresses, useWss = useWss)
+) = HostDiscoveryConfig(hostNames = hostNames, addresses = addresses, useWss = useWss)
 
 class SelectHostTest {
     private val plainOnly = service("plain-host", "192.168.3.26", wsPort = 5080, wssPort = null)
@@ -59,12 +59,19 @@ class SelectHostTest {
 
     @Test
     fun `hostName is matched case-insensitively`() {
-        assertEquals("192.168.3.26", selectHost(listOf(plainOnly, bothPorts), discovery(hostName = "PLAIN-HOST"))?.service?.address)
+        assertEquals("192.168.3.26", selectHost(listOf(plainOnly, bothPorts), discovery(hostNames = listOf("PLAIN-HOST")))?.service?.address)
     }
 
     @Test
     fun `a hostName that matches nothing selects nothing`() {
-        assertNull(selectHost(listOf(plainOnly, bothPorts), discovery(hostName = "absent-host")))
+        assertNull(selectHost(listOf(plainOnly, bothPorts), discovery(hostNames = listOf("absent-host"))))
+    }
+
+    @Test
+    fun `the hostName allowlist admits a host matching any of its entries`() {
+        val allowed = discovery(hostNames = listOf("absent-host", "secure-host"))
+
+        assertEquals("192.168.3.27", selectHost(listOf(plainOnly, bothPorts), allowed)?.service?.address)
     }
 
     @Test
@@ -75,10 +82,10 @@ class SelectHostTest {
 
     @Test
     fun `hostName and address must both match when both are set`() {
-        assertNull(selectHost(listOf(plainOnly), discovery(hostName = "plain-host", addresses = listOf("10.0.0.1"))))
+        assertNull(selectHost(listOf(plainOnly), discovery(hostNames = listOf("plain-host"), addresses = listOf("10.0.0.1"))))
         assertEquals(
             "192.168.3.26",
-            selectHost(listOf(plainOnly), discovery(hostName = "plain-host", addresses = listOf("192.168.3.26")))?.service?.address,
+            selectHost(listOf(plainOnly), discovery(hostNames = listOf("plain-host"), addresses = listOf("192.168.3.26")))?.service?.address,
         )
     }
 
@@ -92,6 +99,6 @@ class SelectHostTest {
             wssPort = null,
         )
 
-        assertEquals("192.168.3.28", selectHost(listOf(unnamed), discovery(hostName = "fallback-name"))?.service?.address)
+        assertEquals("192.168.3.28", selectHost(listOf(unnamed), discovery(hostNames = listOf("fallback-name")))?.service?.address)
     }
 }

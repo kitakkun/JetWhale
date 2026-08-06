@@ -26,17 +26,17 @@ internal interface JetWhaleMessagingService {
 /**
  * Which advertised host the agent will accept, and on which port.
  *
- * @property hostName When non-null, only a host whose advertised hostname matches this (exact,
+ * @property hostNames When non-empty, only a host advertising one of these hostnames (exact,
  *   case-insensitive) is selected.
  * @property addresses When non-empty, only a host resolving to one of these IP addresses is selected.
  * @property useWss Whether the connection will use wss (true when `ssl {}` is configured). A host is
  *   usable only when it advertises the port for that scheme, since the scheme is not negotiable.
  */
 internal data class HostDiscoveryConfig(
-    val hostName: String?,
+    val hostNames: List<String>,
     val addresses: List<String>,
     val useWss: Boolean,
 ) {
-    /** True when at least one selection filter narrows the discovered hosts. */
-    val hasFilter: Boolean get() = hostName != null || addresses.isNotEmpty()
+    /** True when at least one allowlist narrows the discovered hosts. */
+    val hasFilter: Boolean get() = hostNames.isNotEmpty() || addresses.isNotEmpty()
 }

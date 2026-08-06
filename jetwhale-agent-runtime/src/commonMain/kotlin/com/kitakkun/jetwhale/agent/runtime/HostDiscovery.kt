@@ -130,16 +130,16 @@ internal class MdnsEndpointResolver(
         if (!ambiguous) return chosen
         val listed = services.joinToString { "${it.displayName()}@${it.address}" }
         return "$chosen — but ${services.size} hosts advertised and no filter was set. Discovered: $listed. " +
-            "Narrow with discovered(fallback) { matchHostName(...) } or allowAddress(...)."
+            "Narrow with discovered(fallback) { allowHostName(...) } or allowAddress(...)."
     }
 }
 
 private fun DiscoveredService.displayName(): String = advertisedHostName ?: instanceName
 
 private fun DiscoveredService.matches(discovery: HostDiscoveryConfig): Boolean {
-    // hostName filter: exact, case-insensitive, compared against the advertised hostname (falling
+    // hostName allowlist: exact, case-insensitive, compared against the advertised hostname (falling
     // back to the instance name when the host advertised no hostName TXT record).
-    if (discovery.hostName != null && !displayName().equals(discovery.hostName, ignoreCase = true)) {
+    if (discovery.hostNames.isNotEmpty() && discovery.hostNames.none { displayName().equals(it, ignoreCase = true) }) {
         return false
     }
     // address allowlist: the resolved address must be one of the configured addresses.

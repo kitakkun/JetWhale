@@ -74,7 +74,7 @@ abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleConnectionConfigu
 
 abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveredEndpointScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveredEndpointScope|null[0]
     abstract fun allowAddress(kotlin/String) // com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveredEndpointScope.allowAddress|allowAddress(kotlin.String){}[0]
-    abstract fun matchHostName(kotlin/String) // com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveredEndpointScope.matchHostName|matchHostName(kotlin.String){}[0]
+    abstract fun allowHostName(kotlin/String) // com.kitakkun.jetwhale.agent.runtime/JetWhaleDiscoveredEndpointScope.allowHostName|allowHostName(kotlin.String){}[0]
 }
 
 abstract interface com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope { // com.kitakkun.jetwhale.agent.runtime/JetWhaleLoggingConfigurationScope|null[0]

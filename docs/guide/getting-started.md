@@ -236,25 +236,27 @@ warning listing all discovered hosts). Narrow the selection with a filter block:
 ```kotlin
 connection {
     endpoint = discovered(fallback = fixed("localhost", 5443)) {
-        // Accept only the host whose machine hostname equals this (exact, case-insensitive).
-        matchHostName("my-macbook")
+        // Accept only a host advertising this machine hostname (exact, case-insensitive).
+        allowHostName("my-macbook")
 
-        // ...and/or only hosts resolving to specific IPs (repeatable allowlist), e.g. to pin
-        // discovery to your build machine.
+        // ...and/or only hosts resolving to specific IPs, e.g. to pin discovery to your build
+        // machine — which may answer on both Wi-Fi and Ethernet.
         allowAddress("192.168.3.26")
+        allowAddress("192.168.3.27")
     }
     ssl { trustServerCertificate() }
 }
 ```
 
-- **`matchHostName(name)`** — matches the advertised hostname exactly, compared case-insensitively.
+- **`allowHostName(name)`** — matches the advertised hostname exactly, compared case-insensitively.
   The compared value is the host machine's hostname (from the `hostName` TXT record, falling back to
   the mDNS instance name).
-- **`allowAddress(ip)`** — an allowlist of resolved IPs; repeatable. A host is accepted only when it
-  resolves to one of them. (On iOS/macOS the agent connects by the resolved `.local.` hostname, so
-  prefer `matchHostName` there.)
+- **`allowAddress(ip)`** — matches a resolved IP. (On iOS/macOS the agent connects by the resolved
+  `.local.` hostname, so prefer `allowHostName` there.)
 
-Everything inside the block is a filter, and when both are set a host must satisfy both.
+Both are **repeatable allowlists**: calling one twice widens it rather than replacing the earlier
+value. An empty allowlist means "no restriction on this", so a host must match every allowlist that
+has entries — name **and** address when both are set, either entry within each.
 
 Discovery is best-effort: if no matching host is found within a few seconds — or on a platform
 without mDNS support (**JS/Wasm, Linux, Windows**) — the agent logs a warning and falls back to the

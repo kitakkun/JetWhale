@@ -50,14 +50,16 @@ class ConnectionEndpointTest {
     fun `a discovered endpoint carries its filters and its fallback`() {
         val resolver = mdns {
             endpoint = discovered(fallback = fixed("localhost", 5443)) {
-                matchHostName("build-machine")
+                allowHostName("build-machine")
+                allowHostName("spare-machine")
                 allowAddress("192.168.3.26")
                 allowAddress("192.168.3.27")
             }
         }
 
         assertEquals(ResolvedEndpoint("localhost", 5443), resolver.fallback)
-        assertEquals("build-machine", resolver.discovery.hostName)
+        // Both allowlists accumulate, so neither call silently drops the one before it.
+        assertEquals(listOf("build-machine", "spare-machine"), resolver.discovery.hostNames)
         assertEquals(listOf("192.168.3.26", "192.168.3.27"), resolver.discovery.addresses)
     }
 
@@ -65,7 +67,7 @@ class ConnectionEndpointTest {
     fun `a discovered endpoint without filters accepts any advertised host`() {
         val resolver = mdns { endpoint = discovered(fallback = fixed("localhost", 5443)) }
 
-        assertEquals(null, resolver.discovery.hostName)
+        assertEquals(emptyList(), resolver.discovery.hostNames)
         assertEquals(emptyList(), resolver.discovery.addresses)
         assertEquals(false, resolver.discovery.hasFilter)
     }
