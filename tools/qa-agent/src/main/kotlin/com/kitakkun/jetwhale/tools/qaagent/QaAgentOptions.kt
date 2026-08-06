@@ -8,6 +8,14 @@ internal const val DEFAULT_PLUGIN_VERSION = "1.0.0"
 internal const val DEFAULT_APP_NAME = "qa-agent"
 
 /**
+ * Id of the Network agent plugin every app carries so `/fire` has something to capture traffic with.
+ * A wire-level stand-in must never be registered under it: the two would claim the same id in one
+ * session, and the stand-in — which registers no request handlers — would shadow the real plugin's,
+ * leaving mocking unreachable. Pinned against the real plugin by `QaAgentOptionsTest`.
+ */
+internal const val BUILT_IN_NETWORK_PLUGIN_ID = "com.kitakkun.jetwhale.network"
+
+/**
  * What the agent impersonates and where it connects.
  *
  * @param apps names of the apps to connect as, one session each. Never empty.
@@ -31,6 +39,7 @@ internal val usage = """
       --plugin <id>[@<version>]  Register a raw-messaging plugin under this id, so /send and
                                  /request can drive its host counterpart. Registered for every app.
                                  Repeatable. Version defaults to $DEFAULT_PLUGIN_VERSION.
+                                 $BUILT_IN_NETWORK_PLUGIN_ID is rejected: it is always registered.
       --host <name>              JetWhale host to connect to (default: localhost).
       --port <n>                 Host debug port (default: $DEFAULT_HOST_PORT).
       --control-port <n>         Port for this agent's own control API (default: $DEFAULT_CONTROL_PORT).
@@ -61,6 +70,10 @@ internal fun parseArgs(args: Array<String>): QaAgentOptions {
             "--plugin" -> {
                 val (id, version) = valueOf(++i, arg).split("@", limit = 2).let {
                     it[0] to (it.getOrNull(1) ?: DEFAULT_PLUGIN_VERSION)
+                }
+                require(id != BUILT_IN_NETWORK_PLUGIN_ID) {
+                    "--plugin $id is already built in; registering it again would shadow its request " +
+                        "handlers and leave mocking unreachable. Drop the flag — the plugin is always on.\n\n$usage"
                 }
                 plugins[id] = version
             }
