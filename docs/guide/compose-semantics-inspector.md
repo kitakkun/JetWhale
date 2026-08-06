@@ -112,7 +112,7 @@ import com.kitakkun.jetwhale.agent.runtime.startJetWhale
 import com.kitakkun.jetwhale.plugins.semantics.agent.JetWhaleSemanticsAgentPlugin
 
 startJetWhale {
-    connection { endpoint = fixed("localhost", 5080) }
+    connection { endpoints { ws("localhost", 5080) } }
     plugins { register(JetWhaleSemanticsAgentPlugin()) }
 }
 ```

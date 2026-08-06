@@ -60,31 +60,40 @@ public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit): JetW
     return MessagingServiceSession(service)
 }
 
-/** The resolver a configured `endpoint` amounts to, once `ssl {}` is known. */
-internal fun JetWhaleConnectionConfiguration.endpointResolver(): EndpointResolver = when (val endpoint = endpoint) {
-    is JetWhaleLiteralEndpoint -> FixedEndpointResolver(endpoint.resolved(sslConfiguration.isEnabled))
+/** The resolver a configured `endpoints { }` amounts to, in the order its candidates were declared. */
+internal fun JetWhaleConnectionConfiguration.endpointResolver(): EndpointResolver {
+    val declared = candidates.ifEmpty {
+        // Nothing declared: the deprecated host/port carry whatever they hold, defaults included, and
+        // take their scheme from `ssl { }` the way the whole connection used to.
+        @Suppress("DEPRECATION")
+        listOf(EndpointCandidate.Static(host, port, useWss = sslConfiguration.isEnabled))
+    }
+    declared.forEach { it.warnIfPlainOffMachine() }
+    return CandidateListResolver(declared.map { it.resolver() })
+}
 
-    is JetWhaleDiscoveredEndpoint -> MdnsEndpointResolver(
-        discovery = HostDiscoveryConfig(
-            hostNames = endpoint.hostNames,
-            addresses = endpoint.addresses,
-            // The connection uses wss exactly when SSL is configured, so a discovered host has to
-            // advertise that scheme's port. Read here rather than in `discovered()` so `ssl {}` and
-            // `endpoint =` can appear in either order.
-            useWss = sslConfiguration.isEnabled,
-        ),
-        fallback = endpoint.fallback.resolved(sslConfiguration.isEnabled),
+private fun EndpointCandidate.resolver(): EndpointResolver = when (this) {
+    is EndpointCandidate.Static -> FixedEndpointResolver(ResolvedEndpoint(host, port, useWss = useWss))
+
+    is EndpointCandidate.Dynamic -> MdnsEndpointResolver(
+        HostDiscoveryConfig(hostNames = hostNames, addresses = addresses, acceptsAnyHost = acceptsAnyHost),
     )
 }
 
-/** @param sslConfigured what `ssl { }` decided, which every endpoint but [JetWhalePlainLoopbackEndpoint] follows. */
-private fun JetWhaleLiteralEndpoint.resolved(sslConfigured: Boolean): ResolvedEndpoint = when (this) {
-    is JetWhaleFixedEndpoint -> ResolvedEndpoint(host, port, useWss = sslConfigured)
-    is JetWhalePlainLoopbackEndpoint -> ResolvedEndpoint(LOOPBACK_HOST, port, useWss = false)
+/**
+ * Says so when a candidate will send in the clear to something that is not this machine.
+ *
+ * Not an error: `ws` is what the caller asked for, and a debug tool may take it. But plain text
+ * leaving the machine is worth one line in the log rather than none. Discovered hosts cannot reach
+ * this state — they are always dialled over wss — so only a written-out address is checked.
+ */
+private fun EndpointCandidate.warnIfPlainOffMachine() {
+    if (this !is EndpointCandidate.Static || useWss || isLoopbackHost(host)) return
+    JetWhaleLogger.w("Configured to connect to $host:$port in the clear — plain text will leave this machine.")
 }
 
-/** The name loopback is dialled by. RFC 6761 reserves it, so it always resolves to the loopback interface. */
-private const val LOOPBACK_HOST = "localhost"
+/** RFC 6761 reserves `localhost` for the loopback interface, so the name is as good as the addresses. */
+private fun isLoopbackHost(host: String): Boolean = host == "localhost" || host == "::1" || host.startsWith("127.")
 
 private class MessagingServiceSession(private val service: JetWhaleMessagingService) : JetWhaleSession {
     override fun stop() {
@@ -133,89 +142,55 @@ public interface JetWhaleAppConfigurationScope {
 @JetWhaleDsl
 public interface JetWhaleConnectionConfigurationScope {
     /**
-     * The JetWhale host this agent connects to. Assign either [at] for a literal address, or
-     * [discovered] to find the host on the local network over mDNS/Bonjour.
+     * Where this agent will look for the host, best first.
      *
-     * Defaults to `fixed("localhost", 8080)`.
+     * **Declaration order is dial order.** The agent works down the list from the top, and the first
+     * candidate that accepts a connection keeps it — the rest are never tried. When none accepts, it
+     * waits and starts again from the top, so a host that comes up later is still found. A
+     * `discoverWss` entry expands to every host it finds, each tried in browse order before whatever
+     * was declared after it.
+     *
+     * Put the cheapest and most likely first. Declaring several is how one configuration serves
+     * targets that reach the host differently: an emulator over loopback, a physical device over the
+     * network, a browser which can only ever do plain ws.
+     *
+     * ```
+     * endpoints {
+     *     ws("localhost", 5080)
+     *     discoverWss { allowHostName("my-macbook") }
+     * }
+     * ```
+     *
+     * Repeated blocks add to the list rather than replacing it. With no `endpoints { }` at all the
+     * deprecated [host]/[port] apply, defaults included.
      */
-    public var endpoint: JetWhaleEndpoint
+    public fun endpoints(configure: JetWhaleEndpointScope.() -> Unit)
 
     @Deprecated(
-        message = "Superseded by 'endpoint'. Assign endpoint = fixed(host, port) instead. " +
-            "Setting host/port still works and is equivalent to that assignment.",
+        message = "Superseded by 'endpoints { }'. Declare endpoints { wss(host, port) } instead. " +
+            "Setting host/port still works and amounts to a single candidate taking its scheme from ssl { }.",
         level = DeprecationLevel.WARNING,
     )
     public var host: String
 
     @Deprecated(
-        message = "Superseded by 'endpoint'. Assign endpoint = fixed(host, port) instead. " +
-            "Setting host/port still works and is equivalent to that assignment.",
+        message = "Superseded by 'endpoints { }'. Declare endpoints { wss(host, port) } instead. " +
+            "Setting host/port still works and amounts to a single candidate taking its scheme from ssl { }.",
         level = DeprecationLevel.WARNING,
     )
     public var port: Int
 
     /**
-     * A literal address to connect to, e.g. `localhost` for an emulator/simulator or an
-     * ADB-forwarded device.
+     * What TLS trusts, wherever it is spoken. Whether it is spoken at all is each candidate's own
+     * business, stated by [JetWhaleEndpointScope.ws] or [JetWhaleEndpointScope.wss] — so this block
+     * neither switches wss on nor implies it.
      *
-     * @param host The hostname or IP address of the JetWhale host.
-     * @param port The port the JetWhale host's debug server listens on.
-     */
-    public fun fixed(host: String, port: Int): JetWhaleFixedEndpoint
-
-    /**
-     * The loopback interface, reached in the clear on [port] whatever `ssl { }` says.
+     * A `wss` candidate with no `ssl { }` at all is perfectly meaningful: the platform's own trust
+     * store applies, as it would for any ordinary HTTPS. This adds to that store rather than
+     * replacing it.
      *
-     * There is no host parameter, and that is the point: plain text is safe here because it cannot
-     * leave the machine, and a signature that cannot name anything else cannot be pointed at the
-     * network by accident. The host serves its plain-ws port on loopback only, for the same reason.
-     *
-     * Use it as the fallback for targets that cannot do wss but can reach the host locally. A browser
-     * is the clear case: TLS trust belongs to the browser there, so `trustServerCertificate()` has
-     * nothing to pin with and no wss connection is possible — while `ws://localhost` is unremarkable.
-     * Emulators and ADB-forwarded devices reach loopback too, so one shared configuration covers them
-     * alongside a discovered host for physical devices.
-     *
-     * Nothing about `ssl { }` is skipped for other endpoints; this is the one exception, and it is
-     * limited to loopback by construction.
-     *
-     * @param port The host's plain-ws port.
-     */
-    public fun plainLoopback(port: Int): JetWhalePlainLoopbackEndpoint
-
-    /**
-     * A host found by zero-config discovery over mDNS/DNS-SD (Bonjour): the agent browses the local
-     * network for the `_jetwhale._tcp` service the host advertises while its debug server runs, and
-     * connects to the address and port it advertises. Use this for physical LAN devices, which cannot
-     * reach the host over `localhost`.
-     *
-     * The advertised wss port is used when `ssl {}` is configured, otherwise the plain-ws port — so
-     * discovery resolves the port too, and [fallback]'s port is its own.
-     *
-     * Every advertised host this agent can use becomes a candidate and they are tried in turn, with
-     * [fallback] last. It is required rather than optional because answering mDNS says a host is
-     * advertising, not that it will accept a connection, and because a platform without mDNS
-     * (JS/Wasm/Linux/Windows) has nothing to browse at all.
-     *
-     * iOS requires `_jetwhale._tcp` to be listed under `NSBonjourServices` in `Info.plist` alongside
-     * `NSLocalNetworkUsageDescription`, otherwise the OS blocks the browse.
-     *
-     * Use [configure] to say which host you want when several advertise (see
-     * [JetWhaleDiscoveredEndpointScope]). Those filters choose; they do not authenticate — mDNS
-     * advertisements are unauthenticated, so a certificate pinned with `trustCertificate` is what
-     * establishes who answered.
-     *
-     * @param fallback Tried after every discovered candidate, and on its own where mDNS is unavailable.
-     * @param configure Optional filters narrowing which discovered host is accepted.
-     */
-    public fun discovered(
-        fallback: JetWhaleLiteralEndpoint,
-        configure: JetWhaleDiscoveredEndpointScope.() -> Unit = {},
-    ): JetWhaleEndpoint
-
-    /**
-     * Configures SSL settings for the connection. When at least one trusted certificate is
-     * registered, the connection is established over wss instead of plain ws.
+     * The deprecated [host]/[port] are the one exception: having no scheme of their own, they take
+     * one from here.
      *
      * @param configure A lambda function to configure SSL settings.
      */
@@ -223,41 +198,76 @@ public interface JetWhaleConnectionConfigurationScope {
 }
 
 /**
- * Where the agent connects to. Build one with [JetWhaleConnectionConfigurationScope.at] or
- * [JetWhaleConnectionConfigurationScope.discovered].
- */
-public sealed interface JetWhaleEndpoint
-
-/**
- * An endpoint written down rather than looked up, and so usable as a discovery fallback.
+ * Declares where to look for the host, in order.
  *
- * Discovery cannot fall back to more discovery, which is why the fallback is typed to this rather
- * than to [JetWhaleEndpoint].
+ * Each candidate names its own scheme, because the targets one configuration serves do not agree on
+ * it: a browser cannot do wss against a locally-issued CA at all, while a physical device on the
+ * network can do nothing else. What TLS trusts, once it is spoken, is the separate concern `ssl { }`
+ * answers.
  */
-public sealed interface JetWhaleLiteralEndpoint : JetWhaleEndpoint
+@JetWhaleDsl
+public interface JetWhaleEndpointScope {
+    /**
+     * A written-out `ws://host:port` — no TLS.
+     *
+     * The host serves plain ws on loopback alone, so this is for the targets that are already on the
+     * machine: emulators, simulators, ADB-forwarded devices, the desktop app, and browsers, which
+     * cannot pin a locally-issued CA and so have no other way in. Anywhere else the traffic leaves
+     * the machine unencrypted, which is logged as a warning.
+     *
+     * @param host The hostname or IP address of the JetWhale host.
+     * @param port The port serving plain ws. The host listens for ws and wss on different ports, and
+     *   dialling the wrong one fails the handshake.
+     */
+    public fun ws(host: String, port: Int)
 
-/** A literal host/port, as built by [JetWhaleConnectionConfigurationScope.fixed]. */
-public class JetWhaleFixedEndpoint internal constructor(
-    internal val host: String,
-    internal val port: Int,
-) : JetWhaleLiteralEndpoint
+    /**
+     * A written-out `wss://host:port`.
+     *
+     * @param host The hostname or IP address of the JetWhale host.
+     * @param port The port serving wss. The host listens for ws and wss on different ports, and
+     *   dialling the wrong one fails the handshake.
+     */
+    public fun wss(host: String, port: Int)
 
-/** A loopback port reached in the clear, as built by [JetWhaleConnectionConfigurationScope.plainLoopback]. */
-public class JetWhalePlainLoopbackEndpoint internal constructor(
-    internal val port: Int,
-) : JetWhaleLiteralEndpoint
+    /**
+     * Whatever hosts are found by zero-config discovery over mDNS/DNS-SD (Bonjour), each dialled over
+     * wss: the agent browses the local network for the `_jetwhale._tcp` service a host advertises
+     * while its debug server runs. Use this for physical devices, which cannot reach the host over
+     * loopback.
+     *
+     * There is no plain-ws counterpart, and not only because sending in the clear across a network is
+     * a poor idea: the host binds ws to loopback, so a discovered address would refuse the connection
+     * anyway.
+     *
+     * Every host that answers and advertises a wss port becomes a candidate of its own, in browse
+     * order, before whatever is declared next — answering mDNS says a host is advertising, not that
+     * it will accept a connection. Where mDNS is unavailable (JS/Wasm, Linux, Windows) this
+     * contributes nothing and the next candidate is reached immediately.
+     *
+     * iOS requires `_jetwhale._tcp` to be listed under `NSBonjourServices` in `Info.plist` alongside
+     * `NSLocalNetworkUsageDescription`, otherwise the OS blocks the browse.
+     *
+     * @param configure Which discovered hosts are acceptable. Required, and not merely as a matter of
+     *   taste: a block stating nothing accepts nothing, because discovery reaches every JetWhale host
+     *   on the network and on a shared one those belong to other people.
+     */
+    public fun discoverWss(configure: JetWhaleDiscoveryScope.() -> Unit)
+}
 
 /**
- * Allowlists narrowing which discovered host is accepted. Each is repeatable and independently
- * optional; a host has to satisfy every allowlist that has entries, and one that does not is skipped
- * rather than connected to.
+ * Which discovered hosts this agent will connect to.
+ *
+ * Something has to be stated: a block that says nothing accepts nothing, and logs why. The allowlists
+ * are repeatable and independent — a host has to satisfy every allowlist that has entries, and one
+ * that does not is skipped rather than connected to.
  *
  * They choose between hosts; they do not authenticate one. An mDNS advertisement is unauthenticated,
  * so anything on the network can claim any hostname — matching one proves nothing about who answered.
  * That is what pinning a certificate with `trustCertificate` is for.
  */
 @JetWhaleDsl
-public interface JetWhaleDiscoveredEndpointScope {
+public interface JetWhaleDiscoveryScope {
     /**
      * Adds a hostname to the allowlist: a discovered host is accepted only when its advertised
      * hostname equals one of the added names, compared case-insensitively. Repeatable. The compared
@@ -276,6 +286,17 @@ public interface JetWhaleDiscoveredEndpointScope {
      * @param ip An IP address a discovered host is allowed to resolve to.
      */
     public fun allowAddress(ip: String)
+
+    /**
+     * Accepts every host advertising the service, wherever it is and whoever runs it.
+     *
+     * This is the one way to browse without qualification, and it is stated rather than assumed: on a
+     * shared network — an office, a coworking space — an unqualified browse reaches colleagues' hosts
+     * too, and whichever answers first wins. That would hand this app's debug traffic to someone
+     * else's window. Naming the machine with [allowHostName] or [allowAddress] is the better answer
+     * wherever the network is not exclusively yours; reach for this on one that is.
+     */
+    public fun allowAll()
 }
 
 @JetWhaleDsl
@@ -359,12 +380,17 @@ private class JetWhaleAppConfiguration : JetWhaleAppConfigurationScope {
     )
 }
 
-/** A host to be discovered over mDNS, as built by [JetWhaleConnectionConfigurationScope.discovered]. */
-internal class JetWhaleDiscoveredEndpoint(
-    val hostNames: List<String>,
-    val addresses: List<String>,
-    val fallback: JetWhaleLiteralEndpoint,
-) : JetWhaleEndpoint
+/** One place to look for the host, as declared in `endpoints { }`. */
+internal sealed interface EndpointCandidate {
+    data class Static(val host: String, val port: Int, val useWss: Boolean) : EndpointCandidate
+
+    /** Always wss: the host serves plain ws on loopback, which discovery never returns. */
+    data class Dynamic(
+        val hostNames: List<String>,
+        val addresses: List<String>,
+        val acceptsAnyHost: Boolean,
+    ) : EndpointCandidate
+}
 
 @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
 internal class JetWhaleConnectionConfiguration : JetWhaleConnectionConfigurationScope {
@@ -372,30 +398,13 @@ internal class JetWhaleConnectionConfiguration : JetWhaleConnectionConfiguration
     override var port: Int = 8080
     val sslConfiguration: JetWhaleSslConfiguration = JetWhaleSslConfiguration()
 
-    private var assignedEndpoint: JetWhaleEndpoint? = null
+    private val declaredCandidates: MutableList<EndpointCandidate> = mutableListOf()
+    val candidates: List<EndpointCandidate> get() = declaredCandidates
 
-    // Falling back to host/port keeps the deprecated properties working: leaving `endpoint` unassigned
-    // resolves to whatever they hold, defaults included.
-    override var endpoint: JetWhaleEndpoint
-        get() = assignedEndpoint ?: fixed(host, port)
-        set(value) {
-            assignedEndpoint = value
-        }
-
-    override fun fixed(host: String, port: Int): JetWhaleFixedEndpoint = JetWhaleFixedEndpoint(host, port)
-
-    override fun plainLoopback(port: Int): JetWhalePlainLoopbackEndpoint = JetWhalePlainLoopbackEndpoint(port)
-
-    override fun discovered(
-        fallback: JetWhaleLiteralEndpoint,
-        configure: JetWhaleDiscoveredEndpointScope.() -> Unit,
-    ): JetWhaleEndpoint {
-        val filters = JetWhaleDiscoveredEndpointConfiguration().apply(configure)
-        return JetWhaleDiscoveredEndpoint(
-            hostNames = filters.hostNames,
-            addresses = filters.addresses,
-            fallback = fallback,
-        )
+    // Repeated blocks add to the list rather than replacing it, so the order candidates were written
+    // in is the order they are tried, wherever they were written.
+    override fun endpoints(configure: JetWhaleEndpointScope.() -> Unit) {
+        JetWhaleEndpointConfiguration(declaredCandidates).configure()
     }
 
     override fun ssl(configure: JetWhaleSslConfigurationScope.() -> Unit) {
@@ -403,12 +412,32 @@ internal class JetWhaleConnectionConfiguration : JetWhaleConnectionConfiguration
     }
 }
 
-private class JetWhaleDiscoveredEndpointConfiguration : JetWhaleDiscoveredEndpointScope {
+private class JetWhaleEndpointConfiguration(
+    private val candidates: MutableList<EndpointCandidate>,
+) : JetWhaleEndpointScope {
+    override fun ws(host: String, port: Int) {
+        candidates += EndpointCandidate.Static(host, port, useWss = false)
+    }
+
+    override fun wss(host: String, port: Int) {
+        candidates += EndpointCandidate.Static(host, port, useWss = true)
+    }
+
+    override fun discoverWss(configure: JetWhaleDiscoveryScope.() -> Unit) {
+        val policy = JetWhaleDiscoveryConfiguration().apply(configure)
+        candidates += EndpointCandidate.Dynamic(policy.hostNames, policy.addresses, policy.acceptsAnyHost)
+    }
+}
+
+private class JetWhaleDiscoveryConfiguration : JetWhaleDiscoveryScope {
     private val mutableHostNames: MutableList<String> = mutableListOf()
     val hostNames: List<String> get() = mutableHostNames
 
     private val mutableAddresses: MutableList<String> = mutableListOf()
     val addresses: List<String> get() = mutableAddresses
+
+    var acceptsAnyHost: Boolean = false
+        private set
 
     override fun allowHostName(name: String) {
         mutableHostNames.add(name)
@@ -416,6 +445,10 @@ private class JetWhaleDiscoveredEndpointConfiguration : JetWhaleDiscoveredEndpoi
 
     override fun allowAddress(ip: String) {
         mutableAddresses.add(ip)
+    }
+
+    override fun allowAll() {
+        acceptsAnyHost = true
     }
 }
 

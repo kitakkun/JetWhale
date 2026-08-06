@@ -35,8 +35,17 @@ internal interface JetWhaleMessagingService {
 internal data class HostDiscoveryConfig(
     val hostNames: List<String>,
     val addresses: List<String>,
-    val useWss: Boolean,
+    /** Set by `allowAll()`: take any host that advertises the service, allowlists or not. */
+    val acceptsAnyHost: Boolean,
 ) {
     /** True when at least one allowlist narrows the discovered hosts. */
     val hasFilter: Boolean get() = hostNames.isNotEmpty() || addresses.isNotEmpty()
+
+    /**
+     * True when nothing at all was stated, so no host can be accepted.
+     *
+     * Discovery reaches every JetWhale host on the network, which on a shared one is other people's.
+     * An empty block therefore takes nobody rather than everybody; `allowAll()` says otherwise.
+     */
+    val acceptsNothing: Boolean get() = !acceptsAnyHost && !hasFilter
 }

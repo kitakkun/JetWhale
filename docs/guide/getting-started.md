@@ -68,7 +68,7 @@ import com.kitakkun.jetwhale.agent.runtime.startJetWhale
 fun initializeJetWhale() {
     startJetWhale {
         connection {
-            endpoint = fixed("localhost", 5080) // the host's WebSocket server port
+            endpoints { ws("localhost", 5080) } // the host's plain WebSocket server port
         }
         plugins {
             // register agent plugins here, e.g. the Network Inspector:
@@ -78,16 +78,16 @@ fun initializeJetWhale() {
 }
 ```
 
-::: warning Always set `endpoint`
-The agent's `connection { }` defaults to `fixed("localhost", 8080)`, while the host's debug server
-listens on **5080**. The defaults deliberately do not match, so set `endpoint` explicitly to
-whichever port the host reports in
-[Settings → Connection → Debug Server](/guide/host-settings#debug-server).
+::: warning Always declare `endpoints`
+Without an `endpoints { }` block the agent falls back to `localhost:8080`, while the host's debug
+server listens on **5080**. The defaults deliberately do not match, so declare the port the host
+reports in [Settings → Connection → Debug Server](/guide/host-settings#debug-server).
 :::
 
 ::: info `host` / `port` are deprecated
 Earlier releases configured the address with separate `host` and `port` properties. They still work
-and mean exactly `endpoint = fixed(host, port)`, but new code should assign `endpoint` — it is what
+and amount to a single candidate taking its scheme from `ssl { }`, but new code should declare
+`endpoints { }` — it is what
 [host discovery](#zero-config-host-discovery-recommended-for-physical-devices) extends.
 :::
 
@@ -197,16 +197,24 @@ since `WARN` is the default log level.
 ## Zero-config host discovery (recommended for physical devices)
 
 A physical iPhone or Android device on the same Wi-Fi cannot reach the host over `localhost`. Rather
-than hardcoding the host machine's LAN IP (which changes between machines and networks), assign a
-`discovered(...)` endpoint and let the agent find the host over mDNS/Bonjour:
+than hardcoding the host machine's LAN IP (which changes between machines and networks), declare a
+`discoverWss` candidate and let the agent find the host over mDNS/Bonjour.
+
+Candidates are tried **in the order they are declared**, and each names its own scheme — which is
+what lets one configuration serve targets that disagree about which one is possible:
 
 ```kotlin
 startJetWhale {
     connection {
-        // Browse the LAN for the host advertised as `_jetwhale._tcp` and connect to it. The fallback
-        // applies when nothing is discovered in time (or the platform lacks mDNS), which keeps
-        // emulators/simulators, ADB-forwarded devices and browsers working over loopback.
-        endpoint = discovered(fallback = plainLoopback(5080))
+        endpoints {
+            // Anything that can reach loopback is already there and need not wait out a network
+            // browse: emulators, simulators, ADB-forwarded devices, the desktop app, the browser.
+            // In the clear, because it never leaves the machine.
+            ws("localhost", 5080)
+
+            // A physical device reaches neither, so it falls through to here and connects over wss.
+            discoverWss { allowHostName("my-macbook") }
+        }
 
         ssl { trustServerCertificate() }
     }
@@ -214,53 +222,85 @@ startJetWhale {
 }
 ```
 
-The fallback is a required argument rather than a separate property, so a discovered endpoint can
-never be left without one.
+On a device, `localhost:5080` is refused at once — nothing is listening on the device itself — and
+discovery takes over. On everything else the first candidate connects and the browse never runs.
 
-While its debug server runs, the host advertises a `_jetwhale._tcp.local.` service whose TXT records
-carry the `wsPort` and `wssPort` (the latter only when wss is enabled), the host machine's `hostName`,
-and a protocol marker `v=1`. Discovery therefore resolves the **port** as well as the address, and the
-fallback's port applies only when discovery finds nothing.
+### What each candidate contributes
 
-The scheme is not negotiable: the agent uses wss exactly when an `ssl { }` block is configured. So a
-host counts as a candidate only if it advertises the port for that scheme — an ssl-configured agent
-**skips** a host whose wss is disabled, rather than dialling `wss://` at its plain-ws port. If every
-matching host is skipped that way, the log says so by name, since the host being there but serving
-the wrong scheme looks nothing like the host being absent.
+`ws(host, port)` and `wss(host, port)` contribute exactly the address you wrote, over exactly the
+scheme you named.
 
-### `plainLoopback` for targets that cannot do wss
+`discoverWss { }` contributes **every** host that answers and passes the block's policy, each as its
+own candidate, in browse order. While its debug server runs, the host advertises a
+`_jetwhale._tcp.local.` service whose TXT records carry the `wsPort` and `wssPort` (the latter only
+when wss is enabled), the host machine's `hostName`, and a protocol marker `v=1` — so discovery
+resolves the **port** as well as the address. A host advertising no wss port is passed over rather
+than dialled on the wrong one, and the log says so by name, since a host being there but serving no
+wss looks nothing like a host being absent.
 
-`plainLoopback(port)` is the one endpoint that ignores `ssl { }` and connects in the clear. It takes
-no host: plain text is safe here only because loopback never leaves the machine, and a signature that
-cannot name anything else cannot be aimed at the network by mistake. The host serves its plain-ws port
-on loopback alone for the same reason.
+There is deliberately no plain-ws counterpart to `discoverWss`. Beyond sending in the clear across a
+network being a poor idea, the host binds ws to loopback only — so a discovered address would refuse
+the connection anyway.
 
-It exists because **a browser cannot use wss with JetWhale at all**. TLS trust belongs to the browser,
-so `trustServerCertificate()` has nothing to pin with — and the CA endpoint is a different origin with
-no CORS headers, so the certificate cannot even be read. `ws://localhost` has neither problem.
+::: warning `discoverWss { }` needs a policy
+A block that states nothing accepts nothing, and logs why. Discovery reaches **every** JetWhale host
+on the network, so on a shared one — an office, a coworking space — an unqualified browse can hand
+your app's debug traffic to a colleague's window, whichever host answers first.
 
-As a fallback it also covers emulators, simulators and ADB-forwarded devices, so the single
-configuration above serves every target: physical devices discover the host over wss, everything else
-takes loopback in the clear.
+Name your machine where you can:
 
-Use `fixed("localhost", 5443)` instead when you do want wss over loopback — an ADB-forwarded device
-pinning the CA fetched over the same link, for instance.
+```kotlin
+discoverWss { allowHostName("my-macbook") }  // or allowAddress("192.168.3.26")
+```
+
+`allowAll()` takes any host advertising the service. It is the right call on a network that is
+exclusively yours, and something to ask for rather than receive by omission.
+:::
+
+Where mDNS is unavailable (**JS/Wasm, Linux, Windows**) `discoverWss` contributes nothing at all,
+and whatever comes next is reached immediately.
+
+### The candidate says whether; `ssl { }` says what to trust
+
+These answer different questions and sit in different places:
+
+| | |
+|---|---|
+| `ws(...)` vs `wss(...)` | whether TLS is spoken to *this* host |
+| `ssl { trustCertificate(...) }` | which certificates are trusted when it is |
+
+A `wss(...)` candidate with no `ssl { }` block is meaningful: the platform's own trust store applies,
+as it would for any ordinary HTTPS. `ssl { }` adds to that rather than switching wss on.
+
+`ws(...)` sends in the clear. Over loopback that is unremarkable — the traffic cannot leave the
+machine, and the host serves its plain-ws port there alone. Anywhere else it means plain text on the
+network, so the agent logs a line saying so at startup. It is your call to make; it is not made
+quietly.
+
+**A browser cannot use wss with JetWhale at all**, which is the clearest case for `ws(...)`. TLS
+trust belongs to the browser, so `trustServerCertificate()` has nothing to pin with — and the CA
+endpoint is a different origin with no CORS headers, so the certificate cannot even be read.
+`ws://localhost` has neither problem.
 
 ### Narrowing discovery
 
-Every advertised host the agent can use is a candidate, tried in turn until one accepts. When several
-run on the same network and you want a particular one, say which:
+`discoverWss { }` has to say which hosts it will accept — an empty block accepts none, and logs why.
+Every host that passes is a candidate, tried in turn until one accepts:
 
 ```kotlin
 connection {
-    endpoint = discovered(fallback = plainLoopback(5080)) {
-        // Accept only a host advertising this machine hostname (exact, case-insensitive).
-        allowHostName("my-macbook")
+    endpoints {
+        ws("localhost", 5080)
 
-        // ...and/or only hosts resolving to specific IPs — your build machine, say, which may
-        // answer on both Wi-Fi and Ethernet.
-        allowAddress("192.168.3.26")
-        allowAddress("192.168.3.27")
+        discoverWss {
+            // Accept only a host advertising this machine hostname (exact, case-insensitive).
+            allowHostName("my-macbook")
+
+            // ...and/or only hosts resolving to specific IPs — your build machine, say, which may
+            // answer on both Wi-Fi and Ethernet.
+            allowAddress("192.168.3.26")
+            allowAddress("192.168.3.27")
+        }
     }
     ssl { trustServerCertificate() }
 }
@@ -288,9 +328,10 @@ takes the CA from whoever answered, which is trust-on-first-use and no stronger 
 runs over. See [Which one to use](#which-one-to-use).
 :::
 
-`fallback` is offered **after** the discovered hosts, not only when none were found: answering mDNS
-says a host is advertising, not that it will accept a connection. The whole list is worked through in
-turn, and only once every entry has refused does the agent wait and start again.
+Whatever is declared after `discoverWss` is reached even when discovery found hosts, not only when it
+found none: answering mDNS says a host is advertising, not that it will accept a connection. The whole
+list is worked through in turn, and only once every entry has refused does the agent wait and start
+again.
 
 That next round browses afresh, so [the usual reconnect promise](#reconnecting) still holds with
 discovery enabled: start the app first and the host later, and the next browse picks it up. The same
@@ -298,7 +339,7 @@ applies when a host restarts on a different port. A failed round is reported onc
 while the outcome stays the same, so an unreachable host does not flood the log.
 
 On a platform without mDNS support (**JS/Wasm, Linux, Windows**) there is nothing to browse, and the
-agent goes straight to `fallback`.
+agent goes straight to whatever was declared next.
 
 | Platform | Discovery backend |
 |----------|-------------------|
@@ -323,7 +364,7 @@ one trusted certificate is configured, the connection switches from ws to wss:
 ```kotlin
 startJetWhale {
     connection {
-        endpoint = fixed("localhost", 5443) // the host's wss port
+        endpoints { wss("localhost", 5443) } // the host's wss port
 
         ssl {
             // Option A: fetch and pin the host's active CA automatically (trust-on-first-use).
@@ -380,7 +421,7 @@ behind a user permission, so add a usage-description string to the app's `Info.p
 ```xml
 <key>NSLocalNetworkUsageDescription</key>
 <string>JetWhale connects to the debugger host running on your local network.</string>
-<!-- Required when using discovered(): iOS blocks the Bonjour browse without it. -->
+<!-- Required when using discoverWss: iOS blocks the Bonjour browse without it. -->
 <key>NSBonjourServices</key>
 <array>
     <string>_jetwhale._tcp</string>
@@ -388,7 +429,7 @@ behind a user permission, so add a usage-description string to the app's `Info.p
 ```
 
 iOS prompts the user to allow local-network access on the first connection. `NSBonjourServices` is
-required whenever you use [`discovered()`](#zero-config-host-discovery-recommended-for-physical-devices):
+required whenever you use [`discoverWss`](#zero-config-host-discovery-recommended-for-physical-devices):
 iOS silently blocks browsing for a service type that is not declared. If you dial the host by an
 explicit address instead of discovering it, `NSBonjourServices` can be omitted. Because the CA fetch
 falls back to `https` over the wss port, no App Transport Security exception for plain HTTP is needed.

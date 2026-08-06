@@ -7,11 +7,21 @@ import com.kitakkun.jetwhale.agent.runtime.startJetWhale
 fun initializeJetWhale() {
     startJetWhale {
         connection {
-            // Zero-config discovery of the host over mDNS for physical LAN devices, which reach it
-            // over wss. Everything that can only reach loopback — emulators, simulators, ADB-forwarded
-            // devices, and the browser, which cannot pin a local CA at all — falls back to the plain
-            // ws port. One configuration, every target.
-            endpoint = discovered(fallback = plainLoopback(5080))
+            // Tried in order. Loopback first, because everything that can reach it — emulators,
+            // simulators, ADB-forwarded devices, the desktop app, the browser — is already there and
+            // need not wait out a network browse. In the clear, because it never leaves the machine
+            // and a browser cannot pin a locally-issued CA at all.
+            //
+            // A physical device on the network reaches neither, so it falls through to discovery and
+            // connects over wss.
+            endpoints {
+                ws("localhost", 5080)
+                discoverWss {
+                    // The demo cannot know the machine it will be run from, so it takes any host it
+                    // finds. A real app on a shared network should name its own with allowHostName.
+                    allowAll()
+                }
+            }
             ssl {
                 // Fetches the host's active CA over the plain channel (via ADB forwarding) and pins
                 // the wss connection to it, so the app never has to hardcode a CA certificate.
