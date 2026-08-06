@@ -9,13 +9,19 @@ set -euo pipefail
 build_dir="${1:?usage: publish-included-build.sh <buildDir> <artifactId>...}"
 shift
 
-train="$(grep -m1 '^jetwhale = ' gradle/libs.versions.toml | cut -d'"' -f2)"
+# Whitespace-tolerant, and a hard failure rather than an empty value: an empty train version would
+# match nothing and silently skip publishing this build.
+train="$(sed -n 's/^jetwhale[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' gradle/libs.versions.toml | head -1)"
+if [ -z "$train" ]; then
+    echo "Could not read the train version (jetwhale) from gradle/libs.versions.toml." >&2
+    exit 1
+fi
 
 due=""
 for artifact_id in "$@"; do
     # A never-published artifact has no entry, which reads as "not at the train version" — but it is
     # exactly what a release must publish, so treat a missing entry as due.
-    recorded="$(grep -m1 "^artifact.${artifact_id}=" gradle/published-versions.properties | cut -d= -f2 || true)"
+    recorded="$(sed -n "s/^artifact\\.${artifact_id}=//p" gradle/published-versions.properties | head -1)"
     if [ -z "$recorded" ] || [ "$recorded" = "$train" ]; then
         due="$due $artifact_id"
     fi

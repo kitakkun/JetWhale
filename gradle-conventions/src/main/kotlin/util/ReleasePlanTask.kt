@@ -68,7 +68,16 @@ abstract class ReleasePlanTask : DefaultTask() {
         }
 
         val previousTag = published.previousTrainVersion
-        check(git("rev-parse", "--verify", "--quiet", "refs/tags/$previousTag^{commit}").isNotBlank()) {
+        // `rev-parse --verify --quiet` exits 1 with no output for an unknown ref, which is exactly
+        // the case this check reports.
+        val previousTagCommit = git(
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            "refs/tags/$previousTag^{commit}",
+            allowedExitValues = setOf(0, 1),
+        )
+        check(previousTagCommit.isNotBlank()) {
             "No tag $previousTag, which ${PublishedVersions.RELATIVE_PATH} names as the previous release. " +
                 "Either the tags are not fetched (`git fetch --tags`), or `previous.train.version` names a " +
                 "version that was never released — it must be a release tag, not a -SNAPSHOT one."
@@ -142,14 +151,23 @@ abstract class ReleasePlanTask : DefaultTask() {
         }
     }
 
-    private fun git(vararg arguments: String): String {
+    /**
+     * Runs git and returns its stdout. An exit code outside [allowedExitValues] fails the build: git
+     * failing produces no output, which would otherwise read as "nothing changed" and quietly shrink
+     * the release.
+     */
+    private fun git(vararg arguments: String, allowedExitValues: Set<Int> = setOf(0)): String {
         val output = ByteArrayOutputStream()
-        exec.exec {
+        val error = ByteArrayOutputStream()
+        val result = exec.exec {
             commandLine(listOf("git") + arguments)
             workingDir = repositoryRoot.get().asFile
             isIgnoreExitValue = true
             standardOutput = output
-            errorOutput = ByteArrayOutputStream()
+            errorOutput = error
+        }
+        check(result.exitValue in allowedExitValues) {
+            "`git ${arguments.joinToString(" ")}` failed with exit code ${result.exitValue}: $error"
         }
         return output.toString()
     }
