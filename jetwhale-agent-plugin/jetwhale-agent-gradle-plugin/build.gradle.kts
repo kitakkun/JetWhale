@@ -16,6 +16,12 @@ dependencies {
     // compileOnly: the consumer brings their own Kotlin Gradle plugin, and it must be theirs — this
     // is what lets one Gradle plugin serve every Kotlin version in the supported range.
     compileOnly(libs.kotlinGradlePlugin)
+
+    testImplementation(kotlin("test"))
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
 
 /**

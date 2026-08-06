@@ -8,14 +8,17 @@ group = "com.kitakkun.jetwhale"
 version = libs.versions.jetwhale.get() + if (hasProperty("jetwhaleSnapshot")) "-SNAPSHOT" else ""
 
 /**
- * Which Kotlin compiler this plugin is built against.
+ * Which Kotlin compiler API this plugin is compiled against — that is, which version's JAR ships.
  *
- * The one switch the whole supported range turns on: `-Pkotlin.compiler=2.3.21` rebuilds and tests
- * against that compiler without touching a source file. CI sweeps it across every version in
- * `supportedKotlinVersions` (see the workflow); a version that is not swept is not supported,
- * whatever the README says.
+ * Deliberately separate from `kotlin.compiler`, which is the *consumer's* Kotlin and drives the
+ * Kotlin Gradle plugin for the whole build. Keeping them apart is what lets CI compile `sample` with
+ * Kotlin 2.3 while the plugin acting on it was built against 2.4 — the arrangement a consumer on 2.3
+ * actually gets from a single published artifact, and therefore the one worth testing.
+ *
+ * Set both to the same value to sweep source compatibility instead: `-Pkotlin.compiler=2.3.0
+ * -Pkotlin.plugin.api=2.3.0` proves the source only touches API that 2.3 already had.
  */
-val kotlinCompiler: String = providers.gradleProperty("kotlin.compiler")
+val kotlinPluginApi: String = providers.gradleProperty("kotlin.plugin.api")
     .orElse(libs.versions.kotlin)
     .get()
 
@@ -30,7 +33,7 @@ kotlin {
 dependencies {
     // compileOnly, always: kotlinc already has these on its classloader, and bundling them again
     // produces duplicate-class conflicts that stop the plugin loading at all.
-    compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable:$kotlinCompiler")
+    compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable:$kotlinPluginApi")
     compileOnly(kotlin("stdlib"))
 }
 

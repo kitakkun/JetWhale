@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.agent.gradle
 
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
@@ -7,6 +8,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerPluginSupportPlugin
 import org.jetbrains.kotlin.gradle.plugin.SubpluginArtifact
 import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
+import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
 
 /**
  * Bakes the build machine's address into `buildMachineWss(port)` calls in this module.
@@ -18,6 +20,24 @@ import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 abstract class JetWhaleAgentSubplugin : KotlinCompilerPluginSupportPlugin {
     override fun apply(target: Project) {
         target.extensions.create("jetwhaleAgent", JetWhaleAgentExtension::class.java)
+        target.reportKotlinSupport()
+    }
+
+    /**
+     * Says up front when the consumer's Kotlin is outside the range the compiler plugin is proven on.
+     *
+     * Left unsaid, the same situation surfaces as an `AbstractMethodError` or a `NoSuchMethodError`
+     * from inside a compilation, which reads as a JetWhale bug rather than a version mismatch. Too old
+     * fails here, because the plugin provably cannot load; merely untested only warns, since it may
+     * well work and blocking an upgrade on the absence of evidence would be its own nuisance.
+     */
+    private fun Project.reportKotlinSupport() {
+        val support = kotlinSupportFor(getKotlinPluginVersion())
+        val message = support.message() ?: return
+        when (support) {
+            is KotlinSupport.TooOld -> throw GradleException(message)
+            else -> logger.warn("w: $message")
+        }
     }
 
     override fun getCompilerPluginId(): String = COMPILER_PLUGIN_ID
