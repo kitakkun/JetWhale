@@ -79,6 +79,7 @@ fun ToolingScaffoldRoot(
                     mcpActivity = mcpActivity,
                     mcpCapablePlugins = mcpCapablePlugins,
                     followAiOperationEnabled = debuggerSettings.followAiOperationEnabled,
+                    isPluginPoppedOut = isPoppedOut,
                 )
             }
 

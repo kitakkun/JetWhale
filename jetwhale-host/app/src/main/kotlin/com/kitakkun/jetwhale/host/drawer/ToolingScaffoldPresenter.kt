@@ -54,6 +54,22 @@ internal fun closedSessions(
     return previouslyConnected.filterNot { it.id in stillConnected }
 }
 
+/**
+ * Whether following this call is something the user would see happen in the main window.
+ *
+ * Mirrors what [com.kitakkun.jetwhale.host.model.FollowAiOperationService] decides, so the banner
+ * announces a move rather than merely an agent being busy. A call that named no session is followed
+ * against the drawer's own selection, which is where [selectedSessionId] comes in.
+ */
+internal fun McpToolInvocation?.movesTheWindow(
+    selectedSessionId: String,
+    isPluginPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
+): Boolean {
+    val pluginId = this?.pluginId ?: return false
+    val sessionId = this.sessionId ?: selectedSessionId
+    return !isPluginPoppedOut(pluginId, sessionId)
+}
+
 @Composable
 context(presenterContext: ToolingScaffoldPresenterContext)
 fun toolingScaffoldPresenter(
@@ -65,6 +81,7 @@ fun toolingScaffoldPresenter(
     mcpActivity: McpActivity,
     mcpCapablePlugins: McpCapablePlugins,
     followAiOperationEnabled: Boolean,
+    isPluginPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
 ): ToolingScaffoldUiState {
     var selectedSessionId by retain { mutableStateOf("") }
     var selectedPluginId by retain { mutableStateOf("") }
@@ -160,8 +177,9 @@ fun toolingScaffoldPresenter(
         aiActivity = AiActivityUiState(
             isAgentConnected = mcpActivity.hasConnectedClient,
             operatingToolName = activeInvocation?.toolName,
-            // Only a call that names a plugin moves the window, so only that one is announced.
-            isFollowingOperation = followAiOperationEnabled && activeInvocation?.pluginId != null,
+            // Announce only what the window actually does: a call that names no plugin never moves
+            // it, and a plugin popped out into its own window is watched there, not here.
+            isFollowingOperation = followAiOperationEnabled && activeInvocation.movesTheWindow(selectedSessionId, isPluginPoppedOut),
         ),
     )
 }
