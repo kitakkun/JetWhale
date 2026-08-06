@@ -387,7 +387,6 @@ registerRunTask(
 val qaAgentClasspath = configurations.create("jetwhaleQaAgent") {
     isCanBeConsumed = false
     isCanBeResolved = true
-    isVisible = false
 }
 
 // addProvider rather than a plain coordinate string: the version comes from the extension, whose

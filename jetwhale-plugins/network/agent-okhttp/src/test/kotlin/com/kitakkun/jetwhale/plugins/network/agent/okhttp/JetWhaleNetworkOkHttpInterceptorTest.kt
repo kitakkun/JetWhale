@@ -72,7 +72,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         val request = Request.Builder().url(server.url("/hello")).build()
         val response = client().newCall(request).execute()
 
-        assertEquals("hello", response.body!!.string())
+        assertEquals("hello", response.body.string())
 
         assertEquals(2, events.size)
         val sent = events[0] as RequestSent
@@ -130,7 +130,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         val response = client().newCall(request).execute()
 
         assertEquals(418, response.code)
-        assertEquals("{\"mock\":true}", response.body!!.string())
+        assertEquals("{\"mock\":true}", response.body.string())
         assertEquals(0, server.requestCount)
 
         val received = events.last() as ResponseReceived
@@ -145,7 +145,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         val request = Request.Builder().url(server.url("/big")).build()
         val response = clientWithSmallBodyCap().newCall(request).execute()
 
-        assertEquals(longBody, response.body!!.string())
+        assertEquals(longBody, response.body.string())
 
         val received = events.last() as ResponseReceived
         assertEquals(true, received.response.bodyTruncated)

@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package com.kitakkun.jetwhale.agent.runtime
 
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi

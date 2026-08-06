@@ -166,12 +166,16 @@ dependencies {
     implementation(libs.jetbrainsComposeMaterialIconsExtended)
     testImplementation(libs.kotlinTest)
 
-    // Machine-specific Compose runtime dependencies resolved by Conveyor
-    // when cross-building packages for each target platform.
-    linuxAmd64(compose.desktop.linux_x64)
-    macAmd64(compose.desktop.macos_x64)
-    macAarch64(compose.desktop.macos_arm64)
-    windowsAmd64(compose.desktop.windows_x64)
+    // Machine-specific Compose runtime dependencies resolved by Conveyor when cross-building packages
+    // for each target platform. Written out rather than taken from `compose.desktop.<platform>`,
+    // which the Compose plugin deprecated in favour of naming the dependency — these coordinates are
+    // exactly what those accessors resolved to.
+    val composeDesktop = "org.jetbrains.compose.desktop:desktop-jvm"
+    val composeVersion = libs.versions.jetbrainsCompose.get()
+    linuxAmd64("$composeDesktop-linux-x64:$composeVersion")
+    macAmd64("$composeDesktop-macos-x64:$composeVersion")
+    macAarch64("$composeDesktop-macos-arm64:$composeVersion")
+    windowsAmd64("$composeDesktop-windows-x64:$composeVersion")
 }
 
 aboutLibraries {

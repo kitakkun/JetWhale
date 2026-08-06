@@ -22,6 +22,7 @@ import platform.darwin.NSObject
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 import platform.posix.AF_INET
+import kotlin.concurrent.AtomicReference
 
 private const val SERVICE_TYPE_DOT = "$JETWHALE_SERVICE_TYPE."
 private const val SEARCH_DOMAIN = "local."
@@ -42,7 +43,13 @@ private const val IPV4_SOCKADDR_LENGTH = SIN_ADDR_OFFSET + IPV4_OCTETS
  * the browse.
  */
 internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): DiscoveryResult {
-    val results = mutableListOf<DiscoveredService>()
+    // Atomic because this list crosses threads: the delegate appends from the main run loop, while
+    // the read at the end happens on whatever thread the coroutine resumed on once the timeout
+    // expired — and the browser is still live at that moment, since cancellation only *dispatches*
+    // the stop to the main queue. A plain MutableList would be a data race; Android's actual uses a
+    // synchronized list for the same reason. Appends are single-writer (the main queue alone), so
+    // read-then-store needs no CAS loop — only the visibility the atomic provides.
+    val results = AtomicReference(emptyList<DiscoveredService>())
     // Strong references kept for the whole browse so the delegates and services outlive the enclosing
     // frame; their callbacks fire asynchronously on the run loop.
     val resolvingServices = mutableListOf<NSNetService>()
@@ -59,7 +66,7 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
 
             val serviceDelegate = object : NSObject(), NSNetServiceDelegateProtocol {
                 override fun netServiceDidResolveAddress(sender: NSNetService) {
-                    sender.toDiscoveredService()?.let { results.add(it) }
+                    sender.toDiscoveredService()?.let { results.value = results.value + it }
                 }
 
                 override fun netService(sender: NSNetService, didNotResolve: Map<Any?, *>) {
@@ -101,7 +108,7 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
         }
     }
 
-    return DiscoveryResult.Browsed(results.toList())
+    return DiscoveryResult.Browsed(results.value)
 }
 
 private fun NSNetService.toDiscoveredService(): DiscoveredService? {

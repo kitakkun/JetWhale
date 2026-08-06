@@ -6,9 +6,6 @@ public final class com/kitakkun/jetwhale/host/sdk/DefaultArgumentJsonKt {
 	public static final fun getDefaultArgumentJson ()Lkotlinx/serialization/json/Json;
 }
 
-public abstract interface annotation class com/kitakkun/jetwhale/host/sdk/ExperimentalJetWhaleApi : java/lang/annotation/Annotation {
-}
-
 public abstract interface annotation class com/kitakkun/jetwhale/host/sdk/InternalJetWhaleHostApi : java/lang/annotation/Annotation {
 }
 

@@ -31,9 +31,10 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.jar.JarFile
 import kotlin.io.path.Path
 
+@Inject
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
-class DefaultPluginFactoryRepository @Inject constructor(
+class DefaultPluginFactoryRepository(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
 ) : PluginFactoryRepository {
     private val mutablePluginsFlow: MutableStateFlow<ImmutableMap<String, LoadedHostPlugin>> =

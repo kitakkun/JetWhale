@@ -8,6 +8,20 @@ package com.kitakkun.jetwhale.annotations
  * may ask you to change the call.
  *
  * A warning rather than an error: the point is to be noticed, not to stop a build.
+ *
+ * There is deliberately one of these for the whole project. A per-module copy would share this
+ * simple name, and `@OptIn(ExperimentalJetWhaleApi::class)` would then opt into whichever happened
+ * to be imported — silently, since both compile.
  */
-@RequiresOptIn(level = RequiresOptIn.Level.WARNING)
+@RequiresOptIn(
+    message = "This JetWhale API is experimental and may change or be removed without notice.",
+    level = RequiresOptIn.Level.WARNING,
+)
+@Retention(AnnotationRetention.BINARY)
+@Target(
+    AnnotationTarget.CLASS,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.PROPERTY,
+    AnnotationTarget.TYPEALIAS,
+)
 public annotation class ExperimentalJetWhaleApi
