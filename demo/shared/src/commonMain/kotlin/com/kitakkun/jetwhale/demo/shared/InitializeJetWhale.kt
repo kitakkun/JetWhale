@@ -3,7 +3,9 @@ package com.kitakkun.jetwhale.demo.shared
 import com.kitakkun.jetwhale.agent.runtime.KtorLogLevel
 import com.kitakkun.jetwhale.agent.runtime.LogLevel
 import com.kitakkun.jetwhale.agent.runtime.startJetWhale
+import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 
+@OptIn(ExperimentalJetWhaleApi::class)
 fun initializeJetWhale() {
     startJetWhale {
         connection {
@@ -16,6 +18,12 @@ fun initializeJetWhale() {
             // connects over wss.
             endpoints {
                 ws("localhost", 5080)
+
+                // The machine that compiled this — no browse needed to learn its address. Only the
+                // build machine's own host is reachable this way, so discovery still follows for the
+                // case where the host runs somewhere else on the network.
+                buildMachineWss(5443)
+
                 discoverWss {
                     // The demo cannot know the machine it will be run from, so it takes any host it
                     // finds. A real app on a shared network should name its own with allowHostName.

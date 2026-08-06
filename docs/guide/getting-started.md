@@ -351,6 +351,82 @@ agent goes straight to whatever was declared next.
 On **iOS**, browsing for the service also requires listing it under `NSBonjourServices` in
 `Info.plist` (see [iOS Local Network permission](#ios-local-network-permission)).
 
+## Baking in the build machine's address (no browse)
+
+Discovery exists because a physical device cannot reach the host over loopback. But when the host
+runs on the same machine as the compiler — the usual arrangement — that address is already known at
+build time, and a browse is a slow way to rediscover it. `buildMachineWss(port)` bakes it in:
+
+```kotlin
+// the app being debugged — build.gradle.kts
+plugins {
+    id("com.kitakkun.jetwhale.agent") version "<version>"
+}
+```
+
+```kotlin
+endpoints {
+    ws("localhost", 5080)   // emulators, simulators, the desktop app, the browser
+    buildMachineWss(5443)   // physical devices — no browse, no Info.plist entry
+}
+```
+
+At compile time the call is rewritten to `wss("192.168.3.26", 5443)` — whatever the machine's
+address was — and the build log says so once per module:
+
+```
+w: JetWhale: baked the build machine address 192.168.3.26 into 1 buildMachineWss call(s) in 'shared'.
+```
+
+wss for the same reason `discoverWss` is: the host binds ws to loopback, so its LAN address would
+refuse a plain connection anyway.
+
+::: warning `@ExperimentalJetWhaleApi`
+Unlike the rest of `endpoints { }`, this one's behaviour comes from a Kotlin compiler plugin, and the
+compiler plugin API is `@ExperimentalCompilerApi` — JetBrains breaks it across minor versions by
+design. Supported Kotlin versions are those in the project's CI matrix (currently **2.3.0 – 2.4.x**).
+On a Kotlin the plugin has not caught up with, calls are simply left unrewritten.
+:::
+
+### Without the Gradle plugin
+
+The call still compiles. It contributes no candidate and says why, once:
+
+```
+buildMachineWss(5443) was declared but the JetWhale Gradle plugin is not applied, so no build
+machine address was baked in and this contributes no candidate.
+```
+
+That is deliberate. A generated constant would have been simpler to build, but referencing it from
+your source would mean the code does not *compile* without the plugin — and a missing build-time
+convenience should not be a broken build. Keep a `discoverWss { }` or a written-out `wss(...)` after
+it if you need the connection to work either way.
+
+### Choosing the address
+
+Detection asks the routing table which source address would reach the wider network. Override it
+where that is not the answer — several interfaces with the device on the other one, a VPN holding the
+default route, a host reached through a forwarded port:
+
+```kotlin
+jetwhaleAgent {
+    address = "192.168.3.26"
+}
+```
+
+With neither an override nor a detected address — an offline machine — nothing is baked in and the
+runtime explains, rather than the build failing.
+
+### What it costs the build cache
+
+The address is a **compile task input**, deliberately. Two consequences:
+
+| | |
+|---|---|
+| A stale address surviving in an "up-to-date" build | Cannot happen — changing it re-runs the compilation. |
+| Moving between networks | Recompiles the modules that apply the plugin. Apply it only to the module that declares the endpoint, not project-wide. |
+| Remote / shared build cache | Those compilations will not be shared: the address is per-developer. |
+
 ## Secure connections (wss)
 
 By default the agent connects over plain **ws** (port **5080**). The host can additionally serve
@@ -457,7 +533,7 @@ version as the host release they belong to.
 | `jetwhale-protocol-core` | The shared module of a plugin pair, for `JetWhaleEvent` / `JetWhaleRequest`. |
 | `jetwhale-annotations` | `@McpDescription`. Reaches both SDKs transitively; rarely named directly. |
 | `jetwhale-host-sdk` | A host plugin module, as `compileOnly` — see [Developing Plugins](/guide/developing-plugins). |
-| `jetwhale-gradle-plugin` | Applied as the `com.kitakkun.jetwhale.host` Gradle plugin id. |
+| `jetwhale-host-gradle-plugin` | Applied as the `com.kitakkun.jetwhale.host` Gradle plugin id. |
 | `jetwhale-qa-agent` | Run, not depended on — see [QA Agent](/guide/qa-agent). |
 | `jetwhale-network-inspector`, `-agent`, `-agent-ktor`, `-agent-okhttp`, `-protocol` | [Network Inspector](/guide/network-inspector). |
 | `jetwhale-nav3-navigator`, `jetwhale-nav3-agent`, `jetwhale-nav3-protocol` | [Nav3 Navigator](/guide/nav3-navigator). |

@@ -1,0 +1,45 @@
+name: Agent Compiler Plugin (Kotlin matrix)
+
+# The Kotlin compiler plugin API is @ExperimentalCompilerApi and JetBrains breaks it across minor
+# versions by design, so "supports Kotlin 2.3 through 2.4" is only true for the versions actually
+# built here. A version missing from this matrix is not supported, whatever the README says.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'jetwhale-agent-plugin/**'
+      - '.github/workflows/agent-compiler-plugin-matrix.yml'
+  pull_request:
+    paths:
+      - 'jetwhale-agent-plugin/**'
+      - '.github/workflows/agent-compiler-plugin-matrix.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      # Every cell is reported: knowing which Kotlin broke is the point of the matrix.
+      fail-fast: false
+      matrix:
+        # 2.3.0 is the floor: CompilerPluginRegistrar.pluginId became abstract there, and does not
+        # exist at all before it, so supporting 2.2 would mean a per-version registrar source set.
+        kotlin: ['2.3.0', '2.3.21', '2.4.0', '2.4.10']
+
+    name: Kotlin ${{ matrix.kotlin }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-java
+
+      - name: Build against Kotlin ${{ matrix.kotlin }}
+        run: >
+          ./gradlew -p jetwhale-agent-plugin build
+          -Pkotlin.compiler=${{ matrix.kotlin }}
+          --no-configuration-cache

@@ -6,6 +6,10 @@
 // - Show declarations: true
 
 // Library unique name: <com.kitakkun.jetwhale:jetwhale-annotations>
+open annotation class com.kitakkun.jetwhale.annotations/ExperimentalJetWhaleApi : kotlin/Annotation { // com.kitakkun.jetwhale.annotations/ExperimentalJetWhaleApi|null[0]
+    constructor <init>() // com.kitakkun.jetwhale.annotations/ExperimentalJetWhaleApi.<init>|<init>(){}[0]
+}
+
 open annotation class com.kitakkun.jetwhale.annotations/InternalJetWhaleApi : kotlin/Annotation { // com.kitakkun.jetwhale.annotations/InternalJetWhaleApi|null[0]
     constructor <init>() // com.kitakkun.jetwhale.annotations/InternalJetWhaleApi.<init>|<init>(){}[0]
 }

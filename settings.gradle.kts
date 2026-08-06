@@ -5,6 +5,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 pluginManagement {
     includeBuild("gradle-conventions")
     includeBuild("jetwhale-gradle-plugin")
+    includeBuild("jetwhale-agent-plugin")
     repositories {
         mavenCentral()
         gradlePluginPortal()
@@ -22,6 +23,13 @@ dependencyResolutionManagement {
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
+
+// Also at the top level, not only in pluginManagement: that block resolves the *plugin*, while the
+// compiler-plugin JAR the plugin points `getPluginArtifact()` at is an ordinary dependency, and only
+// a top-level include substitutes the local project for those coordinates. Without this the demo
+// resolves jetwhale-agent-compiler-plugin from Maven Central, where the version being developed does
+// not exist yet.
+includeBuild("jetwhale-agent-plugin")
 
 include(":jetwhale-annotations")
 include(":jetwhale-protocol:core")
