@@ -94,7 +94,7 @@ internal class DefaultJetWhaleMessagingService(
                 // generous: its job is to bound a candidate that swallows packets — a firewall that
                 // drops rather than refuses — not to be tight.
                 val connection = withTimeoutOrNull(CANDIDATE_TIMEOUT_MILLIS) {
-                    socketClient.openConnection(candidate.host, candidate.port)
+                    socketClient.openConnection(candidate)
                 }
                 if (connection == null) {
                     failures += CandidateFailure(candidate, "timed out after ${CANDIDATE_TIMEOUT_MILLIS}ms")

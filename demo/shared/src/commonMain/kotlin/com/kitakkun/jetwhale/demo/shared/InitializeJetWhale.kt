@@ -7,10 +7,11 @@ import com.kitakkun.jetwhale.agent.runtime.startJetWhale
 fun initializeJetWhale() {
     startJetWhale {
         connection {
-            // Zero-config discovery of the host over mDNS for physical LAN devices. When no host is
-            // advertised (or the platform lacks mDNS), the connection falls back to the fixed endpoint,
-            // keeping "localhost" working for emulators/simulators and ADB-forwarded devices.
-            endpoint = discovered(fallback = fixed("localhost", 5443))
+            // Zero-config discovery of the host over mDNS for physical LAN devices, which reach it
+            // over wss. Everything that can only reach loopback — emulators, simulators, ADB-forwarded
+            // devices, and the browser, which cannot pin a local CA at all — falls back to the plain
+            // ws port. One configuration, every target.
+            endpoint = discovered(fallback = plainLoopback(5080))
             ssl {
                 // Fetches the host's active CA over the plain channel (via ADB forwarding) and pins
                 // the wss connection to it, so the app never has to hardcode a CA certificate.

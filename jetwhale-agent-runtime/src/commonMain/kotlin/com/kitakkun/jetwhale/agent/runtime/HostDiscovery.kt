@@ -98,7 +98,7 @@ internal class MdnsEndpointResolver(
             is DiscoveryResult.Browsed -> {
                 val usable = selectHosts(result.services, discovery)
                 report(if (usable.isEmpty()) noHostMessage(result.services) else foundMessage(usable))
-                usable.map { ResolvedEndpoint(it.service.address, it.port) }
+                usable.map { ResolvedEndpoint(it.service.address, it.port, useWss = discovery.useWss) }
             }
         }
         // Deduplicated, order kept: the fallback may well be an address that was also advertised, and

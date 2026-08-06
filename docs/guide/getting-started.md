@@ -205,8 +205,8 @@ startJetWhale {
     connection {
         // Browse the LAN for the host advertised as `_jetwhale._tcp` and connect to it. The fallback
         // applies when nothing is discovered in time (or the platform lacks mDNS), which keeps
-        // emulators/simulators and ADB-forwarded devices working over localhost.
-        endpoint = discovered(fallback = fixed("localhost", 5443))
+        // emulators/simulators, ADB-forwarded devices and browsers working over loopback.
+        endpoint = discovered(fallback = plainLoopback(5080))
 
         ssl { trustServerCertificate() }
     }
@@ -228,6 +228,24 @@ host counts as a candidate only if it advertises the port for that scheme — an
 matching host is skipped that way, the log says so by name, since the host being there but serving
 the wrong scheme looks nothing like the host being absent.
 
+### `plainLoopback` for targets that cannot do wss
+
+`plainLoopback(port)` is the one endpoint that ignores `ssl { }` and connects in the clear. It takes
+no host: plain text is safe here only because loopback never leaves the machine, and a signature that
+cannot name anything else cannot be aimed at the network by mistake. The host serves its plain-ws port
+on loopback alone for the same reason.
+
+It exists because **a browser cannot use wss with JetWhale at all**. TLS trust belongs to the browser,
+so `trustServerCertificate()` has nothing to pin with — and the CA endpoint is a different origin with
+no CORS headers, so the certificate cannot even be read. `ws://localhost` has neither problem.
+
+As a fallback it also covers emulators, simulators and ADB-forwarded devices, so the single
+configuration above serves every target: physical devices discover the host over wss, everything else
+takes loopback in the clear.
+
+Use `fixed("localhost", 5443)` instead when you do want wss over loopback — an ADB-forwarded device
+pinning the CA fetched over the same link, for instance.
+
 ### Narrowing discovery
 
 When several JetWhale hosts run on the same network, first-match is ambiguous (the agent logs a
@@ -235,7 +253,7 @@ warning listing all discovered hosts). Narrow the selection with a filter block:
 
 ```kotlin
 connection {
-    endpoint = discovered(fallback = fixed("localhost", 5443)) {
+    endpoint = discovered(fallback = plainLoopback(5080)) {
         // Accept only a host advertising this machine hostname (exact, case-insensitive).
         allowHostName("my-macbook")
 

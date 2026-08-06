@@ -62,7 +62,7 @@ public fun startJetWhale(configure: JetWhaleConfigurationScope.() -> Unit): JetW
 
 /** The resolver a configured `endpoint` amounts to, once `ssl {}` is known. */
 internal fun JetWhaleConnectionConfiguration.endpointResolver(): EndpointResolver = when (val endpoint = endpoint) {
-    is JetWhaleFixedEndpoint -> FixedEndpointResolver(endpoint.resolved())
+    is JetWhaleLiteralEndpoint -> FixedEndpointResolver(endpoint.resolved(sslConfiguration.isEnabled))
 
     is JetWhaleDiscoveredEndpoint -> MdnsEndpointResolver(
         discovery = HostDiscoveryConfig(
@@ -73,11 +73,18 @@ internal fun JetWhaleConnectionConfiguration.endpointResolver(): EndpointResolve
             // `endpoint =` can appear in either order.
             useWss = sslConfiguration.isEnabled,
         ),
-        fallback = endpoint.fallback.resolved(),
+        fallback = endpoint.fallback.resolved(sslConfiguration.isEnabled),
     )
 }
 
-private fun JetWhaleFixedEndpoint.resolved(): ResolvedEndpoint = ResolvedEndpoint(host, port)
+/** @param sslConfigured what `ssl { }` decided, which every endpoint but [JetWhalePlainLoopbackEndpoint] follows. */
+private fun JetWhaleLiteralEndpoint.resolved(sslConfigured: Boolean): ResolvedEndpoint = when (this) {
+    is JetWhaleFixedEndpoint -> ResolvedEndpoint(host, port, useWss = sslConfigured)
+    is JetWhalePlainLoopbackEndpoint -> ResolvedEndpoint(LOOPBACK_HOST, port, useWss = false)
+}
+
+/** The name loopback is dialled by. RFC 6761 reserves it, so it always resolves to the loopback interface. */
+private const val LOOPBACK_HOST = "localhost"
 
 private class MessagingServiceSession(private val service: JetWhaleMessagingService) : JetWhaleSession {
     override fun stop() {
@@ -157,6 +164,26 @@ public interface JetWhaleConnectionConfigurationScope {
     public fun fixed(host: String, port: Int): JetWhaleFixedEndpoint
 
     /**
+     * The loopback interface, reached in the clear on [port] whatever `ssl { }` says.
+     *
+     * There is no host parameter, and that is the point: plain text is safe here because it cannot
+     * leave the machine, and a signature that cannot name anything else cannot be pointed at the
+     * network by accident. The host serves its plain-ws port on loopback only, for the same reason.
+     *
+     * Use it as the fallback for targets that cannot do wss but can reach the host locally. A browser
+     * is the clear case: TLS trust belongs to the browser there, so `trustServerCertificate()` has
+     * nothing to pin with and no wss connection is possible — while `ws://localhost` is unremarkable.
+     * Emulators and ADB-forwarded devices reach loopback too, so one shared configuration covers them
+     * alongside a discovered host for physical devices.
+     *
+     * Nothing about `ssl { }` is skipped for other endpoints; this is the one exception, and it is
+     * limited to loopback by construction.
+     *
+     * @param port The host's plain-ws port.
+     */
+    public fun plainLoopback(port: Int): JetWhalePlainLoopbackEndpoint
+
+    /**
      * A host found by zero-config discovery over mDNS/DNS-SD (Bonjour): the agent browses the local
      * network for the `_jetwhale._tcp` service the host advertises while its debug server runs, and
      * connects to the address and port it advertises. Use this for physical LAN devices, which cannot
@@ -180,7 +207,7 @@ public interface JetWhaleConnectionConfigurationScope {
      * @param configure Optional filters narrowing which discovered host is accepted.
      */
     public fun discovered(
-        fallback: JetWhaleFixedEndpoint,
+        fallback: JetWhaleLiteralEndpoint,
         configure: JetWhaleDiscoveredEndpointScope.() -> Unit = {},
     ): JetWhaleEndpoint
 
@@ -199,11 +226,24 @@ public interface JetWhaleConnectionConfigurationScope {
  */
 public sealed interface JetWhaleEndpoint
 
-/** A literal host/port, as built by [JetWhaleConnectionConfigurationScope.at]. */
+/**
+ * An endpoint written down rather than looked up, and so usable as a discovery fallback.
+ *
+ * Discovery cannot fall back to more discovery, which is why the fallback is typed to this rather
+ * than to [JetWhaleEndpoint].
+ */
+public sealed interface JetWhaleLiteralEndpoint : JetWhaleEndpoint
+
+/** A literal host/port, as built by [JetWhaleConnectionConfigurationScope.fixed]. */
 public class JetWhaleFixedEndpoint internal constructor(
     internal val host: String,
     internal val port: Int,
-) : JetWhaleEndpoint
+) : JetWhaleLiteralEndpoint
+
+/** A loopback port reached in the clear, as built by [JetWhaleConnectionConfigurationScope.plainLoopback]. */
+public class JetWhalePlainLoopbackEndpoint internal constructor(
+    internal val port: Int,
+) : JetWhaleLiteralEndpoint
 
 /**
  * Allowlists narrowing which discovered host is accepted. Each is repeatable and independently
@@ -317,7 +357,7 @@ private class JetWhaleAppConfiguration : JetWhaleAppConfigurationScope {
 internal class JetWhaleDiscoveredEndpoint(
     val hostNames: List<String>,
     val addresses: List<String>,
-    val fallback: JetWhaleFixedEndpoint,
+    val fallback: JetWhaleLiteralEndpoint,
 ) : JetWhaleEndpoint
 
 @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
@@ -338,8 +378,10 @@ internal class JetWhaleConnectionConfiguration : JetWhaleConnectionConfiguration
 
     override fun fixed(host: String, port: Int): JetWhaleFixedEndpoint = JetWhaleFixedEndpoint(host, port)
 
+    override fun plainLoopback(port: Int): JetWhalePlainLoopbackEndpoint = JetWhalePlainLoopbackEndpoint(port)
+
     override fun discovered(
-        fallback: JetWhaleFixedEndpoint,
+        fallback: JetWhaleLiteralEndpoint,
         configure: JetWhaleDiscoveredEndpointScope.() -> Unit,
     ): JetWhaleEndpoint {
         val filters = JetWhaleDiscoveredEndpointConfiguration().apply(configure)

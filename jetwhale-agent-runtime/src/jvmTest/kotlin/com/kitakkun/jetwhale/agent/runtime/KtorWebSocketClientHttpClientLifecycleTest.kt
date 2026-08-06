@@ -35,7 +35,7 @@ class KtorWebSocketClientHttpClientLifecycleTest {
         configureTestServer()
         val provider = recordingProvider()
         val webSocketClient = webSocketClient(provider)
-        webSocketClient.openConnection(host = TEST_SERVER_HOST, port = TEST_SERVER_PORT)
+        webSocketClient.openConnection(ResolvedEndpoint(TEST_SERVER_HOST, TEST_SERVER_PORT, useWss = false))
 
         webSocketClient.closeConnection()
 
@@ -49,7 +49,7 @@ class KtorWebSocketClientHttpClientLifecycleTest {
         val webSocketClient = webSocketClient(provider)
 
         assertFailsWith<Throwable> {
-            webSocketClient.openConnection(host = TEST_SERVER_HOST, port = TEST_SERVER_PORT)
+            webSocketClient.openConnection(ResolvedEndpoint(TEST_SERVER_HOST, TEST_SERVER_PORT, useWss = false))
         }
 
         assertReleased(provider.handedOut.single(), "a refused attempt stranded its client")
@@ -63,10 +63,10 @@ class KtorWebSocketClientHttpClientLifecycleTest {
         val provider = recordingProvider()
         val webSocketClient = webSocketClient(provider)
 
-        val connection = webSocketClient.openConnection(host = TEST_SERVER_HOST, port = TEST_SERVER_PORT)
+        val connection = webSocketClient.openConnection(ResolvedEndpoint(TEST_SERVER_HOST, TEST_SERVER_PORT, useWss = false))
         connection.debuggerEventFlow.collect { }
 
-        webSocketClient.openConnection(host = TEST_SERVER_HOST, port = TEST_SERVER_PORT)
+        webSocketClient.openConnection(ResolvedEndpoint(TEST_SERVER_HOST, TEST_SERVER_PORT, useWss = false))
 
         assertEquals(2, provider.handedOut.size)
         assertReleased(provider.handedOut.first(), "the ended connection's client was left open")
