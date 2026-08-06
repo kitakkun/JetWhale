@@ -131,11 +131,18 @@ fun serverSettingsScreenPresenter(
     LaunchedEffect(serverStatus) {
         if (serverStatus is DebugWebSocketServerStatus.Started) {
             editingDebugPortText = serverStatus.port.toString()
-            editingWssEnabled = serverStatus.wssPort != null
-            // A null wss port means the connector is off, not that the stored port is gone, so the
-            // text field keeps showing the port that switching wss back on would bind.
-            serverStatus.wssPort?.let { editingWssPortText = it.toString() }
         }
+    }
+
+    // The wss fields follow the stored settings rather than the running server, because a Started
+    // status carries a null wss port in two different situations: the connector is switched off, and
+    // the connector was asked for but could not bind (an unloadable certificate leaves plain ws
+    // running on its own). Reading the switch back off the status would silently turn wss off in the
+    // second case, and the next Apply would persist that. Launch overrides already reach these
+    // values through the repository, so the store is the whole truth here.
+    LaunchedEffect(debuggerSettings.wssEnabled, debuggerSettings.wssPort) {
+        editingWssEnabled = debuggerSettings.wssEnabled
+        editingWssPortText = debuggerSettings.wssPort.toString()
     }
 
     LaunchedEffect(mcpServerStatus) {
