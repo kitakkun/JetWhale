@@ -81,9 +81,15 @@ class DefaultHostDiscoveryAdvertiser(
      * The advertised instance name. The machine hostname keeps it recognizable to a developer picking
      * a host from multiple advertised machines and lets the agent's `hostName` filter target it; it
      * falls back to a constant when the hostname is unavailable.
+     *
+     * Only the first label is used. A DNS-SD instance name is a single label, and the local hostname
+     * is often qualified — `getLocalHost().hostName` returns `machine.local` on macOS — so keeping the
+     * domain would embed an unescaped dot. jmDNS reads such a name back happily, but strict responders
+     * do not: Apple's `mDNSResponder` drops it, which silently hides the host from exactly the iOS and
+     * Android agents discovery exists to serve.
      */
     private fun instanceName(): String = try {
-        InetAddress.getLocalHost().hostName
+        InetAddress.getLocalHost().hostName.substringBefore('.').ifEmpty { DEFAULT_INSTANCE_NAME }
     } catch (e: Exception) {
         logger.debug("Could not resolve local hostname for mDNS instance name; using default", e)
         DEFAULT_INSTANCE_NAME
