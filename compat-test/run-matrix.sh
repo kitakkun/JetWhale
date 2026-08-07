@@ -4,6 +4,9 @@
 # Usage:
 #   ./run-matrix.sh <jetwhaleVersion> [kotlinVersion...]
 #
+# <jetwhaleVersion> is the release version: it resolves jetwhale-bom, which maps it onto the version
+# jetwhale-agent-runtime is actually published at.
+#
 # Examples:
 #   ./run-matrix.sh 1.0.0-alpha07                       # default Kotlin matrix
 #   ./run-matrix.sh 1.0.0-alpha07 2.2.21 2.3.0          # explicit versions

@@ -31,6 +31,10 @@ plugins {
 // not exist yet.
 includeBuild("jetwhale-agent-plugin")
 
+// Describe the artifact versions of one release; published on every release.
+include(":jetwhale-bom")
+include(":jetwhale-catalog")
+
 include(":jetwhale-annotations")
 include(":jetwhale-protocol:core")
 

@@ -4,7 +4,7 @@
 
 # JetWhale
 
-[![Maven Central](https://img.shields.io/maven-central/v/com.kitakkun.jetwhale/jetwhale-agent-runtime)](https://central.sonatype.com/search?namespace=com.kitakkun.jetwhale)
+[![Maven Central](https://img.shields.io/maven-central/v/com.kitakkun.jetwhale/jetwhale-bom)](https://central.sonatype.com/search?namespace=com.kitakkun.jetwhale)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![License](https://img.shields.io/github/license/kitakkun/JetWhale)](LICENSE)
 

@@ -22,8 +22,17 @@ dependencyResolutionManagement {
         mavenCentral()
         google()
     }
+    versionCatalogs {
+        create("jetwhale") {
+            from("com.kitakkun.jetwhale:jetwhale-catalog:<version>")
+        }
+    }
 }
 ```
+
+A release only republishes the artifacts that changed, so their versions differ within one release.
+The published version catalog names the release once and supplies the matching version for every
+artifact — including the `com.kitakkun.jetwhale.host` Gradle plugin, which a BOM cannot carry.
 
 ### 2. Apply the plugin and pin a host version
 
@@ -36,12 +45,12 @@ A JetWhale plugin module is a Kotlin/JVM module with Compose UI. Apply `com.kita
 plugins {
     kotlin("jvm") version "<kotlinVersion>"
     id("org.jetbrains.kotlin.plugin.compose") version "<kotlinVersion>"
-    id("com.kitakkun.jetwhale.host") version "<version>"
+    alias(jetwhale.plugins.host)
 }
 
 dependencies {
     // Provided by the host at runtime, so compileOnly — they must NOT be bundled into the plugin jar.
-    compileOnly("com.kitakkun.jetwhale:jetwhale-host-sdk:<version>")
+    compileOnly(jetwhale.host.sdk)
     compileOnly("org.jetbrains.compose.material3:material3:<composeMaterial3Version>")
 }
 
@@ -72,10 +81,11 @@ corresponding release tag.
 :::
 
 The agent SDK goes in the **app being debugged** (a normal runtime dependency, not in the plugin
-module):
+module) — set the catalog up in that build too, as in
+[Getting Started](./getting-started.md#_2-add-the-agent-runtime-to-your-app):
 
 ```kotlin
-implementation("com.kitakkun.jetwhale:jetwhale-agent-sdk:<version>")
+implementation(jetwhale.agent.sdk)
 ```
 
 ### 3. Write the plugin
@@ -696,7 +706,7 @@ the dependency manifest.
 
 Pre-release builds are published as `-SNAPSHOT`. To try one, add the Central snapshots repository to
 **both** repository blocks in `settings.gradle.kts` and use a `-SNAPSHOT` version everywhere
-(`id("com.kitakkun.jetwhale.host") version`, the SDK dependency, and `hostVersion`):
+(the `jetwhale-catalog` version, and `hostVersion`):
 
 ```kotlin
 maven("https://central.sonatype.com/repository/maven-snapshots/")

@@ -33,5 +33,9 @@
 - Keep PRs focused, include a short description of changes, and note how they were tested.
 - For UI changes in the host or demo apps, include screenshots or a short recording.
 
+## Releasing
+- See `RELEASING.md`. A release publishes only the artifacts that changed, with the per-artifact versions recorded in `gradle/published-versions.properties` (written by `./gradlew prepareRelease`).
+- A new published module must apply the `publish` convention and be added to the lock file by `prepareRelease`; `jetwhale-bom` and `jetwhale-catalog` then pick it up automatically.
+
 ## Configuration Tips
 - Gradle configuration cache is enabled in `gradle.properties`; avoid introducing tasks that break caching without justification.

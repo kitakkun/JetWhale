@@ -23,8 +23,8 @@ The agent side is a normal dependency of the app being debugged, alongside the a
 
 ```kotlin
 dependencies {
-    implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
-    implementation("com.kitakkun.jetwhale:jetwhale-nav3-agent:<version>")
+    implementation(jetwhale.agent.runtime)
+    implementation(jetwhale.nav3.agent)
 }
 ```
 

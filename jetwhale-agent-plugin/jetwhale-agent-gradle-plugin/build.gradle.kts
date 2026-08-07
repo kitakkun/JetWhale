@@ -1,3 +1,5 @@
+import util.PublishedVersions
+
 plugins {
     `java-gradle-plugin`
     alias(libs.plugins.kotlinJvm)
@@ -29,16 +31,17 @@ tasks.withType<Test>().configureEach {
 }
 
 /**
- * The plugin's own version, as source.
+ * The compiler plugin's published version, as source.
  *
  * `getPluginArtifact()` has to name the compiler plugin's coordinates, and a hand-written literal
  * there is a version-skew bug waiting for the next release: publish 1.1.0 and the Gradle plugin
- * quietly keeps fetching the 1.0.0 compiler plugin. Generating it from the same `version` that
- * publishes the artifact removes the opportunity.
+ * quietly keeps fetching the 1.0.0 compiler plugin. Taking it from the same recorded version that
+ * publishes that artifact removes the opportunity — a release republishes only what changed, so the
+ * two plugins do not always share a version.
  */
 val generateVersionConstant by tasks.registering {
     val output = layout.buildDirectory.dir("generated/version/kotlin")
-    val pluginVersion = version.toString()
+    val pluginVersion = PublishedVersions.publishVersionFor(project, "jetwhale-agent-compiler-plugin")
     inputs.property("version", pluginVersion)
     outputs.dir(output)
     doLast {
@@ -48,7 +51,7 @@ val generateVersionConstant by tasks.registering {
             """
             package com.kitakkun.jetwhale.agent.gradle
 
-            /** Generated from the Gradle plugin's own version. Do not edit. */
+            /** Generated from the compiler plugin's published version. Do not edit. */
             internal const val VERSION: String = "$pluginVersion"
 
             """.trimIndent(),

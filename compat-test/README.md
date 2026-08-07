@@ -15,6 +15,10 @@ For each Kotlin version it compiles and runs `src/main/kotlin/Main.kt`. When a v
 (metadata-version error), it retries with `-Xskip-metadata-version-check` to confirm the
 documented workaround still works. The script exits non-zero only if the workaround also fails.
 
+The version passed to the script is the **release** version: it resolves `jetwhale-bom`, which maps
+it onto whichever version `jetwhale-agent-runtime` is published at — a release republishes only the
+artifacts that changed, so the two can differ.
+
 ## Test a pre-release version
 
 Publish to Maven Local from the repository root, then point the script at that version

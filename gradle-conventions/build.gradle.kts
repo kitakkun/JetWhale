@@ -4,4 +4,10 @@ plugins {
 
 dependencies {
     compileOnly(libs.bundles.gradlePlugins)
+
+    testImplementation(libs.kotlinTest)
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }

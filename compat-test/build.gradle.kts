@@ -17,7 +17,10 @@ if (providers.gradleProperty("skipMetadataCheck").isPresent) {
 }
 
 dependencies {
-    implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:$jetwhaleVersion")
+    // A release only republishes the artifacts that changed, so -PjetwhaleVersion names the release
+    // and the BOM resolves it to whatever version jetwhale-agent-runtime is actually published at.
+    implementation(platform("com.kitakkun.jetwhale:jetwhale-bom:$jetwhaleVersion"))
+    implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime")
 }
 
 application {

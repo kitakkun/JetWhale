@@ -27,12 +27,16 @@ Add the core agent plus the adapter for your HTTP client to the app being debugg
 
 ```kotlin
 dependencies {
-    implementation("com.kitakkun.jetwhale:jetwhale-agent-runtime:<version>")
+    implementation(jetwhale.agent.runtime)
     // pick the adapter(s) matching your HTTP client:
-    implementation("com.kitakkun.jetwhale:jetwhale-network-inspector-agent-ktor:<version>")
-    implementation("com.kitakkun.jetwhale:jetwhale-network-inspector-agent-okhttp:<version>")
+    implementation(jetwhale.network.inspector.agent.ktor)
+    implementation(jetwhale.network.inspector.agent.okhttp)
 }
 ```
+
+These aliases come from the published version catalog — see
+[Getting Started](./getting-started.md#_2-add-the-agent-runtime-to-your-app) for the `settings.gradle.kts`
+setup and the BOM alternative.
 
 Create **one** `JetWhaleNetworkAgentPlugin` instance and use it in two places: install it into your
 HTTP client, and register it in `startJetWhale { }`. It must be the same instance.

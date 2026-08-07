@@ -13,29 +13,36 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
       - uses: ./.github/actions/setup-java
-      - name: Publish to MavenCentral
-        run: ./gradlew publishToMavenCentral --no-configuration-cache
+      # Fails when gradle/published-versions.properties does not describe a releasable state, e.g.
+      # `prepareRelease` was never run for this train version. Offline, so it costs nothing.
+      - name: Verify the release plan
+        run: ./gradlew verifyReleasePlan --no-configuration-cache
+      # Publishes only the artifacts whose recorded version equals this train version. Maven Central
+      # bills publishers on file count, so unchanged artifacts stay at the version they already have.
+      - name: Publish changed artifacts to MavenCentral
+        run: ./gradlew publishChangedToMavenCentral --no-configuration-cache
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
-      # The Gradle plugin lives in the `jetwhale-gradle-plugin` included build, whose tasks are not
-      # part of the root build's publishToMavenCentral, so publish it explicitly.
-      - name: Publish Gradle plugin to MavenCentral
-        run: ./gradlew -p jetwhale-gradle-plugin publishToMavenCentral --no-configuration-cache
+      # The Gradle plugins live in included builds, whose tasks are not part of the root build's
+      # publish tasks, so publish them explicitly. Each build has its own aggregate task, which picks
+      # the artifacts that move exactly as the root build's does, and does nothing when none do.
+      - name: Publish host Gradle plugin to MavenCentral
+        run: ./gradlew -p jetwhale-gradle-plugin publishChangedToMavenCentral --no-configuration-cache
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
-      # Same again for the agent-side plugins, which are a third included build. The Gradle plugin
-      # names the compiler plugin's coordinates in getPluginArtifact(), so publishing one without the
-      # other leaves consumers resolving an artifact that does not exist.
+      # The agent compiler plugin and its Gradle plugin share a build, and move independently: the
+      # Gradle plugin names the compiler plugin's coordinates in getPluginArtifact(), so the release
+      # plan republishes it whenever the compiler plugin moves, but not the other way round.
       - name: Publish agent compiler + Gradle plugin to MavenCentral
-        run: ./gradlew -p jetwhale-agent-plugin publishToMavenCentral --no-configuration-cache
+        run: ./gradlew -p jetwhale-agent-plugin publishChangedToMavenCentral --no-configuration-cache
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
