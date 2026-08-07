@@ -1,0 +1,33 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, linuxArm64, linuxX64, macosArm64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.nav3:agent>
+final class <#A: androidx.navigation3.runtime/NavKey> com.kitakkun.jetwhale.plugins.nav3.agent/JetWhaleNav3AgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.plugins.nav3.agent/JetWhaleNav3AgentPlugin|null[0]
+    constructor <init>(com.kitakkun.jetwhale.plugins.nav3.agent/Nav3KeyCodec<#A>) // com.kitakkun.jetwhale.plugins.nav3.agent/JetWhaleNav3AgentPlugin.<init>|<init>(com.kitakkun.jetwhale.plugins.nav3.agent.Nav3KeyCodec<1:0>){}[0]
+
+    final val pluginId // com.kitakkun.jetwhale.plugins.nav3.agent/JetWhaleNav3AgentPlugin.pluginId|{}pluginId[0]
+        final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.agent/JetWhaleNav3AgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    final val pluginVersion // com.kitakkun.jetwhale.plugins.nav3.agent/JetWhaleNav3AgentPlugin.pluginVersion|{}pluginVersion[0]
+        final fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.agent/JetWhaleNav3AgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+
+    final fun registerBackStack(kotlin.collections/MutableList<#A>, kotlin/String = ...) // com.kitakkun.jetwhale.plugins.nav3.agent/JetWhaleNav3AgentPlugin.registerBackStack|registerBackStack(kotlin.collections.MutableList<1:0>;kotlin.String){}[0]
+    final fun unregisterBackStack(kotlin/String) // com.kitakkun.jetwhale.plugins.nav3.agent/JetWhaleNav3AgentPlugin.unregisterBackStack|unregisterBackStack(kotlin.String){}[0]
+}
+
+final class <#A: androidx.navigation3.runtime/NavKey> com.kitakkun.jetwhale.plugins.nav3.agent/Nav3KeyCodec { // com.kitakkun.jetwhale.plugins.nav3.agent/Nav3KeyCodec|null[0]
+    final object Companion { // com.kitakkun.jetwhale.plugins.nav3.agent/Nav3KeyCodec.Companion|null[0]
+        final fun <#A2: androidx.navigation3.runtime/NavKey> closedPolymorphic(kotlinx.serialization/KSerializer<#A2>): com.kitakkun.jetwhale.plugins.nav3.agent/Nav3KeyCodec<#A2> // com.kitakkun.jetwhale.plugins.nav3.agent/Nav3KeyCodec.Companion.closedPolymorphic|closedPolymorphic(kotlinx.serialization.KSerializer<0:0>){0§<androidx.navigation3.runtime.NavKey>}[0]
+        final fun openPolymorphic(kotlinx.serialization.modules/SerializersModule): com.kitakkun.jetwhale.plugins.nav3.agent/Nav3KeyCodec<androidx.navigation3.runtime/NavKey> // com.kitakkun.jetwhale.plugins.nav3.agent/Nav3KeyCodec.Companion.openPolymorphic|openPolymorphic(kotlinx.serialization.modules.SerializersModule){}[0]
+    }
+}
+
+final val com.kitakkun.jetwhale.plugins.nav3.agent/com_kitakkun_jetwhale_plugins_nav3_agent_JetWhaleNav3AgentPlugin$stableprop // com.kitakkun.jetwhale.plugins.nav3.agent/com_kitakkun_jetwhale_plugins_nav3_agent_JetWhaleNav3AgentPlugin$stableprop|#static{}com_kitakkun_jetwhale_plugins_nav3_agent_JetWhaleNav3AgentPlugin$stableprop[0]
+final val com.kitakkun.jetwhale.plugins.nav3.agent/com_kitakkun_jetwhale_plugins_nav3_agent_Nav3KeyCodec$stableprop // com.kitakkun.jetwhale.plugins.nav3.agent/com_kitakkun_jetwhale_plugins_nav3_agent_Nav3KeyCodec$stableprop|#static{}com_kitakkun_jetwhale_plugins_nav3_agent_Nav3KeyCodec$stableprop[0]
+
+final fun <#A: androidx.navigation3.runtime/NavKey> (com.kitakkun.jetwhale.plugins.nav3.agent/JetWhaleNav3AgentPlugin<#A>).com.kitakkun.jetwhale.plugins.nav3.agent/TrackNavBackStack(kotlin.collections/MutableList<#A>, kotlin/String?, androidx.compose.runtime/Composer?, kotlin/Int, kotlin/Int) // com.kitakkun.jetwhale.plugins.nav3.agent/TrackNavBackStack|TrackNavBackStack@com.kitakkun.jetwhale.plugins.nav3.agent.JetWhaleNav3AgentPlugin<0:0>(kotlin.collections.MutableList<0:0>;kotlin.String?;androidx.compose.runtime.Composer?;kotlin.Int;kotlin.Int){0§<androidx.navigation3.runtime.NavKey>}[0]
+final fun com.kitakkun.jetwhale.plugins.nav3.agent/com_kitakkun_jetwhale_plugins_nav3_agent_JetWhaleNav3AgentPlugin$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.agent/com_kitakkun_jetwhale_plugins_nav3_agent_JetWhaleNav3AgentPlugin$stableprop_getter|com_kitakkun_jetwhale_plugins_nav3_agent_JetWhaleNav3AgentPlugin$stableprop_getter(){}[0]
+final fun com.kitakkun.jetwhale.plugins.nav3.agent/com_kitakkun_jetwhale_plugins_nav3_agent_Nav3KeyCodec$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.agent/com_kitakkun_jetwhale_plugins_nav3_agent_Nav3KeyCodec$stableprop_getter|com_kitakkun_jetwhale_plugins_nav3_agent_Nav3KeyCodec$stableprop_getter(){}[0]

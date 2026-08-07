@@ -1,0 +1,59 @@
+public abstract interface class com/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSource {
+	public abstract fun capture (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun getSourceId ()Ljava/lang/String;
+	public abstract fun performAction (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSourceRegistry {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSourceRegistry;
+	public final fun clear ()V
+	public final fun getSources ()Ljava/util/List;
+	public final fun register (Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSource;)Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSourceRegistry$Registration;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSourceRegistry$Registration : java/lang/AutoCloseable {
+	public static final field $stable I
+	public fun close ()V
+}
+
+public abstract interface class com/kitakkun/jetwhale/plugins/semantics/agent/ComposeUiThread {
+	public abstract fun await (Lkotlin/jvm/functions/Function0;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/agent/DesktopSemanticsProbeKt {
+	public static final fun JetWhaleSemanticsProbe (Landroidx/compose/ui/window/FrameWindowScope;Landroidx/compose/runtime/Composer;I)V
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/agent/JetWhaleSemanticsAgentPlugin : com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
+	public static final field $stable I
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/agent/JetWhaleSemanticsAgentPlugin$Companion;
+	public static final field PLUGIN_ID Ljava/lang/String;
+	public fun <init> ()V
+	public fun getPluginId ()Ljava/lang/String;
+	public fun getPluginVersion ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/agent/JetWhaleSemanticsAgentPlugin$Companion {
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/agent/MainDispatcherComposeUiThread : com/kitakkun/jetwhale/plugins/semantics/agent/ComposeUiThread {
+	public static final field $stable I
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/agent/MainDispatcherComposeUiThread;
+	public fun await (Lkotlin/jvm/functions/Function0;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/agent/SemanticsOwnerNodeSource : com/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSource {
+	public static final field $stable I
+	public fun <init> (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeUiThread;)V
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeUiThread;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun capture (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getSourceId ()Ljava/lang/String;
+	public fun performAction (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/agent/SemanticsOwnerNodeSourceKt {
+	public static final fun registerSemanticsOwner (Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSourceRegistry;Landroidx/compose/ui/semantics/SemanticsOwner;Ljava/lang/String;Ljava/lang/String;FLkotlin/jvm/functions/Function0;Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeUiThread;)Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSourceRegistry$Registration;
+	public static synthetic fun registerSemanticsOwner$default (Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSourceRegistry;Landroidx/compose/ui/semantics/SemanticsOwner;Ljava/lang/String;Ljava/lang/String;FLkotlin/jvm/functions/Function0;Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeUiThread;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSourceRegistry$Registration;
+}
+

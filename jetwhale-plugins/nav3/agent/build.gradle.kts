@@ -1,6 +1,7 @@
-@file:OptIn(ExperimentalWasmDsl::class)
+@file:OptIn(ExperimentalWasmDsl::class, ExperimentalAbiValidation::class)
 
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 plugins {
     alias(libs.plugins.multiplatform)
@@ -16,6 +17,9 @@ plugins {
 group = "com.kitakkun.jetwhale.plugins.nav3"
 
 kotlin {
+    abiValidation {
+    }
+
     android.namespace = "com.kitakkun.jetwhale.plugins.nav3.agent"
 }
 

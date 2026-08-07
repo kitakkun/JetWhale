@@ -1,0 +1,63 @@
+public final class com/kitakkun/jetwhale/plugins/network/host/ComposableSingletons$JsonBodyViewKt {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/host/ComposableSingletons$JsonBodyViewKt;
+	public fun <init> ()V
+	public final fun getLambda$1483551591$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$164796560$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/host/ComposableSingletons$MocksViewKt {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/host/ComposableSingletons$MocksViewKt;
+	public fun <init> ()V
+	public final fun getLambda$-1046226545$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-1273530357$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-1463188833$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-1891923305$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-61737784$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-815177313$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-855641655$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-882214116$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$1882639474$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$189459121$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$646412787$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$836412836$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$952251840$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/host/ComposableSingletons$TrafficViewKt {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/host/ComposableSingletons$TrafficViewKt;
+	public fun <init> ()V
+	public final fun getLambda$-1054845750$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-2057655576$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-933537792$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$558337446$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$96535872$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/host/HttpTransaction {
+	public static final field $stable I
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;)V
+	public synthetic fun <init> (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
+	public final fun component2 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
+	public final fun component3 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;
+	public final fun copy (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;)Lcom/kitakkun/jetwhale/plugins/network/host/HttpTransaction;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/host/HttpTransaction;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/host/HttpTransaction;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFailure ()Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;
+	public final fun getRequest ()Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
+	public final fun getResponse ()Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
+	public final fun getTxId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/host/NetworkHostPluginFactory : com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun createPlugin ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/host/NetworkInspectorScreenKt {
+	public static final fun NetworkInspectorScreen (Ljava/util/List;Ljava/util/List;ZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;I)V
+}
+

@@ -1,0 +1,10 @@
+public final class com/kitakkun/jetwhale/plugins/network/agent/ktor/JetWhaleNetworkKtorPluginKt {
+	public static final fun ktorClientPlugin (Lcom/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin;I)Lio/ktor/client/plugins/api/ClientPlugin;
+	public static synthetic fun ktorClientPlugin$default (Lcom/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin;IILjava/lang/Object;)Lio/ktor/client/plugins/api/ClientPlugin;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/agent/ktor/JetWhaleNetworkKtorSendInterceptorKt {
+	public static final fun ktorSendInterceptor (Lcom/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin;Lio/ktor/client/HttpClient;I)Lkotlin/jvm/functions/Function3;
+	public static synthetic fun ktorSendInterceptor$default (Lcom/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin;Lio/ktor/client/HttpClient;IILjava/lang/Object;)Lkotlin/jvm/functions/Function3;
+}
+

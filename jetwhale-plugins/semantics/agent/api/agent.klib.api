@@ -1,0 +1,72 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.semantics:agent>
+abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource { // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource|null[0]
+    abstract val sourceId // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource.sourceId|{}sourceId[0]
+        abstract fun <get-sourceId>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource.sourceId.<get-sourceId>|<get-sourceId>(){}[0]
+
+    abstract suspend fun capture(com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions): com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot? // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource.capture|capture(com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions){}[0]
+    abstract suspend fun performAction(com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource.performAction|performAction(com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction){}[0]
+}
+
+abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread { // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread|null[0]
+    abstract suspend fun <#A1: kotlin/Any?> await(kotlin/Function0<#A1>): #A1 // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread.await|await(kotlin.Function0<0:0>){0§<kotlin.Any?>}[0]
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.agent/JetWhaleSemanticsAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.plugins.semantics.agent/JetWhaleSemanticsAgentPlugin|null[0]
+    constructor <init>() // com.kitakkun.jetwhale.plugins.semantics.agent/JetWhaleSemanticsAgentPlugin.<init>|<init>(){}[0]
+
+    final val pluginId // com.kitakkun.jetwhale.plugins.semantics.agent/JetWhaleSemanticsAgentPlugin.pluginId|{}pluginId[0]
+        final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.agent/JetWhaleSemanticsAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    final val pluginVersion // com.kitakkun.jetwhale.plugins.semantics.agent/JetWhaleSemanticsAgentPlugin.pluginVersion|{}pluginVersion[0]
+        final fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.agent/JetWhaleSemanticsAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.agent/JetWhaleSemanticsAgentPlugin.Companion|null[0]
+        final const val PLUGIN_ID // com.kitakkun.jetwhale.plugins.semantics.agent/JetWhaleSemanticsAgentPlugin.Companion.PLUGIN_ID|{}PLUGIN_ID[0]
+            final fun <get-PLUGIN_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.agent/JetWhaleSemanticsAgentPlugin.Companion.PLUGIN_ID.<get-PLUGIN_ID>|<get-PLUGIN_ID>(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.agent/SemanticsOwnerNodeSource : com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource { // com.kitakkun.jetwhale.plugins.semantics.agent/SemanticsOwnerNodeSource|null[0]
+    constructor <init>(kotlin/String, kotlin/Function0<androidx.compose.ui.semantics/SemanticsOwner?>, kotlin/Function0<kotlin/String>, kotlin/Function0<kotlin/Float>, kotlin/Function0<androidx.compose.ui.geometry/Offset> = ..., com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread = ...) // com.kitakkun.jetwhale.plugins.semantics.agent/SemanticsOwnerNodeSource.<init>|<init>(kotlin.String;kotlin.Function0<androidx.compose.ui.semantics.SemanticsOwner?>;kotlin.Function0<kotlin.String>;kotlin.Function0<kotlin.Float>;kotlin.Function0<androidx.compose.ui.geometry.Offset>;com.kitakkun.jetwhale.plugins.semantics.agent.ComposeUiThread){}[0]
+
+    final val sourceId // com.kitakkun.jetwhale.plugins.semantics.agent/SemanticsOwnerNodeSource.sourceId|{}sourceId[0]
+        final fun <get-sourceId>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.agent/SemanticsOwnerNodeSource.sourceId.<get-sourceId>|<get-sourceId>(){}[0]
+
+    final suspend fun capture(com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions): com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot? // com.kitakkun.jetwhale.plugins.semantics.agent/SemanticsOwnerNodeSource.capture|capture(com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions){}[0]
+    final suspend fun performAction(com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult // com.kitakkun.jetwhale.plugins.semantics.agent/SemanticsOwnerNodeSource.performAction|performAction(com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction){}[0]
+}
+
+final object com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSourceRegistry { // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSourceRegistry|null[0]
+    final val sources // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSourceRegistry.sources|{}sources[0]
+        final fun <get-sources>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource> // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSourceRegistry.sources.<get-sources>|<get-sources>(){}[0]
+
+    final fun clear() // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSourceRegistry.clear|clear(){}[0]
+    final fun register(com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource): com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSourceRegistry.Registration // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSourceRegistry.register|register(com.kitakkun.jetwhale.plugins.semantics.agent.ComposeNodeSource){}[0]
+
+    final class Registration : kotlin/AutoCloseable { // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSourceRegistry.Registration|null[0]
+        final fun close() // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSourceRegistry.Registration.close|close(){}[0]
+    }
+}
+
+final object com.kitakkun.jetwhale.plugins.semantics.agent/MainDispatcherComposeUiThread : com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread { // com.kitakkun.jetwhale.plugins.semantics.agent/MainDispatcherComposeUiThread|null[0]
+    final suspend fun <#A1: kotlin/Any?> await(kotlin/Function0<#A1>): #A1 // com.kitakkun.jetwhale.plugins.semantics.agent/MainDispatcherComposeUiThread.await|await(kotlin.Function0<0:0>){0§<kotlin.Any?>}[0]
+}
+
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_ComposeNodeSourceRegistry$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_ComposeNodeSourceRegistry$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_ComposeNodeSourceRegistry$stableprop[0]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_ComposeNodeSourceRegistry_Registration$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_ComposeNodeSourceRegistry_Registration$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_ComposeNodeSourceRegistry_Registration$stableprop[0]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_JetWhaleSemanticsAgentPlugin$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_JetWhaleSemanticsAgentPlugin$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_JetWhaleSemanticsAgentPlugin$stableprop[0]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_MainDispatcherComposeUiThread$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_MainDispatcherComposeUiThread$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_MainDispatcherComposeUiThread$stableprop[0]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_SemanticsOwnerNodeSource$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_SemanticsOwnerNodeSource$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_SemanticsOwnerNodeSource$stableprop[0]
+
+final fun (com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSourceRegistry).com.kitakkun.jetwhale.plugins.semantics.agent/registerSemanticsOwner(androidx.compose.ui.semantics/SemanticsOwner, kotlin/String, kotlin/String, kotlin/Float, kotlin/Function0<androidx.compose.ui.geometry/Offset> = ..., com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread = ...): com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSourceRegistry.Registration // com.kitakkun.jetwhale.plugins.semantics.agent/registerSemanticsOwner|registerSemanticsOwner@com.kitakkun.jetwhale.plugins.semantics.agent.ComposeNodeSourceRegistry(androidx.compose.ui.semantics.SemanticsOwner;kotlin.String;kotlin.String;kotlin.Float;kotlin.Function0<androidx.compose.ui.geometry.Offset>;com.kitakkun.jetwhale.plugins.semantics.agent.ComposeUiThread){}[0]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_ComposeNodeSourceRegistry$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_ComposeNodeSourceRegistry$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_ComposeNodeSourceRegistry$stableprop_getter(){}[0]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_ComposeNodeSourceRegistry_Registration$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_ComposeNodeSourceRegistry_Registration$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_ComposeNodeSourceRegistry_Registration$stableprop_getter(){}[0]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_JetWhaleSemanticsAgentPlugin$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_JetWhaleSemanticsAgentPlugin$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_JetWhaleSemanticsAgentPlugin$stableprop_getter(){}[0]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_MainDispatcherComposeUiThread$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_MainDispatcherComposeUiThread$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_MainDispatcherComposeUiThread$stableprop_getter(){}[0]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_SemanticsOwnerNodeSource$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_SemanticsOwnerNodeSource$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_SemanticsOwnerNodeSource$stableprop_getter(){}[0]

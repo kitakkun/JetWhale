@@ -1,0 +1,5 @@
+public final class com/kitakkun/jetwhale/plugins/network/agent/okhttp/JetWhaleNetworkOkHttpInterceptorKt {
+	public static final fun okHttpInterceptor (Lcom/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin;I)Lokhttp3/Interceptor;
+	public static synthetic fun okHttpInterceptor$default (Lcom/kitakkun/jetwhale/plugins/network/agent/JetWhaleNetworkAgentPlugin;IILjava/lang/Object;)Lokhttp3/Interceptor;
+}
+

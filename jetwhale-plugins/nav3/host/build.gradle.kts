@@ -1,3 +1,7 @@
+@file:OptIn(ExperimentalAbiValidation::class)
+
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
+
 plugins {
     alias(libs.plugins.jvm)
     alias(libs.plugins.composeCompiler)
@@ -7,6 +11,11 @@ plugins {
     // In-repo only: adds runJetWhaleLocal, which launches the local :jetwhale-host:app project.
     alias(libs.plugins.jetwhaleHostLaunch)
     alias(libs.plugins.publish)
+}
+
+kotlin {
+    abiValidation {
+    }
 }
 
 // Distinct group so this module's coordinates don't collide with the other plugins' `host` modules.

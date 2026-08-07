@@ -1,0 +1,10 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, linuxArm64, linuxX64, macosArm64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.network:agent-ktor>
+final fun (com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin).com.kitakkun.jetwhale.plugins.network.agent.ktor/ktorClientPlugin(kotlin/Int = ...): io.ktor.client.plugins.api/ClientPlugin<kotlin/Unit> // com.kitakkun.jetwhale.plugins.network.agent.ktor/ktorClientPlugin|ktorClientPlugin@com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin(kotlin.Int){}[0]
+final fun (com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin).com.kitakkun.jetwhale.plugins.network.agent.ktor/ktorSendInterceptor(io.ktor.client/HttpClient, kotlin/Int = ...): kotlin.coroutines/SuspendFunction2<io.ktor.client.plugins/Sender, io.ktor.client.request/HttpRequestBuilder, io.ktor.client.call/HttpClientCall> // com.kitakkun.jetwhale.plugins.network.agent.ktor/ktorSendInterceptor|ktorSendInterceptor@com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin(io.ktor.client.HttpClient;kotlin.Int){}[0]

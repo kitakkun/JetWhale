@@ -1,0 +1,528 @@
+public final class com/kitakkun/jetwhale/plugins/network/protocol/Ack {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/Ack;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJ)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/util/Map;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Z
+	public final fun component7 ()J
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJ)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBody ()Ljava/lang/String;
+	public final fun getBodyTruncated ()Z
+	public final fun getHeaders ()Ljava/util/Map;
+	public final fun getMethod ()Ljava/lang/String;
+	public final fun getTimestampMs ()J
+	public final fun getTxId ()Ljava/lang/String;
+	public final fun getUrl ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse$Companion;
+	public fun <init> (Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJZ)V
+	public synthetic fun <init> (Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/util/Map;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Z
+	public final fun component7 ()J
+	public final fun component8 ()Z
+	public final fun copy (Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJZ)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJZILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBody ()Ljava/lang/String;
+	public final fun getBodyTruncated ()Z
+	public final fun getDurationMs ()J
+	public final fun getFromMock ()Z
+	public final fun getHeaders ()Ljava/util/Map;
+	public final fun getStatusCode ()I
+	public final fun getStatusDescription ()Ljava/lang/String;
+	public final fun getTxId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/GetMockConfig : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/GetMockConfig;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/GetRedactionConfig : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/GetRedactionConfig;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;J)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()J
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;J)Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;Ljava/lang/String;Ljava/lang/String;JILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDurationMs ()J
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getTxId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/MockConfig {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/MockConfig$Companion;
+	public fun <init> (ZLjava/util/List;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (ZLjava/util/List;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockConfig;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/MockConfig;ZLjava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockConfig;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEnabled ()Z
+	public final fun getRules ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/MockConfig$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/MockConfig$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockConfig;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/MockConfig;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/MockConfig$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/MockMatchType : java/lang/Enum {
+	public static final field CONTAINS Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatchType;
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatchType$Companion;
+	public static final field EXACT Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatchType;
+	public static final field REGEX Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatchType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatchType;
+	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatchType;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/MockMatchType$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/MockMatcher {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatcher$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatchType;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatchType;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatchType;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatchType;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatcher;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatcher;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatchType;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatcher;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMatchType ()Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatchType;
+	public final fun getMethod ()Ljava/lang/String;
+	public final fun getUrlPattern ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/MockMatcher$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatcher$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatcher;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatcher;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/MockMatcher$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/MockModelsKt {
+	public static final fun findMatching (Ljava/util/List;Ljava/lang/String;Ljava/lang/String;Z)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec$Companion;
+	public fun <init> ()V
+	public fun <init> (ILjava/util/Map;Ljava/lang/String;J)V
+	public synthetic fun <init> (ILjava/util/Map;Ljava/lang/String;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()I
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()J
+	public final fun copy (ILjava/util/Map;Ljava/lang/String;J)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;ILjava/util/Map;Ljava/lang/String;JILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBody ()Ljava/lang/String;
+	public final fun getDelayMs ()J
+	public final fun getHeaders ()Ljava/util/Map;
+	public final fun getStatusCode ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/MockRule {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/MockRule$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/plugins/network/protocol/MockMatcher;Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/plugins/network/protocol/MockMatcher;Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun component4 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatcher;
+	public final fun component5 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/plugins/network/protocol/MockMatcher;Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockRule;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/MockRule;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/plugins/network/protocol/MockMatcher;Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockRule;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEnabled ()Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getMatcher ()Lcom/kitakkun/jetwhale/plugins/network/protocol/MockMatcher;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getResponse ()Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/MockRule$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/MockRule$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockRule;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/MockRule;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/MockRule$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionConfig {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionConfig$Companion;
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionConfig;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionConfig;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionConfig;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMcpOnlyRules ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/RedactionConfig$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionConfig$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionConfig;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionConfig;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionConfig$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionModelsKt {
+	public static final field REDACTED_PLACEHOLDER Ljava/lang/String;
+	public static final fun redact (Ljava/util/List;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
+	public static final fun redact (Ljava/util/List;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionRule {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionRule$Companion;
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;
+	public final fun component4 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;
+	public final fun copy (Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionRule;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionRule;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionRule;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getName ()Ljava/lang/String;
+	public final fun getScope ()Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;
+	public final fun getStrategy ()Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;
+	public final fun getTarget ()Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/RedactionRule$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionRule$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionRule;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionRule;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionRule$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionScope : java/lang/Enum {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope$Companion;
+	public static final field EVERYWHERE Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;
+	public static final field MCP_ONLY Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;
+	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionScope$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy : java/lang/Enum {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy$Companion;
+	public static final field MASK Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;
+	public static final field PLACEHOLDER Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;
+	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget : java/lang/Enum {
+	public static final field BODY_JSON_FIELD Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget$Companion;
+	public static final field HEADER Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;
+	public static final field URL_QUERY_PARAM Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;
+	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RequestFailed : com/kitakkun/jetwhale/protocol/messaging/JetWhaleEvent {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestFailed$Companion;
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;
+	public final fun copy (Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestFailed;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestFailed;Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestFailed;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFailure ()Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/RequestFailed$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestFailed$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestFailed;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestFailed;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RequestFailed$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RequestSent : com/kitakkun/jetwhale/protocol/messaging/JetWhaleEvent {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestSent$Companion;
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
+	public final fun copy (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestSent;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestSent;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestSent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getRequest ()Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/RequestSent$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestSent$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestSent;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/RequestSent;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/RequestSent$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/ResponseReceived : com/kitakkun/jetwhale/protocol/messaging/JetWhaleEvent {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/ResponseReceived$Companion;
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
+	public final fun copy (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;)Lcom/kitakkun/jetwhale/plugins/network/protocol/ResponseReceived;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/ResponseReceived;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/ResponseReceived;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getResponse ()Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/ResponseReceived$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/ResponseReceived$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/ResponseReceived;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/ResponseReceived;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/ResponseReceived$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/SetMockRules : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockRules$Companion;
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockRules;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockRules;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockRules;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getRules ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/SetMockRules$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockRules$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockRules;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockRules;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/SetMockRules$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/SetMockingEnabled : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockingEnabled$Companion;
+	public fun <init> (Z)V
+	public final fun component1 ()Z
+	public final fun copy (Z)Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockingEnabled;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockingEnabled;ZILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockingEnabled;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEnabled ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/network/protocol/SetMockingEnabled$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockingEnabled$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockingEnabled;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/network/protocol/SetMockingEnabled;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/SetMockingEnabled$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+

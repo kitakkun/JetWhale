@@ -1,0 +1,466 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, linuxArm64, linuxX64, macosArm64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.nav3:protocol>
+sealed interface com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation|null[0]
+    final class MoveToTop : com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop|null[0]
+        constructor <init>(kotlin/Int) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.<init>|<init>(kotlin.Int){}[0]
+
+        final val index // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.index|{}index[0]
+            final fun <get-index>(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.index.<get-index>|<get-index>(){}[0]
+
+        final fun component1(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.component1|component1(){}[0]
+        final fun copy(kotlin/Int = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.copy|copy(kotlin.Int){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop> { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation.MoveToTop){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.MoveToTop.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class Pop : com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop|null[0]
+        constructor <init>(kotlin/Int) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.<init>|<init>(kotlin.Int){}[0]
+
+        final val count // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.count|{}count[0]
+            final fun <get-count>(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.count.<get-count>|<get-count>(){}[0]
+
+        final fun component1(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.component1|component1(){}[0]
+        final fun copy(kotlin/Int = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.copy|copy(kotlin.Int){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop> { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation.Pop){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Pop.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class PopTo : com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo|null[0]
+        constructor <init>(kotlin/Int, kotlin/Boolean) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.<init>|<init>(kotlin.Int;kotlin.Boolean){}[0]
+
+        final val inclusive // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.inclusive|{}inclusive[0]
+            final fun <get-inclusive>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.inclusive.<get-inclusive>|<get-inclusive>(){}[0]
+        final val index // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.index|{}index[0]
+            final fun <get-index>(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.index.<get-index>|<get-index>(){}[0]
+
+        final fun component1(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.component1|component1(){}[0]
+        final fun component2(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.component2|component2(){}[0]
+        final fun copy(kotlin/Int = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.copy|copy(kotlin.Int;kotlin.Boolean){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo> { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation.PopTo){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.PopTo.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class Push : com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push|null[0]
+        constructor <init>(kotlinx.serialization.json/JsonElement, kotlin/Int?) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.<init>|<init>(kotlinx.serialization.json.JsonElement;kotlin.Int?){}[0]
+
+        final val index // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.index|{}index[0]
+            final fun <get-index>(): kotlin/Int? // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.index.<get-index>|<get-index>(){}[0]
+        final val key // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.key|{}key[0]
+            final fun <get-key>(): kotlinx.serialization.json/JsonElement // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.key.<get-key>|<get-key>(){}[0]
+
+        final fun component1(): kotlinx.serialization.json/JsonElement // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.component1|component1(){}[0]
+        final fun component2(): kotlin/Int? // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.component2|component2(){}[0]
+        final fun copy(kotlinx.serialization.json/JsonElement = ..., kotlin/Int? = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.copy|copy(kotlinx.serialization.json.JsonElement;kotlin.Int?){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push> { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation.Push){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Push.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class RemoveAt : com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt|null[0]
+        constructor <init>(kotlin/Int) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.<init>|<init>(kotlin.Int){}[0]
+
+        final val index // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.index|{}index[0]
+            final fun <get-index>(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.index.<get-index>|<get-index>(){}[0]
+
+        final fun component1(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.component1|component1(){}[0]
+        final fun copy(kotlin/Int = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.copy|copy(kotlin.Int){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt> { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation.RemoveAt){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.RemoveAt.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class ReplaceAll : com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll|null[0]
+        constructor <init>(kotlin.collections/List<kotlinx.serialization.json/JsonElement>) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.<init>|<init>(kotlin.collections.List<kotlinx.serialization.json.JsonElement>){}[0]
+
+        final val keys // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.keys|{}keys[0]
+            final fun <get-keys>(): kotlin.collections/List<kotlinx.serialization.json/JsonElement> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.keys.<get-keys>|<get-keys>(){}[0]
+
+        final fun component1(): kotlin.collections/List<kotlinx.serialization.json/JsonElement> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.component1|component1(){}[0]
+        final fun copy(kotlin.collections/List<kotlinx.serialization.json/JsonElement> = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.copy|copy(kotlin.collections.List<kotlinx.serialization.json.JsonElement>){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll> { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation.ReplaceAll){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.Companion|null[0]
+            final val $childSerializers // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.Companion.$childSerializers|{}$childSerializers[0]
+
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.ReplaceAll.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Companion.serializer|serializer(){}[0]
+        final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged : com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent { // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged|null[0]
+    constructor <init>(com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot) // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.<init>|<init>(com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot){}[0]
+
+    final val snapshot // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.snapshot|{}snapshot[0]
+        final fun <get-snapshot>(): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.snapshot.<get-snapshot>|<get-snapshot>(){}[0]
+
+    final fun component1(): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.component1|component1(){}[0]
+    final fun copy(com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.copy|copy(com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged> { // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged) // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.BackStackChanged){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged> // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackChanged.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered : com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent { // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered|null[0]
+    constructor <init>(kotlin/String) // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.<init>|<init>(kotlin.String){}[0]
+
+    final val stackId // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.stackId|{}stackId[0]
+        final fun <get-stackId>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.stackId.<get-stackId>|<get-stackId>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.component1|component1(){}[0]
+    final fun copy(kotlin/String = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.copy|copy(kotlin.String){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered> { // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered) // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.BackStackUnregistered){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered> // com.kitakkun.jetwhale.plugins.nav3.protocol/BackStackUnregistered.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult> { // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack|null[0]
+    constructor <init>(kotlin/String, kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation>) // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.<init>|<init>(kotlin.String;kotlin.collections.List<com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation>){}[0]
+
+    final val operations // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.operations|{}operations[0]
+        final fun <get-operations>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation> // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.operations.<get-operations>|<get-operations>(){}[0]
+    final val stackId // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.stackId|{}stackId[0]
+        final fun <get-stackId>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.stackId.<get-stackId>|<get-stackId>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation> // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackOperation> = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.copy|copy(kotlin.String;kotlin.collections.List<com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack> { // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack) // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.MutateBackStack){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack> // com.kitakkun.jetwhale.plugins.nav3.protocol/MutateBackStack.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult { // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult|null[0]
+    constructor <init>(kotlin/String?, com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot?) // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.<init>|<init>(kotlin.String?;com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot?){}[0]
+
+    final val error // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.error|{}error[0]
+        final fun <get-error>(): kotlin/String? // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.error.<get-error>|<get-error>(){}[0]
+    final val snapshot // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.snapshot|{}snapshot[0]
+        final fun <get-snapshot>(): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot? // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.snapshot.<get-snapshot>|<get-snapshot>(){}[0]
+
+    final fun component1(): kotlin/String? // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.component1|component1(){}[0]
+    final fun component2(): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot? // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.component2|component2(){}[0]
+    final fun copy(kotlin/String? = ..., com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot? = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.copy|copy(kotlin.String?;com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult> { // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult) // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.MutationResult){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult> // com.kitakkun.jetwhale.plugins.nav3.protocol/MutationResult.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot|null[0]
+    constructor <init>(kotlin/String, kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot>) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.<init>|<init>(kotlin.String;kotlin.collections.List<com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeySnapshot>){}[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.entries|{}entries[0]
+        final fun <get-entries>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.entries.<get-entries>|<get-entries>(){}[0]
+    final val stackId // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.stackId|{}stackId[0]
+        final fun <get-stackId>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.stackId.<get-stackId>|<get-stackId>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot> = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.copy|copy(kotlin.String;kotlin.collections.List<com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeySnapshot>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot> { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor|null[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/Boolean, kotlin/Boolean) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.<init>|<init>(kotlin.String;kotlin.String;kotlin.Boolean;kotlin.Boolean){}[0]
+
+    final val name // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.name|{}name[0]
+        final fun <get-name>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.name.<get-name>|<get-name>(){}[0]
+    final val nullable // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.nullable|{}nullable[0]
+        final fun <get-nullable>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.nullable.<get-nullable>|<get-nullable>(){}[0]
+    final val optional // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.optional|{}optional[0]
+        final fun <get-optional>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.optional.<get-optional>|<get-optional>(){}[0]
+    final val type // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.type|{}type[0]
+        final fun <get-type>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.type.<get-type>|<get-type>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.component2|component2(){}[0]
+    final fun component3(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.component3|component3(){}[0]
+    final fun component4(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.component4|component4(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/Boolean = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.copy|copy(kotlin.String;kotlin.String;kotlin.Boolean;kotlin.Boolean){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor> { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyFieldDescriptor){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot|null[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlinx.serialization.json/JsonElement?) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.<init>|<init>(kotlin.String;kotlin.String;kotlinx.serialization.json.JsonElement?){}[0]
+
+    final val display // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.display|{}display[0]
+        final fun <get-display>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.display.<get-display>|<get-display>(){}[0]
+    final val key // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.key|{}key[0]
+        final fun <get-key>(): kotlinx.serialization.json/JsonElement? // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.key.<get-key>|<get-key>(){}[0]
+    final val typeName // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.typeName|{}typeName[0]
+        final fun <get-typeName>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.typeName.<get-typeName>|<get-typeName>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.component2|component2(){}[0]
+    final fun component3(): kotlinx.serialization.json/JsonElement? // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.component3|component3(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlinx.serialization.json/JsonElement? = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.copy|copy(kotlin.String;kotlin.String;kotlinx.serialization.json.JsonElement?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot> { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeySnapshot){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeySnapshot.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor|null[0]
+    constructor <init>(kotlin/String, kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor>, kotlinx.serialization.json/JsonElement) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.<init>|<init>(kotlin.String;kotlin.collections.List<com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyFieldDescriptor>;kotlinx.serialization.json.JsonElement){}[0]
+
+    final val fields // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.fields|{}fields[0]
+        final fun <get-fields>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.fields.<get-fields>|<get-fields>(){}[0]
+    final val serialName // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.serialName|{}serialName[0]
+        final fun <get-serialName>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.serialName.<get-serialName>|<get-serialName>(){}[0]
+    final val template // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.template|{}template[0]
+        final fun <get-template>(): kotlinx.serialization.json/JsonElement // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.template.<get-template>|<get-template>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.component2|component2(){}[0]
+    final fun component3(): kotlinx.serialization.json/JsonElement // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.component3|component3(){}[0]
+    final fun copy(kotlin/String = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyFieldDescriptor> = ..., kotlinx.serialization.json/JsonElement = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.copy|copy(kotlin.String;kotlin.collections.List<com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyFieldDescriptor>;kotlinx.serialization.json.JsonElement){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor> { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.nav3.protocol/NavState { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState|null[0]
+    constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot>, kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor>) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor>){}[0]
+
+    final val keyTypes // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.keyTypes|{}keyTypes[0]
+        final fun <get-keyTypes>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.keyTypes.<get-keyTypes>|<get-keyTypes>(){}[0]
+    final val stacks // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.stacks|{}stacks[0]
+        final fun <get-stacks>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.stacks.<get-stacks>|<get-stacks>(){}[0]
+
+    final fun component1(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.component2|component2(){}[0]
+    final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavBackStackSnapshot> = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.nav3.protocol/NavKeyTypeDescriptor> = ...): com.kitakkun.jetwhale.plugins.nav3.protocol/NavState // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavState> { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.nav3.protocol/NavState // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.nav3.protocol/NavState) // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.nav3.protocol.NavState){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/NavState> // com.kitakkun.jetwhale.plugins.nav3.protocol/NavState.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final object com.kitakkun.jetwhale.plugins.nav3.protocol/GetNavState : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.nav3.protocol/NavState>, kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.nav3.protocol/GetNavState|null[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.nav3.protocol/GetNavState.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.nav3.protocol/GetNavState.hashCode|hashCode(){}[0]
+    final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.nav3.protocol/GetNavState> // com.kitakkun.jetwhale.plugins.nav3.protocol/GetNavState.serializer|serializer(){}[0]
+    final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.nav3.protocol/GetNavState.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/GetNavState.toString|toString(){}[0]
+}
+
+final const val com.kitakkun.jetwhale.plugins.nav3.protocol/DEFAULT_NAV_STACK_ID // com.kitakkun.jetwhale.plugins.nav3.protocol/DEFAULT_NAV_STACK_ID|{}DEFAULT_NAV_STACK_ID[0]
+    final fun <get-DEFAULT_NAV_STACK_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/DEFAULT_NAV_STACK_ID.<get-DEFAULT_NAV_STACK_ID>|<get-DEFAULT_NAV_STACK_ID>(){}[0]
+final const val com.kitakkun.jetwhale.plugins.nav3.protocol/NAV3_PLUGIN_ID // com.kitakkun.jetwhale.plugins.nav3.protocol/NAV3_PLUGIN_ID|{}NAV3_PLUGIN_ID[0]
+    final fun <get-NAV3_PLUGIN_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.nav3.protocol/NAV3_PLUGIN_ID.<get-NAV3_PLUGIN_ID>|<get-NAV3_PLUGIN_ID>(){}[0]
