@@ -3,6 +3,7 @@ import util.PublishedVersions
 import util.ReleasePlanTask
 import util.VerifyReleasePlanTask
 import util.collectPublishModules
+import util.registerAggregatePublishTask
 
 // Root-build convention that owns the release plan: which artifacts a release republishes, recorded
 // in gradle/published-versions.properties. Maven Central bills publishers on file count, so a
@@ -62,11 +63,10 @@ val includedBuildModules = listOf(
 val publishedVersionsFile = layout.projectDirectory.file(PublishedVersions.RELATIVE_PATH)
 
 // The `publish` convention wires each module that is due for republishing into this task, so the
-// vanniktech build service bundles exactly that set into a single Central Portal deployment.
-tasks.register("publishChangedToMavenCentral") {
-    group = "publishing"
-    description = "Publishes only the artifacts whose recorded version equals the current train version."
-}
+// vanniktech build service bundles exactly that set into a single Central Portal deployment. The
+// convention registers it on demand; naming it here keeps it in `tasks` even for a build where
+// nothing is due.
+registerAggregatePublishTask(project)
 
 val printReleasePlan = tasks.register<ReleasePlanTask>("printReleasePlan") {
     group = "publishing"

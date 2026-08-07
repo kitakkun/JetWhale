@@ -37,10 +37,10 @@ consumers from the release version onto that combination.
    so the diff is the release's contents.
 
 5. **Tag and push the tag.** `.github/workflows/publish.yaml` runs `verifyReleasePlan`, then
-   `publishChangedToMavenCentral` for the root build, then `.github/scripts/publish-included-build.sh`
-   for the `jetwhale-gradle-plugin` and `jetwhale-agent-plugin` builds — each only if this release
-   moves one of its artifacts, since the root build cannot select tasks in a separate build. Every
-   build that runs uploads one Central Portal deployment.
+   `publishChangedToMavenCentral` once per build: the root build, then the `jetwhale-gradle-plugin`
+   and `jetwhale-agent-plugin` included builds, whose tasks the root build cannot reach. Each build's
+   task publishes only its own artifacts that move, and does nothing when none do. Every build that
+   publishes something uploads one Central Portal deployment.
 
 6. **Release the deployment** in the [Central Portal](https://central.sonatype.com/publishing/deployments) —
    `automaticRelease` is off, so uploads wait for a human.

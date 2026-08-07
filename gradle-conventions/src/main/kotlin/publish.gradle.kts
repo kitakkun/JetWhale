@@ -1,6 +1,7 @@
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import util.JetWhalePublishExtension
 import util.PublishedVersions
+import util.registerAggregatePublishTask
 
 plugins {
     id("com.vanniktech.maven.publish")
@@ -61,11 +62,11 @@ afterEvaluate {
     }
 
     // Only the modules due for republishing join the aggregate task, so the Central Portal
-    // deployment holds exactly them. The `release` convention is applied by the root build alone, so
-    // the jetwhale-gradle-plugin included build skips this and CI publishes it separately.
-    if (publishVersion == trainVersion && rootProject.plugins.hasPlugin("release")) {
-        rootProject.tasks.named("publishChangedToMavenCentral").configure {
-            dependsOn(tasks.named("publishToMavenCentral"))
-        }
+    // deployment holds exactly them. Every build gets its own aggregate, including the included
+    // builds: publishing one of those wholesale would re-upload an artifact that stays at an older
+    // version, and Central rejects that because its releases are immutable.
+    val aggregate = registerAggregatePublishTask(rootProject)
+    if (publishVersion == trainVersion) {
+        aggregate.configure { dependsOn(tasks.named("publishToMavenCentral")) }
     }
 }
