@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.tools.qaagent
 
+import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -43,6 +44,20 @@ class QaAgentOptionsTest {
         assertEquals("localhost", options.hostName)
         assertEquals(DEFAULT_HOST_PORT, options.hostPort)
         assertEquals(DEFAULT_CONTROL_PORT, options.controlPort)
+    }
+
+    @Test
+    fun `the built-in network plugin cannot be registered again`() {
+        val failure = assertFailsWith<IllegalArgumentException> {
+            parseArgs(arrayOf("--plugin", BUILT_IN_NETWORK_PLUGIN_ID))
+        }
+
+        assertTrue(failure.message.orEmpty().contains(BUILT_IN_NETWORK_PLUGIN_ID), "the message should name the plugin")
+    }
+
+    @Test
+    fun `the built-in network plugin id matches the plugin the agent actually registers`() {
+        assertEquals(JetWhaleNetworkAgentPlugin().pluginId, BUILT_IN_NETWORK_PLUGIN_ID)
     }
 
     @Test

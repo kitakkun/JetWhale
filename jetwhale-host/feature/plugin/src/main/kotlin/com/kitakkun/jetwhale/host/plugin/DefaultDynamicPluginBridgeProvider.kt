@@ -1,7 +1,10 @@
 package com.kitakkun.jetwhale.host.plugin
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import com.kitakkun.jetwhale.host.architecture.ExplicitScreenContextUsage
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.withScreenContext
@@ -41,8 +44,14 @@ class DefaultDynamicPluginBridgeProvider(
                             // Dynamic), not a luminance guess of the resolved surface.
                             LocalJetWhaleDarkTheme provides theme.colorScheme.isDarkTheme(),
                         ) {
-                            AppEnvironment(appearanceSettings.appLanguage) {
-                                content()
+                            // The scene has to carry its own background. On screen the host window
+                            // paints one behind it, but an off-screen MCP capture has nothing
+                            // behind it, so a plugin that draws no background of its own would be
+                            // captured transparent and read as white.
+                            Surface(modifier = Modifier.fillMaxSize()) {
+                                AppEnvironment(appearanceSettings.appLanguage) {
+                                    content()
+                                }
                             }
                         }
                     }
