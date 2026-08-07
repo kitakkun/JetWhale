@@ -91,6 +91,19 @@ internal object ReleasePlanner {
         .any { !TRAIN_VERSION_ENTRY.containsMatchIn(it) }
 
     /**
+     * The entries of [alwaysPublishArtifactIds] that name no module.
+     *
+     * A misspelt id is otherwise inert — nothing republishes, and every check passes — which is the
+     * opposite of what the set is for. Renames make this a live hazard, not a hypothetical one.
+     */
+    fun unknownAlwaysPublishArtifactIds(
+        modules: List<PublishModule>,
+        alwaysPublishArtifactIds: Set<String>,
+    ): List<String> = alwaysPublishArtifactIds
+        .filter { artifactId -> modules.none { it.artifactId == artifactId } }
+        .sorted()
+
+    /**
      * Consistency problems in a committed lock file, as human-readable messages. Empty when the file
      * describes a releasable state for [trainVersion].
      */
@@ -100,6 +113,10 @@ internal object ReleasePlanner {
         published: PublishedVersions,
         alwaysPublishArtifactIds: Set<String>,
     ): List<String> = buildList {
+        unknownAlwaysPublishArtifactIds(modules, alwaysPublishArtifactIds).forEach {
+            add("$it is listed as always republished but no module publishes it. Fix `alwaysPublishArtifactIds`.")
+        }
+
         if (published.previousTrainVersion != trainVersion) {
             add(
                 "`previous.train.version` is ${published.previousTrainVersion} but the train version is " +
@@ -110,6 +127,12 @@ internal object ReleasePlanner {
         modules.filter { it.artifactId !in published.versions }.forEach {
             add("${it.artifactId} (${it.id}) has no entry. Run `./gradlew prepareRelease`.")
         }
+
+        // `prepareRelease` drops these by rewriting the file; one surviving here means the file was
+        // hand-edited, and an entry no module owns is a version the BOM and the catalog would offer
+        // consumers without anything ever publishing it.
+        published.versions.keys.filter { artifactId -> modules.none { it.artifactId == artifactId } }
+            .forEach { add("$it has an entry but no module publishes it. Run `./gradlew prepareRelease`.") }
 
         alwaysPublishArtifactIds
             .filter { published.versions[it] != null && published.versions[it] != trainVersion }

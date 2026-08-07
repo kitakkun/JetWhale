@@ -60,6 +60,13 @@ abstract class ReleasePlanTask : DefaultTask() {
         val published = PublishedVersions.parse(file.readText())
 
         check(!train.endsWith("-SNAPSHOT")) { "$name works on release versions; drop -PjetwhaleSnapshot." }
+
+        val unknownAlwaysPublish = ReleasePlanner.unknownAlwaysPublishArtifactIds(allModules, alwaysPublishArtifactIds)
+        check(unknownAlwaysPublish.isEmpty()) {
+            "`alwaysPublishArtifactIds` names ${unknownAlwaysPublish.joinToString()}, which no module publishes. " +
+                "An id that matches nothing republishes nothing, so fix it before planning a release."
+        }
+
         if (mode.get() == Mode.WRITE) {
             check(train != published.previousTrainVersion) {
                 "The train version is still ${published.previousTrainVersion}. Bump `jetwhale` in " +

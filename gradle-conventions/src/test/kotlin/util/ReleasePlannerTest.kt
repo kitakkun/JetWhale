@@ -200,6 +200,28 @@ class ReleasePlanVerificationTest {
     }
 
     @Test
+    fun `an always published id that names no module is rejected`() {
+        // Otherwise a typo — or an artifactId that was renamed out from under the set — silently
+        // republishes nothing, which is the one thing the set exists to prevent.
+        val problems = verify(RECORDED, alwaysPublish = setOf("jetwhale-gradle-plugin"))
+
+        assertTrue(
+            problems.any { it.contains("jetwhale-gradle-plugin") && it.contains("no module publishes it") },
+            problems.toString(),
+        )
+    }
+
+    @Test
+    fun `a lock entry that names no module is rejected`() {
+        val problems = verify(RECORDED + ("jetwhale-removed" to PREVIOUS))
+
+        assertTrue(
+            problems.any { it.contains("jetwhale-removed") && it.contains("no module publishes it") },
+            problems.toString(),
+        )
+    }
+
+    @Test
     fun `an artifact staying behind while its dependency moves is rejected`() {
         // The stale artifact's POM would keep naming the dependency's old version.
         val recorded = RECORDED + ("jetwhale-protocol-core" to TRAIN)
