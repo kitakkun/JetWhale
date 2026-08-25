@@ -9,6 +9,7 @@ import androidx.compose.ui.semantics.getOrNull
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
+import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 
 /**
  * Converts a Compose semantics subtree into the transport model.
@@ -27,7 +28,7 @@ internal fun SemanticsNode.toComposeNode(
     windowOffsetX: Float,
     windowOffsetY: Float,
     depth: Int,
-    interopChildren: (node: SemanticsNode, depth: Int) -> List<ComposeNode>,
+    interopChildren: (node: SemanticsNode, depth: Int) -> List<UiNode>,
 ): ComposeNode? {
     val maxDepth = options.maxDepth
     val children = if (maxDepth != null && depth >= maxDepth) {

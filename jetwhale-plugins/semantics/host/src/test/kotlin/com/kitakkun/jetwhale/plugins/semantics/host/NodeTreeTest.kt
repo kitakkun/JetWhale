@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.plugins.semantics.host
 
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -17,7 +19,7 @@ class NodeTreeTest {
             ),
         )
 
-        val filtered = tree.filterTree { it.testTag == "target" }
+        val filtered = tree.filterTree { it is ComposeNode && it.testTag == "target" }
 
         // The ancestors 1 and 2 do not match themselves, but dropping them would reparent the
         // match and lose where it sits in the tree.
@@ -28,14 +30,14 @@ class NodeTreeTest {
     fun `filterTree returns null when nothing in the subtree matches`() {
         val tree = node(id = 1, children = listOf(node(id = 2)))
 
-        assertNull(tree.filterTree { it.testTag == "absent" })
+        assertNull(tree.filterTree { it is ComposeNode && it.testTag == "absent" })
     }
 
     @Test
     fun `filterTree drops the children of a node kept only on its own merit`() {
         val tree = node(id = 1, testTag = "target", children = listOf(node(id = 2)))
 
-        assertEquals(listOf(1), tree.filterTree { it.testTag == "target" }?.asSequence()?.map { it.id }?.toList())
+        assertEquals(listOf(1), tree.filterTree { it is ComposeNode && it.testTag == "target" }?.asSequence()?.map { it.id }?.toList())
     }
 
     @Test
@@ -129,7 +131,7 @@ class NodeTreeTest {
             children = listOf(node(id = 2, children = listOf(viewNode(id = -3, viewClass = "android.widget.Button", resourceId = "submit")))),
         )
 
-        val filtered = tree.filterTree { it.resourceId == "submit" }
+        val filtered = tree.filterTree { it is ViewNode && it.resourceId == "submit" }
 
         assertEquals(listOf(1, 2, -3), filtered?.asSequence()?.map { it.id }?.toList())
     }

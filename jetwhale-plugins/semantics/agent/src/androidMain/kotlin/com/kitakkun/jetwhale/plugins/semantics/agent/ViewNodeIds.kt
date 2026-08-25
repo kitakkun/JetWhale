@@ -1,11 +1,11 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
 import android.view.View
-import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import java.util.WeakHashMap
 
 /**
- * Hands out the [ComposeNode.id] a `View` is reported under, and resolves one back.
+ * Hands out the [UiNode.id] a `View` is reported under, and resolves one back.
  *
  * A `View` has no identifier of its own that survives a capture: `View.getId()` is a resource id
  * shared by every inflation of the same layout, and `identityHashCode` can be reused once a view is

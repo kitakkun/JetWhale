@@ -10,10 +10,10 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.node.InteroperableComposeUiNode
 import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.semantics.SemanticsNode
-import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
-import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeKind
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
+import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
 
 /**
  * Converts an Android `View` subtree into the transport model, descending into every composition it
@@ -35,7 +35,7 @@ internal fun View.toViewNode(
     windowOffsetX: Float,
     windowOffsetY: Float,
     depth: Int,
-): ComposeNode? {
+): ViewNode? {
     val maxDepth = options.maxDepth
     val children = if (maxDepth != null && depth >= maxDepth) {
         emptyList()
@@ -50,9 +50,8 @@ internal fun View.toViewNode(
     val editable = this as? EditText
     val label = this as? TextView
 
-    return ComposeNode(
+    return ViewNode(
         id = ViewNodeIds.idOf(this),
-        kind = NodeKind.View,
         viewClass = javaClass.name,
         resourceId = resourceEntryName(),
         text = label?.takeIf { editable == null }?.text?.toString()?.takeIf { it.isNotEmpty() },
@@ -86,7 +85,7 @@ private fun View.childNodes(
     windowOffsetX: Float,
     windowOffsetY: Float,
     depth: Int,
-): List<ComposeNode> = when {
+): List<UiNode> = when {
     this is ViewRootForTest -> {
         val owner = semanticsOwner
         val semanticsRoot = if (options.merged) owner.rootSemanticsNode else owner.unmergedRootSemanticsNode
@@ -124,7 +123,7 @@ private fun SemanticsNode.interopViewNodes(
     windowOffsetX: Float,
     windowOffsetY: Float,
     depth: Int,
-): List<ComposeNode> {
+): List<UiNode> {
     val interopView = (layoutInfo as? InteroperableComposeUiNode)?.getInteropView() ?: return emptyList()
     return listOfNotNull(interopView.toViewNode(options, windowOffsetX, windowOffsetY, depth))
 }

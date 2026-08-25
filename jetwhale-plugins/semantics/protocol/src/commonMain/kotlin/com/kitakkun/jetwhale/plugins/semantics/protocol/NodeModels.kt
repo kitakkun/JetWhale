@@ -1,6 +1,10 @@
+@file:UseSerializers(UiNodeSerializer::class)
+
 package com.kitakkun.jetwhale.plugins.semantics.protocol
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.UseSerializers
 
 /**
  * What to include when capturing the node tree.
@@ -10,9 +14,9 @@ import kotlinx.serialization.Serializable
  * only lay out pixels (a `Box` with no semantics of its own) do not appear on their own.
  *
  * On Android the tree also carries the Android `View`s around and inside the composition — the
- * layout hosting a `ComposeView` and the content of an `AndroidView { }` — as nodes of
- * [NodeKind.View]. These options apply to them identically: depth counts every node whatever its
- * kind, and a `View` with empty bounds or `visibility == GONE` is invisible rather than absent.
+ * layout hosting a `ComposeView` and the content of an `AndroidView { }` — as [ViewNode]s. These
+ * options apply to them identically: depth counts every node whatever its type, and a `View` with
+ * empty bounds or `visibility == GONE` is invisible rather than absent.
  */
 @Serializable
 data class NodeTreeCaptureOptions(
@@ -68,84 +72,139 @@ data class ComposeRoot(
      */
     val windowOffsetX: Float,
     val windowOffsetY: Float,
-    /** The root semantics node, or `null` when the root has no content yet. */
-    val node: ComposeNode?,
+    /** The root node, or `null` when the root has no content yet. */
+    val node: UiNode?,
 )
 
-/** What a [ComposeNode] stands for. */
+/**
+ * One node of the captured tree: a Compose semantics node ([ComposeNode]), or on Android an
+ * interoperating `View` ([ViewNode]).
+ *
+ * Everything declared here a node of either type answers, so a consumer that only reads the tree —
+ * searching it, drawing it, tapping its bounds — never has to know which type it holds.
+ */
 @Serializable
-enum class NodeKind {
-    /** A node of the Compose semantics tree. */
-    Compose,
+sealed interface UiNode {
+    /**
+     * Addresses the node within its root and stays valid while the node is on screen. A
+     * [ComposeNode] reports its semantics id, which is non-negative; a [ViewNode] reports a negative
+     * id assigned by the agent, so the two can never collide.
+     */
+    val id: Int
 
-    /** An Android `View`, either around a composition or embedded in one by `AndroidView { }`. */
-    View,
+    /** Concatenated `Text` semantics of the node, or a `TextView`'s label. */
+    val text: String?
+
+    /** Current content of an editable node (a text field). */
+    val editableText: String?
+
+    val contentDescription: String?
+
+    /** `On`, `Off` or `Indeterminate` for a toggleable node, or for a `Checkable` `View`. */
+    val toggleableState: String?
+
+    /** Bounds in this root's coordinate space, in pixels. */
+    val bounds: NodeBounds
+
+    /**
+     * Bounds in screen coordinates, in pixels — the ones to feed to `adb shell input tap`. Prefer
+     * [PerformNodeAction] where possible: it invokes the node's own action and does not depend on
+     * the window still being where it was when the snapshot was taken.
+     */
+    val boundsInScreen: NodeBounds
+
+    /**
+     * Names of the actions this node exposes, e.g. `OnClick`, `SetText`, `ScrollBy`. A [ViewNode]
+     * advertises what its own class can do under the same names, so a caller picks an action the
+     * same way whichever type the node is.
+     */
+    val actions: List<String>
+
+    val isEnabled: Boolean
+    val isClickable: Boolean
+    val isFocused: Boolean
+    val isSelected: Boolean
+    val isEditable: Boolean
+    val isScrollable: Boolean
+
+    /**
+     * `false` when the node has empty bounds or is hidden from accessibility — for a [ViewNode],
+     * also when its `visibility` is not `VISIBLE` or an ancestor hides it.
+     */
+    val isVisible: Boolean
+
+    /** Children of either type: an Android tree crosses between the two wherever the real UI does. */
+    val children: List<UiNode>
 }
 
 /**
- * One node of the captured tree — a Compose semantics node, or on Android an interoperating
- * `View`. [kind] says which, and the fields below that only one kind can fill say so themselves.
+ * A node of the Compose semantics tree.
  *
- * Every property added here carries a default so that an agent and a host built against different
- * versions still understand each other: the wire format ignores unknown keys and encodes defaults,
- * which makes a defaulted addition compatible in both directions but a rename or a type change not.
+ * Every property carries a default so that an agent and a host built against different versions
+ * still understand each other: the wire format ignores unknown keys and encodes defaults, which
+ * makes a defaulted addition compatible in both directions but a rename or a type change not. The
+ * same defaults are what lets a tree from an agent that predates [ViewNode] decode as this type.
  */
 @Serializable
+@SerialName("compose")
 data class ComposeNode(
-    /**
-     * Addresses the node within its root and stays valid while the node is on screen. A Compose
-     * node reports its semantics id, which is non-negative; a `View` node reports a negative id
-     * assigned by the agent, so the two can never collide.
-     */
-    val id: Int,
-    /** Which kind of node this is; the fields below say which of them apply to it. */
-    val kind: NodeKind = NodeKind.Compose,
-    /** Fully-qualified class name of a `View` node, e.g. `android.widget.TextView`. Compose nodes: null. */
-    val viewClass: String? = null,
-    /** Entry name of a `View` node's `android:id`, e.g. `submit` for `@id/submit`. Compose nodes: null. */
-    val resourceId: String? = null,
-    /** Semantics role (`Button`, `Checkbox`, `Tab`, ...), when the node declares one. `View` nodes: null. */
+    override val id: Int,
+    /** Semantics role (`Button`, `Checkbox`, `Tab`, ...), when the node declares one. */
     val role: String? = null,
-    /** Concatenated `Text` semantics of the node. */
-    val text: String? = null,
-    /** Current content of an editable node (a text field). */
-    val editableText: String? = null,
-    val contentDescription: String? = null,
-    /**
-     * `Modifier.testTag` value — the most reliable way to address a node from a test or an agent.
-     * A `View` has no equivalent, so `View` nodes report [resourceId] instead and leave this null.
-     */
+    override val text: String? = null,
+    override val editableText: String? = null,
+    override val contentDescription: String? = null,
+    /** `Modifier.testTag` value — the most reliable way to address a node from a test or an agent. */
     val testTag: String? = null,
     val stateDescription: String? = null,
-    /** `On`, `Off` or `Indeterminate` for a toggleable node, or for a `Checkable` `View`. */
-    val toggleableState: String? = null,
-    /** Bounds in this root's coordinate space, in pixels. */
-    val bounds: NodeBounds,
+    override val toggleableState: String? = null,
+    override val bounds: NodeBounds,
+    override val boundsInScreen: NodeBounds,
+    override val actions: List<String> = emptyList(),
+    override val isEnabled: Boolean = true,
+    override val isClickable: Boolean = false,
+    override val isFocused: Boolean = false,
+    override val isSelected: Boolean = false,
+    override val isEditable: Boolean = false,
+    override val isScrollable: Boolean = false,
+    override val isVisible: Boolean = true,
+    override val children: List<UiNode> = emptyList(),
+) : UiNode
+
+/**
+ * An Android `View`, either around a composition or embedded in one by `AndroidView { }`.
+ *
+ * The defaults exist for the same reason as [ComposeNode]'s: a defaulted addition keeps an agent and
+ * a host of different versions talking to each other.
+ */
+@Serializable
+@SerialName("view")
+data class ViewNode(
+    /** Assigned by the agent and negative, so it cannot collide with a [ComposeNode]'s id. */
+    override val id: Int,
+    /** Fully-qualified class name, e.g. `android.widget.TextView` — what says the thing is. */
+    val viewClass: String,
     /**
-     * Bounds in screen coordinates, in pixels — the ones to feed to `adb shell input tap`. Prefer
-     * [PerformNodeAction] where possible: it invokes the node's own semantics action and does not
-     * depend on the window still being where it was when the snapshot was taken.
+     * Entry name of the view's `android:id`, e.g. `submit` for `@id/submit`. A `View` has no
+     * `testTag`, and this is what plays that role.
      */
-    val boundsInScreen: NodeBounds,
-    /**
-     * Names of the actions this node exposes, e.g. `OnClick`, `SetText`, `ScrollBy`. A `View` node
-     * advertises what its own class can do under the same names, so a caller picks an action the
-     * same way whatever the node's [kind] is.
-     */
-    val actions: List<String> = emptyList(),
-    val isEnabled: Boolean = true,
-    val isClickable: Boolean = false,
-    val isFocused: Boolean = false,
-    val isSelected: Boolean = false,
-    val isEditable: Boolean = false,
-    val isScrollable: Boolean = false,
-    /**
-     * `false` when the node has empty bounds or is hidden from accessibility — for a `View`, also
-     * when its `visibility` is not `VISIBLE` or an ancestor hides it.
-     */
-    val isVisible: Boolean = true,
-    val children: List<ComposeNode> = emptyList(),
-)
+    val resourceId: String? = null,
+    override val text: String? = null,
+    override val editableText: String? = null,
+    override val contentDescription: String? = null,
+    override val toggleableState: String? = null,
+    override val bounds: NodeBounds,
+    override val boundsInScreen: NodeBounds,
+    override val actions: List<String> = emptyList(),
+    override val isEnabled: Boolean = true,
+    override val isClickable: Boolean = false,
+    override val isFocused: Boolean = false,
+    override val isSelected: Boolean = false,
+    override val isEditable: Boolean = false,
+    override val isScrollable: Boolean = false,
+    override val isVisible: Boolean = true,
+    override val children: List<UiNode> = emptyList(),
+) : UiNode
 
 /** A rectangle in pixels. */
 @Serializable
@@ -167,7 +226,7 @@ data class NodeBounds(
 /**
  * An action that [PerformNodeAction] can invoke on a node.
  *
- * On a Compose node it is the node's own semantics action. On a `View` node it is the closest
+ * On a [ComposeNode] it is the node's own semantics action. On a [ViewNode] it is the closest
  * equivalent the platform offers — [Click] calls `performClick()`, [SetText] sets an `EditText`'s
  * content — and [Dismiss], [Expand] and [Collapse] have none, so they report that they did not run.
  */

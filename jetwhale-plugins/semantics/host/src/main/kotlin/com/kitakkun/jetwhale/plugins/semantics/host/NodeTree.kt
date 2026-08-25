@@ -2,8 +2,9 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
-import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeKind
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
 
 /** Identifies one node across the whole snapshot; node ids are only unique within their root. */
 internal data class NodeKey(val rootId: String, val nodeId: Int)
@@ -15,22 +16,27 @@ internal data class NodeKey(val rootId: String, val nodeId: Int)
  * the matches and lose the structure that makes the tree readable in the first place. Returns
  * `null` when nothing in this subtree matched.
  */
-internal fun ComposeNode.filterTree(predicate: (ComposeNode) -> Boolean): ComposeNode? {
+internal fun UiNode.filterTree(predicate: (UiNode) -> Boolean): UiNode? {
     val keptChildren = children.mapNotNull { it.filterTree(predicate) }
     return when {
-        keptChildren.isNotEmpty() -> copy(children = keptChildren)
-        predicate(this) -> copy(children = emptyList())
+        keptChildren.isNotEmpty() -> withChildren(keptChildren)
+        predicate(this) -> withChildren(emptyList())
         else -> null
     }
 }
 
+private fun UiNode.withChildren(children: List<UiNode>): UiNode = when (this) {
+    is ComposeNode -> copy(children = children)
+    is ViewNode -> copy(children = children)
+}
+
 /** Depth-first walk, this node first. */
-internal fun ComposeNode.asSequence(): Sequence<ComposeNode> = sequence {
+internal fun UiNode.asSequence(): Sequence<UiNode> = sequence {
     yield(this@asSequence)
     children.forEach { yieldAll(it.asSequence()) }
 }
 
-internal fun ComposeRoot.findNode(nodeId: Int): ComposeNode? = node?.asSequence()?.firstOrNull { it.id == nodeId }
+internal fun ComposeRoot.findNode(nodeId: Int): UiNode? = node?.asSequence()?.firstOrNull { it.id == nodeId }
 
 /**
  * The root holding [nodeId], for resolving a node the caller named without saying where. Searched
@@ -47,27 +53,30 @@ internal fun NodeTreeSnapshot.nodeCount(): Int = roots.sumOf { it.node?.asSequen
  * This is the filter that answers "what can be operated here" — the question both the tree view's
  * *interactive only* toggle and an AI agent driving the app are actually asking.
  */
-internal val ComposeNode.isInteractive: Boolean
+internal val UiNode.isInteractive: Boolean
     get() = actions.isNotEmpty() || isClickable || isEditable || isScrollable
 
 /** How a node should read in a list: its own label if it has one, otherwise its role or id. */
-internal fun ComposeNode.displayLabel(): String {
-    val label = text ?: contentDescription ?: editableText ?: testTag
-    // A View is named by its class the way a Compose node is named by its role: it is what says
-    // what the thing is. The resource id comes next, because that is what the app calls it.
-    if (kind == NodeKind.View) {
-        return buildString {
-            append(viewClass?.substringAfterLast('.') ?: "View")
+internal fun UiNode.displayLabel(): String {
+    val label = text ?: contentDescription ?: editableText ?: (this as? ComposeNode)?.testTag
+    return when (this) {
+        // A View is named by its class the way a Compose node is named by its role: it is what says
+        // what the thing is. The resource id comes next, because that is what the app calls it.
+        is ViewNode -> buildString {
+            append(viewClass.substringAfterLast('.'))
             resourceId?.let { append(" · @id/$it") }
             label?.let { append(" · $it") }
         }
-    }
-    val role = role
-    return when {
-        role != null && label != null -> "$role · $label"
-        role != null -> role
-        label != null -> label
-        else -> "#$id"
+
+        is ComposeNode -> {
+            val role = role
+            when {
+                role != null && label != null -> "$role · $label"
+                role != null -> role
+                label != null -> label
+                else -> "#$id"
+            }
+        }
     }
 }
 
@@ -88,20 +97,29 @@ internal data class NodeQuery(
         get() = text == null && contentDescription == null && testTag == null && resourceId == null && role == null && !interactiveOnly
 }
 
-internal fun ComposeNode.matches(query: NodeQuery): Boolean {
+/**
+ * A criterion only one node type carries — `testTag` and `role` on a [ComposeNode], `resourceId` on
+ * a [ViewNode] — rejects every node of the other type, the same way an absent value does: the caller
+ * asked for something this node does not have.
+ */
+internal fun UiNode.matches(query: NodeQuery): Boolean {
     if (query.interactiveOnly && !isInteractive) return false
     if (!fieldMatches(query.text, listOfNotNull(text, editableText), query.exact)) return false
     if (!fieldMatches(query.contentDescription, listOfNotNull(contentDescription), query.exact)) return false
-    if (!fieldMatches(query.testTag, listOfNotNull(testTag), query.exact)) return false
-    if (!fieldMatches(query.resourceId, listOfNotNull(resourceId), exact = true)) return false
-    if (!fieldMatches(query.role, listOfNotNull(role), query.exact)) return false
+    if (!fieldMatches(query.testTag, listOfNotNull((this as? ComposeNode)?.testTag), query.exact)) return false
+    if (!fieldMatches(query.resourceId, listOfNotNull((this as? ViewNode)?.resourceId), exact = true)) return false
+    if (!fieldMatches(query.role, listOfNotNull((this as? ComposeNode)?.role), query.exact)) return false
     return true
 }
 
 /** A free-text search over everything a node displays, for the tree view's search box. */
-internal fun ComposeNode.matchesFreeText(term: String): Boolean {
+internal fun UiNode.matchesFreeText(term: String): Boolean {
     if (term.isBlank()) return true
-    val haystack = listOfNotNull(text, editableText, contentDescription, testTag, resourceId, viewClass, role, id.toString())
+    val identifiers = when (this) {
+        is ComposeNode -> listOfNotNull(testTag, role)
+        is ViewNode -> listOfNotNull(resourceId, viewClass)
+    }
+    val haystack = listOfNotNull(text, editableText, contentDescription, id.toString()) + identifiers
     return haystack.any { it.contains(term, ignoreCase = true) }
 }
 
