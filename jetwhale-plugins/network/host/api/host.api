@@ -54,7 +54,7 @@ public final class com/kitakkun/jetwhale/plugins/network/host/HttpTransaction {
 public final class com/kitakkun/jetwhale/plugins/network/host/NetworkHostPluginFactory : com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory {
 	public static final field $stable I
 	public fun <init> ()V
-	public fun createPlugin ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin;
+	public fun createPlugin (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginContext;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin;
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/host/NetworkInspectorScreenKt {

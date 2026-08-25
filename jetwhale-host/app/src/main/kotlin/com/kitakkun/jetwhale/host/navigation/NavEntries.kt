@@ -45,8 +45,8 @@ fun EntryProviderScope<NavKey>.emptyPluginEntry() {
 
 context(appGraph: JetWhaleAppGraph)
 fun EntryProviderScope<NavKey>.pluginEntries(
-    isOpenedOnPopout: (pluginId: String, sessionId: String) -> Boolean,
-    onBringbackToMainWindow: (pluginId: String, sessionId: String) -> Unit,
+    isOpenedOnPopout: (pluginId: String, sessionId: String?) -> Boolean,
+    onBringbackToMainWindow: (pluginId: String, sessionId: String?) -> Unit,
 ) {
     entry<PluginNavKey> { navKey ->
         context(

@@ -8,6 +8,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 class McpToolSchemaTest {
 
@@ -39,6 +40,15 @@ class McpToolSchemaTest {
     @Test
     fun `toToolSchema requires only the parameters that are declared required`() {
         assertEquals(listOf("required1"), descriptor.toToolSchema().required)
+    }
+
+    /** A host-scoped plugin's tools route on the tool name alone, so no session may leak into them. */
+    @Test
+    fun `toToolSchema without leading properties advertises no sessionId`() {
+        val schema = descriptor.toToolSchema()
+
+        assertFalse("sessionId" in requireNotNull(schema.properties).keys)
+        assertFalse("sessionId" in schema.required.orEmpty())
     }
 
     @Test

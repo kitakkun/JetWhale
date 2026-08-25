@@ -28,7 +28,7 @@ fun ToolingScaffoldRoot(
     onClickSettings: () -> Unit,
     onClickPluginSettings: () -> Unit,
     onClickInfo: () -> Unit,
-    onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
+    onClickPlugin: (pluginId: String, sessionId: String?) -> Unit,
     onOpenMcpTools: (pluginId: String?, sessionId: String?) -> Unit,
     onClickPopout: (pluginId: String, pluginName: String, sessionId: String) -> Unit,
     isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
@@ -156,10 +156,16 @@ fun ToolingScaffoldRoot(
                 onClickSettings = onClickSettings,
                 onClickPluginSettings = onClickPluginSettings,
                 onClickInfo = onClickInfo,
-                onClickPlugin = {
-                    val selectedSession = uiState.selectedSession ?: return@ToolingScaffold
-                    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it))
-                    onClickPlugin(it, selectedSession.id)
+                onClickPlugin = { pluginId ->
+                    // A host-scoped plugin opens against the host itself, so it needs no session —
+                    // and must not wait for one to be selected.
+                    val isHostScoped = uiState.plugins.any { it.id == pluginId && it.isHostScoped }
+                    val sessionId = when {
+                        isHostScoped -> null
+                        else -> uiState.selectedSession?.id ?: return@ToolingScaffold
+                    }
+                    screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(pluginId))
+                    onClickPlugin(pluginId, sessionId)
                 },
                 // The browser tolerates a missing session, so the badge stays usable while no session
                 // is selected: it simply opens with the session filter on "All".

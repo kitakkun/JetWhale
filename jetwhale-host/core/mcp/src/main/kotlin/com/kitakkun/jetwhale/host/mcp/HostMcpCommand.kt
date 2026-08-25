@@ -6,7 +6,6 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonObject
 
@@ -53,7 +52,7 @@ abstract class HostMcpCommand :
         ) { request ->
             try {
                 val result = execute(JetWhaleMcpArguments(JsonObject(request.arguments ?: emptyMap())))
-                CallToolResult(content = listOf(TextContent(result)))
+                CallToolResult(content = result.toCallToolContent())
             } catch (e: CancellationException) {
                 throw e
             } catch (e: JetWhaleMcpArgumentException) {

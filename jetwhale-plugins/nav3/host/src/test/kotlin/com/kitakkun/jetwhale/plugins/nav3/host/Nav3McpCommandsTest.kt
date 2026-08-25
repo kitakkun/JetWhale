@@ -4,6 +4,8 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.nav3.protocol.MutationResult
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import kotlinx.coroutines.runBlocking
@@ -20,9 +22,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
+/** The text of a single-block result, which is what every command under test answers with. */
+@OptIn(ExperimentalJetWhaleApi::class)
+private val JetWhaleMcpResult.text: String get() = (content.single() as JetWhaleMcpContent.Text).text
+
 @OptIn(ExperimentalJetWhaleApi::class)
 private fun JetWhaleMcpCommand.run(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
-    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
+    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments)).text).jsonObject
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)

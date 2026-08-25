@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifestFile
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginScope
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -172,8 +173,9 @@ class DefaultPluginFactoryRepository(
      * Reads the manifest from [classLoader] and instantiates every plugin the jar declares, pairing
      * each manifest entry with the factory class it names (no ServiceLoader) — which is what lets a
      * single jar provide several plugins. Throws on any problem (manifest missing, empty, or with
-     * duplicate ids; a factory class that is missing, lacks a public no-arg constructor, or is not a
-     * [JetWhaleHostPluginFactory]). The caller owns [classLoader]'s lifecycle.
+     * duplicate ids; an entry combining `scope: host` with `requiresAgent: true`; a factory class
+     * that is missing, lacks a public no-arg constructor, or is not a [JetWhaleHostPluginFactory]).
+     * The caller owns [classLoader]'s lifecycle.
      */
     private fun loadDeclaredPlugins(pluginJarPath: String, classLoader: ClassLoader): List<LoadedHostPlugin> {
         val manifestJson = classLoader.getResourceAsStream(MANIFEST_PATH)?.bufferedReader()?.use { it.readText() }
@@ -195,6 +197,16 @@ class DefaultPluginFactoryRepository(
         }
 
         return manifests.map { manifest ->
+            // A host-scoped plugin has a single instance and no session, so there is no connection an
+            // agent counterpart could arrive on. Declaring both is a manifest mistake, not a
+            // degraded mode.
+            if (manifest.scope == JetWhaleHostPluginScope.HOST && manifest.requiresAgent) {
+                throw PluginManifestParseException(
+                    "Plugin '${manifest.pluginId}' in $pluginJarPath declares \"scope\": \"host\" together with " +
+                        "\"requiresAgent\": true. A host-scoped plugin belongs to no session and has no agent " +
+                        "counterpart, so it must declare \"requiresAgent\": false.",
+                )
+            }
             val factory = try {
                 // getConstructor (not getDeclaredConstructor): the contract is a *public* no-arg
                 // constructor, so a non-public/missing one fails clearly with NoSuchMethodException.
@@ -346,5 +358,6 @@ class DefaultPluginFactoryRepository(
 /** The jar's plugin manifest exists but could not be parsed (malformed or incompatible schema). */
 class PluginManifestParseException(
     message: String,
+    // Defaulted because most manifest problems are detected by this code itself and have no cause.
     cause: Throwable? = null,
 ) : Exception(message, cause)

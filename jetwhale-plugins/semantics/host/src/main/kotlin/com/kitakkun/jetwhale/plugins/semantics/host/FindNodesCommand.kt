@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
@@ -36,7 +37,7 @@ internal class FindNodesCommand(
     private val includeInvisible by booleanOrNull("Include nodes that are not laid out or fully clipped away. Defaults to false.")
     private val limit by intOrNull("Maximum number of nodes to return, in tree order. Returns all matches if omitted.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val limit = arguments[limit]
         if (limit != null && limit <= 0) throw JetWhaleMcpArgumentException("invalid limit: $limit (expected a positive integer)")
 
@@ -60,7 +61,7 @@ internal class FindNodesCommand(
                 ),
             )
         } catch (e: JetWhaleMessagingException) {
-            return agentErrorJson(e)
+            return JetWhaleMcpResult.text(agentErrorJson(e))
         }
 
         val matches = snapshot.roots.flatMap { root ->
@@ -69,13 +70,15 @@ internal class FindNodesCommand(
         }
         val page = if (limit == null) matches else matches.take(limit)
 
-        return buildJsonObject {
-            put("nodes", JsonArray(page.map { (rootId, node) -> node.toMcpJson(rootId = rootId, includeChildren = false) }))
-            put("totalMatches", matches.size)
-            put("truncated", page.size < matches.size)
-            if (snapshot.warnings.isNotEmpty()) {
-                put("warnings", JsonArray(snapshot.warnings.map { JsonPrimitive(it) }))
-            }
-        }.toString()
+        return JetWhaleMcpResult.text(
+            buildJsonObject {
+                put("nodes", JsonArray(page.map { (rootId, node) -> node.toMcpJson(rootId = rootId, includeChildren = false) }))
+                put("totalMatches", matches.size)
+                put("truncated", page.size < matches.size)
+                if (snapshot.warnings.isNotEmpty()) {
+                    put("warnings", JsonArray(snapshot.warnings.map { JsonPrimitive(it) }))
+                }
+            }.toString(),
+        )
     }
 }

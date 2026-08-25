@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.nav3.host
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
@@ -17,21 +18,23 @@ internal class GetBackStackCommand(
 
     private val stackId by stringOrNull("Which back stack to read. Returns every registered stack if omitted.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val requested = arguments[stackId]
         val stacks = controller.stacks().filter { requested == null || it.stackId == requested }
-        return buildJsonObject {
-            putJsonArray("stacks") { stacks.forEach { add(it.toMcpJson()) } }
-            if (stacks.isEmpty()) {
-                put(
-                    "note",
-                    if (requested == null) {
-                        "The app has no Navigation 3 back stack registered; it must call TrackNavBackStack (or registerBackStack) first."
-                    } else {
-                        "No back stack is registered as '$requested'."
-                    },
-                )
-            }
-        }.toString()
+        return JetWhaleMcpResult.text(
+            buildJsonObject {
+                putJsonArray("stacks") { stacks.forEach { add(it.toMcpJson()) } }
+                if (stacks.isEmpty()) {
+                    put(
+                        "note",
+                        if (requested == null) {
+                            "The app has no Navigation 3 back stack registered; it must call TrackNavBackStack (or registerBackStack) first."
+                        } else {
+                            "No back stack is registered as '$requested'."
+                        },
+                    )
+                }
+            }.toString(),
+        )
     }
 }
