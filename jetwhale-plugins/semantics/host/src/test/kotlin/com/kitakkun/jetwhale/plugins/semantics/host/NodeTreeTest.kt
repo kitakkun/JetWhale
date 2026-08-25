@@ -121,6 +121,47 @@ class NodeTreeTest {
     }
 
     @Test
+    fun `a View node keeps its ancestors when filtered`() {
+        // An Android capture nests the two kinds in one tree, so a filter that matched a View node
+        // has to keep the Compose nodes above it just as it would a Compose match.
+        val tree = node(
+            id = 1,
+            children = listOf(node(id = 2, children = listOf(viewNode(id = -3, viewClass = "android.widget.Button", resourceId = "submit")))),
+        )
+
+        val filtered = tree.filterTree { it.resourceId == "submit" }
+
+        assertEquals(listOf(1, 2, -3), filtered?.asSequence()?.map { it.id }?.toList())
+    }
+
+    @Test
+    fun `matches compares a resourceId whole even when the other criteria are substrings`() {
+        val target = viewNode(id = -1, viewClass = "android.widget.Button", resourceId = "submit", text = "Send it")
+
+        assertTrue(target.matches(NodeQuery(resourceId = "SUBMIT")))
+        assertTrue(target.matches(NodeQuery(resourceId = "submit", text = "Send")))
+        assertFalse(target.matches(NodeQuery(resourceId = "sub")))
+        assertFalse(node(id = 1, text = "Send it").matches(NodeQuery(resourceId = "submit")))
+    }
+
+    @Test
+    fun `matchesFreeText searches a View node's class and resource id`() {
+        val target = viewNode(id = -1, viewClass = "android.widget.Button", resourceId = "submit")
+
+        assertTrue(target.matchesFreeText("button"))
+        assertTrue(target.matchesFreeText("submit"))
+    }
+
+    @Test
+    fun `displayLabel names a View node by its class, resource id and label`() {
+        assertEquals(
+            "Button · @id/submit · Send",
+            viewNode(id = -1, viewClass = "android.widget.Button", resourceId = "submit", text = "Send").displayLabel(),
+        )
+        assertEquals("LinearLayout", viewNode(id = -2, viewClass = "android.widget.LinearLayout").displayLabel())
+    }
+
+    @Test
     fun `displayLabel prefers the node's own label and falls back to role then id`() {
         assertEquals("Button · Send", node(id = 1, role = "Button", text = "Send").displayLabel())
         assertEquals("Send", node(id = 1, text = "Send").displayLabel())

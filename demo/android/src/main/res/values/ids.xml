@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Given to the demo's AndroidView content so the Compose Semantics Inspector has a
+         resourceId to report for a View node. -->
+    <item name="demo_android_view_label" type="id" />
+    <item name="demo_android_view_button" type="id" />
+    <!-- The View layout that hosts the demo's ComposeView. -->
+    <item name="demo_view_host_root" type="id" />
+    <item name="demo_view_host_header" type="id" />
+    <item name="demo_compose_view" type="id" />
+</resources>

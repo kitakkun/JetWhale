@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeKind
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 
 /** Identifies one node across the whole snapshot; node ids are only unique within their root. */
@@ -51,8 +52,17 @@ internal val ComposeNode.isInteractive: Boolean
 
 /** How a node should read in a list: its own label if it has one, otherwise its role or id. */
 internal fun ComposeNode.displayLabel(): String {
-    val role = role
     val label = text ?: contentDescription ?: editableText ?: testTag
+    // A View is named by its class the way a Compose node is named by its role: it is what says
+    // what the thing is. The resource id comes next, because that is what the app calls it.
+    if (kind == NodeKind.View) {
+        return buildString {
+            append(viewClass?.substringAfterLast('.') ?: "View")
+            resourceId?.let { append(" · @id/$it") }
+            label?.let { append(" · $it") }
+        }
+    }
+    val role = role
     return when {
         role != null && label != null -> "$role · $label"
         role != null -> role
@@ -66,6 +76,8 @@ internal data class NodeQuery(
     val text: String? = null,
     val contentDescription: String? = null,
     val testTag: String? = null,
+    /** Always compared whole, whatever [exact] says: a resource id is an identifier, not a label. */
+    val resourceId: String? = null,
     val role: String? = null,
     val interactiveOnly: Boolean = false,
     /** Compare whole values instead of substrings. Substring matching is the default because a
@@ -73,7 +85,7 @@ internal data class NodeQuery(
     val exact: Boolean = false,
 ) {
     val isEmpty: Boolean
-        get() = text == null && contentDescription == null && testTag == null && role == null && !interactiveOnly
+        get() = text == null && contentDescription == null && testTag == null && resourceId == null && role == null && !interactiveOnly
 }
 
 internal fun ComposeNode.matches(query: NodeQuery): Boolean {
@@ -81,6 +93,7 @@ internal fun ComposeNode.matches(query: NodeQuery): Boolean {
     if (!fieldMatches(query.text, listOfNotNull(text, editableText), query.exact)) return false
     if (!fieldMatches(query.contentDescription, listOfNotNull(contentDescription), query.exact)) return false
     if (!fieldMatches(query.testTag, listOfNotNull(testTag), query.exact)) return false
+    if (!fieldMatches(query.resourceId, listOfNotNull(resourceId), exact = true)) return false
     if (!fieldMatches(query.role, listOfNotNull(role), query.exact)) return false
     return true
 }
@@ -88,7 +101,7 @@ internal fun ComposeNode.matches(query: NodeQuery): Boolean {
 /** A free-text search over everything a node displays, for the tree view's search box. */
 internal fun ComposeNode.matchesFreeText(term: String): Boolean {
     if (term.isBlank()) return true
-    val haystack = listOfNotNull(text, editableText, contentDescription, testTag, role, id.toString())
+    val haystack = listOfNotNull(text, editableText, contentDescription, testTag, resourceId, viewClass, role, id.toString())
     return haystack.any { it.contains(term, ignoreCase = true) }
 }
 

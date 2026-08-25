@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeKind
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
@@ -341,6 +342,15 @@ private fun NodeRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
         )
+        // The two kinds interleave in one tree, and which one a row is decides how to read it — so
+        // the Android View nodes are tagged rather than left to be inferred from the label.
+        if (row.node.kind == NodeKind.View) {
+            Text(
+                text = "View",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.tertiary,
+            )
+        }
         if (row.node.isInteractive) {
             Text(
                 text = row.node.actionSummary(),
@@ -394,6 +404,8 @@ private fun NodeDetail(
 
         PropertyRow("id", node.id.toString())
         PropertyRow("rootId", rootId)
+        node.viewClass?.let { PropertyRow("viewClass", it) }
+        node.resourceId?.let { PropertyRow("resourceId", "@id/$it") }
         node.role?.let { PropertyRow("role", it) }
         node.text?.let { PropertyRow("text", it, wrap = true) }
         node.editableText?.let { PropertyRow("editableText", it, wrap = true) }

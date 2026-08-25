@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeKind
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -49,6 +50,11 @@ internal fun ComposeRoot.toMcpJson(): JsonObject = buildJsonObject {
 internal fun ComposeNode.toMcpJson(rootId: String? = null, includeChildren: Boolean = true): JsonObject = buildJsonObject {
     put("id", id)
     rootId?.let { put("rootId", it) }
+    // Only the surprising kind is emitted: most of a tree is Compose, and an Android View node is
+    // the one a caller has to read differently — negative id, a class instead of a role.
+    if (kind == NodeKind.View) put("kind", "View")
+    viewClass?.let { put("viewClass", it) }
+    resourceId?.let { put("resourceId", it) }
     role?.let { put("role", it) }
     text?.let { put("text", it) }
     editableText?.let { put("editableText", it) }
