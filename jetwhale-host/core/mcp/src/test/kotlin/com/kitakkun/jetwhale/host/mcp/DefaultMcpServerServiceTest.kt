@@ -10,6 +10,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import dev.mokkery.answering.returns
 import dev.mokkery.every
@@ -214,6 +215,64 @@ class DefaultMcpServerServiceTest {
                 assertNotNull(callResult)
                 val text = callResult.content.filterIsInstance<TextContent>().first().text
                 assertEquals("Hello, World!", text)
+            } finally {
+                client.close()
+            }
+        } finally {
+            service.stop()
+        }
+    }
+
+    @Test
+    fun `a host-scoped plugin's tool is listed without a sessionId and callable with no session`() = runBlocking {
+        val hostScopedPluginId = "com.example.hostscoped"
+        val fakePlugin = FakeMcpCapablePlugin("com.example.hostscoped.greet")
+
+        // No session exists at all: the instance belongs to the host itself.
+        every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
+            LoadedPluginInstance(hostScopedPluginId, sessionId = null, plugin = fakePlugin),
+        )
+        every { pluginInstanceService.getHostScopedInstance(hostScopedPluginId) } returns fakePlugin
+
+        service.start(host, port)
+        try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
+            try {
+                val tool = client.listTools().tools.first { it.name == "com.example.hostscoped.greet" }
+                assertFalse("sessionId" in tool.inputSchema.properties?.keys.orEmpty())
+                assertFalse("sessionId" in tool.inputSchema.required.orEmpty())
+
+                val callResult = client.callTool("com.example.hostscoped.greet", mapOf("name" to "World"))
+                assertNotNull(callResult)
+                assertEquals("Hello, World!", callResult.content.filterIsInstance<TextContent>().first().text)
+            } finally {
+                client.close()
+            }
+        } finally {
+            service.stop()
+        }
+    }
+
+    @Test
+    fun `a plugin command answering with an image reaches the client as image content`() = runBlocking {
+        val pluginId = "com.example.camera"
+        val sessionId = "session-camera"
+        val fakePlugin = FakeImageCapablePlugin()
+
+        every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
+            LoadedPluginInstance(pluginId, sessionId, fakePlugin),
+        )
+        every { pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId) } returns fakePlugin
+
+        service.start(host, port)
+        try {
+            val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
+            try {
+                val callResult = client.callTool("com.example.camera.capture", mapOf("sessionId" to sessionId))
+                assertNotNull(callResult)
+                val image = callResult.content.filterIsInstance<ImageContent>().single()
+                assertEquals("image/png", image.mimeType)
+                assertEquals(java.util.Base64.getEncoder().encodeToString(CAPTURE_BYTES), image.data)
             } finally {
                 client.close()
             }
@@ -690,6 +749,23 @@ private class FailingMcpTool(private val name: String) : JetWhaleMcpTool {
     }
 }
 
+private val CAPTURE_BYTES = byteArrayOf(9, 8, 7)
+
+/** A plugin whose tool answers with an image, which the server has to base64-encode. */
+private class FakeImageCapablePlugin :
+    JetWhaleHostPlugin(),
+    JetWhaleMcpCapablePlugin {
+
+    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
+        object : JetWhaleMcpCommand() {
+            override val name = "com.example.camera.capture"
+            override val description = "Captures a screenshot"
+
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.image(CAPTURE_BYTES, "image/png")
+        },
+    )
+}
+
 private class FakeMcpCapablePlugin(private val toolName: String = "com.example.test.greet") :
     JetWhaleHostPlugin(),
     JetWhaleMcpCapablePlugin {
@@ -701,7 +777,7 @@ private class FakeMcpCapablePlugin(private val toolName: String = "com.example.t
 
             private val greetName by string("Name to greet", name = "name")
 
-            override suspend fun execute(arguments: JetWhaleMcpArguments): String = "Hello, ${arguments[greetName]}!"
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text("Hello, ${arguments[greetName]}!")
         },
     )
 }

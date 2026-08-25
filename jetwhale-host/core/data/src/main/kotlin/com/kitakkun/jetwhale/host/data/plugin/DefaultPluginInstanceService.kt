@@ -10,7 +10,9 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginScope
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
@@ -39,7 +41,8 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
 import java.util.logging.Logger
 
-private data class PluginInstanceKey(val pluginId: String, val sessionId: String)
+/** Identifies one plugin instance. [sessionId] is null for the single instance of a host-scoped plugin. */
+private data class PluginInstanceKey(val pluginId: String, val sessionId: String?)
 
 /**
  * A plugin instance paired with the messaging peer that delivers its frames. The peer's outbound
@@ -65,6 +68,7 @@ class DefaultPluginInstanceService(
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val frameSender: HostPluginFrameSender,
     private val pluginDataStoreRepository: PluginDataStoreRepository,
+    private val hostPluginContext: JetWhaleHostPluginContext,
 ) : PluginInstanceService {
     private val logger = Logger.getLogger(DefaultPluginInstanceService::class.java.name)
 
@@ -85,25 +89,58 @@ class DefaultPluginInstanceService(
 
     override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.plugin
 
-    override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
-        val loaded = pluginFactoryRepository.loadedPlugins[pluginId] ?: return emptySet()
+    override fun getHostScopedInstance(pluginId: String): JetWhaleHostPlugin? = loadedPlugins[PluginInstanceKey(pluginId, null)]?.plugin
 
-        // Reinstalling or reloading a jar yields a new factory behind a new classloader; instances the
-        // previous factory produced hold classes from a classloader that is already closed, so drop
-        // them and let the loop below rebuild them from the current code.
+    override fun initializeHostScopedInstanceIfNeeded(pluginId: String): Boolean {
+        val loaded = pluginFactoryRepository.loadedPlugins[pluginId] ?: return false
+        dropInstancesFromStaleFactories(pluginId, loaded)
+
+        val key = PluginInstanceKey(pluginId, sessionId = null)
+        var created = false
+        try {
+            // compute, not computeIfAbsent: a refused instance (a messaging plugin declared
+            // host-scoped) maps to no entry at all, which computeIfAbsent cannot express.
+            loadedPlugins.compute(key) { _, existing ->
+                existing ?: createInstance(pluginId, sessionId = null, loaded = loaded)?.also { created = true }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            logger.log(Level.WARNING, "Creating the host-scoped instance of plugin '$pluginId' failed", e)
+            return false
+        }
+
+        publishHeadlessPlugins()
+        if (created) emitEvent(PluginInstanceEvent.Ready(pluginId, sessionId = null))
+        return created
+    }
+
+    /**
+     * Drops the instances a previous factory generation produced. Reinstalling or reloading a jar
+     * yields a new factory behind a new classloader, and instances the previous factory produced hold
+     * classes from a classloader that is already closed.
+     */
+    private fun dropInstancesFromStaleFactories(pluginId: String, loaded: LoadedHostPlugin) {
         loadedPlugins.entries
             .filter { (key, instance) -> key.pluginId == pluginId && instance.factory !== loaded.factory }
             .map { it.key }
             .forEach { disposeInstance(it) }
+    }
+
+    override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
+        val loaded = pluginFactoryRepository.loadedPlugins[pluginId] ?: return emptySet()
+
+        // Drop the instances of a previous factory generation so the loop below rebuilds them from
+        // the current code.
+        dropInstancesFromStaleFactories(pluginId, loaded)
 
         val newlyInitializedSessions = mutableSetOf<String>()
         for (sessionId in sessionIds) {
             val key = PluginInstanceKey(pluginId, sessionId)
             var created = false
             try {
-                loadedPlugins.computeIfAbsent(key) {
-                    created = true
-                    createInstance(pluginId, sessionId, loaded)
+                loadedPlugins.compute(key) { _, existing ->
+                    existing ?: createInstance(pluginId, sessionId, loaded)?.also { created = true }
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -123,8 +160,18 @@ class DefaultPluginInstanceService(
         return newlyInitializedSessions
     }
 
-    private fun createInstance(pluginId: String, sessionId: String, loaded: LoadedHostPlugin): LoadedInstance {
-        val plugin = loaded.factory.createPlugin()
+    private fun createInstance(pluginId: String, sessionId: String?, loaded: LoadedHostPlugin): LoadedInstance? {
+        val plugin = loaded.factory.createPlugin(hostPluginContext)
+        if (loaded.manifest.scope == JetWhaleHostPluginScope.HOST && plugin is JetWhaleMessagingHostPlugin) {
+            // A host-scoped instance belongs to no session, so there is no connection its messenger
+            // could ever reach. Skipping the instance surfaces the misconfiguration instead of
+            // running a plugin whose every request times out.
+            logger.warning(
+                "Plugin '$pluginId' declares scope=host but its factory returns a JetWhaleMessagingHostPlugin; " +
+                    "a host-scoped plugin has no agent to talk to, so no instance was created.",
+            )
+            return null
+        }
         if (!loaded.manifest.requiresAgent && plugin is JetWhaleMessagingHostPlugin) {
             // A messaging plugin without an agent counterpart waits out its prepare timeout on every
             // session and gets "not active" failures for every request — surface the misconfiguration
@@ -141,13 +188,14 @@ class DefaultPluginInstanceService(
         // name or reach another plugin's data.
         plugin.bindStorage(pluginDataStoreRepository.storageFor(pluginId))
 
-        val descriptor = "plugin '$pluginId' in session '$sessionId'"
+        val descriptor = if (sessionId == null) "host-scoped plugin '$pluginId'" else "plugin '$pluginId' in session '$sessionId'"
 
         // User code below (registerHandlers, onCreate) is guarded: this runs inside the map's
         // computeIfAbsent, and a throwing plugin must neither leak the just-created peer/scope nor
         // abort loading for the caller.
-        // Only messaging plugins get a peer; a pure plugin pays none of the messaging cost.
-        val peer = if (plugin is JetWhaleMessagingHostPlugin) {
+        // Only messaging plugins get a peer; a pure plugin pays none of the messaging cost. A
+        // host-scoped plugin is never a messaging one (refused above), so it never reaches this.
+        val peer = if (plugin is JetWhaleMessagingHostPlugin && sessionId != null) {
             val newPeer = JetWhalePluginPeer(
                 pluginId = pluginId,
                 parentScope = scope,
@@ -176,7 +224,7 @@ class DefaultPluginInstanceService(
         try {
             plugin.dispatchCreate()
         } catch (e: Throwable) {
-            logger.warning("onCreate for plugin '$pluginId' in session '$sessionId' failed: ${e.message}")
+            logger.warning("onCreate for $descriptor failed: ${e.message}")
         }
         val prepareJob = if (peer != null && plugin is JetWhaleMessagingHostPlugin) {
             instanceScope.launchPeerPreparation(
@@ -211,6 +259,7 @@ class DefaultPluginInstanceService(
     }
 
     override fun unloadPluginInstanceForSession(sessionId: String) {
+        // A host-scoped instance carries a null sessionId and outlives every session, so it never matches.
         loadedPlugins.keys.filter { it.sessionId == sessionId }.forEach { disposeInstance(it) }
     }
 
@@ -229,7 +278,7 @@ class DefaultPluginInstanceService(
         } catch (e: Throwable) {
             // A throwing onDispose must not leak the scope/peer, nor abort disposing the session's
             // other plugins from the callers' forEach loops.
-            logger.warning("onDispose for plugin '${key.pluginId}' in session '${key.sessionId}' failed: ${e.message}")
+            logger.warning("onDispose for plugin '${key.pluginId}' (session '${key.sessionId}') failed: ${e.message}")
         } finally {
             removed.instanceScope.cancel()
             // close() suspends (it fails pending requests under a mutex), so run it off the caller.
@@ -252,11 +301,13 @@ class DefaultPluginInstanceService(
      * an instance from a new classloader that may not answer the same way.
      */
     private fun publishHeadlessPlugins() {
+        val headless = loadedPlugins.entries.filter { (_, instance) -> instance.plugin !is JetWhaleHostPluginUi }.map { it.key }
         headlessPluginsFlow.value = HeadlessPlugins(
-            loadedPlugins.entries
-                .filter { (_, instance) -> instance.plugin !is JetWhaleHostPluginUi }
-                .groupBy({ it.key.sessionId }, { it.key.pluginId })
+            pluginIdsBySession = headless
+                .mapNotNull { key -> key.sessionId?.let { it to key.pluginId } }
+                .groupBy({ it.first }, { it.second })
                 .mapValues { (_, pluginIds) -> pluginIds.toSet() },
+            hostScopedPluginIds = headless.filter { it.sessionId == null }.mapTo(mutableSetOf()) { it.pluginId },
         )
     }
 

@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,9 +22,10 @@ import java.util.concurrent.ConcurrentHashMap
  * Registry that tracks MCP tools contributed by plugin instances that implement
  * [JetWhaleMcpCapablePlugin].
  *
- * A single tool entry covers all sessions that have the plugin installed. When a tool is
- * invoked, the caller must supply a `sessionId` argument so the registry can route the
- * call to the correct plugin instance.
+ * A session-scoped plugin's tool entry covers all sessions that have the plugin installed, so an
+ * invocation must supply a `sessionId` argument for the registry to route the call to the right
+ * instance. A host-scoped plugin has a single instance and no session, so its tools are held
+ * separately and dispatched on the tool name alone.
  */
 class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) {
 
@@ -32,6 +34,9 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * that currently have the tool active.
      */
     private val registrations: ConcurrentHashMap<String, PluginToolEntry> = ConcurrentHashMap()
+
+    /** Maps a host-scoped plugin's tool name to its descriptor and the single plugin that owns it. */
+    private val hostScopedRegistrations: ConcurrentHashMap<String, HostScopedToolEntry> = ConcurrentHashMap()
 
     /**
      * Which plugins currently offer MCP tools, so the UI can mark them before an agent acts.
@@ -42,13 +47,19 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     /**
      * Registers all MCP tools declared by a plugin instance.
      * Only called if the plugin implements [JetWhaleMcpCapablePlugin].
+     *
+     * @param sessionId The session the instance belongs to, or null for a host-scoped plugin.
      */
-    fun register(pluginId: String, sessionId: String, plugin: JetWhaleMcpCapablePlugin) {
+    fun register(pluginId: String, sessionId: String?, plugin: JetWhaleMcpCapablePlugin) {
         plugin.mcpCommands.forEach { command ->
-            val entry = registrations.getOrPut(command.name) {
-                PluginToolEntry(descriptor = command.toDescriptor(), sessionToPlugin = ConcurrentHashMap())
+            if (sessionId == null) {
+                hostScopedRegistrations[command.name] = HostScopedToolEntry(descriptor = command.toDescriptor(), pluginId = pluginId)
+            } else {
+                val entry = registrations.getOrPut(command.name) {
+                    PluginToolEntry(descriptor = command.toDescriptor(), sessionToPlugin = ConcurrentHashMap())
+                }
+                entry.sessionToPlugin[sessionId] = pluginId
             }
-            entry.sessionToPlugin[sessionId] = pluginId
         }
         publishCapablePlugins()
     }
@@ -56,13 +67,20 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     /**
      * Removes the given session from every tool entry.
      * Tool entries with no remaining sessions are cleaned up.
+     *
+     * @param sessionId The session the instance belonged to, or null for a host-scoped plugin, whose
+     *   tools are dropped outright.
      */
-    fun unregister(pluginId: String, sessionId: String) {
-        registrations.entries.removeIf { (_, entry) ->
-            if (entry.sessionToPlugin[sessionId] == pluginId) {
-                entry.sessionToPlugin.remove(sessionId)
+    fun unregister(pluginId: String, sessionId: String?) {
+        if (sessionId == null) {
+            hostScopedRegistrations.entries.removeIf { (_, entry) -> entry.pluginId == pluginId }
+        } else {
+            registrations.entries.removeIf { (_, entry) ->
+                if (entry.sessionToPlugin[sessionId] == pluginId) {
+                    entry.sessionToPlugin.remove(sessionId)
+                }
+                entry.sessionToPlugin.isEmpty()
             }
-            entry.sessionToPlugin.isEmpty()
         }
         publishCapablePlugins()
     }
@@ -70,12 +88,18 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     /**
      * Dispatches a tool call to the owning plugin instance.
      *
-     * The [arguments] map must contain a `sessionId` key that identifies the target session.
-     * That key is stripped before forwarding to the plugin.
+     * For a session-scoped tool the [arguments] map must contain a `sessionId` key that identifies
+     * the target session; that key is stripped before forwarding to the plugin. A host-scoped tool
+     * takes no `sessionId` and goes straight to the plugin's single instance.
      *
-     * @return The result string, or null if not found or plugin returned null.
+     * @return The result, or null if not found.
      */
-    suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): String? {
+    suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): JetWhaleMcpResult? {
+        val hostScoped = hostScopedRegistrations[toolName]
+        if (hostScoped != null) {
+            val plugin = pluginInstanceService.getHostScopedInstance(hostScoped.pluginId) as? JetWhaleMcpCapablePlugin ?: return null
+            return execute(plugin, toolName, JsonObject(arguments))
+        }
         val sessionId = (arguments["sessionId"] as? JsonPrimitive)?.content ?: return null
         val entry = registrations[toolName] ?: return null
         val pluginId = entry.sessionToPlugin[sessionId] ?: return null
@@ -83,13 +107,17 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
             pluginId = pluginId,
             sessionId = sessionId,
         ) as? JetWhaleMcpCapablePlugin ?: return null
+        return execute(plugin, toolName, JsonObject(arguments - "sessionId"))
+    }
+
+    private suspend fun execute(plugin: JetWhaleMcpCapablePlugin, toolName: String, arguments: JsonObject): JetWhaleMcpResult? {
         val command = plugin.mcpCommands.firstOrNull { it.name == toolName } ?: return null
         return try {
-            command.execute(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
+            command.execute(JetWhaleMcpArguments(arguments))
         } catch (e: JetWhaleMcpArgumentException) {
             // A caller mistake becomes a payload the AI agent can read and correct, instead of
             // an MCP-level failure.
-            buildJsonObject { put("error", e.message.orEmpty()) }.toString()
+            JetWhaleMcpResult.text(buildJsonObject { put("error", e.message.orEmpty()) }.toString())
         }
     }
 
@@ -102,24 +130,14 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     /** Removes all registered plugin tools. Call on server stop to avoid stale entries on restart. */
     fun clear() {
         registrations.clear()
+        hostScopedRegistrations.clear()
         publishCapablePlugins()
     }
 
     private fun publishCapablePlugins() {
         val toolsBySessionAndPlugin = mutableMapOf<String, MutableMap<String, MutableList<McpToolSummary>>>()
         registrations.forEach { (toolName, entry) ->
-            val summary = McpToolSummary(
-                name = toolName,
-                description = entry.descriptor.description,
-                parameters = entry.descriptor.parameters.map { (paramName, param) ->
-                    McpToolParameterSummary(
-                        name = paramName,
-                        type = (param.schema["type"] as? JsonPrimitive)?.content.orEmpty(),
-                        required = param.required,
-                        description = param.description,
-                    )
-                },
-            )
+            val summary = entry.descriptor.toSummary(toolName)
             entry.sessionToPlugin.forEach { (sessionId, pluginId) ->
                 toolsBySessionAndPlugin
                     .getOrPut(sessionId) { mutableMapOf() }
@@ -127,20 +145,54 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
                     .add(summary)
             }
         }
+        val hostScopedToolsByPlugin = mutableMapOf<String, MutableList<McpToolSummary>>()
+        hostScopedRegistrations.forEach { (toolName, entry) ->
+            hostScopedToolsByPlugin.getOrPut(entry.pluginId) { mutableListOf() }.add(entry.descriptor.toSummary(toolName))
+        }
         mcpCapablePluginsFlow.value = McpCapablePlugins(
-            toolsBySessionAndPlugin.mapValues { (_, byPlugin) ->
+            toolsBySessionAndPlugin = toolsBySessionAndPlugin.mapValues { (_, byPlugin) ->
                 byPlugin.mapValues { (_, tools) -> tools.sortedBy { it.name } }
             },
+            hostScopedToolsByPlugin = hostScopedToolsByPlugin.mapValues { (_, tools) -> tools.sortedBy { it.name } },
         )
     }
 
-    /** Returns all tools that have at least one active session, with their descriptors. */
+    /** Returns all session-scoped tools that have at least one active session, with their descriptors. */
     fun allRegistrations(): List<Pair<String, JetWhaleMcpToolDescriptor>> = registrations.entries
         .filter { it.value.sessionToPlugin.isNotEmpty() }
         .map { (name, entry) -> name to entry.descriptor }
+
+    /** Returns every tool published by a host-scoped plugin instance, with the plugin that owns it. */
+    fun allHostScopedRegistrations(): List<HostScopedRegistration> = hostScopedRegistrations.entries
+        .map { (name, entry) -> HostScopedRegistration(name = name, pluginId = entry.pluginId, descriptor = entry.descriptor) }
 }
+
+private fun JetWhaleMcpToolDescriptor.toSummary(toolName: String): McpToolSummary = McpToolSummary(
+    name = toolName,
+    description = description,
+    parameters = parameters.map { (paramName, param) ->
+        McpToolParameterSummary(
+            name = paramName,
+            type = (param.schema["type"] as? JsonPrimitive)?.content.orEmpty(),
+            required = param.required,
+            description = param.description,
+        )
+    },
+)
 
 data class PluginToolEntry(
     val descriptor: JetWhaleMcpToolDescriptor,
     val sessionToPlugin: ConcurrentHashMap<String, String>,
+)
+
+data class HostScopedToolEntry(
+    val descriptor: JetWhaleMcpToolDescriptor,
+    val pluginId: String,
+)
+
+/** One tool of a host-scoped plugin, as the MCP server registers it: no session, one owning plugin. */
+data class HostScopedRegistration(
+    val name: String,
+    val pluginId: String,
+    val descriptor: JetWhaleMcpToolDescriptor,
 )

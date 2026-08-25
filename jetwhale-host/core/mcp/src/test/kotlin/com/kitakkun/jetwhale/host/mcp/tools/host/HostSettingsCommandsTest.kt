@@ -1,10 +1,12 @@
 package com.kitakkun.jetwhale.host.mcp.tools.host
 
+import com.kitakkun.jetwhale.host.mcp.text
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
@@ -133,7 +135,7 @@ class HostSettingsCommandsTest {
 
         val result = RestartDebugServerCommand(settingsRepository, debugWebSocketServer)
             .execute(arguments())
-            .let { Json.decodeFromString<RestartDebugServerResult>(it) }
+            .let { Json.decodeFromString<RestartDebugServerResult>(it.text) }
 
         verifySuspend { debugWebSocketServer.start("localhost", 5080, null) }
         assertTrue("dropped" in result.note)
@@ -143,7 +145,7 @@ class HostSettingsCommandsTest {
     fun `restartDebugServer reports the state the server ended up in`() = runBlocking {
         val result = RestartDebugServerCommand(settingsRepository, debugWebSocketServer)
             .execute(arguments())
-            .let { Json.decodeFromString<RestartDebugServerResult>(it) }
+            .let { Json.decodeFromString<RestartDebugServerResult>(it.text) }
 
         assertEquals("Started", result.state)
         assertEquals(5080, result.port)
@@ -153,4 +155,4 @@ class HostSettingsCommandsTest {
 
 private fun arguments(vararg entries: Pair<String, JsonPrimitive>) = JetWhaleMcpArguments(JsonObject(entries.toMap()))
 
-private fun String.decodeSettings() = Json.decodeFromString<UpdateSettingsResult>(this)
+private fun JetWhaleMcpResult.decodeSettings() = Json.decodeFromString<UpdateSettingsResult>(text)

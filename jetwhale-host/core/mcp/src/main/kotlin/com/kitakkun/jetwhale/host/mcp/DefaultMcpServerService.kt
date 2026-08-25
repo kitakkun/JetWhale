@@ -25,6 +25,7 @@ import io.ktor.server.sse.sse
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequest
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
@@ -177,14 +178,17 @@ class DefaultMcpServerService(
         statusHolder.update(McpServerStatus.Stopped)
     }
 
-    private fun onPluginInstanceReady(pluginId: String, sessionId: String) {
-        val plugin = pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId)
+    private fun onPluginInstanceReady(pluginId: String, sessionId: String?) {
+        val plugin = when (sessionId) {
+            null -> pluginInstanceService.getHostScopedInstance(pluginId)
+            else -> pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId)
+        }
         if (plugin is JetWhaleMcpCapablePlugin) {
             toolRegistry.register(pluginId, sessionId, plugin)
         }
     }
 
-    private fun onPluginInstanceDisposed(pluginId: String, sessionId: String) {
+    private fun onPluginInstanceDisposed(pluginId: String, sessionId: String?) {
         toolRegistry.unregister(pluginId, sessionId)
     }
 
@@ -213,10 +217,12 @@ class DefaultMcpServerService(
     /**
      * Registers plugin-defined tools from the [McpToolRegistry] at connection time.
      * Since tool lists are computed at connection-time, newly added tools appear on the
-     * next client reconnect.
+     * next client reconnect — a host-scoped plugin that becomes ready after a client connected
+     * included.
      *
-     * A `sessionId` parameter is automatically injected into every plugin tool's schema
-     * so the caller can identify which session to route the call to.
+     * A `sessionId` parameter is automatically injected into every session-scoped plugin tool's
+     * schema so the caller can identify which session to route the call to. A host-scoped plugin's
+     * tools belong to no session and are registered with exactly the parameters they declare.
      */
     private fun registerPluginTools(registrar: McpToolRegistrar) {
         for ((toolName, descriptor) in toolRegistry.allRegistrations()) {
@@ -231,12 +237,26 @@ class DefaultMcpServerService(
                 inputSchema = inputSchema,
                 resolvePluginIdForSession = { sessionId -> toolRegistry.pluginIdFor(toolName, sessionId) },
             ) { request ->
-                // Forward the arguments as raw JSON so structured (object/array) parameters keep
-                // their shape; the command's parameter DSL decodes each value by its declared type.
-                val arguments = request.arguments ?: emptyMap()
-                val result = toolRegistry.dispatch(toolName, arguments)
-                CallToolResult(content = listOf(TextContent(result ?: "null")))
+                dispatchPluginTool(toolName, request)
             }
         }
+        for (registration in toolRegistry.allHostScopedRegistrations()) {
+            registrar.addHostScopedPluginTool(
+                name = registration.name,
+                description = registration.descriptor.description,
+                inputSchema = registration.descriptor.toToolSchema(),
+                pluginId = registration.pluginId,
+            ) { request ->
+                dispatchPluginTool(registration.name, request)
+            }
+        }
+    }
+
+    private suspend fun dispatchPluginTool(toolName: String, request: CallToolRequest): CallToolResult {
+        // Forward the arguments as raw JSON so structured (object/array) parameters keep their
+        // shape; the command's parameter DSL decodes each value by its declared type.
+        val result = toolRegistry.dispatch(toolName, request.arguments ?: emptyMap())
+            ?: return CallToolResult(content = listOf(TextContent("null")))
+        return CallToolResult(content = result.toCallToolContent())
     }
 }

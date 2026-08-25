@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.sdk
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -32,6 +33,13 @@ public data class JetWhaleHostPluginManifest(
      * (not a [JetWhaleMessagingHostPlugin]).
      */
     public val requiresAgent: Boolean = true,
+    /**
+     * Whether this plugin gets one instance per debug session ([JetWhaleHostPluginScope.SESSION],
+     * the default) or a single instance for the whole host ([JetWhaleHostPluginScope.HOST]).
+     * A host-scoped plugin must declare `"requiresAgent": false` — there is no session, so there is
+     * no agent to talk to.
+     */
+    public val scope: JetWhaleHostPluginScope = JetWhaleHostPluginScope.SESSION,
     public val agentVersionRange: AgentVersionRange? = null,
     public val icon: Icon? = null,
 ) {
@@ -51,4 +59,19 @@ public data class JetWhaleHostPluginManifest(
         public val activePath: String? = null,
         public val inactivePath: String? = null,
     )
+}
+
+/** How many instances of a plugin the host creates, and what each one is tied to. */
+@Serializable
+public enum class JetWhaleHostPluginScope {
+    /** One instance per active debug session; its tools take a `sessionId`. */
+    @SerialName("session")
+    SESSION,
+
+    /**
+     * A single instance for the whole host, created as soon as the plugin is enabled and loaded —
+     * before (and without) any session. Its MCP tools take no `sessionId`.
+     */
+    @SerialName("host")
+    HOST,
 }

@@ -84,8 +84,10 @@ Implement `JetWhaleHostPluginFactory` and declare it in a plugin manifest. The h
 by instantiating the `factoryClass` named in the manifest. See `jetwhale-plugins/example/host` for a
 complete, working example:
 
-- `src/main/kotlin/.../MyPluginFactory.kt` — a `JetWhaleHostPluginFactory` returning your
-  `JetWhaleHostPlugin`. It needs a public no-arg constructor so the host can instantiate it.
+- `src/main/kotlin/.../MyPluginFactory.kt` — a `JetWhaleHostPluginFactory` whose
+  `createPlugin(context)` returns your `JetWhaleHostPlugin`. It needs a public no-arg constructor so
+  the host can instantiate it; `context` is the [host services](#host-services-jetwhalehostplugincontext)
+  the instance may keep.
 - `src/main/resources/META-INF/jetwhale/plugin-manifest.json` — one entry per plugin under `plugins`,
   each with `pluginId`, `pluginName`, `version`, and `factoryClass` (the fully-qualified name of the
   factory above):
@@ -117,6 +119,7 @@ in the IDE.
 | `version` | ✅ | — | Your plugin's version. |
 | `factoryClass` | ✅ | — | Fully-qualified `JetWhaleHostPluginFactory` the host instantiates. Needs a public no-arg constructor. |
 | `requiresAgent` | | `true` | `false` makes the plugin [host-only](#host-only-plugins-no-agent-no-messaging): no agent counterpart, no messaging, instantiated for every active session. |
+| `scope` | | `"session"` | `"host"` makes the plugin [host-scoped](#host-scoped-plugins-one-instance-for-the-whole-host): a single instance for the whole debug tool, created before any app connects, whose MCP tools take no `sessionId`. Requires `"requiresAgent": false`. |
 | `agentVersionRange` | | none | `{ "min": …, "max": … }`, both **inclusive** and both nullable. An agent plugin whose `pluginVersion` falls outside the range is reported back to the agent as *incompatible* and never paired. Omit the object to accept any agent version. |
 | `icon` | | none | `{ "activePath": …, "inactivePath": … }` — see below. |
 
@@ -292,6 +295,63 @@ own capabilities — extend the plain `JetWhaleHostPlugin` (not `JetWhaleMessagi
 `messenger`; it is made available for every active session. See
 `ExampleHostOnlyPlugin` in `jetwhale-plugins/example/host`.
 
+#### Host-scoped plugins (one instance for the whole host)
+
+A host-only plugin still gets **one instance per connected session**. When the plugin has nothing to
+do with any particular app — it drives a device over adb, watches a directory, talks to a service —
+declare `"scope": "host"` alongside `"requiresAgent": false` and the host holds exactly **one**
+instance of it instead:
+
+```json
+{
+  "pluginId": "com.example.devicecontrol",
+  "pluginName": "Device Control",
+  "version": "1.0.0",
+  "factoryClass": "com.example.DeviceControlFactory",
+  "requiresAgent": false,
+  "scope": "host"
+}
+```
+
+What changes:
+
+- The instance is created as soon as the plugin is **enabled and loaded** — with no app connected and
+  no session in existence — and disposed when the plugin is disabled, unloaded or reloaded. Closing a
+  session never touches it.
+- Its **MCP tools take no `sessionId`**: there is nothing to route, so a call reaches the single
+  instance directly. (Session-scoped plugin tools still get the injected `sessionId`.)
+- Its factory must return a plain `JetWhaleHostPlugin`, never a `JetWhaleMessagingHostPlugin`: with
+  no session there is no agent to talk to, and the host refuses to create such an instance.
+  Declaring `"scope": "host"` together with `"requiresAgent": true` is a manifest error, and the jar
+  fails to load.
+- It may still implement `JetWhaleHostPluginUi`; its scene is opened from the drawer without a
+  session being selected. A host-scoped plugin with no UI shows the usual headless screen.
+
+See `ExampleHostScopedPlugin` in `jetwhale-plugins/example/host`.
+
+#### Host services: `JetWhaleHostPluginContext`
+
+`createPlugin(context)` hands every plugin the host's own capabilities. The object stays valid for
+the life of the instance, so keep whatever the plugin needs:
+
+```kotlin
+class DeviceControlFactory : JetWhaleHostPluginFactory {
+    override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin =
+        DeviceControlPlugin(context.adb)
+}
+```
+
+- **`context.adb`** — the adb executable the host resolved, as one runner shared with the debug
+  tool's own port wiring, so a plugin never has to find an SDK of its own. `adb.run(vararg args,
+  timeout)` returns a `JetWhaleAdbResult` (exit code plus combined stdout/stderr; a non-zero exit is
+  a result, not an exception), and `adb.runStreaming(vararg args, timeout) { stream -> … }` hands you
+  raw stdout for binary or unbounded output such as `exec-out screencap -p` or `logcat`. Both throw
+  `JetWhaleAdbUnavailableException` when adb cannot be launched at all — catch it and say so, since
+  no amount of retrying brings a missing SDK back. `adb.executable` is the path (or bare name) in use.
+- **`context.sessions`** — `sessions.active` is a `StateFlow` of the currently connected sessions
+  (`sessionId`, `appName`, `deviceId`, `deviceName`, `installedPluginIds`). This is how a host-scoped
+  plugin learns that an app has arrived.
+
 ## Exposing MCP tools <Badge type="warning" text="experimental" />
 
 A host plugin can contribute tools to the host's [MCP server](/guide/mcp-server) by implementing
@@ -310,8 +370,8 @@ class InspectWidgetCommand(private val widgets: WidgetStore) : JetWhaleMcpComman
     private val widgetId by string("The widget ID")
     private val verbose by booleanOrNull("Include layout details.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        return widgets.describeAsJson(id = arguments[widgetId], verbose = arguments[verbose] ?: false)
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
+        return JetWhaleMcpResult.text(widgets.describeAsJson(id = arguments[widgetId], verbose = arguments[verbose] ?: false))
     }
 }
 
@@ -324,10 +384,16 @@ Things to know:
 
 - **Names must be globally unique** — prefix them with your `pluginId` by convention.
 - **`sessionId` is injected for you.** JetWhale adds a required `sessionId` parameter to every
-  plugin tool's schema and routes the call to the right plugin instance, so your command runs
-  against the correct session without handling it yourself.
-- **`execute` returns a string** (plain text or JSON). Throw `JetWhaleMcpArgumentException` for
-  caller mistakes — it is rendered as an `{"error": ...}` payload instead of failing the server.
+  session-scoped plugin tool's schema and routes the call to the right plugin instance, so your
+  command runs against the correct session without handling it yourself. A
+  [host-scoped](#host-scoped-plugins-one-instance-for-the-whole-host) plugin's tools take no
+  `sessionId` at all — the single instance is the target.
+- **`execute` returns a `JetWhaleMcpResult`.** `JetWhaleMcpResult.text(…)` for plain text or JSON,
+  `JetWhaleMcpResult.image(bytes, mimeType)` for a screenshot or other image the agent should see —
+  the host base64-encodes it for the protocol, so hand over raw bytes. A result may also carry
+  several blocks: `JetWhaleMcpResult(listOf(JetWhaleMcpContent.Text(…), JetWhaleMcpContent.Image(…)))`.
+  Throw `JetWhaleMcpArgumentException` for caller mistakes — it is rendered as an `{"error": ...}`
+  payload instead of failing the server.
 - **Messaging works from tool handlers.** `messenger` is valid for the whole instance lifetime, so
   a command can `request` the agent directly.
 - **Declare parameters as properties, never inside `execute`.** The list is read once, and declaring

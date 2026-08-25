@@ -28,9 +28,10 @@ fun NavBackStack<NavKey>.openMcpTools(pluginId: String?, sessionId: String?) {
 }
 
 /**
- * Whether the given plugin is currently shown in a separate popout window for [sessionId].
+ * Whether the given plugin is currently shown in a separate popout window for [sessionId]. A
+ * host-scoped plugin (null [sessionId]) is never popped out: popouts are opened per session.
  */
-fun NavBackStack<NavKey>.isPluginPoppedOut(pluginId: String, sessionId: String): Boolean = any {
+fun NavBackStack<NavKey>.isPluginPoppedOut(pluginId: String, sessionId: String?): Boolean = any {
     it is PluginPopoutNavKey &&
         it.pluginId == pluginId &&
         it.sessionId == sessionId
@@ -39,7 +40,7 @@ fun NavBackStack<NavKey>.isPluginPoppedOut(pluginId: String, sessionId: String):
 /**
  * Docks a popped-out plugin: shows it in the main window and closes its popout window.
  */
-fun NavBackStack<NavKey>.bringPluginBackToMainWindow(pluginId: String, sessionId: String) {
+fun NavBackStack<NavKey>.bringPluginBackToMainWindow(pluginId: String, sessionId: String?) {
     addSingleTop(
         PluginNavKey(
             pluginId = pluginId,
@@ -56,6 +57,8 @@ fun NavBackStack<NavKey>.bringPluginBackToMainWindow(pluginId: String, sessionId
 /**
  * Makes the plugin screen currently on top of the back stack follow a session switch.
  *
+ * A host-scoped plugin's screen is left where it is: it has no session to follow.
+ *
  * If the top entry is a [PluginNavKey] targeting a different session, it is replaced with a
  * [PluginNavKey] for [newSessionId] so the same plugin is shown for the newly-selected session.
  * If the plugin is not available on the new session (per [isPluginAvailableOnNewSession]), the old
@@ -69,7 +72,8 @@ fun NavBackStack<NavKey>.followPluginToSession(
     isPluginAvailableOnNewSession: (pluginId: String) -> Boolean,
 ) {
     val top = lastOrNull() as? PluginNavKey ?: return
-    if (top.sessionId == newSessionId) return
+    // A host-scoped plugin's screen belongs to no session, so a session switch leaves it alone.
+    if (top.sessionId == null || top.sessionId == newSessionId) return
 
     removeLastOrNull()
     if (isPluginAvailableOnNewSession(top.pluginId)) {

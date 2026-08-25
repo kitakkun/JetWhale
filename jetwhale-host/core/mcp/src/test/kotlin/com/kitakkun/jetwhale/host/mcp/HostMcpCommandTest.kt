@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.mcp
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock
@@ -12,12 +13,14 @@ import io.ktor.client.plugins.sse.SSE
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.mcpSse
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.ImageContent
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.Tool
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.util.Base64
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -65,6 +68,16 @@ class HostMcpCommandTest {
         val result = client.callTool("jetwhale.test.explode", emptyMap())
         assertEquals(true, result.isError)
         assertContains(result.firstText(), "boom")
+    }
+
+    @Test
+    fun `an image result reaches the client as base64 image content`() = withHostCommand(ScreenshotHostCommand()) { client ->
+        val result = client.callTool("jetwhale.test.screenshot", emptyMap())
+
+        val image = result.content.filterIsInstance<ImageContent>().single()
+        assertEquals("image/png", image.mimeType)
+        // The command hands over raw bytes; base64 is the host's job.
+        assertEquals(Base64.getEncoder().encodeToString(SCREENSHOT_BYTES), image.data)
     }
 
     @Test
@@ -123,7 +136,7 @@ private class EchoHostCommand : HostMcpCommand() {
     private val text by string("Text to echo back.")
     private val times by intOrNull("How many times to repeat it.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[text].repeat(arguments[times] ?: 1)
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(arguments[text].repeat(arguments[times] ?: 1))
 }
 
 private class ExplodingHostCommand : HostMcpCommand() {
@@ -131,5 +144,15 @@ private class ExplodingHostCommand : HostMcpCommand() {
     override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String = "Always fails."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = throw IllegalStateException("boom")
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = throw IllegalStateException("boom")
+}
+
+private val SCREENSHOT_BYTES = byteArrayOf(1, 2, 3, 4, 5)
+
+private class ScreenshotHostCommand : HostMcpCommand() {
+    override val name: String = "jetwhale.test.screenshot"
+    override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
+    override val description: String = "Answers with an image."
+
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.image(SCREENSHOT_BYTES, "image/png")
 }

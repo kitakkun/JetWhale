@@ -1,10 +1,12 @@
 package com.kitakkun.jetwhale.host.mcp.tools.host
 
+import com.kitakkun.jetwhale.host.mcp.text
 import com.kitakkun.jetwhale.host.model.LogCaptureService
 import com.kitakkun.jetwhale.host.model.LogEntry
 import com.kitakkun.jetwhale.host.model.LogLevel
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock
@@ -86,9 +88,9 @@ class HostLogCommandsTest {
 
     @Test
     fun `clearLogs reports how many entries were dropped`() = runBlocking {
-        val json = ClearLogsCommand(logCaptureService).execute(arguments())
+        val result = ClearLogsCommand(logCaptureService).execute(arguments())
 
-        assertEquals(3, Json.decodeFromString<ClearLogsResult>(json).cleared)
+        assertEquals(3, Json.decodeFromString<ClearLogsResult>(result.text).cleared)
         verify { logCaptureService.clearLogs() }
     }
 }
@@ -101,4 +103,4 @@ private fun logEntry(message: String, level: LogLevel) = LogEntry(
 
 private fun arguments(vararg entries: Pair<String, JsonPrimitive>) = JetWhaleMcpArguments(JsonObject(entries.toMap()))
 
-private fun String.decodeLogs() = Json.decodeFromString<GetLogsResult>(this)
+private fun JetWhaleMcpResult.decodeLogs() = Json.decodeFromString<GetLogsResult>(text)

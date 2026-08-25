@@ -20,6 +20,7 @@ import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginScope
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import soil.query.compose.rememberMutation
@@ -126,6 +127,7 @@ fun toolingScaffoldPresenter(
             loadedPlugins.map { metaData ->
                 val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
                 val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
+                val isHostScoped = metaData.scope == JetWhaleHostPluginScope.HOST
 
                 DrawerPluginItemUiState(
                     id = metaData.id,
@@ -133,6 +135,12 @@ fun toolingScaffoldPresenter(
                     activeIconResource = metaData.activeIconResource,
                     inactiveIconResource = metaData.inactiveIconResource,
                     pluginAvailability = when {
+                        // A host-scoped plugin runs against the host itself, so whether it is usable
+                        // never depends on a session being selected.
+                        isHostScoped && isEnabledInSettings -> PluginAvailability.Enabled
+
+                        isHostScoped -> PluginAvailability.Disabled
+
                         selectedSession == null -> PluginAvailability.Unavailable
 
                         // Host-only plugins (no agent) are available for any active session; agent-backed
@@ -146,6 +154,7 @@ fun toolingScaffoldPresenter(
                     underAiControl = aiControlledPluginId == metaData.id,
                     exposesMcpTools = mcpCapablePlugins.toolsFor(selectedSession?.id, metaData.id).isNotEmpty(),
                     isHeadless = headlessPlugins.isHeadless(selectedSession?.id, metaData.id),
+                    isHostScoped = isHostScoped,
                 )
             }.toImmutableList()
         }
