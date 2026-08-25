@@ -53,6 +53,8 @@ include(":jetwhale-plugins:example:host")
 include(":jetwhale-plugins:example:protocol")
 include(":jetwhale-plugins:example:agent")
 
+include(":jetwhale-plugins:android-device:host")
+
 include(":jetwhale-plugins:network:protocol")
 include(":jetwhale-plugins:network:agent")
 include(":jetwhale-plugins:network:agent-ktor")
