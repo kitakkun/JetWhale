@@ -117,5 +117,14 @@ object OfficialPluginCatalog {
             agentRegistration = null,
             guidePath = "device-mirror",
         ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.androiddevice",
+            displayName = "Android Device",
+            description = "Drive a connected Android device or emulator over adb: install, launch, tap, type, screenshot, logcat.",
+            artifactId = "jetwhale-android-device",
+            agentArtifactId = null,
+            agentRegistration = null,
+            guidePath = "android-device",
+        ),
     )
 }
