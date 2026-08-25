@@ -60,10 +60,9 @@ only reads the tree has to special-case it. What is particular to it:
 A Compose node carries `role`, `testTag` and `stateDescription`, which a `View` has no counterpart
 for; a `View` node carries `viewClass` and `resourceId`, which a Compose node has no counterpart for.
 
-Versions mix in both directions. A tree captured by an agent that predates the two node types names
-no type at all, and a host reading it takes every node for a Compose node — which is what they are.
-A host older than the agent it is talking to reads a `View` node as a Compose node, losing
-`viewClass` and `resourceId` but neither failing nor dropping the node.
+The two node types are told apart on the wire by `"type": "compose"` / `"type": "view"`, so host and
+agent have to be built against the same protocol version — a mismatch fails to decode rather than
+degrading.
 
 `performNodeAction` works on a `View` node too, running the view's own API rather than a synthesised
 tap: `Click` → `performClick()`, `LongClick` → `performLongClick()`, `SetText` / `InsertText` on an
@@ -71,13 +70,17 @@ tap: `Click` → `performClick()`, `LongClick` → `performLongClick()`, `SetTex
 `requestFocus()`. `Dismiss`, `Expand` and `Collapse` have no `View` counterpart and come back
 `performed: false` saying so. As always, only what a node lists in `actions` can be invoked.
 
-Two limits are worth knowing:
+Three limits are worth knowing:
 
 - **A window with no Compose in it is not captured.** The composition is what announces a window to
   the probe, so a plain `AlertDialog` built from views does not appear. This plugin inspects Compose
   apps; it is not a general View inspector.
 - **No layout attributes.** `layoutParams`, padding, background and the rest are Layout Inspector's
   job and are deliberately not reported.
+- **A merged capture can fold an `AndroidView` away.** The embedded views hang off the semantics
+  node the `AndroidView { }` creates; when an ancestor merges its descendants (a `Button`, a
+  `mergeDescendants = true` modifier), that node is folded into the ancestor in the merged tree and
+  the views under it go with it. Capture unmerged (`merged: false`) to see them.
 
 Other platforms are unaffected: desktop reads a composition through its `SemanticsOwner`, and its
 roots stay one-per-composition.

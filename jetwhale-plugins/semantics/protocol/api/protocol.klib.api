@@ -215,6 +215,8 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot { // co
     }
 
     final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.Companion.$childSerializers|{}$childSerializers[0]
+
         final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.Companion.serializer|serializer(){}[0]
     }
 }
@@ -485,12 +487,4 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode : com.kita
 
         final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode.Companion.serializer|serializer(){}[0]
     }
-}
-
-final object com.kitakkun.jetwhale.plugins.semantics.protocol/UiNodeSerializer : kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode> { // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNodeSerializer|null[0]
-    final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNodeSerializer.descriptor|{}descriptor[0]
-        final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNodeSerializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
-
-    final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNodeSerializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
-    final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode) // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNodeSerializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode){}[0]
 }

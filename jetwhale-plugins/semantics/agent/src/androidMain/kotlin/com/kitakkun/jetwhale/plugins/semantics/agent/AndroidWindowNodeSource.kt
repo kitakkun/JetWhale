@@ -97,10 +97,9 @@ private fun View.findSemanticsNode(id: Int): SemanticsNode? = composeRootsInWind
  * interop view Compose reports for it, not by walking Compose's internal scaffolding.
  */
 private fun View.composeRootsInWindow(): Sequence<ViewRootForTest> = sequence {
-    if (this@composeRootsInWindow is ViewRootForTest) {
-        yield(this@composeRootsInWindow)
-        return@sequence
-    }
+    if (this@composeRootsInWindow is ViewRootForTest) yield(this@composeRootsInWindow)
+    // A Compose root's own children are the views an `AndroidView { }` embeds, and one of those can
+    // host a further composition — so the descent continues through it rather than stopping at it.
     if (this@composeRootsInWindow is ViewGroup) {
         for (index in 0 until childCount) {
             getChildAt(index)?.let { yieldAll(it.composeRootsInWindow()) }
