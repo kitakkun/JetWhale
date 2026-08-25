@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
@@ -38,7 +39,7 @@ class UpdateSettingsCommand(
     private val persistData by booleanOrNull("Whether captured debug data survives a host restart.")
     private val restartDebugServer by booleanOrNull("Whether to restart the debug server so ws/wss changes take effect now. Defaults to true when a ws/wss setting changed.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         // Validate every port before writing any of them, so a bad argument late in the list cannot
         // leave the settings half-applied.
         val newServerPort = arguments[serverPort]?.requireValidPort("serverPort")
@@ -93,12 +94,14 @@ class UpdateSettingsCommand(
             notes += "The debug server is still running with its previous configuration; restart it with jetwhale.restartDebugServer to apply the change."
         }
 
-        return Json.encodeToString(
-            UpdateSettingsResult(
-                applied = applied,
-                debugServerRestarted = shouldRestart,
-                mcpServerRestarted = false,
-                notes = notes,
+        return JetWhaleMcpResult.text(
+            Json.encodeToString(
+                UpdateSettingsResult(
+                    applied = applied,
+                    debugServerRestarted = shouldRestart,
+                    mcpServerRestarted = false,
+                    notes = notes,
+                ),
             ),
         )
     }
@@ -124,16 +127,18 @@ class RestartDebugServerCommand(
     override val description: String =
         "Host-wide: stops and restarts the debug WebSocket server that agents connect to. This disconnects every session — every sessionId you hold becomes invalid and each app has to reconnect."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         restartDebugServer(settingsRepository, debugWebSocketServer)
         val status = debugWebSocketServer.statusFlow.value.toJson()
-        return Json.encodeToString(
-            RestartDebugServerResult(
-                state = status.state,
-                host = status.host,
-                port = status.port,
-                wssPort = status.wssPort,
-                note = SERVER_RESTART_NOTE,
+        return JetWhaleMcpResult.text(
+            Json.encodeToString(
+                RestartDebugServerResult(
+                    state = status.state,
+                    host = status.host,
+                    port = status.port,
+                    wssPort = status.wssPort,
+                    note = SERVER_RESTART_NOTE,
+                ),
             ),
         )
     }

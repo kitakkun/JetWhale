@@ -15,10 +15,11 @@ interface PluginComposeSceneService {
      */
     fun updateHostDensity(density: Density)
 
+    /** @param sessionId The session the instance belongs to, or null for a host-scoped plugin. */
     @OptIn(InternalComposeUiApi::class)
     suspend fun getOrCreatePluginScene(
         pluginId: String,
-        sessionId: String,
+        sessionId: String?,
     ): PluginComposeScene
 
     fun disposePluginSceneForSession(sessionId: String)

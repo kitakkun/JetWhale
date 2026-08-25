@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.LogLevel
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
@@ -34,7 +35,7 @@ class GetLogsCommand(
     private val level by enumOrNull("Only return entries logged at this level.", LogLevel.entries)
     private val contains by stringOrNull("Only return entries whose message contains this substring, case-insensitively.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val requestedLimit = arguments[limit] ?: DEFAULT_LIMIT
         if (requestedLimit !in 1..MAX_LIMIT) {
             throw JetWhaleMcpArgumentException("invalid limit: expected 1..$MAX_LIMIT but was $requestedLimit")
@@ -48,11 +49,13 @@ class GetLogsCommand(
         }
         val returned = matching.takeLast(requestedLimit)
 
-        return Json.encodeToString(
-            GetLogsResult(
-                logs = returned.map { it.toJson() },
-                returned = returned.size,
-                total = matching.size,
+        return JetWhaleMcpResult.text(
+            Json.encodeToString(
+                GetLogsResult(
+                    logs = returned.map { it.toJson() },
+                    returned = returned.size,
+                    total = matching.size,
+                ),
             ),
         )
     }
@@ -68,10 +71,10 @@ class ClearLogsCommand(
     override val description: String =
         "Host-wide: discards every captured host log entry. Clear before reproducing an issue so that jetwhale.getLogs afterwards shows only what the reproduction produced."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val cleared = logCaptureService.logs.value.size
         logCaptureService.clearLogs()
-        return Json.encodeToString(ClearLogsResult(cleared = cleared))
+        return JetWhaleMcpResult.text(Json.encodeToString(ClearLogsResult(cleared = cleared)))
     }
 }
 

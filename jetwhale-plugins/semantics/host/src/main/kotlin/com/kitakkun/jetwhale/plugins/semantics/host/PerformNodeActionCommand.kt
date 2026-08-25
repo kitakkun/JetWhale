@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
@@ -40,7 +41,7 @@ internal class PerformNodeActionCommand(
     private val scrollX by intOrNull("Horizontal scroll distance in pixels for ScrollBy. Defaults to 0.")
     private val scrollY by intOrNull("Vertical scroll distance in pixels for ScrollBy. Defaults to 0.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val nodeId = arguments[nodeId]
         val action = arguments[action]
         val result: NodeActionResult
@@ -58,16 +59,18 @@ internal class PerformNodeActionCommand(
                 ),
             )
         } catch (e: JetWhaleMessagingException) {
-            return agentErrorJson(e)
+            return JetWhaleMcpResult.text(agentErrorJson(e))
         }
 
-        return buildJsonObject {
-            put("performed", result.performed)
-            put("rootId", rootId)
-            put("nodeId", nodeId)
-            put("action", action.name)
-            result.message?.let { put("message", it) }
-        }.toString()
+        return JetWhaleMcpResult.text(
+            buildJsonObject {
+                put("performed", result.performed)
+                put("rootId", rootId)
+                put("nodeId", nodeId)
+                put("action", action.name)
+                result.message?.let { put("message", it) }
+            }.toString(),
+        )
     }
 
     /**

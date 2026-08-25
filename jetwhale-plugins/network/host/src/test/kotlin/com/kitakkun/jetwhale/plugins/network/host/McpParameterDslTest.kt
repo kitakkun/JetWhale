@@ -5,6 +5,8 @@ import com.kitakkun.jetwhale.host.sdk.DefaultArgumentJson
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
@@ -28,9 +30,13 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+/** The text of a single-block result, which is what every command under test answers with. */
+@OptIn(ExperimentalJetWhaleApi::class)
+private val JetWhaleMcpResult.text: String get() = (content.single() as JetWhaleMcpContent.Text).text
+
 @OptIn(ExperimentalJetWhaleApi::class, ExperimentalSerializationApi::class)
 class McpParameterDslTest {
-    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
+    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))).text }
 
     private fun JetWhaleMcpCommand.schemaOf(parameter: String): JsonObject = toDescriptor().parameters.getValue(parameter).schema
 
@@ -44,49 +50,49 @@ class McpParameterDslTest {
         override val name = "test.stringMap"
         override val description = "echoes a string map"
         val headers by stringMap("A string-to-string map.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[headers].entries.joinToString(",") { "${it.key}=${it.value}" }
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(arguments[headers].entries.joinToString(",") { "${it.key}=${it.value}" })
     }
 
     private class OptionalStringMapCommand : JetWhaleMcpCommand() {
         override val name = "test.optionalStringMap"
         override val description = "echoes an optional string map"
         val headers by stringMapOrNull("An optional string-to-string map.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[headers]?.size?.toString() ?: "absent"
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(arguments[headers]?.size?.toString() ?: "absent")
     }
 
     private class StringListCommand : JetWhaleMcpCommand() {
         override val name = "test.stringList"
         override val description = "echoes a string list"
         val items by stringList("A list of strings.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[items].joinToString(",")
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(arguments[items].joinToString(","))
     }
 
     private class JsonObjectCommand : JetWhaleMcpCommand() {
         override val name = "test.jsonObject"
         override val description = "echoes a raw json object"
         val payload by jsonObject("A raw JSON object.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[payload].toString()
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(arguments[payload].toString())
     }
 
     private class JsonArrayCommand : JetWhaleMcpCommand() {
         override val name = "test.jsonArray"
         override val description = "echoes a raw json array"
         val payload by jsonArray("A raw JSON array.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[payload].size.toString()
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(arguments[payload].size.toString())
     }
 
     private class EnumCommand : JetWhaleMcpCommand() {
         override val name = "test.enum"
         override val description = "echoes an enum"
         val matchType by enum("How the pattern is compared.", MockMatchType.entries)
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[matchType].name
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(arguments[matchType].name)
     }
 
     private class SerializableCommand : JetWhaleMcpCommand() {
         override val name = "test.serializable"
         override val description = "echoes serializable mock rules"
         val rules by serializable<List<MockRule>>("The mock rules to apply.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[rules].joinToString(",") { "${it.id}:${it.matcher.matchType}" }
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(arguments[rules].joinToString(",") { "${it.id}:${it.matcher.matchType}" })
     }
 
     // Both the advertised schema and the decoder come from this format, so they cannot disagree.
@@ -97,7 +103,7 @@ class McpParameterDslTest {
         override val name = "test.snakeCase"
         override val description = "echoes mock rules named in snake_case"
         val rules by serializable<List<MockRule>>("The mock rules to apply.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[rules].single().matcher.urlPattern
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(arguments[rules].single().matcher.urlPattern)
     }
 
     // PluginFrame is a sealed interface whose subclasses (including those of the nested sealed
@@ -106,7 +112,7 @@ class McpParameterDslTest {
         override val name = "test.sealed"
         override val description = "echoes a plugin frame"
         val frame by serializable<PluginFrame>("A plugin frame.")
-        override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[frame].let { "${it::class.simpleName}:${it.pluginId}" }
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(arguments[frame].let { "${it::class.simpleName}:${it.pluginId}" })
     }
 
     @Test

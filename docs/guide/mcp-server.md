@@ -262,7 +262,9 @@ Installing does not enable: the sequence is
 Host plugins can expose their own MCP tools by implementing `JetWhaleMcpCapablePlugin`. Their tools
 are registered alongside the built-ins; JetWhale automatically injects a required `sessionId`
 parameter into each plugin tool's schema so an AI agent can target a specific connected device with
-your custom debugging features too. See
+your custom debugging features too. A **host-scoped** plugin is the exception: it has a single
+instance that belongs to no session, so its tools take **no `sessionId`** and work with nothing
+connected at all. See
 [Developing Plugins → Exposing MCP tools](/guide/developing-plugins#exposing-mcp-tools) for how to
 write one.
 

@@ -18,10 +18,11 @@ data object LicensesNavKey : NavKey
 @Serializable
 data object InfoNavKey : NavKey
 
+/** A plugin screen. [sessionId] is null for a host-scoped plugin, which belongs to no session. */
 @Serializable
 data class PluginNavKey(
     val pluginId: String,
-    val sessionId: String,
+    val sessionId: String?,
 ) : NavKey
 
 @Serializable

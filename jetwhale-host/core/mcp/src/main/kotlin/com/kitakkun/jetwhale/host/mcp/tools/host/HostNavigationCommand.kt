@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginSessionReconciliationService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
@@ -49,7 +50,7 @@ class HostNavigationCommand(
     private val sessionId by stringOrNull("Only for PLUGIN. Defaults to the session already selected in the drawer.")
     private val settingsSection by enumOrNull("Only for SETTINGS. Defaults to GENERAL.", HostSettingsSection.entries)
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val request = arguments.toRequest()
         hostNavigationService.navigate(request)
 
@@ -59,21 +60,25 @@ class HostNavigationCommand(
         val applied = withTimeoutOrNull(CONFIRMATION_TIMEOUT_MILLIS) {
             hostNavigationService.currentView.filterNotNull().first { request.matches(it.destination) }
         }?.destination
-            ?: return Json.encodeToString(
-                NavigateResult(
-                    applied = false,
-                    reason = "The host window did not report the requested destination within $CONFIRMATION_TIMEOUT_MILLIS ms. It may still be starting up.",
+            ?: return JetWhaleMcpResult.text(
+                Json.encodeToString(
+                    NavigateResult(
+                        applied = false,
+                        reason = "The host window did not report the requested destination within $CONFIRMATION_TIMEOUT_MILLIS ms. It may still be starting up.",
+                    ),
                 ),
             )
 
-        return Json.encodeToString(
-            NavigateResult(
-                applied = true,
-                destination = applied.kind.name,
-                pluginId = applied.pluginId,
-                sessionId = applied.sessionId,
-                settingsSection = applied.settingsSection?.name,
-                poppedOut = applied.poppedOutPlugins.any { it.pluginId == applied.pluginId && it.sessionId == applied.sessionId },
+        return JetWhaleMcpResult.text(
+            Json.encodeToString(
+                NavigateResult(
+                    applied = true,
+                    destination = applied.kind.name,
+                    pluginId = applied.pluginId,
+                    sessionId = applied.sessionId,
+                    settingsSection = applied.settingsSection?.name,
+                    poppedOut = applied.poppedOutPlugins.any { it.pluginId == applied.pluginId && it.sessionId == applied.sessionId },
+                ),
             ),
         )
     }

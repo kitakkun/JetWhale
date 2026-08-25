@@ -5,11 +5,13 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.example.protocol.ButtonClicked
 import com.kitakkun.jetwhale.plugins.example.protocol.Ping
@@ -25,7 +27,7 @@ import kotlinx.serialization.json.put
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
 class ExampleHostPluginFactory : JetWhaleHostPluginFactory {
-    override fun createPlugin(): JetWhaleHostPlugin = ExampleHostPlugin()
+    override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = ExampleHostPlugin()
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -70,16 +72,18 @@ private class ExampleHostPlugin :
             override val name = "com.kitakkun.jetwhale.example.sendPing"
             override val description = "Sends a Ping request to the debuggee and returns whether a Pong reply was received."
 
-            override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
                 val pongReceived = try {
                     messenger.request(Ping)
                     true
                 } catch (e: JetWhaleMessagingException) {
                     false
                 }
-                return buildJsonObject {
-                    put("pongReceived", pongReceived)
-                }.toString()
+                return JetWhaleMcpResult.text(
+                    buildJsonObject {
+                        put("pongReceived", pongReceived)
+                    }.toString(),
+                )
             }
         },
         object : JetWhaleMcpCommand() {
@@ -88,10 +92,10 @@ private class ExampleHostPlugin :
 
             private val limit by intOrNull("Maximum number of log entries to return. Returns all entries if omitted.")
 
-            override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
                 val limit = arguments[this.limit]
                 val logs = if (limit != null) eventLogs.takeLast(limit) else eventLogs.toList()
-                return Json.encodeToJsonElement(logs).toString()
+                return JetWhaleMcpResult.text(Json.encodeToJsonElement(logs).toString())
             }
         },
     )

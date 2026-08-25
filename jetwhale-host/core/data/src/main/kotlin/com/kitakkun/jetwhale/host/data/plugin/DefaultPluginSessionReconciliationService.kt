@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginReconciliationEvent
 import com.kitakkun.jetwhale.host.model.PluginSessionReconciliationService
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginScope
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -29,13 +30,18 @@ class DefaultPluginSessionReconciliationService(
 ) : PluginSessionReconciliationService {
     override fun requiresAgent(pluginId: String): Boolean = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
 
-    override fun targetSessionIds(pluginId: String, sessions: List<DebugSession>): Set<String> = if (requiresAgent(pluginId)) {
-        sessions
-            .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
-            .map { it.id }
-            .toSet()
-    } else {
-        sessions.map { it.id }.toSet()
+    override fun isHostScoped(pluginId: String): Boolean = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.scope == JetWhaleHostPluginScope.HOST
+
+    override fun targetSessionIds(pluginId: String, sessions: List<DebugSession>): Set<String> = when {
+        isHostScoped(pluginId) -> emptySet()
+
+        requiresAgent(pluginId) ->
+            sessions
+                .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
+                .map { it.id }
+                .toSet()
+
+        else -> sessions.map { it.id }.toSet()
     }
 
     override fun reconciliationEvents(): Flow<PluginReconciliationEvent> = channelFlow {
@@ -55,6 +61,13 @@ class DefaultPluginSessionReconciliationService(
             ) { enabledPluginIds, activeSessions, _ -> enabledPluginIds to activeSessions }
                 .collect { (enabledPluginIds, activeSessions) ->
                     enabledPluginIds.forEach { pluginId ->
+                        // A host-scoped plugin holds a single instance that belongs to no session, so
+                        // it is created as soon as the plugin is enabled and loaded — with zero
+                        // sessions connected included.
+                        if (isHostScoped(pluginId)) {
+                            pluginInstanceService.initializeHostScopedInstanceIfNeeded(pluginId)
+                            return@forEach
+                        }
                         val activatedSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
                             pluginId = pluginId,
                             sessionIds = targetSessionIds(pluginId, activeSessions),

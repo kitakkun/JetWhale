@@ -23,12 +23,17 @@ data class McpToolSummary(
  * ...) can drive any plugin's UI regardless, so absence here does not mean an agent cannot reach
  * the plugin at all — only that the plugin publishes nothing of its own.
  */
-data class McpCapablePlugins(val toolsBySessionAndPlugin: Map<String, Map<String, List<McpToolSummary>>>) {
-    fun pluginIdsFor(sessionId: String?): Set<String> = sessionId?.let { toolsBySessionAndPlugin[it]?.keys }.orEmpty()
+data class McpCapablePlugins(
+    val toolsBySessionAndPlugin: Map<String, Map<String, List<McpToolSummary>>>,
+    /** Tools published by host-scoped plugins, which belong to no session. */
+    val hostScopedToolsByPlugin: Map<String, List<McpToolSummary>>,
+) {
+    fun pluginIdsFor(sessionId: String?): Set<String> = hostScopedToolsByPlugin.keys + sessionId?.let { toolsBySessionAndPlugin[it]?.keys }.orEmpty()
 
-    fun toolsFor(sessionId: String?, pluginId: String): List<McpToolSummary> = sessionId?.let { toolsBySessionAndPlugin[it]?.get(pluginId) }.orEmpty()
+    fun toolsFor(sessionId: String?, pluginId: String): List<McpToolSummary> = hostScopedToolsByPlugin[pluginId]
+        ?: sessionId?.let { toolsBySessionAndPlugin[it]?.get(pluginId) }.orEmpty()
 
     companion object {
-        val Empty = McpCapablePlugins(emptyMap())
+        val Empty = McpCapablePlugins(emptyMap(), emptyMap())
     }
 }
