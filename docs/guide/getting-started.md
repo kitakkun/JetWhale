@@ -569,6 +569,7 @@ version as the host release they belong to.
 | `jetwhale-network-inspector`, `-agent`, `-agent-ktor`, `-agent-okhttp`, `-protocol` | [Network Inspector](/guide/network-inspector). |
 | `jetwhale-nav3-navigator`, `jetwhale-nav3-agent`, `jetwhale-nav3-protocol` | [Nav3 Navigator](/guide/nav3-navigator). |
 | `jetwhale-compose-semantics-inspector`, `-agent`, `-protocol` | [Compose Semantics Inspector](/guide/compose-semantics-inspector). |
+| `jetwhale-android-device` | [Android Device](/guide/android-device). Host plugin only — it drives a device over adb and needs nothing in your app. |
 
 The `-navigator` / `-inspector` artifacts (no suffix) are the **host** plugin jars — you install
 those into the host rather than into your app; see [Host Settings → Plugins](/guide/host-settings#plugins).
@@ -586,5 +587,6 @@ no watchOS/tvOS targets.
 - [Network Inspector](/guide/network-inspector) — inspect and mock HTTP traffic
 - [Compose Semantics Inspector](/guide/compose-semantics-inspector) — browse your app's Compose node tree and
   drive it by node
+- [Android Device](/guide/android-device) — install, launch and drive an Android device over adb
 - [MCP Server](/guide/mcp-server) — let AI agents drive your app
 - [Developing Plugins](/guide/developing-plugins) — build your own debugging tools

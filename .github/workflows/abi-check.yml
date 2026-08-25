@@ -54,6 +54,7 @@ jobs:
             :jetwhale-plugins:network:agent-ktor:checkKotlinAbi \
             :jetwhale-plugins:network:agent-okhttp:checkKotlinAbi \
             :jetwhale-plugins:network:host:checkKotlinAbi \
+            :jetwhale-plugins:android-device:host:checkKotlinAbi \
             :jetwhale-plugins:nav3:protocol:checkKotlinAbi \
             :jetwhale-plugins:nav3:agent:checkKotlinAbi \
             :jetwhale-plugins:nav3:host:checkKotlinAbi \

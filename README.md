@@ -84,6 +84,8 @@ from its plugin catalog, add the matching artifact to your app, and register it 
   — the Compose node tree of a running screen
 - **[Nav3 Navigator](https://kitakkun.github.io/JetWhale/guide/nav3-navigator)** — the Navigation 3
   back stack, and pushing or popping entries from the host
+- **[Android Device](https://kitakkun.github.io/JetWhale/guide/android-device)** — a connected
+  device or emulator over adb: install, launch, tap, type, screenshot, logcat, all as MCP tools
 
 ## Developing plugins
 
