@@ -3,9 +3,10 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
-import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeKind
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
 
 internal fun node(
     id: Int,
@@ -20,7 +21,7 @@ internal fun node(
     isEnabled: Boolean = true,
     isVisible: Boolean = true,
     bounds: NodeBounds = NodeBounds(0f, 0f, 100f, 40f),
-    children: List<ComposeNode> = emptyList(),
+    children: List<UiNode> = emptyList(),
 ): ComposeNode = ComposeNode(
     id = id,
     role = role,
@@ -48,10 +49,9 @@ internal fun viewNode(
     actions: List<String> = emptyList(),
     isClickable: Boolean = false,
     bounds: NodeBounds = NodeBounds(0f, 0f, 100f, 40f),
-    children: List<ComposeNode> = emptyList(),
-): ComposeNode = ComposeNode(
+    children: List<UiNode> = emptyList(),
+): ViewNode = ViewNode(
     id = id,
-    kind = NodeKind.View,
     viewClass = viewClass,
     resourceId = resourceId,
     text = text,
@@ -63,7 +63,7 @@ internal fun viewNode(
     children = children,
 )
 
-internal fun root(rootId: String, label: String = rootId, node: ComposeNode?): ComposeRoot = ComposeRoot(
+internal fun root(rootId: String, label: String = rootId, node: UiNode?): ComposeRoot = ComposeRoot(
     rootId = rootId,
     label = label,
     density = 2f,

@@ -46,16 +46,24 @@ MainActivity                              ← the window's decor view
             └─ Button · @id/submit
 ```
 
-A `View` node fills the same fields a Compose node does — `text`, `contentDescription`, `bounds`,
-`actions`, and the `enabled`/`clickable`/`editable`/`scrollable` flags — so nothing downstream has to
-special-case it. Two things tell it apart:
+A `View` node is its own node type on the wire — `"type": "view"`, against `"compose"` for a
+semantics node — and it fills the same fields a Compose node does: `text`, `contentDescription`,
+`bounds`, `actions`, and the `enabled`/`clickable`/`editable`/`scrollable` flags. So nothing that
+only reads the tree has to special-case it. What is particular to it:
 
 | | `View` node |
 |---|---|
-| `kind` | `View` (a Compose node omits the field) |
 | `id` | **negative**, assigned by the agent and valid while the view is alive — Compose's semantics ids are non-negative, so the two can never collide |
 | `viewClass` | the view's class, e.g. `android.widget.Button` |
 | `resourceId` | the entry name of its `android:id`, e.g. `submit` for `@id/submit` — a `View` has no `testTag`, and this is what plays that role |
+
+A Compose node carries `role`, `testTag` and `stateDescription`, which a `View` has no counterpart
+for; a `View` node carries `viewClass` and `resourceId`, which a Compose node has no counterpart for.
+
+Versions mix in both directions. A tree captured by an agent that predates the two node types names
+no type at all, and a host reading it takes every node for a Compose node — which is what they are.
+A host older than the agent it is talking to reads a `View` node as a Compose node, losing
+`viewClass` and `resourceId` but neither failing nor dropping the node.
 
 `performNodeAction` works on a `View` node too, running the view's own API rather than a synthesised
 tap: `Click` → `performClick()`, `LongClick` → `performLongClick()`, `SetText` / `InsertText` on an
@@ -200,7 +208,7 @@ match case-insensitively by substring unless `exact` is set — `resourceId` is 
 compared whole, because a resource id is an identifier rather than a label. With no criteria at all
 it lists everything interactive on screen — a good way to answer "what can I do here?".
 
-Each node carries `kind` when it is an Android `View`, along with its `viewClass` and `resourceId` —
+An Android `View` node is marked with `"kind": "View"` and carries its `viewClass` and `resourceId` —
 see [Android View support](#android-view-support).
 
 ### `com.kitakkun.jetwhale.semantics.getNodeTree`
