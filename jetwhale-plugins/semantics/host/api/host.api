@@ -1,12 +1,12 @@
 public final class com/kitakkun/jetwhale/plugins/semantics/host/ComposableSingletons$ComposeSemanticsInspectorScreenKt {
 	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/host/ComposableSingletons$ComposeSemanticsInspectorScreenKt;
 	public fun <init> ()V
-	public final fun getLambda$1043987052$com_kitakkun_jetwhale_plugins_semantics_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$1172912206$com_kitakkun_jetwhale_plugins_semantics_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$119651336$com_kitakkun_jetwhale_plugins_semantics_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-779835323$com_kitakkun_jetwhale_plugins_semantics_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$1553528814$com_kitakkun_jetwhale_plugins_semantics_host ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$1828601466$com_kitakkun_jetwhale_plugins_semantics_host ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$1946299614$com_kitakkun_jetwhale_plugins_semantics_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$356591191$com_kitakkun_jetwhale_plugins_semantics_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$398289246$com_kitakkun_jetwhale_plugins_semantics_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$842500084$com_kitakkun_jetwhale_plugins_semantics_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$872602384$com_kitakkun_jetwhale_plugins_semantics_host ()Lkotlin/jvm/functions/Function3;
 }
 
 public final class com/kitakkun/jetwhale/plugins/semantics/host/ComposeSemanticsInspectorPluginFactory : com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory {

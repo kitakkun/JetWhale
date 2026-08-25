@@ -4,6 +4,8 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -46,15 +48,27 @@ internal fun ComposeRoot.toMcpJson(): JsonObject = buildJsonObject {
  * @param rootId when set, added to the node so a flat result stays addressable by
  *   `performNodeAction` without the caller having to track which root it came from.
  */
-internal fun ComposeNode.toMcpJson(rootId: String? = null, includeChildren: Boolean = true): JsonObject = buildJsonObject {
+internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean = true): JsonObject = buildJsonObject {
     put("id", id)
     rootId?.let { put("rootId", it) }
-    role?.let { put("role", it) }
+    // Only the surprising kind is emitted: most of a tree is Compose, and an Android View node is
+    // the one a caller has to read differently — negative id, a class instead of a role.
+    when (this@toMcpJson) {
+        is ViewNode -> {
+            put("kind", "View")
+            put("viewClass", viewClass)
+            resourceId?.let { put("resourceId", it) }
+        }
+
+        is ComposeNode -> {
+            role?.let { put("role", it) }
+            testTag?.let { put("testTag", it) }
+            stateDescription?.let { put("stateDescription", it) }
+        }
+    }
     text?.let { put("text", it) }
     editableText?.let { put("editableText", it) }
     contentDescription?.let { put("contentDescription", it) }
-    testTag?.let { put("testTag", it) }
-    stateDescription?.let { put("stateDescription", it) }
     toggleableState?.let { put("toggleableState", it) }
 
     // Only the surprising side of each flag is emitted: an enabled, visible, unfocused node is the

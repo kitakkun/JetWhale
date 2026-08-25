@@ -12,6 +12,8 @@ browse it in the host and hand it to an AI agent over [MCP](/guide/mcp-server).
 - 👆 Run a node's own semantics action — click, long click, set text, scroll, focus, dismiss —
   from the host or from an AI agent
 - 🪟 Dialogs and popups appear as their own roots, because that is what they are in Compose
+- 🤝 On Android, the Android `View`s around and inside the composition are in the same tree — see
+  [Android View support](#android-view-support)
 - 🤖 Three MCP tools so an agent can see the screen structurally instead of guessing at pixels
 
 ## What the tree contains
@@ -26,6 +28,62 @@ Two views of it are available, switchable in the host and per MCP call:
 |---|---|
 | **Merged** (default) | A `Button`'s label is folded into the clickable node — one node per control. This is what accessibility services and `performClick` see, and usually what you want. |
 | **Unmerged** | Every semantics node stays separate, closer to how the UI is written. Useful when you need to see exactly which composable contributed which property. |
+
+## Android View support
+
+Very little Compose is *only* Compose. A screen usually sits in an Activity's or a Fragment's layout,
+and an `AndroidView { }` puts a `View` back inside the composition. On Android the capture follows
+both crossings, so a root is **one window**, not one composition:
+
+```
+MainActivity                              ← the window's decor view
+└─ … the layout around the ComposeView …
+   └─ AndroidComposeView                   ← where the composition starts
+      └─ Column                            ← Compose semantics from here down
+         ├─ Button · Send
+         └─ LinearLayout                   ← an AndroidView { }, and its subtree
+            ├─ TextView · @id/status
+            └─ Button · @id/submit
+```
+
+A `View` node is its own node type on the wire — `"type": "view"`, against `"compose"` for a
+semantics node — and it fills the same fields a Compose node does: `text`, `contentDescription`,
+`bounds`, `actions`, and the `enabled`/`clickable`/`editable`/`scrollable` flags. So nothing that
+only reads the tree has to special-case it. What is particular to it:
+
+| | `View` node |
+|---|---|
+| `id` | **negative**, assigned by the agent and valid while the view is alive — Compose's semantics ids are non-negative, so the two can never collide |
+| `viewClass` | the view's class, e.g. `android.widget.Button` |
+| `resourceId` | the entry name of its `android:id`, e.g. `submit` for `@id/submit` — a `View` has no `testTag`, and this is what plays that role |
+
+A Compose node carries `role`, `testTag` and `stateDescription`, which a `View` has no counterpart
+for; a `View` node carries `viewClass` and `resourceId`, which a Compose node has no counterpart for.
+
+The two node types are told apart on the wire by `"type": "compose"` / `"type": "view"`, so host and
+agent have to be built against the same protocol version — a mismatch fails to decode rather than
+degrading.
+
+`performNodeAction` works on a `View` node too, running the view's own API rather than a synthesised
+tap: `Click` → `performClick()`, `LongClick` → `performLongClick()`, `SetText` / `InsertText` on an
+`EditText`, `ImeAction` → `onEditorAction`, `ScrollBy` → `scrollBy`, `RequestFocus` →
+`requestFocus()`. `Dismiss`, `Expand` and `Collapse` have no `View` counterpart and come back
+`performed: false` saying so. As always, only what a node lists in `actions` can be invoked.
+
+Three limits are worth knowing:
+
+- **A window with no Compose in it is not captured.** The composition is what announces a window to
+  the probe, so a plain `AlertDialog` built from views does not appear. This plugin inspects Compose
+  apps; it is not a general View inspector.
+- **No layout attributes.** `layoutParams`, padding, background and the rest are Layout Inspector's
+  job and are deliberately not reported.
+- **A merged capture can fold an `AndroidView` away.** The embedded views hang off the semantics
+  node the `AndroidView { }` creates; when an ancestor merges its descendants (a `Button`, a
+  `mergeDescendants = true` modifier), that node is folded into the ancestor in the merged tree and
+  the views under it go with it. Capture unmerged (`merged: false`) to see them.
+
+Other platforms are unaffected: desktop reads a composition through its `SemanticsOwner`, and its
+roots stay one-per-composition.
 
 ## Setup
 
@@ -72,8 +130,8 @@ plugin still answers, reporting an empty tree and a warning saying so, which the
 
 ### Installing a probe
 
-There are two ways in, and they can be combined — registrations are reference counted per root, so
-neither can pull a root out from under the other.
+There are two ways in, and they can be combined — registrations are reference counted per window, so
+neither can pull a window out from under the other.
 
 #### From the Application layer (recommended)
 
@@ -90,8 +148,8 @@ class MyApplication : Application() {
 ```
 
 Installed from `onCreate()`, before any activity exists, it hooks the callback Compose fires when it
-creates the view backing a composition — so it sees **every** root, including the separate one a
-`Dialog` or a `Popup` composes into. No screen has to change.
+creates the view backing a composition — so it sees **every** window holding one, including the
+separate one a `Dialog` or a `Popup` opens. No screen has to change.
 
 Installed later it also scans the resumed activity's window, so roots created before the call are
 not lost — but roots in windows that were already open and are never re-resumed can be.
@@ -112,9 +170,9 @@ setContent {
 ```
 
 Use this when the Application layer is not yours to touch, or when only one screen should be
-readable. It registers **its own** root for as long as it stays composed — a `Dialog` or `Popup`
-composes into a root of its own, so add a call inside those too, or install the Application-level
-probe, which finds them all.
+readable. It registers **its own** root for as long as it stays composed — on Android, the window
+that root lives in. A `Dialog` or `Popup` is a root of its own, so add a call inside those too, or
+install the Application-level probe, which finds them all.
 
 ::: warning Debug builds only
 The probe makes your app's UI structure readable, and the actions below make it drivable, over the
@@ -148,9 +206,13 @@ The one to reach for first. Captures the tree and returns the matching nodes as 
 carrying the `rootId`/`id` pair that addresses it, screen-pixel `bounds`, and a ready-made `tap`
 point.
 
-Criteria (`text`, `contentDescription`, `testTag`, `role`) are combined with AND and match
-case-insensitively by substring unless `exact` is set. With no criteria at all it lists everything
-interactive on screen — a good way to answer "what can I do here?".
+Criteria (`text`, `contentDescription`, `testTag`, `resourceId`, `role`) are combined with AND and
+match case-insensitively by substring unless `exact` is set — `resourceId` is the exception, always
+compared whole, because a resource id is an identifier rather than a label. With no criteria at all
+it lists everything interactive on screen — a good way to answer "what can I do here?".
+
+An Android `View` node is marked with `"kind": "View"` and carries its `viewClass` and `resourceId` —
+see [Android View support](#android-view-support).
 
 ### `com.kitakkun.jetwhale.semantics.getNodeTree`
 
@@ -161,7 +223,8 @@ you are looking for one element.
 ### `com.kitakkun.jetwhale.semantics.performNodeAction`
 
 Invokes a node's own semantics action: `Click`, `LongClick`, `SetText`, `InsertText`, `ImeAction`,
-`ScrollBy`, `RequestFocus`, `Dismiss`, `Expand`, `Collapse`.
+`ScrollBy`, `RequestFocus`, `Dismiss`, `Expand`, `Collapse`. On an Android `View` node it runs the
+view's own equivalent — see [Android View support](#android-view-support).
 
 This runs the action the node itself declared, so it needs no coordinates and cannot land on
 whatever moved into that spot in the meantime — prefer it over `adb shell input tap`. `rootId` is
@@ -242,7 +305,7 @@ The capture and action layer is written against `SemanticsOwner`, which lives in
 
 | Target | Probe | What you write |
 |---|---|---|
-| **Android** | ✅ | `installJetWhaleSemanticsProbe(application)`, or `JetWhaleSemanticsProbe()` in a composition |
+| **Android** | ✅ | `installJetWhaleSemanticsProbe(application)`, or `JetWhaleSemanticsProbe()` in a composition — captures the window, Android `View`s included |
 | **Desktop (JVM)** | ✅ | `JetWhaleSemanticsProbe()` inside your `Window { }`, under `@OptIn(ExperimentalComposeUiApi::class)` |
 | iOS, JS, Wasm | — | the standard entry points expose no owner — see [iOS and web](#ios-and-web) |
 
@@ -304,13 +367,15 @@ your classpath; pass your own `ComposeUiThread` to `registerSemanticsOwner` if t
 `installJetWhaleSemanticsProbe(application)`, or `JetWhaleSemanticsProbe()` inside your
 composition. On iOS, JS and Wasm this is expected — see [iOS and web](#ios-and-web).
 
-**A dialog's contents are missing.** A dialog is a separate Compose root. The Application-level
-probe finds it; an in-composition probe only registers the root it was called in.
+**A dialog's contents are missing.** A dialog is a separate window. The Application-level probe
+finds it; an in-composition probe only registers the window it was called in. A dialog built from
+Android views with no Compose in it is not captured at all — see
+[Android View support](#android-view-support).
 
 **An action comes back `performed: false`.** The message says why — the node does not expose that
 action, it is disabled, or its handler declined. Capture the tree again and check the node's
 `actions` list; only what is listed there can be invoked.
 
-**Node ids changed between calls.** A node's id is stable while it stays composed, and ids are only
-unique within their root. After anything that recomposes the screen, capture again rather than
-reusing ids.
+**Node ids changed between calls.** A node's id is stable while it stays composed — a `View` node's,
+while the view is alive — and ids are only unique within their root. After anything that recomposes
+the screen, capture again rather than reusing ids.

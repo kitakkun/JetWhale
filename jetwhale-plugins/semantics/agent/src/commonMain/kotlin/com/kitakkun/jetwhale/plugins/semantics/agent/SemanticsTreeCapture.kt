@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.semantics.AccessibilityAction
 import androidx.compose.ui.semantics.SemanticsActions
@@ -9,6 +10,7 @@ import androidx.compose.ui.semantics.getOrNull
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
+import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 
 /**
  * Converts a Compose semantics subtree into the transport model.
@@ -16,24 +18,36 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
  * Returns `null` when the node is filtered out — either it is not laid out and [NodeTreeCaptureOptions.includeInvisible]
  * is off, or it sits past [NodeTreeCaptureOptions.maxDepth]. A node whose own bounds are empty is
  * still kept when a descendant survived: dropping it would detach that descendant from the tree.
+ *
+ * @param rootOffset where this composition sits inside the root the node is reported under. A root
+ *   that is the composition itself passes zero; the Android window root passes the composition
+ *   view's position in the window, so [ComposeNode.bounds] shares one coordinate space with the
+ *   `View` nodes around it.
+ * @param interopChildren nodes to append to a semantics node's children, given the node and its
+ *   depth. It is the seam for a platform whose composition can embed foreign UI — Android's
+ *   `AndroidView { }` — and reaching that UI is platform code, so it arrives from the caller
+ *   instead of being looked up here. A platform with no interop passes a provider returning nothing.
  */
 internal fun SemanticsNode.toComposeNode(
     options: NodeTreeCaptureOptions,
     windowOffsetX: Float,
     windowOffsetY: Float,
+    rootOffset: Offset,
     depth: Int,
+    interopChildren: (node: SemanticsNode, depth: Int) -> List<UiNode>,
 ): ComposeNode? {
     val maxDepth = options.maxDepth
     val children = if (maxDepth != null && depth >= maxDepth) {
         emptyList()
     } else {
-        children.mapNotNull { it.toComposeNode(options, windowOffsetX, windowOffsetY, depth + 1) }
+        children.mapNotNull { it.toComposeNode(options, windowOffsetX, windowOffsetY, rootOffset, depth + 1, interopChildren) } +
+            interopChildren(this, depth)
     }
 
     // Visibility is decided on the sanitized bounds, not the raw ones: a NaN coordinate makes
     // every comparison false, so a raw-bounds check would call the node visible while the bounds
     // it reports are the zeroed fallback.
-    val bounds = boundsInRoot.toNodeBounds()
+    val bounds = boundsInRoot.toNodeBounds(offsetX = rootOffset.x, offsetY = rootOffset.y)
     val visible = layoutInfo.isPlaced && !bounds.isEmpty
     if (!visible && !options.includeInvisible && children.isEmpty()) return null
 

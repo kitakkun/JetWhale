@@ -51,7 +51,11 @@ class SemanticsOwnerNodeSource(
                 options = options,
                 windowOffsetX = offset.x,
                 windowOffsetY = offset.y,
+                rootOffset = Offset.Zero,
                 depth = 0,
+                // This source reads a composition through its owner alone, which carries no route to
+                // any foreign UI embedded in it; the Android window source is the one that has one.
+                interopChildren = { _, _ -> emptyList() },
             ),
         )
     }

@@ -55,6 +55,25 @@ class NodeMcpJsonTest {
     }
 
     @Test
+    fun `spells out an Android View node, which a caller has to read differently`() {
+        val json = viewNode(id = -1, viewClass = "android.widget.Button", resourceId = "submit", text = "Send").toMcpJson()
+
+        assertEquals("View", json["kind"]?.jsonPrimitive?.content)
+        assertEquals("android.widget.Button", json["viewClass"]?.jsonPrimitive?.content)
+        assertEquals("submit", json["resourceId"]?.jsonPrimitive?.content)
+        assertEquals(-1, json["id"]?.jsonPrimitive?.content?.toInt())
+    }
+
+    @Test
+    fun `omits the kind of a Compose node, which is what most of a tree is`() {
+        val json = node(id = 1, text = "label").toMcpJson()
+
+        assertNull(json["kind"])
+        assertNull(json["viewClass"])
+        assertNull(json["resourceId"])
+    }
+
+    @Test
     fun `omits the tap point for a node with no area to tap`() {
         val json = node(id = 1, bounds = NodeBounds(0f, 0f, 0f, 0f)).toMcpJson()
 
