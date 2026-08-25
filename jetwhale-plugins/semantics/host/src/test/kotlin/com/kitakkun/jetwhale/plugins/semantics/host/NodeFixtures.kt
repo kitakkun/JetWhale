@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeKind
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 
@@ -34,6 +35,31 @@ internal fun node(
     isEditable = isEditable,
     isScrollable = isScrollable,
     isVisible = isVisible,
+    children = children,
+)
+
+/** An Android View node, as an Android capture reports one: a negative id and a class instead of a role. */
+internal fun viewNode(
+    id: Int,
+    viewClass: String,
+    resourceId: String? = null,
+    text: String? = null,
+    contentDescription: String? = null,
+    actions: List<String> = emptyList(),
+    isClickable: Boolean = false,
+    bounds: NodeBounds = NodeBounds(0f, 0f, 100f, 40f),
+    children: List<ComposeNode> = emptyList(),
+): ComposeNode = ComposeNode(
+    id = id,
+    kind = NodeKind.View,
+    viewClass = viewClass,
+    resourceId = resourceId,
+    text = text,
+    contentDescription = contentDescription,
+    bounds = bounds,
+    boundsInScreen = bounds,
+    actions = actions,
+    isClickable = isClickable,
     children = children,
 )
 

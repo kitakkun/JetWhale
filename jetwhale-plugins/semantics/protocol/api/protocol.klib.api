@@ -30,6 +30,22 @@ final enum class com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction : k
     }
 }
 
+final enum class com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind : kotlin/Enum<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind> { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind|null[0]
+    enum entry Compose // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind.Compose|null[0]
+    enum entry View // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind.View|null[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind.values|values#static(){}[0]
+
+    final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind.Companion.serializer|serializer(){}[0]
+        final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    }
+}
+
 final class com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot> { // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree|null[0]
     constructor <init>(com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree.<init>|<init>(com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions){}[0]
 
@@ -57,7 +73,7 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/CaptureNodeTree : c
 }
 
 final class com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode { // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode|null[0]
-    constructor <init>(kotlin/Int, kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds, kotlin.collections/List<kotlin/String> = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode> = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.<init>|<init>(kotlin.Int;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;kotlin.collections.List<kotlin.String>;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode>){}[0]
+    constructor <init>(kotlin/Int, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds, kotlin.collections/List<kotlin/String> = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode> = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.<init>|<init>(kotlin.Int;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeKind;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;kotlin.collections.List<kotlin.String>;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode>){}[0]
 
     final val actions // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.actions|{}actions[0]
         final fun <get-actions>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.actions.<get-actions>|<get-actions>(){}[0]
@@ -87,6 +103,10 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode { // co
         final fun <get-isSelected>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isSelected.<get-isSelected>|<get-isSelected>(){}[0]
     final val isVisible // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isVisible|{}isVisible[0]
         final fun <get-isVisible>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.isVisible.<get-isVisible>|<get-isVisible>(){}[0]
+    final val kind // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.kind|{}kind[0]
+        final fun <get-kind>(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.kind.<get-kind>|<get-kind>(){}[0]
+    final val resourceId // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.resourceId|{}resourceId[0]
+        final fun <get-resourceId>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.resourceId.<get-resourceId>|<get-resourceId>(){}[0]
     final val role // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.role|{}role[0]
         final fun <get-role>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.role.<get-role>|<get-role>(){}[0]
     final val stateDescription // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.stateDescription|{}stateDescription[0]
@@ -97,27 +117,32 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode { // co
         final fun <get-text>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.text.<get-text>|<get-text>(){}[0]
     final val toggleableState // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.toggleableState|{}toggleableState[0]
         final fun <get-toggleableState>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.toggleableState.<get-toggleableState>|<get-toggleableState>(){}[0]
+    final val viewClass // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.viewClass|{}viewClass[0]
+        final fun <get-viewClass>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.viewClass.<get-viewClass>|<get-viewClass>(){}[0]
 
     final fun component1(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component1|component1(){}[0]
-    final fun component10(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component10|component10(){}[0]
-    final fun component11(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component11|component11(){}[0]
-    final fun component12(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component12|component12(){}[0]
-    final fun component13(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component13|component13(){}[0]
-    final fun component14(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component14|component14(){}[0]
+    final fun component10(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component10|component10(){}[0]
+    final fun component11(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component11|component11(){}[0]
+    final fun component12(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component12|component12(){}[0]
+    final fun component13(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component13|component13(){}[0]
+    final fun component14(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component14|component14(){}[0]
     final fun component15(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component15|component15(){}[0]
     final fun component16(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component16|component16(){}[0]
     final fun component17(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component17|component17(){}[0]
     final fun component18(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component18|component18(){}[0]
-    final fun component19(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component19|component19(){}[0]
-    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component2|component2(){}[0]
+    final fun component19(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component19|component19(){}[0]
+    final fun component2(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component2|component2(){}[0]
+    final fun component20(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component20|component20(){}[0]
+    final fun component21(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component21|component21(){}[0]
+    final fun component22(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component22|component22(){}[0]
     final fun component3(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component3|component3(){}[0]
     final fun component4(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component4|component4(){}[0]
     final fun component5(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component5|component5(){}[0]
     final fun component6(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component6|component6(){}[0]
     final fun component7(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component7|component7(){}[0]
     final fun component8(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component8|component8(){}[0]
-    final fun component9(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component9|component9(){}[0]
-    final fun copy(kotlin/Int = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode> = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.copy|copy(kotlin.Int;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;kotlin.collections.List<kotlin.String>;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode>){}[0]
+    final fun component9(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.component9|component9(){}[0]
+    final fun copy(kotlin/Int = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeKind = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode> = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.copy|copy(kotlin.Int;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeKind;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;kotlin.collections.List<kotlin.String>;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode>){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeNode.toString|toString(){}[0]

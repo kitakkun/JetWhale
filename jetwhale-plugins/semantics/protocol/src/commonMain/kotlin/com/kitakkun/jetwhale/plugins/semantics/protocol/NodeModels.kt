@@ -8,6 +8,11 @@ import kotlinx.serialization.Serializable
  * The captured tree is the Compose **semantics** tree: the tree that carries the labels, roles and
  * actions a node exposes, and therefore the one that says what is actually clickable. Nodes that
  * only lay out pixels (a `Box` with no semantics of its own) do not appear on their own.
+ *
+ * On Android the tree also carries the Android `View`s around and inside the composition — the
+ * layout hosting a `ComposeView` and the content of an `AndroidView { }` — as nodes of
+ * [NodeKind.View]. These options apply to them identically: depth counts every node whatever its
+ * kind, and a `View` with empty bounds or `visibility == GONE` is invisible rather than absent.
  */
 @Serializable
 data class NodeTreeCaptureOptions(
@@ -42,8 +47,12 @@ data class NodeTreeSnapshot(
 )
 
 /**
- * A single Compose root — one composition backed by one platform view. A dialog or a popup gets its
- * own root, so a snapshot normally has more than one entry while a dialog is open.
+ * A single root — one platform window and everything the agent can read inside it. A dialog or a
+ * popup gets its own root, so a snapshot normally has more than one entry while a dialog is open.
+ *
+ * On Android a root is the window as a whole: its node tree starts at the window's decor view and
+ * descends through the Android `View` hierarchy into every composition it hosts. Elsewhere a root is
+ * one composition, and its tree is the semantics tree alone.
  */
 @Serializable
 data class ComposeRoot(
@@ -63,22 +72,52 @@ data class ComposeRoot(
     val node: ComposeNode?,
 )
 
-/** One node of the Compose semantics tree. */
+/** What a [ComposeNode] stands for. */
+@Serializable
+enum class NodeKind {
+    /** A node of the Compose semantics tree. */
+    Compose,
+
+    /** An Android `View`, either around a composition or embedded in one by `AndroidView { }`. */
+    View,
+}
+
+/**
+ * One node of the captured tree — a Compose semantics node, or on Android an interoperating
+ * `View`. [kind] says which, and the fields below that only one kind can fill say so themselves.
+ *
+ * Every property added here carries a default so that an agent and a host built against different
+ * versions still understand each other: the wire format ignores unknown keys and encodes defaults,
+ * which makes a defaulted addition compatible in both directions but a rename or a type change not.
+ */
 @Serializable
 data class ComposeNode(
-    /** Semantics id, unique within its root and stable while the node stays composed. */
+    /**
+     * Addresses the node within its root and stays valid while the node is on screen. A Compose
+     * node reports its semantics id, which is non-negative; a `View` node reports a negative id
+     * assigned by the agent, so the two can never collide.
+     */
     val id: Int,
-    /** Semantics role (`Button`, `Checkbox`, `Tab`, ...), when the node declares one. */
+    /** Which kind of node this is; the fields below say which of them apply to it. */
+    val kind: NodeKind = NodeKind.Compose,
+    /** Fully-qualified class name of a `View` node, e.g. `android.widget.TextView`. Compose nodes: null. */
+    val viewClass: String? = null,
+    /** Entry name of a `View` node's `android:id`, e.g. `submit` for `@id/submit`. Compose nodes: null. */
+    val resourceId: String? = null,
+    /** Semantics role (`Button`, `Checkbox`, `Tab`, ...), when the node declares one. `View` nodes: null. */
     val role: String? = null,
     /** Concatenated `Text` semantics of the node. */
     val text: String? = null,
     /** Current content of an editable node (a text field). */
     val editableText: String? = null,
     val contentDescription: String? = null,
-    /** `Modifier.testTag` value — the most reliable way to address a node from a test or an agent. */
+    /**
+     * `Modifier.testTag` value — the most reliable way to address a node from a test or an agent.
+     * A `View` has no equivalent, so `View` nodes report [resourceId] instead and leave this null.
+     */
     val testTag: String? = null,
     val stateDescription: String? = null,
-    /** `On`, `Off` or `Indeterminate` for a toggleable node. */
+    /** `On`, `Off` or `Indeterminate` for a toggleable node, or for a `Checkable` `View`. */
     val toggleableState: String? = null,
     /** Bounds in this root's coordinate space, in pixels. */
     val bounds: NodeBounds,
@@ -88,7 +127,11 @@ data class ComposeNode(
      * depend on the window still being where it was when the snapshot was taken.
      */
     val boundsInScreen: NodeBounds,
-    /** Names of the semantics actions this node exposes, e.g. `OnClick`, `SetText`, `ScrollBy`. */
+    /**
+     * Names of the actions this node exposes, e.g. `OnClick`, `SetText`, `ScrollBy`. A `View` node
+     * advertises what its own class can do under the same names, so a caller picks an action the
+     * same way whatever the node's [kind] is.
+     */
     val actions: List<String> = emptyList(),
     val isEnabled: Boolean = true,
     val isClickable: Boolean = false,
@@ -96,7 +139,10 @@ data class ComposeNode(
     val isSelected: Boolean = false,
     val isEditable: Boolean = false,
     val isScrollable: Boolean = false,
-    /** `false` when the node has empty bounds or is hidden from accessibility. */
+    /**
+     * `false` when the node has empty bounds or is hidden from accessibility — for a `View`, also
+     * when its `visibility` is not `VISIBLE` or an ancestor hides it.
+     */
     val isVisible: Boolean = true,
     val children: List<ComposeNode> = emptyList(),
 )
@@ -118,7 +164,13 @@ data class NodeBounds(
     val isEmpty: Boolean get() = width <= 0f || height <= 0f
 }
 
-/** A semantics action that [PerformNodeAction] can invoke on a node. */
+/**
+ * An action that [PerformNodeAction] can invoke on a node.
+ *
+ * On a Compose node it is the node's own semantics action. On a `View` node it is the closest
+ * equivalent the platform offers — [Click] calls `performClick()`, [SetText] sets an `EditText`'s
+ * content — and [Dismiss], [Expand] and [Collapse] have none, so they report that they did not run.
+ */
 @Serializable
 enum class NodeAction {
     /** Invokes `SemanticsActions.OnClick` — what a tap on the node would do. */

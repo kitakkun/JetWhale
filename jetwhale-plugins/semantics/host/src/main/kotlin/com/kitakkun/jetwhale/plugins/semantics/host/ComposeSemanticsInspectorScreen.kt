@@ -52,6 +52,7 @@ import com.kitakkun.jetwhale.host.ui.LocalJwContentColor
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeKind
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
@@ -318,6 +319,11 @@ private fun NodeRow(
         onClick = onSelect,
         onToggleExpanded = onToggleExpanded,
         trailingContent = {
+            // The two kinds interleave in one tree, and which one a row is decides how to read it —
+            // so the Android View nodes are tagged rather than left to be inferred from the label.
+            if (row.node.kind == NodeKind.View) {
+                JwTag(text = "View", tone = JwTone.Info)
+            }
             if (row.node.isInteractive) {
                 JwTag(text = row.node.actionSummary(), tone = JwTone.Accent)
             }
@@ -369,6 +375,8 @@ private fun NodeDetail(
         Column {
             PropertyRow("id", node.id.toString())
             PropertyRow("rootId", rootId)
+            node.viewClass?.let { PropertyRow("viewClass", it) }
+            node.resourceId?.let { PropertyRow("resourceId", "@id/$it") }
             node.role?.let { PropertyRow("role", it) }
             node.text?.let { PropertyRow("text", it, wrap = true) }
             node.editableText?.let { PropertyRow("editableText", it, wrap = true) }

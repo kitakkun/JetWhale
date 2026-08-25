@@ -16,18 +16,25 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
  * Returns `null` when the node is filtered out — either it is not laid out and [NodeTreeCaptureOptions.includeInvisible]
  * is off, or it sits past [NodeTreeCaptureOptions.maxDepth]. A node whose own bounds are empty is
  * still kept when a descendant survived: dropping it would detach that descendant from the tree.
+ *
+ * @param interopChildren nodes to append to a semantics node's children, given the node and its
+ *   depth. It is the seam for a platform whose composition can embed foreign UI — Android's
+ *   `AndroidView { }` — and reaching that UI is platform code, so it arrives from the caller
+ *   instead of being looked up here. A platform with no interop passes a provider returning nothing.
  */
 internal fun SemanticsNode.toComposeNode(
     options: NodeTreeCaptureOptions,
     windowOffsetX: Float,
     windowOffsetY: Float,
     depth: Int,
+    interopChildren: (node: SemanticsNode, depth: Int) -> List<ComposeNode>,
 ): ComposeNode? {
     val maxDepth = options.maxDepth
     val children = if (maxDepth != null && depth >= maxDepth) {
         emptyList()
     } else {
-        children.mapNotNull { it.toComposeNode(options, windowOffsetX, windowOffsetY, depth + 1) }
+        children.mapNotNull { it.toComposeNode(options, windowOffsetX, windowOffsetY, depth + 1, interopChildren) } +
+            interopChildren(this, depth)
     }
 
     // Visibility is decided on the sanitized bounds, not the raw ones: a NaN coordinate makes
