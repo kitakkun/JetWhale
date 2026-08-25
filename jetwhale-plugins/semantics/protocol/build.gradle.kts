@@ -22,7 +22,6 @@ kotlin {
 dependencies {
     commonMainApi(projects.jetwhaleProtocol.core)
     commonMainImplementation(libs.kotlinxSerializationJson)
-    commonTestImplementation(libs.kotlinTest)
 }
 
 jetwhalePublish {

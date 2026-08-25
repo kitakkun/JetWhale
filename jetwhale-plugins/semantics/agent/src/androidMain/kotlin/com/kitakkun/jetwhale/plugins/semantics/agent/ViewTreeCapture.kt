@@ -7,6 +7,7 @@ import android.widget.Checkable
 import android.widget.EditText
 import android.widget.TextView
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.node.InteroperableComposeUiNode
 import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.semantics.SemanticsNode
@@ -89,11 +90,13 @@ private fun View.childNodes(
     this is ViewRootForTest -> {
         val owner = semanticsOwner
         val semanticsRoot = if (options.merged) owner.rootSemanticsNode else owner.unmergedRootSemanticsNode
+        val inWindow = IntArray(2).also(::getLocationInWindow)
         listOfNotNull(
             semanticsRoot.toComposeNode(
                 options = options,
                 windowOffsetX = windowOffsetX,
                 windowOffsetY = windowOffsetY,
+                rootOffset = Offset(inWindow[0].toFloat(), inWindow[1].toFloat()),
                 depth = depth,
                 interopChildren = { node, nodeDepth ->
                     node.interopViewNodes(options, windowOffsetX, windowOffsetY, nodeDepth + 1)

@@ -348,15 +348,6 @@ public final class com/kitakkun/jetwhale/plugins/semantics/protocol/UiNode$Compa
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/kitakkun/jetwhale/plugins/semantics/protocol/UiNodeSerializer : kotlinx/serialization/KSerializer {
-	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/UiNodeSerializer;
-	public fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/UiNode;
-	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
-	public fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/UiNode;)V
-	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
-}
-
 public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ViewNode : com/kitakkun/jetwhale/plugins/semantics/protocol/UiNode {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewNode$Companion;
 	public fun <init> (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Ljava/util/List;ZZZZZZZLjava/util/List;)V

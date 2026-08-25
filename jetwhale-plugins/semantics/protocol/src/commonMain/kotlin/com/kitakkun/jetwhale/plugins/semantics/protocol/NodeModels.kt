@@ -1,10 +1,7 @@
-@file:UseSerializers(UiNodeSerializer::class)
-
 package com.kitakkun.jetwhale.plugins.semantics.protocol
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.UseSerializers
 
 /**
  * What to include when capturing the node tree.
@@ -140,10 +137,8 @@ sealed interface UiNode {
 /**
  * A node of the Compose semantics tree.
  *
- * Every property carries a default so that an agent and a host built against different versions
- * still understand each other: the wire format ignores unknown keys and encodes defaults, which
- * makes a defaulted addition compatible in both directions but a rename or a type change not. The
- * same defaults are what lets a tree from an agent that predates [ViewNode] decode as this type.
+ * The optional properties default to the unremarkable state — enabled, visible, unfocused, no label —
+ * so a node only has to spell out what sets it apart.
  */
 @Serializable
 @SerialName("compose")
@@ -174,8 +169,7 @@ data class ComposeNode(
 /**
  * An Android `View`, either around a composition or embedded in one by `AndroidView { }`.
  *
- * The defaults exist for the same reason as [ComposeNode]'s: a defaulted addition keeps an agent and
- * a host of different versions talking to each other.
+ * Optional properties default to the unremarkable state, as on [ComposeNode].
  */
 @Serializable
 @SerialName("view")
