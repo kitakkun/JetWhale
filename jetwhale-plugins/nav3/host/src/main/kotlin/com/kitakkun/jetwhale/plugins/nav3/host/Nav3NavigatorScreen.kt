@@ -8,28 +8,14 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SecondaryScrollableTabRow
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,9 +23,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
+import com.kitakkun.jetwhale.host.ui.JwBanner
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwEmptyState
+import com.kitakkun.jetwhale.host.ui.JwFormField
+import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
+import com.kitakkun.jetwhale.host.ui.JwListItem
+import com.kitakkun.jetwhale.host.ui.JwPanel
+import com.kitakkun.jetwhale.host.ui.JwSectionHeader
+import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwTab
+import com.kitakkun.jetwhale.host.ui.JwTabRow
+import com.kitakkun.jetwhale.host.ui.JwTag
+import com.kitakkun.jetwhale.host.ui.JwTagStyle
+import com.kitakkun.jetwhale.host.ui.JwTextField
+import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.JwToolbar
+import com.kitakkun.jetwhale.host.ui.JwTypography
+import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeySnapshot
@@ -54,7 +59,6 @@ internal data class Nav3Status(val message: String, val isError: Boolean)
 
 private val PrettyJson = Json { prettyPrint = true }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun Nav3NavigatorScreen(
     stacks: List<NavBackStackSnapshot>,
@@ -70,52 +74,48 @@ internal fun Nav3NavigatorScreen(
     // hot reload in the middle of composing one.
     var draft by rememberPersistent("push-draft", default = "")
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Navigation 3") },
-                actions = {
-                    TextButton(onClick = onRefresh) { Text("Reload from app") }
-                },
-            )
-        },
-    ) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize()) {
-            if (stacks.size > 1) {
-                SecondaryScrollableTabRow(
-                    selectedTabIndex = stacks.indexOfFirst { it.stackId == selected?.stackId }.coerceAtLeast(0),
-                ) {
-                    stacks.forEach { stack ->
-                        Tab(
-                            selected = stack.stackId == selected?.stackId,
-                            onClick = { onSelectStack(stack.stackId) },
-                            text = { Text(stack.stackId) },
-                        )
-                    }
+    Column(Modifier.fillMaxSize()) {
+        JwToolbar(
+            title = "Navigation 3",
+            actions = {
+                JwButton(text = "Reload from app", onClick = onRefresh, style = JwButtonStyle.Text)
+            },
+        )
+        if (stacks.size > 1) {
+            JwTabRow {
+                stacks.forEach { stack ->
+                    JwTab(
+                        text = stack.stackId,
+                        selected = stack.stackId == selected?.stackId,
+                        onClick = { onSelectStack(stack.stackId) },
+                    )
                 }
             }
+        }
 
-            status?.let { StatusBanner(it) }
+        status?.let { StatusBanner(it) }
 
-            if (selected == null) {
-                EmptyState()
-            } else {
-                Row(Modifier.fillMaxSize()) {
-                    BackStackPane(
-                        snapshot = selected,
-                        onApplyOperation = { onApplyOperation(selected.stackId, it) },
-                        onCopyKeyToEditor = { draft = PrettyJson.encodeToString(JsonElement.serializer(), it) },
-                        modifier = Modifier.weight(0.55f),
-                    )
-                    VerticalDivider()
-                    PushPane(
-                        keyTypes = keyTypes,
-                        draft = draft,
-                        onDraftChange = { draft = it },
-                        onApplyOperation = { onApplyOperation(selected.stackId, it) },
-                        modifier = Modifier.weight(0.45f),
-                    )
-                }
+        if (selected == null) {
+            JwEmptyState(
+                title = "No back stack registered",
+                description = "The app has not registered a Navigation 3 back stack yet. Add TrackNavBackStack(backStack) next to the NavDisplay that renders it, then reload.",
+            )
+        } else {
+            Row(Modifier.fillMaxSize()) {
+                BackStackPane(
+                    snapshot = selected,
+                    onApplyOperation = { onApplyOperation(selected.stackId, it) },
+                    onCopyKeyToEditor = { draft = PrettyJson.encodeToString(JsonElement.serializer(), it) },
+                    modifier = Modifier.weight(0.55f),
+                )
+                JwVerticalDivider()
+                PushPane(
+                    keyTypes = keyTypes,
+                    draft = draft,
+                    onDraftChange = { draft = it },
+                    onApplyOperation = { onApplyOperation(selected.stackId, it) },
+                    modifier = Modifier.weight(0.45f),
+                )
             }
         }
     }
@@ -123,28 +123,10 @@ internal fun Nav3NavigatorScreen(
 
 @Composable
 private fun StatusBanner(status: Nav3Status) {
-    Surface(
-        color = if (status.isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(
-            text = status.message,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (status.isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        )
-    }
-}
-
-@Composable
-private fun EmptyState() {
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("No back stack registered", style = MaterialTheme.typography.titleMedium)
-        Text(
-            "The app has not registered a Navigation 3 back stack yet. Add TrackNavBackStack(backStack) next to the NavDisplay that renders it, then reload.",
-            style = MaterialTheme.typography.bodyMedium,
-        )
-    }
+    JwBanner(
+        text = status.message,
+        tone = if (status.isError) JwTone.Error else JwTone.Neutral,
+    )
 }
 
 @Composable
@@ -156,7 +138,7 @@ private fun BackStackPane(
 ) {
     Column(modifier.fillMaxSize()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.lg, vertical = JwSpacing.md),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -164,18 +146,17 @@ private fun BackStackPane(
                 "Back stack · ${snapshot.entries.size} ${if (snapshot.entries.size == 1) "entry" else "entries"}",
                 style = MaterialTheme.typography.titleSmall,
             )
-            OutlinedButton(
+            JwButton(
+                text = "Pop",
                 onClick = { onApplyOperation(NavBackStackOperation.Pop(count = 1)) },
                 enabled = snapshot.entries.size > 1,
-            ) {
-                Text("Pop")
-            }
+            )
         }
-        HorizontalDivider()
+        JwHorizontalDivider()
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(vertical = 8.dp),
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.md),
+            contentPadding = PaddingValues(JwSpacing.lg),
         ) {
             itemsIndexed(snapshot.entries) { index, entry ->
                 BackStackEntryCard(
@@ -201,56 +182,46 @@ private fun BackStackEntryCard(
     onApplyOperation: (NavBackStackOperation) -> Unit,
     onCopyKeyToEditor: (JsonElement) -> Unit,
 ) {
-    Card(
-        colors = if (isCurrent) {
-            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-        } else {
-            CardDefaults.cardColors()
-        },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("#$index", style = MaterialTheme.typography.labelLarge)
-                Text(entry.typeName, style = MaterialTheme.typography.titleSmall)
-                if (isCurrent) {
-                    Text(
-                        "current",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+    JwPanel {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.md)) {
+            Text("#$index", style = MaterialTheme.typography.labelMedium, color = JwTheme.colors.textSecondary)
+            Text(entry.typeName, style = MaterialTheme.typography.titleSmall)
+            if (isCurrent) {
+                JwTag(text = "current", tone = JwTone.Accent, style = JwTagStyle.Tinted)
             }
-            Text(
-                text = entry.display,
-                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+        }
+        Text(
+            text = entry.display,
+            style = JwTypography.code,
+        )
+        // The actions have to wrap: a plugin pane can be narrow, and a row that overflows
+        // squeezes the last label into one character per line instead of moving it down.
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(JwSpacing.xs)) {
+            if (!isCurrent) {
+                JwButton(
+                    text = "Pop to here",
+                    onClick = { onApplyOperation(NavBackStackOperation.PopTo(index = index, inclusive = false)) },
+                    style = JwButtonStyle.Text,
+                )
+                JwButton(
+                    text = "To top",
+                    onClick = { onApplyOperation(NavBackStackOperation.MoveToTop(index = index)) },
+                    style = JwButtonStyle.Text,
+                )
+            }
+            JwButton(
+                text = "Remove",
+                onClick = { onApplyOperation(NavBackStackOperation.RemoveAt(index = index)) },
+                enabled = canRemove,
+                style = JwButtonStyle.Text,
             )
-            // The actions have to wrap: a plugin pane can be narrow, and a row that overflows
-            // squeezes the last label into one character per line instead of moving it down.
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (!isCurrent) {
-                    TextButton(onClick = { onApplyOperation(NavBackStackOperation.PopTo(index = index, inclusive = false)) }) {
-                        Text("Pop to here")
-                    }
-                    TextButton(onClick = { onApplyOperation(NavBackStackOperation.MoveToTop(index = index)) }) {
-                        Text("To top")
-                    }
-                }
-                TextButton(
-                    onClick = { onApplyOperation(NavBackStackOperation.RemoveAt(index = index)) },
-                    enabled = canRemove,
-                ) {
-                    Text("Remove")
-                }
-                entry.key?.let { key ->
-                    TextButton(onClick = { onCopyKeyToEditor(key) }) { Text("Copy to editor") }
-                }
+            entry.key?.let { key ->
+                JwButton(text = "Copy to editor", onClick = { onCopyKeyToEditor(key) }, style = JwButtonStyle.Text)
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PushPane(
     keyTypes: List<NavKeyTypeDescriptor>,
@@ -273,79 +244,86 @@ private fun PushPane(
     }
 
     Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.lg),
     ) {
-        Text("Push a NavKey", style = MaterialTheme.typography.titleSmall)
-
-        OutlinedTextField(
-            value = draft,
-            onValueChange = onDraftChange,
-            // A placeholder rather than a floating label: the editor is filled programmatically
-            // while unfocused, and a label that only lifts on focus would sit over the first line.
-            placeholder = { Text("{\"type\": \"…\"}") },
+        JwFormField(
+            label = "Push a NavKey",
+            supportingText = editorError,
             isError = editorError != null,
-            textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-            minLines = 6,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        editorError?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        ) {
+            JwTextField(
+                value = draft,
+                onValueChange = onDraftChange,
+                placeholder = "{\"type\": \"…\"}",
+                singleLine = false,
+                textStyle = JwTypography.code,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+            )
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
+        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.md)) {
+            JwButton(
+                text = "Push",
                 onClick = { withParsedKey { onApplyOperation(NavBackStackOperation.Push(key = it, index = null)) } },
                 enabled = draft.isNotBlank(),
-            ) {
-                Text("Push")
-            }
-            OutlinedButton(
+                style = JwButtonStyle.Primary,
+            )
+            JwButton(
+                text = "Replace stack",
                 onClick = { withParsedKey { onApplyOperation(NavBackStackOperation.ReplaceAll(keys = listOf(it))) } },
                 enabled = draft.isNotBlank(),
-            ) {
-                Text("Replace stack")
-            }
+            )
         }
 
-        HorizontalDivider()
+        JwHorizontalDivider()
 
         if (keyTypes.isEmpty()) {
             Text(
                 "The app exposed no constructible key types. You can still copy an existing entry's key with \"Copy to editor\" and edit it.",
                 style = MaterialTheme.typography.bodySmall,
+                color = JwTheme.colors.textSecondary,
             )
         } else {
-            Text("Key types · click one to fill the editor", style = MaterialTheme.typography.titleSmall)
+            JwSectionHeader(title = "Key types · click one to fill the editor", modifier = Modifier.padding(horizontal = 0.dp))
             keyTypes.forEach { type ->
-                OutlinedCard(
+                KeyTypeRow(
+                    type = type,
                     onClick = {
                         onDraftChange(PrettyJson.encodeToString(JsonElement.serializer(), type.template))
                         editorError = null
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(Modifier.padding(12.dp)) {
-                        Text(type.serialName, style = MaterialTheme.typography.bodyMedium)
-                        if (type.fields.isNotEmpty()) {
-                            Text(
-                                type.fields.joinToString { field ->
-                                    buildString {
-                                        append(field.name)
-                                        append(": ")
-                                        append(field.type)
-                                        if (field.optional) append(" = …")
-                                    }
-                                },
-                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
+                )
             }
         }
     }
+}
+
+@Composable
+private fun KeyTypeRow(type: NavKeyTypeDescriptor, onClick: () -> Unit) {
+    val fields = type.fields.joinToString { field ->
+        buildString {
+            append(field.name)
+            append(": ")
+            append(field.type)
+            if (field.optional) append(" = …")
+        }
+    }
+    JwListItem(
+        text = type.serialName,
+        selected = false,
+        onClick = onClick,
+        trailing = {
+            if (fields.isNotEmpty()) {
+                Text(
+                    text = fields,
+                    style = JwTypography.code,
+                    color = JwTheme.colors.textSecondary,
+                    maxLines = 1,
+                )
+            }
+        },
+    )
 }
 
 private fun parseNavKey(text: String): JsonObject? = try {

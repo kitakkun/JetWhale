@@ -5,32 +5,11 @@ public final class com/kitakkun/jetwhale/plugins/network/host/ComposableSingleto
 	public final fun getLambda$164796560$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
 }
 
-public final class com/kitakkun/jetwhale/plugins/network/host/ComposableSingletons$MocksViewKt {
-	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/host/ComposableSingletons$MocksViewKt;
-	public fun <init> ()V
-	public final fun getLambda$-1046226545$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-1273530357$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-1463188833$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-1891923305$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-61737784$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-815177313$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-855641655$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-882214116$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$1882639474$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$189459121$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$646412787$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$836412836$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$952251840$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
-}
-
 public final class com/kitakkun/jetwhale/plugins/network/host/ComposableSingletons$TrafficViewKt {
 	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/host/ComposableSingletons$TrafficViewKt;
 	public fun <init> ()V
-	public final fun getLambda$-1054845750$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-2057655576$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda$-933537792$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$558337446$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$96535872$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function2;
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/host/HttpTransaction {

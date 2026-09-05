@@ -1,34 +1,22 @@
 package com.kitakkun.jetwhale.plugins.semantics.host
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,11 +29,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwCheckbox
+import com.kitakkun.jetwhale.host.ui.JwEmptyState
+import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
+import com.kitakkun.jetwhale.host.ui.JwKeyValueRow
+import com.kitakkun.jetwhale.host.ui.JwSearchField
+import com.kitakkun.jetwhale.host.ui.JwSectionHeader
+import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwTag
+import com.kitakkun.jetwhale.host.ui.JwTextField
+import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.JwTreeRow
+import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
@@ -137,7 +138,7 @@ internal fun ComposeSemanticsInspectorScreen(
             errorMessage = errorMessage,
             actionStatus = actionStatus,
         )
-        HorizontalDivider()
+        JwHorizontalDivider()
         Row(Modifier.fillMaxSize()) {
             Box(Modifier.weight(0.58f).fillMaxHeight()) {
                 if (rows.isEmpty()) {
@@ -153,7 +154,7 @@ internal fun ComposeSemanticsInspectorScreen(
                     )
                 }
             }
-            VerticalDivider()
+            JwVerticalDivider()
             Box(Modifier.weight(0.42f).fillMaxHeight()) {
                 NodeDetail(
                     rootId = selectedKey?.rootId,
@@ -183,32 +184,26 @@ private fun Toolbar(
     onSearchChange: (String) -> Unit,
 ) {
     FlowRow(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.md, vertical = JwSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.xs),
     ) {
-        Button(onClick = onRefresh, enabled = !capturing) {
-            Text(if (capturing) "Capturing…" else "Refresh")
-        }
-        LabelledCheckbox("Auto", autoRefresh, onAutoRefreshChange)
-        LabelledCheckbox("Merged", merged, onMergedChange)
-        LabelledCheckbox("Interactive only", interactiveOnly, onInteractiveOnlyChange)
-        LabelledCheckbox("Include invisible", includeInvisible, onIncludeInvisibleChange)
-        OutlinedTextField(
+        JwButton(
+            text = if (capturing) "Capturing…" else "Refresh",
+            onClick = onRefresh,
+            enabled = !capturing,
+            style = JwButtonStyle.Primary,
+        )
+        JwCheckbox(checked = autoRefresh, onCheckedChange = onAutoRefreshChange, label = "Auto")
+        JwCheckbox(checked = merged, onCheckedChange = onMergedChange, label = "Merged")
+        JwCheckbox(checked = interactiveOnly, onCheckedChange = onInteractiveOnlyChange, label = "Interactive only")
+        JwCheckbox(checked = includeInvisible, onCheckedChange = onIncludeInvisibleChange, label = "Include invisible")
+        JwSearchField(
             value = search,
             onValueChange = onSearchChange,
-            label = { Text("Search text / tag / role") },
-            singleLine = true,
+            placeholder = "Search text / tag / role",
             modifier = Modifier.width(260.dp),
         )
-    }
-}
-
-@Composable
-private fun LabelledCheckbox(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { onCheckedChange(!checked) }) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-        Text(label, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
@@ -220,7 +215,10 @@ private fun StatusLine(
     errorMessage: String?,
     actionStatus: String?,
 ) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.md, vertical = JwSpacing.xs),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.xxs),
+    ) {
         val summary = when (snapshot) {
             null -> "Not captured yet."
 
@@ -230,9 +228,9 @@ private fun StatusLine(
                 roundTripMs?.let { append(" · $it ms round trip") }
             }
         }
-        Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(summary, style = MaterialTheme.typography.bodySmall, color = JwTheme.colors.textSecondary)
         snapshot?.warnings?.forEach { warning ->
-            Text(warning, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+            Text(warning, style = MaterialTheme.typography.bodySmall, color = JwTone.Warning.color)
         }
         errorMessage?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -240,21 +238,18 @@ private fun StatusLine(
         actionStatus?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         }
-        Spacer(Modifier.height(6.dp))
     }
 }
 
 @Composable
 private fun EmptyTreeMessage(snapshot: NodeTreeSnapshot?, search: String, interactiveOnly: Boolean) {
-    val message = when {
-        snapshot == null -> "Press Refresh to capture the app's node tree."
-        snapshot.roots.isEmpty() -> "The app reported no Compose root. Install a probe: installJetWhaleSemanticsProbe(application), or call JetWhaleSemanticsProbe() inside your composition."
-        search.isNotBlank() || interactiveOnly -> "No node matches the current filter."
-        else -> "The app's Compose roots are empty."
+    val (title, description) = when {
+        snapshot == null -> "Not captured yet" to "Press Refresh to capture the app's node tree."
+        snapshot.roots.isEmpty() -> "No Compose root reported" to "Install a probe: installJetWhaleSemanticsProbe(application), or call JetWhaleSemanticsProbe() inside your composition."
+        search.isNotBlank() || interactiveOnly -> "No node matches the current filter" to null
+        else -> "The app's Compose roots are empty" to null
     }
-    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
+    JwEmptyState(title = title, description = description)
 }
 
 @Composable
@@ -282,26 +277,17 @@ private fun TreeList(
 
 @Composable
 private fun RootHeaderRow(row: TreeRow.RootHeader) {
-    Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = row.root.label,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+    JwSectionHeader(
+        title = row.root.label,
+        trailing = {
             Text(
                 text = "${row.nodeCount} nodes · ×${row.root.density}",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = JwTheme.colors.textDisabled,
             )
-        }
-    }
+        },
+        modifier = Modifier.background(JwTheme.colors.sidebarBackground),
+    )
 }
 
 @Composable
@@ -311,54 +297,32 @@ private fun NodeRow(
     onSelect: () -> Unit,
     onToggleExpanded: () -> Unit,
 ) {
-    val background = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface
     val label = row.node.displayLabel()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(background)
-            .clickable(onClick = onSelect)
-            .padding(start = (8 + row.depth * 14).dp, end = 8.dp, top = 3.dp, bottom = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        // A fixed-width slot even for leaves, so labels at the same depth line up rather than
-        // shifting by whether a node happens to have children.
-        Box(Modifier.width(18.dp), contentAlignment = Alignment.Center) {
-            if (row.expandable) {
+    JwTreeRow(
+        text = label,
+        depth = row.depth,
+        expandable = row.expandable,
+        expanded = row.expanded,
+        selected = selected,
+        // An invisible node is still selectable; it is only drawn muted.
+        enabled = row.node.isVisible,
+        onClick = onSelect,
+        onToggleExpanded = onToggleExpanded,
+        trailing = {
+            if (row.node.isInteractive) {
+                JwTag(text = row.node.actionSummary(), tone = JwTone.Accent)
+            }
+            // A node with no semantics of its own is already labelled by its id; repeating it here
+            // would render "#12 #12".
+            if (!label.startsWith("#")) {
                 Text(
-                    text = if (row.expanded) "▾" else "▸",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.clickable(onClick = onToggleExpanded),
+                    text = "#${row.node.id}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = JwTheme.colors.textDisabled,
                 )
             }
-        }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (row.node.isVisible) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        if (row.node.isInteractive) {
-            Text(
-                text = row.node.actionSummary(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
-            )
-        }
-        // A node with no semantics of its own is already labelled by its id; repeating it here
-        // would render "#12 #12".
-        if (!label.startsWith("#")) {
-            Text(
-                text = "#${row.node.id}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
-            )
-        }
-    }
+        },
+    )
 }
 
 private fun ComposeNode.actionSummary(): String = when {
@@ -375,56 +339,59 @@ private fun NodeDetail(
     onPerformAction: (PerformNodeAction) -> Unit,
 ) {
     if (node == null || rootId == null) {
-        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-            Text(
-                "Select a node to see its semantics and the actions it exposes.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        JwEmptyState(title = "Select a node to see its semantics and the actions it exposes.")
         return
     }
 
     val clipboard = LocalClipboardManager.current
     var textInput by remember(node.id) { mutableStateOf(node.editableText ?: "") }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
-        Text(node.displayLabel(), style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(8.dp))
-
-        PropertyRow("id", node.id.toString())
-        PropertyRow("rootId", rootId)
-        node.role?.let { PropertyRow("role", it) }
-        node.text?.let { PropertyRow("text", it, wrap = true) }
-        node.editableText?.let { PropertyRow("editableText", it, wrap = true) }
-        node.contentDescription?.let { PropertyRow("contentDescription", it, wrap = true) }
-        node.testTag?.let { PropertyRow("testTag", it) }
-        node.stateDescription?.let { PropertyRow("stateDescription", it, wrap = true) }
-        node.toggleableState?.let { PropertyRow("toggleableState", it) }
-        PropertyRow("bounds (root)", node.bounds.formatted())
-        PropertyRow("bounds (screen)", node.boundsInScreen.formatted())
-        PropertyRow(
-            "flags",
-            buildList {
-                if (!node.isEnabled) add("disabled")
-                if (!node.isVisible) add("invisible")
-                if (node.isFocused) add("focused")
-                if (node.isSelected) add("selected")
-                if (node.isClickable) add("clickable")
-                if (node.isEditable) add("editable")
-                if (node.isScrollable) add("scrollable")
-            }.joinToString(", ").ifEmpty { "—" },
-            wrap = true,
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.md),
+    ) {
+        Text(
+            text = node.displayLabel(),
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
-        PropertyRow("actions", node.actions.joinToString(", ").ifEmpty { "—" }, wrap = true)
 
-        Spacer(Modifier.height(12.dp))
-        HorizontalDivider()
-        Spacer(Modifier.height(12.dp))
+        Column {
+            PropertyRow("id", node.id.toString())
+            PropertyRow("rootId", rootId)
+            node.role?.let { PropertyRow("role", it) }
+            node.text?.let { PropertyRow("text", it, wrap = true) }
+            node.editableText?.let { PropertyRow("editableText", it, wrap = true) }
+            node.contentDescription?.let { PropertyRow("contentDescription", it, wrap = true) }
+            node.testTag?.let { PropertyRow("testTag", it) }
+            node.stateDescription?.let { PropertyRow("stateDescription", it, wrap = true) }
+            node.toggleableState?.let { PropertyRow("toggleableState", it) }
+            PropertyRow("bounds (root)", node.bounds.formatted())
+            PropertyRow("bounds (screen)", node.boundsInScreen.formatted())
+            PropertyRow(
+                "flags",
+                buildList {
+                    if (!node.isEnabled) add("disabled")
+                    if (!node.isVisible) add("invisible")
+                    if (node.isFocused) add("focused")
+                    if (node.isSelected) add("selected")
+                    if (node.isClickable) add("clickable")
+                    if (node.isEditable) add("editable")
+                    if (node.isScrollable) add("scrollable")
+                }.joinToString(", ").ifEmpty { "—" },
+                wrap = true,
+            )
+            PropertyRow("actions", node.actions.joinToString(", ").ifEmpty { "—" }, wrap = true)
+        }
 
-        Text("Run an action on the app", style = MaterialTheme.typography.titleSmall)
-        Spacer(Modifier.height(6.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        JwHorizontalDivider()
+
+        JwSectionHeader(title = "Run an action on the app", modifier = Modifier.padding(horizontal = 0.dp))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.xs),
+        ) {
             ActionButton("Click", node, NodeAction.Click, rootId, onPerformAction)
             ActionButton("Long click", node, NodeAction.LongClick, rootId, onPerformAction)
             ActionButton("Focus", node, NodeAction.RequestFocus, rootId, onPerformAction)
@@ -434,54 +401,46 @@ private fun NodeDetail(
         }
 
         if (node.actions.contains("SetText")) {
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.md)) {
+                JwTextField(
                     value = textInput,
                     onValueChange = { textInput = it },
-                    label = { Text("Text") },
-                    singleLine = true,
+                    placeholder = "Text",
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                JwButton(
+                    text = "Set text",
                     onClick = {
                         onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.SetText, text = textInput))
                     },
-                ) {
-                    Text("Set text")
-                }
+                    style = JwButtonStyle.Primary,
+                )
             }
         }
 
         if (node.isScrollable) {
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
+            Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.md)) {
+                JwButton(
+                    text = "Scroll down",
                     onClick = {
                         onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.ScrollBy, scrollY = SCROLL_STEP_PX))
                     },
-                ) {
-                    Text("Scroll down")
-                }
-                OutlinedButton(
+                )
+                JwButton(
+                    text = "Scroll up",
                     onClick = {
                         onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.ScrollBy, scrollY = -SCROLL_STEP_PX))
                     },
-                ) {
-                    Text("Scroll up")
-                }
+                )
             }
         }
 
-        Spacer(Modifier.height(12.dp))
-        TextButton(
-            onClick = {
-                clipboard.setText(AnnotatedString(node.adbTapCommand()))
-            },
+        JwButton(
+            text = "Copy `adb shell input tap` for these bounds",
+            onClick = { clipboard.setText(AnnotatedString(node.adbTapCommand())) },
             enabled = !node.boundsInScreen.isEmpty,
-        ) {
-            Text("Copy `adb shell input tap` for these bounds")
-        }
+            style = JwButtonStyle.Text,
+        )
     }
 }
 
@@ -501,12 +460,11 @@ private fun ActionButton(
     // would always come back "not exposed", which is noise rather than feedback.
     val exposed = node.actions.contains(action.semanticsKeyName)
     if (!exposed) return
-    OutlinedButton(
+    JwButton(
+        text = label,
         onClick = { onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = action)) },
         enabled = node.isEnabled,
-    ) {
-        Text(label)
-    }
+    )
 }
 
 /** The semantics key an action arrives under in [ComposeNode.actions]. */
@@ -531,29 +489,5 @@ private val NodeAction.semanticsKeyName: String
  */
 @Composable
 private fun PropertyRow(label: String, value: String, wrap: Boolean = false) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(140.dp),
-        )
-        if (wrap) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier.weight(1f),
-            )
-        } else {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
-                maxLines = 1,
-                softWrap = false,
-            )
-        }
-    }
+    JwKeyValueRow(key = label, value = value, keyWidth = 120.dp, monospace = true, wrap = wrap)
 }

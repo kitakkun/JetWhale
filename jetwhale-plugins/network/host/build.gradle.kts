@@ -31,6 +31,7 @@ dependencies {
     // Provided by the host at runtime, so compileOnly: these must be neither bundled into the
     // plugin jar nor listed in its dependency manifest.
     compileOnly(projects.jetwhaleHostSdk)
+    compileOnly(projects.jetwhaleHostUi)
     compileOnly(compose.desktop.currentOs)
     compileOnly(libs.material3)
     compileOnly(libs.kotlinxSerializationJson)
@@ -40,6 +41,7 @@ dependencies {
     implementation(libs.jetbrainsComposeSplitPane) { isTransitive = false }
     api(projects.jetwhalePlugins.network.protocol)
     testImplementation(projects.jetwhaleHostSdk)
+    testImplementation(projects.jetwhaleHostUi)
     testImplementation(libs.kotlinTest)
     testImplementation(libs.kotlinxSerializationJson)
     testImplementation(compose.desktop.currentOs)

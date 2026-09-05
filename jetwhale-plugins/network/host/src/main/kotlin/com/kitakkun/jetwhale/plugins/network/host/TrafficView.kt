@@ -20,18 +20,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,10 +42,23 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwEmptyState
+import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
+import com.kitakkun.jetwhale.host.ui.JwKeyValueRow
+import com.kitakkun.jetwhale.host.ui.JwSearchField
+import com.kitakkun.jetwhale.host.ui.JwSectionHeader
+import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwTab
+import com.kitakkun.jetwhale.host.ui.JwTabRow
+import com.kitakkun.jetwhale.host.ui.JwTag
+import com.kitakkun.jetwhale.host.ui.JwTagStyle
+import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.JwTypography
+import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.splitpane.ExperimentalSplitPaneApi
 import org.jetbrains.compose.splitpane.HorizontalSplitPane
@@ -119,26 +124,24 @@ internal fun TrafficTab(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
+                .padding(JwSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
         ) {
-            OutlinedTextField(
+            JwSearchField(
                 value = query,
                 onValueChange = { query = it },
-                label = { Text("Filter (URL / method / status)") },
-                singleLine = true,
+                placeholder = "Filter by URL, method or status",
                 modifier = Modifier.weight(1f),
             )
-            OutlinedButton(onClear) { Text("Clear") }
+            Text(
+                text = "${visible.size} / ${transactions.size}",
+                style = MaterialTheme.typography.labelSmall,
+                color = JwTheme.colors.textSecondary,
+            )
+            JwButton(text = "Clear", onClick = onClear)
         }
-        Text(
-            text = "${visible.size} / ${transactions.size} requests",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.outline,
-            modifier = Modifier.padding(horizontal = 8.dp),
-        )
-        HorizontalDivider()
+        JwHorizontalDivider()
         HorizontalSplitPane(
             modifier = Modifier.fillMaxSize(),
             splitPaneState = splitPaneState,
@@ -177,7 +180,7 @@ internal fun TrafficTab(
                                 onClick = { onSelectTx(tx.txId) },
                             )
                         }
-                        HorizontalDivider()
+                        JwHorizontalDivider()
                     }
                 }
             }
@@ -186,14 +189,11 @@ internal fun TrafficTab(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(14.dp),
+                        .padding(JwSpacing.lg),
                 ) {
                     val tx = transactions.firstOrNull { it.txId == selectedTxId }
                     if (tx == null) {
-                        Text(
-                            text = "Select a request to see details",
-                            color = MaterialTheme.colorScheme.outline,
-                        )
+                        JwEmptyState(title = "Select a request to see details")
                     } else {
                         // Detail pane values (URL, headers, bodies) are read-only reference data
                         // developers frequently copy, so make the whole pane text-selectable.
@@ -207,7 +207,7 @@ internal fun TrafficTab(
             // nothing at all — unless visiblePart *and* handle are set. The handle is a wider,
             // invisible hit area laid over the 1px divider so it stays comfortable to grab.
             splitter {
-                visiblePart { VerticalDivider(Modifier.fillMaxHeight()) }
+                visiblePart { JwVerticalDivider() }
                 handle {
                     Box(
                         Modifier
@@ -235,21 +235,21 @@ private fun transactionContextMenuItems(tx: HttpTransaction): List<ContextMenuIt
 
 @Composable
 private fun TransactionRow(tx: HttpTransaction, selected: Boolean, onClick: () -> Unit) {
-    val background = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+    val background = if (selected) JwTheme.colors.selection else Color.Transparent
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(background)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 9.dp),
+            .padding(horizontal = JwSpacing.lg, vertical = JwSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
     ) {
         StatusBadge(tx)
         Text(
             text = tx.request.method,
-            fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.width(44.dp),
         )
         Text(
             text = tx.request.url,
@@ -271,7 +271,7 @@ private fun TransactionRow(tx: HttpTransaction, selected: Boolean, onClick: () -
             Text(
                 text = "${it.durationMs}ms",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline,
+                color = JwTheme.colors.textSecondary,
             )
         }
     }
@@ -279,45 +279,20 @@ private fun TransactionRow(tx: HttpTransaction, selected: Boolean, onClick: () -
 
 @Composable
 private fun StatusBadge(tx: HttpTransaction) {
-    val (label, color) = when {
-        tx.failure != null -> "ERR" to MaterialTheme.colorScheme.error
-
-        tx.response == null -> "···" to MaterialTheme.colorScheme.outline
-
-        tx.response.statusCode in 200..299 ->
-            tx.response.statusCode.toString() to themeColor(Color(0xFF2E7D32), Color(0xFF66BB6A))
-
-        tx.response.statusCode in 300..399 ->
-            tx.response.statusCode.toString() to themeColor(Color(0xFF1565C0), Color(0xFF64B5F6))
-
-        tx.response.statusCode >= 400 -> tx.response.statusCode.toString() to MaterialTheme.colorScheme.error
-
-        else -> tx.response.statusCode.toString() to MaterialTheme.colorScheme.onSurface
+    val (label, tone) = when {
+        tx.failure != null -> "ERR" to JwTone.Error
+        tx.response == null -> "···" to JwTone.Neutral
+        tx.response.statusCode in 200..299 -> tx.response.statusCode.toString() to JwTone.Success
+        tx.response.statusCode in 300..399 -> tx.response.statusCode.toString() to JwTone.Info
+        tx.response.statusCode >= 400 -> tx.response.statusCode.toString() to JwTone.Error
+        else -> tx.response.statusCode.toString() to JwTone.Neutral
     }
-    Pill(label = label, color = color)
+    JwTag(text = label, tone = tone, style = JwTagStyle.Tinted, modifier = Modifier.width(36.dp))
 }
 
 @Composable
 private fun MockChip() {
-    Pill(label = "MOCK", color = themeColor(Color(0xFF8E24AA), Color(0xFFCE93D8)))
-}
-
-@Composable
-private fun Pill(label: String, color: Color) {
-    // 14% of a dark hue on a dark surface nearly vanishes, so give the fill more presence in dark mode.
-    val fillAlpha = if (isDarkTheme()) 0.22f else 0.14f
-    Surface(
-        color = color.copy(alpha = fillAlpha),
-        contentColor = color,
-        shape = RoundedCornerShape(6.dp),
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-        )
-    }
+    JwTag(text = "MOCK", tone = JwTone.Accent, style = JwTagStyle.Tinted)
 }
 
 private enum class DetailTab(val title: String) {
@@ -344,7 +319,6 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
             StatusBadge(tx)
             Text(
                 text = tx.request.method,
-                fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleSmall,
             )
             if (tx.response?.fromMock == true) {
@@ -352,13 +326,13 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
             }
             Spacer(Modifier.weight(1f))
             if (tx.response != null) {
-                OutlinedButton(onCreateMock) { Text("Mock this") }
+                JwButton(text = "Mock this", onClick = onCreateMock)
             }
         }
         Text(
             text = tx.request.url,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = JwTypography.code,
+            color = JwTheme.colors.textSecondary,
         )
         when {
             tx.failure != null -> Text(
@@ -371,10 +345,7 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
             )
 
-            else -> Text(
-                text = "Pending…",
-                color = MaterialTheme.colorScheme.outline,
-            )
+            else -> EmptyHint("Pending…")
         }
 
         // Only surface the Query tab when the URL actually has query params — a permanently
@@ -387,12 +358,12 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
                 if (queryParams.isNotEmpty()) add(DetailTab.Query)
             }
         }
-        SecondaryTabRow(selectedTabIndex = tabs.indexOf(selectedTab).coerceAtLeast(0)) {
+        JwTabRow {
             tabs.forEach { tab ->
-                Tab(
+                JwTab(
+                    text = tab.title,
                     selected = selectedTab == tab,
                     onClick = { selectedTab = tab },
-                    text = { Text(tab.title) },
                 )
             }
         }
@@ -410,20 +381,11 @@ private fun BodyTab(tx: HttpTransaction) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         when {
             // The failure detail itself is shown above the tabs; here just note there is no body.
-            tx.failure != null -> Text(
-                text = "Request failed — no response body",
-                color = MaterialTheme.colorScheme.outline,
-            )
+            tx.failure != null -> EmptyHint("Request failed — no response body")
 
-            tx.response == null -> Text(
-                text = "Pending…",
-                color = MaterialTheme.colorScheme.outline,
-            )
+            tx.response == null -> EmptyHint("Pending…")
 
-            tx.response.body.isNullOrEmpty() -> Text(
-                text = "No response body",
-                color = MaterialTheme.colorScheme.outline,
-            )
+            tx.response.body.isNullOrEmpty() -> EmptyHint("No response body")
 
             else -> BodyBlock(label = "body", body = tx.response.body, truncated = tx.response.bodyTruncated)
         }
@@ -459,13 +421,9 @@ private fun QueryParamBlock(params: List<Pair<String, String>>) {
         EmptyHint("No query parameters")
         return
     }
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column {
         params.forEach { (key, value) ->
-            Text(
-                text = "$key = $value",
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace,
-            )
+            JwKeyValueRow(key = key, value = value, monospace = true)
         }
     }
 }
@@ -475,7 +433,7 @@ private fun MinorLabel(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.primary,
+        color = JwTheme.colors.textSecondary,
     )
 }
 
@@ -484,31 +442,24 @@ private fun EmptyHint(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.outline,
+        color = JwTheme.colors.textDisabled,
     )
 }
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 6.dp),
+    JwSectionHeader(
+        title = text,
+        modifier = Modifier.padding(top = JwSpacing.xs),
     )
 }
 
 @Composable
 private fun HeaderBlock(headers: Map<String, List<String>>) {
     if (headers.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column {
         headers.forEach { (key, values) ->
-            Text(
-                text = "$key: ${values.joinToString(", ")}",
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace,
-            )
+            JwKeyValueRow(key = key, value = values.joinToString(", "), monospace = true)
         }
     }
 }

@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.plugins.network.host
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.ScrollAxisRange
@@ -19,6 +18,8 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
 import com.kitakkun.jetwhale.host.sdk.LocalJetWhalePluginStorage
+import com.kitakkun.jetwhale.host.ui.JwColorSchemes
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import kotlinx.coroutines.flow.Flow
@@ -144,7 +145,7 @@ private fun runTrafficTab(
     var selected: String? = null
     setContent {
         CompositionLocalProvider(LocalJetWhalePluginStorage provides InMemoryPluginStorage()) {
-            MaterialTheme {
+            JwTheme(colorScheme = JwColorSchemes.light(), darkTheme = false) {
                 // Wide enough to clear ListMinWidth + DetailMinWidth, and tall enough that LONG_LIST
                 // overflows the viewport while SHORT_LIST does not.
                 Box(Modifier.requiredSize(width = 900.dp, height = 600.dp)) {
