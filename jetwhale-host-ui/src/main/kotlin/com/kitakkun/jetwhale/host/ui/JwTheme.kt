@@ -51,6 +51,26 @@ public fun JwTheme(
     }
 }
 
+/**
+ * [JwTheme] with the built-in scheme for [darkTheme]: the light one from [JwColorSchemes.light],
+ * the dark one from [JwColorSchemes.dark]. For previews and tests of a plugin's UI, where the host
+ * is not there to supply its configured scheme.
+ *
+ * @param darkTheme which built-in scheme to apply.
+ * @param content the UI to theme.
+ */
+@Composable
+public fun JwTheme(
+    darkTheme: Boolean,
+    content: @Composable () -> Unit,
+) {
+    JwTheme(
+        colorScheme = if (darkTheme) JwColorSchemes.dark() else JwColorSchemes.light(),
+        darkTheme = darkTheme,
+        content = content,
+    )
+}
+
 /** Accessors for the values the enclosing [JwTheme] applied. */
 public object JwTheme {
     /** The extended colors derived for the applied scheme. */

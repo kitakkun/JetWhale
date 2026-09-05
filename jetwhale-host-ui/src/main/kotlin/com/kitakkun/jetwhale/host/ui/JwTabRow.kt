@@ -24,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 /**
@@ -86,7 +88,8 @@ public fun JwTab(
                 indication = null,
                 role = Role.Tab,
                 onClick = onClick,
-            ),
+            )
+            .semantics { this.selected = selected },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(

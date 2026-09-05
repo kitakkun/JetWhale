@@ -26,6 +26,9 @@ import androidx.compose.ui.window.DialogProperties
  * outside also dismiss it. [content] is laid out as a column with the dialog's padding; long
  * content scrolls only if the caller makes it.
  *
+ * For a dialog that has no title bar — an image preview, a one-line confirmation — build on
+ * [JwDialogSurface] instead and place your own close control.
+ *
  * @param title shown in the title bar.
  * @param onDismissRequest called by the close button, Escape, and a click outside the dialog.
  * @param closeLabel the close button's tooltip and accessibility label, in the UI's language.
@@ -45,6 +48,59 @@ public fun JwDialog(
     dismissButton: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    JwDialogSurface(
+        onDismissRequest = onDismissRequest,
+        modifier = modifier,
+        width = width,
+    ) {
+        JwToolbar(
+            title = title,
+            actions = {
+                JwIconButton(onClick = onDismissRequest, tooltip = closeLabel) {
+                    JwIcon(imageVector = JwIcons.Close, contentDescription = closeLabel)
+                }
+            },
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(JwSpacing.extraLarge),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
+            content = content,
+        )
+        if (confirmButton != null || dismissButton != null) {
+            JwHorizontalDivider()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = JwSpacing.extraLarge, vertical = JwSpacing.large),
+                horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                dismissButton?.invoke()
+                confirmButton?.invoke()
+            }
+        }
+    }
+}
+
+/**
+ * The modal frame [JwDialog] is built on: a shadowed, bordered surface of [width] that Escape and a
+ * click outside dismiss, with [content] laid out as a column and no padding, title or buttons of
+ * its own. Use it directly for a dialog whose chrome does not fit the standard title-bar shape —
+ * and give it a visible way to close, since nothing here adds one.
+ *
+ * @param onDismissRequest called on Escape and on a click outside the dialog.
+ * @param width the dialog's fixed width; the height follows the content.
+ * @param content the whole dialog, edge to edge.
+ */
+@Composable
+public fun JwDialogSurface(
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    width: Dp = 480.dp,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -57,35 +113,7 @@ public fun JwDialog(
                 .clip(shape)
                 .background(MaterialTheme.colorScheme.surfaceContainer, shape)
                 .border(JwMetrics.borderWidth, JwTheme.colors.border, shape),
-        ) {
-            JwToolbar(
-                title = title,
-                actions = {
-                    JwIconButton(onClick = onDismissRequest, tooltip = closeLabel) {
-                        JwIcon(imageVector = JwIcons.Close, contentDescription = closeLabel)
-                    }
-                },
-            )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(JwSpacing.extraLarge),
-                verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
-                content = content,
-            )
-            if (confirmButton != null || dismissButton != null) {
-                JwHorizontalDivider()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = JwSpacing.extraLarge, vertical = JwSpacing.large),
-                    horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium, Alignment.End),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    dismissButton?.invoke()
-                    confirmButton?.invoke()
-                }
-            }
-        }
+            content = content,
+        )
     }
 }

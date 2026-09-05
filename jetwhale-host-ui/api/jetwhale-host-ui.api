@@ -42,6 +42,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwColorSchemes {
 
 public final class com/kitakkun/jetwhale/host/ui/JwDialogKt {
 	public static final fun JwDialog-GHTll3U (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Landroidx/compose/ui/Modifier;FLkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun JwDialogSurface-942rkJo (Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;FLkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwDividerKt {
@@ -198,6 +199,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwTheme {
 
 public final class com/kitakkun/jetwhale/host/ui/JwThemeKt {
 	public static final fun JwTheme (Landroidx/compose/material3/ColorScheme;ZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;I)V
+	public static final fun JwTheme (ZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;I)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwTone : java/lang/Enum {
