@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -75,6 +74,9 @@ import com.kitakkun.jetwhale.host.settings.ssl_certificate_set_active
 import com.kitakkun.jetwhale.host.settings.ssl_certificate_show_detail
 import com.kitakkun.jetwhale.host.settings.wss_enabled_label
 import com.kitakkun.jetwhale.host.settings.wss_port_label
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwDialog
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -103,10 +105,10 @@ fun ServerSettingsScreen(
     onDismissCertificateDetailDialog: () -> Unit,
 ) {
     if (uiState.showDebugApplyConfirmDialog) {
-        AlertDialog(
+        JwDialog(
             onDismissRequest = onDismissApplyDebugServerSettingsDialog,
-            title = { Text(stringResource(Res.string.debug_server_port_apply_confirm_title)) },
-            text = {
+            title = stringResource(Res.string.debug_server_port_apply_confirm_title),
+            content = {
                 Text(
                     if (uiState.editingWssEnabled) {
                         stringResource(
@@ -123,23 +125,27 @@ fun ServerSettingsScreen(
                 )
             },
             confirmButton = {
-                Button(onClick = onConfirmApplyDebugServerSettingsChange) {
-                    Text(stringResource(Res.string.dialog_ok))
-                }
+                JwButton(
+                    text = stringResource(Res.string.dialog_ok),
+                    onClick = onConfirmApplyDebugServerSettingsChange,
+                    style = JwButtonStyle.Primary,
+                )
             },
             dismissButton = {
-                Button(onClick = onDismissApplyDebugServerSettingsDialog) {
-                    Text(stringResource(Res.string.dialog_cancel))
-                }
+                JwButton(
+                    text = stringResource(Res.string.dialog_cancel),
+                    onClick = onDismissApplyDebugServerSettingsDialog,
+                    style = JwButtonStyle.Text,
+                )
             },
         )
     }
 
     if (uiState.showMcpApplyConfirmDialog) {
-        AlertDialog(
+        JwDialog(
             onDismissRequest = onDismissApplyMcpPortDialog,
-            title = { Text(stringResource(Res.string.mcp_server_port_apply_confirm_title)) },
-            text = {
+            title = stringResource(Res.string.mcp_server_port_apply_confirm_title),
+            content = {
                 Text(
                     stringResource(
                         Res.string.mcp_server_port_apply_confirm_message,
@@ -148,24 +154,28 @@ fun ServerSettingsScreen(
                 )
             },
             confirmButton = {
-                Button(onClick = onConfirmApplyMcpPortChange) {
-                    Text(stringResource(Res.string.dialog_ok))
-                }
+                JwButton(
+                    text = stringResource(Res.string.dialog_ok),
+                    onClick = onConfirmApplyMcpPortChange,
+                    style = JwButtonStyle.Primary,
+                )
             },
             dismissButton = {
-                Button(onClick = onDismissApplyMcpPortDialog) {
-                    Text(stringResource(Res.string.dialog_cancel))
-                }
+                JwButton(
+                    text = stringResource(Res.string.dialog_cancel),
+                    onClick = onDismissApplyMcpPortDialog,
+                    style = JwButtonStyle.Text,
+                )
             },
         )
     }
 
     uiState.certificateDetailDialogEntry?.let { entry ->
         val clipboardManager = LocalClipboardManager.current
-        AlertDialog(
+        JwDialog(
             onDismissRequest = onDismissCertificateDetailDialog,
-            title = { Text(stringResource(Res.string.ssl_certificate_detail_title)) },
-            text = {
+            title = stringResource(Res.string.ssl_certificate_detail_title),
+            content = {
                 Text(
                     text = entry.caCertificatePem,
                     style = MaterialTheme.typography.bodySmall,
@@ -176,16 +186,18 @@ fun ServerSettingsScreen(
                 )
             },
             confirmButton = {
-                Button(
+                JwButton(
+                    text = stringResource(Res.string.ssl_certificate_copy),
                     onClick = { clipboardManager.setText(AnnotatedString(entry.caCertificatePem)) },
-                ) {
-                    Text(stringResource(Res.string.ssl_certificate_copy))
-                }
+                    style = JwButtonStyle.Primary,
+                )
             },
             dismissButton = {
-                Button(onClick = onDismissCertificateDetailDialog) {
-                    Text(stringResource(Res.string.dialog_ok))
-                }
+                JwButton(
+                    text = stringResource(Res.string.dialog_ok),
+                    onClick = onDismissCertificateDetailDialog,
+                    style = JwButtonStyle.Text,
+                )
             },
         )
     }
@@ -226,12 +238,12 @@ fun ServerSettingsScreen(
                         )
                     }
                     if (uiState.isDebugApplyVisible) {
-                        Button(
+                        JwButton(
+                            text = applyButtonText(isRetry = uiState.isDebugRetry),
                             onClick = onApplyDebugServerSettingsChange,
                             enabled = uiState.isDebugApplyEnabled,
-                        ) {
-                            Text(applyButtonText(isRetry = uiState.isDebugRetry))
-                        }
+                            style = JwButtonStyle.Primary,
+                        )
                     }
                 }
             }
@@ -250,12 +262,12 @@ fun ServerSettingsScreen(
                         onTextChange = onMcpPortTextChange,
                     )
                     if (uiState.isMcpApplyVisible) {
-                        Button(
+                        JwButton(
+                            text = applyButtonText(isRetry = uiState.isMcpRetry),
                             onClick = onApplyMcpPortChange,
                             enabled = uiState.isMcpApplyEnabled,
-                        ) {
-                            Text(applyButtonText(isRetry = uiState.isMcpRetry))
-                        }
+                            style = JwButtonStyle.Primary,
+                        )
                     }
                     Spacer(Modifier.height(12.dp))
                     Text(
@@ -271,9 +283,11 @@ fun ServerSettingsScreen(
                         label = stringResource(Res.string.mcp_setup_json_label),
                         snippet = uiState.mcpJsonConfig,
                     )
-                    OutlinedButton(onClick = onClickOpenMcpGuide) {
-                        Text(stringResource(Res.string.mcp_setup_open_guide))
-                    }
+                    JwButton(
+                        text = stringResource(Res.string.mcp_setup_open_guide),
+                        onClick = onClickOpenMcpGuide,
+                        style = JwButtonStyle.Secondary,
+                    )
                 }
             }
         }
@@ -323,21 +337,29 @@ fun ServerSettingsScreen(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             if (!certificate.isActive) {
-                                TextButton(onClick = { onSetActiveCertificate(certificate.id) }) {
-                                    Text(stringResource(Res.string.ssl_certificate_set_active))
-                                }
+                                JwButton(
+                                    text = stringResource(Res.string.ssl_certificate_set_active),
+                                    onClick = { onSetActiveCertificate(certificate.id) },
+                                    style = JwButtonStyle.Text,
+                                )
                             }
-                            TextButton(onClick = { onShowCertificateDetail(certificate.id) }) {
-                                Text(stringResource(Res.string.ssl_certificate_show_detail))
-                            }
-                            TextButton(onClick = { onDeleteCertificate(certificate.id) }) {
-                                Text(stringResource(Res.string.ssl_certificate_delete))
-                            }
+                            JwButton(
+                                text = stringResource(Res.string.ssl_certificate_show_detail),
+                                onClick = { onShowCertificateDetail(certificate.id) },
+                                style = JwButtonStyle.Text,
+                            )
+                            JwButton(
+                                text = stringResource(Res.string.ssl_certificate_delete),
+                                onClick = { onDeleteCertificate(certificate.id) },
+                                style = JwButtonStyle.Text,
+                            )
                         }
                     }
-                    OutlinedButton(onClick = onAddCertificate) {
-                        Text(stringResource(Res.string.ssl_certificate_add))
-                    }
+                    JwButton(
+                        text = stringResource(Res.string.ssl_certificate_add),
+                        onClick = onAddCertificate,
+                        style = JwButtonStyle.Secondary,
+                    )
                 }
             }
         }
@@ -380,9 +402,11 @@ private fun McpSnippetView(
                 }
             }
         }
-        TextButton(onClick = { clipboardManager.setText(AnnotatedString(snippet)) }) {
-            Text(stringResource(Res.string.copy_to_clipboard))
-        }
+        JwButton(
+            text = stringResource(Res.string.copy_to_clipboard),
+            onClick = { clipboardManager.setText(AnnotatedString(snippet)) },
+            style = JwButtonStyle.Text,
+        )
     }
 }
 

@@ -1,42 +1,33 @@
 package com.kitakkun.jetwhale.host.drawer
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.model.PluginIconResource
+import com.kitakkun.jetwhale.host.plugin_actions
 import com.kitakkun.jetwhale.host.puzzle_filled
 import com.kitakkun.jetwhale.host.puzzle_outlined
+import com.kitakkun.jetwhale.host.ui.JwDropdownMenu
+import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwIconButton
+import com.kitakkun.jetwhale.host.ui.JwIcons
+import com.kitakkun.jetwhale.host.ui.JwListItem
+import com.kitakkun.jetwhale.host.ui.JwTag
+import com.kitakkun.jetwhale.host.ui.JwTagStyle
+import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.JwTone
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun PluginDrawerItemView(
@@ -52,33 +43,14 @@ fun PluginDrawerItemView(
     popupMenuContent: (@Composable ColumnScope.(dismiss: () -> Unit) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier,
-    ) {
-        NavigationDrawerItem(
-            label = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    // fill = false lets a long name shrink and ellipsize instead of pushing the
-                    // badge off the row.
-                    Text(
-                        text = name,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    if (exposesMcpTools) {
-                        McpBadge(
-                            operating = underAiControl,
-                            onClick = onClickMcpBadge,
-                        )
-                    }
-                }
-            },
-            icon = {
-                Icon(
+    Box(modifier = modifier) {
+        JwListItem(
+            text = name,
+            selected = selected,
+            enabled = enabled,
+            onClick = onClick,
+            leading = {
+                JwIcon(
                     painter = when {
                         selected && enabled -> rememberPluginIconSvgPainter(activeIconResource)
                             ?: painterResource(Res.drawable.puzzle_filled)
@@ -87,85 +59,69 @@ fun PluginDrawerItemView(
                             ?: painterResource(Res.drawable.puzzle_outlined)
                     },
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
                 )
             },
-            badge = {
-                popupMenuContent?.let {
+            trailing = {
+                if (exposesMcpTools) {
+                    McpBadge(
+                        operating = underAiControl,
+                        onClick = onClickMcpBadge,
+                    )
+                }
+                popupMenuContent?.let { menuContent ->
                     Box {
                         var expanded by remember { mutableStateOf(false) }
-                        IconButton(
+                        JwIconButton(
                             onClick = { expanded = true },
+                            tooltip = stringResource(Res.string.plugin_actions),
+                            size = 20.dp,
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = null,
-                            )
+                            JwIcon(imageVector = JwIcons.MoreHorizontal, contentDescription = null)
                         }
-                        DropdownMenu(
+                        JwDropdownMenu(
                             expanded = expanded,
                             onDismissRequest = { expanded = false },
                         ) {
-                            it({ expanded = false })
+                            menuContent { expanded = false }
                         }
                     }
                 }
             },
-            selected = selected,
-            onClick = onClick,
-            // Because NavigationDrawerItem does not have enabled parameter,
-            // we manually provide better visual feedback for non-enabled plugins
-            modifier = Modifier.alpha(if (enabled) 1.0f else 0.5f),
         )
         if (underAiControl) {
-            // A rotating gradient ring drawn over the item makes the plugin an agent is driving
+            // A rotating gradient ring drawn over the row makes the plugin an agent is driving
             // unmistakable even when the list is scrolled and the label is out of view.
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .aiOperatingBorder(color = AiOperatingAccentColor, width = 2.dp),
+                    .aiOperatingBorder(color = JwTheme.colors.aiAccent, width = 1.5f.dp, cornerRadius = 4.dp),
             )
         }
     }
 }
 
 /**
- * A compact "MCP" badge shown after a plugin's name when it exposes MCP tools. It is filled while an
- * agent is running one of those tools and outlined otherwise, and opens the MCP tools browser scoped
- * to this plugin.
+ * A compact "MCP" tag shown after a plugin's name when it exposes MCP tools. It fills with the AI
+ * accent while an agent is running one of those tools and stays outlined otherwise, and opens the
+ * MCP tools browser scoped to this plugin.
  */
 @Composable
 private fun McpBadge(
     operating: Boolean,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(4.dp)
-    val contentColor = if (operating) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant
-    val decoration = if (operating) {
-        Modifier.background(AiOperatingAccentColor, shape)
-    } else {
-        Modifier.border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, shape)
-    }
-    Row(
-        modifier = Modifier
-            .clip(shape)
-            .then(decoration)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 5.dp, vertical = 1.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-    ) {
-        Text(
-            text = "MCP",
-            style = MaterialTheme.typography.labelSmall,
-            color = contentColor,
-        )
-        // Signals that clicking opens a separate window.
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-            contentDescription = null,
-            tint = contentColor,
-            modifier = Modifier.size(11.dp),
-        )
-    }
+    JwTag(
+        text = "MCP",
+        tone = if (operating) JwTone.Warning else JwTone.Neutral,
+        style = if (operating) JwTagStyle.Filled else JwTagStyle.Outlined,
+        onClick = onClick,
+        trailingIcon = {
+            // Signals that clicking opens a separate window.
+            JwIcon(
+                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                contentDescription = null,
+                modifier = Modifier.padding(3.dp),
+            )
+        },
+    )
 }

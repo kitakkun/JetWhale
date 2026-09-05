@@ -1,37 +1,33 @@
 package com.kitakkun.jetwhale.host.navigation
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.bring_back_to_main_window
 import com.kitakkun.jetwhale.host.plugin_popped_out_message
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwEmptyState
+import com.kitakkun.jetwhale.host.ui.JwIcon
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun PluginPoppedOutScreen(
     onBringbackToMainWindow: () -> Unit,
 ) {
-    Surface {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-        ) {
-            Text(stringResource(Res.string.plugin_popped_out_message))
-            Button(onClick = onBringbackToMainWindow) {
-                Text(stringResource(Res.string.bring_back_to_main_window))
-            }
-        }
-    }
+    JwEmptyState(
+        title = stringResource(Res.string.plugin_popped_out_message),
+        icon = { JwIcon(imageVector = Icons.Default.ArrowOutward, contentDescription = null) },
+        action = {
+            JwButton(
+                text = stringResource(Res.string.bring_back_to_main_window),
+                onClick = onBringbackToMainWindow,
+                style = JwButtonStyle.Primary,
+            )
+        },
+    )
 }
 
 @Preview

@@ -3,6 +3,7 @@ plugins {
 }
 
 dependencies {
+    implementation(projects.jetwhaleHostUi)
     implementation(projects.jetwhaleHost.core.model)
     implementation(projects.jetwhaleHost.core.architecture)
     implementation(libs.kotlinxCollectionsImmutable)

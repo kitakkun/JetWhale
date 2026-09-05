@@ -25,7 +25,7 @@ import com.kitakkun.jetwhale.host.component.ShuttingDownDialog
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.PersistedWindowState
-import com.kitakkun.jetwhale.host.ui.isShortcutModifierPressed
+import com.kitakkun.jetwhale.host.theme.isShortcutModifierPressed
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce

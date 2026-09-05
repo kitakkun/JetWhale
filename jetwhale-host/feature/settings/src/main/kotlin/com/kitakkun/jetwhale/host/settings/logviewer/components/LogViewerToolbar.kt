@@ -24,6 +24,9 @@ import com.kitakkun.jetwhale.host.settings.log_viewer_clear_filter
 import com.kitakkun.jetwhale.host.settings.log_viewer_clear_logs
 import com.kitakkun.jetwhale.host.settings.log_viewer_filter_icon
 import com.kitakkun.jetwhale.host.settings.log_viewer_filter_placeholder
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwSearchField
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -57,9 +60,11 @@ fun LogViewerToolbar(
                 onCheckedChange = onAutoScrollChange,
             )
 
-            Button(onClick = onClearLogs) {
-                Text(stringResource(Res.string.log_viewer_clear_logs))
-            }
+            JwButton(
+                text = stringResource(Res.string.log_viewer_clear_logs),
+                onClick = onClearLogs,
+                style = JwButtonStyle.Primary,
+            )
         }
     }
 }
@@ -70,22 +75,11 @@ private fun FilterTextField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OutlinedTextField(
+    JwSearchField(
         value = value,
         onValueChange = onValueChange,
+        placeholder = stringResource(Res.string.log_viewer_filter_placeholder),
         modifier = modifier,
-        placeholder = { Text(stringResource(Res.string.log_viewer_filter_placeholder)) },
-        leadingIcon = {
-            Icon(Icons.Default.Search, contentDescription = stringResource(Res.string.log_viewer_filter_icon))
-        },
-        trailingIcon = {
-            if (value.isNotEmpty()) {
-                IconButton(onClick = { onValueChange("") }) {
-                    Icon(Icons.Default.Clear, contentDescription = stringResource(Res.string.log_viewer_clear_filter))
-                }
-            }
-        },
-        singleLine = true,
     )
 }
 

@@ -1,28 +1,28 @@
 package com.kitakkun.jetwhale.host.settings.general
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -62,6 +62,12 @@ import com.kitakkun.jetwhale.host.settings.update_check_failed
 import com.kitakkun.jetwhale.host.settings.update_up_to_date
 import com.kitakkun.jetwhale.host.settings.updates
 import com.kitakkun.jetwhale.host.settings.view_application_logs
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwIconButton
+import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.JwTypography
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 
@@ -139,7 +145,7 @@ fun GeneralSettingsScreen(
             item {
                 SettingOptionView(stringResource(Res.string.maintenance)) {
                     // Not SettingsItemRow here: the path can be very long. The label keeps a min width so
-                    // it can't be starved down to one character per line, and the path Card takes the
+                    // it can't be starved down to one character per line, and the path takes the
                     // remaining space (weight) and wraps within it.
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -149,19 +155,24 @@ fun GeneralSettingsScreen(
                             text = stringResource(Res.string.application_data_directory),
                             modifier = Modifier.widthIn(min = 120.dp),
                         )
-                        Card(modifier = Modifier.weight(1f)) {
+                        SelectionContainer(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = uiState.appDataPath,
-                                modifier = Modifier.padding(8.dp),
+                                style = JwTypography.code,
                             )
                         }
-                        IconButton(onClick = onClickOpenAppDataPath) {
-                            Icon(Icons.Default.FolderOpen, null)
+                        JwIconButton(
+                            onClick = onClickOpenAppDataPath,
+                            tooltip = stringResource(Res.string.application_data_directory),
+                        ) {
+                            JwIcon(Icons.Default.FolderOpen, null)
                         }
                     }
-                    Button(onClick = onClickOpenLogViewer) {
-                        Text(stringResource(Res.string.view_application_logs))
-                    }
+                    JwButton(
+                        text = stringResource(Res.string.view_application_logs),
+                        onClick = onClickOpenLogViewer,
+                        style = JwButtonStyle.Primary,
+                    )
                 }
             }
         }
@@ -169,9 +180,10 @@ fun GeneralSettingsScreen(
             item {
                 SettingOptionView(stringResource(Res.string.updates)) {
                     SettingsItemRow(stringResource(Res.string.current_version)) {
-                        Card {
-                            Text(uiState.currentVersion)
-                        }
+                        Text(
+                            text = uiState.currentVersion,
+                            style = JwTypography.code,
+                        )
                     }
                     SwitchSettingsItemView(
                         label = stringResource(Res.string.check_for_updates_on_startup),
@@ -185,12 +197,12 @@ fun GeneralSettingsScreen(
                         onClickInstallUpdate = onClickInstallUpdate,
                         onClickOpenDownloadPage = onClickOpenDownloadPage,
                     )
-                    Button(
+                    JwButton(
+                        text = stringResource(Res.string.check_for_updates),
                         onClick = onClickCheckForUpdates,
                         enabled = !uiState.isCheckingForUpdates,
-                    ) {
-                        Text(stringResource(Res.string.check_for_updates))
-                    }
+                        style = JwButtonStyle.Primary,
+                    )
                 }
             }
         }
@@ -205,8 +217,9 @@ fun GeneralSettingsScreen(
                         if (uiState.adbPath.isNotEmpty()) {
                             Icon(
                                 imageVector = Icons.Default.Check,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = JwTone.Success.color,
                                 contentDescription = null,
+                                modifier = Modifier.size(16.dp),
                             )
                         }
                     }
@@ -245,11 +258,14 @@ private fun UpdateCheckStatusView(
         result == null -> Unit
 
         result.updateAvailable -> {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(JwTone.Info.containerColor, MaterialTheme.shapes.small)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                CompositionLocalProvider(LocalContentColor provides JwTone.Info.onContainerColor) {
                     Text(
                         text = stringResource(Res.string.update_available, result.latestVersion),
                         style = MaterialTheme.typography.titleSmall,
@@ -260,13 +276,17 @@ private fun UpdateCheckStatusView(
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (result.canInstallInApp) {
-                            Button(onClick = onClickInstallUpdate) {
-                                Text(stringResource(Res.string.install_update))
-                            }
+                            JwButton(
+                                text = stringResource(Res.string.install_update),
+                                onClick = onClickInstallUpdate,
+                                style = JwButtonStyle.Primary,
+                            )
                         }
-                        OutlinedButton(onClick = { onClickOpenDownloadPage(result.downloadPageUrl) }) {
-                            Text(stringResource(Res.string.open_download_page))
-                        }
+                        JwButton(
+                            text = stringResource(Res.string.open_download_page),
+                            onClick = { onClickOpenDownloadPage(result.downloadPageUrl) },
+                            style = JwButtonStyle.Secondary,
+                        )
                     }
                 }
             }
@@ -279,8 +299,9 @@ private fun UpdateCheckStatusView(
             ) {
                 Icon(
                     imageVector = Icons.Default.Check,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = JwTone.Success.color,
                     contentDescription = null,
+                    modifier = Modifier.size(16.dp),
                 )
                 Text(stringResource(Res.string.update_up_to_date))
             }

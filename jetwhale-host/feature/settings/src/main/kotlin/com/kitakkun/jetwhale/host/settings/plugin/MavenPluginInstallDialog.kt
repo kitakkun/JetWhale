@@ -2,21 +2,12 @@ package com.kitakkun.jetwhale.host.settings.plugin
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,9 +33,17 @@ import com.kitakkun.jetwhale.host.settings.maven_install_repository_custom
 import com.kitakkun.jetwhale.host.settings.maven_install_repository_label
 import com.kitakkun.jetwhale.host.settings.maven_install_repository_url_label
 import com.kitakkun.jetwhale.host.settings.maven_install_version_label
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwDialog
+import com.kitakkun.jetwhale.host.ui.JwDropdownButton
+import com.kitakkun.jetwhale.host.ui.JwFormField
+import com.kitakkun.jetwhale.host.ui.JwMenuItem
+import com.kitakkun.jetwhale.host.ui.JwTextField
+import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.JwTypography
 import org.jetbrains.compose.resources.stringResource
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MavenPluginInstallDialog(
     onDismissRequest: () -> Unit,
@@ -62,117 +61,99 @@ fun MavenPluginInstallDialog(
         .takeUnless { useCustomRepository }
     val fillRequiredFieldsError = stringResource(Res.string.maven_install_error_fill_required)
 
-    AlertDialog(
+    JwDialog(
         onDismissRequest = onDismissRequest,
-        title = {
-            Text(stringResource(Res.string.maven_install_dialog_title))
-        },
-        text = {
+        title = stringResource(Res.string.maven_install_dialog_title),
+        content = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
                     text = stringResource(Res.string.maven_install_dialog_description),
                     style = MaterialTheme.typography.bodyMedium,
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = pastedNotation,
-                    onValueChange = { input ->
-                        pastedNotation = input
-                        MavenCoordinates.parseLenient(input)?.let { parsed ->
-                            groupId = parsed.groupId
-                            artifactId = parsed.artifactId
-                            version = parsed.version
-                            repositoryUrl = parsed.repositoryUrl
-                            useCustomRepository = WellKnownMavenRepositories.matching(parsed.repositoryUrl) == null
-                        }
-                        errorMessage = null
-                    },
-                    label = { Text(stringResource(Res.string.maven_install_paste_label)) },
-                    placeholder = { Text("com.example:my-plugin:1.0.0") },
-                    supportingText = {
-                        Text(stringResource(Res.string.maven_install_paste_supporting_text))
-                    },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                OutlinedTextField(
-                    value = groupId,
-                    onValueChange = {
-                        groupId = it
-                        errorMessage = null
-                    },
-                    label = { Text(stringResource(Res.string.maven_install_group_id_label)) },
-                    placeholder = { Text("com.example") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                OutlinedTextField(
-                    value = artifactId,
-                    onValueChange = {
-                        artifactId = it
-                        errorMessage = null
-                    },
-                    label = { Text(stringResource(Res.string.maven_install_artifact_id_label)) },
-                    placeholder = { Text("my-plugin") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                OutlinedTextField(
-                    value = version,
-                    onValueChange = {
-                        version = it
-                        errorMessage = null
-                    },
-                    label = { Text(stringResource(Res.string.maven_install_version_label)) },
-                    placeholder = { Text("1.0.0") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                ExposedDropdownMenuBox(
-                    expanded = repositoryMenuExpanded,
-                    onExpandedChange = { repositoryMenuExpanded = it },
+                JwFormField(
+                    label = stringResource(Res.string.maven_install_paste_label),
+                    supportingText = stringResource(Res.string.maven_install_paste_supporting_text),
                 ) {
-                    OutlinedTextField(
-                        value = selectedWellKnownRepository?.displayName
-                            ?: stringResource(Res.string.maven_install_repository_custom),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(stringResource(Res.string.maven_install_repository_label)) },
-                        supportingText = selectedWellKnownRepository?.let { repository ->
-                            { Text(repository.url) }
+                    JwTextField(
+                        value = pastedNotation,
+                        onValueChange = { input ->
+                            pastedNotation = input
+                            MavenCoordinates.parseLenient(input)?.let { parsed ->
+                                groupId = parsed.groupId
+                                artifactId = parsed.artifactId
+                                version = parsed.version
+                                repositoryUrl = parsed.repositoryUrl
+                                useCustomRepository = WellKnownMavenRepositories.matching(parsed.repositoryUrl) == null
+                            }
+                            errorMessage = null
                         },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = repositoryMenuExpanded) },
-                        singleLine = true,
-                        modifier = Modifier
-                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                            .fillMaxWidth(),
+                        placeholder = "com.example:my-plugin:1.0.0",
+                        textStyle = JwTypography.code,
                     )
-                    ExposedDropdownMenu(
+                }
+
+                JwFormField(label = stringResource(Res.string.maven_install_group_id_label)) {
+                    JwTextField(
+                        value = groupId,
+                        onValueChange = {
+                            groupId = it
+                            errorMessage = null
+                        },
+                        placeholder = "com.example",
+                        textStyle = JwTypography.code,
+                    )
+                }
+
+                JwFormField(label = stringResource(Res.string.maven_install_artifact_id_label)) {
+                    JwTextField(
+                        value = artifactId,
+                        onValueChange = {
+                            artifactId = it
+                            errorMessage = null
+                        },
+                        placeholder = "my-plugin",
+                        textStyle = JwTypography.code,
+                    )
+                }
+
+                JwFormField(label = stringResource(Res.string.maven_install_version_label)) {
+                    JwTextField(
+                        value = version,
+                        onValueChange = {
+                            version = it
+                            errorMessage = null
+                        },
+                        placeholder = "1.0.0",
+                        textStyle = JwTypography.code,
+                    )
+                }
+
+                JwFormField(
+                    label = stringResource(Res.string.maven_install_repository_label),
+                    supportingText = selectedWellKnownRepository?.url,
+                ) {
+                    JwDropdownButton(
+                        text = selectedWellKnownRepository?.displayName
+                            ?: stringResource(Res.string.maven_install_repository_custom),
                         expanded = repositoryMenuExpanded,
-                        onDismissRequest = { repositoryMenuExpanded = false },
+                        onExpandedChange = { repositoryMenuExpanded = it },
                     ) {
                         WellKnownMavenRepositories.entries.forEach { repository ->
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(repository.displayName)
-                                        Text(
-                                            text = repository.url,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
+                            JwMenuItem(
+                                text = repository.displayName,
+                                selected = repository == selectedWellKnownRepository,
+                                trailing = {
+                                    Text(
+                                        text = repository.url,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = JwTheme.colors.textSecondary,
+                                    )
                                 },
                                 onClick = {
                                     repositoryUrl = repository.url
@@ -182,8 +163,9 @@ fun MavenPluginInstallDialog(
                                 },
                             )
                         }
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.maven_install_repository_custom)) },
+                        JwMenuItem(
+                            text = stringResource(Res.string.maven_install_repository_custom),
+                            selected = selectedWellKnownRepository == null,
                             onClick = {
                                 useCustomRepository = true
                                 repositoryMenuExpanded = false
@@ -194,17 +176,17 @@ fun MavenPluginInstallDialog(
                 }
 
                 if (selectedWellKnownRepository == null) {
-                    OutlinedTextField(
-                        value = repositoryUrl,
-                        onValueChange = {
-                            repositoryUrl = it
-                            errorMessage = null
-                        },
-                        label = { Text(stringResource(Res.string.maven_install_repository_url_label)) },
-                        placeholder = { Text(MavenCoordinates.MAVEN_CENTRAL_URL) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    JwFormField(label = stringResource(Res.string.maven_install_repository_url_label)) {
+                        JwTextField(
+                            value = repositoryUrl,
+                            onValueChange = {
+                                repositoryUrl = it
+                                errorMessage = null
+                            },
+                            placeholder = MavenCoordinates.MAVEN_CENTRAL_URL,
+                            textStyle = JwTypography.code,
+                        )
+                    }
                 }
 
                 errorMessage?.let { error ->
@@ -218,11 +200,13 @@ fun MavenPluginInstallDialog(
             }
         },
         confirmButton = {
-            Button(
+            JwButton(
+                text = stringResource(Res.string.maven_install_install),
+                style = JwButtonStyle.Primary,
                 onClick = {
                     if (groupId.isBlank() || artifactId.isBlank() || version.isBlank()) {
                         errorMessage = fillRequiredFieldsError
-                        return@Button
+                        return@JwButton
                     }
                     val coordinates = MavenCoordinates(
                         groupId = groupId.trim(),
@@ -233,14 +217,14 @@ fun MavenPluginInstallDialog(
                     onInstall(coordinates)
                     onDismissRequest()
                 },
-            ) {
-                Text(stringResource(Res.string.maven_install_install))
-            }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismissRequest) {
-                Text(stringResource(Res.string.dialog_cancel))
-            }
+            JwButton(
+                text = stringResource(Res.string.dialog_cancel),
+                onClick = onDismissRequest,
+                style = JwButtonStyle.Text,
+            )
         },
     )
 }

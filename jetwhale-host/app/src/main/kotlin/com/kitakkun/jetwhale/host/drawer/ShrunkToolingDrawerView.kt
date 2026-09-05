@@ -1,33 +1,23 @@
 package com.kitakkun.jetwhale.host.drawer
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PlainTooltip
-import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipAnchorPosition
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,22 +29,37 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
+import com.kitakkun.jetwhale.host.expand_sidebar
+import com.kitakkun.jetwhale.host.info
+import com.kitakkun.jetwhale.host.mcp_tools_open_all
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginIconResource
+import com.kitakkun.jetwhale.host.no_session_available
 import com.kitakkun.jetwhale.host.puzzle_filled
 import com.kitakkun.jetwhale.host.puzzle_outlined
+import com.kitakkun.jetwhale.host.settings
 import com.kitakkun.jetwhale.host.sidebar_unfold
+import com.kitakkun.jetwhale.host.ui.JwDropdownMenu
+import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
+import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwIconButton
+import com.kitakkun.jetwhale.host.ui.JwMetrics
+import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwStatusDot
+import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.JwTone
 import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.decodeToSvgPainter
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** The sidebar collapsed to an icon rail: every entry keeps its place, and its label moves to a tooltip. */
 @Composable
 fun ShrunkToolingDrawerView(
     plugins: ImmutableList<DrawerPluginItemUiState>,
     sessions: ImmutableList<DebugSession>,
-    selectedSessionId: String?,
+    selectedSession: DebugSession?,
     selectedPluginId: String,
     aiActivity: AiActivityUiState,
     onClickExpandMenu: () -> Unit,
@@ -64,137 +69,154 @@ fun ShrunkToolingDrawerView(
     onOpenAllMcpTools: () -> Unit,
     onSelectSession: (DebugSession) -> Unit,
 ) {
+    val selectedSessionId = selectedSession?.id
     Column(
         modifier = Modifier
             .fillMaxHeight()
-            .width(50.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainer),
+            .width(JwMetrics.railWidth)
+            .background(JwTheme.colors.sidebarBackground),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        IconButton(onClick = onClickExpandMenu) {
-            Icon(
-                painter = painterResource(Res.drawable.sidebar_unfold),
-                contentDescription = null,
-                // Material Icon skips its 24.dp default for a painter that already reports an
-                // intrinsic size (an SVG does), so this SVG would render at its own size and look
-                // larger than the sibling ImageVector icons. Pin it to match, like the plugin icons.
-                modifier = Modifier.size(24.dp),
-            )
-        }
-        Box {
-            var expanded by remember { mutableStateOf(false) }
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-                tooltip = {
-                    if (sessions.isEmpty()) {
-                        PlainTooltip {
-                            Text("No active sessions")
-                        }
-                    }
-                },
-                state = rememberTooltipState(),
-            ) {
-                IconButton(
-                    enabled = sessions.isNotEmpty(),
-                    onClick = { expanded = true },
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Devices,
-                        contentDescription = null,
-                    )
-                }
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                sessions.filter { it.isActive }.forEach { session ->
-                    SessionDropdownMenuItem(
-                        selected = session.id == selectedSessionId,
-                        isActive = session.isActive,
-                        transportSecurity = session.transportSecurity,
-                        displayName = "${session.deviceDisplayName} · ${session.appDisplayName}",
-                        onClick = {
-                            onSelectSession(session)
-                            expanded = false
-                        },
-                    )
-                }
+        Box(
+            modifier = Modifier.height(JwMetrics.toolbarHeight),
+            contentAlignment = Alignment.Center,
+        ) {
+            JwIconButton(onClick = onClickExpandMenu, tooltip = stringResource(Res.string.expand_sidebar)) {
+                JwIcon(painter = painterResource(Res.drawable.sidebar_unfold), contentDescription = null)
             }
         }
-        IconButton(onClick = onClickSettings) {
-            Icon(
-                imageVector = Icons.Default.Settings,
-                contentDescription = null,
+        JwHorizontalDivider()
+        Column(
+            modifier = Modifier.padding(vertical = JwSpacing.xs),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.xxs),
+        ) {
+            RailSessionButton(
+                sessions = sessions,
+                selectedSession = selectedSession,
+                onSelectSession = onSelectSession,
             )
+            CompactAiActivityIndicatorView(uiState = aiActivity)
         }
-        // Opens the browser unscoped, so the tools an agent can reach are visible without first
-        // finding a plugin that happens to publish some.
-        McpToolsDrawerButton(onClick = onOpenAllMcpTools)
-        CompactAiActivityIndicatorView(uiState = aiActivity)
-        HorizontalDivider()
+        JwHorizontalDivider()
         LazyColumn(
             modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            contentPadding = PaddingValues(vertical = JwSpacing.xs),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.xxs),
         ) {
-            items(plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }) {
-                TooltipBox(
-                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-                    tooltip = {
-                        PlainTooltip {
-                            Text("${it.name}(${it.id})")
-                        }
-                    },
-                    state = rememberTooltipState(),
-                ) {
-                    val selected = selectedPluginId == it.id && selectedSessionId != null
-                    Box {
-                        IconButton(
-                            enabled = selectedSessionId != null,
-                            onClick = { onClickPlugin(it.id) },
-                            colors = if (selected) IconButtonDefaults.filledTonalIconButtonColors() else IconButtonDefaults.iconButtonColors(),
-                        ) {
-                            Icon(
-                                painter = when {
-                                    selected -> rememberPluginIconSvgPainter(it.activeIconResource)
-                                        ?: painterResource(Res.drawable.puzzle_filled)
+            items(plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }, key = { it.id }) {
+                val selected = selectedPluginId == it.id && selectedSessionId != null
+                Box {
+                    JwIconButton(
+                        enabled = selectedSessionId != null,
+                        selected = selected,
+                        onClick = { onClickPlugin(it.id) },
+                        tooltip = it.name,
+                    ) {
+                        JwIcon(
+                            painter = when {
+                                selected -> rememberPluginIconSvgPainter(it.activeIconResource)
+                                    ?: painterResource(Res.drawable.puzzle_filled)
 
-                                    else -> rememberPluginIconSvgPainter(it.inactiveIconResource)
-                                        ?: painterResource(Res.drawable.puzzle_outlined)
-                                },
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                            )
-                        }
-                        // No room for the full "MCP" badge in the narrow rail, so the plugin's MCP
-                        // status collapses to a dot: filled while an agent is operating it, a hollow
-                        // ring when it merely exposes tools.
-                        if (it.underAiControl) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(6.dp)
-                                    .size(8.dp)
-                                    .background(AiOperatingAccentColor, CircleShape),
-                            )
-                        } else if (it.exposesMcpTools) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(6.dp)
-                                    .size(8.dp)
-                                    .border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, CircleShape),
-                            )
-                        }
+                                else -> rememberPluginIconSvgPainter(it.inactiveIconResource)
+                                    ?: painterResource(Res.drawable.puzzle_outlined)
+                            },
+                            contentDescription = null,
+                        )
+                    }
+                    // No room for the "MCP" tag in the rail, so the plugin's MCP status collapses to
+                    // a dot: filled while an agent is operating it, a ring when it merely exposes tools.
+                    if (it.underAiControl || it.exposesMcpTools) {
+                        RailBadge(
+                            tone = if (it.underAiControl) JwTone.Warning else JwTone.Neutral,
+                            filled = it.underAiControl,
+                            modifier = Modifier.align(Alignment.BottomEnd),
+                        )
                     }
                 }
             }
         }
-        HorizontalDivider()
-        IconButton(onClick = onClickInfo) {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = null,
+        JwHorizontalDivider()
+        Column(
+            modifier = Modifier.padding(vertical = JwSpacing.xs),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.xxs),
+        ) {
+            // Opens the browser unscoped, so the tools an agent can reach are visible without first
+            // finding a plugin that happens to publish some.
+            JwIconButton(onClick = onOpenAllMcpTools, tooltip = stringResource(Res.string.mcp_tools_open_all)) {
+                JwIcon(imageVector = Icons.Default.Build, contentDescription = null)
+            }
+            JwIconButton(onClick = onClickSettings, tooltip = stringResource(Res.string.settings)) {
+                JwIcon(imageVector = Icons.Default.Settings, contentDescription = null)
+            }
+            JwIconButton(onClick = onClickInfo, tooltip = stringResource(Res.string.info)) {
+                JwIcon(imageVector = Icons.Default.Info, contentDescription = null)
+            }
+        }
+    }
+}
+
+@Composable
+private fun RailSessionButton(
+    sessions: ImmutableList<DebugSession>,
+    selectedSession: DebugSession?,
+    onSelectSession: (DebugSession) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val activeSessions = remember(sessions) { sessions.filter { it.isActive } }
+    Box {
+        JwIconButton(
+            enabled = activeSessions.isNotEmpty(),
+            onClick = { expanded = true },
+            tooltip = selectedSession?.deviceAndAppDisplayName ?: stringResource(Res.string.no_session_available),
+        ) {
+            JwIcon(imageVector = Icons.Default.Devices, contentDescription = null)
+        }
+        if (selectedSession != null) {
+            RailBadge(
+                tone = JwTone.Success,
+                filled = true,
+                modifier = Modifier.align(Alignment.BottomEnd),
             )
         }
+        JwDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            activeSessions.forEach { session ->
+                SessionMenuItem(
+                    selected = session.id == selectedSession?.id,
+                    session = session,
+                    displayName = session.deviceAndAppDisplayName,
+                    onClick = {
+                        onSelectSession(session)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * A status dot pinned to a rail button's corner. It sits just outside the 16dp glyph, and a ring in
+ * the rail's own color separates it from whatever it overlaps.
+ */
+@Composable
+private fun RailBadge(
+    tone: JwTone,
+    filled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .padding(1.dp)
+            .background(JwTheme.colors.sidebarBackground, CircleShape)
+            .padding(1.5f.dp),
+    ) {
+        JwStatusDot(tone = tone, filled = filled)
     }
 }
 

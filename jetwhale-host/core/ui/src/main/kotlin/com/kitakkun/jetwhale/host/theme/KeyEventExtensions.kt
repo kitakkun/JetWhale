@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.host.ui
+package com.kitakkun.jetwhale.host.theme
 
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.isCtrlPressed

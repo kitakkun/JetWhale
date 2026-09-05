@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -64,6 +63,10 @@ import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint_macos
 import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint_windows
 import com.kitakkun.jetwhale.host.settings.untrusted_jar_hint
 import com.kitakkun.jetwhale.host.settings.untrusted_plugins
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwDialog
+import com.kitakkun.jetwhale.host.ui.JwIcon
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -80,17 +83,10 @@ fun PluginSettingsScreen(
     var showFailedJarsDialog by remember { mutableStateOf(false) }
 
     if (showFailedJarsDialog) {
-        AlertDialog(
+        JwDialog(
             onDismissRequest = { showFailedJarsDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                )
-            },
-            title = { Text(stringResource(Res.string.failed_to_load_plugins)) },
-            text = {
+            title = stringResource(Res.string.failed_to_load_plugins),
+            content = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         text = stringResource(Res.string.failed_jar_path_hint),
@@ -114,9 +110,11 @@ fun PluginSettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showFailedJarsDialog = false }) {
-                    Text(stringResource(Res.string.dialog_ok))
-                }
+                JwButton(
+                    text = stringResource(Res.string.dialog_ok),
+                    onClick = { showFailedJarsDialog = false },
+                    style = JwButtonStyle.Text,
+                )
             },
         )
     }
@@ -145,18 +143,18 @@ fun PluginSettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    TextButton(
+                    JwButton(
+                        text = stringResource(Res.string.add_plugin_from_file),
                         onClick = onClickAddPlugin,
                         enabled = !uiState.isInstalling,
-                    ) {
-                        Text(stringResource(Res.string.add_plugin_from_file), maxLines = 1)
-                    }
-                    TextButton(
+                        style = JwButtonStyle.Text,
+                    )
+                    JwButton(
+                        text = stringResource(Res.string.install_from_maven),
                         onClick = onClickInstallFromMaven,
                         enabled = !uiState.isInstalling,
-                    ) {
-                        Text(stringResource(Res.string.install_from_maven), maxLines = 1)
-                    }
+                        style = JwButtonStyle.Text,
+                    )
                 }
             }
         }
@@ -239,23 +237,18 @@ fun PluginSettingsScreen(
         }
         if (page == SettingsScreenPage.InstalledPlugins && uiState.failedJars.isNotEmpty()) {
             item(key = "failed_jars") {
-                TextButton(
+                JwButton(
+                    text = stringResource(Res.string.failed_to_load_plugins) + " (${uiState.failedJars.size})",
                     onClick = { showFailedJarsDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(end = 8.dp),
-                    )
-                    Text(
-                        text = stringResource(Res.string.failed_to_load_plugins) +
-                            " (${uiState.failedJars.size})",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                    style = JwButtonStyle.Text,
+                    leadingIcon = {
+                        JwIcon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                )
             }
         }
         if (page == SettingsScreenPage.PluginSecurity && uiState.untrustedJarPaths.isNotEmpty()) {
@@ -402,9 +395,11 @@ private fun UntrustedPluginsSection(
                     color = MaterialTheme.colorScheme.onErrorContainer,
                     modifier = Modifier.weight(1f),
                 )
-                Button(onClick = { onApprove(path) }) {
-                    Text(stringResource(Res.string.approve_untrusted_plugin))
-                }
+                JwButton(
+                    text = stringResource(Res.string.approve_untrusted_plugin),
+                    onClick = { onApprove(path) },
+                    style = JwButtonStyle.Primary,
+                )
             }
         }
     }
@@ -465,15 +460,12 @@ private fun OfficialPluginRow(
                     )
                 }
             } else {
-                FilledTonalButton(
+                JwButton(
+                    text = stringResource(Res.string.maven_install_install),
                     onClick = onClickInstall,
                     enabled = installEnabled,
-                ) {
-                    Text(
-                        text = stringResource(Res.string.maven_install_install),
-                        maxLines = 1,
-                    )
-                }
+                    style = JwButtonStyle.Secondary,
+                )
             }
         }
     }

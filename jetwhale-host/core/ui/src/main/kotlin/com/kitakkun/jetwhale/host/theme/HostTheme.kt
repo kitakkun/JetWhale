@@ -1,23 +1,18 @@
-package com.kitakkun.jetwhale.host.ui
+package com.kitakkun.jetwhale.host.theme
 
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import com.kitakkun.jetwhale.host.model.JetWhaleColorScheme
+import com.kitakkun.jetwhale.host.ui.JwTheme
 
+/** Applies the host's configured [JetWhaleColorScheme] as a [JwTheme]. */
 @Composable
-fun JetWhaleTheme(
+fun HostTheme(
     colorScheme: JetWhaleColorScheme,
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
+    JwTheme(
         colorScheme = colorScheme.toMaterial3ColorScheme(),
-    ) {
-        CompositionLocalProvider(
-            LocalContentColor provides MaterialTheme.colorScheme.onSurface,
-        ) {
-            content()
-        }
-    }
+        darkTheme = colorScheme.isDarkTheme(),
+        content = content,
+    )
 }

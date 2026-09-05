@@ -19,7 +19,7 @@ import androidx.navigation3.scene.SceneStrategyScope
 import com.kitakkun.jetwhale.host.LocalComposeWindow
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.app_icon
-import com.kitakkun.jetwhale.host.ui.isShortcutModifierPressed
+import com.kitakkun.jetwhale.host.theme.isShortcutModifierPressed
 import org.jetbrains.compose.resources.painterResource
 
 data class WindowProperties(

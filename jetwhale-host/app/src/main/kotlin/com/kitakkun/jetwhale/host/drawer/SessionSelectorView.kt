@@ -3,38 +3,29 @@ package com.kitakkun.jetwhale.host.drawer
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Devices
-import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.no_session_available
 import com.kitakkun.jetwhale.host.select_app
 import com.kitakkun.jetwhale.host.select_device
+import com.kitakkun.jetwhale.host.ui.JwDropdownButton
+import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwMenuItem
+import com.kitakkun.jetwhale.host.ui.JwMetrics
+import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwStatusDot
+import com.kitakkun.jetwhale.host.ui.JwTone
 import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.stringResource
 
@@ -59,7 +50,7 @@ fun SessionSelectorView(
         devices.firstOrNull { it.key == selectedDeviceId }?.value.orEmpty()
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.xs)) {
         DeviceSelector(
             devices = devices,
             selectedDeviceId = selectedDeviceId,
@@ -78,7 +69,6 @@ fun SessionSelectorView(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DeviceSelector(
     devices: List<Map.Entry<String, List<DebugSession>>>,
@@ -88,66 +78,41 @@ private fun DeviceSelector(
     var expanded by remember { mutableStateOf(false) }
     val selectedDevice = devices.firstOrNull { it.key == selectedDeviceId }?.value?.firstOrNull()
 
-    ExposedDropdownMenuBox(
+    JwDropdownButton(
+        text = when {
+            selectedDevice != null -> selectedDevice.deviceDisplayName
+            devices.isNotEmpty() -> stringResource(Res.string.select_device)
+            else -> stringResource(Res.string.no_session_available)
+        },
         expanded = expanded,
         onExpandedChange = { expanded = it && devices.isNotEmpty() },
+        enabled = devices.isNotEmpty(),
+        leading = {
+            JwIcon(imageVector = Icons.Default.Devices, contentDescription = null)
+        },
+        trailing = {
+            if (selectedDevice != null) {
+                JwStatusDot(tone = JwTone.Success)
+                SessionSecurityIcon(selectedDevice.transportSecurity)
+            }
+        },
     ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 56.dp)
-                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryEditable),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Icon(imageVector = Icons.Default.Devices, contentDescription = null)
-                Text(
-                    text = when {
-                        selectedDevice != null -> selectedDevice.deviceDisplayName
-                        devices.isNotEmpty() -> stringResource(Res.string.select_device)
-                        else -> stringResource(Res.string.no_session_available)
-                    },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                if (selectedDevice != null) {
-                    SessionSecurityIcon(selectedDevice.transportSecurity)
-                }
-            }
-        }
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            devices.forEach { entry ->
-                val representative = entry.value.first()
-                DropdownMenuItem(
-                    leadingIcon = {
-                        if (entry.key == selectedDeviceId) {
-                            Icon(imageVector = Icons.Default.Check, contentDescription = null)
-                        } else {
-                            Icon(imageVector = Icons.Default.Devices, contentDescription = null)
-                        }
-                    },
-                    trailingIcon = { SessionSecurityIcon(representative.transportSecurity) },
-                    text = { Text(representative.deviceDisplayName) },
-                    onClick = {
-                        onSelectDevice(entry.value)
-                        expanded = false
-                    },
-                )
-            }
+        devices.forEach { entry ->
+            val representative = entry.value.first()
+            JwMenuItem(
+                text = representative.deviceDisplayName,
+                selected = entry.key == selectedDeviceId,
+                leading = { JwIcon(imageVector = Icons.Default.Devices, contentDescription = null) },
+                trailing = { SessionSecurityIcon(representative.transportSecurity) },
+                onClick = {
+                    onSelectDevice(entry.value)
+                    expanded = false
+                },
+            )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AppSelector(
     apps: List<DebugSession>,
@@ -156,62 +121,34 @@ private fun AppSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    ExposedDropdownMenuBox(
+    JwDropdownButton(
+        text = selectedSession?.appDisplayName ?: stringResource(Res.string.select_app),
         expanded = expanded,
         onExpandedChange = { expanded = it && apps.isNotEmpty() },
+        enabled = apps.isNotEmpty(),
+        leading = { AppIcon(selectedSession) },
+        trailing = {
+            if (selectedSession != null) {
+                SessionSecurityIcon(selectedSession.transportSecurity)
+            }
+        },
     ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 56.dp)
-                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryEditable),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                AppIcon(selectedSession)
-                Text(
-                    text = selectedSession?.appDisplayName ?: stringResource(Res.string.select_app),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                if (selectedSession != null) {
-                    SessionSecurityIcon(selectedSession.transportSecurity)
-                }
-            }
-        }
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            apps.forEach { app ->
-                DropdownMenuItem(
-                    leadingIcon = {
-                        if (app.id == selectedSession?.id) {
-                            Icon(imageVector = Icons.Default.Check, contentDescription = null)
-                        } else {
-                            AppIcon(app)
-                        }
-                    },
-                    trailingIcon = { SessionSecurityIcon(app.transportSecurity) },
-                    text = { Text(app.appDisplayName) },
-                    onClick = {
-                        onSelectSession(app)
-                        expanded = false
-                    },
-                )
-            }
+        apps.forEach { app ->
+            SessionMenuItem(
+                selected = app.id == selectedSession?.id,
+                session = app,
+                displayName = app.appDisplayName,
+                onClick = {
+                    onSelectSession(app)
+                    expanded = false
+                },
+            )
         }
     }
 }
 
 @Composable
-private fun AppIcon(session: DebugSession?) {
+internal fun AppIcon(session: DebugSession?) {
     val bitmap: ImageBitmap? = remember(session?.appIconPngBase64) {
         session?.appIconPngBase64?.let { decodeIconOrNull(it) }
     }
@@ -219,9 +156,9 @@ private fun AppIcon(session: DebugSession?) {
         Image(
             bitmap = bitmap,
             contentDescription = null,
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(JwMetrics.iconSize),
         )
     } else {
-        Icon(imageVector = Icons.Default.Android, contentDescription = null)
+        JwIcon(imageVector = Icons.Default.Android, contentDescription = null)
     }
 }

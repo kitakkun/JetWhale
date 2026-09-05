@@ -3,7 +3,7 @@ package com.kitakkun.jetwhale.host.component
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import com.kitakkun.jetwhale.host.drawer.AiActivityUiState
 import com.kitakkun.jetwhale.host.drawer.DrawerPluginItemUiState
@@ -32,7 +32,9 @@ fun ToolingDrawer(
     onClickBringBack: (DrawerPluginItemUiState) -> Unit,
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
 ) {
-    var expandMenu by remember { mutableStateOf(true) }
+    // Retained rather than remembered: a settings dialog opening over the window must not reset a
+    // sidebar the user just collapsed.
+    var expandMenu by retain { mutableStateOf(true) }
 
     AnimatedSwappableContent(
         showContent1 = expandMenu,
@@ -47,6 +49,7 @@ fun ToolingDrawer(
                 onClickShrinkDrawer = { expandMenu = false },
                 onClickSettings = onClickSettings,
                 onClickPluginSettings = onClickPluginSettings,
+                onClickInfo = onClickInfo,
                 onOpenMcpTools = onOpenMcpTools,
                 onOpenAllMcpTools = onOpenAllMcpTools,
                 onClickPlugin = { onClickPlugin(it.id) },
@@ -61,7 +64,7 @@ fun ToolingDrawer(
             ShrunkToolingDrawerView(
                 plugins = plugins,
                 sessions = sessions,
-                selectedSessionId = selectedSession?.id,
+                selectedSession = selectedSession,
                 selectedPluginId = selectedPluginId,
                 aiActivity = aiActivity,
                 onClickPlugin = onClickPlugin,

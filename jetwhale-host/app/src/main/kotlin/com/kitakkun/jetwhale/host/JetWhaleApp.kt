@@ -40,8 +40,8 @@ import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
-import com.kitakkun.jetwhale.host.ui.AppEnvironment
-import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
+import com.kitakkun.jetwhale.host.theme.AppEnvironment
+import com.kitakkun.jetwhale.host.theme.HostTheme
 import kotlinx.serialization.modules.SerializersModule
 import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberMutation
@@ -142,7 +142,7 @@ fun JetWhaleApp() {
                 state2 = rememberSubscription(appGraph.appearanceSettingsSubscriptionKey),
                 fallback = SoilFallbackDefaults.none(),
             ) { theme, settings ->
-                JetWhaleTheme(theme.colorScheme) {
+                HostTheme(theme.colorScheme) {
                     AppEnvironment(settings.appLanguage) {
                         Surface {
                             context(retain { appGraph.toolingScaffoldScreenContext }) {

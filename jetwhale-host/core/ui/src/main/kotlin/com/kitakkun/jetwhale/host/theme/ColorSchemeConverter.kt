@@ -1,15 +1,14 @@
-package com.kitakkun.jetwhale.host.ui
+package com.kitakkun.jetwhale.host.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import com.kitakkun.jetwhale.host.model.JetWhaleColorScheme
 import com.kitakkun.jetwhale.host.model.ThemeColorTokens
+import com.kitakkun.jetwhale.host.ui.JwColorSchemes
 
 @Composable
 fun JetWhaleColorScheme.toMaterial3ColorScheme(): ColorScheme = when (this) {
@@ -21,9 +20,9 @@ fun JetWhaleColorScheme.toMaterial3ColorScheme(): ColorScheme = when (this) {
         }
     }
 
-    is JetWhaleColorScheme.Static.Light -> lightColorScheme()
+    is JetWhaleColorScheme.Static.Light -> JwColorSchemes.light()
 
-    is JetWhaleColorScheme.Static.Dark -> darkColorScheme()
+    is JetWhaleColorScheme.Static.Dark -> JwColorSchemes.dark()
 
     is JetWhaleColorScheme.Static.Custom -> {
         remember(this) {

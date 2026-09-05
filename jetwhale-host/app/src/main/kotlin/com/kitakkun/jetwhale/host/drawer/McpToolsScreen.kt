@@ -87,6 +87,10 @@ import com.kitakkun.jetwhale.host.mcp_tools_tab_history
 import com.kitakkun.jetwhale.host.mcp_tools_tab_tools
 import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
+import com.kitakkun.jetwhale.host.ui.JwSearchField
+import com.kitakkun.jetwhale.host.ui.JwTab
+import com.kitakkun.jetwhale.host.ui.JwTabRow
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
 import org.jetbrains.compose.resources.stringResource
@@ -168,28 +172,19 @@ fun McpToolsScreen(
             Spacer(Modifier.size(12.dp))
 
             var selectedTab by remember { mutableStateOf(McpToolsTab.Tools) }
-            SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
-                Tab(
+            JwTabRow {
+                JwTab(
+                    text = stringResource(Res.string.mcp_tools_tab_tools),
                     selected = selectedTab == McpToolsTab.Tools,
                     onClick = { selectedTab = McpToolsTab.Tools },
-                    text = { Text(stringResource(Res.string.mcp_tools_tab_tools)) },
                 )
-                Tab(
+                // How many calls the current scope holds, so the count is visible without opening
+                // the tab.
+                JwTab(
+                    text = stringResource(Res.string.mcp_tools_tab_history),
+                    count = uiState.callHistory.size.takeIf { it > 0 },
                     selected = selectedTab == McpToolsTab.History,
                     onClick = { selectedTab = McpToolsTab.History },
-                    text = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Text(stringResource(Res.string.mcp_tools_tab_history))
-                            if (uiState.callHistory.isNotEmpty()) {
-                                // How many calls the current scope holds, so the count is visible
-                                // without opening the tab.
-                                McpToolCallCountBadge(count = uiState.callHistory.size, running = false)
-                            }
-                        }
-                    },
                 )
             }
             Spacer(Modifier.size(12.dp))
@@ -359,11 +354,11 @@ internal fun McpToolCallCountBadge(count: Int, running: Boolean) {
         modifier = Modifier
             .clip(shape)
             .background(
-                if (running) AiOperatingAccentColor else MaterialTheme.colorScheme.surfaceContainerHighest,
+                if (running) JwTheme.colors.aiAccent else MaterialTheme.colorScheme.surfaceContainerHighest,
                 shape,
             )
             .then(
-                if (running) Modifier.aiOperatingBorder(color = AiOperatingAccentColor, width = 2.dp) else Modifier,
+                if (running) Modifier.aiOperatingBorder(color = JwTheme.colors.aiAccent, width = 2.dp, cornerRadius = 4.dp) else Modifier,
             )
             .padding(horizontal = 7.dp, vertical = 2.dp),
     ) {
@@ -402,12 +397,10 @@ private fun McpToolsPane(
     Row(modifier = modifier) {
         // Left pane: search + tool list.
         Column(modifier = Modifier.width(320.dp)) {
-            OutlinedTextField(
+            JwSearchField(
                 value = query,
                 onValueChange = onQueryChange,
-                singleLine = true,
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                placeholder = { Text(stringResource(Res.string.mcp_tools_search)) },
+                placeholder = stringResource(Res.string.mcp_tools_search),
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.size(8.dp))
@@ -421,7 +414,7 @@ private fun McpToolsPane(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(6.dp))
                             .background(
-                                if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                                if (isSelected) JwTheme.colors.selection else Color.Transparent,
                             )
                             .clickable { onSelectTool(row.key) }
                             .padding(horizontal = 10.dp, vertical = 8.dp),
@@ -434,11 +427,7 @@ private fun McpToolsPane(
                                 fontFamily = FontFamily.Monospace,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                color = if (isSelected) {
-                                    MaterialTheme.colorScheme.onSecondaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                             // The short name alone is ambiguous once plugins are mixed, so every row
                             // names the plugin that publishes the tool.
@@ -598,7 +587,7 @@ private fun McpCallDetailPane(
             Icon(
                 imageVector = if (record.succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
                 contentDescription = null,
-                tint = if (record.succeeded) AiOperatingAccentColor else MaterialTheme.colorScheme.error,
+                tint = if (record.succeeded) JwTheme.colors.aiAccent else MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(16.dp),
             )
             Text(
@@ -812,7 +801,7 @@ private fun McpCallHistoryRow(
             Icon(
                 imageVector = if (record.succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
                 contentDescription = statusLabel,
-                tint = if (record.succeeded) AiOperatingAccentColor else MaterialTheme.colorScheme.error,
+                tint = if (record.succeeded) JwTheme.colors.aiAccent else MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(16.dp),
             )
             Text(
