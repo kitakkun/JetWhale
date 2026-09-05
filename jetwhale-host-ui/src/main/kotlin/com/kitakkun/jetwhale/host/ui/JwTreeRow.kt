@@ -57,7 +57,7 @@ public fun JwTreeRow(
     val colors = JwTheme.colors
     val background = when {
         selected -> colors.selection
-        hovered -> colors.hover
+        hovered && enabled -> colors.hover
         else -> Color.Transparent
     }
     val contentColor = if (enabled) MaterialTheme.colorScheme.onSurface else colors.textDisabled
@@ -67,7 +67,7 @@ public fun JwTreeRow(
             .fillMaxWidth()
             .height(24.dp)
             .background(background)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
             .padding(start = JwSpacing.xs + TreeIndent * depth, end = JwSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.xs),
@@ -75,7 +75,7 @@ public fun JwTreeRow(
         Box(
             modifier = Modifier
                 .size(16.dp)
-                .then(if (expandable) Modifier.clickable(onClick = onToggleExpanded) else Modifier),
+                .then(if (expandable) Modifier.clickable(enabled = enabled, onClick = onToggleExpanded) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
             if (expandable) {

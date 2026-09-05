@@ -30,6 +30,7 @@ import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
+import com.kitakkun.jetwhale.host.settings.close
 import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
 import com.kitakkun.jetwhale.host.settings.component.SwitchSettingsItemView
 import com.kitakkun.jetwhale.host.settings.component.TextFieldSettingsItemView
@@ -107,6 +108,7 @@ fun ServerSettingsScreen(
     if (uiState.showDebugApplyConfirmDialog) {
         JwDialog(
             onDismissRequest = onDismissApplyDebugServerSettingsDialog,
+            closeLabel = stringResource(Res.string.close),
             title = stringResource(Res.string.debug_server_port_apply_confirm_title),
             content = {
                 Text(
@@ -144,6 +146,7 @@ fun ServerSettingsScreen(
     if (uiState.showMcpApplyConfirmDialog) {
         JwDialog(
             onDismissRequest = onDismissApplyMcpPortDialog,
+            closeLabel = stringResource(Res.string.close),
             title = stringResource(Res.string.mcp_server_port_apply_confirm_title),
             content = {
                 Text(
@@ -174,6 +177,7 @@ fun ServerSettingsScreen(
         val clipboardManager = LocalClipboardManager.current
         JwDialog(
             onDismissRequest = onDismissCertificateDetailDialog,
+            closeLabel = stringResource(Res.string.close),
             title = stringResource(Res.string.ssl_certificate_detail_title),
             content = {
                 Text(

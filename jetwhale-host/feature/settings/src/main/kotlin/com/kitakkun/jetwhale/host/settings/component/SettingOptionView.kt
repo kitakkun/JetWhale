@@ -96,7 +96,7 @@ fun TextFieldSettingsItemView(
         JwTextField(
             value = text,
             onValueChange = onTextChange,
-            enabled = !readonly,
+            readOnly = readonly,
             modifier = Modifier.width(SettingsControlWidth),
         )
     }

@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.MavenCoordinates
 import com.kitakkun.jetwhale.host.model.WellKnownMavenRepositories
 import com.kitakkun.jetwhale.host.settings.Res
+import com.kitakkun.jetwhale.host.settings.close
 import com.kitakkun.jetwhale.host.settings.dialog_cancel
 import com.kitakkun.jetwhale.host.settings.maven_install_artifact_id_label
 import com.kitakkun.jetwhale.host.settings.maven_install_dialog_description
@@ -63,6 +64,7 @@ fun MavenPluginInstallDialog(
 
     JwDialog(
         onDismissRequest = onDismissRequest,
+        closeLabel = stringResource(Res.string.close),
         title = stringResource(Res.string.maven_install_dialog_title),
         content = {
             Column(

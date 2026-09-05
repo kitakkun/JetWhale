@@ -41,6 +41,7 @@ import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.add_plugin_from_file
 import com.kitakkun.jetwhale.host.settings.approve_untrusted_plugin
+import com.kitakkun.jetwhale.host.settings.close
 import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
 import com.kitakkun.jetwhale.host.settings.component.SwitchSettingsItemView
 import com.kitakkun.jetwhale.host.settings.dialog_ok
@@ -85,6 +86,7 @@ fun PluginSettingsScreen(
     if (showFailedJarsDialog) {
         JwDialog(
             onDismissRequest = { showFailedJarsDialog = false },
+            closeLabel = stringResource(Res.string.close),
             title = stringResource(Res.string.failed_to_load_plugins),
             content = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -136,6 +136,7 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
     var draft by remember(initial.id) { mutableStateOf(initial) }
     JwDialog(
         onDismissRequest = onDismiss,
+        closeLabel = "Close",
         title = "Mock rule",
         confirmButton = {
             JwButton(

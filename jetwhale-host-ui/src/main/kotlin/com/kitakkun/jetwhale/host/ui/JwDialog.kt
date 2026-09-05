@@ -25,11 +25,14 @@ import androidx.compose.ui.window.DialogProperties
  * out, and a footer for the [dismissButton] and [confirmButton] in that order. Escape and a click
  * outside also dismiss it. [content] is laid out as a column with the dialog's padding; long
  * content scrolls only if the caller makes it.
+ *
+ * @param closeLabel the close button's tooltip and accessibility label, in the UI's language.
  */
 @Composable
 public fun JwDialog(
     title: String,
     onDismissRequest: () -> Unit,
+    closeLabel: String,
     modifier: Modifier = Modifier,
     width: Dp = 480.dp,
     confirmButton: (@Composable () -> Unit)? = null,
@@ -52,8 +55,8 @@ public fun JwDialog(
             JwToolbar(
                 title = title,
                 actions = {
-                    JwIconButton(onClick = onDismissRequest, tooltip = null) {
-                        JwIcon(imageVector = JwIcons.Close, contentDescription = "Close")
+                    JwIconButton(onClick = onDismissRequest, tooltip = closeLabel) {
+                        JwIcon(imageVector = JwIcons.Close, contentDescription = closeLabel)
                     }
                 },
             )

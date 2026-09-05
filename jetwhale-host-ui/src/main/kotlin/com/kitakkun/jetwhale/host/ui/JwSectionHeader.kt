@@ -56,22 +56,29 @@ public fun JwSectionHeader(
                     .rotate(rotation),
             )
         }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelSmall,
-            color = JwTheme.colors.textSecondary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        if (count != null) {
+        // Title and count share the remaining width, the count hugging the title; anything
+        // trailing keeps its own size at the far end.
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.xs),
+        ) {
             Text(
-                text = count.toString(),
+                text = title,
                 style = MaterialTheme.typography.labelSmall,
-                color = JwTheme.colors.textDisabled,
+                color = JwTheme.colors.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
+            if (count != null) {
+                Text(
+                    text = count.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = JwTheme.colors.textDisabled,
+                )
+            }
         }
-        Row(modifier = Modifier.weight(1f)) {}
         trailing?.invoke(this)
     }
 }
