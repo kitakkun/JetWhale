@@ -17,6 +17,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwBannerKt {
 
 public final class com/kitakkun/jetwhale/host/ui/JwButtonKt {
 	public static final fun JwButton (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Lcom/kitakkun/jetwhale/host/ui/JwButtonStyle;Lcom/kitakkun/jetwhale/host/ui/JwTone;ZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun JwButton (Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Lcom/kitakkun/jetwhale/host/ui/JwButtonStyle;Lcom/kitakkun/jetwhale/host/ui/JwTone;ZLkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwButtonStyle : java/lang/Enum {

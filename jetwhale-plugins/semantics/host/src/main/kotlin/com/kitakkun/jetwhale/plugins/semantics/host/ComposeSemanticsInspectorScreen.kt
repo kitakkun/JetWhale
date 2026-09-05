@@ -10,11 +10,14 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -189,11 +192,19 @@ private fun Toolbar(
         verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
     ) {
         JwButton(
-            text = if (capturing) "Capturing…" else "Refresh",
             onClick = onRefresh,
             enabled = !capturing,
             style = JwButtonStyle.Primary,
-        )
+        ) {
+            if (capturing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(12.dp),
+                    strokeWidth = 1.5f.dp,
+                    color = LocalContentColor.current,
+                )
+            }
+            Text(if (capturing) "Capturing…" else "Refresh")
+        }
         JwCheckbox(checked = autoRefresh, onCheckedChange = onAutoRefreshChange, label = "Auto")
         JwCheckbox(checked = merged, onCheckedChange = onMergedChange, label = "Merged")
         JwCheckbox(checked = interactiveOnly, onCheckedChange = onInteractiveOnlyChange, label = "Interactive only")

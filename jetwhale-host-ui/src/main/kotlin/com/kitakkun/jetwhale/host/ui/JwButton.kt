@@ -7,9 +7,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,6 +57,42 @@ public fun JwButton(
     enabled: Boolean = true,
     leadingIcon: (@Composable () -> Unit)? = null,
 ) {
+    JwButton(
+        onClick = onClick,
+        modifier = modifier,
+        style = style,
+        tone = tone,
+        enabled = enabled,
+    ) {
+        leadingIcon?.invoke()
+        Text(
+            text = text,
+            maxLines = 1,
+        )
+    }
+}
+
+/**
+ * A compact button of [JwMetrics.controlHeight] whose content is laid out by the caller: a label
+ * with a count, a spinner while an action runs, an icon after the text. The content is a row with
+ * [JwSpacing.small] between children, drawn in the button's content color and label style; plain
+ * [Text] inside it needs no styling of its own.
+ *
+ * @param onClick what the button does.
+ * @param style how prominent the button is; see [JwButtonStyle].
+ * @param tone [JwTone.Accent] is the ordinary button; [JwTone.Error] marks a destructive action.
+ * @param enabled false greys the button out and ignores clicks.
+ * @param content the button's row content.
+ */
+@Composable
+public fun JwButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    style: JwButtonStyle = JwButtonStyle.Secondary,
+    tone: JwTone = JwTone.Accent,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
     val scheme = MaterialTheme.colorScheme
@@ -97,13 +135,10 @@ public fun JwButton(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
     ) {
-        CompositionLocalProvider(LocalContentColor provides contentColor) {
-            leadingIcon?.invoke()
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-            )
-        }
+        CompositionLocalProvider(
+            LocalContentColor provides contentColor,
+            LocalTextStyle provides MaterialTheme.typography.labelLarge,
+            content = { content() },
+        )
     }
 }
