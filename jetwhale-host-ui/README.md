@@ -69,8 +69,10 @@ does less, the name differs so the difference is not a surprise.
   read the same semantics tree, so an agent driving a plugin sees the same names and states a
   screen reader would.
 - **Interaction feedback**: components suppress the Material ripple and draw a hover tint and an
-  accent focus ring instead. `Modifier.jwFocusRing(interactionSource, shape)` gives a custom
-  control the same ring.
+  accent focus ring instead. The ring marks whatever holds focus — a click moves focus on desktop,
+  so the control last clicked keeps it until focus moves on. `Modifier.jwFocusRing(interactionSource,
+  shape)` gives a custom control the same ring; it is drawn just outside the bounds, so a parent
+  that clips (`JwPanel`, `JwDialog`) trims it on a row flush with the edge.
 - **Disabled vs muted**: `enabled = false` removes interaction and greys the row; `muted = true`
   (on `JwListItem` and `JwTreeRow`) only de-emphasizes it — for an item that is present but not
   current.

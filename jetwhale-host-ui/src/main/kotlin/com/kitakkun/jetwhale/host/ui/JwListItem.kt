@@ -88,8 +88,9 @@ public fun JwListItem(
  * A selectable row whose content is laid out by the caller — several columns, a monospace name
  * over a secondary line, a badge that is not at the end. It keeps everything the text overload
  * has: hover and selection tints, the focus ring, [muted] and [enabled], and `selected` in
- * semantics. The content is a row with [JwSpacing.medium] between children, at least
- * [JwMetrics.controlHeight] tall, drawn in the row's content color.
+ * semantics. The content is a row with [JwSpacing.medium] between children, drawn in the row's
+ * content color. The row is [JwMetrics.controlHeight] tall unless the content is taller — a
+ * default-sized [JwIconButton] is, so use `size = 20.dp` for one inside a row.
  *
  * @param selected whether this is the current item.
  * @param onClick what selecting the row does.
@@ -133,7 +134,7 @@ public fun JwListItem(
                 onClick = onClick,
             )
             .semantics { this.selected = selected }
-            .padding(horizontal = JwSpacing.medium, vertical = JwSpacing.tiny),
+            .padding(horizontal = JwSpacing.medium),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {

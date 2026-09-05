@@ -39,9 +39,13 @@ private val LocalJwExtendedColors = staticCompositionLocalOf<JwExtendedColors> {
 public fun JwTheme(
     colorScheme: ColorScheme,
     darkTheme: Boolean,
-    extendedColors: JwExtendedColors = JwExtendedColors.from(colorScheme.withUnspecifiedFilled(darkTheme), darkTheme),
+    extendedColors: JwExtendedColors = remember(colorScheme, darkTheme) {
+        JwExtendedColors.from(colorScheme.withUnspecifiedFilled(darkTheme), darkTheme)
+    },
     content: @Composable () -> Unit,
 ) {
+    // Keyed on identity: ColorScheme has no structural equals, so callers must pass a stable
+    // instance (JwColorSchemes does) or accept a re-theme on every recomposition.
     val resolvedScheme = remember(colorScheme, darkTheme) { colorScheme.withUnspecifiedFilled(darkTheme) }
     MaterialTheme(
         colorScheme = resolvedScheme,

@@ -112,17 +112,43 @@ public class JwExtendedColors internal constructor(
         onAiAccent = onAiAccent,
     )
 
-    override fun equals(other: Any?): Boolean = other is JwExtendedColors && other.fields() == fields()
+    override fun equals(other: Any?): Boolean = other is JwExtendedColors &&
+        sidebarBackground == other.sidebarBackground &&
+        toolbarBackground == other.toolbarBackground &&
+        border == other.border &&
+        hover == other.hover &&
+        selection == other.selection &&
+        onSelection == other.onSelection &&
+        textSecondary == other.textSecondary &&
+        textDisabled == other.textDisabled &&
+        success == other.success &&
+        onSuccess == other.onSuccess &&
+        successContainer == other.successContainer &&
+        onSuccessContainer == other.onSuccessContainer &&
+        warning == other.warning &&
+        onWarning == other.onWarning &&
+        warningContainer == other.warningContainer &&
+        onWarningContainer == other.onWarningContainer &&
+        info == other.info &&
+        onInfo == other.onInfo &&
+        infoContainer == other.infoContainer &&
+        onInfoContainer == other.onInfoContainer &&
+        aiAccent == other.aiAccent &&
+        onAiAccent == other.onAiAccent
 
-    override fun hashCode(): Int = fields().hashCode()
-
-    private fun fields(): List<Color> = listOf(
-        sidebarBackground, toolbarBackground, border, hover, selection, onSelection, textSecondary, textDisabled,
-        success, onSuccess, successContainer, onSuccessContainer,
-        warning, onWarning, warningContainer, onWarningContainer,
-        info, onInfo, infoContainer, onInfoContainer,
-        aiAccent, onAiAccent,
-    )
+    override fun hashCode(): Int {
+        var result = sidebarBackground.hashCode()
+        for (color in arrayOf(
+            toolbarBackground, border, hover, selection, onSelection, textSecondary, textDisabled,
+            success, onSuccess, successContainer, onSuccessContainer,
+            warning, onWarning, warningContainer, onWarningContainer,
+            info, onInfo, infoContainer, onInfoContainer,
+            aiAccent, onAiAccent,
+        )) {
+            result = 31 * result + color.hashCode()
+        }
+        return result
+    }
 
     /** Factory for the extended colors; [JwTheme] calls [from] for the scheme it applies. */
     public companion object {
