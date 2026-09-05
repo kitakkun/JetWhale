@@ -38,6 +38,7 @@ include(":jetwhale-agent-sdk")
 include(":jetwhale-agent-runtime")
 
 include(":jetwhale-host-sdk")
+include(":jetwhale-host-ui")
 
 include(":jetwhale-host:app")
 include(":jetwhale-host:core:data")
