@@ -301,7 +301,7 @@ private fun RootHeaderRow(row: TreeRow.RootHeader) {
             Text(
                 text = "${row.nodeCount} nodes · ×${row.root.density}",
                 style = MaterialTheme.typography.labelSmall,
-                color = JwTheme.colors.textDisabled,
+                color = JwTheme.colors.textSecondary,
             )
         },
         modifier = Modifier.background(JwTheme.colors.sidebarBackground),
@@ -336,7 +336,7 @@ private fun NodeRow(
                 Text(
                     text = "#${row.node.id}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = JwTheme.colors.textDisabled,
+                    color = JwTheme.colors.textSecondary,
                 )
             }
         },

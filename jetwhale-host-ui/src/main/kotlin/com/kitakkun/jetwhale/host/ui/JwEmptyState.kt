@@ -46,7 +46,7 @@ public fun JwEmptyState(
         verticalArrangement = Arrangement.spacedBy(JwSpacing.medium, Alignment.CenterVertically),
     ) {
         if (icon != null) {
-            CompositionLocalProvider(LocalContentColor provides JwTheme.colors.textDisabled) {
+            CompositionLocalProvider(LocalContentColor provides JwTheme.colors.textSecondary) {
                 icon()
             }
         }
@@ -60,7 +60,7 @@ public fun JwEmptyState(
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
-                color = JwTheme.colors.textDisabled,
+                color = JwTheme.colors.textSecondary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.widthIn(max = JwEmptyStateDefaults.textMaxWidth),
             )

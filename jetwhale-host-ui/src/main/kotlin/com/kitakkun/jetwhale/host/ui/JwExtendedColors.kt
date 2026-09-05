@@ -24,9 +24,12 @@ public class JwExtendedColors internal constructor(
     public val selection: Color,
     /** Text on [selection]. */
     public val onSelection: Color,
-    /** De-emphasized text: descriptions, timestamps, secondary columns. */
+    /** De-emphasized text that must still be read: descriptions, placeholders, counts, hints. */
     public val textSecondary: Color,
-    /** Text of a disabled control. */
+    /**
+     * Text of a disabled control — and only that. It sits below the 4.5:1 contrast text needs, as
+     * a disabled control may; a placeholder, a count or a hint is [textSecondary].
+     */
     public val textDisabled: Color,
     /** Strong green: a passing state, a healthy connection, a 2xx status. */
     public val success: Color,
@@ -169,15 +172,15 @@ public class JwExtendedColors internal constructor(
                 toolbarBackground = colorScheme.surface.takeOrElse { paper },
                 border = colorScheme.outlineVariant.takeOrElse { onSurface.copy(alpha = 0.15f) },
                 hover = onSurface.copy(alpha = if (darkTheme) 0.08f else 0.05f),
-                selection = primary.copy(alpha = if (darkTheme) 0.28f else 0.14f),
+                selection = primary.copy(alpha = if (darkTheme) 0.24f else 0.14f),
                 onSelection = onSurface,
                 textSecondary = colorScheme.onSurfaceVariant.takeOrElse { onSurface.copy(alpha = 0.7f) },
                 textDisabled = onSurface.copy(alpha = 0.38f),
-                success = if (darkTheme) Color(0xFF5DBB63) else Color(0xFF1E8E3E),
+                success = if (darkTheme) Color(0xFF5DBB63) else Color(0xFF1B8038),
                 onSuccess = if (darkTheme) Color(0xFF07300F) else Color(0xFFFFFFFF),
                 successContainer = if (darkTheme) Color(0xFF1B4423) else Color(0xFFD9F0DE),
                 onSuccessContainer = if (darkTheme) Color(0xFFC9EFD0) else Color(0xFF0B3D18),
-                warning = if (darkTheme) Color(0xFFE5A43B) else Color(0xFFB26A00),
+                warning = if (darkTheme) Color(0xFFE5A43B) else Color(0xFF9F5E00),
                 onWarning = if (darkTheme) Color(0xFF3A2400) else Color(0xFFFFFFFF),
                 warningContainer = if (darkTheme) Color(0xFF4A3410) else Color(0xFFFBEBCF),
                 onWarningContainer = if (darkTheme) Color(0xFFFFE2B0) else Color(0xFF4A2C00),

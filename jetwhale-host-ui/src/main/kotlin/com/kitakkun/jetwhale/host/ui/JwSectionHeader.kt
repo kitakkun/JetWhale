@@ -135,7 +135,7 @@ public fun JwSectionHeader(
                 Text(
                     text = count.toString(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = JwTheme.colors.textDisabled,
+                    color = JwTheme.colors.textSecondary,
                 )
             }
         }

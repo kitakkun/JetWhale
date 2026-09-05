@@ -84,6 +84,11 @@ does less, the name differs so the difference is not a surprise.
   so the control last clicked keeps it until focus moves on. `Modifier.jwFocusRing(interactionSource,
   shape)` gives a custom control the same ring; it is drawn just outside the bounds, so a parent
   that clips (`JwPanel`, `JwDialog`) trims it on a row flush with the edge.
+- **Contrast**: the built-in schemes meet WCAG AA — 4.5:1 for every text color on the surfaces
+  it is drawn on, including the tones, and 3:1 for control borders and the focus ring. Hairline
+  dividers are decorative and lighter than that on purpose. `textDisabled` is the one color below
+  the text threshold and is used only on disabled controls; anything quiet but readable
+  (placeholders, counts, hints) is `textSecondary`.
 - **Disabled vs muted**: `enabled = false` removes interaction and greys the row; `muted = true`
   (on `JwListItem` and `JwTreeRow`) only de-emphasizes it — for an item that is present but not
   current.

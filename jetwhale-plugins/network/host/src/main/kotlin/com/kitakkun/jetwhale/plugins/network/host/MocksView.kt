@@ -74,7 +74,7 @@ internal fun MocksTab(
             Text(
                 text = "No mock rules. Add one to override matching responses.",
                 style = MaterialTheme.typography.bodySmall,
-                color = JwTheme.colors.textDisabled,
+                color = JwTheme.colors.textSecondary,
             )
         }
         rules.forEach { rule ->

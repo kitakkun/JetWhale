@@ -123,7 +123,7 @@ public fun JwTextField(
                             Text(
                                 text = placeholder,
                                 style = textStyle,
-                                color = colors.textDisabled,
+                                color = colors.textSecondary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )

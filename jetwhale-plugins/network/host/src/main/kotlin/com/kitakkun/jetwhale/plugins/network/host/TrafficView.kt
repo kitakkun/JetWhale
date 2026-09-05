@@ -404,7 +404,7 @@ private fun EmptyHint(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.bodySmall,
-        color = JwTheme.colors.textDisabled,
+        color = JwTheme.colors.textSecondary,
     )
 }
 

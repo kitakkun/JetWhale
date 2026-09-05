@@ -40,7 +40,7 @@ public fun JwFormField(
             Text(
                 text = supportingText,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isError) MaterialTheme.colorScheme.error else JwTheme.colors.textDisabled,
+                color = if (isError) MaterialTheme.colorScheme.error else JwTheme.colors.textSecondary,
             )
         }
     }
