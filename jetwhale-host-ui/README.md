@@ -27,6 +27,30 @@ Every component is sized for a desktop tool window — `JwMetrics.controlHeight`
 13sp body text, 4dp corners — and takes its colors from the theme, so it follows the user's
 light, dark or custom scheme without any work on the caller's side.
 
+## Coming from Material 3
+
+Where a component stands in for a Material one it keeps the Material name; where it deliberately
+does less, the name differs so the difference is not a surprise.
+
+| Material 3 | jetwhale-host-ui | Difference |
+|------------|------------------|------------|
+| `Button` / `OutlinedButton` / `TextButton` | `JwButton` with `style = Primary` / `Secondary` / `Text` | One composable, 28dp tall, plus `tone` for destructive actions |
+| `IconButton` | `JwIconButton` | Takes a `tooltip`, which is also its accessibility name |
+| `Switch`, `Checkbox` | `JwSwitch`, `JwCheckbox` | Compact; `JwCheckbox` includes its label |
+| `OutlinedTextField` | `JwTextField`, `JwSearchField` | Label lives in `JwFormField` above the field, not inside it |
+| `ExposedDropdownMenuBox` | `JwDropdownButton` | Caller owns `expanded`; a plain button, not a text field |
+| `DropdownMenu`, `DropdownMenuItem` | `JwDropdownMenu`, `JwMenuItem` | 26dp rows; `selected` draws a check mark |
+| `TopAppBar` | `JwToolbar` | 36dp bar for a pane, no scroll behavior, no navigation icon slot |
+| `TabRow` / `SecondaryTabRow`, `Tab` | `JwTabRow`, `JwTab` | Tabs size to their label; optional `count` |
+| `Card` / `OutlinedCard` | `JwPanel` | Optional header strip with actions |
+| `ListItem`, `NavigationDrawerItem` | `JwListItem` | 28dp; one line plus an optional supporting line |
+| — | `JwTreeRow` | Indented, expandable list row |
+| `AssistChip` / `FilterChip`, `Badge` | `JwTag`, `JwStatusDot` | 18dp tag with a `JwTone`; 8dp dot |
+| `AlertDialog` | `JwDialog` (`JwDialogSurface` for custom chrome) | Title bar with a close button, footer with dismiss/confirm |
+| `Snackbar` (informational use) | `JwBanner` | Inline strip, not a floating overlay |
+| `HorizontalDivider`, `VerticalDivider` | `JwHorizontalDivider`, `JwVerticalDivider` | Same |
+| `MaterialTheme` | `JwTheme` | Applies Material with the tool-window scale, plus `JwTheme.colors` |
+
 ## Conventions
 
 - **Parameter order**: required data first, then `modifier`, then options with defaults, then

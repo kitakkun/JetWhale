@@ -439,6 +439,10 @@ reads as one more pane of the same tool rather than a foreign app embedded in it
 | Rows and labels | `JwListItem`, `JwKeyValueRow`, `JwTag`, `JwStatusDot`, `JwBanner`, `JwEmptyState` |
 | Spacing and sizes | `JwSpacing`, `JwMetrics`; `JwTypography.code` for monospace text |
 
+Coming from Material 3? The library's
+[README](https://github.com/kitakkun/JetWhale/blob/main/jetwhale-host-ui/README.md) maps each
+Material component to its `Jw` counterpart and says where the two differ.
+
 Every component is sized for a desktop tool window — 28dp controls, 13sp body text, 4dp corners —
 and takes its colors from the theme, so it follows the user's light/dark/custom choice without any
 work on your side. The bundled [Network Inspector](/guide/network-inspector) is a worked example.
