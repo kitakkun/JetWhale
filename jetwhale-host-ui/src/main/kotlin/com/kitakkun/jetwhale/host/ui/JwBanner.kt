@@ -44,9 +44,9 @@ public fun JwBanner(
                 .fillMaxWidth()
                 .heightIn(min = 32.dp)
                 .background(tone.containerColor)
-                .padding(horizontal = JwSpacing.lg, vertical = JwSpacing.xxs),
+                .padding(horizontal = JwSpacing.large, vertical = JwSpacing.tiny),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
             CompositionLocalProvider(LocalContentColor provides tone.onContainerColor) {
                 icon?.invoke()

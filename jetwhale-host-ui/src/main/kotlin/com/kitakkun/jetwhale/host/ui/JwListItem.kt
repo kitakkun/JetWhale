@@ -68,7 +68,7 @@ public fun JwListItem(
                 if (supportingText == null) {
                     Modifier.height(JwMetrics.controlHeight)
                 } else {
-                    Modifier.padding(vertical = JwSpacing.xs)
+                    Modifier.padding(vertical = JwSpacing.extraSmall)
                 },
             )
             .clip(MaterialTheme.shapes.small)
@@ -79,9 +79,9 @@ public fun JwListItem(
                 enabled = enabled,
                 onClick = onClick,
             )
-            .padding(horizontal = JwSpacing.md),
+            .padding(horizontal = JwSpacing.medium),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
         CompositionLocalProvider(LocalContentColor provides contentColor) {
             leading?.invoke()

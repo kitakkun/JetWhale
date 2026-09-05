@@ -76,9 +76,9 @@ public fun JwDropdownButton(
                     role = Role.DropdownList,
                     onClick = { onExpandedChange(!expanded) },
                 )
-                .padding(start = JwSpacing.md, end = JwSpacing.xs),
+                .padding(start = JwSpacing.medium, end = JwSpacing.extraSmall),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(JwSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
         ) {
             CompositionLocalProvider(LocalContentColor provides contentColor) {
                 leading?.invoke()
@@ -126,7 +126,7 @@ public fun JwDropdownMenu(
             .widthIn(min = 160.dp)
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(JwMetrics.borderWidth, JwTheme.colors.border, MaterialTheme.shapes.small)
-            .padding(JwSpacing.xs),
+            .padding(JwSpacing.extraSmall),
         shape = MaterialTheme.shapes.small,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shadowElevation = 6.dp,
@@ -178,9 +178,9 @@ public fun JwMenuItem(
                 role = Role.Button,
                 onClick = onClick,
             )
-            .padding(horizontal = JwSpacing.md),
+            .padding(horizontal = JwSpacing.medium),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
         CompositionLocalProvider(LocalContentColor provides contentColor) {
             Box(modifier = Modifier.size(JwMetrics.iconSize), contentAlignment = Alignment.Center) {

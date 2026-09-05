@@ -87,9 +87,9 @@ fun ShrunkToolingDrawerView(
         }
         JwHorizontalDivider()
         Column(
-            modifier = Modifier.padding(vertical = JwSpacing.xs),
+            modifier = Modifier.padding(vertical = JwSpacing.extraSmall),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(JwSpacing.xxs),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
         ) {
             RailSessionButton(
                 sessions = sessions,
@@ -102,8 +102,8 @@ fun ShrunkToolingDrawerView(
         LazyColumn(
             modifier = Modifier.weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally,
-            contentPadding = PaddingValues(vertical = JwSpacing.xs),
-            verticalArrangement = Arrangement.spacedBy(JwSpacing.xxs),
+            contentPadding = PaddingValues(vertical = JwSpacing.extraSmall),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
         ) {
             items(plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }, key = { it.id }) {
                 val selected = selectedPluginId == it.id && selectedSessionId != null
@@ -139,9 +139,9 @@ fun ShrunkToolingDrawerView(
         }
         JwHorizontalDivider()
         Column(
-            modifier = Modifier.padding(vertical = JwSpacing.xs),
+            modifier = Modifier.padding(vertical = JwSpacing.extraSmall),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(JwSpacing.xxs),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
         ) {
             // Opens the browser unscoped, so the tools an agent can reach are visible without first
             // finding a plugin that happens to publish some.

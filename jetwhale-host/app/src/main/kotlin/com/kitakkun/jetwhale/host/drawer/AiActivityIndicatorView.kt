@@ -182,8 +182,8 @@ fun AiActivityIndicatorView(
             modifier = modifier.fillMaxWidth(),
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = JwSpacing.md, vertical = JwSpacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
+                modifier = Modifier.padding(horizontal = JwSpacing.medium, vertical = JwSpacing.small),
+                horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 JwIcon(

@@ -36,9 +36,9 @@ public fun JwToolbar(
                 .fillMaxWidth()
                 .height(JwMetrics.toolbarHeight)
                 .background(JwTheme.colors.toolbarBackground)
-                .padding(horizontal = JwSpacing.md),
+                .padding(horizontal = JwSpacing.medium),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(JwSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
         ) {
             leading?.invoke(this)
             if (title != null) {
@@ -49,7 +49,7 @@ public fun JwToolbar(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = JwSpacing.xs),
+                        .padding(horizontal = JwSpacing.extraSmall),
                 )
             } else {
                 Row(modifier = Modifier.weight(1f)) {}

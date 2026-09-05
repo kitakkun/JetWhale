@@ -138,7 +138,7 @@ private fun BackStackPane(
 ) {
     Column(modifier.fillMaxSize()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.lg, vertical = JwSpacing.md),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.large, vertical = JwSpacing.medium),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -155,8 +155,8 @@ private fun BackStackPane(
         JwHorizontalDivider()
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(JwSpacing.md),
-            contentPadding = PaddingValues(JwSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
+            contentPadding = PaddingValues(JwSpacing.large),
         ) {
             itemsIndexed(snapshot.entries) { index, entry ->
                 BackStackEntryCard(
@@ -183,7 +183,7 @@ private fun BackStackEntryCard(
     onCopyKeyToEditor: (JsonElement) -> Unit,
 ) {
     JwPanel {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.md)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
             Text("#$index", style = MaterialTheme.typography.labelMedium, color = JwTheme.colors.textSecondary)
             Text(entry.typeName, style = MaterialTheme.typography.titleSmall)
             if (isCurrent) {
@@ -196,7 +196,7 @@ private fun BackStackEntryCard(
         )
         // The actions have to wrap: a plugin pane can be narrow, and a row that overflows
         // squeezes the last label into one character per line instead of moving it down.
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(JwSpacing.xs)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
             if (!isCurrent) {
                 JwButton(
                     text = "Pop to here",
@@ -244,8 +244,8 @@ private fun PushPane(
     }
 
     Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.lg),
-        verticalArrangement = Arrangement.spacedBy(JwSpacing.lg),
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
     ) {
         JwFormField(
             label = "Push a NavKey",
@@ -262,7 +262,7 @@ private fun PushPane(
             )
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.md)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
             JwButton(
                 text = "Push",
                 onClick = { withParsedKey { onApplyOperation(NavBackStackOperation.Push(key = it, index = null)) } },

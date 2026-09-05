@@ -41,7 +41,7 @@ public fun JwTooltip(
                 Text(
                     text = text,
                     style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.padding(horizontal = JwSpacing.xxs),
+                    modifier = Modifier.padding(horizontal = JwSpacing.tiny),
                 )
             }
         },

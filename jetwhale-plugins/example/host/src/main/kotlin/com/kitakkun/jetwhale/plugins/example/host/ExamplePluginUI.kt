@@ -61,7 +61,7 @@ fun ExamplePluginView(
                 JwButton(text = "Throw UI error", onClick = onClickTriggerUIError, tone = JwTone.Error)
             },
         )
-        Row(modifier = Modifier.fillMaxWidth().padding(JwSpacing.lg)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(JwSpacing.large)) {
             JwFormField(label = "Persisted input", supportingText = "Saved with rememberPersistent; survives reloads and restarts.") {
                 JwTextField(
                     value = persistedInput,
@@ -79,8 +79,8 @@ fun ExamplePluginView(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(JwSpacing.lg),
-                verticalArrangement = Arrangement.spacedBy(JwSpacing.xs),
+                contentPadding = PaddingValues(JwSpacing.large),
+                verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
             ) {
                 items(eventLogs) { log ->
                     Text(text = log, style = JwTypography.code)

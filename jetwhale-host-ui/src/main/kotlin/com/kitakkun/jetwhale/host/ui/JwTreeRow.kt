@@ -78,9 +78,9 @@ public fun JwTreeRow(
             .height(24.dp)
             .background(background)
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
-            .padding(start = JwSpacing.xs + TreeIndent * depth, end = JwSpacing.md),
+            .padding(start = JwSpacing.extraSmall + TreeIndent * depth, end = JwSpacing.medium),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
     ) {
         Box(
             modifier = Modifier

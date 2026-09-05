@@ -50,7 +50,7 @@ fun SessionSelectorView(
         devices.firstOrNull { it.key == selectedDeviceId }?.value.orEmpty()
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.xs)) {
+    Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
         DeviceSelector(
             devices = devices,
             selectedDeviceId = selectedDeviceId,

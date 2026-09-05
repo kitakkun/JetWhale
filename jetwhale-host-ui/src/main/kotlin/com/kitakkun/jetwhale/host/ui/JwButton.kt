@@ -93,9 +93,9 @@ public fun JwButton(
                 role = Role.Button,
                 onClick = onClick,
             )
-            .padding(horizontal = JwSpacing.lg),
+            .padding(horizontal = JwSpacing.large),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
     ) {
         CompositionLocalProvider(LocalContentColor provides contentColor) {
             leadingIcon?.invoke()

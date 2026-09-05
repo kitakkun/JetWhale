@@ -40,8 +40,8 @@ fun InfoScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = JwSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(JwSpacing.xs),
+                .padding(vertical = JwSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Image(
@@ -49,7 +49,7 @@ fun InfoScreen(
                 contentDescription = null,
                 modifier = Modifier
                     .size(72.dp)
-                    .padding(bottom = JwSpacing.md),
+                    .padding(bottom = JwSpacing.medium),
             )
             Text(
                 text = stringResource(Res.string.app_name),

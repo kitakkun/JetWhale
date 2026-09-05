@@ -26,13 +26,13 @@ import androidx.compose.ui.text.style.TextOverflow
  * @param title the header strip's text; omit it for an untitled box.
  * @param contentPadding the space between the border and [content].
  * @param headerActions controls at the far end of the header strip.
- * @param content the body, laid out as a column with [JwSpacing.md] between children.
+ * @param content the body, laid out as a column with [JwSpacing.medium] between children.
  */
 @Composable
 public fun JwPanel(
     modifier: Modifier = Modifier,
     title: String? = null,
-    contentPadding: PaddingValues = PaddingValues(JwSpacing.lg),
+    contentPadding: PaddingValues = PaddingValues(JwSpacing.large),
     headerActions: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -49,9 +49,9 @@ public fun JwPanel(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                    .padding(horizontal = JwSpacing.lg, vertical = JwSpacing.sm),
+                    .padding(horizontal = JwSpacing.large, vertical = JwSpacing.small),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
             ) {
                 Text(
                     text = title,
@@ -66,7 +66,7 @@ public fun JwPanel(
         }
         Column(
             modifier = Modifier.padding(contentPadding),
-            verticalArrangement = Arrangement.spacedBy(JwSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
             content = content,
         )
     }

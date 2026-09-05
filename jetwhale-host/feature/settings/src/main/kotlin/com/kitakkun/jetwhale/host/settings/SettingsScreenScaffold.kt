@@ -29,7 +29,7 @@ import com.kitakkun.jetwhale.host.ui.JwToolbar
 import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
 import org.jetbrains.compose.resources.stringResource
 
-val SettingsScreenScaffoldPageContentPadding = PaddingValues(JwSpacing.xl)
+val SettingsScreenScaffoldPageContentPadding = PaddingValues(JwSpacing.extraLarge)
 
 /** Wide enough for the longest label without wrapping, narrow enough to leave the detail room. */
 private val MenuPaneWidth = 200.dp
@@ -69,7 +69,7 @@ fun SettingsScreenScaffold(
                     // The list grows downward as sections are added, which is the point of it — so it
                     // has to scroll, or the newest entries are the ones a short window cuts off.
                     .verticalScroll(rememberScrollState())
-                    .padding(JwSpacing.xs),
+                    .padding(JwSpacing.extraSmall),
             ) {
                 SettingsScreenSection.entries.forEach { section ->
                     val expanded = section in uiState.expandedSections
@@ -77,7 +77,7 @@ fun SettingsScreenScaffold(
                         title = stringResource(section.labelTextRes),
                         expanded = expanded,
                         onToggleExpanded = { onToggleSection(section) },
-                        modifier = Modifier.padding(top = JwSpacing.xs),
+                        modifier = Modifier.padding(top = JwSpacing.extraSmall),
                     )
                     if (expanded) {
                         SettingsScreenPage.entries.filter { it.section == section }.forEach { page ->
@@ -85,7 +85,7 @@ fun SettingsScreenScaffold(
                                 text = stringResource(page.labelTextRes),
                                 selected = page == uiState.selectedPage,
                                 onClick = { onSelectPage(page) },
-                                modifier = Modifier.padding(start = JwSpacing.lg),
+                                modifier = Modifier.padding(start = JwSpacing.large),
                             )
                         }
                     }

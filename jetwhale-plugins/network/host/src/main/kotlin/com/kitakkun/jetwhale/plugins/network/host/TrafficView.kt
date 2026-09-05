@@ -124,9 +124,9 @@ internal fun TrafficTab(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(JwSpacing.md),
+                .padding(JwSpacing.medium),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
             JwSearchField(
                 value = query,
@@ -189,7 +189,7 @@ internal fun TrafficTab(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(JwSpacing.lg),
+                        .padding(JwSpacing.large),
                 ) {
                     val tx = transactions.firstOrNull { it.txId == selectedTxId }
                     if (tx == null) {
@@ -241,9 +241,9 @@ private fun TransactionRow(tx: HttpTransaction, selected: Boolean, onClick: () -
             .fillMaxWidth()
             .background(background)
             .clickable(onClick = onClick)
-            .padding(horizontal = JwSpacing.lg, vertical = JwSpacing.sm),
+            .padding(horizontal = JwSpacing.large, vertical = JwSpacing.small),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
         StatusBadge(tx)
         Text(
@@ -450,7 +450,7 @@ private fun EmptyHint(text: String) {
 private fun SectionTitle(text: String) {
     JwSectionHeader(
         title = text,
-        modifier = Modifier.padding(top = JwSpacing.xs),
+        modifier = Modifier.padding(top = JwSpacing.extraSmall),
     )
 }
 

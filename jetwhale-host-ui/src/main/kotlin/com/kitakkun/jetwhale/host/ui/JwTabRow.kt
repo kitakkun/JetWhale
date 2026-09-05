@@ -43,9 +43,9 @@ public fun JwTabRow(
                 .fillMaxWidth()
                 .height(JwMetrics.toolbarHeight - 4.dp)
                 .background(JwTheme.colors.toolbarBackground)
-                .padding(horizontal = JwSpacing.xs),
+                .padding(horizontal = JwSpacing.extraSmall),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(JwSpacing.xxs),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
             content = tabs,
         )
         JwHorizontalDivider()
@@ -92,9 +92,9 @@ public fun JwTab(
         Row(
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = JwSpacing.lg),
+                .padding(horizontal = JwSpacing.large),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(JwSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
         ) {
             Text(
                 text = text,

@@ -184,9 +184,9 @@ private fun Toolbar(
     onSearchChange: (String) -> Unit,
 ) {
     FlowRow(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.md, vertical = JwSpacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(JwSpacing.xs),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.medium, vertical = JwSpacing.small),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
     ) {
         JwButton(
             text = if (capturing) "Capturing…" else "Refresh",
@@ -216,8 +216,8 @@ private fun StatusLine(
     actionStatus: String?,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.md, vertical = JwSpacing.xs),
-        verticalArrangement = Arrangement.spacedBy(JwSpacing.xxs),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.medium, vertical = JwSpacing.extraSmall),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
     ) {
         val summary = when (snapshot) {
             null -> "Not captured yet."
@@ -347,8 +347,8 @@ private fun NodeDetail(
     var textInput by remember(node.id) { mutableStateOf(node.editableText ?: "") }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.lg),
-        verticalArrangement = Arrangement.spacedBy(JwSpacing.md),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
         Text(
             text = node.displayLabel(),
@@ -389,8 +389,8 @@ private fun NodeDetail(
 
         JwSectionHeader(title = "Run an action on the app", modifier = Modifier.padding(horizontal = 0.dp))
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(JwSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
         ) {
             ActionButton("Click", node, NodeAction.Click, rootId, onPerformAction)
             ActionButton("Long click", node, NodeAction.LongClick, rootId, onPerformAction)
@@ -401,7 +401,7 @@ private fun NodeDetail(
         }
 
         if (node.actions.contains("SetText")) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.md)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
                 JwTextField(
                     value = textInput,
                     onValueChange = { textInput = it },
@@ -419,7 +419,7 @@ private fun NodeDetail(
         }
 
         if (node.isScrollable) {
-            Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.md)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
                 JwButton(
                     text = "Scroll down",
                     onClick = {

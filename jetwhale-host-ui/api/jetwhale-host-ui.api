@@ -148,13 +148,13 @@ public final class com/kitakkun/jetwhale/host/ui/JwShapes {
 public final class com/kitakkun/jetwhale/host/ui/JwSpacing {
 	public static final field $stable I
 	public static final field INSTANCE Lcom/kitakkun/jetwhale/host/ui/JwSpacing;
-	public final fun getLg-D9Ej5fM ()F
-	public final fun getMd-D9Ej5fM ()F
-	public final fun getSm-D9Ej5fM ()F
-	public final fun getXl-D9Ej5fM ()F
-	public final fun getXs-D9Ej5fM ()F
-	public final fun getXxl-D9Ej5fM ()F
-	public final fun getXxs-D9Ej5fM ()F
+	public final fun getExtraLarge-D9Ej5fM ()F
+	public final fun getExtraSmall-D9Ej5fM ()F
+	public final fun getHuge-D9Ej5fM ()F
+	public final fun getLarge-D9Ej5fM ()F
+	public final fun getMedium-D9Ej5fM ()F
+	public final fun getSmall-D9Ej5fM ()F
+	public final fun getTiny-D9Ej5fM ()F
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwStatusDotKt {

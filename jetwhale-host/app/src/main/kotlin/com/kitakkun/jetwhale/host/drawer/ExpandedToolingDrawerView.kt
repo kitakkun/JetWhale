@@ -109,8 +109,8 @@ fun ExpandedToolingDrawerView(
         SidebarHeader(onClickShrinkDrawer = onClickShrinkDrawer)
         JwHorizontalDivider()
         Column(
-            modifier = Modifier.padding(JwSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(JwSpacing.md),
+            modifier = Modifier.padding(JwSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
             SessionSelectorView(
                 selectedSession = selectedSession,
@@ -154,9 +154,9 @@ private fun SidebarHeader(onClickShrinkDrawer: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .height(JwMetrics.toolbarHeight)
-            .padding(start = JwSpacing.lg, end = JwSpacing.xs),
+            .padding(start = JwSpacing.large, end = JwSpacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
         Image(
             painter = painterResource(Res.drawable.app_icon),
@@ -193,9 +193,9 @@ private fun SidebarFooter(
         modifier = Modifier
             .fillMaxWidth()
             .height(JwMetrics.toolbarHeight)
-            .padding(horizontal = JwSpacing.xs),
+            .padding(horizontal = JwSpacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.xxs),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
     ) {
         // Opens the browser unscoped, so the tools an agent can reach are visible without first
         // finding a plugin that happens to publish some.
@@ -274,7 +274,7 @@ private fun PluginList(
 
     LazyColumn(
         modifier = modifier,
-        contentPadding = PaddingValues(JwSpacing.xs),
+        contentPadding = PaddingValues(JwSpacing.extraSmall),
     ) {
         pluginSection(
             title = enabledTitle,

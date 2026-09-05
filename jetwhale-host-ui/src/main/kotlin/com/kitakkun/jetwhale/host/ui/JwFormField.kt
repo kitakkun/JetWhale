@@ -28,7 +28,7 @@ public fun JwFormField(
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(JwSpacing.xs),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
     ) {
         Text(
             text = label,

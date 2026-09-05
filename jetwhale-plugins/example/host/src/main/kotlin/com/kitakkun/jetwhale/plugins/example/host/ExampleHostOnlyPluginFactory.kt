@@ -42,8 +42,8 @@ private class ExampleHostOnlyPlugin :
         Column(Modifier.fillMaxSize()) {
             JwToolbar(title = "Example Host-only Plugin")
             Column(
-                modifier = Modifier.padding(JwSpacing.lg),
-                verticalArrangement = Arrangement.spacedBy(JwSpacing.md),
+                modifier = Modifier.padding(JwSpacing.large),
+                verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
             ) {
                 Text("This plugin has no agent counterpart and exchanges no messages — it is pure host UI.")
                 JwKeyValueRow(key = "Host-side counter", value = counter.toString(), monospace = true)

@@ -68,7 +68,7 @@ public fun JwTag(
             .then(if (background != null) Modifier.background(background, shape) else Modifier)
             .then(if (style == JwTagStyle.Outlined) Modifier.border(JwMetrics.borderWidth, tone.color.copy(alpha = 0.6f), shape) else Modifier)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = JwSpacing.sm),
+            .padding(horizontal = JwSpacing.small),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {

@@ -61,9 +61,9 @@ public fun JwCheckbox(
                 indication = null,
                 onValueChange = onCheckedChange,
             )
-            .padding(horizontal = JwSpacing.xs),
+            .padding(horizontal = JwSpacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
     ) {
         Box(
             modifier = Modifier

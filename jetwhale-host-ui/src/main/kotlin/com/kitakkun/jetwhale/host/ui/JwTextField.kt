@@ -99,9 +99,9 @@ public fun JwTextField(
                     .heightIn(min = JwMetrics.controlHeight)
                     .background(scheme.surfaceContainerLowest, shape)
                     .border(if (focused || isError) 1.5f.dp else JwMetrics.borderWidth, borderColor, shape)
-                    .padding(horizontal = JwSpacing.md, vertical = if (singleLine) 0.dp else JwSpacing.sm),
+                    .padding(horizontal = JwSpacing.medium, vertical = if (singleLine) 0.dp else JwSpacing.small),
                 verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(JwSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
             ) {
                 CompositionLocalProvider(LocalContentColor provides colors.textSecondary) {
                     leading?.invoke()

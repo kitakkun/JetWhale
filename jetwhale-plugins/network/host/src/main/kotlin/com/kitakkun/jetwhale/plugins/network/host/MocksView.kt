@@ -111,7 +111,7 @@ private fun MockRuleRow(
     JwPanel {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(JwSpacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.large),
         ) {
             JwSwitch(rule.enabled, onToggle)
             Column(Modifier.weight(1f)) {
@@ -152,7 +152,7 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                 modifier = Modifier
                     .heightIn(max = 460.dp)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(JwSpacing.lg),
+                verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
             ) {
                 JwFormField(label = "Name") {
                     JwTextField(
@@ -161,7 +161,7 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.md)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
                     JwFormField(label = "Method", modifier = Modifier.width(130.dp)) {
                         MethodDropdown(
                             method = draft.matcher.method,
@@ -177,7 +177,7 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                     }
                 }
                 JwFormField(label = "Match") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.xs)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
                         MockMatchType.entries.forEach { type ->
                             val selected = draft.matcher.matchType == type
                             JwTag(
@@ -189,7 +189,7 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.md)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
                     JwFormField(label = "Status", modifier = Modifier.width(80.dp)) {
                         JwTextField(
                             value = draft.response.statusCode.toString(),

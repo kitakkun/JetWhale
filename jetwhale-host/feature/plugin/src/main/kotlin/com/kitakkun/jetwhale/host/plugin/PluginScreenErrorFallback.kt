@@ -54,7 +54,7 @@ fun PluginScreenErrorFallback(
             maxLines = 10,
             overflow = TextOverflow.Ellipsis,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.md)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
             JwButton(
                 text = stringResource(Res.string.plugin_ui_crash_copy_full_stacktrace),
                 onClick = {

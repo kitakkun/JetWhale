@@ -43,9 +43,9 @@ public fun JwKeyValueRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = JwSpacing.xxs),
+            .padding(vertical = JwSpacing.tiny),
         verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.md),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
         Text(
             text = key,

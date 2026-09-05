@@ -32,7 +32,7 @@ import androidx.compose.ui.window.DialogProperties
  * @param width the dialog's fixed width; the height follows the content.
  * @param confirmButton the action that completes the dialog, placed last in the footer.
  * @param dismissButton the action that abandons it, placed before [confirmButton].
- * @param content the body, laid out as a column with [JwSpacing.lg] between children.
+ * @param content the body, laid out as a column with [JwSpacing.large] between children.
  */
 @Composable
 public fun JwDialog(
@@ -69,8 +69,8 @@ public fun JwDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(JwSpacing.xl),
-                verticalArrangement = Arrangement.spacedBy(JwSpacing.lg),
+                    .padding(JwSpacing.extraLarge),
+                verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
                 content = content,
             )
             if (confirmButton != null || dismissButton != null) {
@@ -78,8 +78,8 @@ public fun JwDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = JwSpacing.xl, vertical = JwSpacing.lg),
-                    horizontalArrangement = Arrangement.spacedBy(JwSpacing.md, Alignment.End),
+                        .padding(horizontal = JwSpacing.extraLarge, vertical = JwSpacing.large),
+                    horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium, Alignment.End),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     dismissButton?.invoke()

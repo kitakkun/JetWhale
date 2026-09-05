@@ -47,9 +47,9 @@ public fun JwSectionHeader(
             .fillMaxWidth()
             .height(JwMetrics.sectionHeaderHeight)
             .then(if (collapsible) Modifier.clickable(onClick = onToggleExpanded) else Modifier)
-            .padding(horizontal = JwSpacing.md),
+            .padding(horizontal = JwSpacing.medium),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
     ) {
         if (expanded != null) {
             val rotation by animateFloatAsState(if (expanded) 90f else 0f, label = "section-chevron")
@@ -67,7 +67,7 @@ public fun JwSectionHeader(
         Row(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(JwSpacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
         ) {
             Text(
                 text = title,

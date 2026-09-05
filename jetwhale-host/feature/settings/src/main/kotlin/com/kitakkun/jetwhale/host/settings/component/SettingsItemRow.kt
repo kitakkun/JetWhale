@@ -32,11 +32,11 @@ fun SettingsItemRow(
             .fillMaxWidth()
             .heightIn(min = JwMetrics.controlHeight),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.xl),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraLarge),
     ) {
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(JwSpacing.xxs),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
         ) {
             Text(
                 text = label,

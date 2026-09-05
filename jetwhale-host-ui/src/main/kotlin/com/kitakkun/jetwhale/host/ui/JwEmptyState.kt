@@ -34,9 +34,9 @@ public fun JwEmptyState(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(JwSpacing.xxl),
+            .padding(JwSpacing.huge),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(JwSpacing.md, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.medium, Alignment.CenterVertically),
     ) {
         if (icon != null) {
             CompositionLocalProvider(LocalContentColor provides JwTheme.colors.textDisabled) {
@@ -59,7 +59,7 @@ public fun JwEmptyState(
             )
         }
         if (action != null) {
-            Column(modifier = Modifier.padding(top = JwSpacing.md)) {
+            Column(modifier = Modifier.padding(top = JwSpacing.medium)) {
                 action()
             }
         }
