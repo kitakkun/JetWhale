@@ -63,14 +63,14 @@ public fun JwIconButton(
         selected -> MaterialTheme.colorScheme.primary
         else -> LocalContentColor.current
     }
-    JwTooltip(text = tooltip) {
+    JwTooltip(text = tooltip, modifier = modifier) {
         Box(
-            modifier = modifier
+            modifier = Modifier
                 .size(size)
                 .then(if (tooltip != null) Modifier.semantics { contentDescription = tooltip } else Modifier)
+                .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
                 .clip(MaterialTheme.shapes.small)
                 .background(background)
-                .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,

@@ -100,8 +100,8 @@ public fun JwTreeRow(
         modifier = modifier
             .fillMaxWidth()
             .height(24.dp)
-            .background(background)
             .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
+            .background(background)
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
             .semantics { this.selected = selected }
             .padding(

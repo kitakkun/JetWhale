@@ -20,14 +20,12 @@ import androidx.compose.ui.unit.dp
 
 /**
  * A one-line strip across the top of a pane that reports something the user should know but not
- * act on immediately: an update, a mode the window is in.
+ * act on immediately: an update, a mode the window is in. This overload has no close button; use
+ * the one with [onDismiss] for a banner the user can put away.
  *
  * @param text the message, kept to one line and ellipsized.
  * @param tone picks the strip's background; [JwTone.Info] for news, [JwTone.Warning] for a mode
  * the user may want to leave.
- * @param onDismiss when non-null, adds a close button after the actions.
- * @param dismissLabel the close button's tooltip and accessibility name, in the UI's language;
- * required together with [onDismiss].
  * @param icon an optional glyph before the text, drawn in the tone's content color.
  * @param actions [JwButton]s in the [JwButtonStyle.Text] style, placed after the text.
  */
@@ -36,12 +34,45 @@ public fun JwBanner(
     text: String,
     modifier: Modifier = Modifier,
     tone: JwTone = JwTone.Info,
-    onDismiss: (() -> Unit)? = null,
-    dismissLabel: String? = null,
     icon: (@Composable () -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    require((onDismiss == null) == (dismissLabel == null)) { "onDismiss and dismissLabel go together" }
+    BannerStrip(text = text, modifier = modifier, tone = tone, icon = icon, actions = actions, dismiss = null)
+}
+
+/**
+ * A dismissible [JwBanner]: the same strip with a close button after the actions.
+ *
+ * @param text the message, kept to one line and ellipsized.
+ * @param onDismiss what the close button does — usually hides the banner.
+ * @param dismissLabel the close button's tooltip and accessibility name, in the UI's language.
+ * @param tone picks the strip's background.
+ * @param icon an optional glyph before the text, drawn in the tone's content color.
+ * @param actions [JwButton]s in the [JwButtonStyle.Text] style, placed between the text and the
+ * close button.
+ */
+@Composable
+public fun JwBanner(
+    text: String,
+    onDismiss: () -> Unit,
+    dismissLabel: String,
+    modifier: Modifier = Modifier,
+    tone: JwTone = JwTone.Info,
+    icon: (@Composable () -> Unit)? = null,
+    actions: (@Composable RowScope.() -> Unit)? = null,
+) {
+    BannerStrip(text = text, modifier = modifier, tone = tone, icon = icon, actions = actions, dismiss = onDismiss to dismissLabel)
+}
+
+@Composable
+private fun BannerStrip(
+    text: String,
+    modifier: Modifier,
+    tone: JwTone,
+    icon: (@Composable () -> Unit)?,
+    actions: (@Composable RowScope.() -> Unit)?,
+    dismiss: Pair<() -> Unit, String>?,
+) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -62,7 +93,8 @@ public fun JwBanner(
                     modifier = Modifier.weight(1f),
                 )
                 actions?.invoke(this)
-                if (onDismiss != null) {
+                if (dismiss != null) {
+                    val (onDismiss, dismissLabel) = dismiss
                     JwIconButton(onClick = onDismiss, tooltip = dismissLabel, size = 24.dp) {
                         JwIcon(imageVector = JwIcons.Close, contentDescription = null)
                     }

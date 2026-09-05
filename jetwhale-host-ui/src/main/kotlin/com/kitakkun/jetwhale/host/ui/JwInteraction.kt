@@ -1,13 +1,17 @@
 package com.kitakkun.jetwhale.host.ui
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.unit.dp
 
 /**
@@ -15,11 +19,26 @@ import androidx.compose.ui.unit.dp
  * suppress the Material ripple, so this is the only sign of focus a keyboard user gets; apply it
  * to a custom control built on the same [InteractionSource] as its `clickable`.
  *
+ * The ring sits just outside the control's bounds, so it stays visible on a control filled with
+ * the accent color itself. Place it before any `clip` in the modifier chain, or the clip cuts it
+ * off.
+ *
  * @param interactionSource the control's interaction source; the ring follows its focus state.
  * @param shape the control's shape, so the ring hugs its corners.
  */
 @Composable
 public fun Modifier.jwFocusRing(interactionSource: InteractionSource, shape: Shape): Modifier {
     val focused by interactionSource.collectIsFocusedAsState()
-    return if (focused) border(1.5f.dp, MaterialTheme.colorScheme.primary, shape) else this
+    if (!focused) return this
+    val color = MaterialTheme.colorScheme.primary
+    return drawWithContent {
+        drawContent()
+        val stroke = 1.5f.dp.toPx()
+        val gap = 1.dp.toPx()
+        val inset = stroke / 2f + gap
+        val outline = shape.createOutline(Size(size.width + inset * 2f, size.height + inset * 2f), layoutDirection, this)
+        translate(-inset, -inset) {
+            drawOutline(outline = outline, color = color, style = Stroke(width = stroke))
+        }
+    }
 }

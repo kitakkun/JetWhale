@@ -451,6 +451,16 @@ Nothing forces the library on you: Material 3 and any other Compose library keep
 `Content()`. Prefer `jetwhale-host-ui` where it has what you need, and drop to Material or your own
 Composables for the rest.
 
+::: tip Plugins written before `jetwhale-host-ui`
+A plugin built on plain Material 3 keeps loading and running: the host still provides `material3`
+at runtime, and the theme it applies is a Material theme, so such a plugin already picks up the
+host's colors, the compact type scale and the small corner radii. What it does not get is the
+28dp controls and the shared rows, tags and dialogs — it looks like a Material app inside a tool
+window. Move it over at your own pace; the `migrate-to-jw` skill in the
+[JetWhale Claude Code plugin](https://github.com/kitakkun/JetWhale/tree/main/plugins/jetwhale)
+walks through the mapping.
+:::
+
 Your composition is kept for the lifetime of the plugin instance, so it survives switching to
 another plugin tab and back.
 

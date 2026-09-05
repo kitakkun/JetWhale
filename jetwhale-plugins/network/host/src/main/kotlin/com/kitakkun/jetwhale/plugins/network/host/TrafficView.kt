@@ -48,6 +48,7 @@ import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwKeyValueRow
+import com.kitakkun.jetwhale.host.ui.JwListItem
 import com.kitakkun.jetwhale.host.ui.JwSearchField
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
 import com.kitakkun.jetwhale.host.ui.JwSpacing
@@ -236,16 +237,7 @@ private fun transactionContextMenuItems(tx: HttpTransaction): List<ContextMenuIt
 
 @Composable
 private fun TransactionRow(tx: HttpTransaction, selected: Boolean, onClick: () -> Unit) {
-    val background = if (selected) JwTheme.colors.selection else Color.Transparent
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(background)
-            .clickable(onClick = onClick)
-            .padding(horizontal = JwSpacing.large, vertical = JwSpacing.small),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
-    ) {
+    JwListItem(selected = selected, onClick = onClick) {
         StatusBadge(tx)
         Text(
             text = tx.request.method,

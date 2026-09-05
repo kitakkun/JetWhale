@@ -60,10 +60,10 @@ public fun JwSwitch(
     Box(
         modifier = modifier
             .size(width = TrackWidth, height = TrackHeight)
+            .jwFocusRing(interactionSource, CircleShape)
             .clip(CircleShape)
             .semantics { this.contentDescription = contentDescription }
             .background(trackColor)
-            .jwFocusRing(interactionSource, CircleShape)
             .toggleable(
                 value = checked,
                 enabled = enabled,

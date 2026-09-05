@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +32,8 @@ import androidx.compose.ui.unit.dp
 
 /**
  * A strip of [JwTab]s with a hairline underneath; the selected tab underlines itself in the
- * accent color. Views switch on the index they keep themselves.
+ * accent color. Views switch on the index they keep themselves. A strip wider than its pane
+ * scrolls sideways rather than overflowing.
  *
  * @param tabs the [JwTab]s, in order.
  */
@@ -45,6 +48,7 @@ public fun JwTabRow(
                 .fillMaxWidth()
                 .height(JwMetrics.toolbarHeight - 4.dp)
                 .background(JwTheme.colors.toolbarBackground)
+                .horizontalScroll(rememberScrollState())
                 .padding(horizontal = JwSpacing.extraSmall),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.tiny),

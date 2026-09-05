@@ -61,8 +61,8 @@ public fun JwSectionHeader(
         modifier = modifier
             .fillMaxWidth()
             .height(JwMetrics.sectionHeaderHeight)
-            .background(if (hovered && collapsible) JwTheme.colors.hover else Color.Transparent)
             .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
+            .background(if (hovered && collapsible) JwTheme.colors.hover else Color.Transparent)
             .then(
                 if (collapsible) {
                     Modifier

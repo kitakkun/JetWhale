@@ -1,7 +1,7 @@
 public final class com/kitakkun/jetwhale/host/ui/ComposableSingletons$JwBannerKt {
 	public static final field INSTANCE Lcom/kitakkun/jetwhale/host/ui/ComposableSingletons$JwBannerKt;
 	public fun <init> ()V
-	public final fun getLambda$-298002116$com_kitakkun_jetwhale_jetwhale_host_ui ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-94857526$com_kitakkun_jetwhale_jetwhale_host_ui ()Lkotlin/jvm/functions/Function2;
 }
 
 public final class com/kitakkun/jetwhale/host/ui/ComposableSingletons$JwDialogKt {
@@ -18,7 +18,8 @@ public final class com/kitakkun/jetwhale/host/ui/ComposableSingletons$JwTextFiel
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwBannerKt {
-	public static final fun JwBanner (Ljava/lang/String;Landroidx/compose/ui/Modifier;Lcom/kitakkun/jetwhale/host/ui/JwTone;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun JwBanner (Ljava/lang/String;Landroidx/compose/ui/Modifier;Lcom/kitakkun/jetwhale/host/ui/JwTone;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun JwBanner (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Landroidx/compose/ui/Modifier;Lcom/kitakkun/jetwhale/host/ui/JwTone;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwButtonKt {
@@ -71,6 +72,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwExtendedColors {
 	public static final field Companion Lcom/kitakkun/jetwhale/host/ui/JwExtendedColors$Companion;
 	public final fun copy-0VcbP8k (JJJJJJJJJJJJJJJJJJJJJJ)Lcom/kitakkun/jetwhale/host/ui/JwExtendedColors;
 	public static synthetic fun copy-0VcbP8k$default (Lcom/kitakkun/jetwhale/host/ui/JwExtendedColors;JJJJJJJJJJJJJJJJJJJJJJILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/ui/JwExtendedColors;
+	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAiAccent-0d7_KjU ()J
 	public final fun getBorder-0d7_KjU ()J
 	public final fun getHover-0d7_KjU ()J
@@ -93,6 +95,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwExtendedColors {
 	public final fun getToolbarBackground-0d7_KjU ()J
 	public final fun getWarning-0d7_KjU ()J
 	public final fun getWarningContainer-0d7_KjU ()J
+	public fun hashCode ()I
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwExtendedColors$Companion {
@@ -130,6 +133,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwKeyValueRowKt {
 
 public final class com/kitakkun/jetwhale/host/ui/JwListItemKt {
 	public static final fun JwListItem (Ljava/lang/String;ZLkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;ZZLjava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun JwListItem (ZLkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;ZZLkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwMetrics {

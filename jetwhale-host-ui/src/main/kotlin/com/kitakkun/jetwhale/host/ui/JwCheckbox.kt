@@ -55,8 +55,8 @@ public fun JwCheckbox(
     Row(
         modifier = modifier
             .height(JwMetrics.controlHeight)
-            .clip(MaterialTheme.shapes.small)
             .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
+            .clip(MaterialTheme.shapes.small)
             .toggleable(
                 value = checked,
                 enabled = enabled,

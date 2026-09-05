@@ -23,8 +23,9 @@ import androidx.compose.ui.window.DialogProperties
 /**
  * A modal dialog with a title bar that carries a close button, so there is always a visible way
  * out, and a footer for the [dismissButton] and [confirmButton] in that order. Escape and a click
- * outside also dismiss it. [content] is laid out as a column with the dialog's padding; long
- * content scrolls only if the caller makes it.
+ * outside also dismiss it. [content] is laid out as a column with the dialog's padding, and shrinks
+ * to whatever height the window leaves after the title bar and footer, so the buttons never
+ * fall off the bottom; give the content `Modifier.verticalScroll` when it can be tall.
  *
  * For a dialog that has no title bar — an image preview, a one-line confirmation — build on
  * [JwDialogSurface] instead and place your own close control.
@@ -64,6 +65,7 @@ public fun JwDialog(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f, fill = false)
                 .padding(JwSpacing.extraLarge),
             verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
             content = content,

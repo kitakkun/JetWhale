@@ -68,10 +68,10 @@ public fun JwDropdownButton(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(JwMetrics.controlHeight)
+                .jwFocusRing(interactionSource, shape)
                 .clip(shape)
                 .background(if (hovered && enabled) colors.hover else scheme.surfaceContainerLowest, shape)
                 .border(JwMetrics.borderWidth, if (enabled) scheme.outline else colors.border.copy(alpha = 0.5f), shape)
-                .jwFocusRing(interactionSource, shape)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -101,7 +101,7 @@ public fun JwDropdownButton(
             }
         }
         JwDropdownMenu(
-            expanded = expanded,
+            expanded = expanded && enabled,
             onDismissRequest = { onExpandedChange(false) },
             content = menu,
         )
@@ -129,7 +129,8 @@ public fun JwDropdownMenu(
             .widthIn(min = 160.dp)
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(JwMetrics.borderWidth, JwTheme.colors.border, MaterialTheme.shapes.small)
-            .padding(JwSpacing.extraSmall),
+            // Horizontal only: DropdownMenu already pads the column vertically.
+            .padding(horizontal = JwSpacing.extraSmall),
         shape = MaterialTheme.shapes.small,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         shadowElevation = 6.dp,
@@ -173,9 +174,9 @@ public fun JwMenuItem(
         modifier = modifier
             .fillMaxWidth()
             .height(26.dp)
+            .jwFocusRing(interactionSource, MaterialTheme.shapes.extraSmall)
             .clip(MaterialTheme.shapes.extraSmall)
             .background(if (hovered && enabled) colors.hover else Color.Transparent)
-            .jwFocusRing(interactionSource, MaterialTheme.shapes.extraSmall)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

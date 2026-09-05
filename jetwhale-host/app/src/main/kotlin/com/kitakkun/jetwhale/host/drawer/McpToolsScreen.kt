@@ -88,6 +88,7 @@ import com.kitakkun.jetwhale.host.mcp_tools_tab_history
 import com.kitakkun.jetwhale.host.mcp_tools_tab_tools
 import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
+import com.kitakkun.jetwhale.host.ui.JwListItem
 import com.kitakkun.jetwhale.host.ui.JwSearchField
 import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
@@ -409,18 +410,7 @@ private fun McpToolsPane(
             LazyColumn(modifier = Modifier.fillMaxHeight()) {
                 items(filtered, key = { it.key }) { row ->
                     val isSelected = row.key == selected?.key
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(
-                                if (isSelected) JwTheme.colors.selection else Color.Transparent,
-                            )
-                            .clickable { onSelectTool(row.key) }
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                    ) {
+                    JwListItem(selected = isSelected, onClick = { onSelectTool(row.key) }) {
                         // Takes the free space so the count sits against the right edge.
                         Column(modifier = Modifier.weight(1f)) {
                             Text(

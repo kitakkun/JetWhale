@@ -71,14 +71,13 @@ public fun JwTag(
     Row(
         modifier = modifier
             .height(18.dp)
+            .then(if (onClick != null) Modifier.jwFocusRing(interactionSource, shape) else Modifier)
             .clip(shape)
             .then(if (background != null) Modifier.background(background, shape) else Modifier)
             .then(if (style == JwTagStyle.Outlined) Modifier.border(JwMetrics.borderWidth, tone.color.copy(alpha = 0.6f), shape) else Modifier)
             .then(
                 if (onClick != null) {
-                    Modifier
-                        .jwFocusRing(interactionSource, shape)
-                        .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = onClick)
+                    Modifier.clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = onClick)
                 } else {
                     Modifier
                 },

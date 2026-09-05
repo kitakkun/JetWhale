@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +55,57 @@ public fun JwListItem(
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
+    JwListItem(
+        selected = selected,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        muted = muted,
+    ) {
+        leading?.invoke()
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (supportingText != null) {
+                Text(
+                    text = supportingText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (enabled) JwTheme.colors.textSecondary else JwTheme.colors.textDisabled,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        trailing?.invoke(this)
+    }
+}
+
+/**
+ * A selectable row whose content is laid out by the caller — several columns, a monospace name
+ * over a secondary line, a badge that is not at the end. It keeps everything the text overload
+ * has: hover and selection tints, the focus ring, [muted] and [enabled], and `selected` in
+ * semantics. The content is a row with [JwSpacing.medium] between children, at least
+ * [JwMetrics.controlHeight] tall, drawn in the row's content color.
+ *
+ * @param selected whether this is the current item.
+ * @param onClick what selecting the row does.
+ * @param enabled false fades the row and ignores clicks.
+ * @param muted draws the row in the secondary text color while keeping it interactive.
+ * @param content the row content.
+ */
+@Composable
+public fun JwListItem(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    muted: Boolean = false,
+    content: @Composable RowScope.() -> Unit,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
     val background = when {
@@ -71,10 +122,10 @@ public fun JwListItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (supportingText == null) Modifier.height(JwMetrics.controlHeight) else Modifier)
+            .heightIn(min = JwMetrics.controlHeight)
+            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
             .clip(MaterialTheme.shapes.small)
             .background(background)
-            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -82,33 +133,10 @@ public fun JwListItem(
                 onClick = onClick,
             )
             .semantics { this.selected = selected }
-            .padding(
-                horizontal = JwSpacing.medium,
-                vertical = if (supportingText == null) 0.dp else JwSpacing.extraSmall,
-            ),
+            .padding(horizontal = JwSpacing.medium, vertical = JwSpacing.tiny),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
-        CompositionLocalProvider(LocalContentColor provides contentColor) {
-            leading?.invoke()
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (supportingText != null) {
-                    Text(
-                        text = supportingText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (enabled) JwTheme.colors.textSecondary else JwTheme.colors.textDisabled,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            trailing?.invoke(this)
-        }
+        CompositionLocalProvider(LocalContentColor provides contentColor, content = { content() })
     }
 }

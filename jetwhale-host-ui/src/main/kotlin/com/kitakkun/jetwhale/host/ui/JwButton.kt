@@ -121,10 +121,10 @@ public fun JwButton(
     Row(
         modifier = modifier
             .height(JwMetrics.controlHeight)
+            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
             .clip(MaterialTheme.shapes.small)
             .background(background)
             .border(JwMetrics.borderWidth, borderColor, MaterialTheme.shapes.small)
-            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

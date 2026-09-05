@@ -40,8 +40,9 @@ import androidx.compose.ui.unit.dp
  * @param readOnly keeps the field enabled — selectable, copyable — but rejects edits.
  * @param isError colors the border as an error; put the message in a [JwFormField].
  * @param singleLine keeps the text on one line and makes Enter an action rather than a newline.
- * @param minLines the fewest lines a multi-line field reserves, for an editor that should look
- * like one before anything is typed.
+ * A [minLines] above 1 overrides it: the field is then multi-line.
+ * @param minLines the fewest lines the field reserves, for an editor that should look like one
+ * before anything is typed. Above 1 it makes the field multi-line whatever [singleLine] says.
  * @param maxLines the most lines a multi-line field grows to.
  * @param textStyle the text's style; [JwTypography.code] for identifiers and JSON.
  * @param keyboardOptions mirrors `BasicTextField`'s.
@@ -71,6 +72,8 @@ public fun JwTextField(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
+    val singleLine = singleLine && minLines <= 1
+    val maxLines = if (singleLine) 1 else maxLines.coerceAtLeast(minLines)
     val scheme = MaterialTheme.colorScheme
     val colors = JwTheme.colors
     val borderColor = when {

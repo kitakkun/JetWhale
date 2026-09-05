@@ -112,6 +112,18 @@ public class JwExtendedColors internal constructor(
         onAiAccent = onAiAccent,
     )
 
+    override fun equals(other: Any?): Boolean = other is JwExtendedColors && other.fields() == fields()
+
+    override fun hashCode(): Int = fields().hashCode()
+
+    private fun fields(): List<Color> = listOf(
+        sidebarBackground, toolbarBackground, border, hover, selection, onSelection, textSecondary, textDisabled,
+        success, onSuccess, successContainer, onSuccessContainer,
+        warning, onWarning, warningContainer, onWarningContainer,
+        info, onInfo, infoContainer, onInfoContainer,
+        aiAccent, onAiAccent,
+    )
+
     /** Factory for the extended colors; [JwTheme] calls [from] for the scheme it applies. */
     public companion object {
         /**
