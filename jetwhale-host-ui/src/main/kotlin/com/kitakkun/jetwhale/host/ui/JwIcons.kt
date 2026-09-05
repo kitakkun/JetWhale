@@ -13,6 +13,11 @@ private val MaterialGlyphSize = 24.dp
 /**
  * The few glyphs the components themselves draw. Plugins bring their own icon set; nothing here is
  * meant to grow into one.
+ *
+ * The path data is taken from Google's Material Icons (`expand_more`, `chevron_right`, `close`,
+ * `search`, `more_horiz`, `check`, `content_copy`), which Google publishes under the Apache
+ * License, Version 2.0 — the same license as this library. Copyright Google LLC.
+ * https://github.com/google/material-design-icons
  */
 public object JwIcons {
     /** A downward chevron: the trailing glyph of a dropdown. */
