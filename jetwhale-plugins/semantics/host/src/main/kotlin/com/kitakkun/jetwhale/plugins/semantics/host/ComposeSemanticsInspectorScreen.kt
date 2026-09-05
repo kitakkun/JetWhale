@@ -2,12 +2,10 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -45,12 +43,14 @@ import com.kitakkun.jetwhale.host.ui.JwKeyValueRow
 import com.kitakkun.jetwhale.host.ui.JwSearchField
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwSplitPane
+import com.kitakkun.jetwhale.host.ui.JwStatusLine
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTreeRow
-import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
+import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
@@ -143,8 +143,10 @@ internal fun ComposeSemanticsInspectorScreen(
             actionStatus = actionStatus,
         )
         JwHorizontalDivider()
-        Row(Modifier.fillMaxSize()) {
-            Box(Modifier.weight(0.58f).fillMaxHeight()) {
+        JwSplitPane(
+            modifier = Modifier.fillMaxSize(),
+            state = rememberJwSplitPaneState(TREE_PANE_FRACTION),
+            first = {
                 if (rows.isEmpty()) {
                     EmptyTreeMessage(snapshot = snapshot, search = search, interactiveOnly = interactiveOnly)
                 } else {
@@ -157,20 +159,22 @@ internal fun ComposeSemanticsInspectorScreen(
                         },
                     )
                 }
-            }
-            JwVerticalDivider()
-            Box(Modifier.weight(0.42f).fillMaxHeight()) {
+            },
+            second = {
                 NodeDetail(
                     rootId = selectedKey?.rootId,
                     node = selectedNode,
                     onPerformAction = onPerformAction,
                 )
-            }
-        }
+            },
+        )
     }
 }
 
 private const val AUTO_REFRESH_INTERVAL_MILLIS = 1_000L
+
+/** The tree gets a little more than half; node labels are longer than property rows. */
+private const val TREE_PANE_FRACTION = 0.58f
 
 /** A spinner small enough to sit before a button label. */
 private val SpinnerSize = 12.dp
@@ -238,10 +242,7 @@ private fun StatusLine(
     errorMessage: String?,
     actionStatus: String?,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.medium, vertical = JwSpacing.extraSmall),
-        verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
-    ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         val summary = when (snapshot) {
             null -> "Not captured yet."
 
@@ -251,16 +252,10 @@ private fun StatusLine(
                 roundTripMs?.let { append(" · $it ms round trip") }
             }
         }
-        Text(summary, style = MaterialTheme.typography.bodySmall, color = JwTheme.colors.textSecondary)
-        snapshot?.warnings?.forEach { warning ->
-            Text(warning, style = MaterialTheme.typography.bodySmall, color = JwTone.Warning.color)
-        }
-        errorMessage?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-        }
-        actionStatus?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-        }
+        JwStatusLine(text = summary)
+        snapshot?.warnings?.forEach { warning -> JwStatusLine(text = warning, tone = JwTone.Warning) }
+        errorMessage?.let { JwStatusLine(text = it, tone = JwTone.Error) }
+        actionStatus?.let { JwStatusLine(text = it, tone = JwTone.Accent) }
     }
 }
 

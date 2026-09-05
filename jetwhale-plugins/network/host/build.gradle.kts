@@ -35,10 +35,6 @@ dependencies {
     compileOnly(compose.desktop.currentOs)
     compileOnly(libs.material3)
     compileOnly(libs.kotlinxSerializationJson)
-    // Not among the host-provided Compose artifacts, so this one ships with the plugin. Its own
-    // dependencies (compose runtime/foundation, kotlin-stdlib) *are* host-provided, hence
-    // isTransitive = false: only the split-pane jar itself reaches the fat jar and the manifest.
-    implementation(libs.jetbrainsComposeSplitPane) { isTransitive = false }
     api(projects.jetwhalePlugins.network.protocol)
     testImplementation(projects.jetwhaleHostSdk)
     testImplementation(projects.jetwhaleHostUi)

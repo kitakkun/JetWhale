@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.publish)
+    alias(libs.plugins.roborazzi)
 }
 
 kotlin {
@@ -29,6 +30,14 @@ dependencies {
     testImplementation(libs.kotlinTest)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.jetbrainsComposeUiTestJUnit4)
+    testImplementation(libs.roborazziComposeDesktop)
+}
+
+// Screenshot tests of the component gallery. The recorded images live next to the tests, so a
+// visual change shows up as a diff in review; `recordRoborazziJvm` refreshes them on purpose and
+// `verifyRoborazziJvm` (run by `check`) fails on an accidental one.
+roborazzi {
+    outputDir.set(file("screenshots"))
 }
 
 jetwhalePublish {

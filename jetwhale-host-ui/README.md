@@ -19,9 +19,9 @@ only in previews and tests.
 | Layer | Names |
 |-------|-------|
 | Theme | `JwTheme` (+ `JwTheme.colors`, `JwTheme.isDark`), `JwColorSchemes`, `JwExtendedColors`, `JwTypography` (+ `.code`), `JwShapes`, `JwSpacing`, `JwMetrics`, `JwTone`, `JwIcons` |
-| Structure | `JwToolbar`, `JwTabRow` + `JwTab`, `JwPanel`, `JwSectionHeader`, `JwHorizontalDivider` / `JwVerticalDivider`, `JwDialog` / `JwDialogSurface` |
-| Rows and labels | `JwListItem`, `JwTreeRow`, `JwKeyValueRow`, `JwTag`, `JwStatusDot`, `JwBanner`, `JwEmptyState` |
-| Controls | `JwButton` (text and slot overloads), `JwIconButton` + `JwIcon`, `JwTooltip`, `JwTextField`, `JwSearchField`, `JwFormField`, `JwSwitch`, `JwCheckbox`, `JwDropdownButton` + `JwDropdownMenu` + `JwMenuItem` |
+| Structure | `JwToolbar`, `JwTabRow` + `JwTab`, `JwSplitPane`, `JwPanel`, `JwSectionHeader`, `JwStatusLine`, `JwHorizontalDivider` / `JwVerticalDivider`, `JwDialog` / `JwDialogSurface` |
+| Rows and labels | `JwTable` + `JwTableColumn`, `JwListItem`, `JwTreeRow`, `JwKeyValueRow`, `JwCodeBlock`, `JwTag`, `JwCountBadge`, `JwStatusDot`, `JwBanner`, `JwEmptyState` |
+| Controls | `JwButton` (text and slot overloads), `JwIconButton` + `JwIcon`, `JwTooltip`, `JwTextField`, `JwSearchField`, `JwFormField`, `JwSwitch`, `JwCheckbox`, `JwSegmentedButtons`, `JwDropdownButton` + `JwDropdownMenu` + `JwMenuItem` |
 
 Every component is sized for a desktop tool window — `JwMetrics.controlHeight` (28dp) controls,
 13sp body text, 4dp corners — and takes its colors from the theme, so it follows the user's
@@ -44,6 +44,10 @@ does less, the name differs so the difference is not a surprise.
 | `TabRow` / `SecondaryTabRow`, `Tab` | `JwTabRow`, `JwTab` | Tabs size to their label; optional `count` |
 | `Card` / `OutlinedCard` | `JwPanel` | Optional header strip with actions |
 | `ListItem`, `NavigationDrawerItem` | `JwListItem` | 28dp; one line plus an optional supporting line |
+| — | `JwTable` | Lazy rows under a header, columns declared once as `JwTableColumn`s |
+| `SingleChoiceSegmentedButtonRow` | `JwSegmentedButtons` | One control tall; takes the options as a list |
+| — | `JwSplitPane` | Draggable list-and-detail split; hoist `JwSplitPaneState` to persist it |
+| — | `JwCodeBlock`, `JwStatusLine`, `JwCountBadge` | Monospace block with copy; one-line status strip; count pill |
 | — | `JwTreeRow` | Indented, expandable list row |
 | `AssistChip` / `FilterChip`, `Badge` | `JwTag`, `JwStatusDot` | 18dp tag with a `JwTone`; 8dp dot |
 | `AlertDialog` | `JwDialog` (`JwDialogSurface` for custom chrome) | Title bar with a close button, footer with dismiss/confirm |

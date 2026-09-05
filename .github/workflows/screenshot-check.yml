@@ -1,0 +1,42 @@
+name: Screenshot check
+
+# Verifies the component gallery of jetwhale-host-ui against the images recorded under
+# jetwhale-host-ui/screenshots. Runs on macOS because the images are recorded there: Skia draws
+# text with the platform's fonts, so a Linux runner would differ in every glyph.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'jetwhale-host-ui/**'
+      - 'gradle/libs.versions.toml'
+      - '.github/workflows/screenshot-check.yml'
+      - '.github/actions/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-screenshots:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-java
+
+      - name: Verify the gallery screenshots
+        run: ./gradlew :jetwhale-host-ui:verifyRoborazziJvm
+
+      # The comparison images show what changed; only produced when a verification fails.
+      - name: Upload diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: roborazzi-diffs
+          path: jetwhale-host-ui/build/outputs/roborazzi
+          if-no-files-found: ignore

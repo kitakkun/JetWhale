@@ -2,15 +2,12 @@ package com.kitakkun.jetwhale.plugins.network.host
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +23,9 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.ui.JwCodeBlock
+import com.kitakkun.jetwhale.host.ui.JwPanel
+import com.kitakkun.jetwhale.host.ui.JwSegmentedButtons
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -49,37 +49,25 @@ internal fun BodyBlock(label: String, body: String?, truncated: Boolean) {
         verticalArrangement = Arrangement.spacedBy(JwSpacing.small),
     ) {
         if (json != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
-                FilterChip(
-                    selected = mode == BodyMode.Tree,
-                    onClick = { mode = BodyMode.Tree },
-                    label = { Text("Tree") },
-                )
-                FilterChip(
-                    selected = mode == BodyMode.Raw,
-                    onClick = { mode = BodyMode.Raw },
-                    label = { Text("Raw") },
-                )
-            }
+            JwSegmentedButtons(
+                options = BodyMode.entries,
+                selected = mode,
+                onSelect = { mode = it },
+                label = { it.name },
+            )
         }
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Box(Modifier.padding(10.dp)) {
-                val colors = rememberJsonColors()
-                if (json != null && mode == BodyMode.Tree) {
-                    Column { JsonTreeNode(json, label = label, colors = colors) }
-                } else {
-                    val rendered = remember(json, body, colors) { json?.let { highlightedJson(it, colors) } }
-                    Text(
-                        text = rendered ?: AnnotatedString(body + if (truncated) "\n… (truncated)" else ""),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                    )
-                }
+        val colors = rememberJsonColors()
+        if (json != null && mode == BodyMode.Tree) {
+            JwPanel(contentPadding = PaddingValues(JwSpacing.large)) {
+                Column { JsonTreeNode(json, label = label, colors = colors) }
             }
+        } else {
+            val rendered = remember(json, body, colors) { json?.let { highlightedJson(it, colors) } }
+            JwCodeBlock(
+                text = rendered ?: AnnotatedString(body + if (truncated) "\n… (truncated)" else ""),
+                wrap = true,
+                copyLabel = "Copy body",
+            )
         }
     }
 }

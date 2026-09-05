@@ -35,6 +35,7 @@ import com.kitakkun.jetwhale.host.ui.JwListItem
 import com.kitakkun.jetwhale.host.ui.JwPanel
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwSplitPane
 import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
 import com.kitakkun.jetwhale.host.ui.JwTag
@@ -44,7 +45,7 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwToolbar
 import com.kitakkun.jetwhale.host.ui.JwTypography
-import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
+import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeySnapshot
@@ -58,6 +59,9 @@ import kotlinx.serialization.json.JsonObject
 internal data class Nav3Status(val message: String, val isError: Boolean)
 
 private val PrettyJson = Json { prettyPrint = true }
+
+/** The back stack gets a little more than half: its rows carry more than the editor's fields. */
+private const val BACK_STACK_PANE_FRACTION = 0.55f
 
 /** Room for a small key's JSON without scrolling, so the editor reads as an editor when empty. */
 private val EditorMinHeight = 120.dp
@@ -104,22 +108,25 @@ internal fun Nav3NavigatorScreen(
                 description = "The app has not registered a Navigation 3 back stack yet. Add TrackNavBackStack(backStack) next to the NavDisplay that renders it, then reload.",
             )
         } else {
-            Row(Modifier.fillMaxSize()) {
-                BackStackPane(
-                    snapshot = selected,
-                    onApplyOperation = { onApplyOperation(selected.stackId, it) },
-                    onCopyKeyToEditor = { draft = PrettyJson.encodeToString(JsonElement.serializer(), it) },
-                    modifier = Modifier.weight(0.55f),
-                )
-                JwVerticalDivider()
-                PushPane(
-                    keyTypes = keyTypes,
-                    draft = draft,
-                    onDraftChange = { draft = it },
-                    onApplyOperation = { onApplyOperation(selected.stackId, it) },
-                    modifier = Modifier.weight(0.45f),
-                )
-            }
+            JwSplitPane(
+                modifier = Modifier.fillMaxSize(),
+                state = rememberJwSplitPaneState(BACK_STACK_PANE_FRACTION),
+                first = {
+                    BackStackPane(
+                        snapshot = selected,
+                        onApplyOperation = { onApplyOperation(selected.stackId, it) },
+                        onCopyKeyToEditor = { draft = PrettyJson.encodeToString(JsonElement.serializer(), it) },
+                    )
+                },
+                second = {
+                    PushPane(
+                        keyTypes = keyTypes,
+                        draft = draft,
+                        onDraftChange = { draft = it },
+                        onApplyOperation = { onApplyOperation(selected.stackId, it) },
+                    )
+                },
+            )
         }
     }
 }
@@ -137,9 +144,8 @@ private fun BackStackPane(
     snapshot: NavBackStackSnapshot,
     onApplyOperation: (NavBackStackOperation) -> Unit,
     onCopyKeyToEditor: (JsonElement) -> Unit,
-    modifier: Modifier,
 ) {
-    Column(modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.large, vertical = JwSpacing.medium),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -231,7 +237,6 @@ private fun PushPane(
     draft: String,
     onDraftChange: (String) -> Unit,
     onApplyOperation: (NavBackStackOperation) -> Unit,
-    modifier: Modifier,
 ) {
     var editorError by remember { mutableStateOf<String?>(null) }
 
@@ -247,7 +252,7 @@ private fun PushPane(
     }
 
     Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large),
         verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
     ) {
         JwFormField(
