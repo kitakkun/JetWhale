@@ -71,16 +71,16 @@ public fun JwTabRow(
 /**
  * One tab of a [JwTabRow].
  *
- * @param text the tab's label.
  * @param selected whether this tab's view is showing.
  * @param onClick what selecting the tab does.
+ * @param text the tab's label.
  * @param count drawn after the text, the way "Traffic 12" reads.
  */
 @Composable
 public fun JwTab(
-    text: String,
     selected: Boolean,
     onClick: () -> Unit,
+    text: String,
     modifier: Modifier = Modifier,
     count: Int? = null,
 ) {

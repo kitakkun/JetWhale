@@ -57,7 +57,7 @@ fun PluginDrawerItemView(
             selected = selected,
             enabled = enabled,
             onClick = onClick,
-            leading = {
+            leadingContent = {
                 JwIcon(
                     painter = when {
                         selected && enabled -> rememberPluginIconSvgPainter(activeIconResource)
@@ -69,7 +69,7 @@ fun PluginDrawerItemView(
                     contentDescription = null,
                 )
             },
-            trailing = {
+            trailingContent = {
                 if (exposesMcpTools) {
                     McpBadge(
                         operating = underAiControl,

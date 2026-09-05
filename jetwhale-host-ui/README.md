@@ -53,11 +53,18 @@ does less, the name differs so the difference is not a surprise.
 
 ## Conventions
 
-- **Parameter order**: required data first, then `modifier`, then options with defaults, then
-  composable slots last — so a trailing lambda is always the main content.
-- **Slots**: a slot meant for a glyph is named `leadingIcon` / `trailingIcon` (or `icon` when a
-  component has one); a slot that takes arbitrary content is `leading` / `trailing`. Slots receive
-  the component's content color through `LocalContentColor`, so a `JwIcon` inside needs no tint.
+- **Names and order follow Material 3** wherever a component has a Material counterpart, so
+  what you know from `TextField`, `ListItem`, `DropdownMenuItem`, `Tab`, `AlertDialog` and
+  `TopAppBar` carries over: `leadingIcon` / `trailingIcon` on fields and menu items,
+  `leadingContent` / `trailingContent` on list and tree rows, `navigationIcon` / `actions` on the
+  toolbar, `text` for a dialog's body, `selected, onClick` first on a tab. Where the library
+  simplifies, it does so the same way everywhere: a `String` in place of a composable slot for
+  titles, labels and placeholders, with a slot overload where richer content is common
+  (`JwButton`, `JwListItem`).
+- **Components without a Material counterpart** put required data first, then `modifier`, then
+  options with defaults, then composable slots last — so a trailing lambda is always the main
+  content. Slots receive the component's content color through `LocalContentColor`, so a `JwIcon`
+  inside needs no tint.
 - **Tones**: `JwTone` (`Neutral`, `Accent`, `Success`, `Warning`, `Error`, `Info`) is the one
   vocabulary for semantic color, shared by `JwTag`, `JwStatusDot`, `JwBanner`, `JwButton` and
   `JwMenuItem`.

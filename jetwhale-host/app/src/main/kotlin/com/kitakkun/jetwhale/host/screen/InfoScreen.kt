@@ -84,7 +84,7 @@ fun InfoScreen(
             text = stringResource(Res.string.oss_licenses),
             selected = false,
             onClick = onClickOSSLicenses,
-            trailing = {
+            trailingContent = {
                 JwIcon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                     contentDescription = null,

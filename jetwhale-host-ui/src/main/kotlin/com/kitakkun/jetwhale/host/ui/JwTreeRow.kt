@@ -52,7 +52,7 @@ private val ChevronSize = 14.dp
 
 /**
  * One line of a flattened tree: indented by [depth], with a chevron that toggles the subtree when
- * the node is [expandable], then the [text] and any [trailing] annotations. Selection and hover
+ * the node is [expandable], then the [text] and any [trailingContent] annotations. Selection and hover
  * tint the row like [JwListItem] does; the chevron's own click never selects, so a tree can be
  * browsed without moving the selection.
  *
@@ -72,7 +72,7 @@ private val ChevronSize = 14.dp
  * interaction as well.
  * @param contentPadding the space at the row's ends, before the indent is added; match it to the
  * gutter of neighboring rows.
- * @param trailing annotations at the far end: a tag, an id.
+ * @param trailingContent annotations at the far end: a tag, an id.
  */
 @Composable
 public fun JwTreeRow(
@@ -87,7 +87,7 @@ public fun JwTreeRow(
     enabled: Boolean = true,
     muted: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(start = JwSpacing.extraSmall, end = JwSpacing.medium),
-    trailing: (@Composable RowScope.() -> Unit)? = null,
+    trailingContent: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
@@ -177,7 +177,7 @@ public fun JwTreeRow(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
             )
-            trailing?.invoke(this)
+            trailingContent?.invoke(this)
         }
     }
 }

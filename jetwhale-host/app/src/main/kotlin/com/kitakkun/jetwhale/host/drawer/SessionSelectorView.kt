@@ -87,10 +87,10 @@ private fun DeviceSelector(
         expanded = expanded,
         onExpandedChange = { expanded = it && devices.isNotEmpty() },
         enabled = devices.isNotEmpty(),
-        leading = {
+        leadingIcon = {
             JwIcon(imageVector = Icons.Default.Devices, contentDescription = null)
         },
-        trailing = {
+        trailingIcon = {
             if (selectedDevice != null) {
                 JwStatusDot(tone = JwTone.Success)
                 SessionSecurityIcon(selectedDevice.transportSecurity)
@@ -102,8 +102,8 @@ private fun DeviceSelector(
             JwMenuItem(
                 text = representative.deviceDisplayName,
                 selected = entry.key == selectedDeviceId,
-                leading = { JwIcon(imageVector = Icons.Default.Devices, contentDescription = null) },
-                trailing = { SessionSecurityIcon(representative.transportSecurity) },
+                leadingIcon = { JwIcon(imageVector = Icons.Default.Devices, contentDescription = null) },
+                trailingIcon = { SessionSecurityIcon(representative.transportSecurity) },
                 onClick = {
                     onSelectDevice(entry.value)
                     expanded = false
@@ -126,8 +126,8 @@ private fun AppSelector(
         expanded = expanded,
         onExpandedChange = { expanded = it && apps.isNotEmpty() },
         enabled = apps.isNotEmpty(),
-        leading = { AppIcon(selectedSession) },
-        trailing = {
+        leadingIcon = { AppIcon(selectedSession) },
+        trailingIcon = {
             if (selectedSession != null) {
                 SessionSecurityIcon(selectedSession.transportSecurity)
             }

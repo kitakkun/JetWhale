@@ -38,40 +38,40 @@ private val ClearIconInset = 3.dp
  *
  * @param value the current text.
  * @param onValueChange called with the new text on every edit.
- * @param placeholder shown while [value] is empty.
  * @param enabled false greys the field out and ignores input.
  * @param readOnly keeps the field enabled — selectable, copyable — but rejects edits.
- * @param isError colors the border as an error; put the message in a [JwFormField].
- * @param singleLine keeps the text on one line and makes Enter an action rather than a newline.
- * A [minLines] above 1 overrides it: the field is then multi-line.
- * @param minLines the fewest lines the field reserves, for an editor that should look like one
- * before anything is typed. Above 1 it makes the field multi-line whatever [singleLine] says.
- * @param maxLines the most lines a multi-line field grows to.
  * @param textStyle the text's style; [JwTypography.code] for identifiers and JSON.
+ * @param placeholder shown while [value] is empty.
+ * @param leadingIcon content before the text, usually a [JwIcon].
+ * @param trailingIcon an optional control after the text, such as a clear button.
+ * @param isError colors the border as an error; put the message in a [JwFormField].
+ * @param visualTransformation mirrors `BasicTextField`'s; password masking, say.
  * @param keyboardOptions mirrors `BasicTextField`'s.
  * @param keyboardActions mirrors `BasicTextField`'s.
- * @param visualTransformation mirrors `BasicTextField`'s; password masking, say.
- * @param leading content before the text, usually a [JwIcon].
- * @param trailing an optional control after the text, such as a clear button.
+ * @param singleLine keeps the text on one line and makes Enter an action rather than a newline.
+ * A [minLines] above 1 overrides it: the field is then multi-line.
+ * @param maxLines the most lines a multi-line field grows to.
+ * @param minLines the fewest lines the field reserves, for an editor that should look like one
+ * before anything is typed. Above 1 it makes the field multi-line whatever [singleLine] says.
  */
 @Composable
 public fun JwTextField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String? = null,
     enabled: Boolean = true,
     readOnly: Boolean = false,
-    isError: Boolean = false,
-    singleLine: Boolean = true,
-    minLines: Int = 1,
-    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     textStyle: TextStyle = MaterialTheme.typography.bodyMedium,
+    placeholder: String? = null,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable () -> Unit)? = null,
+    isError: Boolean = false,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    visualTransformation: VisualTransformation = VisualTransformation.None,
-    leading: (@Composable () -> Unit)? = null,
-    trailing: (@Composable () -> Unit)? = null,
+    singleLine: Boolean = true,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
+    minLines: Int = 1,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
@@ -114,7 +114,7 @@ public fun JwTextField(
                 horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
             ) {
                 CompositionLocalProvider(LocalContentColor provides colors.textSecondary) {
-                    leading?.invoke()
+                    leadingIcon?.invoke()
                     Box(
                         modifier = Modifier.weight(1f),
                         contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart,
@@ -130,7 +130,7 @@ public fun JwTextField(
                         }
                         innerTextField()
                     }
-                    trailing?.invoke()
+                    trailingIcon?.invoke()
                 }
             }
         },
@@ -161,10 +161,10 @@ public fun JwSearchField(
         modifier = modifier,
         placeholder = placeholder,
         enabled = enabled,
-        leading = {
+        leadingIcon = {
             JwIcon(imageVector = JwIcons.Search, contentDescription = null)
         },
-        trailing = if (value.isEmpty()) {
+        trailingIcon = if (value.isEmpty()) {
             null
         } else {
             {

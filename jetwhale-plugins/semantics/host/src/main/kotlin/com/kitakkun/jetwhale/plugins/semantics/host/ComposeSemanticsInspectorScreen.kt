@@ -331,7 +331,7 @@ private fun NodeRow(
         muted = !row.node.isVisible,
         onClick = onSelect,
         onToggleExpanded = onToggleExpanded,
-        trailing = {
+        trailingContent = {
             if (row.node.isInteractive) {
                 JwTag(text = row.node.actionSummary(), tone = JwTone.Accent)
             }

@@ -28,8 +28,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 /**
- * A selectable row for sidebars and lists: [leading] icon, a single-line [text], and [trailing]
- * badges or menus. A [supportingText] adds a second, secondary-colored line and makes the row taller;
+ * A selectable row for sidebars and lists: [leadingContent], a single-line [text], and
+ * [trailingContent] badges or menus. Named after Material's `ListItem`; [supportingText] is the
+ * string form of its `supportingContent`. A [supportingText] adds a second, secondary-colored line and makes the row taller;
  * without one the row is [JwMetrics.controlHeight]. The row tints on hover and on [selected],
  * and fades when not [enabled].
  *
@@ -40,8 +41,8 @@ import androidx.compose.ui.unit.dp
  * @param muted draws the row in the secondary text color while keeping it interactive — an item
  * that is present but not current, say. Distinct from [enabled], which removes the interaction.
  * @param supportingText a second line under [text].
- * @param leading content before the text: usually a [JwIcon], but an app icon or an avatar fits too.
- * @param trailing badges or an overflow menu at the far end.
+ * @param leadingContent content before the text: usually a [JwIcon], but an app icon or an avatar fits too.
+ * @param trailingContent badges or an overflow menu at the far end.
  */
 @Composable
 public fun JwListItem(
@@ -52,8 +53,8 @@ public fun JwListItem(
     enabled: Boolean = true,
     muted: Boolean = false,
     supportingText: String? = null,
-    leading: (@Composable () -> Unit)? = null,
-    trailing: (@Composable RowScope.() -> Unit)? = null,
+    leadingContent: (@Composable () -> Unit)? = null,
+    trailingContent: (@Composable RowScope.() -> Unit)? = null,
 ) {
     JwListItem(
         selected = selected,
@@ -62,7 +63,7 @@ public fun JwListItem(
         enabled = enabled,
         muted = muted,
     ) {
-        leading?.invoke()
+        leadingContent?.invoke()
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = text,
@@ -80,7 +81,7 @@ public fun JwListItem(
                 )
             }
         }
-        trailing?.invoke(this)
+        trailingContent?.invoke(this)
     }
 }
 

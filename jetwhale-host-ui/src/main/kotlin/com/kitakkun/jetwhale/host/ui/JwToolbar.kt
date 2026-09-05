@@ -19,15 +19,16 @@ import androidx.compose.ui.text.style.TextOverflow
  * A [JwMetrics.toolbarHeight] bar across the top of a pane: an optional [title] on the left,
  * [actions] (usually [JwIconButton]s) on the right, and a hairline underneath.
  *
- * @param title the pane's name, ellipsized to one line.
- * @param leading controls before the title: a back button, a picker.
+ * @param title the pane's name, ellipsized to one line; null for a bar of controls only.
+ * @param navigationIcon controls before the title: a back button, a picker. Named after Material's
+ * `TopAppBar`, though any row content fits.
  * @param actions controls at the far end, usually [JwIconButton]s or text [JwButton]s.
  */
 @Composable
 public fun JwToolbar(
-    modifier: Modifier = Modifier,
     title: String? = null,
-    leading: (@Composable RowScope.() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+    navigationIcon: (@Composable RowScope.() -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -40,7 +41,7 @@ public fun JwToolbar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
         ) {
-            leading?.invoke(this)
+            navigationIcon?.invoke(this)
             if (title != null) {
                 Text(
                     text = title,

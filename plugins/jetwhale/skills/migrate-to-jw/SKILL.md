@@ -47,12 +47,12 @@ Work top-down; the skeleton decides where everything else lands.
 | Was | Becomes | Notes |
 |-----|---------|-------|
 | `Scaffold(topBar = { TopAppBar(...) }) { padding -> ... }` | `Column(Modifier.fillMaxSize()) { JwToolbar(title = ..., actions = { ... }); ... }` | Drop the padding lambda; `JwToolbar` is a 36dp bar in the column, not an overlay |
-| `SecondaryTabRow { Tab(text = { Text("Traffic (3)") }) }` | `JwTabRow { JwTab(text = "Traffic", count = 3, selected, onClick) }` | Counts go in `count`, not in the label |
+| `SecondaryTabRow { Tab(text = { Text("Traffic (3)") }) }` | `JwTabRow { JwTab(selected, onClick, text = "Traffic", count = 3) }` | Counts go in `count`, not in the label |
 | `Card { Column(Modifier.padding(12.dp)) { ... } }` | `JwPanel { ... }` | The panel pads its content; pass `contentPadding = PaddingValues(0.dp)` to fill it with rows |
 | `HorizontalDivider()` / `VerticalDivider()` | `JwHorizontalDivider()` / `JwVerticalDivider()` | |
 | `Text("Select something", color = outline)` centered in a `Box` | `JwEmptyState(title, description)` | |
 | `Surface(color = surfaceVariant) { Text(title) }` as a group heading | `JwSectionHeader(title, count, trailing)` | |
-| `AlertDialog(title, text, confirmButton, dismissButton)` | `JwDialog(title, onDismissRequest, closeLabel, confirmButton, dismissButton) { ... }` | `closeLabel` is required: pass the plugin's own "Close" string. A dialog with no title bar builds on `JwDialogSurface` |
+| `AlertDialog(title, text, confirmButton, dismissButton)` | `JwDialog(onDismissRequest, title, closeLabel, confirmButton, dismissButton) { ... }` | `closeLabel` is required: pass the plugin's own "Close" string. A dialog with no title bar builds on `JwDialogSurface` |
 
 Then the controls:
 
@@ -70,7 +70,7 @@ Then the controls:
 | `FilterChip(selected, onClick, label)` for a small choice | `JwTag(text, tone = if (selected) Accent else Neutral, style = if (selected) Filled else Outlined, onClick)` | |
 | `Surface(color = tint.copy(alpha = 0.14f)) { Text("200") }` status pill | `JwTag(text = "200", tone = JwTone.Success, style = JwTagStyle.Tinted)` | Map 2xx → Success, 3xx → Info, 4xx/5xx → Error, pending → Neutral |
 | `Badge(containerColor = Color.Green)` | `JwStatusDot(tone = JwTone.Success)` | `filled = false` for the weaker "available" state |
-| A selectable row (`Row.background(if (selected) secondaryContainer ...)`) | `JwListItem(text, selected, onClick, leading, trailing, supportingText)` | Exposes `selected` in semantics |
+| A selectable row (`Row.background(if (selected) secondaryContainer ...)`) | `JwListItem(text, selected, onClick, leadingContent, trailingContent, supportingText)` | Exposes `selected` in semantics; a slot overload takes arbitrary row content |
 | A tree row with indent and ▸/▾ | `JwTreeRow(text, depth, expandable, expanded, selected, onClick, onToggleExpanded)` | |
 | `Row { Text(key, width(140.dp)); Text(value, Monospace) }` | `JwKeyValueRow(key, value, monospace = true, wrap = ...)` | `wrap = false` keeps a long id on one scrolling line |
 | A banner `Surface(color = primaryContainer) { Text(msg) }` | `JwBanner(text, tone, actions, onDismiss)` | |

@@ -110,7 +110,7 @@ fun ServerSettingsScreen(
             onDismissRequest = onDismissApplyDebugServerSettingsDialog,
             closeLabel = stringResource(Res.string.close),
             title = stringResource(Res.string.debug_server_port_apply_confirm_title),
-            content = {
+            text = {
                 Text(
                     if (uiState.editingWssEnabled) {
                         stringResource(
@@ -148,7 +148,7 @@ fun ServerSettingsScreen(
             onDismissRequest = onDismissApplyMcpPortDialog,
             closeLabel = stringResource(Res.string.close),
             title = stringResource(Res.string.mcp_server_port_apply_confirm_title),
-            content = {
+            text = {
                 Text(
                     stringResource(
                         Res.string.mcp_server_port_apply_confirm_message,
@@ -179,7 +179,7 @@ fun ServerSettingsScreen(
             onDismissRequest = onDismissCertificateDetailDialog,
             closeLabel = stringResource(Res.string.close),
             title = stringResource(Res.string.ssl_certificate_detail_title),
-            content = {
+            text = {
                 Text(
                     text = entry.caCertificatePem,
                     style = MaterialTheme.typography.bodySmall,

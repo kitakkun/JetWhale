@@ -88,7 +88,7 @@ fun PluginSettingsScreen(
             onDismissRequest = { showFailedJarsDialog = false },
             closeLabel = stringResource(Res.string.close),
             title = stringResource(Res.string.failed_to_load_plugins),
-            content = {
+            text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         text = stringResource(Res.string.failed_jar_path_hint),

@@ -61,8 +61,8 @@ fun SessionMenuItem(
         text = displayName,
         selected = selected,
         enabled = session.isActive,
-        leading = { AppIcon(session) },
-        trailing = { SessionSecurityIcon(session.transportSecurity) },
+        leadingIcon = { AppIcon(session) },
+        trailingIcon = { SessionSecurityIcon(session.transportSecurity) },
         onClick = onClick,
         modifier = modifier,
     )

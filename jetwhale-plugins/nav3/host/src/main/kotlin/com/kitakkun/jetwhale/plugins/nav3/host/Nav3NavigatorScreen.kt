@@ -316,7 +316,7 @@ private fun KeyTypeRow(type: NavKeyTypeDescriptor, onClick: () -> Unit) {
         text = type.serialName,
         selected = false,
         onClick = onClick,
-        trailing = {
+        trailingContent = {
             if (fields.isNotEmpty()) {
                 Text(
                     text = fields,

@@ -301,7 +301,7 @@ private fun PluginList(
                 popupMenuContent = { dismiss ->
                     JwMenuItem(
                         text = stringResource(Res.string.disable),
-                        leading = { JwIcon(imageVector = Icons.Default.RemoveCircle, contentDescription = null) },
+                        leadingIcon = { JwIcon(imageVector = Icons.Default.RemoveCircle, contentDescription = null) },
                         onClick = {
                             onSetPluginEnabled(plugin.id, false)
                             dismiss()
@@ -310,7 +310,7 @@ private fun PluginList(
                     if (isPoppedOut(plugin.id)) {
                         JwMenuItem(
                             text = stringResource(Res.string.bring_back_from_popout),
-                            leading = { JwIcon(imageVector = Icons.Default.SouthWest, contentDescription = null) },
+                            leadingIcon = { JwIcon(imageVector = Icons.Default.SouthWest, contentDescription = null) },
                             onClick = {
                                 onClickBringBack(plugin)
                                 dismiss()
@@ -321,7 +321,7 @@ private fun PluginList(
                         // plugin is not offered one.
                         JwMenuItem(
                             text = stringResource(Res.string.popout),
-                            leading = { JwIcon(imageVector = Icons.Default.ArrowOutward, contentDescription = null) },
+                            leadingIcon = { JwIcon(imageVector = Icons.Default.ArrowOutward, contentDescription = null) },
                             onClick = {
                                 onClickPopout(plugin)
                                 dismiss()
@@ -353,7 +353,7 @@ private fun PluginList(
                 popupMenuContent = { dismiss ->
                     JwMenuItem(
                         text = stringResource(Res.string.enable),
-                        leading = { JwIcon(imageVector = Icons.Default.AddCircle, contentDescription = null) },
+                        leadingIcon = { JwIcon(imageVector = Icons.Default.AddCircle, contentDescription = null) },
                         onClick = {
                             onSetPluginEnabled(plugin.id, true)
                             dismiss()

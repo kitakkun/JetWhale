@@ -55,8 +55,8 @@ private val MenuShadowElevation = 6.dp
  * @param expanded whether the menu is open.
  * @param onExpandedChange called with the requested open state: `true` on click, `false` on dismiss.
  * @param enabled false greys the trigger out and keeps the menu closed.
- * @param leading content before the text: usually a [JwIcon], but any small composable fits.
- * @param trailing optional badges between the text and the chevron: a status dot, a lock.
+ * @param leadingIcon content before the text: usually a [JwIcon], but any small composable fits.
+ * @param trailingIcon optional badges between the text and the chevron: a status dot, a lock.
  * @param menu the [JwMenuItem]s shown while [expanded].
  */
 @Composable
@@ -66,8 +66,8 @@ public fun JwDropdownButton(
     onExpandedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    leading: (@Composable () -> Unit)? = null,
-    trailing: (@Composable RowScope.() -> Unit)? = null,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable RowScope.() -> Unit)? = null,
     menu: @Composable ColumnScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -97,7 +97,7 @@ public fun JwDropdownButton(
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
         ) {
             CompositionLocalProvider(LocalContentColor provides contentColor) {
-                leading?.invoke()
+                leadingIcon?.invoke()
                 Text(
                     text = text,
                     style = MaterialTheme.typography.bodyMedium,
@@ -105,7 +105,7 @@ public fun JwDropdownButton(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                trailing?.invoke(this)
+                trailingIcon?.invoke(this)
                 JwIcon(
                     imageVector = JwIcons.ChevronDown,
                     contentDescription = null,
@@ -156,24 +156,24 @@ public fun JwDropdownMenu(
  *
  * @param text the item's label.
  * @param onClick what the item does; the caller also closes the menu here.
+ * @param leadingIcon content for the leading slot, shown when the item is not [selected]: usually a
+ * [JwIcon], but an app icon or an avatar fits too.
+ * @param trailingIcon optional annotations at the far end: a shortcut, a secondary value.
  * @param enabled false greys the item out and ignores clicks.
  * @param selected draws a check mark in the leading slot, for menus that pick one of several values.
  * @param tone [JwTone.Error] colors the item red for a destructive action; other tones read as
  * [JwTone.Neutral].
- * @param leading content for the leading slot, shown when the item is not [selected]: usually a
- * [JwIcon], but an app icon or an avatar fits too.
- * @param trailing optional annotations at the far end: a shortcut, a secondary value.
  */
 @Composable
 public fun JwMenuItem(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable RowScope.() -> Unit)? = null,
     enabled: Boolean = true,
     selected: Boolean = false,
     tone: JwTone = JwTone.Neutral,
-    leading: (@Composable () -> Unit)? = null,
-    trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
@@ -206,7 +206,7 @@ public fun JwMenuItem(
             Box(modifier = Modifier.size(JwMetrics.iconSize), contentAlignment = Alignment.Center) {
                 when {
                     selected -> JwIcon(imageVector = JwIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    leading != null -> leading()
+                    leadingIcon != null -> leadingIcon()
                 }
             }
             Text(
@@ -216,7 +216,7 @@ public fun JwMenuItem(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            trailing?.invoke(this)
+            trailingIcon?.invoke(this)
         }
     }
 }

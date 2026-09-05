@@ -32,31 +32,32 @@ private val DialogShadowElevation = 12.dp
 /**
  * A modal dialog with a title bar that carries a close button, so there is always a visible way
  * out, and a footer for the [dismissButton] and [confirmButton] in that order. Escape and a click
- * outside also dismiss it. [content] is laid out as a column with the dialog's padding, and shrinks
- * to whatever height the window leaves after the title bar and footer, so the buttons never
- * fall off the bottom; wrap a body that can be tall in a `Column` with `verticalScroll`.
+ * outside also dismiss it. [text] — the body, named after Material's `AlertDialog` — is laid out as
+ * a column with the dialog's padding, and shrinks to whatever height the window leaves after the
+ * title bar and footer, so the buttons never fall off the bottom; wrap a body that can be tall in
+ * a `Column` with `verticalScroll`.
  *
  * For a dialog that has no title bar — an image preview, a one-line confirmation — build on
  * [JwDialogSurface] instead and place your own close control.
  *
- * @param title shown in the title bar.
  * @param onDismissRequest called by the close button, Escape, and a click outside the dialog.
+ * @param title shown in the title bar.
  * @param closeLabel the close button's tooltip and accessibility label, in the UI's language.
  * @param width the dialog's fixed width; the height follows the content.
  * @param confirmButton the action that completes the dialog, placed last in the footer.
  * @param dismissButton the action that abandons it, placed before [confirmButton].
- * @param content the body, laid out as a column with [JwSpacing.large] between children.
+ * @param text the body, laid out as a column with [JwSpacing.large] between children.
  */
 @Composable
 public fun JwDialog(
-    title: String,
     onDismissRequest: () -> Unit,
+    title: String,
     closeLabel: String,
     modifier: Modifier = Modifier,
     width: Dp = JwDialogDefaults.width,
     confirmButton: (@Composable () -> Unit)? = null,
     dismissButton: (@Composable () -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit,
+    text: @Composable ColumnScope.() -> Unit,
 ) {
     JwDialogSurface(
         onDismissRequest = onDismissRequest,
@@ -77,7 +78,7 @@ public fun JwDialog(
                 .weight(1f, fill = false)
                 .padding(JwSpacing.extraLarge),
             verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
-            content = content,
+            content = text,
         )
         if (confirmButton != null || dismissButton != null) {
             JwHorizontalDivider()

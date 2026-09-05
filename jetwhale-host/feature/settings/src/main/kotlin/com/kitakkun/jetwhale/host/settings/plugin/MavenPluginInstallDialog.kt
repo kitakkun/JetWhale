@@ -66,7 +66,7 @@ fun MavenPluginInstallDialog(
         onDismissRequest = onDismissRequest,
         closeLabel = stringResource(Res.string.close),
         title = stringResource(Res.string.maven_install_dialog_title),
-        content = {
+        text = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -150,7 +150,7 @@ fun MavenPluginInstallDialog(
                             JwMenuItem(
                                 text = repository.displayName,
                                 selected = repository == selectedWellKnownRepository,
-                                trailing = {
+                                trailingIcon = {
                                     Text(
                                         text = repository.url,
                                         style = MaterialTheme.typography.bodySmall,

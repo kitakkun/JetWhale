@@ -34,7 +34,7 @@ public object JwKeyValueRowDefaults {
  * @param monospace sets the value in [JwTypography.code].
  * @param wrap `true` lets a long value take several lines — for text worth reading in full. `false`
  * keeps it on one line that scrolls sideways, so a long id cannot push the rows below it away.
- * @param trailing controls that act on the value: a copy button, a link.
+ * @param trailingContent controls that act on the value: a copy button, a link.
  */
 @Composable
 public fun JwKeyValueRow(
@@ -44,7 +44,7 @@ public fun JwKeyValueRow(
     keyWidth: Dp = JwKeyValueRowDefaults.keyWidth,
     monospace: Boolean = false,
     wrap: Boolean = true,
-    trailing: (@Composable RowScope.() -> Unit)? = null,
+    trailingContent: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -73,6 +73,6 @@ public fun JwKeyValueRow(
                 )
             }
         }
-        trailing?.invoke(this)
+        trailingContent?.invoke(this)
     }
 }
