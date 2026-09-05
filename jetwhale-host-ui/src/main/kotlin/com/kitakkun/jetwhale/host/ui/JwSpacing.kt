@@ -5,12 +5,25 @@ import androidx.compose.ui.unit.dp
 
 /** The spacing steps every JetWhale component is laid out on. */
 public object JwSpacing {
+    /** 2dp: the gap between a label and its count, or between stacked text lines. */
     public val xxs: Dp = 2.dp
+
+    /** 4dp: the gap between icon buttons in a toolbar, or between tags. */
     public val xs: Dp = 4.dp
+
+    /** 6dp: the gap between an icon and its label inside a control. */
     public val sm: Dp = 6.dp
+
+    /** 8dp: the gap between controls in a row, and the padding of compact rows. */
     public val md: Dp = 8.dp
+
+    /** 12dp: the padding of panels and panes, and the gap between form fields. */
     public val lg: Dp = 12.dp
+
+    /** 16dp: the padding of dialogs and settings pages. */
     public val xl: Dp = 16.dp
+
+    /** 24dp: the padding around an empty state. */
     public val xxl: Dp = 24.dp
 }
 

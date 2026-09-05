@@ -27,6 +27,7 @@ private val LocalJwExtendedColors = staticCompositionLocalOf<JwExtendedColors> {
  * @param colorScheme the Material color scheme to apply; the built-in ones are [JwColorSchemes].
  * @param darkTheme whether [colorScheme] is a dark scheme. Published through [LocalJetWhaleDarkTheme],
  * so it decides which fixed tones the extended colors use.
+ * @param content the UI to theme.
  */
 @Composable
 public fun JwTheme(
@@ -52,6 +53,7 @@ public fun JwTheme(
 
 /** Accessors for the values the enclosing [JwTheme] applied. */
 public object JwTheme {
+    /** The extended colors derived for the applied scheme. */
     public val colors: JwExtendedColors
         @Composable
         @ReadOnlyComposable

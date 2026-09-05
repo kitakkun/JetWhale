@@ -25,6 +25,12 @@ import androidx.compose.ui.unit.dp
  *
  * Pass [expanded] and [onToggleExpanded] to make the group collapsible; the header then shows a
  * chevron and toggles on click.
+ *
+ * @param title the group's name.
+ * @param count how many rows the group holds, shown after the title.
+ * @param expanded whether the group is open; null for a group that does not collapse.
+ * @param onToggleExpanded called when the header is clicked; required for the click to do anything.
+ * @param trailing controls at the far end: an add button, a filter.
  */
 @Composable
 public fun JwSectionHeader(

@@ -37,8 +37,13 @@ public enum class JwButtonStyle {
 /**
  * A compact text button of [JwMetrics.controlHeight].
  *
+ * @param text the label; keep it to a verb phrase.
+ * @param onClick what the button does.
+ * @param style how prominent the button is; see [JwButtonStyle].
  * @param tone [JwTone.Accent] is the ordinary button. [JwTone.Error] marks a destructive
  * action — a delete, a clear — in every style: filled red as Primary, red text otherwise.
+ * @param enabled false greys the button out and ignores clicks.
+ * @param leadingIcon an optional glyph before the label, drawn in the button's content color.
  */
 @Composable
 public fun JwButton(

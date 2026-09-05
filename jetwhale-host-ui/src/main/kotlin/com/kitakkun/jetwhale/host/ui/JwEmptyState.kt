@@ -16,9 +16,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
- * What a pane shows when it has nothing to show: a muted [icon], a short [title], and a
- * [description] that says how to get content there. [action] is the button that does so, when one
- * exists.
+ * What a pane shows when it has nothing to show, centered in the available space.
+ *
+ * @param title a short statement of the situation: "No plugin selected".
+ * @param icon a muted glyph above the title.
+ * @param description how to get content there, in a sentence or two.
+ * @param action the button that gets content there, when one exists.
  */
 @Composable
 public fun JwEmptyState(

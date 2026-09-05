@@ -22,6 +22,11 @@ import androidx.compose.ui.text.style.TextOverflow
  * optional [title] sits in a header strip with its own hairline, and [content] is laid out as a
  * column inside [contentPadding]. Pass `PaddingValues(0.dp)` to fill the panel edge to edge with
  * rows or a list of your own.
+ *
+ * @param title the header strip's text; omit it for an untitled box.
+ * @param contentPadding the space between the border and [content].
+ * @param headerActions controls at the far end of the header strip.
+ * @param content the body, laid out as a column with [JwSpacing.md] between children.
  */
 @Composable
 public fun JwPanel(

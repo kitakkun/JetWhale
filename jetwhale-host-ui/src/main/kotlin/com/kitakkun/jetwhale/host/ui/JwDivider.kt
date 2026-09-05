@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
-/** A hairline between stacked panes or rows. */
+/** A hairline between stacked panes or rows, filling the available width. */
 @Composable
 public fun JwHorizontalDivider(modifier: Modifier = Modifier) {
     Box(
@@ -20,7 +20,7 @@ public fun JwHorizontalDivider(modifier: Modifier = Modifier) {
     )
 }
 
-/** A hairline between panes placed side by side. */
+/** A hairline between panes placed side by side, filling the available height. */
 @Composable
 public fun JwVerticalDivider(modifier: Modifier = Modifier) {
     Box(

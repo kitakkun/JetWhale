@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 /**
  * A strip of [JwTab]s with a hairline underneath; the selected tab underlines itself in the
  * accent color. Views switch on the index they keep themselves.
+ *
+ * @param tabs the [JwTab]s, in order.
  */
 @Composable
 public fun JwTabRow(
@@ -50,7 +52,14 @@ public fun JwTabRow(
     }
 }
 
-/** One tab of a [JwTabRow]. [count] is drawn after the text, the way "Traffic 12" reads. */
+/**
+ * One tab of a [JwTabRow].
+ *
+ * @param text the tab's label.
+ * @param selected whether this tab's view is showing.
+ * @param onClick what selecting the tab does.
+ * @param count drawn after the text, the way "Traffic 12" reads.
+ */
 @Composable
 public fun JwTab(
     text: String,

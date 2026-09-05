@@ -31,7 +31,22 @@ import androidx.compose.ui.unit.dp
 /**
  * A single-line or multi-line input of [JwMetrics.controlHeight] per line, with a hairline
  * border that turns accent-colored on focus and error-colored while [isError]. [placeholder] shows
- * while [value] is empty. The remaining parameters mirror `BasicTextField`'s.
+ * while [value] is empty.
+ *
+ * @param value the current text.
+ * @param onValueChange called with the new text on every edit.
+ * @param placeholder shown while [value] is empty.
+ * @param enabled false greys the field out and ignores input.
+ * @param readOnly keeps the field enabled — selectable, copyable — but rejects edits.
+ * @param isError colors the border as an error; put the message in a [JwFormField].
+ * @param singleLine keeps the text on one line and makes Enter an action rather than a newline.
+ * @param maxLines the most lines a multi-line field grows to.
+ * @param textStyle the text's style; [JwTypography.code] for identifiers and JSON.
+ * @param keyboardOptions mirrors `BasicTextField`'s.
+ * @param keyboardActions mirrors `BasicTextField`'s.
+ * @param visualTransformation mirrors `BasicTextField`'s; password masking, say.
+ * @param leading an optional glyph before the text.
+ * @param trailing an optional control after the text, such as a clear button.
  */
 @Composable
 public fun JwTextField(
@@ -112,7 +127,14 @@ public fun JwTextField(
     )
 }
 
-/** A [JwTextField] dressed as a filter box: search glyph in front, a clear button once typed. */
+/**
+ * A [JwTextField] dressed as a filter box: search glyph in front, a clear button once typed.
+ *
+ * @param value the current query.
+ * @param onValueChange called with the new query on every edit, and with "" when cleared.
+ * @param placeholder what can be searched for, shown while [value] is empty.
+ * @param enabled false greys the field out and ignores input.
+ */
 @Composable
 public fun JwSearchField(
     value: String,

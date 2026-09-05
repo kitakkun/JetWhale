@@ -25,6 +25,11 @@ import androidx.compose.ui.unit.dp
 /**
  * A 16dp checkbox with its [label] beside it; the whole row toggles. Sized for toolbars and option
  * rows, where Material's 48dp touch target would push everything else apart.
+ *
+ * @param checked whether the box is ticked.
+ * @param onCheckedChange called with the new value when the row is clicked.
+ * @param label the text beside the box; it is part of the click target.
+ * @param enabled false greys the row out and ignores clicks.
  */
 @Composable
 public fun JwCheckbox(

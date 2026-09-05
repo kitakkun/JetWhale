@@ -24,7 +24,13 @@ private val TrackWidth = 32.dp
 private val TrackHeight = 18.dp
 private val ThumbSize = 14.dp
 
-/** A compact toggle (32×18dp) for settings rows, where Material's 52×32 switch dwarfs the label. */
+/**
+ * A compact toggle (32×18dp) for settings rows, where Material's 52×32 switch dwarfs the label.
+ *
+ * @param checked whether the switch is on.
+ * @param onCheckedChange called with the new value when the switch is clicked.
+ * @param enabled false greys the switch out and ignores clicks.
+ */
 @Composable
 public fun JwSwitch(
     checked: Boolean,

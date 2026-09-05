@@ -22,6 +22,10 @@ import androidx.compose.ui.unit.dp
  * share a column of [keyWidth] so a list of rows lines up; values are selectable and, when
  * [monospace], set in [JwTypography.code].
  *
+ * @param key the property's name, in the left column.
+ * @param value the property's value, selectable.
+ * @param keyWidth the width of the key column; pass the same value to every row of a list.
+ * @param monospace sets the value in [JwTypography.code].
  * @param wrap `true` lets a long value take several lines — for text worth reading in full. `false`
  * keeps it on one line that scrolls sideways, so a long id cannot push the rows below it away.
  * @param trailing controls that act on the value: a copy button, a link.

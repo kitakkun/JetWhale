@@ -20,8 +20,14 @@ import androidx.compose.ui.unit.dp
 
 /**
  * A one-line strip across the top of a pane that reports something the user should know but not
- * act on immediately: an update, a mode the window is in. [actions] are [JwButton]s in the
- * [JwButtonStyle.Text] style; [onDismiss] adds a close button after them.
+ * act on immediately: an update, a mode the window is in.
+ *
+ * @param text the message, kept to one line and ellipsized.
+ * @param tone picks the strip's background; [JwTone.Info] for news, [JwTone.Warning] for a mode
+ * the user may want to leave.
+ * @param icon an optional glyph before the text, drawn in the tone's content color.
+ * @param actions [JwButton]s in the [JwButtonStyle.Text] style, placed after the text.
+ * @param onDismiss when non-null, adds a close button after the actions.
  */
 @Composable
 public fun JwBanner(

@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
  * enough to read as panels of one window instead of stacked cards.
  */
 public object JwColorSchemes {
+    /** The built-in light scheme: white surfaces, near-black text, blue accent. */
     public fun light(): ColorScheme = lightColorScheme(
         primary = Color(0xFF2F6FE4),
         onPrimary = Color(0xFFFFFFFF),
@@ -51,6 +52,7 @@ public object JwColorSchemes {
         surfaceContainerHighest = Color(0xFFE2E5EA),
     )
 
+    /** The built-in dark scheme: charcoal surfaces, off-white text, lighter blue accent. */
     public fun dark(): ColorScheme = darkColorScheme(
         primary = Color(0xFF6A9BF5),
         onPrimary = Color(0xFF0B2247),

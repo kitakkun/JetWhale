@@ -20,6 +20,7 @@ public object JwTypography {
         lineHeight = 17.sp,
     )
 
+    /** The Material type scale [JwTheme] installs. */
     public fun material(): Typography {
         val sans = FontFamily.Default
         return Typography(

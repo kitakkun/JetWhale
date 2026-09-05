@@ -15,6 +15,9 @@ import androidx.compose.ui.Modifier
 /**
  * Shows [text] in a small tooltip while the pointer rests on [content]. A null [text] renders the
  * content bare, so callers can pass an optional label straight through.
+ *
+ * @param text the tooltip's text, or null for no tooltip.
+ * @param content the composable the tooltip describes.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

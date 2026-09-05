@@ -27,25 +27,39 @@ public class JwExtendedColors(
     public val textSecondary: Color,
     /** Text of a disabled control. */
     public val textDisabled: Color,
+    /** Strong green: a passing state, a healthy connection, a 2xx status. */
     public val success: Color,
+    /** Text or icon on [success]. */
     public val onSuccess: Color,
+    /** Soft green background for a tinted tag or banner. */
     public val successContainer: Color,
+    /** Text or icon on [successContainer]. */
     public val onSuccessContainer: Color,
+    /** Strong amber: something to look at, not yet an error. */
     public val warning: Color,
+    /** Text or icon on [warning]. */
     public val onWarning: Color,
+    /** Soft amber background for a tinted tag or banner. */
     public val warningContainer: Color,
+    /** Text or icon on [warningContainer]. */
     public val onWarningContainer: Color,
+    /** Strong blue: neutral information, a 3xx status. Usually the theme's primary. */
     public val info: Color,
+    /** Text or icon on [info]. */
     public val onInfo: Color,
+    /** Soft blue background for a tinted tag or banner. */
     public val infoContainer: Color,
+    /** Text or icon on [infoContainer]. */
     public val onInfoContainer: Color,
     /**
      * Marks what an AI agent is operating right now. Deliberately not derived from the scheme: it
      * has to stand out against the accent-tinted selection of the very row it decorates.
      */
     public val aiAccent: Color,
+    /** Text or icon on [aiAccent]. */
     public val onAiAccent: Color,
 ) {
+    /** Factory for the extended colors; [JwTheme] calls [from] for the scheme it applies. */
     public companion object {
         /** Derives the extended colors from [colorScheme], picking the fixed tones for [darkTheme]. */
         public fun from(colorScheme: ColorScheme, darkTheme: Boolean): JwExtendedColors = JwExtendedColors(

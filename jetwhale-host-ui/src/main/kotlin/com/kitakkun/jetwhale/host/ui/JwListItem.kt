@@ -29,6 +29,14 @@ import androidx.compose.ui.text.style.TextOverflow
  * badges or menus. A [supportingText] adds a second, secondary-colored line and makes the row taller;
  * without one the row is [JwMetrics.controlHeight]. The row tints on hover and on [selected],
  * and fades when not [enabled].
+ *
+ * @param text the row's label, ellipsized to one line.
+ * @param selected whether this is the current item.
+ * @param onClick what selecting the row does.
+ * @param enabled false fades the row and ignores clicks.
+ * @param supportingText a second line under [text].
+ * @param leading an optional glyph before the text.
+ * @param trailing badges or an overflow menu at the far end.
  */
 @Composable
 public fun JwListItem(

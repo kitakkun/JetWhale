@@ -10,8 +10,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 /**
- * An 8dp dot in the tone's color: connection state, liveness, "has something". [filled] false draws
- * a ring instead, for the weaker form of the same signal (available rather than active).
+ * An 8dp dot in the tone's color: connection state, liveness, "has something".
+ *
+ * @param tone the color family.
+ * @param filled `false` draws a ring instead of a disc, for the weaker form of the same signal
+ * (available rather than active).
  */
 @Composable
 public fun JwStatusDot(

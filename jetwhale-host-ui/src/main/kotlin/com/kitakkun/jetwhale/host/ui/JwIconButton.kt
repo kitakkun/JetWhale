@@ -28,7 +28,12 @@ import androidx.compose.ui.unit.Dp
  * [selected]. The icon slot receives the content color to draw with; [JwIcon] is the usual
  * thing to put in it.
  *
+ * @param onClick what the button does.
  * @param tooltip shown on hover, and the only label a bare icon carries — pass one.
+ * @param enabled false greys the icon out and ignores clicks.
+ * @param selected tints the button, for a toggle that is on or the item that is current.
+ * @param size the button's side; the icon inside keeps [JwMetrics.iconSize].
+ * @param content the icon, usually a [JwIcon].
  */
 @Composable
 public fun JwIconButton(
@@ -75,7 +80,13 @@ public fun JwIconButton(
     }
 }
 
-/** An icon at [JwMetrics.iconSize], tinted with the current content color. */
+/**
+ * An icon at [JwMetrics.iconSize], tinted with the current content color.
+ *
+ * @param imageVector the glyph.
+ * @param contentDescription what the icon means, or null when a neighboring label already says it.
+ * @param tint the color to draw with; defaults to the content color of the enclosing control.
+ */
 @Composable
 public fun JwIcon(
     imageVector: ImageVector,
@@ -91,7 +102,13 @@ public fun JwIcon(
     )
 }
 
-/** An icon at [JwMetrics.iconSize], tinted with the current content color. */
+/**
+ * An icon at [JwMetrics.iconSize], tinted with the current content color.
+ *
+ * @param painter the glyph, such as a plugin's SVG icon.
+ * @param contentDescription what the icon means, or null when a neighboring label already says it.
+ * @param tint the color to draw with; defaults to the content color of the enclosing control.
+ */
 @Composable
 public fun JwIcon(
     painter: Painter,

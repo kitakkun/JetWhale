@@ -12,6 +12,11 @@ import androidx.compose.ui.Modifier
  * A labeled slot in a form: the [label] above the control, an optional [supportingText] under it.
  * Labels sit above rather than inside the field, so a filled field keeps its name and rows stay
  * [JwMetrics.controlHeight] tall.
+ *
+ * @param label the field's name.
+ * @param supportingText a hint under the control, or the validation message while [isError].
+ * @param isError colors [supportingText] as an error.
+ * @param content the control: a [JwTextField], a [JwDropdownButton], a row of [JwTag]s.
  */
 @Composable
 public fun JwFormField(

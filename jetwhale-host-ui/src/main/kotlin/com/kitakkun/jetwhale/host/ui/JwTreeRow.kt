@@ -38,6 +38,16 @@ private val TreeIndent = 14.dp
  *
  * Nodes at the same depth line up whether or not they have children: a leaf keeps an empty slot
  * where the chevron would be.
+ *
+ * @param text the node's label, ellipsized to one line.
+ * @param depth how many levels deep the node is; 0 for a root.
+ * @param expandable whether the node has children to show.
+ * @param expanded whether its children are showing; ignored when not [expandable].
+ * @param selected whether this is the current node.
+ * @param onClick what selecting the row does.
+ * @param onToggleExpanded called when the chevron is clicked.
+ * @param enabled false fades the row and ignores clicks, including the chevron's.
+ * @param trailing annotations at the far end: a tag, an id.
  */
 @Composable
 public fun JwTreeRow(

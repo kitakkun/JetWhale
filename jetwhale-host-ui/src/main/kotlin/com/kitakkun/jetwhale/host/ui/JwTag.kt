@@ -31,7 +31,14 @@ public enum class JwTagStyle {
 
 /**
  * A small inline label — an HTTP method, a status code, "MCP", "mocked". Height 18dp, so it fits on
- * a [JwListItem] row without stretching it. Pass [onClick] to make it a button.
+ * a [JwListItem] row without stretching it.
+ *
+ * @param text the label, kept to one line.
+ * @param tone the color family.
+ * @param style how the tone is applied; see [JwTagStyle].
+ * @param onClick makes the tag a button, for a tag that opens something or toggles a choice.
+ * @param leadingIcon an optional glyph before the text.
+ * @param trailingIcon an optional glyph after the text, such as an "opens elsewhere" arrow.
  */
 @Composable
 public fun JwTag(

@@ -35,6 +35,14 @@ import androidx.compose.ui.unit.dp
  * A select-style trigger of [JwMetrics.controlHeight]: [leading] icon, the current [text], a
  * chevron, and the [menu] it drops down. The caller owns [expanded] so it can close the menu from a
  * [JwMenuItem].
+ *
+ * @param text the current value, or a placeholder when nothing is selected.
+ * @param expanded whether the menu is open.
+ * @param onExpandedChange called with the requested open state: `true` on click, `false` on dismiss.
+ * @param enabled false greys the trigger out and keeps the menu closed.
+ * @param leading an optional glyph before the text.
+ * @param trailing optional badges between the text and the chevron: a status dot, a lock.
+ * @param menu the [JwMenuItem]s shown while [expanded].
  */
 @Composable
 public fun JwDropdownButton(
@@ -97,7 +105,13 @@ public fun JwDropdownButton(
     }
 }
 
-/** A popup menu anchored to the composable it is placed next to, holding [JwMenuItem]s. */
+/**
+ * A popup menu anchored to the composable it is placed next to, holding [JwMenuItem]s.
+ *
+ * @param expanded whether the menu is shown.
+ * @param onDismissRequest called on Escape or a click outside the menu.
+ * @param content the [JwMenuItem]s, in order.
+ */
 @Composable
 public fun JwDropdownMenu(
     expanded: Boolean,
@@ -121,8 +135,16 @@ public fun JwDropdownMenu(
 }
 
 /**
- * One row of a [JwDropdownMenu]. [selected] draws a check mark in the leading slot, for menus
- * that pick one of several values.
+ * One row of a [JwDropdownMenu].
+ *
+ * @param text the item's label.
+ * @param onClick what the item does; the caller also closes the menu here.
+ * @param enabled false greys the item out and ignores clicks.
+ * @param selected draws a check mark in the leading slot, for menus that pick one of several values.
+ * @param leading an optional glyph, shown when the item is not [selected].
+ * @param trailing optional annotations at the far end: a shortcut, a secondary value.
+ * @param tone [JwTone.Error] colors the item red for a destructive action; other tones read as
+ * [JwTone.Neutral].
  */
 @Composable
 public fun JwMenuItem(

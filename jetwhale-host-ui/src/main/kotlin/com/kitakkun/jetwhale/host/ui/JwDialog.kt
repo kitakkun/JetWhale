@@ -26,7 +26,13 @@ import androidx.compose.ui.window.DialogProperties
  * outside also dismiss it. [content] is laid out as a column with the dialog's padding; long
  * content scrolls only if the caller makes it.
  *
+ * @param title shown in the title bar.
+ * @param onDismissRequest called by the close button, Escape, and a click outside the dialog.
  * @param closeLabel the close button's tooltip and accessibility label, in the UI's language.
+ * @param width the dialog's fixed width; the height follows the content.
+ * @param confirmButton the action that completes the dialog, placed last in the footer.
+ * @param dismissButton the action that abandons it, placed before [confirmButton].
+ * @param content the body, laid out as a column with [JwSpacing.lg] between children.
  */
 @Composable
 public fun JwDialog(
