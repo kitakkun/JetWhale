@@ -33,9 +33,9 @@ dependencies {
     testImplementation(libs.roborazziComposeDesktop)
 }
 
-// Screenshot tests of the component gallery. The recorded images live next to the tests, so a
-// visual change shows up as a diff in review; `recordRoborazziJvm` refreshes them on purpose and
-// `verifyRoborazziJvm` (run by `check`) fails on an accidental one.
+// Screenshot tests of the component gallery. The images are not committed: CI renders main and
+// the pull request on one runner and posts the diff on the PR (see screenshot-check.yml).
+// Locally, `recordRoborazziJvm` writes them here to look at.
 roborazzi {
     outputDir.set(file("screenshots"))
 }

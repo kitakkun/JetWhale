@@ -9,13 +9,14 @@ import io.github.takahirom.roborazzi.captureRoboImage
 import kotlin.test.Test
 
 /**
- * Renders [JwGallery] in both built-in themes and compares against the recorded images under
- * `screenshots/`. Run `./gradlew :jetwhale-host-ui:recordRoborazziJvm` after a deliberate visual
- * change, and review the diff the verify task writes under `build/outputs/roborazzi` when one fails.
+ * Renders [JwGallery] in both built-in themes into `screenshots/` (git-ignored). CI is what
+ * compares: the `Screenshot check` workflow renders `main` and the pull request on the same
+ * runner, publishes both to companion branches, and comments on the PR with a side-by-side diff
+ * of every image that changed. Locally, `./gradlew :jetwhale-host-ui:recordRoborazziJvm` writes
+ * the images to look at.
  *
- * Rendering goes through Skia with the platform's fonts, so the images are only comparable
- * between macOS machines — and even those differ by a few anti-aliased pixels between OS
- * releases, which is what the change threshold absorbs. A real change moves far more than that.
+ * Rendering goes through Skia with the platform's fonts, so images from different machines are
+ * not comparable; the small change threshold only absorbs anti-aliasing noise within one platform.
  */
 @OptIn(ExperimentalTestApi::class)
 class JwGalleryScreenshotTest {
@@ -42,8 +43,8 @@ class JwGalleryScreenshotTest {
 }
 
 /**
- * Fraction of pixels allowed to differ. Anti-aliasing between macOS releases moves under 0.01% of
- * them; a changed component moves whole rows.
+ * Fraction of pixels allowed to differ. Anti-aliasing noise stays under 0.01% of them; a changed
+ * component moves whole rows.
  */
 private const val CHANGE_THRESHOLD = 0.001f
 
