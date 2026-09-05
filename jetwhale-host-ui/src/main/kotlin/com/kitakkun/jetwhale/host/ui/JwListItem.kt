@@ -90,7 +90,7 @@ public fun JwListItem(
  * has: hover and selection tints, the focus ring, [muted] and [enabled], and `selected` in
  * semantics. The content is a row with [JwSpacing.medium] between children, drawn in the row's
  * content color. The row is [JwMetrics.controlHeight] tall unless the content is taller — a
- * default-sized [JwIconButton] is, so use `size = 20.dp` for one inside a row.
+ * default-sized [JwIconButton] is, so give one inside a row [JwIconButtonDefaults.inlineSize].
  *
  * @param selected whether this is the current item.
  * @param onClick what selecting the row does.

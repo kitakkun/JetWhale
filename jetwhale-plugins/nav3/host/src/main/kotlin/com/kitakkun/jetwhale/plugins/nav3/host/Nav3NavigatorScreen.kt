@@ -59,6 +59,9 @@ internal data class Nav3Status(val message: String, val isError: Boolean)
 
 private val PrettyJson = Json { prettyPrint = true }
 
+/** Room for a small key's JSON without scrolling, so the editor reads as an editor when empty. */
+private val EditorMinHeight = 120.dp
+
 @Composable
 internal fun Nav3NavigatorScreen(
     stacks: List<NavBackStackSnapshot>,
@@ -258,7 +261,7 @@ private fun PushPane(
                 placeholder = "{\"type\": \"…\"}",
                 singleLine = false,
                 textStyle = JwTypography.code,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = EditorMinHeight),
             )
         }
 

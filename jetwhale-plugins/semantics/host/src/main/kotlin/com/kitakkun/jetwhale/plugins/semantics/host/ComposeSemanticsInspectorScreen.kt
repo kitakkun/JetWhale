@@ -172,6 +172,16 @@ internal fun ComposeSemanticsInspectorScreen(
 
 private const val AUTO_REFRESH_INTERVAL_MILLIS = 1_000L
 
+/** A spinner small enough to sit before a button label. */
+private val SpinnerSize = 12.dp
+private val SpinnerStrokeWidth = 1.5f.dp
+
+/** Wide enough for the placeholder without crowding the checkboxes beside it. */
+private val SearchFieldWidth = 260.dp
+
+/** Fits "contentDescription", the longest property name. */
+private val PropertyKeyWidth = 120.dp
+
 @Composable
 private fun Toolbar(
     capturing: Boolean,
@@ -199,8 +209,8 @@ private fun Toolbar(
         ) {
             if (capturing) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(12.dp),
-                    strokeWidth = 1.5f.dp,
+                    modifier = Modifier.size(SpinnerSize),
+                    strokeWidth = SpinnerStrokeWidth,
                     color = LocalContentColor.current,
                 )
             }
@@ -215,7 +225,7 @@ private fun Toolbar(
             onValueChange = onSearchChange,
             clearLabel = "Clear search",
             placeholder = "Search text / tag / role",
-            modifier = Modifier.width(260.dp),
+            modifier = Modifier.width(SearchFieldWidth),
         )
     }
 }
@@ -502,5 +512,5 @@ private val NodeAction.semanticsKeyName: String
  */
 @Composable
 private fun PropertyRow(label: String, value: String, wrap: Boolean = false) {
-    JwKeyValueRow(key = label, value = value, keyWidth = 120.dp, monospace = true, wrap = wrap)
+    JwKeyValueRow(key = label, value = value, keyWidth = PropertyKeyWidth, monospace = true, wrap = wrap)
 }

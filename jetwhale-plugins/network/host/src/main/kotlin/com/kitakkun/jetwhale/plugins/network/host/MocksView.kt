@@ -55,12 +55,12 @@ internal fun MocksTab(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(JwSpacing.large),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
             JwSwitch(mockingEnabled, onToggleMocking, contentDescription = "Mocking enabled")
             Text(
@@ -160,7 +160,7 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-                    JwFormField(label = "Method", modifier = Modifier.width(130.dp)) {
+                    JwFormField(label = "Method", modifier = Modifier.width(MethodFieldWidth)) {
                         MethodDropdown(
                             method = draft.matcher.method,
                             onSelect = { draft = draft.copy(matcher = draft.matcher.copy(method = it)) },
@@ -188,7 +188,7 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-                    JwFormField(label = "Status", modifier = Modifier.width(80.dp)) {
+                    JwFormField(label = "Status", modifier = Modifier.width(StatusFieldWidth)) {
                         JwTextField(
                             value = draft.response.statusCode.toString(),
                             onValueChange = { value ->
@@ -201,7 +201,7 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                             textStyle = JwTypography.code,
                         )
                     }
-                    JwFormField(label = "Delay ms", modifier = Modifier.width(90.dp)) {
+                    JwFormField(label = "Delay ms", modifier = Modifier.width(DelayFieldWidth)) {
                         JwTextField(
                             value = draft.response.delayMs.toString(),
                             onValueChange = { value ->
@@ -237,13 +237,25 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                         textStyle = JwTypography.code,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(min = 100.dp),
+                            .heightIn(min = BodyEditorMinHeight),
                     )
                 }
             }
         },
     )
 }
+
+/** Fits "OPTIONS" plus the chevron. */
+private val MethodFieldWidth = 130.dp
+
+/** Three digits. */
+private val StatusFieldWidth = 80.dp
+
+/** Up to five digits of milliseconds. */
+private val DelayFieldWidth = 90.dp
+
+/** Enough lines to read a small JSON body without scrolling. */
+private val BodyEditorMinHeight = 100.dp
 
 private val httpMethods = listOf("ANY", "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS")
 

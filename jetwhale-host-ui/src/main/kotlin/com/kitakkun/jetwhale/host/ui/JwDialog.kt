@@ -20,6 +20,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
+/** Sizes of a [JwDialog]. */
+public object JwDialogDefaults {
+    /** The default width: room for a form with labels above its fields. */
+    public val width: Dp = 480.dp
+}
+
+/** Shadow under a dialog. */
+private val DialogShadowElevation = 12.dp
+
 /**
  * A modal dialog with a title bar that carries a close button, so there is always a visible way
  * out, and a footer for the [dismissButton] and [confirmButton] in that order. Escape and a click
@@ -44,7 +53,7 @@ public fun JwDialog(
     onDismissRequest: () -> Unit,
     closeLabel: String,
     modifier: Modifier = Modifier,
-    width: Dp = 480.dp,
+    width: Dp = JwDialogDefaults.width,
     confirmButton: (@Composable () -> Unit)? = null,
     dismissButton: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
@@ -100,7 +109,7 @@ public fun JwDialog(
 public fun JwDialogSurface(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    width: Dp = 480.dp,
+    width: Dp = JwDialogDefaults.width,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Dialog(
@@ -111,7 +120,7 @@ public fun JwDialogSurface(
         Column(
             modifier = modifier
                 .width(width)
-                .shadow(12.dp, shape)
+                .shadow(DialogShadowElevation, shape)
                 .clip(shape)
                 .background(MaterialTheme.colorScheme.surfaceContainer, shape)
                 .border(JwMetrics.borderWidth, JwTheme.colors.border, shape),

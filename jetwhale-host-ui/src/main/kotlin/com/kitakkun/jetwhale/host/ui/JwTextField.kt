@@ -28,6 +28,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
+/** Shrinks the clear glyph to sit inside an inline icon button. */
+private val ClearIconInset = 3.dp
+
 /**
  * A single-line or multi-line input of [JwMetrics.controlHeight] per line, with a hairline
  * border that turns accent-colored on focus and error-colored while [isError]. [placeholder] shows
@@ -105,7 +108,7 @@ public fun JwTextField(
                     .fillMaxWidth()
                     .heightIn(min = JwMetrics.controlHeight)
                     .background(scheme.surfaceContainerLowest, shape)
-                    .border(if (focused || isError) 1.5f.dp else JwMetrics.borderWidth, borderColor, shape)
+                    .border(if (focused || isError) JwMetrics.focusStrokeWidth else JwMetrics.borderWidth, borderColor, shape)
                     .padding(horizontal = JwSpacing.medium, vertical = if (singleLine) 0.dp else JwSpacing.small),
                 verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
@@ -168,9 +171,9 @@ public fun JwSearchField(
                 JwIconButton(
                     onClick = { onValueChange("") },
                     tooltip = clearLabel,
-                    size = 20.dp,
+                    size = JwIconButtonDefaults.inlineSize,
                 ) {
-                    JwIcon(imageVector = JwIcons.Close, contentDescription = null, modifier = Modifier.padding(3.dp))
+                    JwIcon(imageVector = JwIcons.Close, contentDescription = null, modifier = Modifier.padding(ClearIconInset))
                 }
             }
         },

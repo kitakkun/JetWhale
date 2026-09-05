@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /** How a [JwTag] is drawn. */
@@ -34,9 +35,18 @@ public enum class JwTagStyle {
     Filled,
 }
 
+/** Sizes of a [JwTag]. */
+public object JwTagDefaults {
+    /** Height of a tag: fits on a [JwListItem] row without stretching it. */
+    public val height: Dp = 18.dp
+}
+
+/** Gap between a tag's text and its icons; tighter than [JwSpacing.extraSmall] to fit the height. */
+private val TagContentGap = 3.dp
+
 /**
- * A small inline label — an HTTP method, a status code, "MCP", "mocked". Height 18dp, so it fits on
- * a [JwListItem] row without stretching it.
+ * A small inline label — an HTTP method, a status code, "MCP", "mocked". [JwTagDefaults.height]
+ * tall, so it fits on a [JwListItem] row without stretching it.
  *
  * @param text the label, kept to one line.
  * @param tone the color family.
@@ -70,7 +80,7 @@ public fun JwTag(
     }
     Row(
         modifier = modifier
-            .height(18.dp)
+            .height(JwTagDefaults.height)
             .then(if (onClick != null) Modifier.jwFocusRing(interactionSource, shape) else Modifier)
             .clip(shape)
             .then(if (background != null) Modifier.background(background, shape) else Modifier)
@@ -84,7 +94,7 @@ public fun JwTag(
             )
             .padding(horizontal = JwSpacing.small),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(TagContentGap),
     ) {
         CompositionLocalProvider(LocalContentColor provides contentColor) {
             leadingIcon?.invoke()

@@ -73,6 +73,15 @@ private const val DEFAULT_SPLIT_POSITION = 0.42f
 private val ListMinWidth = 240.dp
 private val DetailMinWidth = 280.dp
 
+/** A wider, invisible hit area laid over the 1px divider so it stays comfortable to grab. */
+private val SplitterHandleWidth = 8.dp
+
+/** Fits "DELETE" so the URL column starts at the same x on every row. */
+private val MethodColumnWidth = 44.dp
+
+/** Fits a three-digit status so the method column lines up. */
+private val StatusTagWidth = 36.dp
+
 @OptIn(ExperimentalSplitPaneApi::class)
 @Composable
 internal fun TrafficTab(
@@ -215,7 +224,7 @@ internal fun TrafficTab(
                         Modifier
                             .markAsHandle()
                             .pointerHoverIcon(PointerIcon(Cursor(Cursor.E_RESIZE_CURSOR)))
-                            .width(8.dp)
+                            .width(SplitterHandleWidth)
                             .fillMaxHeight(),
                     )
                 }
@@ -242,7 +251,7 @@ private fun TransactionRow(tx: HttpTransaction, selected: Boolean, onClick: () -
         Text(
             text = tx.request.method,
             style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.width(44.dp),
+            modifier = Modifier.width(MethodColumnWidth),
         )
         Text(
             text = tx.request.url,
@@ -280,7 +289,7 @@ private fun StatusBadge(tx: HttpTransaction) {
         tx.response.statusCode >= 400 -> tx.response.statusCode.toString() to JwTone.Error
         else -> tx.response.statusCode.toString() to JwTone.Neutral
     }
-    JwTag(text = label, tone = tone, style = JwTagStyle.Tinted, modifier = Modifier.width(36.dp))
+    JwTag(text = label, tone = tone, style = JwTagStyle.Tinted, modifier = Modifier.width(StatusTagWidth))
 }
 
 @Composable
@@ -304,10 +313,10 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
         mutableStateOf(if (hasResponseBody) DetailTab.Body else DetailTab.Headers)
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
             StatusBadge(tx)
             Text(
@@ -371,7 +380,7 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
 
 @Composable
 private fun BodyTab(tx: HttpTransaction) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
         when {
             // The failure detail itself is shown above the tabs; here just note there is no body.
             tx.failure != null -> EmptyHint("Request failed — no response body")
@@ -391,7 +400,7 @@ private fun BodyTab(tx: HttpTransaction) {
 
 @Composable
 private fun HeadersTab(tx: HttpTransaction) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
         SectionTitle("Request")
         if (tx.request.headers.isEmpty()) {
             EmptyHint("No request headers")

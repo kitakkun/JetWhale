@@ -76,8 +76,12 @@ does less, the name differs so the difference is not a surprise.
 - **Disabled vs muted**: `enabled = false` removes interaction and greys the row; `muted = true`
   (on `JwListItem` and `JwTreeRow`) only de-emphasizes it — for an item that is present but not
   current.
-- **Sizes**: `JwSpacing` steps (`tiny` 2dp … `huge` 24dp) and `JwMetrics` are the only lengths the
-  components use; lay out custom content on the same steps and it lines up.
+- **Sizes**: `JwSpacing` steps (`tiny` 2dp … `huge` 24dp) are the gaps and paddings; `JwMetrics`
+  holds the few sizes every component shares (control and toolbar height, icon size, border and
+  focus strokes); a size that belongs to one component lives in that component's `Defaults`
+  object — `JwDialogDefaults.width`, `JwTagDefaults.height`, `JwMenuDefaults.itemHeight`, and so
+  on — the way Material's `ButtonDefaults` does. Lay out custom content on the same values and it
+  lines up.
 
 ## Compatibility
 

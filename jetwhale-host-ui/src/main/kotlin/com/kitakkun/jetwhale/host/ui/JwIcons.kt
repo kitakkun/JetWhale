@@ -6,6 +6,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.unit.dp
 
+/** Material icons are authored on a 24-unit grid; the paths below come from that set. */
+private const val MATERIAL_VIEWPORT = 24f
+private val MaterialGlyphSize = 24.dp
+
 /**
  * The few glyphs the components themselves draw. Plugins bring their own icon set; nothing here is
  * meant to grow into one.
@@ -49,10 +53,10 @@ public object JwIcons {
 
     private fun icon(name: String, pathData: String): ImageVector = ImageVector.Builder(
         name = "JwIcons.$name",
-        defaultWidth = 24.dp,
-        defaultHeight = 24.dp,
-        viewportWidth = 24f,
-        viewportHeight = 24f,
+        defaultWidth = MaterialGlyphSize,
+        defaultHeight = MaterialGlyphSize,
+        viewportWidth = MATERIAL_VIEWPORT,
+        viewportHeight = MATERIAL_VIEWPORT,
     ).addPath(
         pathData = addPathNodes(pathData),
         fill = SolidColor(Color.Black),

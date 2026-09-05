@@ -35,10 +35,20 @@ import androidx.compose.ui.semantics.expand
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/** Horizontal indent per tree level. */
-private val TreeIndent = 14.dp
+/** Sizes of a [JwTreeRow]. */
+public object JwTreeRowDefaults {
+    /** Height of a row. Tighter than [JwMetrics.controlHeight]: a tree is read as a block. */
+    public val height: Dp = 24.dp
+
+    /** Horizontal indent per level. */
+    public val indent: Dp = 14.dp
+}
+
+/** Side of the chevron glyph. */
+private val ChevronSize = 14.dp
 
 /**
  * One line of a flattened tree: indented by [depth], with a chevron that toggles the subtree when
@@ -99,13 +109,13 @@ public fun JwTreeRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(24.dp)
+            .height(JwTreeRowDefaults.height)
             .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
             .background(background)
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
             .semantics { this.selected = selected }
             .padding(
-                start = contentPadding.calculateStartPadding(layoutDirection) + TreeIndent * depth,
+                start = contentPadding.calculateStartPadding(layoutDirection) + JwTreeRowDefaults.indent * depth,
                 end = contentPadding.calculateEndPadding(layoutDirection),
             ),
         verticalAlignment = Alignment.CenterVertically,
@@ -113,7 +123,7 @@ public fun JwTreeRow(
     ) {
         Box(
             modifier = Modifier
-                .size(16.dp)
+                .size(JwMetrics.iconSize)
                 .clip(MaterialTheme.shapes.extraSmall)
                 .background(if (expandable && chevronHovered && enabled) colors.hover else Color.Transparent)
                 .then(
@@ -153,7 +163,7 @@ public fun JwTreeRow(
                     contentDescription = null,
                     tint = colors.textSecondary,
                     modifier = Modifier
-                        .size(14.dp)
+                        .size(ChevronSize)
                         .rotate(rotation),
                 )
             }

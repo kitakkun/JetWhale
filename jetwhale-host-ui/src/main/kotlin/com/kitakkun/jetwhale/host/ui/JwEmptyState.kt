@@ -13,7 +13,14 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
+/** Sizes of a [JwEmptyState]. */
+public object JwEmptyStateDefaults {
+    /** The widest the description grows before wrapping, so a sentence stays a readable line. */
+    public val textMaxWidth: Dp = 360.dp
+}
 
 /**
  * What a pane shows when it has nothing to show, centered in the available space.
@@ -55,7 +62,7 @@ public fun JwEmptyState(
                 style = MaterialTheme.typography.bodySmall,
                 color = JwTheme.colors.textDisabled,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.widthIn(max = 360.dp),
+                modifier = Modifier.widthIn(max = JwEmptyStateDefaults.textMaxWidth),
             )
         }
         if (action != null) {

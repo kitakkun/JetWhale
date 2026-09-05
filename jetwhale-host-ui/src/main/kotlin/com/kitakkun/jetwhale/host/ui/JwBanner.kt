@@ -16,7 +16,17 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
+/** Sizes of a [JwBanner]. */
+public object JwBannerDefaults {
+    /** The strip's minimum height. */
+    public val minHeight: Dp = 32.dp
+}
+
+/** Side of the close button; between the inline size and a full control, to suit the strip. */
+private val DismissButtonSize = 24.dp
 
 /**
  * A one-line strip across the top of a pane that reports something the user should know but not
@@ -77,7 +87,7 @@ private fun BannerStrip(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 32.dp)
+                .heightIn(min = JwBannerDefaults.minHeight)
                 .background(tone.containerColor)
                 .padding(horizontal = JwSpacing.large, vertical = JwSpacing.tiny),
             verticalAlignment = Alignment.CenterVertically,
@@ -95,7 +105,7 @@ private fun BannerStrip(
                 actions?.invoke(this)
                 if (dismiss != null) {
                     val (onDismiss, dismissLabel) = dismiss
-                    JwIconButton(onClick = onDismiss, tooltip = dismissLabel, size = 24.dp) {
+                    JwIconButton(onClick = onDismiss, tooltip = dismissLabel, size = DismissButtonSize) {
                         JwIcon(imageVector = JwIcons.Close, contentDescription = null)
                     }
                 }

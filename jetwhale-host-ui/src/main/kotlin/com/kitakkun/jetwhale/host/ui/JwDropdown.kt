@@ -31,7 +31,20 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
+/** Sizes of a [JwDropdownMenu] and its [JwMenuItem]s. */
+public object JwMenuDefaults {
+    /** Height of one [JwMenuItem]. */
+    public val itemHeight: Dp = 26.dp
+
+    /** The narrowest a menu is laid out; a short list of short items still reads as a menu. */
+    public val minWidth: Dp = 160.dp
+}
+
+/** Shadow under an open [JwDropdownMenu]. */
+private val MenuShadowElevation = 6.dp
 
 /**
  * A select-style trigger of [JwMetrics.controlHeight]: [leading] icon, the current [text], a
@@ -126,20 +139,20 @@ public fun JwDropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismissRequest,
         modifier = modifier
-            .widthIn(min = 160.dp)
+            .widthIn(min = JwMenuDefaults.minWidth)
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .border(JwMetrics.borderWidth, JwTheme.colors.border, MaterialTheme.shapes.small)
             // Horizontal only: DropdownMenu already pads the column vertically.
             .padding(horizontal = JwSpacing.extraSmall),
         shape = MaterialTheme.shapes.small,
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shadowElevation = 6.dp,
+        shadowElevation = MenuShadowElevation,
         content = content,
     )
 }
 
 /**
- * One row of a [JwDropdownMenu].
+ * One row of a [JwDropdownMenu], [JwMenuDefaults.itemHeight] tall.
  *
  * @param text the item's label.
  * @param onClick what the item does; the caller also closes the menu here.
@@ -173,7 +186,7 @@ public fun JwMenuItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(26.dp)
+            .height(JwMenuDefaults.itemHeight)
             .jwFocusRing(interactionSource, MaterialTheme.shapes.extraSmall)
             .clip(MaterialTheme.shapes.extraSmall)
             .background(if (hovered && enabled) colors.hover else Color.Transparent)

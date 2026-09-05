@@ -27,7 +27,11 @@ public object JwSpacing {
     public val huge: Dp = 24.dp
 }
 
-/** Fixed heights of the compact controls, so custom rows line up with the built-in ones. */
+/**
+ * The few sizes every component shares, so custom content lines up with the built-in ones. A size
+ * that belongs to one component lives in that component's `Defaults` object — `JwDialogDefaults`,
+ * `JwTagDefaults` and so on — not here.
+ */
 public object JwMetrics {
     /** Height of a compact control: buttons, inputs, list rows. */
     public val controlHeight: Dp = 28.dp
@@ -35,18 +39,18 @@ public object JwMetrics {
     /** Height of a toolbar and of the sidebar header. */
     public val toolbarHeight: Dp = 36.dp
 
-    /** Height of a section header row inside a list. */
-    public val sectionHeaderHeight: Dp = 24.dp
-
     /** Icon size inside compact controls. */
     public val iconSize: Dp = 16.dp
+
+    /** Hairline width of borders and dividers. */
+    public val borderWidth: Dp = 1.dp
+
+    /** Stroke of the focus ring, and of a text field's border while focused or in error. */
+    public val focusStrokeWidth: Dp = 1.5f.dp
 
     /** Width of the sidebar when expanded. */
     public val sidebarWidth: Dp = 280.dp
 
     /** Width of the sidebar when collapsed to icons. */
     public val railWidth: Dp = 44.dp
-
-    /** Hairline width of borders and dividers. */
-    public val borderWidth: Dp = 1.dp
 }

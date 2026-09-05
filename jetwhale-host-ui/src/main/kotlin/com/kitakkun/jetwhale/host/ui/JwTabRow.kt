@@ -28,7 +28,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
+/** Sizes of a [JwTabRow]. */
+public object JwTabRowDefaults {
+    /** Height of the strip. */
+    public val height: Dp = 32.dp
+
+    /** Thickness of the underline of the selected tab. */
+    public val indicatorHeight: Dp = 2.dp
+}
 
 /**
  * A strip of [JwTab]s with a hairline underneath; the selected tab underlines itself in the
@@ -46,7 +56,7 @@ public fun JwTabRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(JwMetrics.toolbarHeight - 4.dp)
+                .height(JwTabRowDefaults.height)
                 .background(JwTheme.colors.toolbarBackground)
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = JwSpacing.extraSmall),
@@ -121,7 +131,7 @@ public fun JwTab(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(2.dp)
+                .height(JwTabRowDefaults.indicatorHeight)
                 .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent),
         )
     }

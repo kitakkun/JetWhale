@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.shutting_down
+import com.kitakkun.jetwhale.host.ui.JwSpacing
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -20,7 +21,7 @@ fun ShuttingDownDialog() {
     Dialog(onDismissRequest = {}) {
         Column(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.extraLarge, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(

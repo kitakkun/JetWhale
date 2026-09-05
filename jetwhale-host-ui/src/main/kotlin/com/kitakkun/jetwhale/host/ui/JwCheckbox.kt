@@ -21,10 +21,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+/** Sizes of a [JwCheckbox]. */
+public object JwCheckboxDefaults {
+    /** Side of the box. */
+    public val size: Dp = 16.dp
+}
+
+/** Side of the check mark inside the box. */
+private val CheckMarkSize = 12.dp
+
 /**
- * A 16dp checkbox with its [label] beside it; the whole row toggles. Sized for toolbars and option
+ * A [JwCheckboxDefaults.size] checkbox with its [label] beside it; the whole row toggles. Sized for toolbars and option
  * rows, where Material's 48dp touch target would push everything else apart.
  *
  * @param checked whether the box is ticked.
@@ -71,7 +81,7 @@ public fun JwCheckbox(
     ) {
         Box(
             modifier = Modifier
-                .size(16.dp)
+                .size(JwCheckboxDefaults.size)
                 .background(boxColor, MaterialTheme.shapes.extraSmall)
                 .border(
                     JwMetrics.borderWidth,
@@ -85,7 +95,7 @@ public fun JwCheckbox(
                     imageVector = JwIcons.Check,
                     contentDescription = null,
                     tint = if (enabled) scheme.onPrimary else colors.textDisabled,
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(CheckMarkSize),
                 )
             }
         }

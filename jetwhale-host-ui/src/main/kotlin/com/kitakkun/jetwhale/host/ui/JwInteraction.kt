@@ -14,6 +14,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.unit.dp
 
+/** Space between a control's edge and its focus ring. */
+private val FocusRingGap = 1.dp
+
 /**
  * Draws the accent focus ring every Jw control shows while it holds focus. On desktop a click
  * moves focus too, so the ring also marks the control last clicked until focus moves on — the
@@ -21,7 +24,7 @@ import androidx.compose.ui.unit.dp
  * of focus a keyboard user gets; apply it to a custom control built on the same
  * [InteractionSource] as its `clickable`.
  *
- * The ring sits 2.5dp outside the control's bounds, so it stays visible on a control filled with
+ * The ring sits just outside the control's bounds, so it stays visible on a control filled with
  * the accent color itself. Place it before any `clip` in the modifier chain, or the clip cuts it
  * off; a parent that clips, such as [JwPanel], trims the ring of a row flush with its edge.
  *
@@ -35,8 +38,8 @@ public fun Modifier.jwFocusRing(interactionSource: InteractionSource, shape: Sha
     val color = MaterialTheme.colorScheme.primary
     return drawWithContent {
         drawContent()
-        val stroke = 1.5f.dp.toPx()
-        val gap = 1.dp.toPx()
+        val stroke = JwMetrics.focusStrokeWidth.toPx()
+        val gap = FocusRingGap.toPx()
         val inset = stroke / 2f + gap
         val outline = shape.createOutline(Size(size.width + inset * 2f, size.height + inset * 2f), layoutDirection, this)
         translate(-inset, -inset) {

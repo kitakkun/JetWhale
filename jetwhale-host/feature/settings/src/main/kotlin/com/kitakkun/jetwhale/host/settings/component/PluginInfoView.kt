@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.ui.JwSpacing
 
 @Composable
 fun PluginInfoView(
@@ -18,7 +19,7 @@ fun PluginInfoView(
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
         Text(text = uiState.name, style = MaterialTheme.typography.bodyLarge)
         Text(text = uiState.id, style = MaterialTheme.typography.bodyMedium)

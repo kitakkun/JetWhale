@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.component.FollowingAiOperationBanner
 import com.kitakkun.jetwhale.host.component.ToolingDrawer
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
 import kotlinx.collections.immutable.persistentListOf
 
@@ -86,7 +87,7 @@ fun ToolingScaffold(
                     hostState = snackbarHostState,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(16.dp),
+                        .padding(JwSpacing.extraLarge),
                 )
             }
         }

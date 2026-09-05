@@ -24,6 +24,16 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
+/** Sizes of a [JwIconButton]. */
+public object JwIconButtonDefaults {
+    /** The default side: one compact control. */
+    public val size: Dp = JwMetrics.controlHeight
+
+    /** The side for a button inside a row or a field, where the default would stretch the row. */
+    public val inlineSize: Dp = 20.dp
+}
 
 /**
  * A square icon button of [JwMetrics.controlHeight]: flat until hovered, tinted while
@@ -35,7 +45,7 @@ import androidx.compose.ui.unit.Dp
  * icon carries, so pass one. Leave the icon's own contentDescription null then, or the two merge.
  * @param enabled false greys the icon out and ignores clicks.
  * @param selected tints the button, for a toggle that is on or the item that is current.
- * @param size the button's side; the icon inside keeps [JwMetrics.iconSize].
+ * @param size the button's side; the icon inside keeps [JwMetrics.iconSize]. See [JwIconButtonDefaults].
  * @param content the icon, usually a [JwIcon].
  */
 @Composable
@@ -45,7 +55,7 @@ public fun JwIconButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     selected: Boolean = false,
-    size: Dp = JwMetrics.controlHeight,
+    size: Dp = JwIconButtonDefaults.size,
     content: @Composable () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }

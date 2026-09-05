@@ -26,6 +26,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.ui.JwSpacing
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -45,10 +46,10 @@ internal fun BodyBlock(label: String, body: String?, truncated: Boolean) {
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.small),
     ) {
         if (json != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
                 FilterChip(
                     selected = mode == BodyMode.Tree,
                     onClick = { mode = BodyMode.Tree },
@@ -133,7 +134,7 @@ private fun JsonBranch(
             .clickable { expanded = !expanded }
             .padding(vertical = 1.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
     ) {
         Text(
             text = if (expanded) "▾" else "▸",

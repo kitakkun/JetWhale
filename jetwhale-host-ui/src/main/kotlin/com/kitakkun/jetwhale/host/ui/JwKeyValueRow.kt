@@ -17,6 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+/** Sizes of a [JwKeyValueRow]. */
+public object JwKeyValueRowDefaults {
+    /** The default width of the key column: fits a header name like "Content-Type". */
+    public val keyWidth: Dp = 140.dp
+}
+
 /**
  * One "key: value" line of a detail view — a header, a property, a setting's current value. Keys
  * share a column of [keyWidth] so a list of rows lines up; values are selectable and, when
@@ -35,7 +41,7 @@ public fun JwKeyValueRow(
     key: String,
     value: String,
     modifier: Modifier = Modifier,
-    keyWidth: Dp = 140.dp,
+    keyWidth: Dp = JwKeyValueRowDefaults.keyWidth,
     monospace: Boolean = false,
     wrap: Boolean = true,
     trailing: (@Composable RowScope.() -> Unit)? = null,

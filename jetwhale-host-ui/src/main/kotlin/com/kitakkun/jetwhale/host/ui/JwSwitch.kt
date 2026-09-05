@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 private val TrackWidth = 32.dp
 private val TrackHeight = 18.dp
 private val ThumbSize = 14.dp
+private val ThumbInset = 2.dp
 
 /**
  * A compact toggle (32×18dp) for settings rows, where Material's 52×32 switch dwarfs the label.
@@ -53,7 +54,7 @@ public fun JwSwitch(
         label = "switch-track",
     )
     val thumbOffset by animateDpAsState(
-        targetValue = if (checked) TrackWidth - ThumbSize - 2.dp else 2.dp,
+        targetValue = if (checked) TrackWidth - ThumbSize - ThumbInset else ThumbInset,
         label = "switch-thumb",
     )
     val interactionSource = remember { MutableInteractionSource() }

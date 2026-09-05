@@ -74,6 +74,12 @@ import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
+/** The app mark in the sidebar header: a little larger than a glyph, since it is the brand. */
+private val AppMarkSize = 18.dp
+
+/** The puzzle icon of the "no plugins" state. */
+private val EmptyStateIconSize = 28.dp
+
 /**
  * The sidebar at full width: a header with the app mark and the collapse control, the session
  * picker, the AI-activity strip, the plugin list grouped by availability, and a footer of the
@@ -161,7 +167,7 @@ private fun SidebarHeader(onClickShrinkDrawer: () -> Unit) {
         Image(
             painter = painterResource(Res.drawable.app_icon),
             contentDescription = null,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(AppMarkSize),
         )
         Text(
             text = stringResource(Res.string.app_short_name),
@@ -224,7 +230,7 @@ private fun NoPluginsView(
             JwIcon(
                 painter = painterResource(Res.drawable.puzzle_outlined),
                 contentDescription = null,
-                modifier = Modifier.size(28.dp),
+                modifier = Modifier.size(EmptyStateIconSize),
             )
         },
         action = if (hasFailedJars) {

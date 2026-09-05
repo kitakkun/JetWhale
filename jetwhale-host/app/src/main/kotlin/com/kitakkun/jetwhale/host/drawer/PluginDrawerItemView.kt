@@ -20,14 +20,22 @@ import com.kitakkun.jetwhale.host.puzzle_outlined
 import com.kitakkun.jetwhale.host.ui.JwDropdownMenu
 import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwIconButton
+import com.kitakkun.jetwhale.host.ui.JwIconButtonDefaults
 import com.kitakkun.jetwhale.host.ui.JwIcons
 import com.kitakkun.jetwhale.host.ui.JwListItem
+import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwTagStyle
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+
+/** Matches the small shape the row is clipped to. */
+private val AiRingCornerRadius = 4.dp
+
+/** Shrinks the "opens elsewhere" glyph to the tag's height. */
+private val BadgeIconInset = 3.dp
 
 @Composable
 fun PluginDrawerItemView(
@@ -74,7 +82,7 @@ fun PluginDrawerItemView(
                         JwIconButton(
                             onClick = { expanded = true },
                             tooltip = stringResource(Res.string.plugin_actions),
-                            size = 20.dp,
+                            size = JwIconButtonDefaults.inlineSize,
                         ) {
                             JwIcon(imageVector = JwIcons.MoreHorizontal, contentDescription = null)
                         }
@@ -94,7 +102,7 @@ fun PluginDrawerItemView(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .aiOperatingBorder(color = JwTheme.colors.aiAccent, width = 1.5f.dp, cornerRadius = 4.dp),
+                    .aiOperatingBorder(color = JwTheme.colors.aiAccent, width = JwMetrics.focusStrokeWidth, cornerRadius = AiRingCornerRadius),
             )
         }
     }
@@ -120,7 +128,7 @@ private fun McpBadge(
             JwIcon(
                 imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                 contentDescription = null,
-                modifier = Modifier.padding(3.dp),
+                modifier = Modifier.padding(BadgeIconInset),
             )
         },
     )

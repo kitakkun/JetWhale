@@ -27,7 +27,17 @@ import androidx.compose.ui.semantics.collapse
 import androidx.compose.ui.semantics.expand
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
+/** Sizes of a [JwSectionHeader]. */
+public object JwSectionHeaderDefaults {
+    /** Height of the header row. */
+    public val height: Dp = 24.dp
+}
+
+/** Side of the chevron glyph. */
+private val ChevronSize = 14.dp
 
 /**
  * The heading of a group of rows: a small secondary-colored [title], an optional [count], and
@@ -60,7 +70,7 @@ public fun JwSectionHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(JwMetrics.sectionHeaderHeight)
+            .height(JwSectionHeaderDefaults.height)
             .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
             .background(if (hovered && collapsible) JwTheme.colors.hover else Color.Transparent)
             .then(
@@ -102,7 +112,7 @@ public fun JwSectionHeader(
                 contentDescription = null,
                 tint = JwTheme.colors.textSecondary,
                 modifier = Modifier
-                    .size(14.dp)
+                    .size(ChevronSize)
                     .rotate(rotation),
             )
         }

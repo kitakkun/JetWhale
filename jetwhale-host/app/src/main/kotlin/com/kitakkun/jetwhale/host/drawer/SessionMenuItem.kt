@@ -17,6 +17,9 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import org.jetbrains.compose.resources.stringResource
 
+/** Smaller than a regular glyph: the lock is a secondary annotation beside the session name. */
+private val SecurityIconSize = 12.dp
+
 /**
  * Shows a lock indicator for the session transport: a green lock for TLS (wss), a neutral lock for
  * a loopback (ADB-forwarded) connection which is effectively secure, and nothing for plaintext.
@@ -31,14 +34,14 @@ fun SessionSecurityIcon(
             imageVector = Icons.Default.Lock,
             contentDescription = stringResource(Res.string.session_secure_connection),
             tint = JwTone.Success.color,
-            modifier = modifier.size(12.dp),
+            modifier = modifier.size(SecurityIconSize),
         )
 
         SessionTransportSecurity.LOOPBACK -> Icon(
             imageVector = Icons.Default.Lock,
             contentDescription = stringResource(Res.string.session_local_connection),
             tint = JwTheme.colors.textSecondary,
-            modifier = modifier.size(12.dp),
+            modifier = modifier.size(SecurityIconSize),
         )
 
         SessionTransportSecurity.PLAINTEXT -> Unit

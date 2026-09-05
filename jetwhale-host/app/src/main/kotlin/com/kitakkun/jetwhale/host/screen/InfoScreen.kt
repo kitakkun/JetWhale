@@ -32,11 +32,19 @@ import com.kitakkun.jetwhale.host.version_format
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
+/** Wide enough for the repository URL on one line. */
+private val PanelWidth = 380.dp
+
+private val AppIconSize = 72.dp
+
+/** Shrinks the chevron glyph to a secondary size. */
+private val ChevronInset = 3.dp
+
 @Composable
 fun InfoScreen(
     onClickOSSLicenses: () -> Unit,
 ) {
-    JwPanel(modifier = Modifier.width(380.dp)) {
+    JwPanel(modifier = Modifier.width(PanelWidth)) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -48,7 +56,7 @@ fun InfoScreen(
                 painter = painterResource(Res.drawable.app_icon),
                 contentDescription = null,
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(AppIconSize)
                     .padding(bottom = JwSpacing.medium),
             )
             Text(
@@ -81,7 +89,7 @@ fun InfoScreen(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                     contentDescription = null,
                     tint = JwTheme.colors.textSecondary,
-                    modifier = Modifier.padding(3.dp),
+                    modifier = Modifier.padding(ChevronInset),
                 )
             },
         )

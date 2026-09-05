@@ -13,6 +13,9 @@ import com.kitakkun.jetwhale.host.ui.JwIcon
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
+/** The puzzle icon of the empty content pane; the pane is large, so the icon is too. */
+private val EmptyStateIconSize = 40.dp
+
 @Composable
 fun EmptyPluginScreen() {
     JwEmptyState(
@@ -22,7 +25,7 @@ fun EmptyPluginScreen() {
             JwIcon(
                 painter = painterResource(Res.drawable.puzzle_outlined),
                 contentDescription = null,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(EmptyStateIconSize),
             )
         },
     )

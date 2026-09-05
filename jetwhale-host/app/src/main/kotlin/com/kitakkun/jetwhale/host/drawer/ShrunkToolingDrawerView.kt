@@ -200,6 +200,12 @@ private fun RailSessionButton(
     }
 }
 
+/** How far the badge sits in from the button's corner. */
+private val BadgeOffset = 1.dp
+
+/** The rail-colored ring that separates the badge from what it overlaps. */
+private val BadgeRingWidth = 1.5f.dp
+
 /**
  * A status dot pinned to a rail button's corner. It sits just outside the 16dp glyph, and a ring in
  * the rail's own color separates it from whatever it overlaps.
@@ -212,9 +218,9 @@ private fun RailBadge(
 ) {
     Box(
         modifier = modifier
-            .padding(1.dp)
+            .padding(BadgeOffset)
             .background(JwTheme.colors.sidebarBackground, CircleShape)
-            .padding(1.5f.dp),
+            .padding(BadgeRingWidth),
     ) {
         JwStatusDot(tone = tone, filled = filled)
     }
