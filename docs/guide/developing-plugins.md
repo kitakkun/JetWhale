@@ -42,6 +42,7 @@ plugins {
 dependencies {
     // Provided by the host at runtime, so compileOnly — they must NOT be bundled into the plugin jar.
     compileOnly("com.kitakkun.jetwhale:jetwhale-host-sdk:<version>")
+    compileOnly("com.kitakkun.jetwhale:jetwhale-host-ui:<version>")
     compileOnly("org.jetbrains.compose.material3:material3:<composeMaterial3Version>")
 }
 
@@ -113,7 +114,7 @@ in the IDE.
 | Field | Required | Default | Meaning |
 |-------|----------|---------|---------|
 | `pluginId` | ✅ | — | Unique id. The **agent** plugin's `pluginId` must match it for the two to be paired. |
-| `pluginName` | ✅ | — | Display name in the plugin drawer. |
+| `pluginName` | ✅ | — | Display name in the sidebar. |
 | `version` | ✅ | — | Your plugin's version. |
 | `factoryClass` | ✅ | — | Fully-qualified `JetWhaleHostPluginFactory` the host instantiates. Needs a public no-arg constructor. |
 | `requiresAgent` | | `true` | `false` makes the plugin [host-only](#host-only-plugins-no-agent-no-messaging): no agent counterpart, no messaging, instantiated for every active session. |
@@ -128,7 +129,7 @@ the plugin is selected and enabled, `inactivePath` otherwise; a path that does n
 silently to JetWhale's default puzzle-piece icons.
 
 Both must be **SVG** — a PNG will not render — and they are drawn as Material `Icon`s, i.e. tinted
-with the drawer's content color. Author monochrome shapes, not multi-color artwork.
+with the sidebar's content color. Author monochrome shapes, not multi-color artwork.
 
 #### Multiple plugins in one module
 
@@ -416,23 +417,38 @@ raised. Masking only in the drawing layer is not enough: the semantics tree woul
 the original string. The interactive window never observes the raised state, so there is no
 on-screen flicker.
 
-### Theming: you already match the host
+### Theming and components: `jetwhale-host-ui`
 
-The host wraps your `Content()` in **its own** `MaterialTheme` before calling it, so plain
+The host wraps your `Content()` in **its own** theme before calling it, so plain
 `MaterialTheme.colorScheme` / `MaterialTheme.typography` inside your plugin already resolve to the
 host's applied scheme. Do not install a theme of your own unless you deliberately want to look
 different — that is why `material3` is a `compileOnly` dependency and why plugins get visual
 consistency for free.
 
-The `LocalJetWhaleDarkTheme` CompositionLocal tells your plugin whether the host is rendering it in
-a dark theme — the host provides the authoritative value from its actually-applied color scheme.
-Read it (`LocalJetWhaleDarkTheme.current`) to pick theme-appropriate colors instead of
-`isSystemInDarkTheme()`, which reflects the OS setting and can disagree with the host's own Theme
-option.
+That theme is `JwTheme` from **`jetwhale-host-ui`**, the component library the host itself is
+built from. Depend on it `compileOnly` like the SDK and build your UI from its parts, so your plugin
+reads as one more pane of the same tool rather than a foreign app embedded in it:
 
-The SDK ships **no component library** — no shared Composables, icons, scaffolds or spacing tokens.
-Build your UI from Compose and Material 3 directly. Your composition is kept for the lifetime of the
-plugin instance, so it survives switching to another plugin tab and back.
+| Need | Component |
+|------|-----------|
+| Extra colors Material has no slot for — sidebar and toolbar surfaces, hairline `border`, `hover` and `selection` backgrounds, `success` / `warning` / `info` tones, the `aiAccent` an agent's activity is marked with | `JwTheme.colors` |
+| Whether the host is dark | `JwTheme.isDark` (the same value as `LocalJetWhaleDarkTheme`) |
+| Compact buttons and icon buttons, with tooltips | `JwButton`, `JwIconButton`, `JwTooltip` |
+| Inputs | `JwTextField`, `JwSearchField`, `JwSwitch`, `JwDropdownButton` + `JwMenuItem` |
+| Structure | `JwToolbar`, `JwTabRow` + `JwTab`, `JwPanel`, `JwSectionHeader`, `JwHorizontalDivider` / `JwVerticalDivider` |
+| Rows and labels | `JwListItem`, `JwKeyValueRow`, `JwTag`, `JwStatusDot`, `JwBanner`, `JwEmptyState` |
+| Spacing and sizes | `JwSpacing`, `JwMetrics`; `JwTypography.code` for monospace text |
+
+Every component is sized for a desktop tool window — 28dp controls, 13sp body text, 4dp corners —
+and takes its colors from the theme, so it follows the user's light/dark/custom choice without any
+work on your side. The bundled [Network Inspector](/guide/network-inspector) is a worked example.
+
+Nothing forces the library on you: Material 3 and any other Compose library keep working inside
+`Content()`. Prefer `jetwhale-host-ui` where it has what you need, and drop to Material or your own
+Composables for the rest.
+
+Your composition is kept for the lifetime of the plugin instance, so it survives switching to
+another plugin tab and back.
 
 ::: warning What the host SDK does *not* give a plugin
 There is no settings/preferences API (render your own controls inside `Content()` and persist them
@@ -688,7 +704,7 @@ their own publication coordinates when the module has a Maven publication config
 them alongside the plugin. A project dependency without a publication is bundled into the plugin
 jar as a fallback.
 
-Remember that host-provided dependencies (`jetwhale-host-sdk`, Compose, `material3`) must stay
+Remember that host-provided dependencies (`jetwhale-host-sdk`, `jetwhale-host-ui`, Compose, `material3`) must stay
 `compileOnly` — they are provided by the host at runtime and must appear neither in the jar nor in
 the dependency manifest.
 
