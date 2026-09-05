@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.Dp
  *
  * @param onClick what the button does.
  * @param tooltip shown on hover, and the button's accessibility name — the only label a bare
- * icon carries, so pass one unless the icon's own contentDescription names it.
+ * icon carries, so pass one. Leave the icon's own contentDescription null then, or the two merge.
  * @param enabled false greys the icon out and ignores clicks.
  * @param selected tints the button, for a toggle that is on or the item that is current.
  * @param size the button's side; the icon inside keeps [JwMetrics.iconSize].
@@ -63,13 +63,14 @@ public fun JwIconButton(
         selected -> MaterialTheme.colorScheme.primary
         else -> LocalContentColor.current
     }
-    JwTooltip(text = tooltip, modifier = modifier) {
+    JwTooltip(text = tooltip) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .size(size)
                 .then(if (tooltip != null) Modifier.semantics { contentDescription = tooltip } else Modifier)
                 .clip(MaterialTheme.shapes.small)
                 .background(background)
+                .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,

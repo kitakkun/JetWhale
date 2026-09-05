@@ -19,16 +19,16 @@ import androidx.compose.ui.unit.dp
  * What a pane shows when it has nothing to show, centered in the available space.
  *
  * @param title a short statement of the situation: "No plugin selected".
- * @param icon a muted glyph above the title.
  * @param description how to get content there, in a sentence or two.
+ * @param icon a muted glyph above the title.
  * @param action the button that gets content there, when one exists.
  */
 @Composable
 public fun JwEmptyState(
     title: String,
     modifier: Modifier = Modifier,
-    icon: (@Composable () -> Unit)? = null,
     description: String? = null,
+    icon: (@Composable () -> Unit)? = null,
     action: (@Composable () -> Unit)? = null,
 ) {
     Column(

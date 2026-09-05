@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 private val TrackWidth = 32.dp
@@ -29,12 +31,15 @@ private val ThumbSize = 14.dp
  *
  * @param checked whether the switch is on.
  * @param onCheckedChange called with the new value when the switch is clicked.
+ * @param contentDescription the switch's accessibility name — the label of the setting it
+ * controls, since the switch shows none of its own.
  * @param enabled false greys the switch out and ignores clicks.
  */
 @Composable
 public fun JwSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    contentDescription: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
@@ -56,7 +61,9 @@ public fun JwSwitch(
         modifier = modifier
             .size(width = TrackWidth, height = TrackHeight)
             .clip(CircleShape)
+            .semantics { this.contentDescription = contentDescription }
             .background(trackColor)
+            .jwFocusRing(interactionSource, CircleShape)
             .toggleable(
                 value = checked,
                 enabled = enabled,

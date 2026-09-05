@@ -78,6 +78,7 @@ private fun FilterTextField(
     JwSearchField(
         value = value,
         onValueChange = onValueChange,
+        clearLabel = stringResource(Res.string.log_viewer_clear_filter),
         placeholder = stringResource(Res.string.log_viewer_filter_placeholder),
         modifier = modifier,
     )

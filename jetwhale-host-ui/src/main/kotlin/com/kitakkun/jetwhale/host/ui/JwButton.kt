@@ -124,6 +124,7 @@ public fun JwButton(
             .clip(MaterialTheme.shapes.small)
             .background(background)
             .border(JwMetrics.borderWidth, borderColor, MaterialTheme.shapes.small)
+            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

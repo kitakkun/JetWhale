@@ -7,7 +7,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.kitakkun.jetwhale.host.sdk.LocalJetWhaleDarkTheme
 
@@ -27,15 +26,17 @@ private val LocalJwExtendedColors = staticCompositionLocalOf<JwExtendedColors> {
  * @param colorScheme the Material color scheme to apply; the built-in ones are [JwColorSchemes].
  * @param darkTheme whether [colorScheme] is a dark scheme. Published through [LocalJetWhaleDarkTheme],
  * so it decides which fixed tones the extended colors use.
+ * @param extendedColors the colors beyond Material's; derived from [colorScheme] with
+ * [JwExtendedColors.from], and a theme with tones of its own passes a [JwExtendedColors.copy].
  * @param content the UI to theme.
  */
 @Composable
 public fun JwTheme(
     colorScheme: ColorScheme,
     darkTheme: Boolean,
+    extendedColors: JwExtendedColors = JwExtendedColors.from(colorScheme, darkTheme),
     content: @Composable () -> Unit,
 ) {
-    val extendedColors = remember(colorScheme, darkTheme) { JwExtendedColors.from(colorScheme, darkTheme) }
     MaterialTheme(
         colorScheme = colorScheme,
         typography = JwTypography.material(),

@@ -83,6 +83,7 @@ public fun JwTab(
             // otherwise claim the whole strip for the first tab.
             .width(IntrinsicSize.Max)
             .fillMaxHeight()
+            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

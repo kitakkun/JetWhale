@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
  * @param expanded whether the menu is open.
  * @param onExpandedChange called with the requested open state: `true` on click, `false` on dismiss.
  * @param enabled false greys the trigger out and keeps the menu closed.
- * @param leading an optional glyph before the text.
+ * @param leading content before the text: usually a [JwIcon], but any small composable fits.
  * @param trailing optional badges between the text and the chevron: a status dot, a lock.
  * @param menu the [JwMenuItem]s shown while [expanded].
  */
@@ -71,6 +71,7 @@ public fun JwDropdownButton(
                 .clip(shape)
                 .background(if (hovered && enabled) colors.hover else scheme.surfaceContainerLowest, shape)
                 .border(JwMetrics.borderWidth, if (enabled) scheme.outline else colors.border.copy(alpha = 0.5f), shape)
+                .jwFocusRing(interactionSource, shape)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -143,10 +144,11 @@ public fun JwDropdownMenu(
  * @param onClick what the item does; the caller also closes the menu here.
  * @param enabled false greys the item out and ignores clicks.
  * @param selected draws a check mark in the leading slot, for menus that pick one of several values.
- * @param leading an optional glyph, shown when the item is not [selected].
- * @param trailing optional annotations at the far end: a shortcut, a secondary value.
  * @param tone [JwTone.Error] colors the item red for a destructive action; other tones read as
  * [JwTone.Neutral].
+ * @param leading content for the leading slot, shown when the item is not [selected]: usually a
+ * [JwIcon], but an app icon or an avatar fits too.
+ * @param trailing optional annotations at the far end: a shortcut, a secondary value.
  */
 @Composable
 public fun JwMenuItem(
@@ -155,9 +157,9 @@ public fun JwMenuItem(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     selected: Boolean = false,
+    tone: JwTone = JwTone.Neutral,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
-    tone: JwTone = JwTone.Neutral,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
@@ -173,6 +175,7 @@ public fun JwMenuItem(
             .height(26.dp)
             .clip(MaterialTheme.shapes.extraSmall)
             .background(if (hovered && enabled) colors.hover else Color.Transparent)
+            .jwFocusRing(interactionSource, MaterialTheme.shapes.extraSmall)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

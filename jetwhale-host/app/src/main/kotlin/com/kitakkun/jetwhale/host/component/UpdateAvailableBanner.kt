@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.component
 
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.Res
+import com.kitakkun.jetwhale.host.close
 import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
@@ -31,5 +32,6 @@ fun UpdateAvailableBanner(
             )
         },
         onDismiss = onDismiss,
+        dismissLabel = stringResource(Res.string.close),
     )
 }

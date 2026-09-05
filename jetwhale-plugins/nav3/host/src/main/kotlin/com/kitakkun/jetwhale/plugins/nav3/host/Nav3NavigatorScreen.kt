@@ -285,7 +285,7 @@ private fun PushPane(
                 color = JwTheme.colors.textSecondary,
             )
         } else {
-            JwSectionHeader(title = "Key types · click one to fill the editor", modifier = Modifier.padding(horizontal = 0.dp))
+            JwSectionHeader(title = "Key types · click one to fill the editor", contentPadding = PaddingValues(0.dp))
             keyTypes.forEach { type ->
                 KeyTypeRow(
                     type = type,

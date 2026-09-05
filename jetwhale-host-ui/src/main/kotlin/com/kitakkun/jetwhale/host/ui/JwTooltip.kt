@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +28,7 @@ public fun JwTooltip(
     content: @Composable () -> Unit,
 ) {
     if (text == null) {
-        content()
+        Box(modifier = modifier) { content() }
         return
     }
     TooltipBox(

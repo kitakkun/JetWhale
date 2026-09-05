@@ -1,8 +1,12 @@
 package com.kitakkun.jetwhale.host.ui
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,9 +17,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.collapse
+import androidx.compose.ui.semantics.expand
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
@@ -30,6 +40,8 @@ import androidx.compose.ui.unit.dp
  * @param count how many rows the group holds, shown after the title.
  * @param expanded whether the group is open; null for a group that does not collapse.
  * @param onToggleExpanded called when the header is clicked; required for the click to do anything.
+ * @param contentPadding the space between the header's edge and its content; match it to the
+ * gutter of the rows below.
  * @param trailing controls at the far end: an add button, a filter.
  */
 @Composable
@@ -39,15 +51,47 @@ public fun JwSectionHeader(
     count: Int? = null,
     expanded: Boolean? = null,
     onToggleExpanded: (() -> Unit)? = null,
+    contentPadding: PaddingValues = PaddingValues(horizontal = JwSpacing.medium),
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val collapsible = expanded != null && onToggleExpanded != null
+    val interactionSource = remember { MutableInteractionSource() }
+    val hovered by interactionSource.collectIsHoveredAsState()
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(JwMetrics.sectionHeaderHeight)
-            .then(if (collapsible) Modifier.clickable(onClick = onToggleExpanded) else Modifier)
-            .padding(horizontal = JwSpacing.medium),
+            .background(if (hovered && collapsible) JwTheme.colors.hover else Color.Transparent)
+            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
+            .then(
+                if (collapsible) {
+                    Modifier
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            role = Role.Button,
+                            onClick = onToggleExpanded,
+                        )
+                        // Language-neutral state for screen readers and the host's MCP tools: the
+                        // matching action is offered, so "expand" and "collapse" need no label.
+                        .semantics {
+                            if (expanded) {
+                                collapse {
+                                    onToggleExpanded()
+                                    true
+                                }
+                            } else {
+                                expand {
+                                    onToggleExpanded()
+                                    true
+                                }
+                            }
+                        }
+                } else {
+                    Modifier
+                },
+            )
+            .padding(contentPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
     ) {

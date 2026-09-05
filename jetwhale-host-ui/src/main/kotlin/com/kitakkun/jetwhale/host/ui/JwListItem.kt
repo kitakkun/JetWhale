@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 
 /**
  * A selectable row for sidebars and lists: [leading] icon, a single-line [text], and [trailing]
@@ -36,8 +37,10 @@ import androidx.compose.ui.text.style.TextOverflow
  * @param selected whether this is the current item.
  * @param onClick what selecting the row does.
  * @param enabled false fades the row and ignores clicks.
+ * @param muted draws the row in the secondary text color while keeping it interactive — an item
+ * that is present but not current, say. Distinct from [enabled], which removes the interaction.
  * @param supportingText a second line under [text].
- * @param leading an optional glyph before the text.
+ * @param leading content before the text: usually a [JwIcon], but an app icon or an avatar fits too.
  * @param trailing badges or an overflow menu at the far end.
  */
 @Composable
@@ -47,6 +50,7 @@ public fun JwListItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    muted: Boolean = false,
     supportingText: String? = null,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
@@ -60,21 +64,17 @@ public fun JwListItem(
     }
     val contentColor = when {
         !enabled -> JwTheme.colors.textDisabled
+        muted -> JwTheme.colors.textSecondary
         selected -> JwTheme.colors.onSelection
         else -> MaterialTheme.colorScheme.onSurface
     }
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .then(
-                if (supportingText == null) {
-                    Modifier.height(JwMetrics.controlHeight)
-                } else {
-                    Modifier.padding(vertical = JwSpacing.extraSmall)
-                },
-            )
+            .then(if (supportingText == null) Modifier.height(JwMetrics.controlHeight) else Modifier)
             .clip(MaterialTheme.shapes.small)
             .background(background)
+            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -82,7 +82,10 @@ public fun JwListItem(
                 onClick = onClick,
             )
             .semantics { this.selected = selected }
-            .padding(horizontal = JwSpacing.medium),
+            .padding(
+                horizontal = JwSpacing.medium,
+                vertical = if (supportingText == null) 0.dp else JwSpacing.extraSmall,
+            ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -212,6 +213,7 @@ private fun Toolbar(
         JwSearchField(
             value = search,
             onValueChange = onSearchChange,
+            clearLabel = "Clear search",
             placeholder = "Search text / tag / role",
             modifier = Modifier.width(260.dp),
         )
@@ -315,8 +317,8 @@ private fun NodeRow(
         expandable = row.expandable,
         expanded = row.expanded,
         selected = selected,
-        // An invisible node is still selectable; it is only drawn muted.
-        enabled = row.node.isVisible,
+        // An invisible node is still selectable and expandable; it is only drawn muted.
+        muted = !row.node.isVisible,
         onClick = onSelect,
         onToggleExpanded = onToggleExpanded,
         trailing = {
@@ -398,7 +400,7 @@ private fun NodeDetail(
 
         JwHorizontalDivider()
 
-        JwSectionHeader(title = "Run an action on the app", modifier = Modifier.padding(horizontal = 0.dp))
+        JwSectionHeader(title = "Run an action on the app", contentPadding = PaddingValues(0.dp))
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
             verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),

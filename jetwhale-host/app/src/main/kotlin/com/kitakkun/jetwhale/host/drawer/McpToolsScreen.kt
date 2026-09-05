@@ -83,6 +83,7 @@ import com.kitakkun.jetwhale.host.mcp_tools_no_match
 import com.kitakkun.jetwhale.host.mcp_tools_parameters
 import com.kitakkun.jetwhale.host.mcp_tools_required
 import com.kitakkun.jetwhale.host.mcp_tools_search
+import com.kitakkun.jetwhale.host.mcp_tools_search_clear
 import com.kitakkun.jetwhale.host.mcp_tools_tab_history
 import com.kitakkun.jetwhale.host.mcp_tools_tab_tools
 import com.kitakkun.jetwhale.host.model.McpCallRecord
@@ -400,6 +401,7 @@ private fun McpToolsPane(
             JwSearchField(
                 value = query,
                 onValueChange = onQueryChange,
+                clearLabel = stringResource(Res.string.mcp_tools_search_clear),
                 placeholder = stringResource(Res.string.mcp_tools_search),
                 modifier = Modifier.fillMaxWidth(),
             )

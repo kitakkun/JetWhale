@@ -57,7 +57,7 @@ public fun JwDialog(
             title = title,
             actions = {
                 JwIconButton(onClick = onDismissRequest, tooltip = closeLabel) {
-                    JwIcon(imageVector = JwIcons.Close, contentDescription = closeLabel)
+                    JwIcon(imageVector = JwIcons.Close, contentDescription = null)
                 }
             },
         )

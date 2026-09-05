@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -28,14 +29,15 @@ import androidx.compose.ui.unit.dp
  *
  * @param checked whether the box is ticked.
  * @param onCheckedChange called with the new value when the row is clicked.
- * @param label the text beside the box; it is part of the click target.
+ * @param label the text beside the box, part of the click target; null for a bare box in a table
+ * column, which the surrounding row must then name.
  * @param enabled false greys the row out and ignores clicks.
  */
 @Composable
 public fun JwCheckbox(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    label: String,
+    label: String?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
@@ -53,6 +55,8 @@ public fun JwCheckbox(
     Row(
         modifier = modifier
             .height(JwMetrics.controlHeight)
+            .clip(MaterialTheme.shapes.small)
+            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
             .toggleable(
                 value = checked,
                 enabled = enabled,
@@ -85,11 +89,13 @@ public fun JwCheckbox(
                 )
             }
         }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (enabled) scheme.onSurface else colors.textDisabled,
-            maxLines = 1,
-        )
+        if (label != null) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (enabled) scheme.onSurface else colors.textDisabled,
+                maxLines = 1,
+            )
+        }
     }
 }

@@ -3,6 +3,8 @@ package com.kitakkun.jetwhale.host.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -12,9 +14,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 
 /** How a [JwTag] is drawn. */
@@ -51,8 +56,10 @@ public fun JwTag(
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
     val shape = MaterialTheme.shapes.extraSmall
+    val interactionSource = remember { MutableInteractionSource() }
+    val hovered by interactionSource.collectIsHoveredAsState()
     val background = when (style) {
-        JwTagStyle.Outlined -> null
+        JwTagStyle.Outlined -> if (hovered && onClick != null) JwTheme.colors.hover else null
         JwTagStyle.Tinted -> tone.containerColor
         JwTagStyle.Filled -> tone.color
     }
@@ -67,7 +74,15 @@ public fun JwTag(
             .clip(shape)
             .then(if (background != null) Modifier.background(background, shape) else Modifier)
             .then(if (style == JwTagStyle.Outlined) Modifier.border(JwMetrics.borderWidth, tone.color.copy(alpha = 0.6f), shape) else Modifier)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(
+                if (onClick != null) {
+                    Modifier
+                        .jwFocusRing(interactionSource, shape)
+                        .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = onClick)
+                } else {
+                    Modifier
+                },
+            )
             .padding(horizontal = JwSpacing.small),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp),

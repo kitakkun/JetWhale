@@ -131,6 +131,7 @@ internal fun TrafficTab(
             JwSearchField(
                 value = query,
                 onValueChange = { query = it },
+                clearLabel = "Clear filter",
                 placeholder = "Filter by URL, method or status",
                 modifier = Modifier.weight(1f),
             )

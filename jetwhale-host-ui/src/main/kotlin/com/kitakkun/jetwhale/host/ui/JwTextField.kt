@@ -40,12 +40,14 @@ import androidx.compose.ui.unit.dp
  * @param readOnly keeps the field enabled — selectable, copyable — but rejects edits.
  * @param isError colors the border as an error; put the message in a [JwFormField].
  * @param singleLine keeps the text on one line and makes Enter an action rather than a newline.
+ * @param minLines the fewest lines a multi-line field reserves, for an editor that should look
+ * like one before anything is typed.
  * @param maxLines the most lines a multi-line field grows to.
  * @param textStyle the text's style; [JwTypography.code] for identifiers and JSON.
  * @param keyboardOptions mirrors `BasicTextField`'s.
  * @param keyboardActions mirrors `BasicTextField`'s.
  * @param visualTransformation mirrors `BasicTextField`'s; password masking, say.
- * @param leading an optional glyph before the text.
+ * @param leading content before the text, usually a [JwIcon].
  * @param trailing an optional control after the text, such as a clear button.
  */
 @Composable
@@ -58,6 +60,7 @@ public fun JwTextField(
     readOnly: Boolean = false,
     isError: Boolean = false,
     singleLine: Boolean = true,
+    minLines: Int = 1,
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     textStyle: TextStyle = MaterialTheme.typography.bodyMedium,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
@@ -85,6 +88,7 @@ public fun JwTextField(
         enabled = enabled,
         readOnly = readOnly,
         singleLine = singleLine,
+        minLines = minLines,
         maxLines = maxLines,
         textStyle = textStyle.copy(color = contentColor),
         keyboardOptions = keyboardOptions,
@@ -132,6 +136,7 @@ public fun JwTextField(
  *
  * @param value the current query.
  * @param onValueChange called with the new query on every edit, and with "" when cleared.
+ * @param clearLabel the clear button's tooltip and accessibility name, in the UI's language.
  * @param placeholder what can be searched for, shown while [value] is empty.
  * @param enabled false greys the field out and ignores input.
  */
@@ -139,6 +144,7 @@ public fun JwTextField(
 public fun JwSearchField(
     value: String,
     onValueChange: (String) -> Unit,
+    clearLabel: String,
     modifier: Modifier = Modifier,
     placeholder: String? = null,
     enabled: Boolean = true,
@@ -158,7 +164,7 @@ public fun JwSearchField(
             {
                 JwIconButton(
                     onClick = { onValueChange("") },
-                    tooltip = null,
+                    tooltip = clearLabel,
                     size = 20.dp,
                 ) {
                     JwIcon(imageVector = JwIcons.Close, contentDescription = null, modifier = Modifier.padding(3.dp))

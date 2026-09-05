@@ -20,8 +20,8 @@ import androidx.compose.ui.text.style.TextOverflow
 /**
  * A bordered group of related content — the settings of one topic, the details of one item. The
  * optional [title] sits in a header strip with its own hairline, and [content] is laid out as a
- * column inside [contentPadding]. Pass `PaddingValues(0.dp)` to fill the panel edge to edge with
- * rows or a list of your own.
+ * column, [JwSpacing.medium] apart, inside [contentPadding]. Pass `PaddingValues(0.dp)` and a
+ * single child — a list, a column of rows — to fill the panel edge to edge.
  *
  * @param title the header strip's text; omit it for an untitled box.
  * @param contentPadding the space between the border and [content].

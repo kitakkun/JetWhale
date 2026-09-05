@@ -78,6 +78,7 @@ fun SwitchSettingsItemView(
         JwSwitch(
             checked = isChecked,
             onCheckedChange = onCheckedChange,
+            contentDescription = label,
         )
     }
 }

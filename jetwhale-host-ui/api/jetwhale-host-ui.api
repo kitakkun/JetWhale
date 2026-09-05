@@ -1,18 +1,24 @@
 public final class com/kitakkun/jetwhale/host/ui/ComposableSingletons$JwBannerKt {
 	public static final field INSTANCE Lcom/kitakkun/jetwhale/host/ui/ComposableSingletons$JwBannerKt;
 	public fun <init> ()V
-	public final fun getLambda$-583198549$com_kitakkun_jetwhale_jetwhale_host_ui ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-298002116$com_kitakkun_jetwhale_jetwhale_host_ui ()Lkotlin/jvm/functions/Function2;
+}
+
+public final class com/kitakkun/jetwhale/host/ui/ComposableSingletons$JwDialogKt {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/host/ui/ComposableSingletons$JwDialogKt;
+	public fun <init> ()V
+	public final fun getLambda$1678272737$com_kitakkun_jetwhale_jetwhale_host_ui ()Lkotlin/jvm/functions/Function2;
 }
 
 public final class com/kitakkun/jetwhale/host/ui/ComposableSingletons$JwTextFieldKt {
 	public static final field INSTANCE Lcom/kitakkun/jetwhale/host/ui/ComposableSingletons$JwTextFieldKt;
 	public fun <init> ()V
-	public final fun getLambda$-309875757$com_kitakkun_jetwhale_jetwhale_host_ui ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$1863972741$com_kitakkun_jetwhale_jetwhale_host_ui ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-1364063965$com_kitakkun_jetwhale_jetwhale_host_ui ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-677998287$com_kitakkun_jetwhale_jetwhale_host_ui ()Lkotlin/jvm/functions/Function2;
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwBannerKt {
-	public static final fun JwBanner (Ljava/lang/String;Landroidx/compose/ui/Modifier;Lcom/kitakkun/jetwhale/host/ui/JwTone;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;II)V
+	public static final fun JwBanner (Ljava/lang/String;Landroidx/compose/ui/Modifier;Lcom/kitakkun/jetwhale/host/ui/JwTone;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwButtonKt {
@@ -53,17 +59,18 @@ public final class com/kitakkun/jetwhale/host/ui/JwDividerKt {
 public final class com/kitakkun/jetwhale/host/ui/JwDropdownKt {
 	public static final fun JwDropdownButton (Ljava/lang/String;ZLkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;ZLkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 	public static final fun JwDropdownMenu (ZLkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
-	public static final fun JwMenuItem (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;ZZLkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Lcom/kitakkun/jetwhale/host/ui/JwTone;Landroidx/compose/runtime/Composer;II)V
+	public static final fun JwMenuItem (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;ZZLcom/kitakkun/jetwhale/host/ui/JwTone;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwEmptyStateKt {
-	public static final fun JwEmptyState (Ljava/lang/String;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function2;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun JwEmptyState (Ljava/lang/String;Landroidx/compose/ui/Modifier;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwExtendedColors {
 	public static final field $stable I
 	public static final field Companion Lcom/kitakkun/jetwhale/host/ui/JwExtendedColors$Companion;
-	public synthetic fun <init> (JJJJJJJJJJJJJJJJJJJJJJLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun copy-0VcbP8k (JJJJJJJJJJJJJJJJJJJJJJ)Lcom/kitakkun/jetwhale/host/ui/JwExtendedColors;
+	public static synthetic fun copy-0VcbP8k$default (Lcom/kitakkun/jetwhale/host/ui/JwExtendedColors;JJJJJJJJJJJJJJJJJJJJJJILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/ui/JwExtendedColors;
 	public final fun getAiAccent-0d7_KjU ()J
 	public final fun getBorder-0d7_KjU ()J
 	public final fun getHover-0d7_KjU ()J
@@ -113,12 +120,16 @@ public final class com/kitakkun/jetwhale/host/ui/JwIcons {
 	public final fun getSearch ()Landroidx/compose/ui/graphics/vector/ImageVector;
 }
 
+public final class com/kitakkun/jetwhale/host/ui/JwInteractionKt {
+	public static final fun jwFocusRing (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/interaction/InteractionSource;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/runtime/Composer;I)Landroidx/compose/ui/Modifier;
+}
+
 public final class com/kitakkun/jetwhale/host/ui/JwKeyValueRowKt {
 	public static final fun JwKeyValueRow--b7W0Lw (Ljava/lang/String;Ljava/lang/String;Landroidx/compose/ui/Modifier;FZZLkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwListItemKt {
-	public static final fun JwListItem (Ljava/lang/String;ZLkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;ZLjava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun JwListItem (Ljava/lang/String;ZLkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;ZZLjava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwMetrics {
@@ -138,7 +149,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwPanelKt {
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwSectionHeaderKt {
-	public static final fun JwSectionHeader (Ljava/lang/String;Landroidx/compose/ui/Modifier;Ljava/lang/Integer;Ljava/lang/Boolean;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun JwSectionHeader (Ljava/lang/String;Landroidx/compose/ui/Modifier;Ljava/lang/Integer;Ljava/lang/Boolean;Lkotlin/jvm/functions/Function0;Landroidx/compose/foundation/layout/PaddingValues;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwShapes {
@@ -164,7 +175,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwStatusDotKt {
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwSwitchKt {
-	public static final fun JwSwitch (ZLkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;ZLandroidx/compose/runtime/Composer;II)V
+	public static final fun JwSwitch (ZLkotlin/jvm/functions/Function1;Ljava/lang/String;Landroidx/compose/ui/Modifier;ZLandroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwTabRowKt {
@@ -186,8 +197,8 @@ public final class com/kitakkun/jetwhale/host/ui/JwTagStyle : java/lang/Enum {
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwTextFieldKt {
-	public static final fun JwSearchField (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Ljava/lang/String;ZLandroidx/compose/runtime/Composer;II)V
-	public static final fun JwTextField (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Ljava/lang/String;ZZZZILandroidx/compose/ui/text/TextStyle;Landroidx/compose/foundation/text/KeyboardOptions;Landroidx/compose/foundation/text/KeyboardActions;Landroidx/compose/ui/text/input/VisualTransformation;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;III)V
+	public static final fun JwSearchField (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Ljava/lang/String;Landroidx/compose/ui/Modifier;Ljava/lang/String;ZLandroidx/compose/runtime/Composer;II)V
+	public static final fun JwTextField (Ljava/lang/String;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Ljava/lang/String;ZZZZIILandroidx/compose/ui/text/TextStyle;Landroidx/compose/foundation/text/KeyboardOptions;Landroidx/compose/foundation/text/KeyboardActions;Landroidx/compose/ui/text/input/VisualTransformation;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;III)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwTheme {
@@ -198,7 +209,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwTheme {
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwThemeKt {
-	public static final fun JwTheme (Landroidx/compose/material3/ColorScheme;ZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;I)V
+	public static final fun JwTheme (Landroidx/compose/material3/ColorScheme;ZLcom/kitakkun/jetwhale/host/ui/JwExtendedColors;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 	public static final fun JwTheme (ZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;I)V
 }
 
@@ -227,7 +238,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwTooltipKt {
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwTreeRowKt {
-	public static final fun JwTreeRow (Ljava/lang/String;IZZZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;ZLkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun JwTreeRow (Ljava/lang/String;IZZZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;ZZLandroidx/compose/foundation/layout/PaddingValues;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwTypography {

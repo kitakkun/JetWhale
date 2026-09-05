@@ -25,19 +25,23 @@ import androidx.compose.ui.unit.dp
  * @param text the message, kept to one line and ellipsized.
  * @param tone picks the strip's background; [JwTone.Info] for news, [JwTone.Warning] for a mode
  * the user may want to leave.
+ * @param onDismiss when non-null, adds a close button after the actions.
+ * @param dismissLabel the close button's tooltip and accessibility name, in the UI's language;
+ * required together with [onDismiss].
  * @param icon an optional glyph before the text, drawn in the tone's content color.
  * @param actions [JwButton]s in the [JwButtonStyle.Text] style, placed after the text.
- * @param onDismiss when non-null, adds a close button after the actions.
  */
 @Composable
 public fun JwBanner(
     text: String,
     modifier: Modifier = Modifier,
     tone: JwTone = JwTone.Info,
+    onDismiss: (() -> Unit)? = null,
+    dismissLabel: String? = null,
     icon: (@Composable () -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
-    onDismiss: (() -> Unit)? = null,
 ) {
+    require((onDismiss == null) == (dismissLabel == null)) { "onDismiss and dismissLabel go together" }
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -59,7 +63,7 @@ public fun JwBanner(
                 )
                 actions?.invoke(this)
                 if (onDismiss != null) {
-                    JwIconButton(onClick = onDismiss, tooltip = null, size = 24.dp) {
+                    JwIconButton(onClick = onDismiss, tooltip = dismissLabel, size = 24.dp) {
                         JwIcon(imageVector = JwIcons.Close, contentDescription = null)
                     }
                 }
