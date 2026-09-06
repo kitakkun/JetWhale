@@ -1,7 +1,9 @@
 # jetwhale-host-ui
 
 The theme and component library the JetWhale host is built from, published so a host plugin can
-look like one more pane of the same tool. Every public name carries the `Jw` prefix.
+look like one more pane of the same tool. Every public name carries the `Jw` prefix, and the
+library depends on Compose foundation alone — no Material — so its API does not move when
+Material's does.
 
 ```kotlin
 dependencies {
@@ -12,16 +14,19 @@ dependencies {
 
 The host wraps a plugin's `Content()` in `JwTheme` before calling it, so inside a plugin the
 components already draw with the host's configured scheme. Call `JwTheme(darkTheme = …)` yourself
-only in previews and tests.
+only in previews and tests. The host also keeps a Material 3 theme derived from the same colors
+around plugin content, so Material widgets still work inside a plugin; they are simply not what
+this library is made of.
 
 ## What is here
 
 | Layer | Names |
 |-------|-------|
-| Theme | `JwTheme` (+ `JwTheme.colors`, `JwTheme.isDark`), `JwColorSchemes`, `JwExtendedColors`, `JwTypography` (+ `.code`), `JwShapes`, `JwSpacing`, `JwMetrics`, `JwTone`, `JwIcons` |
+| Theme | `JwTheme` (+ `JwTheme.colors`, `JwTheme.textStyles`, `JwTheme.isDark`), `JwColors`, `JwTextStyles`, `JwShapes`, `JwSpacing`, `JwMetrics`, `JwTone`, `JwIcons`, `LocalJwContentColor`, `LocalJwTextStyle` |
 | Structure | `JwToolbar`, `JwTabRow` + `JwTab`, `JwSplitPane`, `JwPanel`, `JwSectionHeader`, `JwStatusLine`, `JwHorizontalDivider` / `JwVerticalDivider`, `JwDialog` / `JwDialogSurface` |
 | Rows and labels | `JwTable` + `JwTableColumn`, `JwListItem`, `JwTreeRow`, `JwKeyValueRow`, `JwCodeBlock`, `JwTag`, `JwCountBadge`, `JwStatusDot`, `JwBanner`, `JwEmptyState` |
-| Controls | `JwButton` (text and slot overloads), `JwIconButton` + `JwIcon`, `JwTooltip`, `JwTextField`, `JwSearchField`, `JwFormField`, `JwSwitch`, `JwCheckbox`, `JwSegmentedButtons`, `JwDropdownButton` + `JwDropdownMenu` + `JwMenuItem` |
+| Text and icons | `JwText`, `JwIcon`, `JwProgressIndicator` |
+| Controls | `JwButton` (text and slot overloads), `JwIconButton`, `JwTooltip`, `JwTextField`, `JwSearchField`, `JwFormField`, `JwSwitch`, `JwCheckbox`, `JwSegmentedButtons`, `JwDropdownButton` + `JwDropdownMenu` + `JwMenuItem` |
 
 Every component is sized for a desktop tool window — `JwMetrics.controlHeight` (28dp) controls,
 13sp body text, 4dp corners — and takes its colors from the theme, so it follows the user's
@@ -53,7 +58,10 @@ does less, the name differs so the difference is not a surprise.
 | `AlertDialog` | `JwDialog` (`JwDialogSurface` for custom chrome) | Title bar with a close button, footer with dismiss/confirm |
 | `Snackbar` (informational use) | `JwBanner` | Inline strip, not a floating overlay |
 | `HorizontalDivider`, `VerticalDivider` | `JwHorizontalDivider`, `JwVerticalDivider` | Same |
-| `MaterialTheme` | `JwTheme` | Applies Material with the tool-window scale, plus `JwTheme.colors` |
+| `Text`, `Icon`, `CircularProgressIndicator` | `JwText`, `JwIcon`, `JwProgressIndicator` | Take the enclosing control's content color and text style |
+| `MaterialTheme` | `JwTheme` | Its own tokens: `JwColors` (`accent`, `surface`, `textSecondary`, the tones…) and `JwTextStyles` (`title`, `body`, `label`, `code`…) |
+| `MaterialTheme.colorScheme.primary` / `.onSurfaceVariant` / `.outline` | `JwTheme.colors.accent` / `.textSecondary` / `.controlBorder` | Names say what the color is for, not where it sits in a Material palette |
+| `MaterialTheme.typography.bodyMedium` / `.labelSmall` | `JwTheme.textStyles.body` / `.labelSmall` | Seven styles instead of fifteen |
 
 ## Conventions
 
@@ -84,6 +92,10 @@ does less, the name differs so the difference is not a surprise.
   so the control last clicked keeps it until focus moves on. `Modifier.jwFocusRing(interactionSource,
   shape)` gives a custom control the same ring; it is drawn just outside the bounds, so a parent
   that clips (`JwPanel`, `JwDialog`) trims it on a row flush with the edge.
+- **Content color and text style flow down**: a control that paints a background provides
+  `LocalJwContentColor` and `LocalJwTextStyle` for its content, and `JwText` / `JwIcon` read them.
+  Use `JwText` rather than Material's `Text` inside Jw components, or the text keeps Material's
+  color instead of the control's.
 - **Contrast**: the built-in schemes meet WCAG AA — 4.5:1 for every text color on the surfaces
   it is drawn on, including the tones, and 3:1 for control borders and the focus ring. Hairline
   dividers are decorative and lighter than that on purpose. `textDisabled` is the one color below
@@ -104,9 +116,11 @@ does less, the name differs so the difference is not a surprise.
 A plugin compiles against this library but runs against the copy the host ships, so a signature
 that changes between releases breaks already-built plugins with `NoSuchMethodError`. Until 1.0 the
 API may still move; from 1.0 on, a published composable's parameter list is frozen — new knobs
-arrive as a new overload, and the old one stays (deprecated at most). `JwExtendedColors` has no
-public constructor for the same reason: obtain one with `JwExtendedColors.from` and adjust it with
-`copy`, and it can grow new colors without breaking callers.
+arrive as a new overload, and the old one stays (deprecated at most). `JwColors` and `JwTextStyles`
+have no public constructor for the same reason: obtain one from `JwColors.light()` / `dark()` or
+`JwTextStyles.default()` and adjust it with `copy`, and they can grow without breaking callers.
+The library's own dependencies are Compose runtime, foundation and ui — the parts of Compose that
+change least — plus `jetwhale-host-sdk`.
 
 Material 3 and any other Compose library keep working inside a plugin; prefer these components
 where they have what you need, and drop to Material or your own composables for the rest.

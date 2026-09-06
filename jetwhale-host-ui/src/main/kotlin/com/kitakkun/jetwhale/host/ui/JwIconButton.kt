@@ -7,9 +7,6 @@ import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -18,8 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -70,16 +65,16 @@ public fun JwIconButton(
     }
     val contentColor = when {
         !enabled -> JwTheme.colors.textDisabled
-        selected -> MaterialTheme.colorScheme.primary
-        else -> LocalContentColor.current
+        selected -> JwTheme.colors.accent
+        else -> LocalJwContentColor.current
     }
     JwTooltip(text = tooltip, modifier = modifier) {
         Box(
             modifier = Modifier
                 .size(size)
                 .then(if (tooltip != null) Modifier.semantics { contentDescription = tooltip } else Modifier)
-                .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
-                .clip(MaterialTheme.shapes.small)
+                .jwFocusRing(interactionSource, JwShapes.small)
+                .clip(JwShapes.small)
                 .background(background)
                 .clickable(
                     interactionSource = interactionSource,
@@ -90,51 +85,7 @@ public fun JwIconButton(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            CompositionLocalProvider(LocalContentColor provides contentColor, content = content)
+            CompositionLocalProvider(LocalJwContentColor provides contentColor, content = content)
         }
     }
-}
-
-/**
- * An icon at [JwMetrics.iconSize], tinted with the current content color.
- *
- * @param imageVector the glyph.
- * @param contentDescription what the icon means, or null when a neighboring label already says it.
- * @param tint the color to draw with; defaults to the content color of the enclosing control.
- */
-@Composable
-public fun JwIcon(
-    imageVector: ImageVector,
-    contentDescription: String?,
-    modifier: Modifier = Modifier,
-    tint: Color = LocalContentColor.current,
-) {
-    Icon(
-        imageVector = imageVector,
-        contentDescription = contentDescription,
-        tint = tint,
-        modifier = modifier.size(JwMetrics.iconSize),
-    )
-}
-
-/**
- * An icon at [JwMetrics.iconSize], tinted with the current content color.
- *
- * @param painter the glyph, such as a plugin's SVG icon.
- * @param contentDescription what the icon means, or null when a neighboring label already says it.
- * @param tint the color to draw with; defaults to the content color of the enclosing control.
- */
-@Composable
-public fun JwIcon(
-    painter: Painter,
-    contentDescription: String?,
-    modifier: Modifier = Modifier,
-    tint: Color = LocalContentColor.current,
-) {
-    Icon(
-        painter = painter,
-        contentDescription = contentDescription,
-        tint = tint,
-        modifier = modifier.size(JwMetrics.iconSize),
-    )
 }

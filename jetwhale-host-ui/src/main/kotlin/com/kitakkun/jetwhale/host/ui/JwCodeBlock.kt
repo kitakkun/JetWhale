@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -27,7 +25,7 @@ import java.awt.datatransfer.StringSelection
  * paste — in a tinted, bordered box. The text is selectable; [copyLabel] adds a button that copies
  * all of it.
  *
- * @param text the text, shown as [JwTypography.code]. Pass an [AnnotatedString] to keep syntax
+ * @param text the text, shown as [JwTheme.textStyles.code]. Pass an [AnnotatedString] to keep syntax
  * coloring.
  * @param wrap `true` wraps long lines to the box; `false` keeps them whole and scrolls sideways,
  * which is right for code and URLs.
@@ -44,13 +42,13 @@ public fun JwCodeBlock(
     maxLines: Int = Int.MAX_VALUE,
     copyLabel: String? = null,
 ) {
-    val shape = MaterialTheme.shapes.small
+    val shape = JwShapes.small
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLow, shape)
+            .background(JwTheme.colors.sidebarBackground, shape)
             .border(JwMetrics.borderWidth, JwTheme.colors.border, shape),
     ) {
         val scrolling = if (wrap) Modifier else Modifier.horizontalScroll(rememberScrollState())
@@ -60,9 +58,9 @@ public fun JwCodeBlock(
                 .then(if (copyLabel != null) Modifier.padding(end = JwIconButtonDefaults.inlineSize + JwSpacing.small) else Modifier)
                 .then(scrolling),
         ) {
-            Text(
+            JwText(
                 text = text,
-                style = JwTypography.code,
+                style = JwTheme.textStyles.code,
                 softWrap = wrap,
                 maxLines = maxLines,
                 // Ellipsis together with softWrap = false makes Compose lay the text out on one

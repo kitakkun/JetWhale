@@ -6,10 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -20,6 +18,8 @@ import com.kitakkun.jetwhale.host.component.FollowingAiOperationBanner
 import com.kitakkun.jetwhale.host.component.ToolingDrawer
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
 import kotlinx.collections.immutable.persistentListOf
 
@@ -49,7 +49,7 @@ fun ToolingScaffold(
     Row(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface),
+            .background(JwTheme.colors.surface),
     ) {
         ToolingDrawer(
             plugins = uiState.plugins,
@@ -120,6 +120,6 @@ private fun ToolingScaffoldPreview() {
         onClickStopFollowingAiOperation = {},
         snackbarHostState = remember { SnackbarHostState() },
     ) {
-        Text("Hello, World!")
+        JwText("Hello, World!")
     }
 }

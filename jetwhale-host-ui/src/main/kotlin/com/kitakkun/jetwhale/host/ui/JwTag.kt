@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -65,7 +62,7 @@ public fun JwTag(
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
-    val shape = MaterialTheme.shapes.extraSmall
+    val shape = JwShapes.extraSmall
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
     val background = when (style) {
@@ -96,11 +93,11 @@ public fun JwTag(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(TagContentGap),
     ) {
-        CompositionLocalProvider(LocalContentColor provides contentColor) {
+        CompositionLocalProvider(LocalJwContentColor provides contentColor) {
             leadingIcon?.invoke()
-            Text(
+            JwText(
                 text = text,
-                style = MaterialTheme.typography.labelSmall,
+                style = JwTheme.textStyles.labelSmall,
                 maxLines = 1,
             )
             trailingIcon?.invoke()

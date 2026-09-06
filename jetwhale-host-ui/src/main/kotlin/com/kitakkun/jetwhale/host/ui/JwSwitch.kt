@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -44,12 +43,12 @@ public fun JwSwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val scheme = MaterialTheme.colorScheme
+    val scheme = JwTheme.colors
     val trackColor by animateColorAsState(
         targetValue = when {
             !enabled -> scheme.onSurface.copy(alpha = 0.12f)
-            checked -> scheme.primary
-            else -> scheme.outline
+            checked -> scheme.accent
+            else -> scheme.controlBorder
         },
         label = "switch-track",
     )
@@ -79,7 +78,7 @@ public fun JwSwitch(
             modifier = Modifier
                 .offset(x = thumbOffset)
                 .size(ThumbSize)
-                .background(if (enabled) scheme.surfaceContainerLowest else scheme.surface.copy(alpha = 0.6f), CircleShape),
+                .background(if (enabled) scheme.panelBackground else scheme.surface.copy(alpha = 0.6f), CircleShape),
         )
     }
 }

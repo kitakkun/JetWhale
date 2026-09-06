@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.coroutines.delay
 import soil.query.compose.rememberQuery
 import soil.query.compose.rememberSubscription
@@ -107,8 +107,8 @@ private fun HotReloadIndicator(reloadCount: Int, modifier: Modifier = Modifier) 
         modifier = modifier,
     ) {
         Surface(
-            color = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
+            color = JwTheme.colors.accent,
+            contentColor = JwTheme.colors.onAccent,
             shape = RoundedCornerShape(50),
             shadowElevation = 4.dp,
         ) {
@@ -117,8 +117,8 @@ private fun HotReloadIndicator(reloadCount: Int, modifier: Modifier = Modifier) 
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text("⟳", style = MaterialTheme.typography.labelMedium)
-                Text("Hot reloaded", style = MaterialTheme.typography.labelMedium)
+                JwText("⟳", style = JwTheme.textStyles.label)
+                JwText("Hot reloaded", style = JwTheme.textStyles.label)
             }
         }
     }

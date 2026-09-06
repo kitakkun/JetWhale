@@ -419,42 +419,44 @@ on-screen flicker.
 
 ### Theming and components: `jetwhale-host-ui`
 
-The host wraps your `Content()` in **its own** theme before calling it, so plain
-`MaterialTheme.colorScheme` / `MaterialTheme.typography` inside your plugin already resolve to the
-host's applied scheme. Do not install a theme of your own unless you deliberately want to look
-different — that is why `material3` is a `compileOnly` dependency and why plugins get visual
-consistency for free.
-
-That theme is `JwTheme` from **`jetwhale-host-ui`**, the component library the host itself is
-built from. Depend on it `compileOnly` like the SDK and build your UI from its parts, so your plugin
-reads as one more pane of the same tool rather than a foreign app embedded in it:
+The host wraps your `Content()` in its theme before calling it: **`JwTheme`** from
+**`jetwhale-host-ui`**, the component library the host itself is built from. Depend on it
+`compileOnly` like the SDK and build your UI from its parts, so your plugin reads as one more pane
+of the same tool rather than a foreign app embedded in it:
 
 | Need | Component |
 |------|-----------|
-| Extra colors Material has no slot for — sidebar and toolbar surfaces, hairline `border`, `hover` and `selection` backgrounds, `success` / `warning` / `info` tones, the `aiAccent` an agent's activity is marked with | `JwTheme.colors` |
+| Colors — panes, text emphasis, one accent, the `success` / `warning` / `error` / `info` tones, the `aiAccent` an agent's activity is marked with | `JwTheme.colors` (a `JwColors`) |
+| Type scale — `title`, `subtitle`, `body`, `bodySmall`, `label`, `labelSmall`, `code` | `JwTheme.textStyles` (a `JwTextStyles`) |
 | Whether the host is dark | `JwTheme.isDark` (the same value as `LocalJetWhaleDarkTheme`) |
+| Text, icons, a spinner | `JwText`, `JwIcon`, `JwProgressIndicator` |
 | Compact buttons and icon buttons, with tooltips | `JwButton`, `JwIconButton`, `JwTooltip` |
-| Inputs | `JwTextField`, `JwSearchField`, `JwSwitch`, `JwDropdownButton` + `JwMenuItem` |
-| Structure | `JwToolbar`, `JwTabRow` + `JwTab`, `JwPanel`, `JwSectionHeader`, `JwHorizontalDivider` / `JwVerticalDivider` |
-| Rows and labels | `JwListItem`, `JwKeyValueRow`, `JwTag`, `JwStatusDot`, `JwBanner`, `JwEmptyState` |
-| Spacing and sizes | `JwSpacing`, `JwMetrics`; `JwTypography.code` for monospace text |
-
-Coming from Material 3? The library's
-[README](https://github.com/kitakkun/JetWhale/blob/main/jetwhale-host-ui/README.md) maps each
-Material component to its `Jw` counterpart and says where the two differ.
+| Inputs | `JwTextField`, `JwSearchField`, `JwFormField`, `JwSwitch`, `JwCheckbox`, `JwSegmentedButtons`, `JwDropdownButton` + `JwMenuItem` |
+| Structure | `JwToolbar`, `JwTabRow` + `JwTab`, `JwSplitPane`, `JwPanel`, `JwSectionHeader`, `JwStatusLine`, `JwDialog`, `JwHorizontalDivider` / `JwVerticalDivider` |
+| Rows and labels | `JwTable`, `JwListItem`, `JwTreeRow`, `JwKeyValueRow`, `JwCodeBlock`, `JwTag`, `JwCountBadge`, `JwStatusDot`, `JwBanner`, `JwEmptyState` |
+| Spacing and sizes | `JwSpacing`, `JwMetrics`, and each component's `Defaults` object |
 
 Every component is sized for a desktop tool window — 28dp controls, 13sp body text, 4dp corners —
 and takes its colors from the theme, so it follows the user's light/dark/custom choice without any
-work on your side. The bundled [Network Inspector](/guide/network-inspector) is a worked example.
+work on your side. The library depends on Compose foundation alone, not on Material, so its API
+does not change when Material's does. Coming from Material 3? The library's
+[README](https://github.com/kitakkun/JetWhale/blob/main/jetwhale-host-ui/README.md) maps each
+Material component to its `Jw` counterpart and says where the two differ. The bundled
+[Network Inspector](/guide/network-inspector) is a worked example.
 
-Nothing forces the library on you: Material 3 and any other Compose library keep working inside
+Use `JwText` for text inside Jw components: a `JwButton`, a `JwListItem` or a `JwTag` hands its
+content color and text style down through `LocalJwContentColor` and `LocalJwTextStyle`, which
+`JwText` reads and Material's `Text` does not.
+
+Nothing forces the library on you: the host also keeps a Material 3 theme derived from the same
+colors around your content, so Material 3 and any other Compose library keep working inside
 `Content()`. Prefer `jetwhale-host-ui` where it has what you need, and drop to Material or your own
 Composables for the rest.
 
 ::: tip Plugins written before `jetwhale-host-ui`
 A plugin built on plain Material 3 keeps loading and running: the host still provides `material3`
-at runtime, and the theme it applies is a Material theme, so such a plugin already picks up the
-host's colors, the compact type scale and the small corner radii. What it does not get is the
+at runtime and wraps plugin content in a Material theme derived from the JetWhale one, so such a
+plugin already picks up the host's colors, the compact type scale and the small corner radii. What it does not get is the
 28dp controls and the shared rows, tags and dialogs — it looks like a Material app inside a tool
 window. Move it over at your own pace; the `migrate-to-jw` skill in the
 [JetWhale Claude Code plugin](https://github.com/kitakkun/JetWhale/tree/main/plugins/jetwhale)

@@ -21,8 +21,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -68,6 +66,9 @@ import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwDialog
 import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwShapes
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -90,22 +91,22 @@ fun PluginSettingsScreen(
             title = stringResource(Res.string.failed_to_load_plugins),
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
+                    JwText(
                         text = stringResource(Res.string.failed_jar_path_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = JwTheme.textStyles.bodySmall,
+                        color = JwTheme.colors.textSecondary,
                     )
                     HorizontalDivider()
                     uiState.failedJars.forEach { failedJar ->
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
+                            JwText(
                                 text = failedJar.jarPath,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = JwTheme.textStyles.bodySmall,
                             )
-                            Text(
+                            JwText(
                                 text = failedJar.reason,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
+                                style = JwTheme.textStyles.bodySmall,
+                                color = JwTheme.colors.error,
                             )
                         }
                     }
@@ -130,9 +131,9 @@ fun PluginSettingsScreen(
         // belongs to, so the section's Root keeps a single set of subscriptions.
         if (page == SettingsScreenPage.InstalledPlugins) {
             item(key = "installed_header") {
-                Text(
+                JwText(
                     text = stringResource(Res.string.installed_plugins),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = JwTheme.textStyles.title,
                 )
             }
         }
@@ -171,7 +172,7 @@ fun PluginSettingsScreen(
                         strokeWidth = 2.dp,
                     )
                     uiState.installProgress?.let { progress ->
-                        Text(
+                        JwText(
                             text = when (progress) {
                                 is PluginInstallProgress.DownloadingPlugin ->
                                     stringResource(Res.string.install_progress_downloading_plugin)
@@ -186,8 +187,8 @@ fun PluginSettingsScreen(
                                 is PluginInstallProgress.LoadingPlugin ->
                                     stringResource(Res.string.install_progress_loading_plugin)
                             },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = JwTheme.textStyles.bodySmall,
+                            color = JwTheme.colors.textSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -200,15 +201,15 @@ fun PluginSettingsScreen(
         if (page == SettingsScreenPage.AddPlugins) {
             uiState.installError?.let { error ->
                 item(key = "install_error") {
-                    Text(
+                    JwText(
                         text = error,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodySmall,
+                        color = JwTheme.colors.onErrorContainer,
+                        style = JwTheme.textStyles.bodySmall,
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                color = MaterialTheme.colorScheme.errorContainer,
-                                shape = MaterialTheme.shapes.small,
+                                color = JwTheme.colors.errorContainer,
+                                shape = JwShapes.small,
                             )
                             .padding(12.dp),
                     )
@@ -227,10 +228,10 @@ fun PluginSettingsScreen(
         }
         if (page == SettingsScreenPage.InstalledPlugins && uiState.plugins.isEmpty()) {
             item(key = "no_plugins") {
-                Text(
+                JwText(
                     text = stringResource(Res.string.no_plugins_installed),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = JwTheme.textStyles.body,
+                    color = JwTheme.colors.textSecondary,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 16.dp),
@@ -247,7 +248,7 @@ fun PluginSettingsScreen(
                         JwIcon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
+                            tint = JwTheme.colors.error,
                         )
                     },
                 )
@@ -263,9 +264,9 @@ fun PluginSettingsScreen(
         }
         if (page == SettingsScreenPage.AddPlugins && uiState.officialPlugins.isNotEmpty()) {
             item(key = "official_header") {
-                Text(
+                JwText(
                     text = stringResource(Res.string.official_plugins),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = JwTheme.textStyles.title,
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
@@ -295,10 +296,10 @@ fun PluginSettingsScreen(
                         HostOs.WINDOWS -> Res.string.sign_plugin_trust_registry_hint_windows
                         else -> Res.string.sign_plugin_trust_registry_hint_linux
                     }
-                    Text(
+                    JwText(
                         text = "${stringResource(Res.string.sign_plugin_trust_registry_hint)} ${stringResource(osHint)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = JwTheme.textStyles.bodySmall,
+                        color = JwTheme.colors.textSecondary,
                     )
                 }
             }
@@ -312,7 +313,7 @@ private fun InstalledPluginRow(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        shape = MaterialTheme.shapes.medium,
+        shape = JwShapes.medium,
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(
@@ -326,24 +327,24 @@ private fun InstalledPluginRow(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 modifier = Modifier.weight(1f),
             ) {
-                Text(
+                JwText(
                     text = plugin.name,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = JwTheme.textStyles.subtitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
+                JwText(
                     text = plugin.id,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = JwTheme.textStyles.bodySmall,
+                    color = JwTheme.colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Text(
+            JwText(
                 text = "v${plugin.version}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = JwTheme.textStyles.label,
+                color = JwTheme.colors.textSecondary,
                 maxLines = 1,
             )
         }
@@ -360,8 +361,8 @@ private fun UntrustedPluginsSection(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                color = MaterialTheme.colorScheme.errorContainer,
-                shape = MaterialTheme.shapes.small,
+                color = JwTheme.colors.errorContainer,
+                shape = JwShapes.small,
             )
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -373,28 +374,28 @@ private fun UntrustedPluginsSection(
             Icon(
                 imageVector = Icons.Default.Warning,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
+                tint = JwTheme.colors.error,
             )
-            Text(
+            JwText(
                 text = stringResource(Res.string.untrusted_plugins) + " (${untrustedJarPaths.size})",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                style = JwTheme.textStyles.subtitle,
+                color = JwTheme.colors.onErrorContainer,
             )
         }
-        Text(
+        JwText(
             text = stringResource(Res.string.untrusted_jar_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onErrorContainer,
+            style = JwTheme.textStyles.bodySmall,
+            color = JwTheme.colors.onErrorContainer,
         )
         untrustedJarPaths.forEach { path ->
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
+                JwText(
                     text = path,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = JwTheme.textStyles.bodySmall,
+                    color = JwTheme.colors.onErrorContainer,
                     modifier = Modifier.weight(1f),
                 )
                 JwButton(
@@ -415,7 +416,7 @@ private fun OfficialPluginRow(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        shape = MaterialTheme.shapes.medium,
+        shape = JwShapes.medium,
         modifier = modifier.fillMaxWidth(),
     ) {
         Row(
@@ -429,16 +430,16 @@ private fun OfficialPluginRow(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.weight(1f),
             ) {
-                Text(
+                JwText(
                     text = uiState.plugin.displayName,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = JwTheme.textStyles.subtitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
+                JwText(
                     text = uiState.plugin.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = JwTheme.textStyles.bodySmall,
+                    color = JwTheme.colors.textSecondary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -451,13 +452,13 @@ private fun OfficialPluginRow(
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = JwTheme.colors.accent,
                         modifier = Modifier.size(16.dp),
                     )
-                    Text(
+                    JwText(
                         text = stringResource(Res.string.official_plugin_installed),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
+                        style = JwTheme.textStyles.label,
+                        color = JwTheme.colors.accent,
                         maxLines = 1,
                     )
                 }

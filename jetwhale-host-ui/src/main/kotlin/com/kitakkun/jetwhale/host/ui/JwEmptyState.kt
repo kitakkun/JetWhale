@@ -5,9 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -46,20 +43,20 @@ public fun JwEmptyState(
         verticalArrangement = Arrangement.spacedBy(JwSpacing.medium, Alignment.CenterVertically),
     ) {
         if (icon != null) {
-            CompositionLocalProvider(LocalContentColor provides JwTheme.colors.textSecondary) {
+            CompositionLocalProvider(LocalJwContentColor provides JwTheme.colors.textSecondary) {
                 icon()
             }
         }
-        Text(
+        JwText(
             text = title,
-            style = MaterialTheme.typography.titleSmall,
+            style = JwTheme.textStyles.subtitle,
             color = JwTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
         )
         if (description != null) {
-            Text(
+            JwText(
                 text = description,
-                style = MaterialTheme.typography.bodySmall,
+                style = JwTheme.textStyles.bodySmall,
                 color = JwTheme.colors.textSecondary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.widthIn(max = JwEmptyStateDefaults.textMaxWidth),

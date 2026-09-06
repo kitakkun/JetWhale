@@ -18,9 +18,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -66,8 +63,11 @@ import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwIconButton
+import com.kitakkun.jetwhale.host.ui.JwShapes
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
-import com.kitakkun.jetwhale.host.ui.JwTypography
+import com.kitakkun.jetwhale.host.ui.LocalJwContentColor
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 
@@ -133,10 +133,10 @@ fun GeneralSettingsScreen(
                         isChecked = uiState.followAiOperation,
                         onCheckedChange = onFollowAiOperationChange,
                     )
-                    Text(
+                    JwText(
                         text = stringResource(Res.string.follow_ai_operation_description),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = JwTheme.textStyles.bodySmall,
+                        color = JwTheme.colors.textSecondary,
                     )
                 }
             }
@@ -151,14 +151,14 @@ fun GeneralSettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
+                        JwText(
                             text = stringResource(Res.string.application_data_directory),
                             modifier = Modifier.widthIn(min = 120.dp),
                         )
                         SelectionContainer(modifier = Modifier.weight(1f)) {
-                            Text(
+                            JwText(
                                 text = uiState.appDataPath,
-                                style = JwTypography.code,
+                                style = JwTheme.textStyles.code,
                             )
                         }
                         JwIconButton(
@@ -180,9 +180,9 @@ fun GeneralSettingsScreen(
             item {
                 SettingOptionView(stringResource(Res.string.updates)) {
                     SettingsItemRow(stringResource(Res.string.current_version)) {
-                        Text(
+                        JwText(
                             text = uiState.currentVersion,
-                            style = JwTypography.code,
+                            style = JwTheme.textStyles.code,
                         )
                     }
                     SwitchSettingsItemView(
@@ -210,7 +210,7 @@ fun GeneralSettingsScreen(
             item {
                 SettingOptionView(stringResource(Res.string.health_check)) {
                     SettingsItemRow(stringResource(Res.string.adb_executable_path)) {
-                        Text(
+                        JwText(
                             text = uiState.adbPath.ifEmpty { stringResource(Res.string.adb_unavailable) },
                         )
                         Spacer(Modifier.width(8.dp))
@@ -244,14 +244,14 @@ private fun UpdateCheckStatusView(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                Text(stringResource(Res.string.checking_for_updates))
+                JwText(stringResource(Res.string.checking_for_updates))
             }
         }
 
         error != null -> {
-            Text(
+            JwText(
                 text = stringResource(Res.string.update_check_failed, error),
-                color = MaterialTheme.colorScheme.error,
+                color = JwTheme.colors.error,
             )
         }
 
@@ -261,18 +261,18 @@ private fun UpdateCheckStatusView(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(JwTone.Info.containerColor, MaterialTheme.shapes.small)
+                    .background(JwTone.Info.containerColor, JwShapes.small)
                     .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                CompositionLocalProvider(LocalContentColor provides JwTone.Info.onContainerColor) {
-                    Text(
+                CompositionLocalProvider(LocalJwContentColor provides JwTone.Info.onContainerColor) {
+                    JwText(
                         text = stringResource(Res.string.update_available, result.latestVersion),
-                        style = MaterialTheme.typography.titleSmall,
+                        style = JwTheme.textStyles.subtitle,
                     )
-                    Text(
+                    JwText(
                         text = stringResource(Res.string.update_available_hint),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = JwTheme.textStyles.bodySmall,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (result.canInstallInApp) {
@@ -303,7 +303,7 @@ private fun UpdateCheckStatusView(
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
                 )
-                Text(stringResource(Res.string.update_up_to_date))
+                JwText(stringResource(Res.string.update_up_to_date))
             }
         }
     }

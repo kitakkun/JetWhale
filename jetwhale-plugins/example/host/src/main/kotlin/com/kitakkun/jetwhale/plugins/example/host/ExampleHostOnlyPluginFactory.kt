@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -17,6 +16,7 @@ import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwKeyValueRow
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwToolbar
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
@@ -45,7 +45,7 @@ private class ExampleHostOnlyPlugin :
                 modifier = Modifier.padding(JwSpacing.large),
                 verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
             ) {
-                Text("This plugin has no agent counterpart and exchanges no messages — it is pure host UI.")
+                JwText("This plugin has no agent counterpart and exchanges no messages — it is pure host UI.")
                 JwKeyValueRow(key = "Host-side counter", value = counter.toString(), monospace = true)
                 JwButton(text = "Increment", onClick = { counter++ }, style = JwButtonStyle.Primary)
             }

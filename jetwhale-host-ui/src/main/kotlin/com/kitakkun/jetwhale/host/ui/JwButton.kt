@@ -10,10 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -65,7 +61,7 @@ public fun JwButton(
         enabled = enabled,
     ) {
         leadingIcon?.invoke()
-        Text(
+        JwText(
             text = text,
             maxLines = 1,
         )
@@ -95,7 +91,7 @@ public fun JwButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
-    val scheme = MaterialTheme.colorScheme
+    val scheme = JwTheme.colors
     val colors = JwTheme.colors
     val accent = tone.color
     val onAccent = tone.onColor
@@ -115,16 +111,16 @@ public fun JwButton(
     val borderColor = when {
         style != JwButtonStyle.Secondary -> Color.Transparent
         !enabled -> colors.border.copy(alpha = 0.5f)
-        tone == JwTone.Accent -> scheme.outline
+        tone == JwTone.Accent -> scheme.controlBorder
         else -> accent.copy(alpha = 0.6f)
     }
     Row(
         modifier = modifier
             .height(JwMetrics.controlHeight)
-            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
-            .clip(MaterialTheme.shapes.small)
+            .jwFocusRing(interactionSource, JwShapes.small)
+            .clip(JwShapes.small)
             .background(background)
-            .border(JwMetrics.borderWidth, borderColor, MaterialTheme.shapes.small)
+            .border(JwMetrics.borderWidth, borderColor, JwShapes.small)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -137,8 +133,8 @@ public fun JwButton(
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
     ) {
         CompositionLocalProvider(
-            LocalContentColor provides contentColor,
-            LocalTextStyle provides MaterialTheme.typography.labelLarge,
+            LocalJwContentColor provides contentColor,
+            LocalJwTextStyle provides JwTheme.textStyles.label,
             content = { content() },
         )
     }

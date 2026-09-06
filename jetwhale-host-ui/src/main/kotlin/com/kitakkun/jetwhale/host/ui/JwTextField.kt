@@ -13,9 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -40,7 +37,7 @@ private val ClearIconInset = 3.dp
  * @param onValueChange called with the new text on every edit.
  * @param enabled false greys the field out and ignores input.
  * @param readOnly keeps the field enabled — selectable, copyable — but rejects edits.
- * @param textStyle the text's style; [JwTypography.code] for identifiers and JSON.
+ * @param textStyle the text's style; [JwTheme.textStyles.code] for identifiers and JSON.
  * @param placeholder shown while [value] is empty.
  * @param leadingIcon content before the text, usually a [JwIcon].
  * @param trailingIcon an optional control after the text, such as a clear button.
@@ -61,7 +58,7 @@ public fun JwTextField(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     readOnly: Boolean = false,
-    textStyle: TextStyle = MaterialTheme.typography.bodyMedium,
+    textStyle: TextStyle = JwTheme.textStyles.body,
     placeholder: String? = null,
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
@@ -77,16 +74,16 @@ public fun JwTextField(
     val focused by interactionSource.collectIsFocusedAsState()
     val singleLine = singleLine && minLines <= 1
     val maxLines = if (singleLine) 1 else maxLines.coerceAtLeast(minLines)
-    val scheme = MaterialTheme.colorScheme
+    val scheme = JwTheme.colors
     val colors = JwTheme.colors
     val borderColor = when {
         !enabled -> colors.border.copy(alpha = 0.5f)
         isError -> scheme.error
-        focused -> scheme.primary
-        else -> scheme.outline
+        focused -> scheme.accent
+        else -> scheme.controlBorder
     }
     val contentColor = if (enabled) scheme.onSurface else colors.textDisabled
-    val shape = MaterialTheme.shapes.small
+    val shape = JwShapes.small
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
@@ -100,27 +97,27 @@ public fun JwTextField(
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         visualTransformation = visualTransformation,
-        cursorBrush = SolidColor(scheme.primary),
+        cursorBrush = SolidColor(scheme.accent),
         interactionSource = interactionSource,
         decorationBox = { innerTextField ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = JwMetrics.controlHeight)
-                    .background(scheme.surfaceContainerLowest, shape)
+                    .background(scheme.panelBackground, shape)
                     .border(if (focused || isError) JwMetrics.focusStrokeWidth else JwMetrics.borderWidth, borderColor, shape)
                     .padding(horizontal = JwSpacing.medium, vertical = if (singleLine) 0.dp else JwSpacing.small),
                 verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
             ) {
-                CompositionLocalProvider(LocalContentColor provides colors.textSecondary) {
+                CompositionLocalProvider(LocalJwContentColor provides colors.textSecondary) {
                     leadingIcon?.invoke()
                     Box(
                         modifier = Modifier.weight(1f),
                         contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart,
                     ) {
                         if (value.isEmpty() && placeholder != null) {
-                            Text(
+                            JwText(
                                 text = placeholder,
                                 style = textStyle,
                                 color = colors.textSecondary,

@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -71,7 +69,7 @@ public fun JwSectionHeader(
         modifier = modifier
             .fillMaxWidth()
             .height(JwSectionHeaderDefaults.height)
-            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
+            .jwFocusRing(interactionSource, JwShapes.small)
             .background(if (hovered && collapsible) JwTheme.colors.hover else Color.Transparent)
             .then(
                 if (collapsible) {
@@ -123,18 +121,18 @@ public fun JwSectionHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
         ) {
-            Text(
+            JwText(
                 text = title,
-                style = MaterialTheme.typography.labelSmall,
+                style = JwTheme.textStyles.labelSmall,
                 color = JwTheme.colors.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
             )
             if (count != null) {
-                Text(
+                JwText(
                     text = count.toString(),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = JwTheme.textStyles.labelSmall,
                     color = JwTheme.colors.textSecondary,
                 )
             }

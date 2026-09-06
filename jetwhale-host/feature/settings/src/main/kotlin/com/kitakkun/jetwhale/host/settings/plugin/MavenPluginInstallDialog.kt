@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,9 +38,9 @@ import com.kitakkun.jetwhale.host.ui.JwDialog
 import com.kitakkun.jetwhale.host.ui.JwDropdownButton
 import com.kitakkun.jetwhale.host.ui.JwFormField
 import com.kitakkun.jetwhale.host.ui.JwMenuItem
+import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
-import com.kitakkun.jetwhale.host.ui.JwTypography
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -73,9 +71,9 @@ fun MavenPluginInstallDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(
+                JwText(
                     text = stringResource(Res.string.maven_install_dialog_description),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = JwTheme.textStyles.body,
                 )
 
                 JwFormField(
@@ -96,7 +94,7 @@ fun MavenPluginInstallDialog(
                             errorMessage = null
                         },
                         placeholder = "com.example:my-plugin:1.0.0",
-                        textStyle = JwTypography.code,
+                        textStyle = JwTheme.textStyles.code,
                     )
                 }
 
@@ -108,7 +106,7 @@ fun MavenPluginInstallDialog(
                             errorMessage = null
                         },
                         placeholder = "com.example",
-                        textStyle = JwTypography.code,
+                        textStyle = JwTheme.textStyles.code,
                     )
                 }
 
@@ -120,7 +118,7 @@ fun MavenPluginInstallDialog(
                             errorMessage = null
                         },
                         placeholder = "my-plugin",
-                        textStyle = JwTypography.code,
+                        textStyle = JwTheme.textStyles.code,
                     )
                 }
 
@@ -132,7 +130,7 @@ fun MavenPluginInstallDialog(
                             errorMessage = null
                         },
                         placeholder = "1.0.0",
-                        textStyle = JwTypography.code,
+                        textStyle = JwTheme.textStyles.code,
                     )
                 }
 
@@ -151,9 +149,9 @@ fun MavenPluginInstallDialog(
                                 text = repository.displayName,
                                 selected = repository == selectedWellKnownRepository,
                                 trailingIcon = {
-                                    Text(
+                                    JwText(
                                         text = repository.url,
-                                        style = MaterialTheme.typography.bodySmall,
+                                        style = JwTheme.textStyles.bodySmall,
                                         color = JwTheme.colors.textSecondary,
                                     )
                                 },
@@ -186,16 +184,16 @@ fun MavenPluginInstallDialog(
                                 errorMessage = null
                             },
                             placeholder = MavenCoordinates.MAVEN_CENTRAL_URL,
-                            textStyle = JwTypography.code,
+                            textStyle = JwTheme.textStyles.code,
                         )
                     }
                 }
 
                 errorMessage?.let { error ->
-                    Text(
+                    JwText(
                         text = error,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
+                        color = JwTheme.colors.error,
+                        style = JwTheme.textStyles.bodySmall,
                         modifier = Modifier.padding(top = 4.dp),
                     )
                 }

@@ -1,11 +1,10 @@
 package com.kitakkun.jetwhale.host.ui
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 
-/** The semantic tone of a tag, dot or banner; each maps to one color family of the theme. */
+/** The semantic tone of a tag, dot, banner or button; each maps to one color family of [JwColors]. */
 public enum class JwTone {
     Neutral,
     Accent,
@@ -15,16 +14,16 @@ public enum class JwTone {
     Info,
     ;
 
-    /** The strong color of this tone: filled backgrounds, dots, icon tints. */
+    /** The strong color of this tone: filled backgrounds, dots, icon tints, tag text. */
     public val color: Color
         @Composable
         @ReadOnlyComposable
         get() = when (this) {
-            Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
-            Accent -> MaterialTheme.colorScheme.primary
+            Neutral -> JwTheme.colors.textSecondary
+            Accent -> JwTheme.colors.accent
             Success -> JwTheme.colors.success
             Warning -> JwTheme.colors.warning
-            Error -> MaterialTheme.colorScheme.error
+            Error -> JwTheme.colors.error
             Info -> JwTheme.colors.info
         }
 
@@ -33,11 +32,11 @@ public enum class JwTone {
         @Composable
         @ReadOnlyComposable
         get() = when (this) {
-            Neutral -> MaterialTheme.colorScheme.surface
-            Accent -> MaterialTheme.colorScheme.onPrimary
+            Neutral -> JwTheme.colors.surface
+            Accent -> JwTheme.colors.onAccent
             Success -> JwTheme.colors.onSuccess
             Warning -> JwTheme.colors.onWarning
-            Error -> MaterialTheme.colorScheme.onError
+            Error -> JwTheme.colors.onError
             Info -> JwTheme.colors.onInfo
         }
 
@@ -46,11 +45,11 @@ public enum class JwTone {
         @Composable
         @ReadOnlyComposable
         get() = when (this) {
-            Neutral -> MaterialTheme.colorScheme.surfaceContainerHigh
-            Accent -> MaterialTheme.colorScheme.primaryContainer
+            Neutral -> JwTheme.colors.neutralContainer
+            Accent -> JwTheme.colors.accentContainer
             Success -> JwTheme.colors.successContainer
             Warning -> JwTheme.colors.warningContainer
-            Error -> MaterialTheme.colorScheme.errorContainer
+            Error -> JwTheme.colors.errorContainer
             Info -> JwTheme.colors.infoContainer
         }
 
@@ -59,11 +58,11 @@ public enum class JwTone {
         @Composable
         @ReadOnlyComposable
         get() = when (this) {
-            Neutral -> MaterialTheme.colorScheme.onSurface
-            Accent -> MaterialTheme.colorScheme.onPrimaryContainer
+            Neutral -> JwTheme.colors.onSurface
+            Accent -> JwTheme.colors.onAccentContainer
             Success -> JwTheme.colors.onSuccessContainer
             Warning -> JwTheme.colors.onWarningContainer
-            Error -> MaterialTheme.colorScheme.onErrorContainer
+            Error -> JwTheme.colors.onErrorContainer
             Info -> JwTheme.colors.onInfoContainer
         }
 }

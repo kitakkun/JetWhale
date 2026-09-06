@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,7 +33,7 @@ public fun JwCountBadge(
     modifier: Modifier = Modifier,
     tone: JwTone = JwTone.Neutral,
 ) {
-    val shape = MaterialTheme.shapes.extraSmall
+    val shape = JwShapes.extraSmall
     val filled = tone != JwTone.Neutral
     Box(
         modifier = modifier
@@ -45,9 +43,9 @@ public fun JwCountBadge(
             .padding(horizontal = JwSpacing.small),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
+        JwText(
             text = count.toString(),
-            style = JwTypography.code,
+            style = JwTheme.textStyles.code,
             color = if (filled) tone.onColor else tone.onContainerColor,
             maxLines = 1,
         )

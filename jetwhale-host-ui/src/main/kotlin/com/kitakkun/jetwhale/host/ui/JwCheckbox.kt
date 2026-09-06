@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -51,12 +49,12 @@ public fun JwCheckbox(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val scheme = MaterialTheme.colorScheme
+    val scheme = JwTheme.colors
     val colors = JwTheme.colors
     val boxColor by animateColorAsState(
         targetValue = when {
             !enabled -> scheme.onSurface.copy(alpha = 0.12f)
-            checked -> scheme.primary
+            checked -> scheme.accent
             else -> Color.Transparent
         },
         label = "checkbox-box",
@@ -65,8 +63,8 @@ public fun JwCheckbox(
     Row(
         modifier = modifier
             .height(JwMetrics.controlHeight)
-            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
-            .clip(MaterialTheme.shapes.small)
+            .jwFocusRing(interactionSource, JwShapes.small)
+            .clip(JwShapes.small)
             .toggleable(
                 value = checked,
                 enabled = enabled,
@@ -82,11 +80,11 @@ public fun JwCheckbox(
         Box(
             modifier = Modifier
                 .size(JwCheckboxDefaults.size)
-                .background(boxColor, MaterialTheme.shapes.extraSmall)
+                .background(boxColor, JwShapes.extraSmall)
                 .border(
                     JwMetrics.borderWidth,
-                    if (checked && enabled) scheme.primary else scheme.outline,
-                    MaterialTheme.shapes.extraSmall,
+                    if (checked && enabled) scheme.accent else scheme.controlBorder,
+                    JwShapes.extraSmall,
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -94,15 +92,15 @@ public fun JwCheckbox(
                 JwIcon(
                     imageVector = JwIcons.Check,
                     contentDescription = null,
-                    tint = if (enabled) scheme.onPrimary else colors.textDisabled,
+                    tint = if (enabled) scheme.onAccent else colors.textDisabled,
                     modifier = Modifier.size(CheckMarkSize),
                 )
             }
         }
         if (label != null) {
-            Text(
+            JwText(
                 text = label,
-                style = MaterialTheme.typography.bodyMedium,
+                style = JwTheme.textStyles.body,
                 color = if (enabled) scheme.onSurface else colors.textDisabled,
                 maxLines = 1,
             )

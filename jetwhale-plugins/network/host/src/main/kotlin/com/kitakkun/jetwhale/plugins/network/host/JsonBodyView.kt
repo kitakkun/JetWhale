@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +25,8 @@ import com.kitakkun.jetwhale.host.ui.JwCodeBlock
 import com.kitakkun.jetwhale.host.ui.JwPanel
 import com.kitakkun.jetwhale.host.ui.JwSegmentedButtons
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -124,20 +124,20 @@ private fun JsonBranch(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
     ) {
-        Text(
+        JwText(
             text = if (expanded) "▾" else "▸",
             color = colors.punctuation,
-            style = MaterialTheme.typography.bodySmall,
+            style = JwTheme.textStyles.bodySmall,
             fontFamily = FontFamily.Monospace,
         )
-        Text(
+        JwText(
             buildAnnotatedString {
                 if (label != null) withStyle(SpanStyle(color = colors.key)) { append(label) }
                 withStyle(SpanStyle(color = colors.punctuation)) {
                     append(if (isArray) "  [$size]" else "  {$size}")
                 }
             },
-            style = MaterialTheme.typography.bodySmall,
+            style = JwTheme.textStyles.bodySmall,
             fontFamily = FontFamily.Monospace,
         )
     }
@@ -146,7 +146,7 @@ private fun JsonBranch(
 
 @Composable
 private fun JsonLeaf(label: String?, primitive: JsonPrimitive, colors: JsonColors, depth: Int) {
-    Text(
+    JwText(
         buildAnnotatedString {
             if (label != null) {
                 withStyle(SpanStyle(color = colors.key)) { append(label) }
@@ -154,7 +154,7 @@ private fun JsonLeaf(label: String?, primitive: JsonPrimitive, colors: JsonColor
             }
             append(primitiveAnnotated(primitive, colors))
         },
-        style = MaterialTheme.typography.bodySmall,
+        style = JwTheme.textStyles.bodySmall,
         fontFamily = FontFamily.Monospace,
         modifier = Modifier.padding(start = (depth * 16 + 16).dp, top = 1.dp, bottom = 1.dp),
     )
@@ -230,7 +230,7 @@ private data class JsonColors(
 @Composable
 private fun rememberJsonColors(): JsonColors {
     val dark = isDarkTheme()
-    val punctuation = MaterialTheme.colorScheme.onSurfaceVariant
+    val punctuation = JwTheme.colors.textSecondary
     return remember(dark, punctuation) {
         JsonColors(
             key = if (dark) Color(0xFF4FC3F7) else Color(0xFF0B6E99),

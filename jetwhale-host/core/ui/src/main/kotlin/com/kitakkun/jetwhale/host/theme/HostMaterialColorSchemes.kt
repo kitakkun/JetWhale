@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.host.ui
+package com.kitakkun.jetwhale.host.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
@@ -6,20 +6,20 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 /**
- * The built-in color schemes of the JetWhale host: neutral surfaces with a single blue accent, the
- * palette of a desktop tool rather than the tinted baseline Material 3 ships with. Chrome such as the
- * sidebar and toolbars is drawn on the `surfaceContainer*` steps, so the steps are spaced closely
- * enough to read as panels of one window instead of stacked cards.
+ * Material 3 color schemes matching the library's built-in [com.kitakkun.jetwhale.host.ui.JwColors],
+ * for the Material layer [HostTheme] keeps around content that still uses Material widgets. The
+ * host's theme model is Material-shaped (a custom theme declares Material tokens), so the mapping
+ * runs Material → Jw, and these are the Material side of the built-in pair.
  */
-public object JwColorSchemes {
+internal object HostMaterialColorSchemes {
     /**
      * The built-in light scheme: white surfaces, near-black text, blue accent. The same instance
      * every call — a `ColorScheme` compares by identity, so a fresh one would re-theme the tree.
      */
-    public fun light(): ColorScheme = Light
+    fun light(): ColorScheme = Light
 
     /** The built-in dark scheme: charcoal surfaces, off-white text, lighter blue accent. */
-    public fun dark(): ColorScheme = Dark
+    fun dark(): ColorScheme = Dark
 
     private val Light: ColorScheme = lightColorScheme(
         primary = Color(0xFF2F6FE4),

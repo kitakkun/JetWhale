@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -22,10 +21,11 @@ import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwFormField
 import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwToolbar
-import com.kitakkun.jetwhale.host.ui.JwTypography
 
 @Composable
 fun ExamplePluginContent(
@@ -83,7 +83,7 @@ fun ExamplePluginView(
                 verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
             ) {
                 items(eventLogs) { log ->
-                    Text(text = log, style = JwTypography.code)
+                    JwText(text = log, style = JwTheme.textStyles.code)
                 }
             }
         }

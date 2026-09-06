@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -14,6 +12,8 @@ import androidx.compose.ui.window.Dialog
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.shutting_down
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -24,9 +24,9 @@ fun ShuttingDownDialog() {
             verticalArrangement = Arrangement.spacedBy(JwSpacing.extraLarge, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
+            JwText(
                 text = stringResource(Res.string.shutting_down),
-                color = MaterialTheme.colorScheme.inverseOnSurface,
+                color = JwTheme.colors.onTooltip,
             )
             CircularWavyProgressIndicator()
         }

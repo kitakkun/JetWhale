@@ -20,12 +20,12 @@ kotlin {
 
 dependencies {
     // Every one of these is exposed in the public API (composable signatures take Modifier, Color,
-    // ColorScheme, ...), and every one is provided by the host at runtime: a plugin consumes this
-    // module as compileOnly, exactly like jetwhale-host-sdk.
+    // TextStyle, ...), and every one is provided by the host at runtime: a plugin consumes this
+    // module as compileOnly, exactly like jetwhale-host-sdk. Deliberately no Material: the
+    // library is built on foundation alone, so its API does not move with Material's.
     api(compose.runtime)
     api(compose.foundation)
     api(compose.ui)
-    api(libs.material3)
     api(projects.jetwhaleHostSdk)
     testImplementation(libs.kotlinTest)
     testImplementation(compose.desktop.currentOs)

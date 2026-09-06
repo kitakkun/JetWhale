@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +25,7 @@ import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwListItem
 import com.kitakkun.jetwhale.host.ui.JwPanel
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.version_format
 import org.jetbrains.compose.resources.painterResource
@@ -59,23 +58,23 @@ fun InfoScreen(
                     .size(AppIconSize)
                     .padding(bottom = JwSpacing.medium),
             )
-            Text(
+            JwText(
                 text = stringResource(Res.string.app_name),
-                style = MaterialTheme.typography.titleMedium,
+                style = JwTheme.textStyles.title,
             )
-            Text(
+            JwText(
                 text = stringResource(Res.string.version_format, BuildConfig.VERSION),
-                style = MaterialTheme.typography.bodySmall,
+                style = JwTheme.textStyles.bodySmall,
                 color = JwTheme.colors.textSecondary,
             )
-            Text(
+            JwText(
                 text = stringResource(Res.string.developed_by),
-                style = MaterialTheme.typography.bodySmall,
+                style = JwTheme.textStyles.bodySmall,
                 color = JwTheme.colors.textSecondary,
             )
-            Text(
+            JwText(
                 text = stringResource(Res.string.github_url),
-                style = MaterialTheme.typography.bodySmall,
+                style = JwTheme.textStyles.bodySmall,
                 color = JwTheme.colors.textSecondary,
             )
         }

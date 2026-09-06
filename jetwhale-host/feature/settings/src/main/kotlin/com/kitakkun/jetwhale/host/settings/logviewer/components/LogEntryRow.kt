@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -15,6 +13,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.LogEntry
 import com.kitakkun.jetwhale.host.model.LogLevel
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
 
 @Composable
 fun LogEntryRow(
@@ -57,11 +57,11 @@ fun LogEntryRow(
 
 @Composable
 private fun LogTimestamp(timestamp: String) {
-    Text(
+    JwText(
         text = timestamp,
-        style = MaterialTheme.typography.bodySmall,
+        style = JwTheme.textStyles.bodySmall,
         fontFamily = FontFamily.Monospace,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = JwTheme.colors.textSecondary,
     )
 }
 
@@ -70,9 +70,9 @@ private fun LogLevelBadge(
     level: LogLevel,
     color: Color,
 ) {
-    Text(
+    JwText(
         text = level.name,
-        style = MaterialTheme.typography.bodySmall,
+        style = JwTheme.textStyles.bodySmall,
         fontFamily = FontFamily.Monospace,
         color = color,
         modifier = Modifier.padding(end = 8.dp),
@@ -85,9 +85,9 @@ private fun LogMessage(
     color: Color,
     modifier: Modifier = Modifier,
 ) {
-    Text(
+    JwText(
         text = message,
-        style = MaterialTheme.typography.bodySmall,
+        style = JwTheme.textStyles.bodySmall,
         fontFamily = FontFamily.Monospace,
         color = color,
         modifier = modifier,
@@ -97,13 +97,13 @@ private fun LogMessage(
 private val LogLevel.backgroundColor: Color
     @Composable
     get() = when (this) {
-        LogLevel.ERROR -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-        LogLevel.INFO -> MaterialTheme.colorScheme.surface
+        LogLevel.ERROR -> JwTheme.colors.errorContainer.copy(alpha = 0.3f)
+        LogLevel.INFO -> JwTheme.colors.surface
     }
 
 private val LogLevel.textColor: Color
     @Composable
     get() = when (this) {
-        LogLevel.ERROR -> MaterialTheme.colorScheme.error
-        LogLevel.INFO -> MaterialTheme.colorScheme.onSurface
+        LogLevel.ERROR -> JwTheme.colors.error
+        LogLevel.INFO -> JwTheme.colors.onSurface
     }

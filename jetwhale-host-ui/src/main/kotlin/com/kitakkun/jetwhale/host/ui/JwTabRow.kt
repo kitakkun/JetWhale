@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -87,8 +85,8 @@ public fun JwTab(
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
     val textColor = when {
-        selected -> MaterialTheme.colorScheme.onSurface
-        hovered -> MaterialTheme.colorScheme.onSurface
+        selected -> JwTheme.colors.onSurface
+        hovered -> JwTheme.colors.onSurface
         else -> JwTheme.colors.textSecondary
     }
     Column(
@@ -97,7 +95,7 @@ public fun JwTab(
             // otherwise claim the whole strip for the first tab.
             .width(IntrinsicSize.Max)
             .fillMaxHeight()
-            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
+            .jwFocusRing(interactionSource, JwShapes.small)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -114,16 +112,16 @@ public fun JwTab(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
         ) {
-            Text(
+            JwText(
                 text = text,
-                style = MaterialTheme.typography.labelLarge,
+                style = JwTheme.textStyles.label,
                 color = textColor,
                 maxLines = 1,
             )
             if (count != null) {
-                Text(
+                JwText(
                     text = count.toString(),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = JwTheme.textStyles.labelSmall,
                     color = JwTheme.colors.textSecondary,
                 )
             }
@@ -132,7 +130,7 @@ public fun JwTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(JwTabRowDefaults.indicatorHeight)
-                .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent),
+                .background(if (selected) JwTheme.colors.accent else Color.Transparent),
         )
     }
 }

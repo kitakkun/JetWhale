@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.host.ui
 
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -35,7 +34,7 @@ private val FocusRingGap = 1.dp
 public fun Modifier.jwFocusRing(interactionSource: InteractionSource, shape: Shape): Modifier {
     val focused by interactionSource.collectIsFocusedAsState()
     if (!focused) return this
-    val color = MaterialTheme.colorScheme.primary
+    val color = JwTheme.colors.accent
     return drawWithContent {
         drawContent()
         val stroke = JwMetrics.focusStrokeWidth.toPx()

@@ -8,7 +8,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import com.kitakkun.jetwhale.host.model.JetWhaleColorScheme
 import com.kitakkun.jetwhale.host.model.ThemeColorTokens
-import com.kitakkun.jetwhale.host.ui.JwColorSchemes
 
 @Composable
 fun JetWhaleColorScheme.toMaterial3ColorScheme(): ColorScheme = when (this) {
@@ -20,9 +19,9 @@ fun JetWhaleColorScheme.toMaterial3ColorScheme(): ColorScheme = when (this) {
         }
     }
 
-    is JetWhaleColorScheme.Static.Light -> JwColorSchemes.light()
+    is JetWhaleColorScheme.Static.Light -> HostMaterialColorSchemes.light()
 
-    is JetWhaleColorScheme.Static.Dark -> JwColorSchemes.dark()
+    is JetWhaleColorScheme.Static.Dark -> HostMaterialColorSchemes.dark()
 
     is JetWhaleColorScheme.Static.Custom -> {
         remember(this) {

@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,26 +34,26 @@ public fun JwPanel(
     headerActions: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = MaterialTheme.shapes.medium
+    val shape = JwShapes.medium
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceContainerLowest, shape)
+            .background(JwTheme.colors.panelBackground, shape)
             .border(JwMetrics.borderWidth, JwTheme.colors.border, shape),
     ) {
         if (title != null) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .background(JwTheme.colors.sidebarBackground)
                     .padding(horizontal = JwSpacing.large, vertical = JwSpacing.small),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
             ) {
-                Text(
+                JwText(
                     text = title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = JwTheme.textStyles.subtitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),

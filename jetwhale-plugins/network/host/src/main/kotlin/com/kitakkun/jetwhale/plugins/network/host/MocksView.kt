@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,10 +30,10 @@ import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwSwitch
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwTagStyle
+import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
-import com.kitakkun.jetwhale.host.ui.JwTypography
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
@@ -63,17 +61,17 @@ internal fun MocksTab(
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
             JwSwitch(mockingEnabled, onToggleMocking, contentDescription = "Mocking enabled")
-            Text(
+            JwText(
                 text = "Mocking enabled",
-                style = MaterialTheme.typography.bodyMedium,
+                style = JwTheme.textStyles.body,
             )
             Spacer(Modifier.weight(1f))
             JwButton(text = "Add rule", onClick = { editing = blankRule() }, style = JwButtonStyle.Primary)
         }
         if (rules.isEmpty()) {
-            Text(
+            JwText(
                 text = "No mock rules. Add one to override matching responses.",
-                style = MaterialTheme.typography.bodySmall,
+                style = JwTheme.textStyles.bodySmall,
                 color = JwTheme.colors.textSecondary,
             )
         }
@@ -115,13 +113,13 @@ private fun MockRuleRow(
         ) {
             JwSwitch(rule.enabled, onToggle, contentDescription = "Rule enabled")
             Column(Modifier.weight(1f)) {
-                Text(
+                JwText(
                     text = rule.name.ifBlank { "(unnamed rule)" },
-                    style = MaterialTheme.typography.labelLarge,
+                    style = JwTheme.textStyles.label,
                 )
-                Text(
+                JwText(
                     text = "${rule.matcher.method ?: "ANY"} • ${rule.matcher.matchType} '${rule.matcher.urlPattern}' → ${rule.response.statusCode}",
-                    style = JwTypography.code,
+                    style = JwTheme.textStyles.code,
                     color = JwTheme.colors.textSecondary,
                 )
             }
@@ -170,7 +168,7 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                         JwTextField(
                             value = draft.matcher.urlPattern,
                             onValueChange = { draft = draft.copy(matcher = draft.matcher.copy(urlPattern = it)) },
-                            textStyle = JwTypography.code,
+                            textStyle = JwTheme.textStyles.code,
                         )
                     }
                 }
@@ -198,7 +196,7 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                                     ),
                                 )
                             },
-                            textStyle = JwTypography.code,
+                            textStyle = JwTheme.textStyles.code,
                         )
                     }
                     JwFormField(label = "Delay ms", modifier = Modifier.width(DelayFieldWidth)) {
@@ -211,7 +209,7 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                                     ),
                                 )
                             },
-                            textStyle = JwTypography.code,
+                            textStyle = JwTheme.textStyles.code,
                         )
                     }
                     JwFormField(label = "Content-Type", modifier = Modifier.weight(1f)) {
@@ -225,7 +223,7 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                                 }
                                 draft = draft.copy(response = draft.response.copy(headers = headers))
                             },
-                            textStyle = JwTypography.code,
+                            textStyle = JwTheme.textStyles.code,
                         )
                     }
                 }
@@ -234,7 +232,7 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                         value = draft.response.body,
                         onValueChange = { draft = draft.copy(response = draft.response.copy(body = it)) },
                         singleLine = false,
-                        textStyle = JwTypography.code,
+                        textStyle = JwTheme.textStyles.code,
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = BodyEditorMinHeight),

@@ -3,8 +3,6 @@ package com.kitakkun.jetwhale.host.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
@@ -30,17 +28,17 @@ public fun JwFormField(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
     ) {
-        Text(
+        JwText(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
+            style = JwTheme.textStyles.label,
             color = JwTheme.colors.textSecondary,
         )
         content()
         if (supportingText != null) {
-            Text(
+            JwText(
                 text = supportingText,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isError) MaterialTheme.colorScheme.error else JwTheme.colors.textSecondary,
+                style = JwTheme.textStyles.bodySmall,
+                color = if (isError) JwTheme.colors.error else JwTheme.colors.textSecondary,
             )
         }
     }

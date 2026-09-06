@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,7 +41,9 @@ import com.kitakkun.jetwhale.host.ui.JwTable
 import com.kitakkun.jetwhale.host.ui.JwTableColumn
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwTagStyle
+import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwToolbar
 import com.kitakkun.jetwhale.host.ui.JwTreeRow
@@ -59,7 +59,7 @@ fun JwGallery() {
     Column(
         modifier = Modifier
             .width(GALLERY_WIDTH.dp)
-            .background(MaterialTheme.colorScheme.surface),
+            .background(JwTheme.colors.surface),
     ) {
         JwToolbar(
             title = "Gallery",
@@ -194,7 +194,7 @@ private fun Section(title: String, content: @Composable () -> Unit) {
             .padding(JwSpacing.large),
         verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
-        Text(text = title, style = MaterialTheme.typography.titleSmall)
+        JwText(text = title, style = JwTheme.textStyles.subtitle)
         content()
     }
 }
@@ -217,9 +217,9 @@ private val SAMPLE_COLUMNS = listOf(
         }
         JwTag(text = it.status.toString(), tone = tone, style = JwTagStyle.Tinted)
     },
-    JwTableColumn(header = "Method", width = JwColumnWidth.Fixed(56.dp)) { Text(it.method, style = MaterialTheme.typography.labelMedium) },
-    JwTableColumn(header = "URL", width = JwColumnWidth.Weight(1f)) { Text(it.url, style = MaterialTheme.typography.bodySmall, maxLines = 1) },
-    JwTableColumn(header = "Time", width = JwColumnWidth.Fixed(56.dp), alignment = Alignment.End) { Text("${it.ms}ms", style = MaterialTheme.typography.labelSmall) },
+    JwTableColumn(header = "Method", width = JwColumnWidth.Fixed(56.dp)) { JwText(it.method, style = JwTheme.textStyles.label) },
+    JwTableColumn(header = "URL", width = JwColumnWidth.Weight(1f)) { JwText(it.url, style = JwTheme.textStyles.bodySmall, maxLines = 1) },
+    JwTableColumn(header = "Time", width = JwColumnWidth.Fixed(56.dp), alignment = Alignment.End) { JwText("${it.ms}ms", style = JwTheme.textStyles.labelSmall) },
 )
 
 /** Wide enough for the widest row (the button row) without wrapping. */

@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,9 +47,9 @@ public fun JwStatusLine(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
-        Text(
+        JwText(
             text = text,
-            style = MaterialTheme.typography.bodySmall,
+            style = JwTheme.textStyles.bodySmall,
             color = if (tone == JwTone.Neutral) JwTheme.colors.textSecondary else tone.color,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

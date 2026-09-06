@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -117,13 +116,13 @@ public fun JwDialogSurface(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        val shape = MaterialTheme.shapes.large
+        val shape = JwShapes.large
         Column(
             modifier = modifier
                 .width(width)
                 .shadow(DialogShadowElevation, shape)
                 .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceContainer, shape)
+                .background(JwTheme.colors.elevatedBackground, shape)
                 .border(JwMetrics.borderWidth, JwTheme.colors.border, shape),
             content = content,
         )

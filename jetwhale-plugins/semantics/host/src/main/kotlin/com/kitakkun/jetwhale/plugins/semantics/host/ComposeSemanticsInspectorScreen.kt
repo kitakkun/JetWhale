@@ -16,9 +16,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,10 +43,12 @@ import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwSplitPane
 import com.kitakkun.jetwhale.host.ui.JwStatusLine
 import com.kitakkun.jetwhale.host.ui.JwTag
+import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTreeRow
+import com.kitakkun.jetwhale.host.ui.LocalJwContentColor
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
@@ -120,7 +119,7 @@ internal fun ComposeSemanticsInspectorScreen(
 
     // The host hands the plugin an unpainted scene, so the screen paints its own background;
     // without it the areas no child covers fall back to white and fight a dark theme.
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+    Column(Modifier.fillMaxSize().background(JwTheme.colors.surface)) {
         Toolbar(
             capturing = capturing,
             merged = merged,
@@ -215,10 +214,10 @@ private fun Toolbar(
                 CircularProgressIndicator(
                     modifier = Modifier.size(SpinnerSize),
                     strokeWidth = SpinnerStrokeWidth,
-                    color = LocalContentColor.current,
+                    color = LocalJwContentColor.current,
                 )
             }
-            Text(if (capturing) "Capturing…" else "Refresh")
+            JwText(if (capturing) "Capturing…" else "Refresh")
         }
         JwCheckbox(checked = autoRefresh, onCheckedChange = onAutoRefreshChange, label = "Auto")
         JwCheckbox(checked = merged, onCheckedChange = onMergedChange, label = "Merged")
@@ -298,9 +297,9 @@ private fun RootHeaderRow(row: TreeRow.RootHeader) {
     JwSectionHeader(
         title = row.root.label,
         trailing = {
-            Text(
+            JwText(
                 text = "${row.nodeCount} nodes · ×${row.root.density}",
-                style = MaterialTheme.typography.labelSmall,
+                style = JwTheme.textStyles.labelSmall,
                 color = JwTheme.colors.textSecondary,
             )
         },
@@ -333,9 +332,9 @@ private fun NodeRow(
             // A node with no semantics of its own is already labelled by its id; repeating it here
             // would render "#12 #12".
             if (!label.startsWith("#")) {
-                Text(
+                JwText(
                     text = "#${row.node.id}",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = JwTheme.textStyles.labelSmall,
                     color = JwTheme.colors.textSecondary,
                 )
             }
@@ -368,9 +367,9 @@ private fun NodeDetail(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large),
         verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
-        Text(
+        JwText(
             text = node.displayLabel(),
-            style = MaterialTheme.typography.titleMedium,
+            style = JwTheme.textStyles.title,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )

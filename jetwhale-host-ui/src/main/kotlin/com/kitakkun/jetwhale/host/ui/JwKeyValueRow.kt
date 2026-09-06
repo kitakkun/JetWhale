@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,12 +24,12 @@ public object JwKeyValueRowDefaults {
 /**
  * One "key: value" line of a detail view — a header, a property, a setting's current value. Keys
  * share a column of [keyWidth] so a list of rows lines up; values are selectable and, when
- * [monospace], set in [JwTypography.code].
+ * [monospace], set in [JwTheme.textStyles.code].
  *
  * @param key the property's name, in the left column.
  * @param value the property's value, selectable.
  * @param keyWidth the width of the key column; pass the same value to every row of a list.
- * @param monospace sets the value in [JwTypography.code].
+ * @param monospace sets the value in [JwTheme.textStyles.code].
  * @param wrap `true` lets a long value take several lines — for text worth reading in full. `false`
  * keeps it on one line that scrolls sideways, so a long id cannot push the rows below it away.
  * @param trailingContent controls that act on the value: a copy button, a link.
@@ -53,18 +51,18 @@ public fun JwKeyValueRow(
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
-        Text(
+        JwText(
             text = key,
-            style = MaterialTheme.typography.bodySmall,
+            style = JwTheme.textStyles.bodySmall,
             color = JwTheme.colors.textSecondary,
             modifier = Modifier.width(keyWidth),
         )
-        val valueStyle = if (monospace) JwTypography.code else MaterialTheme.typography.bodySmall
+        val valueStyle = if (monospace) JwTheme.textStyles.code else JwTheme.textStyles.bodySmall
         SelectionContainer(modifier = Modifier.weight(1f)) {
             if (wrap) {
-                Text(text = value, style = valueStyle)
+                JwText(text = value, style = valueStyle)
             } else {
-                Text(
+                JwText(
                     text = value,
                     style = valueStyle,
                     maxLines = 1,

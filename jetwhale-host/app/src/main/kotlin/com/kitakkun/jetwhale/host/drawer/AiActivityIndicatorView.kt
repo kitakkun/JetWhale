@@ -27,10 +27,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
@@ -60,10 +58,11 @@ import com.kitakkun.jetwhale.host.ai_agent_connected
 import com.kitakkun.jetwhale.host.ai_agent_operating
 import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwMetrics
+import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
-import com.kitakkun.jetwhale.host.ui.JwTypography
 import org.jetbrains.compose.resources.stringResource
 
 private const val PULSE_PERIOD_MILLIS = 1100
@@ -170,14 +169,14 @@ fun AiActivityIndicatorView(
             targetValue = if (uiState.isOperating) {
                 JwTone.Warning.containerColor
             } else {
-                MaterialTheme.colorScheme.surfaceContainer
+                JwTheme.colors.elevatedBackground
             },
             animationSpec = tween(AI_BANNER_COLOR_FADE_MILLIS),
             label = "ai-banner-color",
         )
         Surface(
             color = containerColor,
-            shape = MaterialTheme.shapes.small,
+            shape = JwShapes.small,
             border = BorderStroke(JwMetrics.borderWidth, JwTheme.colors.border),
             modifier = modifier.fillMaxWidth(),
         ) {
@@ -194,14 +193,14 @@ fun AiActivityIndicatorView(
                 )
                 // Animate the height so the tool-name line slides in and out instead of snapping.
                 Column(modifier = Modifier.animateContentSize()) {
-                    Text(
+                    JwText(
                         text = stringResource(Res.string.ai_agent_connected),
-                        style = MaterialTheme.typography.labelMedium,
+                        style = JwTheme.textStyles.label,
                     )
                     uiState.operatingToolName?.let { toolName ->
-                        Text(
+                        JwText(
                             text = toolName,
-                            style = JwTypography.code,
+                            style = JwTheme.textStyles.code,
                             color = JwTheme.colors.textSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -228,7 +227,7 @@ fun CompactAiActivityIndicatorView(
             positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Right),
             tooltip = {
                 PlainTooltip {
-                    Text(uiState.operatingToolName ?: stringResource(Res.string.ai_agent_connected))
+                    JwText(uiState.operatingToolName ?: stringResource(Res.string.ai_agent_connected))
                 }
             },
             state = rememberTooltipState(),

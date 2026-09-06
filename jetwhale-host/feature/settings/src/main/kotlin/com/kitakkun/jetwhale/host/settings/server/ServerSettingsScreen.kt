@@ -14,10 +14,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -78,6 +76,9 @@ import com.kitakkun.jetwhale.host.settings.wss_port_label
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwDialog
+import com.kitakkun.jetwhale.host.ui.JwShapes
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -111,7 +112,7 @@ fun ServerSettingsScreen(
             closeLabel = stringResource(Res.string.close),
             title = stringResource(Res.string.debug_server_port_apply_confirm_title),
             text = {
-                Text(
+                JwText(
                     if (uiState.editingWssEnabled) {
                         stringResource(
                             Res.string.debug_server_port_apply_confirm_message_with_wss,
@@ -149,7 +150,7 @@ fun ServerSettingsScreen(
             closeLabel = stringResource(Res.string.close),
             title = stringResource(Res.string.mcp_server_port_apply_confirm_title),
             text = {
-                Text(
+                JwText(
                     stringResource(
                         Res.string.mcp_server_port_apply_confirm_message,
                         uiState.editingMcpPortText,
@@ -180,9 +181,9 @@ fun ServerSettingsScreen(
             closeLabel = stringResource(Res.string.close),
             title = stringResource(Res.string.ssl_certificate_detail_title),
             text = {
-                Text(
+                JwText(
                     text = entry.caCertificatePem,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = JwTheme.textStyles.bodySmall,
                     modifier = Modifier
                         .heightIn(max = 320.dp)
                         .verticalScroll(rememberScrollState())
@@ -216,7 +217,7 @@ fun ServerSettingsScreen(
                 SettingOptionView(
                     label = stringResource(Res.string.debug_server_label),
                 ) {
-                    Text(
+                    JwText(
                         text = serverStateText(uiState.debugServerState),
                     )
                     TextFieldSettingsItemView(
@@ -235,10 +236,10 @@ fun ServerSettingsScreen(
                         onTextChange = onWssPortTextChange,
                     )
                     uiState.debugServerSettingsError?.let { error ->
-                        Text(
+                        JwText(
                             text = debugServerSettingsErrorText(error),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
+                            style = JwTheme.textStyles.bodySmall,
+                            color = JwTheme.colors.error,
                         )
                     }
                     if (uiState.isDebugApplyVisible) {
@@ -257,7 +258,7 @@ fun ServerSettingsScreen(
                 SettingOptionView(
                     label = stringResource(Res.string.mcp_server_label),
                 ) {
-                    Text(
+                    JwText(
                         text = serverStateText(uiState.mcpServerState),
                     )
                     TextFieldSettingsItemView(
@@ -274,10 +275,10 @@ fun ServerSettingsScreen(
                         )
                     }
                     Spacer(Modifier.height(12.dp))
-                    Text(
+                    JwText(
                         text = stringResource(Res.string.mcp_setup_note),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = JwTheme.textStyles.bodySmall,
+                        color = JwTheme.colors.textSecondary,
                     )
                     McpSnippetView(
                         label = stringResource(Res.string.mcp_setup_claude_code_label),
@@ -315,30 +316,30 @@ fun ServerSettingsScreen(
                 SettingOptionView(
                     label = stringResource(Res.string.ssl_certificate),
                 ) {
-                    Text(
+                    JwText(
                         text = stringResource(Res.string.ssl_certificate_apply_note),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = JwTheme.textStyles.bodySmall,
+                        color = JwTheme.colors.textSecondary,
                     )
                     if (uiState.certificates.isEmpty()) {
-                        Text(stringResource(Res.string.ssl_certificate_no_certificate))
+                        JwText(stringResource(Res.string.ssl_certificate_no_certificate))
                     }
                     uiState.certificates.forEach { certificate ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text(
+                            JwText(
                                 text = buildString {
                                     append(certificate.name)
                                     if (certificate.isActive) append(" (${stringResource(Res.string.ssl_certificate_active)})")
                                 },
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = JwTheme.textStyles.body,
                                 modifier = Modifier.weight(1f),
                             )
-                            Text(
+                            JwText(
                                 text = stringResource(Res.string.ssl_certificate_created_at, certificate.createdAt),
-                                style = MaterialTheme.typography.bodySmall,
+                                style = JwTheme.textStyles.bodySmall,
                             )
                             if (!certificate.isActive) {
                                 JwButton(
@@ -385,19 +386,19 @@ private fun McpSnippetView(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(
+            JwText(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = JwTheme.textStyles.label,
+                color = JwTheme.colors.textSecondary,
             )
             Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = MaterialTheme.shapes.small,
+                color = JwTheme.colors.neutralContainer,
+                shape = JwShapes.small,
             ) {
                 SelectionContainer {
-                    Text(
+                    JwText(
                         text = snippet,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = JwTheme.textStyles.bodySmall,
                         fontFamily = FontFamily.Monospace,
                         modifier = Modifier
                             .padding(8.dp)

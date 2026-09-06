@@ -7,18 +7,20 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -26,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
@@ -33,6 +36,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 
 /** Sizes of a [JwDropdownMenu] and its [JwMenuItem]s. */
 public object JwMenuDefaults {
@@ -72,9 +77,9 @@ public fun JwDropdownButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val hovered by interactionSource.collectIsHoveredAsState()
-    val scheme = MaterialTheme.colorScheme
+    val scheme = JwTheme.colors
     val colors = JwTheme.colors
-    val shape = MaterialTheme.shapes.small
+    val shape = JwShapes.small
     val contentColor = if (enabled) scheme.onSurface else colors.textDisabled
     Box(modifier = modifier) {
         Row(
@@ -83,8 +88,8 @@ public fun JwDropdownButton(
                 .height(JwMetrics.controlHeight)
                 .jwFocusRing(interactionSource, shape)
                 .clip(shape)
-                .background(if (hovered && enabled) colors.hover else scheme.surfaceContainerLowest, shape)
-                .border(JwMetrics.borderWidth, if (enabled) scheme.outline else colors.border.copy(alpha = 0.5f), shape)
+                .background(if (hovered && enabled) colors.hover else scheme.panelBackground, shape)
+                .border(JwMetrics.borderWidth, if (enabled) scheme.controlBorder else colors.border.copy(alpha = 0.5f), shape)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -96,11 +101,11 @@ public fun JwDropdownButton(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
         ) {
-            CompositionLocalProvider(LocalContentColor provides contentColor) {
+            CompositionLocalProvider(LocalJwContentColor provides contentColor) {
                 leadingIcon?.invoke()
-                Text(
+                JwText(
                     text = text,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = JwTheme.textStyles.body,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
@@ -121,8 +126,16 @@ public fun JwDropdownButton(
     }
 }
 
+/** Sizes of a [JwDropdownMenu]. */
+public object JwDropdownMenuDefaults {
+    /** The tallest a menu grows before its items scroll. */
+    public val maxHeight: Dp = 320.dp
+}
+
 /**
- * A popup menu anchored to the composable it is placed next to, holding [JwMenuItem]s.
+ * A popup menu anchored to the composable it is placed next to, holding [JwMenuItem]s. It opens
+ * below the anchor (above, when the window has no room), takes focus so Escape and a click outside
+ * dismiss it, and scrolls past [JwDropdownMenuDefaults.maxHeight].
  *
  * @param expanded whether the menu is shown.
  * @param onDismissRequest called on Escape or a click outside the menu.
@@ -135,20 +148,27 @@ public fun JwDropdownMenu(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    DropdownMenu(
-        expanded = expanded,
+    if (!expanded) return
+    Popup(
+        popupPositionProvider = rememberJwPopupPositionProvider(JwPopupAnchor.BelowStart),
         onDismissRequest = onDismissRequest,
-        modifier = modifier
-            .widthIn(min = JwMenuDefaults.minWidth)
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .border(JwMetrics.borderWidth, JwTheme.colors.border, MaterialTheme.shapes.small)
-            // Horizontal only: DropdownMenu already pads the column vertically.
-            .padding(horizontal = JwSpacing.extraSmall),
-        shape = MaterialTheme.shapes.small,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        shadowElevation = MenuShadowElevation,
-        content = content,
-    )
+        properties = PopupProperties(focusable = true),
+    ) {
+        Column(
+            modifier = modifier
+                // Sized by the widest item, not by the window: the items fill the menu's width, so
+                // the menu must not take its width from them in turn.
+                .width(IntrinsicSize.Max)
+                .widthIn(min = JwMenuDefaults.minWidth)
+                .heightIn(max = JwDropdownMenuDefaults.maxHeight)
+                .shadow(MenuShadowElevation, JwShapes.medium)
+                .background(JwTheme.colors.elevatedBackground, JwShapes.medium)
+                .border(JwMetrics.borderWidth, JwTheme.colors.border, JwShapes.medium)
+                .padding(JwSpacing.extraSmall)
+                .verticalScroll(rememberScrollState()),
+            content = content,
+        )
+    }
 }
 
 /**
@@ -180,15 +200,15 @@ public fun JwMenuItem(
     val colors = JwTheme.colors
     val contentColor = when {
         !enabled -> colors.textDisabled
-        tone == JwTone.Error -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.onSurface
+        tone == JwTone.Error -> JwTheme.colors.error
+        else -> JwTheme.colors.onSurface
     }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(JwMenuDefaults.itemHeight)
-            .jwFocusRing(interactionSource, MaterialTheme.shapes.extraSmall)
-            .clip(MaterialTheme.shapes.extraSmall)
+            .jwFocusRing(interactionSource, JwShapes.extraSmall)
+            .clip(JwShapes.extraSmall)
             .background(if (hovered && enabled) colors.hover else Color.Transparent)
             .clickable(
                 interactionSource = interactionSource,
@@ -202,16 +222,16 @@ public fun JwMenuItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
-        CompositionLocalProvider(LocalContentColor provides contentColor) {
+        CompositionLocalProvider(LocalJwContentColor provides contentColor) {
             Box(modifier = Modifier.size(JwMetrics.iconSize), contentAlignment = Alignment.Center) {
                 when {
-                    selected -> JwIcon(imageVector = JwIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    selected -> JwIcon(imageVector = JwIcons.Check, contentDescription = null, tint = JwTheme.colors.accent)
                     leadingIcon != null -> leadingIcon()
                 }
             }
-            Text(
+            JwText(
                 text = text,
-                style = MaterialTheme.typography.bodyMedium,
+                style = JwTheme.textStyles.body,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),

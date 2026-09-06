@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -41,14 +39,14 @@ public fun <T> JwSegmentedButtons(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val shape = MaterialTheme.shapes.small
-    val scheme = MaterialTheme.colorScheme
+    val shape = JwShapes.small
+    val scheme = JwTheme.colors
     val colors = JwTheme.colors
     Row(
         modifier = modifier
             .height(JwMetrics.controlHeight)
             .clip(shape)
-            .border(JwMetrics.borderWidth, if (enabled) scheme.outline else colors.border.copy(alpha = 0.5f), shape),
+            .border(JwMetrics.borderWidth, if (enabled) scheme.controlBorder else colors.border.copy(alpha = 0.5f), shape),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         options.forEachIndexed { index, option ->
@@ -77,9 +75,9 @@ public fun <T> JwSegmentedButtons(
                     .padding(horizontal = JwSpacing.large),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
+                JwText(
                     text = label(option),
-                    style = MaterialTheme.typography.labelLarge,
+                    style = JwTheme.textStyles.label,
                     color = when {
                         !enabled -> colors.textDisabled
                         isSelected -> scheme.onSurface

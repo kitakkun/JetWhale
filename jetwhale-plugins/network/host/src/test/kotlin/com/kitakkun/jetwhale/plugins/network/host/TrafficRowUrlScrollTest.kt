@@ -18,7 +18,6 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
 import com.kitakkun.jetwhale.host.sdk.LocalJetWhalePluginStorage
-import com.kitakkun.jetwhale.host.ui.JwColorSchemes
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
@@ -145,7 +144,7 @@ private fun runTrafficTab(
     var selected: String? = null
     setContent {
         CompositionLocalProvider(LocalJetWhalePluginStorage provides InMemoryPluginStorage()) {
-            JwTheme(colorScheme = JwColorSchemes.light(), darkTheme = false) {
+            JwTheme(darkTheme = false) {
                 // Wide enough to clear ListMinWidth + DetailMinWidth, and tall enough that LONG_LIST
                 // overflows the viewport while SHORT_LIST does not.
                 Box(Modifier.requiredSize(width = 900.dp, height = 600.dp)) {

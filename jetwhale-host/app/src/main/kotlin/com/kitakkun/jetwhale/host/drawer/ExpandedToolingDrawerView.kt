@@ -26,8 +26,6 @@ import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SouthWest
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -67,6 +65,7 @@ import com.kitakkun.jetwhale.host.ui.JwMenuItem
 import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.unavailable_plugins
@@ -169,9 +168,9 @@ private fun SidebarHeader(onClickShrinkDrawer: () -> Unit) {
             contentDescription = null,
             modifier = Modifier.size(AppMarkSize),
         )
-        Text(
+        JwText(
             text = stringResource(Res.string.app_short_name),
-            style = MaterialTheme.typography.titleSmall,
+            style = JwTheme.textStyles.subtitle,
             modifier = Modifier.weight(1f),
         )
         JwIconButton(

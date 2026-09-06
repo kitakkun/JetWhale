@@ -14,8 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,11 +38,11 @@ import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwTagStyle
+import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwToolbar
-import com.kitakkun.jetwhale.host.ui.JwTypography
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
@@ -151,9 +149,9 @@ private fun BackStackPane(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
+            JwText(
                 "Back stack · ${snapshot.entries.size} ${if (snapshot.entries.size == 1) "entry" else "entries"}",
-                style = MaterialTheme.typography.titleSmall,
+                style = JwTheme.textStyles.subtitle,
             )
             JwButton(
                 text = "Pop",
@@ -193,15 +191,15 @@ private fun BackStackEntryCard(
 ) {
     JwPanel {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-            Text("#$index", style = MaterialTheme.typography.labelMedium, color = JwTheme.colors.textSecondary)
-            Text(entry.typeName, style = MaterialTheme.typography.titleSmall)
+            JwText("#$index", style = JwTheme.textStyles.label, color = JwTheme.colors.textSecondary)
+            JwText(entry.typeName, style = JwTheme.textStyles.subtitle)
             if (isCurrent) {
                 JwTag(text = "current", tone = JwTone.Accent, style = JwTagStyle.Tinted)
             }
         }
-        Text(
+        JwText(
             text = entry.display,
-            style = JwTypography.code,
+            style = JwTheme.textStyles.code,
         )
         // The actions have to wrap: a plugin pane can be narrow, and a row that overflows
         // squeezes the last label into one character per line instead of moving it down.
@@ -265,7 +263,7 @@ private fun PushPane(
                 onValueChange = onDraftChange,
                 placeholder = "{\"type\": \"…\"}",
                 singleLine = false,
-                textStyle = JwTypography.code,
+                textStyle = JwTheme.textStyles.code,
                 modifier = Modifier.fillMaxWidth().heightIn(min = EditorMinHeight),
             )
         }
@@ -287,9 +285,9 @@ private fun PushPane(
         JwHorizontalDivider()
 
         if (keyTypes.isEmpty()) {
-            Text(
+            JwText(
                 "The app exposed no constructible key types. You can still copy an existing entry's key with \"Copy to editor\" and edit it.",
-                style = MaterialTheme.typography.bodySmall,
+                style = JwTheme.textStyles.bodySmall,
                 color = JwTheme.colors.textSecondary,
             )
         } else {
@@ -323,9 +321,9 @@ private fun KeyTypeRow(type: NavKeyTypeDescriptor, onClick: () -> Unit) {
         onClick = onClick,
         trailingContent = {
             if (fields.isNotEmpty()) {
-                Text(
+                JwText(
                     text = fields,
-                    style = JwTypography.code,
+                    style = JwTheme.textStyles.code,
                     color = JwTheme.colors.textSecondary,
                     maxLines = 1,
                 )

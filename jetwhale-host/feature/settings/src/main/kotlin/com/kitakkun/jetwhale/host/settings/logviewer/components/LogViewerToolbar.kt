@@ -13,7 +13,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +26,7 @@ import com.kitakkun.jetwhale.host.settings.log_viewer_filter_placeholder
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwSearchField
+import com.kitakkun.jetwhale.host.ui.JwText
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -96,6 +96,6 @@ private fun AutoScrollCheckbox(
             checked = checked,
             onCheckedChange = onCheckedChange,
         )
-        Text(stringResource(Res.string.log_viewer_auto_scroll))
+        JwText(stringResource(Res.string.log_viewer_auto_scroll))
     }
 }

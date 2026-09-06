@@ -8,9 +8,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -93,11 +90,11 @@ private fun BannerStrip(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
-            CompositionLocalProvider(LocalContentColor provides tone.onContainerColor) {
+            CompositionLocalProvider(LocalJwContentColor provides tone.onContainerColor) {
                 icon?.invoke()
-                Text(
+                JwText(
                     text = text,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = JwTheme.textStyles.body,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),

@@ -11,9 +11,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -65,16 +62,16 @@ public fun JwListItem(
     ) {
         leadingContent?.invoke()
         Column(modifier = Modifier.weight(1f)) {
-            Text(
+            JwText(
                 text = text,
-                style = MaterialTheme.typography.bodyMedium,
+                style = JwTheme.textStyles.body,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             if (supportingText != null) {
-                Text(
+                JwText(
                     text = supportingText,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = JwTheme.textStyles.bodySmall,
                     color = if (enabled) JwTheme.colors.textSecondary else JwTheme.colors.textDisabled,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -119,14 +116,14 @@ public fun JwListItem(
         !enabled -> JwTheme.colors.textDisabled
         muted -> JwTheme.colors.textSecondary
         selected -> JwTheme.colors.onSelection
-        else -> MaterialTheme.colorScheme.onSurface
+        else -> JwTheme.colors.onSurface
     }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = JwMetrics.controlHeight)
-            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
-            .clip(MaterialTheme.shapes.small)
+            .jwFocusRing(interactionSource, JwShapes.small)
+            .clip(JwShapes.small)
             .background(background)
             .clickable(
                 interactionSource = interactionSource,
@@ -139,6 +136,6 @@ public fun JwListItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
-        CompositionLocalProvider(LocalContentColor provides contentColor, content = { content() })
+        CompositionLocalProvider(LocalJwContentColor provides contentColor, content = { content() })
     }
 }

@@ -54,10 +54,13 @@ Work top-down; the skeleton decides where everything else lands.
 | `Surface(color = surfaceVariant) { Text(title) }` as a group heading | `JwSectionHeader(title, count, trailing)` | |
 | `AlertDialog(title, text, confirmButton, dismissButton)` | `JwDialog(onDismissRequest, title, closeLabel, confirmButton, dismissButton) { ... }` | `closeLabel` is required: pass the plugin's own "Close" string. A dialog with no title bar builds on `JwDialogSurface` |
 
-Then the controls:
+Then the text and the controls:
 
 | Was | Becomes | Notes |
 |-----|---------|-------|
+| `Text(...)` (Material) | `JwText(...)` | Same parameters you use in practice (`style`, `color`, `maxLines`, `overflow`, `fontFamily`, `fontWeight`); takes the enclosing control's content color, which Material's `Text` does not |
+| `Icon(vector, description)` | `JwIcon(vector, contentDescription)` | 16dp, tinted with the content color |
+| `CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)` | `JwProgressIndicator()` | Sized for a button label |
 | `Button(onClick) { Text("Save") }` | `JwButton(text = "Save", onClick, style = JwButtonStyle.Primary)` | One primary per view |
 | `OutlinedButton` / `TextButton` | `JwButton(..., style = Secondary)` / `JwButton(..., style = Text)` | `Secondary` is the default |
 | `TextButton(onClick = delete) { Text("Delete") }` | `JwButton(text = "Delete", onClick = delete, style = Text, tone = JwTone.Error)` | Destructive actions carry the `Error` tone |
@@ -80,23 +83,25 @@ Then the controls:
 These are where a migrated plugin still looks foreign if skipped.
 
 - **Never install a theme.** Delete any `MaterialTheme { ... }` around `Content()`; the host applies
-  `JwTheme`. `MaterialTheme.colorScheme` and `MaterialTheme.typography` inside the plugin already
-  resolve to the host's scheme and the tool-window type scale.
-- **Secondary text**: `MaterialTheme.colorScheme.onSurfaceVariant` / `outline` used as a text color
-  → `JwTheme.colors.textSecondary` (readable) or `JwTheme.colors.textDisabled` (de-emphasized).
+  `JwTheme` (and a Material theme derived from it, for anything still Material).
+- **Colors come from `JwTheme.colors`**, named for what they are for: `MaterialTheme.colorScheme.primary`
+  → `accent`, `.onSurfaceVariant` → `textSecondary` (readable) — `textDisabled` is only for disabled
+  controls — `.surface` → `surface`, `.surfaceContainerLowest` → `panelBackground`, `.surfaceContainer`
+  → `elevatedBackground`, `.outline` → `controlBorder`, `.outlineVariant` → `border`, `.error` → `error`.
+- **Text styles come from `JwTheme.textStyles`**: `bodyMedium` → `body`, `bodySmall` → `bodySmall`,
+  `labelLarge` / `labelMedium` → `label`, `labelSmall` → `labelSmall`, `titleSmall` → `subtitle`,
+  `titleMedium` and up → `title`.
 - **Selection and hover**: `secondaryContainer` / `primaryContainer` used as a row highlight →
   `JwTheme.colors.selection` / `JwTheme.colors.hover`.
-- **Borders**: `outlineVariant` → `JwTheme.colors.border`.
 - **Fixed brand hues** (`Color(0xFF2E7D32)` for green, `if (isDark) ... else ...` pairs) → a
   `JwTone` (`Success`, `Warning`, `Error`, `Info`, `Accent`, `Neutral`). Delete the light/dark
   helper; the tones already adapt.
-- **Monospace**: `style.copy(fontFamily = FontFamily.Monospace)` → `JwTypography.code`.
+- **Monospace**: `style.copy(fontFamily = FontFamily.Monospace)` → `JwTheme.textStyles.code`.
 - **Spacing**: literal `dp` gaps → `JwSpacing.tiny` (2) … `extraSmall` (4), `small` (6),
   `medium` (8), `large` (12), `extraLarge` (16), `huge` (24). Use `JwMetrics.controlHeight` for
   anything that must line up with a control.
-- **Background**: a plugin's root should still paint `MaterialTheme.colorScheme.surface` if it
-  does not fill the pane with components; the host does not paint behind the scene for MCP
-  captures.
+- **Background**: a plugin's root should still paint `JwTheme.colors.surface` if it does not fill
+  the pane with components; the host does not paint behind the scene for MCP captures.
 
 ## 5. Tests and previews
 
@@ -121,7 +126,6 @@ outside the theme. The same overload serves `@Preview`s.
 ## What not to migrate
 
 - Layout primitives (`Row`, `Column`, `LazyColumn`, `FlowRow`, split panes) stay as they are.
-- `CircularProgressIndicator`, `SelectionContainer`, `ContextMenuArea` have no `Jw` counterpart and
-  are fine inside `Jw` components.
+- `SelectionContainer` and `ContextMenuArea` are foundation and fit anywhere.
 - A plugin that intentionally looks different — an embedded web view, a canvas — should keep its
   own look and only adopt `JwToolbar` and `JwTheme.colors` at its edges.

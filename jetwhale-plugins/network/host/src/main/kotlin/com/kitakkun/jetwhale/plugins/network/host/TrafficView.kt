@@ -15,8 +15,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,9 +47,9 @@ import com.kitakkun.jetwhale.host.ui.JwTable
 import com.kitakkun.jetwhale.host.ui.JwTableColumn
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwTagStyle
+import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
-import com.kitakkun.jetwhale.host.ui.JwTypography
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
@@ -125,12 +123,12 @@ internal fun TrafficTab(
         listOf(
             JwTableColumn<HttpTransaction>(header = "Status", width = JwColumnWidth.Fixed(StatusTagWidth)) { StatusBadge(it) },
             JwTableColumn(header = "Method", width = JwColumnWidth.Fixed(MethodColumnWidth)) {
-                Text(text = it.request.method, style = MaterialTheme.typography.labelMedium)
+                JwText(text = it.request.method, style = JwTheme.textStyles.label)
             },
             JwTableColumn(header = "URL", width = JwColumnWidth.Weight(1f)) {
-                Text(
+                JwText(
                     text = it.request.url,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = JwTheme.textStyles.bodySmall,
                     // The list pane is narrow, so long URLs are read by scrolling the text sideways
                     // rather than by selecting the row. maxLines = 1 plus softWrap = false keeps the
                     // URL on a single line inside the cell's fixed viewport.
@@ -146,9 +144,9 @@ internal fun TrafficTab(
             },
             JwTableColumn(header = "Time", width = JwColumnWidth.Fixed(DurationColumnWidth), alignment = Alignment.End) {
                 it.response?.let { response ->
-                    Text(
+                    JwText(
                         text = "${response.durationMs}ms",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = JwTheme.textStyles.labelSmall,
                         color = JwTheme.colors.textSecondary,
                     )
                 }
@@ -171,9 +169,9 @@ internal fun TrafficTab(
                 placeholder = "Filter by URL, method or status",
                 modifier = Modifier.weight(1f),
             )
-            Text(
+            JwText(
                 text = "${visible.size} / ${transactions.size}",
-                style = MaterialTheme.typography.labelSmall,
+                style = JwTheme.textStyles.labelSmall,
                 color = JwTheme.colors.textSecondary,
             )
             JwButton(text = "Clear", onClick = onClear)
@@ -279,9 +277,9 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
             StatusBadge(tx)
-            Text(
+            JwText(
                 text = tx.request.method,
-                style = MaterialTheme.typography.titleSmall,
+                style = JwTheme.textStyles.subtitle,
             )
             if (tx.response?.fromMock == true) {
                 MockChip()
@@ -291,20 +289,20 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
                 JwButton(text = "Mock this", onClick = onCreateMock)
             }
         }
-        Text(
+        JwText(
             text = tx.request.url,
-            style = JwTypography.code,
+            style = JwTheme.textStyles.code,
             color = JwTheme.colors.textSecondary,
         )
         when {
-            tx.failure != null -> Text(
+            tx.failure != null -> JwText(
                 text = "Failed: ${tx.failure.message}",
-                color = MaterialTheme.colorScheme.error,
+                color = JwTheme.colors.error,
             )
 
-            tx.response != null -> Text(
+            tx.response != null -> JwText(
                 text = "${tx.response.statusCode} ${tx.response.statusDescription}  •  ${tx.response.durationMs}ms",
-                style = MaterialTheme.typography.bodyMedium,
+                style = JwTheme.textStyles.body,
             )
 
             else -> EmptyHint("Pending…")
@@ -392,18 +390,18 @@ private fun QueryParamBlock(params: List<Pair<String, String>>) {
 
 @Composable
 private fun MinorLabel(text: String) {
-    Text(
+    JwText(
         text = text,
-        style = MaterialTheme.typography.labelMedium,
+        style = JwTheme.textStyles.label,
         color = JwTheme.colors.textSecondary,
     )
 }
 
 @Composable
 private fun EmptyHint(text: String) {
-    Text(
+    JwText(
         text = text,
-        style = MaterialTheme.typography.bodySmall,
+        style = JwTheme.textStyles.bodySmall,
         color = JwTheme.colors.textSecondary,
     )
 }

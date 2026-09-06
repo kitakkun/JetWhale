@@ -16,9 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -102,7 +99,7 @@ public fun JwTreeRow(
     val contentColor = when {
         !enabled -> colors.textDisabled
         muted -> colors.textSecondary
-        else -> MaterialTheme.colorScheme.onSurface
+        else -> JwTheme.colors.onSurface
     }
     val rotation by animateFloatAsState(if (expanded) 90f else 0f, label = "tree-chevron")
     val layoutDirection = LocalLayoutDirection.current
@@ -110,7 +107,7 @@ public fun JwTreeRow(
         modifier = modifier
             .fillMaxWidth()
             .height(JwTreeRowDefaults.height)
-            .jwFocusRing(interactionSource, MaterialTheme.shapes.small)
+            .jwFocusRing(interactionSource, JwShapes.small)
             .background(background)
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
             .semantics { this.selected = selected }
@@ -124,7 +121,7 @@ public fun JwTreeRow(
         Box(
             modifier = Modifier
                 .size(JwMetrics.iconSize)
-                .clip(MaterialTheme.shapes.extraSmall)
+                .clip(JwShapes.extraSmall)
                 .background(if (expandable && chevronHovered && enabled) colors.hover else Color.Transparent)
                 .then(
                     if (expandable) {
@@ -168,10 +165,10 @@ public fun JwTreeRow(
                 )
             }
         }
-        CompositionLocalProvider(LocalContentColor provides contentColor) {
-            Text(
+        CompositionLocalProvider(LocalJwContentColor provides contentColor) {
+            JwText(
                 text = text,
-                style = MaterialTheme.typography.bodyMedium,
+                style = JwTheme.textStyles.body,
                 color = contentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +22,7 @@ import com.kitakkun.jetwhale.host.ui.JwIcons
 import com.kitakkun.jetwhale.host.ui.JwListItem
 import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
+import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwToolbar
@@ -43,12 +43,12 @@ fun SettingsScreenScaffold(
     modifier: Modifier = Modifier,
     content: @Composable (SettingsScreenPage) -> Unit,
 ) {
-    val shape = MaterialTheme.shapes.large
+    val shape = JwShapes.large
     Column(
         modifier = modifier
             .fillMaxSize(0.8f)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surface, shape)
+            .background(JwTheme.colors.surface, shape)
             .border(JwMetrics.borderWidth, JwTheme.colors.border, shape),
     ) {
         JwToolbar(
