@@ -18,6 +18,7 @@ import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwCheckbox
 import com.kitakkun.jetwhale.host.ui.JwCodeBlock
+import com.kitakkun.jetwhale.host.ui.JwColumnOverflow
 import com.kitakkun.jetwhale.host.ui.JwColumnWidth
 import com.kitakkun.jetwhale.host.ui.JwCountBadge
 import com.kitakkun.jetwhale.host.ui.JwDropdownButton
@@ -202,13 +203,13 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     }
 }
 
-private data class SampleRow(val id: Int, val status: Int, val method: String, val url: String, val ms: Long)
+private data class SampleRow(val id: Int, val status: Int, val method: String, val url: String, val note: String, val ms: Long)
 
 private val SAMPLE_ROWS = listOf(
-    SampleRow(1, 200, "GET", "https://example.com/api/users?page=1", 42),
-    SampleRow(2, 404, "GET", "https://example.com/api/missing", 12),
-    SampleRow(3, 201, "POST", "https://example.com/api/orders", 310),
-    SampleRow(4, 302, "GET", "https://example.com/redirect", 8),
+    SampleRow(1, 200, "GET", "https://example.com/api/users?page=1&sort=name&include=profile,settings", "Cached", 42),
+    SampleRow(2, 404, "GET", "https://example.com/api/missing", "The handler for this path was removed in the last deploy; the client still calls it", 12),
+    SampleRow(3, 201, "POST", "https://example.com/api/orders", "", 310),
+    SampleRow(4, 302, "GET", "https://example.com/redirect", "Follows to /home", 8),
 )
 
 private val SAMPLE_COLUMNS = listOf(
@@ -221,7 +222,8 @@ private val SAMPLE_COLUMNS = listOf(
         JwTag(text = it.status.toString(), tone = tone, style = JwTagStyle.Tinted)
     },
     JwTableColumn(header = "Method", width = JwColumnWidth.Fixed(56.dp)) { JwText(it.method, style = JwTheme.textStyles.label) },
-    JwTableColumn(header = "URL", width = JwColumnWidth.Weight(1f)) { JwText(it.url, style = JwTheme.textStyles.bodySmall, maxLines = 1) },
+    JwTableColumn.text(header = "URL", width = JwColumnWidth.Weight(2f), overflow = JwColumnOverflow.Scroll) { it.url },
+    JwTableColumn.text(header = "Note", width = JwColumnWidth.Weight(1f), overflow = JwColumnOverflow.Wrap) { it.note },
     JwTableColumn(header = "Time", width = JwColumnWidth.Fixed(56.dp), alignment = Alignment.End) { JwText("${it.ms}ms", style = JwTheme.textStyles.labelSmall) },
 )
 
@@ -229,6 +231,6 @@ private val SAMPLE_COLUMNS = listOf(
 const val GALLERY_WIDTH = 900
 
 /** Tall enough to show the header and all sample rows. */
-private const val TABLE_HEIGHT = 170
+private const val TABLE_HEIGHT = 210
 
 private const val EMPTY_STATE_HEIGHT = 200

@@ -49,7 +49,7 @@ does less, the name differs so the difference is not a surprise.
 | `TabRow` / `SecondaryTabRow`, `Tab` | `JwTabRow`, `JwTab` | Tabs size to their label; optional `count` |
 | `Card` / `OutlinedCard` | `JwPanel` | Optional header strip with actions |
 | `ListItem`, `NavigationDrawerItem` | `JwListItem` | 28dp; one line plus an optional supporting line |
-| — | `JwTable` | Lazy rows under a header, columns declared once as `JwTableColumn`s |
+| — | `JwTable` | Lazy rows under a header, columns declared once as `JwTableColumn`s; each column picks `Ellipsis`, `Wrap` or `Scroll` for content wider than it |
 | `SingleChoiceSegmentedButtonRow` | `JwSegmentedButtons` | One control tall; takes the options as a list |
 | — | `JwSplitPane` | Draggable list-and-detail split; hoist `JwSplitPaneState` to persist it |
 | — | `JwCodeBlock`, `JwStatusLine`, `JwCountBadge` | Monospace block with copy; one-line status strip; count pill |

@@ -33,6 +33,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwColumnOverflow
 import com.kitakkun.jetwhale.host.ui.JwColumnWidth
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
@@ -119,26 +120,22 @@ internal fun TrafficTab(
             .collect { storedSplitPosition = it }
     }
 
-    val columns = remember {
+    // Read outside remember: the column list is built once, and a theme read is a composable call.
+    val urlStyle = JwTheme.textStyles.bodySmall
+    val columns = remember(urlStyle) {
         listOf(
             JwTableColumn<HttpTransaction>(header = "Status", width = JwColumnWidth.Fixed(StatusTagWidth)) { StatusBadge(it) },
             JwTableColumn(header = "Method", width = JwColumnWidth.Fixed(MethodColumnWidth)) {
                 JwText(text = it.request.method, style = JwTheme.textStyles.label)
             },
-            JwTableColumn(header = "URL", width = JwColumnWidth.Weight(1f)) {
-                JwText(
-                    text = it.request.url,
-                    style = JwTheme.textStyles.bodySmall,
-                    // The list pane is narrow, so long URLs are read by scrolling the text sideways
-                    // rather than by selecting the row. maxLines = 1 plus softWrap = false keeps the
-                    // URL on a single line inside the cell's fixed viewport.
-                    maxLines = 1,
-                    softWrap = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                )
-            },
+            // The list pane is narrow, so long URLs are read by scrolling the text sideways rather
+            // than by selecting the row.
+            JwTableColumn.text(
+                header = "URL",
+                width = JwColumnWidth.Weight(1f),
+                overflow = JwColumnOverflow.Scroll,
+                style = urlStyle,
+            ) { it.request.url },
             JwTableColumn(header = "", width = JwColumnWidth.Fixed(MockColumnWidth)) {
                 if (it.response?.fromMock == true) MockChip()
             },
