@@ -2,15 +2,14 @@ package com.kitakkun.jetwhale.plugins.network.host
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.kitakkun.jetwhale.host.ui.JwTab
+import com.kitakkun.jetwhale.host.ui.JwTabRow
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
@@ -32,16 +31,18 @@ fun NetworkInspectorScreen(
     // swaps the tab content composable out of the composition entirely.
     var selectedTxId by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize()) {
-        SecondaryTabRow(selectedTabIndex = selectedTab) {
-            Tab(
+        JwTabRow {
+            JwTab(
+                text = "Traffic",
+                count = transactions.size,
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
-                text = { Text("Traffic (${transactions.size})") },
             )
-            Tab(
+            JwTab(
+                text = "Mocks",
+                count = mockRules.size,
                 selected = selectedTab == 1,
                 onClick = { selectedTab = 1 },
-                text = { Text("Mocks (${mockRules.size})") },
             )
         }
         when (selectedTab) {

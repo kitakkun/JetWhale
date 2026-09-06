@@ -5,13 +5,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -25,21 +25,21 @@ fun HeadlessPluginScreen(pluginId: String) {
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
+        JwText(
             text = stringResource(Res.string.headless_plugin_title),
-            style = MaterialTheme.typography.headlineSmall,
+            style = JwTheme.textStyles.title,
         )
-        Text(
+        JwText(
             text = stringResource(Res.string.headless_plugin_description),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = JwTheme.textStyles.body,
+            color = JwTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
             modifier = Modifier.widthIn(max = 420.dp),
         )
-        Text(
+        JwText(
             text = stringResource(Res.string.headless_plugin_plugin_id, pluginId),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = JwTheme.textStyles.bodySmall,
+            color = JwTheme.colors.textSecondary,
         )
     }
 }

@@ -2,16 +2,11 @@ package com.kitakkun.jetwhale.plugins.network.host
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +21,12 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.ui.JwCodeBlock
+import com.kitakkun.jetwhale.host.ui.JwPanel
+import com.kitakkun.jetwhale.host.ui.JwSegmentedButtons
+import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -45,40 +46,28 @@ internal fun BodyBlock(label: String, body: String?, truncated: Boolean) {
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.small),
     ) {
         if (json != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
-                    selected = mode == BodyMode.Tree,
-                    onClick = { mode = BodyMode.Tree },
-                    label = { Text("Tree") },
-                )
-                FilterChip(
-                    selected = mode == BodyMode.Raw,
-                    onClick = { mode = BodyMode.Raw },
-                    label = { Text("Raw") },
-                )
-            }
+            JwSegmentedButtons(
+                options = BodyMode.entries,
+                selected = mode,
+                onSelect = { mode = it },
+                label = { it.name },
+            )
         }
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Box(Modifier.padding(10.dp)) {
-                val colors = rememberJsonColors()
-                if (json != null && mode == BodyMode.Tree) {
-                    Column { JsonTreeNode(json, label = label, colors = colors) }
-                } else {
-                    val rendered = remember(json, body, colors) { json?.let { highlightedJson(it, colors) } }
-                    Text(
-                        text = rendered ?: AnnotatedString(body + if (truncated) "\n… (truncated)" else ""),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                    )
-                }
+        val colors = rememberJsonColors()
+        if (json != null && mode == BodyMode.Tree) {
+            JwPanel(contentPadding = PaddingValues(JwSpacing.large)) {
+                Column { JsonTreeNode(json, label = label, colors = colors) }
             }
+        } else {
+            val rendered = remember(json, body, colors) { json?.let { highlightedJson(it, colors) } }
+            JwCodeBlock(
+                text = rendered ?: AnnotatedString(body + if (truncated) "\n… (truncated)" else ""),
+                wrap = true,
+                copyLabel = "Copy body",
+            )
         }
     }
 }
@@ -133,22 +122,22 @@ private fun JsonBranch(
             .clickable { expanded = !expanded }
             .padding(vertical = 1.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
     ) {
-        Text(
+        JwText(
             text = if (expanded) "▾" else "▸",
             color = colors.punctuation,
-            style = MaterialTheme.typography.bodySmall,
+            style = JwTheme.textStyles.bodySmall,
             fontFamily = FontFamily.Monospace,
         )
-        Text(
+        JwText(
             buildAnnotatedString {
                 if (label != null) withStyle(SpanStyle(color = colors.key)) { append(label) }
                 withStyle(SpanStyle(color = colors.punctuation)) {
                     append(if (isArray) "  [$size]" else "  {$size}")
                 }
             },
-            style = MaterialTheme.typography.bodySmall,
+            style = JwTheme.textStyles.bodySmall,
             fontFamily = FontFamily.Monospace,
         )
     }
@@ -157,7 +146,7 @@ private fun JsonBranch(
 
 @Composable
 private fun JsonLeaf(label: String?, primitive: JsonPrimitive, colors: JsonColors, depth: Int) {
-    Text(
+    JwText(
         buildAnnotatedString {
             if (label != null) {
                 withStyle(SpanStyle(color = colors.key)) { append(label) }
@@ -165,7 +154,7 @@ private fun JsonLeaf(label: String?, primitive: JsonPrimitive, colors: JsonColor
             }
             append(primitiveAnnotated(primitive, colors))
         },
-        style = MaterialTheme.typography.bodySmall,
+        style = JwTheme.textStyles.bodySmall,
         fontFamily = FontFamily.Monospace,
         modifier = Modifier.padding(start = (depth * 16 + 16).dp, top = 1.dp, bottom = 1.dp),
     )
@@ -241,7 +230,7 @@ private data class JsonColors(
 @Composable
 private fun rememberJsonColors(): JsonColors {
     val dark = isDarkTheme()
-    val punctuation = MaterialTheme.colorScheme.onSurfaceVariant
+    val punctuation = JwTheme.colors.textSecondary
     return remember(dark, punctuation) {
         JsonColors(
             key = if (dark) Color(0xFF4FC3F7) else Color(0xFF0B6E99),

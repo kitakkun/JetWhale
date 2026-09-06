@@ -9,11 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
@@ -37,6 +32,11 @@ import com.kitakkun.jetwhale.host.settings.mcp_permission_plugin_own_tools
 import com.kitakkun.jetwhale.host.settings.mcp_permission_plugin_tools_offline
 import com.kitakkun.jetwhale.host.settings.mcp_permission_plugin_ui
 import com.kitakkun.jetwhale.host.settings.mcp_permission_plugins_label
+import com.kitakkun.jetwhale.host.ui.JwCheckbox
+import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.JwTriStateCheckbox
 import org.jetbrains.compose.resources.stringResource
 
 /** One tool a plugin contributes, permitted on its own. */
@@ -80,10 +80,10 @@ fun McpPermissionsTreeView(
 
     // The heading comes from the SettingOptionView this sits in, like every other settings block.
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
+        JwText(
             text = stringResource(Res.string.mcp_permission_note),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = JwTheme.textStyles.bodySmall,
+            color = JwTheme.colors.textSecondary,
         )
         tree.forEach { node ->
             PermissionNodeView(node = node, depth = 0, expanded = expanded)
@@ -221,10 +221,10 @@ private fun PermissionNodeView(
             )
             if (isExpanded) {
                 if (node.children.isEmpty() && node.emptyHint != null) {
-                    Text(
+                    JwText(
                         text = node.emptyHint,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = JwTheme.textStyles.bodySmall,
+                        color = JwTheme.colors.textSecondary,
                         modifier = Modifier.padding(start = INDENT_STEP * (depth + 1)),
                     )
                 }
@@ -253,8 +253,9 @@ private fun BranchRow(
     ) {
         // The tri-state is a summary of the leaves rather than a switch of its own, so a half-ticked
         // parent is the honest rendering of a partial selection.
-        TriStateCheckbox(
+        JwTriStateCheckbox(
             state = toggleStateOf(leaves.map { it.allowed }),
+            label = null,
             enabled = leaves.isNotEmpty(),
             // A partially-ticked parent turns everything on: the alternative — clearing a mixed
             // selection — throws away choices the user made one by one.
@@ -270,9 +271,9 @@ private fun BranchRow(
                 .weight(1f)
                 .clickable(onClick = onToggleExpanded),
         ) {
-            Text(
+            JwText(
                 text = node.label,
-                style = MaterialTheme.typography.bodyMedium,
+                style = JwTheme.textStyles.body,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
@@ -280,15 +281,16 @@ private fun BranchRow(
             // Only while collapsed: with the children on screen the count is already there to read,
             // and a number repeating them invites being clicked as if it were a control.
             if (!isExpanded && leaves.isNotEmpty()) {
-                Text(
+                JwText(
                     text = "$allowedCount / ${leaves.size}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = JwTheme.textStyles.label,
+                    color = JwTheme.colors.textSecondary,
                 )
             }
-            Icon(
+            JwIcon(
                 imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                 contentDescription = null,
+                tint = JwTheme.colors.textSecondary,
             )
         }
     }
@@ -296,18 +298,12 @@ private fun BranchRow(
 
 @Composable
 private fun LeafRow(node: PermissionNode.Leaf, depth: Int) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    JwCheckbox(
+        checked = node.allowed,
+        onCheckedChange = node.onSetAllowed,
+        label = node.label,
         modifier = Modifier.padding(start = INDENT_STEP * depth),
-    ) {
-        Checkbox(checked = node.allowed, onCheckedChange = node.onSetAllowed)
-        Text(
-            text = node.label,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    )
 }
 
 /** An empty subtree reads as Off rather than On: nothing is allowed there, because nothing is there. */

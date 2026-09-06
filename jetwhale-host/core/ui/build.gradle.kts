@@ -4,6 +4,6 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.material3)
+    api(projects.jetwhaleHostUi)
     implementation(projects.jetwhaleHost.core.model)
 }

@@ -3,12 +3,13 @@ package com.kitakkun.jetwhale.host.settings.component
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.Text
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwTheme
 
 @Composable
 fun PluginInfoView(
@@ -18,11 +19,11 @@ fun PluginInfoView(
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
-        Text(text = uiState.name, style = MaterialTheme.typography.bodyLarge)
-        Text(text = uiState.id, style = MaterialTheme.typography.bodyMedium)
-        Text(text = uiState.version, style = MaterialTheme.typography.bodyMedium)
+        Text(text = uiState.name, style = JwTheme.textStyles.body)
+        Text(text = uiState.id, style = JwTheme.textStyles.body)
+        Text(text = uiState.version, style = JwTheme.textStyles.body)
     }
 }
 

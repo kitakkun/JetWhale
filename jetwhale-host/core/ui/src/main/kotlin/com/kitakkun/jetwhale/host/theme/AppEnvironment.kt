@@ -1,4 +1,4 @@
-package com.kitakkun.jetwhale.host.ui
+package com.kitakkun.jetwhale.host.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider

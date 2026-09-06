@@ -562,6 +562,7 @@ version as the host release they belong to.
 | `jetwhale-protocol-core` | The shared module of a plugin pair, for `JetWhaleEvent` / `JetWhaleRequest`. |
 | `jetwhale-annotations` | `@McpDescription` and the opt-in markers `@ExperimentalJetWhaleApi` / `@InternalJetWhaleApi`. Reaches both SDKs transitively, so it rarely needs declaring. |
 | `jetwhale-host-sdk` | A host plugin module, as `compileOnly` — see [Developing Plugins](/guide/developing-plugins). |
+| `jetwhale-host-ui` | The host's theme and component library, for a host plugin module as `compileOnly` — see [Theming and components](/guide/developing-plugins#theming-and-components-jetwhale-host-ui). |
 | `jetwhale-host-gradle-plugin` | Applied as the `com.kitakkun.jetwhale.host` Gradle plugin id. |
 | `jetwhale-agent-gradle-plugin` | Applied as the `com.kitakkun.jetwhale.agent` Gradle plugin id — see [Baking in the build machine's address](#baking-in-the-build-machine-s-address-no-browse). |
 | `jetwhale-agent-compiler-plugin` | The Kotlin compiler plugin the above points at. Never named directly. |

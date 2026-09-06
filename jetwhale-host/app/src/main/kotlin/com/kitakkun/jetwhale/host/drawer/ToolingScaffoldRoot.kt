@@ -1,7 +1,5 @@
 package com.kitakkun.jetwhale.host.drawer
 
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -19,6 +17,8 @@ import com.kitakkun.jetwhale.host.session_disconnected_message
 import com.kitakkun.jetwhale.host.sessions_connected_message
 import com.kitakkun.jetwhale.host.sessions_disconnected_message
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
+import com.kitakkun.jetwhale.host.ui.JwSnackbarDuration
+import com.kitakkun.jetwhale.host.ui.JwSnackbarHostState
 import org.jetbrains.compose.resources.getString
 import soil.query.compose.rememberSubscription
 
@@ -55,7 +55,7 @@ fun ToolingScaffoldRoot(
             state2 = rememberSubscription(screenContext.headlessPluginsSubscriptionKey),
         ) { debuggerSettings, headlessPlugins ->
             val screenChannel = rememberScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>()
-            val snackbarHostState = remember { SnackbarHostState() }
+            val snackbarHostState = remember { JwSnackbarHostState() }
             ActionResultEffect(screenChannel) { result ->
                 when (result) {
                     is ToolingScaffoldScreenActionResult.SessionClosed -> {
@@ -66,7 +66,7 @@ fun ToolingScaffoldRoot(
                         val message = closedSessions.singleOrNull()
                             ?.let { getString(Res.string.session_disconnected_message, it.deviceAndAppDisplayName) }
                             ?: getString(Res.string.sessions_disconnected_message, closedSessions.size)
-                        snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
+                        snackbarHostState.showSnackbar(message = message, duration = JwSnackbarDuration.Short)
                     }
 
                     is ToolingScaffoldScreenActionResult.SessionConnected -> {
@@ -76,7 +76,7 @@ fun ToolingScaffoldRoot(
                         val message = connectedSessions.singleOrNull()
                             ?.let { getString(Res.string.session_connected_message, it.deviceAndAppDisplayName) }
                             ?: getString(Res.string.sessions_connected_message, connectedSessions.size)
-                        snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Short)
+                        snackbarHostState.showSnackbar(message = message, duration = JwSnackbarDuration.Short)
                     }
 
                     is ToolingScaffoldScreenActionResult.SetPluginEnabledFailed -> Unit

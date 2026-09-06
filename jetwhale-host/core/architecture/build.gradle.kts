@@ -4,6 +4,7 @@ plugins {
 }
 
 dependencies {
+    implementation(projects.jetwhaleHostUi)
     implementation(libs.soilQueryCompose)
     implementation(libs.soilReacty)
 }

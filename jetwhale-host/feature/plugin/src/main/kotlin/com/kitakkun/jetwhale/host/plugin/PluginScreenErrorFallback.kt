@@ -2,11 +2,9 @@ package com.kitakkun.jetwhale.host.plugin
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -15,6 +13,11 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.awtClipboard
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import org.jetbrains.compose.resources.stringResource
 import soil.plant.compose.reacty.ErrorBoundaryContext
 import java.awt.datatransfer.StringSelection
@@ -33,38 +36,39 @@ fun PluginScreenErrorFallback(
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
+        JwText(
             text = stringResource(Res.string.plugin_ui_crash_title),
-            style = MaterialTheme.typography.headlineMedium,
+            style = JwTheme.textStyles.title,
         )
-        Text(
+        JwText(
             text = stringResource(Res.string.plugin_ui_crash_plugin_id, pluginId),
-            style = MaterialTheme.typography.bodyMedium,
+            style = JwTheme.textStyles.body,
         )
-        Text(
+        JwText(
             text = stringResource(Res.string.plugin_ui_crash_error_message, errorBoundaryContext.err.localizedMessage),
-            style = MaterialTheme.typography.bodySmall,
+            style = JwTheme.textStyles.bodySmall,
         )
-        Text(
+        JwText(
             text = stringResource(Res.string.plugin_ui_crash_stacktrace, errorBoundaryContext.err.stackTraceToString()),
-            style = MaterialTheme.typography.bodySmall,
+            style = JwTheme.textStyles.bodySmall,
             maxLines = 10,
             overflow = TextOverflow.Ellipsis,
         )
-        Button(
-            onClick = {
-                clipboard.awtClipboard?.setContents(
-                    StringSelection(errorBoundaryContext.err.stackTraceToString()),
-                    null,
-                )
-            },
-        ) {
-            Text(stringResource(Res.string.plugin_ui_crash_copy_full_stacktrace))
-        }
-        Button(
-            onClick = onClickReset,
-        ) {
-            Text(stringResource(Res.string.plugin_ui_crash_reload))
+        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
+            JwButton(
+                text = stringResource(Res.string.plugin_ui_crash_copy_full_stacktrace),
+                onClick = {
+                    clipboard.awtClipboard?.setContents(
+                        StringSelection(errorBoundaryContext.err.stackTraceToString()),
+                        null,
+                    )
+                },
+            )
+            JwButton(
+                text = stringResource(Res.string.plugin_ui_crash_reload),
+                onClick = onClickReset,
+                style = JwButtonStyle.Primary,
+            )
         }
     }
 }

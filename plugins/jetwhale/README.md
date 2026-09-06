@@ -5,6 +5,7 @@ Skills for developing [JetWhale](https://github.com/kitakkun/JetWhale) host plug
 | Skill | What it covers |
 |---|---|
 | `/jetwhale:plugin-qa` | Driving a host plugin's real UI through the debug tool's MCP server — screenshots, gestures, persisted state, restart restore, and a headless debuggee to drive it against |
+| `/jetwhale:migrate-to-jw` | Moving a plugin's UI from plain Material 3 onto `jetwhale-host-ui` (the `Jw*` components) — dependency, component mapping, color and spacing rules, tests, verification |
 
 ## Install
 
@@ -23,9 +24,9 @@ claude plugin marketplace add kitakkun/JetWhale --sparse .claude-plugin plugins
 
 Either way, installing copies just this directory into `~/.claude/plugins/cache`.
 
-## Why the skill lives in the JetWhale repository
+## Why the skills live in the JetWhale repository
 
-A QA skill is only useful while it is true, and what it describes — MCP tool names, the QA agent's
+A skill like these is only useful while it is true, and what it describes — MCP tool names, the QA agent's
 control API, which ports the launch tasks accept — moves with the code. Keeping it here means a
 change to the host and the change to its documented workflow land in the same commit, reviewed
 together. A separate repository would let the two drift, and a QA guide that quietly lies is worse

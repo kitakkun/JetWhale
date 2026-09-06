@@ -1,21 +1,32 @@
 package com.kitakkun.jetwhale.host.screen
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.no_plugin_selected
+import com.kitakkun.jetwhale.host.no_plugin_selected_hint
+import com.kitakkun.jetwhale.host.puzzle_outlined
+import com.kitakkun.jetwhale.host.ui.JwEmptyState
+import com.kitakkun.jetwhale.host.ui.JwIcon
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+
+/** The puzzle icon of the empty content pane; the pane is large, so the icon is too. */
+private val EmptyStateIconSize = 40.dp
 
 @Composable
 fun EmptyPluginScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(stringResource(Res.string.no_plugin_selected))
-    }
+    JwEmptyState(
+        title = stringResource(Res.string.no_plugin_selected),
+        description = stringResource(Res.string.no_plugin_selected_hint),
+        icon = {
+            JwIcon(
+                painter = painterResource(Res.drawable.puzzle_outlined),
+                contentDescription = null,
+                modifier = Modifier.size(EmptyStateIconSize),
+            )
+        },
+    )
 }
