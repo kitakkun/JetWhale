@@ -6,17 +6,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.component.FollowingAiOperationBanner
 import com.kitakkun.jetwhale.host.component.ToolingDrawer
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.ui.JwSnackbarHost
+import com.kitakkun.jetwhale.host.ui.JwSnackbarHostState
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
@@ -42,7 +41,7 @@ fun ToolingScaffold(
     onSelectSession: (DebugSession) -> Unit,
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
     onClickStopFollowingAiOperation: () -> Unit,
-    snackbarHostState: SnackbarHostState,
+    snackbarHostState: JwSnackbarHostState,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -83,7 +82,7 @@ fun ToolingScaffold(
             // and of any popped-out plugin window.
             Box(modifier = Modifier.fillMaxSize()) {
                 content()
-                SnackbarHost(
+                JwSnackbarHost(
                     hostState = snackbarHostState,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -118,7 +117,7 @@ private fun ToolingScaffoldPreview() {
         onClickBringBack = {},
         onSetPluginEnabled = { _, _ -> },
         onClickStopFollowingAiOperation = {},
-        snackbarHostState = remember { SnackbarHostState() },
+        snackbarHostState = remember { JwSnackbarHostState() },
     ) {
         JwText("Hello, World!")
     }

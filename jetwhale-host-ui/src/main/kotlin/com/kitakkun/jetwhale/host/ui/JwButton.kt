@@ -71,8 +71,8 @@ public fun JwButton(
 /**
  * A compact button of [JwMetrics.controlHeight] whose content is laid out by the caller: a label
  * with a count, a spinner while an action runs, an icon after the text. The content is a row with
- * [JwSpacing.small] between children, drawn in the button's content color and label style; plain
- * [Text] inside it needs no styling of its own.
+ * [JwSpacing.small] between children, drawn in the button's content color and label style; a plain
+ * [JwText] inside it needs no styling of its own.
  *
  * @param onClick what the button does.
  * @param style how prominent the button is; see [JwButtonStyle].

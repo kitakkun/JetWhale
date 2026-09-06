@@ -3,7 +3,6 @@ package com.kitakkun.jetwhale.host.drawer
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -12,6 +11,7 @@ import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.session_local_connection
 import com.kitakkun.jetwhale.host.session_secure_connection
+import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwMenuItem
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
@@ -30,14 +30,14 @@ fun SessionSecurityIcon(
     modifier: Modifier = Modifier,
 ) {
     when (transportSecurity) {
-        SessionTransportSecurity.TLS -> Icon(
+        SessionTransportSecurity.TLS -> JwIcon(
             imageVector = Icons.Default.Lock,
             contentDescription = stringResource(Res.string.session_secure_connection),
             tint = JwTone.Success.color,
             modifier = modifier.size(SecurityIconSize),
         )
 
-        SessionTransportSecurity.LOOPBACK -> Icon(
+        SessionTransportSecurity.LOOPBACK -> JwIcon(
             imageVector = Icons.Default.Lock,
             contentDescription = stringResource(Res.string.session_local_connection),
             tint = JwTheme.colors.textSecondary,

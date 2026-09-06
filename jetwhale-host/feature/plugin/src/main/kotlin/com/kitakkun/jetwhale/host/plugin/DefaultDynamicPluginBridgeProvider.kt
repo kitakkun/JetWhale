@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.host.plugin
 
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.kitakkun.jetwhale.host.architecture.ExplicitScreenContextUsage
@@ -12,6 +11,7 @@ import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
 import com.kitakkun.jetwhale.host.theme.AppEnvironment
 import com.kitakkun.jetwhale.host.theme.HostTheme
+import com.kitakkun.jetwhale.host.ui.JwSurface
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -43,7 +43,7 @@ class DefaultDynamicPluginBridgeProvider(
                         // paints one behind it, but an off-screen MCP capture has nothing behind
                         // it, so a plugin that draws no background of its own would be captured
                         // transparent and read as white.
-                        Surface(modifier = Modifier.fillMaxSize()) {
+                        JwSurface(modifier = Modifier.fillMaxSize()) {
                             AppEnvironment(appearanceSettings.appLanguage) {
                                 content()
                             }

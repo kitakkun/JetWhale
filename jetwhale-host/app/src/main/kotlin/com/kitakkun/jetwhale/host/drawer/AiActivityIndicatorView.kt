@@ -26,13 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.PlainTooltip
-import androidx.compose.material3.Surface
-import androidx.compose.material3.TooltipAnchorPosition
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -58,11 +51,14 @@ import com.kitakkun.jetwhale.host.ai_agent_connected
 import com.kitakkun.jetwhale.host.ai_agent_operating
 import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwMetrics
+import com.kitakkun.jetwhale.host.ui.JwPopupAnchor
 import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwSurface
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.JwTooltip
 import org.jetbrains.compose.resources.stringResource
 
 private const val PULSE_PERIOD_MILLIS = 1100
@@ -174,7 +170,7 @@ fun AiActivityIndicatorView(
             animationSpec = tween(AI_BANNER_COLOR_FADE_MILLIS),
             label = "ai-banner-color",
         )
-        Surface(
+        JwSurface(
             color = containerColor,
             shape = JwShapes.small,
             border = BorderStroke(JwMetrics.borderWidth, JwTheme.colors.border),
@@ -215,7 +211,6 @@ fun AiActivityIndicatorView(
 /**
  * Icon-only variant for the shrunk drawer, where the tool name has to live in a tooltip.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompactAiActivityIndicatorView(
     uiState: AiActivityUiState,
@@ -223,14 +218,10 @@ fun CompactAiActivityIndicatorView(
 ) {
     AnimatedVisibility(visible = uiState.isAgentConnected) {
         val pulseAlpha = aiActivityPulseAlpha(uiState.isOperating)
-        TooltipBox(
-            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Right),
-            tooltip = {
-                PlainTooltip {
-                    JwText(uiState.operatingToolName ?: stringResource(Res.string.ai_agent_connected))
-                }
-            },
-            state = rememberTooltipState(),
+        // Beside the rail rather than below it, where the tooltip would cover the next item.
+        JwTooltip(
+            text = uiState.operatingToolName ?: stringResource(Res.string.ai_agent_connected),
+            anchor = JwPopupAnchor.EndCenter,
         ) {
             Box(
                 modifier = modifier.size(JwMetrics.controlHeight),

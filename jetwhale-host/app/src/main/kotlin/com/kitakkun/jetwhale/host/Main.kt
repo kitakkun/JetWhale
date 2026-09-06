@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -26,6 +27,7 @@ import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.PersistedWindowState
 import com.kitakkun.jetwhale.host.theme.isShortcutModifierPressed
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
@@ -162,17 +164,20 @@ fun main(args: Array<String>) = runBlocking {
                 }
             },
         ) {
-            when (applicationState) {
-                ApplicationLifecycleOwner.ApplicationState.INITIALIZING ->
-                    InitializingDialog(verifyingTrustRegistry = verifyingTrustRegistry)
+            // The user's color scheme is not loaded yet while these show, so they follow the OS.
+            JwTheme(darkTheme = isSystemInDarkTheme()) {
+                when (applicationState) {
+                    ApplicationLifecycleOwner.ApplicationState.INITIALIZING ->
+                        InitializingDialog(verifyingTrustRegistry = verifyingTrustRegistry)
 
-                ApplicationLifecycleOwner.ApplicationState.STOPPING -> ShuttingDownDialog()
+                    ApplicationLifecycleOwner.ApplicationState.STOPPING -> ShuttingDownDialog()
 
-                ApplicationLifecycleOwner.ApplicationState.NONE,
-                ApplicationLifecycleOwner.ApplicationState.INITIALIZED,
-                ApplicationLifecycleOwner.ApplicationState.STOPPED,
-                -> {
-                    // show nothing
+                    ApplicationLifecycleOwner.ApplicationState.NONE,
+                    ApplicationLifecycleOwner.ApplicationState.INITIALIZED,
+                    ApplicationLifecycleOwner.ApplicationState.STOPPED,
+                    -> {
+                        // show nothing
+                    }
                 }
             }
 

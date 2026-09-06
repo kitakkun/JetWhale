@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.unit.sp
 import com.kitakkun.jetwhale.host.model.JetWhaleColorScheme
 import com.kitakkun.jetwhale.host.ui.JwColors
 import com.kitakkun.jetwhale.host.ui.JwShapes
@@ -88,19 +89,26 @@ private fun ColorScheme.toJwColors(dark: Boolean): JwColors {
     )
 }
 
-/** Material's type scale sized like the library's, so Material text in the host is not the odd one out. */
+/**
+ * Material's type scale sized like the library's, so Material text in a legacy plugin is not the odd
+ * one out. The styles the library has no counterpart for — display, headline, a large title — step
+ * up from [JwTextStyles.title] rather than falling back to Material's defaults, which run to 57sp.
+ */
 private fun materialTypography(styles: JwTextStyles): Typography = Typography(
-    headlineLarge = styles.title,
-    headlineMedium = styles.title,
-    headlineSmall = styles.title,
-    titleLarge = styles.title,
+    displayLarge = styles.title.copy(fontSize = 32.sp, lineHeight = 40.sp),
+    displayMedium = styles.title.copy(fontSize = 28.sp, lineHeight = 36.sp),
+    displaySmall = styles.title.copy(fontSize = 24.sp, lineHeight = 32.sp),
+    headlineLarge = styles.title.copy(fontSize = 22.sp, lineHeight = 28.sp),
+    headlineMedium = styles.title.copy(fontSize = 20.sp, lineHeight = 26.sp),
+    headlineSmall = styles.title.copy(fontSize = 18.sp, lineHeight = 24.sp),
+    titleLarge = styles.title.copy(fontSize = 16.sp, lineHeight = 22.sp),
     titleMedium = styles.title,
     titleSmall = styles.subtitle,
     bodyLarge = styles.body,
     bodyMedium = styles.body,
     bodySmall = styles.bodySmall,
     labelLarge = styles.label,
-    labelMedium = styles.label,
+    labelMedium = styles.label.copy(fontSize = 12.sp, lineHeight = 16.sp),
     labelSmall = styles.labelSmall,
 )
 

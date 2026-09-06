@@ -15,13 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,7 +58,10 @@ import com.kitakkun.jetwhale.host.settings.untrusted_plugins
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwDialog
+import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwPanel
+import com.kitakkun.jetwhale.host.ui.JwProgressIndicator
 import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
@@ -96,7 +92,7 @@ fun PluginSettingsScreen(
                         style = JwTheme.textStyles.bodySmall,
                         color = JwTheme.colors.textSecondary,
                     )
-                    HorizontalDivider()
+                    JwHorizontalDivider()
                     uiState.failedJars.forEach { failedJar ->
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             JwText(
@@ -167,10 +163,7 @@ fun PluginSettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                    )
+                    JwProgressIndicator()
                     uiState.installProgress?.let { progress ->
                         JwText(
                             text = when (progress) {
@@ -307,21 +300,22 @@ fun PluginSettingsScreen(
     }
 }
 
+/** Inset of an installed or official plugin row inside its panel. */
+private val PluginRowPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+
 @Composable
 private fun InstalledPluginRow(
     plugin: com.kitakkun.jetwhale.host.settings.component.PluginInfoUiState,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        shape = JwShapes.medium,
+    JwPanel(
         modifier = modifier.fillMaxWidth(),
+        contentPadding = PluginRowPadding,
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -371,7 +365,7 @@ private fun UntrustedPluginsSection(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
+            JwIcon(
                 imageVector = Icons.Default.Warning,
                 contentDescription = null,
                 tint = JwTheme.colors.error,
@@ -415,16 +409,14 @@ private fun OfficialPluginRow(
     onClickInstall: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        shape = JwShapes.medium,
+    JwPanel(
         modifier = modifier.fillMaxWidth(),
+        contentPadding = PluginRowPadding,
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -449,11 +441,10 @@ private fun OfficialPluginRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
+                    JwIcon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
                         tint = JwTheme.colors.accent,
-                        modifier = Modifier.size(16.dp),
                     )
                     JwText(
                         text = stringResource(Res.string.official_plugin_installed),

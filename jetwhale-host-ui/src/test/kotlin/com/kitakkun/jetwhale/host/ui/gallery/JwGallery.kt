@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
@@ -47,6 +48,7 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwToolbar
 import com.kitakkun.jetwhale.host.ui.JwTreeRow
+import com.kitakkun.jetwhale.host.ui.JwTriStateCheckbox
 
 /**
  * Every component in every state worth looking at, laid out on one page. The screenshot tests
@@ -100,6 +102,7 @@ fun JwGallery() {
                 JwCheckbox(checked = true, onCheckedChange = {}, label = "Checked")
                 JwCheckbox(checked = false, onCheckedChange = {}, label = "Unchecked")
                 JwCheckbox(checked = true, onCheckedChange = {}, label = "Disabled", enabled = false)
+                JwTriStateCheckbox(state = ToggleableState.Indeterminate, onClick = {}, label = "Mixed")
             }
         }
 

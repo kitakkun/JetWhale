@@ -1,32 +1,26 @@
 package com.kitakkun.jetwhale.host.settings.logviewer.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.log_viewer_auto_scroll
 import com.kitakkun.jetwhale.host.settings.log_viewer_clear_filter
 import com.kitakkun.jetwhale.host.settings.log_viewer_clear_logs
-import com.kitakkun.jetwhale.host.settings.log_viewer_filter_icon
 import com.kitakkun.jetwhale.host.settings.log_viewer_filter_placeholder
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwCheckbox
+import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwSearchField
-import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -38,15 +32,14 @@ fun LogViewerToolbar(
     onClearLogs: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shadowElevation = 4.dp,
-    ) {
+    // A flat bar with a hairline under it, like every other toolbar in the host.
+    Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .background(JwTheme.colors.toolbarBackground)
+                .padding(JwSpacing.medium),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             FilterTextField(
@@ -66,6 +59,7 @@ fun LogViewerToolbar(
                 style = JwButtonStyle.Primary,
             )
         }
+        JwHorizontalDivider()
     }
 }
 
@@ -89,13 +83,9 @@ private fun AutoScrollCheckbox(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Checkbox(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-        )
-        JwText(stringResource(Res.string.log_viewer_auto_scroll))
-    }
+    JwCheckbox(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        label = stringResource(Res.string.log_viewer_auto_scroll),
+    )
 }

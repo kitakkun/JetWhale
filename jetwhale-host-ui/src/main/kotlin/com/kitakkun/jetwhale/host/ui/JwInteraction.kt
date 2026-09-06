@@ -19,8 +19,8 @@ private val FocusRingGap = 1.dp
 /**
  * Draws the accent focus ring every Jw control shows while it holds focus. On desktop a click
  * moves focus too, so the ring also marks the control last clicked until focus moves on — the
- * convention of desktop IDEs. The controls suppress the Material ripple, so this is the only sign
- * of focus a keyboard user gets; apply it to a custom control built on the same
+ * convention of desktop IDEs. The controls draw no ripple, so this is the only sign of focus a
+ * keyboard user gets; apply it to a custom control built on the same
  * [InteractionSource] as its `clickable`.
  *
  * The ring sits just outside the control's bounds, so it stays visible on a control filled with

@@ -28,6 +28,9 @@ public object JwProgressIndicatorDefaults {
 
     /** Stroke of the arc. */
     public val strokeWidth: Dp = 1.5f.dp
+
+    /** The diameter of a spinner standing alone in an empty pane while its content loads. */
+    public val largeSize: Dp = 28.dp
 }
 
 /**

@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.host.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.Alignment
@@ -22,6 +21,7 @@ import com.kitakkun.jetwhale.host.screen.InfoScreen
 import com.kitakkun.jetwhale.host.settings.SettingsScreenRoot
 import com.kitakkun.jetwhale.host.settings.licenses.LicensesScreenRoot
 import com.kitakkun.jetwhale.host.settings.logviewer.LogViewerScreenRoot
+import com.kitakkun.jetwhale.host.ui.JwSurface
 import com.kitakkun.jetwhale.host.ui.JwText
 import org.jetbrains.compose.resources.stringResource
 
@@ -90,7 +90,7 @@ fun EntryProviderScope<NavKey>.pluginEntries(
                 )
             },
         ) {
-            Surface {
+            JwSurface(modifier = Modifier.fillMaxSize()) {
                 PluginScreenRoot()
             }
         }
@@ -99,7 +99,7 @@ fun EntryProviderScope<NavKey>.pluginEntries(
 
 fun EntryProviderScope<NavKey>.disabledPluginEntry() {
     entry<DisabledPluginNavKey> {
-        Surface {
+        JwSurface(modifier = Modifier.fillMaxSize()) {
             Box(
                 Modifier.fillMaxSize(),
                 Alignment.Center,

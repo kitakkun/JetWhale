@@ -16,8 +16,6 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -63,6 +61,7 @@ import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwIconButton
+import com.kitakkun.jetwhale.host.ui.JwProgressIndicator
 import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
@@ -215,11 +214,10 @@ fun GeneralSettingsScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         if (uiState.adbPath.isNotEmpty()) {
-                            Icon(
+                            JwIcon(
                                 imageVector = Icons.Default.Check,
                                 tint = JwTone.Success.color,
                                 contentDescription = null,
-                                modifier = Modifier.size(16.dp),
                             )
                         }
                     }
@@ -243,7 +241,7 @@ private fun UpdateCheckStatusView(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                JwProgressIndicator()
                 JwText(stringResource(Res.string.checking_for_updates))
             }
         }
@@ -297,11 +295,10 @@ private fun UpdateCheckStatusView(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
+                JwIcon(
                     imageVector = Icons.Default.Check,
                     tint = JwTone.Success.color,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
                 )
                 JwText(stringResource(Res.string.update_up_to_date))
             }

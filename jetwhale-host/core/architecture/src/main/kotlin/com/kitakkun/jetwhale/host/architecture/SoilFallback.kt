@@ -2,11 +2,12 @@ package com.kitakkun.jetwhale.host.architecture
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.kitakkun.jetwhale.host.ui.JwProgressIndicator
+import com.kitakkun.jetwhale.host.ui.JwProgressIndicatorDefaults
+import com.kitakkun.jetwhale.host.ui.JwText
 import soil.plant.compose.reacty.ErrorBoundaryContext
 
 sealed interface SoilFallback {
@@ -26,7 +27,7 @@ object SoilFallbackDefaults {
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularWavyProgressIndicator()
+                JwProgressIndicator(size = JwProgressIndicatorDefaults.largeSize)
             }
         }
         override val errorFallback: @Composable (ErrorBoundaryContext) -> Unit = {
@@ -34,9 +35,7 @@ object SoilFallbackDefaults {
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = "Error: ${it.err.localizedMessage}",
-                )
+                JwText(text = "Error: ${it.err.localizedMessage}")
             }
         }
     }

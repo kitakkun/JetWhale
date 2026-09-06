@@ -127,4 +127,9 @@
     <string name="maven_install_repository_label">Repository</string>
     <string name="maven_install_repository_custom">Custom URL</string>
     <string name="close">Close</string>
+    <string name="licenses_title">Open Source Licenses</string>
+    <string name="licenses_back">Back</string>
+    <string name="licenses_open_website">Open website</string>
+    <string name="licenses_version">Version</string>
+    <string name="licenses_no_license_text">No license text is available for this library.</string>
 </resources>

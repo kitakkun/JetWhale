@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,9 +20,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
+import com.kitakkun.jetwhale.host.ui.JwSurface
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.coroutines.delay
@@ -86,6 +87,9 @@ fun PluginScreenRoot() {
     }
 }
 
+/** Lift of the hot-reload badge over the plugin content. */
+private val HOT_RELOAD_BADGE_SHADOW = 4.dp
+
 /**
  * Shows a brief "Hot reloaded" badge each time [reloadCount] changes (i.e. on every hot reload),
  * fading out shortly after so it does not obscure the plugin UI. Never appears in production, where
@@ -106,11 +110,12 @@ private fun HotReloadIndicator(reloadCount: Int, modifier: Modifier = Modifier) 
         exit = fadeOut(),
         modifier = modifier,
     ) {
-        Surface(
+        val shape = RoundedCornerShape(percent = 50)
+        JwSurface(
             color = JwTheme.colors.accent,
             contentColor = JwTheme.colors.onAccent,
-            shape = RoundedCornerShape(50),
-            shadowElevation = 4.dp,
+            shape = shape,
+            modifier = Modifier.shadow(HOT_RELOAD_BADGE_SHADOW, shape),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),

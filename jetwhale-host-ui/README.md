@@ -26,7 +26,7 @@ this library is made of.
 | Structure | `JwToolbar`, `JwTabRow` + `JwTab`, `JwSplitPane`, `JwPanel`, `JwSectionHeader`, `JwStatusLine`, `JwHorizontalDivider` / `JwVerticalDivider`, `JwDialog` / `JwDialogSurface` |
 | Rows and labels | `JwTable` + `JwTableColumn`, `JwListItem`, `JwTreeRow`, `JwKeyValueRow`, `JwCodeBlock`, `JwTag`, `JwCountBadge`, `JwStatusDot`, `JwBanner`, `JwEmptyState` |
 | Text and icons | `JwText`, `JwIcon`, `JwProgressIndicator` |
-| Controls | `JwButton` (text and slot overloads), `JwIconButton`, `JwTooltip`, `JwTextField`, `JwSearchField`, `JwFormField`, `JwSwitch`, `JwCheckbox`, `JwSegmentedButtons`, `JwDropdownButton` + `JwDropdownMenu` + `JwMenuItem` |
+| Controls | `JwButton` (text and slot overloads), `JwIconButton`, `JwTooltip`, `JwTextField`, `JwSearchField`, `JwFormField`, `JwSwitch`, `JwCheckbox`, `JwTriStateCheckbox`, `JwSegmentedButtons`, `JwDropdownButton` + `JwDropdownMenu` + `JwMenuItem` |
 
 Every component is sized for a desktop tool window — `JwMetrics.controlHeight` (28dp) controls,
 13sp body text, 4dp corners — and takes its colors from the theme, so it follows the user's
@@ -41,7 +41,7 @@ does less, the name differs so the difference is not a surprise.
 |------------|------------------|------------|
 | `Button` / `OutlinedButton` / `TextButton` | `JwButton` with `style = Primary` / `Secondary` / `Text` | One composable, 28dp tall, plus `tone` for destructive actions |
 | `IconButton` | `JwIconButton` | Takes a `tooltip`, which is also its accessibility name |
-| `Switch`, `Checkbox` | `JwSwitch`, `JwCheckbox` | Compact; `JwCheckbox` includes its label |
+| `Switch`, `Checkbox`, `TriStateCheckbox` | `JwSwitch`, `JwCheckbox`, `JwTriStateCheckbox` | Compact; the checkboxes include their label |
 | `OutlinedTextField` | `JwTextField`, `JwSearchField` | Label lives in `JwFormField` above the field, not inside it |
 | `ExposedDropdownMenuBox` | `JwDropdownButton` | Caller owns `expanded`; a plain button, not a text field |
 | `DropdownMenu`, `DropdownMenuItem` | `JwDropdownMenu`, `JwMenuItem` | 26dp rows; `selected` draws a check mark |
@@ -56,9 +56,12 @@ does less, the name differs so the difference is not a surprise.
 | — | `JwTreeRow` | Indented, expandable list row |
 | `AssistChip` / `FilterChip`, `Badge` | `JwTag`, `JwStatusDot` | 18dp tag with a `JwTone`; 8dp dot |
 | `AlertDialog` | `JwDialog` (`JwDialogSurface` for custom chrome) | Title bar with a close button, footer with dismiss/confirm |
+| `SnackbarHost`, `SnackbarHostState` | `JwSnackbarHost`, `JwSnackbarHostState` | Same queue and `showSnackbar`; a dark strip at the bottom of the box it is placed in |
 | `Snackbar` (informational use) | `JwBanner` | Inline strip, not a floating overlay |
+| `Surface` | `JwSurface` | A background with its content color; no elevation, no click handling |
+| `TooltipBox` | `JwTooltip` | Plain text only; `anchor` picks below or beside |
 | `HorizontalDivider`, `VerticalDivider` | `JwHorizontalDivider`, `JwVerticalDivider` | Same |
-| `Text`, `Icon`, `CircularProgressIndicator` | `JwText`, `JwIcon`, `JwProgressIndicator` | Take the enclosing control's content color and text style |
+| `Text`, `Icon`, `CircularProgressIndicator` | `JwText`, `JwIcon`, `JwProgressIndicator` | Take the enclosing control's content color and text style; the spinner is therefore text-colored, not accent, unless given a `color` |
 | `MaterialTheme` | `JwTheme` | Its own tokens: `JwColors` (`accent`, `surface`, `textSecondary`, the tones…) and `JwTextStyles` (`title`, `body`, `label`, `code`…) |
 | `MaterialTheme.colorScheme.primary` / `.onSurfaceVariant` / `.outline` | `JwTheme.colors.accent` / `.textSecondary` / `.controlBorder` | Names say what the color is for, not where it sits in a Material palette |
 | `MaterialTheme.typography.bodyMedium` / `.labelSmall` | `JwTheme.textStyles.body` / `.labelSmall` | Seven styles instead of fifteen |
@@ -75,7 +78,7 @@ does less, the name differs so the difference is not a surprise.
   (`JwButton`, `JwListItem`).
 - **Components without a Material counterpart** put required data first, then `modifier`, then
   options with defaults, then composable slots last — so a trailing lambda is always the main
-  content. Slots receive the component's content color through `LocalContentColor`, so a `JwIcon`
+  content. Slots receive the component's content color through `LocalJwContentColor`, so a `JwIcon`
   inside needs no tint.
 - **Tones**: `JwTone` (`Neutral`, `Accent`, `Success`, `Warning`, `Error`, `Info`) is the one
   vocabulary for semantic color, shared by `JwTag`, `JwStatusDot`, `JwBanner`, `JwButton` and
@@ -87,8 +90,8 @@ does less, the name differs so the difference is not a surprise.
   collapsible headers and tree chevrons expose `expand`/`collapse` actions. The host's MCP tools
   read the same semantics tree, so an agent driving a plugin sees the same names and states a
   screen reader would.
-- **Interaction feedback**: components suppress the Material ripple and draw a hover tint and an
-  accent focus ring instead. The ring marks whatever holds focus — a click moves focus on desktop,
+- **Interaction feedback**: components draw no ripple; a hover tint and an accent focus ring take
+  its place. The ring marks whatever holds focus — a click moves focus on desktop,
   so the control last clicked keeps it until focus moves on. `Modifier.jwFocusRing(interactionSource,
   shape)` gives a custom control the same ring; it is drawn just outside the bounds, so a parent
   that clips (`JwPanel`, `JwDialog`) trims it on a row flush with the edge.

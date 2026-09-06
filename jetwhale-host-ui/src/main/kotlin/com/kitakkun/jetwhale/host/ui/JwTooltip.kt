@@ -32,12 +32,15 @@ public object JwTooltipDefaults {
  * and leaves with the pointer.
  *
  * @param text the tooltip's text, or null for no tooltip.
+ * @param anchor which side of the control the tooltip sits on; [JwPopupAnchor.EndCenter] for a
+ * control in a rail, where a tooltip below would cover the next one.
  * @param content the composable the tooltip describes.
  */
 @Composable
 public fun JwTooltip(
     text: String?,
     modifier: Modifier = Modifier,
+    anchor: JwPopupAnchor = JwPopupAnchor.BelowCenter,
     content: @Composable () -> Unit,
 ) {
     if (text == null) {
@@ -58,7 +61,7 @@ public fun JwTooltip(
     Box(modifier = modifier.hoverable(interactionSource)) {
         content()
         if (visible) {
-            Popup(popupPositionProvider = rememberJwPopupPositionProvider(JwPopupAnchor.BelowCenter)) {
+            Popup(popupPositionProvider = rememberJwPopupPositionProvider(anchor)) {
                 Box(
                     modifier = Modifier
                         .shadow(TooltipShadowElevation, JwShapes.small)

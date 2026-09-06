@@ -133,9 +133,9 @@ public object JwDropdownMenuDefaults {
 }
 
 /**
- * A popup menu anchored to the composable it is placed next to, holding [JwMenuItem]s. It opens
- * below the anchor (above, when the window has no room), takes focus so Escape and a click outside
- * dismiss it, and scrolls past [JwDropdownMenuDefaults.maxHeight].
+ * A popup menu holding [JwMenuItem]s. Place it inside the same `Box` as the control that opens it:
+ * it anchors to that parent and opens below it (above, when the window has no room), takes focus
+ * so Escape and a click outside dismiss it, and scrolls past [JwDropdownMenuDefaults.maxHeight].
  *
  * @param expanded whether the menu is shown.
  * @param onDismissRequest called on Escape or a click outside the menu.

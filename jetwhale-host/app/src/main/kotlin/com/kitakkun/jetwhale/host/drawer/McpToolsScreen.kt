@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -26,25 +27,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,13 +71,26 @@ import com.kitakkun.jetwhale.host.mcp_tools_tab_history
 import com.kitakkun.jetwhale.host.mcp_tools_tab_tools
 import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwDropdownButton
+import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwIconButton
+import com.kitakkun.jetwhale.host.ui.JwIconButtonDefaults
+import com.kitakkun.jetwhale.host.ui.JwIcons
 import com.kitakkun.jetwhale.host.ui.JwListItem
+import com.kitakkun.jetwhale.host.ui.JwMenuItem
 import com.kitakkun.jetwhale.host.ui.JwSearchField
 import com.kitakkun.jetwhale.host.ui.JwShapes
+import com.kitakkun.jetwhale.host.ui.JwSurface
 import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
+import com.kitakkun.jetwhale.host.ui.JwTag
+import com.kitakkun.jetwhale.host.ui.JwTagStyle
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
 import org.jetbrains.compose.resources.stringResource
@@ -126,7 +123,7 @@ fun McpToolsScreen(
     onSelectPluginFilters: (Set<String>) -> Unit,
     onSelectSessionFilters: (Set<String>) -> Unit,
 ) {
-    Surface(shape = JwShapes.large) {
+    JwSurface(color = JwTheme.colors.elevatedBackground, shape = JwShapes.large) {
         Column(
             modifier = Modifier
                 // Take most of the window so tool descriptions and history are readable, but stop
@@ -216,8 +213,8 @@ fun McpToolsScreen(
     }
 }
 
-/** Icon size shared by the filter chips and the entries of their picker. */
-private val McpFilterIconSize = 18.dp
+/** The widest a filter tag grows before its label is cut, so one long session name cannot own the row. */
+private val McpFilterChipMaxWidth = 220.dp
 
 /**
  * One filter group: a removable chip per picked value, plus a chip that opens the picker. An empty
@@ -267,82 +264,51 @@ private fun McpFilterChipGroup(
             modifier = Modifier.weight(1f),
         ) {
             selectedChips.forEach { option ->
-                InputChip(
-                    selected = true,
+                // Clicking the tag removes the value; the close glyph names what the click does.
+                JwTag(
+                    text = option.label,
+                    tone = JwTone.Accent,
+                    style = JwTagStyle.Tinted,
                     onClick = { onSelectionChange(selectedIds - option.id) },
-                    label = {
-                        JwText(
-                            text = option.label,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.widthIn(max = 220.dp),
-                        )
-                    },
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = removeLabel,
-                            modifier = Modifier.size(McpFilterIconSize),
-                        )
-                    },
+                    trailingIcon = { JwIcon(imageVector = JwIcons.Close, contentDescription = removeLabel) },
+                    modifier = Modifier.widthIn(max = McpFilterChipMaxWidth),
                 )
             }
-            Box {
-                val filtering = selectedChips.isNotEmpty()
-                val addIcon: (@Composable () -> Unit)? = if (filtering) {
-                    {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(McpFilterIconSize),
-                        )
-                    }
+            val filtering = selectedChips.isNotEmpty()
+            // The menu survives every pick so several values can be added in one go, and a check
+            // marks what is already picked while it is open.
+            JwDropdownButton(
+                text = if (filtering) addLabel else allLabel,
+                expanded = expanded,
+                onExpandedChange = { expanded = it },
+                enabled = options.isNotEmpty(),
+                leadingIcon = if (filtering) {
+                    { JwIcon(imageVector = Icons.Default.Add, contentDescription = null) }
                 } else {
                     null
-                }
-                AssistChip(
-                    onClick = { expanded = true },
-                    enabled = options.isNotEmpty(),
-                    label = { JwText(if (filtering) addLabel else allLabel) },
-                    leadingIcon = addIcon,
+                },
+                modifier = Modifier.width(IntrinsicSize.Max),
+            ) {
+                JwMenuItem(
+                    text = allLabel,
+                    selected = selectedIds.isEmpty(),
+                    onClick = { onSelectionChange(emptySet()) },
                 )
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                ) {
-                    // The menu survives every pick so several values can be added in one go, and a
-                    // check marks what is already picked while it is open.
-                    DropdownMenuItem(
-                        text = { JwText(allLabel) },
-                        onClick = { onSelectionChange(emptySet()) },
-                        trailingIcon = { if (selectedIds.isEmpty()) McpFilterSelectedCheck() },
+                options.forEach { option ->
+                    val selected = option.id in selectedIds
+                    JwMenuItem(
+                        text = option.label,
+                        selected = selected,
+                        onClick = {
+                            onSelectionChange(
+                                if (selected) selectedIds - option.id else selectedIds + option.id,
+                            )
+                        },
                     )
-                    options.forEach { option ->
-                        val selected = option.id in selectedIds
-                        DropdownMenuItem(
-                            text = { JwText(option.label) },
-                            onClick = {
-                                onSelectionChange(
-                                    if (selected) selectedIds - option.id else selectedIds + option.id,
-                                )
-                            },
-                            trailingIcon = { if (selected) McpFilterSelectedCheck() },
-                        )
-                    }
                 }
             }
         }
     }
-}
-
-/** Marks an entry of a filter picker as already narrowing the screen. */
-@Composable
-private fun McpFilterSelectedCheck() {
-    Icon(
-        imageVector = Icons.Default.Check,
-        contentDescription = null,
-        modifier = Modifier.size(McpFilterIconSize),
-    )
 }
 
 /**
@@ -367,8 +333,7 @@ internal fun McpToolCallCountBadge(count: Int, running: Boolean) {
     ) {
         JwText(
             text = count.toString(),
-            style = JwTheme.textStyles.label,
-            fontFamily = FontFamily.Monospace,
+            style = JwTheme.textStyles.code,
             color = if (running) Color.Black else JwTheme.colors.onSurface,
         )
     }
@@ -416,8 +381,7 @@ private fun McpToolsPane(
                         Column(modifier = Modifier.weight(1f)) {
                             JwText(
                                 text = row.tool.name.substringAfterLast('.'),
-                                style = JwTheme.textStyles.body,
-                                fontFamily = FontFamily.Monospace,
+                                style = JwTheme.textStyles.code,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 color = JwTheme.colors.onSurface,
@@ -439,7 +403,7 @@ private fun McpToolsPane(
                 }
             }
         }
-        VerticalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+        JwVerticalDivider(modifier = Modifier.padding(horizontal = 12.dp))
         // Right pane: the selected tool's detail.
         Column(
             modifier = Modifier
@@ -466,8 +430,7 @@ private fun McpToolsPane(
                 )
                 JwText(
                     text = selected.tool.name,
-                    style = JwTheme.textStyles.labelSmall,
-                    fontFamily = FontFamily.Monospace,
+                    style = JwTheme.textStyles.code,
                     color = JwTheme.colors.textSecondary,
                 )
                 JwText(
@@ -523,7 +486,7 @@ private fun McpCallHistoryPane(
                 )
             }
         }
-        VerticalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+        JwVerticalDivider(modifier = Modifier.padding(horizontal = 12.dp))
         McpCallDetailPane(
             record = selected,
             modifier = Modifier
@@ -569,19 +532,17 @@ private fun McpCallDetailPane(
         }
         JwText(
             text = record.toolName,
-            style = JwTheme.textStyles.labelSmall,
-            fontFamily = FontFamily.Monospace,
+            style = JwTheme.textStyles.code,
             color = JwTheme.colors.textSecondary,
         )
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(
+            JwIcon(
                 imageVector = if (record.succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
                 contentDescription = null,
                 tint = if (record.succeeded) JwTheme.colors.aiAccent else JwTheme.colors.error,
-                modifier = Modifier.size(16.dp),
             )
             JwText(
                 text = statusLabel,
@@ -594,8 +555,7 @@ private fun McpCallDetailPane(
             )
             JwText(
                 text = finishedAt,
-                style = JwTheme.textStyles.label,
-                fontFamily = FontFamily.Monospace,
+                style = JwTheme.textStyles.code,
                 color = JwTheme.colors.textSecondary,
             )
         }
@@ -627,13 +587,11 @@ private fun McpCallDetailPane(
                 Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                     JwText(
                         text = argument.name,
-                        style = JwTheme.textStyles.body,
-                        fontFamily = FontFamily.Monospace,
+                        style = JwTheme.textStyles.code,
                     )
                     JwText(
                         text = argument.value,
-                        style = JwTheme.textStyles.bodySmall,
-                        fontFamily = FontFamily.Monospace,
+                        style = JwTheme.textStyles.code,
                         color = JwTheme.colors.textSecondary,
                     )
                 }
@@ -676,15 +634,16 @@ private fun McpCallDetailPane(
             ) {
                 JwText(
                     text = record.response,
-                    style = JwTheme.textStyles.bodySmall,
-                    fontFamily = FontFamily.Monospace,
+                    style = JwTheme.textStyles.code,
                     color = JwTheme.colors.textSecondary,
                 )
             }
         }
 
         Spacer(Modifier.size(4.dp))
-        TextButton(
+        JwButton(
+            text = stringResource(Res.string.mcp_history_copy_details),
+            style = JwButtonStyle.Text,
             onClick = {
                 clipboardManager.setText(
                     AnnotatedString(
@@ -698,9 +657,7 @@ private fun McpCallDetailPane(
                     ),
                 )
             },
-        ) {
-            JwText(stringResource(Res.string.mcp_history_copy_details))
-        }
+        )
     }
 }
 
@@ -710,15 +667,15 @@ private fun McpCopyIconButton(
     contentDescription: String,
     onClick: () -> Unit,
 ) {
-    IconButton(
+    JwIconButton(
         onClick = onClick,
-        modifier = Modifier.size(24.dp),
+        tooltip = contentDescription,
+        size = JwIconButtonDefaults.inlineSize,
     ) {
-        Icon(
-            imageVector = Icons.Default.ContentCopy,
-            contentDescription = contentDescription,
+        JwIcon(
+            imageVector = JwIcons.Copy,
+            contentDescription = null,
             tint = JwTheme.colors.textSecondary,
-            modifier = Modifier.size(16.dp),
         )
     }
 }
@@ -785,35 +742,28 @@ private fun McpCallHistoryRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(6.dp))
-                .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+                .background(if (selected) JwTheme.colors.selection else Color.Transparent)
                 .clickable(role = Role.Button, onClick = onSelect)
                 .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(
+            JwIcon(
                 imageVector = if (record.succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
                 contentDescription = statusLabel,
                 tint = if (record.succeeded) JwTheme.colors.aiAccent else JwTheme.colors.error,
-                modifier = Modifier.size(16.dp),
             )
             JwText(
                 text = record.toolName.substringAfterLast('.'),
-                style = JwTheme.textStyles.body,
-                fontFamily = FontFamily.Monospace,
+                style = JwTheme.textStyles.code,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = if (selected) {
-                    MaterialTheme.colorScheme.onSecondaryContainer
-                } else {
-                    JwTheme.colors.onSurface
-                },
+                color = if (selected) JwTheme.colors.onSelection else JwTheme.colors.onSurface,
                 modifier = Modifier.weight(1f),
             )
             JwText(
                 text = finishedAt,
-                style = JwTheme.textStyles.labelSmall,
-                fontFamily = FontFamily.Monospace,
+                style = JwTheme.textStyles.code,
                 color = JwTheme.colors.textSecondary,
             )
         }
@@ -862,14 +812,12 @@ private fun McpParameterRow(param: McpToolParameterSummary) {
         ) {
             JwText(
                 text = param.name,
-                style = JwTheme.textStyles.body,
-                fontFamily = FontFamily.Monospace,
+                style = JwTheme.textStyles.code,
             )
             if (param.type.isNotEmpty()) {
                 JwText(
                     text = param.type,
-                    style = JwTheme.textStyles.labelSmall,
-                    fontFamily = FontFamily.Monospace,
+                    style = JwTheme.textStyles.code,
                     color = JwTheme.colors.textSecondary,
                 )
             }

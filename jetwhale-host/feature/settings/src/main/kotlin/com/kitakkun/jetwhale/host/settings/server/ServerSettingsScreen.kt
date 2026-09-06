@@ -13,10 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +73,7 @@ import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwDialog
 import com.kitakkun.jetwhale.host.ui.JwShapes
+import com.kitakkun.jetwhale.host.ui.JwSurface
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import org.jetbrains.compose.resources.stringResource
@@ -391,7 +388,7 @@ private fun McpSnippetView(
                 style = JwTheme.textStyles.label,
                 color = JwTheme.colors.textSecondary,
             )
-            Surface(
+            JwSurface(
                 color = JwTheme.colors.neutralContainer,
                 shape = JwShapes.small,
             ) {

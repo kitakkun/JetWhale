@@ -3,14 +3,14 @@ package com.kitakkun.jetwhale.host.component
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.initializing
+import com.kitakkun.jetwhale.host.ui.JwProgressIndicator
+import com.kitakkun.jetwhale.host.ui.JwProgressIndicatorDefaults
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
@@ -29,7 +29,7 @@ fun InitializingDialog(verifyingTrustRegistry: Boolean) {
                 text = stringResource(Res.string.initializing),
                 color = JwTheme.colors.onTooltip,
             )
-            CircularWavyProgressIndicator()
+            JwProgressIndicator(color = JwTheme.colors.onTooltip, size = JwProgressIndicatorDefaults.largeSize)
             // Shown only while the signed trust registry is being verified against the OS credential
             // store, so the (blocking) Keychain prompt appears with in-app context explaining it.
             if (verifyingTrustRegistry) {
