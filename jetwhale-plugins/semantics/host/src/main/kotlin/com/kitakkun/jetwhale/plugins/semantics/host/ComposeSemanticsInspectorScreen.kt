@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,6 +36,7 @@ import com.kitakkun.jetwhale.host.ui.JwCheckbox
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwKeyValueRow
+import com.kitakkun.jetwhale.host.ui.JwProgressIndicator
 import com.kitakkun.jetwhale.host.ui.JwSearchField
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
 import com.kitakkun.jetwhale.host.ui.JwSpacing
@@ -175,10 +175,6 @@ private const val AUTO_REFRESH_INTERVAL_MILLIS = 1_000L
 /** The tree gets a little more than half; node labels are longer than property rows. */
 private const val TREE_PANE_FRACTION = 0.58f
 
-/** A spinner small enough to sit before a button label. */
-private val SpinnerSize = 12.dp
-private val SpinnerStrokeWidth = 1.5f.dp
-
 /** Wide enough for the placeholder without crowding the checkboxes beside it. */
 private val SearchFieldWidth = 260.dp
 
@@ -211,11 +207,7 @@ private fun Toolbar(
             style = JwButtonStyle.Primary,
         ) {
             if (capturing) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(SpinnerSize),
-                    strokeWidth = SpinnerStrokeWidth,
-                    color = LocalJwContentColor.current,
-                )
+                JwProgressIndicator()
             }
             JwText(if (capturing) "Capturing…" else "Refresh")
         }
