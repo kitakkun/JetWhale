@@ -30,6 +30,29 @@ final enum class com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction : k
     }
 }
 
+final enum class com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType : kotlin/Enum<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType|null[0]
+    enum entry Bool // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Bool|null[0]
+    enum entry Color // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Color|null[0]
+    enum entry Dimension // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Dimension|null[0]
+    enum entry Enum // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Enum|null[0]
+    enum entry Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Float|null[0]
+    enum entry Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Int|null[0]
+    enum entry LayoutSize // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.LayoutSize|null[0]
+    enum entry Text // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Text|null[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.entries.<get-entries>|<get-entries>#static(){}[0]
+    final val extraFields // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.extraFields|{}extraFields[0]
+        final fun <get-extraFields>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.extraFields.<get-extraFields>|<get-extraFields>(){}[0]
+    final val wireName // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.wireName|{}wireName[0]
+        final fun <get-wireName>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.wireName.<get-wireName>|<get-wireName>(){}[0]
+    final val writtenAs // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.writtenAs|{}writtenAs[0]
+        final fun <get-writtenAs>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.writtenAs.<get-writtenAs>|<get-writtenAs>(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.values|values#static(){}[0]
+}
+
 sealed interface com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode { // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode|null[0]
     abstract val actions // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode.actions|{}actions[0]
         abstract fun <get-actions>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode.actions.<get-actions>|<get-actions>(){}[0]
@@ -67,6 +90,240 @@ sealed interface com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode { // co
     final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode.Companion|null[0]
         final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode> // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode.Companion.serializer|serializer(){}[0]
         final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    }
+}
+
+sealed interface com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue|null[0]
+    final class BooleanValue : com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue|null[0]
+        constructor <init>(kotlin/Boolean) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.<init>|<init>(kotlin.Boolean){}[0]
+
+        final val value // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.value|{}value[0]
+            final fun <get-value>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.value.<get-value>|<get-value>(){}[0]
+
+        final fun component1(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.component1|component1(){}[0]
+        final fun copy(kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.copy|copy(kotlin.Boolean){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue.BooleanValue){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.BooleanValue.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class ColorValue : com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue|null[0]
+        constructor <init>(kotlin/Int) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.<init>|<init>(kotlin.Int){}[0]
+
+        final val argb // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.argb|{}argb[0]
+            final fun <get-argb>(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.argb.<get-argb>|<get-argb>(){}[0]
+
+        final fun component1(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.component1|component1(){}[0]
+        final fun copy(kotlin/Int = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.copy|copy(kotlin.Int){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue.ColorValue){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.ColorValue.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class DimensionValue : com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue|null[0]
+        constructor <init>(kotlin/Float, kotlin/Float) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.<init>|<init>(kotlin.Float;kotlin.Float){}[0]
+
+        final val dp // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.dp|{}dp[0]
+            final fun <get-dp>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.dp.<get-dp>|<get-dp>(){}[0]
+        final val px // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.px|{}px[0]
+            final fun <get-px>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.px.<get-px>|<get-px>(){}[0]
+
+        final fun component1(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.component1|component1(){}[0]
+        final fun component2(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.component2|component2(){}[0]
+        final fun copy(kotlin/Float = ..., kotlin/Float = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.copy|copy(kotlin.Float;kotlin.Float){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue.DimensionValue){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.DimensionValue.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class EnumValue : com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue|null[0]
+        constructor <init>(kotlin/String, kotlin.collections/List<kotlin/String>) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.<init>|<init>(kotlin.String;kotlin.collections.List<kotlin.String>){}[0]
+
+        final val options // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.options|{}options[0]
+            final fun <get-options>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.options.<get-options>|<get-options>(){}[0]
+        final val value // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.value|{}value[0]
+            final fun <get-value>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.value.<get-value>|<get-value>(){}[0]
+
+        final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.component1|component1(){}[0]
+        final fun component2(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.component2|component2(){}[0]
+        final fun copy(kotlin/String = ..., kotlin.collections/List<kotlin/String> = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.copy|copy(kotlin.String;kotlin.collections.List<kotlin.String>){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue.EnumValue){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.Companion|null[0]
+            final val $childSerializers // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.Companion.$childSerializers|{}$childSerializers[0]
+
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.EnumValue.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class FloatValue : com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue|null[0]
+        constructor <init>(kotlin/Float) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.<init>|<init>(kotlin.Float){}[0]
+
+        final val value // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.value|{}value[0]
+            final fun <get-value>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.value.<get-value>|<get-value>(){}[0]
+
+        final fun component1(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.component1|component1(){}[0]
+        final fun copy(kotlin/Float = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.copy|copy(kotlin.Float){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue.FloatValue){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.FloatValue.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class IntValue : com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue|null[0]
+        constructor <init>(kotlin/Int) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.<init>|<init>(kotlin.Int){}[0]
+
+        final val value // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.value|{}value[0]
+            final fun <get-value>(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.value.<get-value>|<get-value>(){}[0]
+
+        final fun component1(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.component1|component1(){}[0]
+        final fun copy(kotlin/Int = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.copy|copy(kotlin.Int){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue.IntValue){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.IntValue.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class LayoutSizeValue : com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue|null[0]
+        constructor <init>(kotlin/String?, kotlin/Float?, kotlin/Float?, kotlin.collections/List<kotlin/String>) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.<init>|<init>(kotlin.String?;kotlin.Float?;kotlin.Float?;kotlin.collections.List<kotlin.String>){}[0]
+
+        final val constant // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.constant|{}constant[0]
+            final fun <get-constant>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.constant.<get-constant>|<get-constant>(){}[0]
+        final val constants // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.constants|{}constants[0]
+            final fun <get-constants>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.constants.<get-constants>|<get-constants>(){}[0]
+        final val dp // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.dp|{}dp[0]
+            final fun <get-dp>(): kotlin/Float? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.dp.<get-dp>|<get-dp>(){}[0]
+        final val px // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.px|{}px[0]
+            final fun <get-px>(): kotlin/Float? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.px.<get-px>|<get-px>(){}[0]
+
+        final fun component1(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.component1|component1(){}[0]
+        final fun component2(): kotlin/Float? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.component2|component2(){}[0]
+        final fun component3(): kotlin/Float? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.component3|component3(){}[0]
+        final fun component4(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.component4|component4(){}[0]
+        final fun copy(kotlin/String? = ..., kotlin/Float? = ..., kotlin/Float? = ..., kotlin.collections/List<kotlin/String> = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.copy|copy(kotlin.String?;kotlin.Float?;kotlin.Float?;kotlin.collections.List<kotlin.String>){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue.LayoutSizeValue){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.Companion|null[0]
+            final val $childSerializers // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.Companion.$childSerializers|{}$childSerializers[0]
+
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class TextValue : com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue|null[0]
+        constructor <init>(kotlin/String) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.<init>|<init>(kotlin.String){}[0]
+
+        final val value // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.value|{}value[0]
+            final fun <get-value>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.value.<get-value>|<get-value>(){}[0]
+
+        final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.component1|component1(){}[0]
+        final fun copy(kotlin/String = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.copy|copy(kotlin.String){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue.TextValue){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.Companion.serializer|serializer(){}[0]
+        final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
     }
 }
 
@@ -218,6 +475,35 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot { // co
         final val $childSerializers // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.Companion.$childSerializers|{}$childSerializers[0]
 
         final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot> // com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse> { // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes|null[0]
+    constructor <init>(kotlin/String, kotlin/Int) // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.<init>|<init>(kotlin.String;kotlin.Int){}[0]
+
+    final val nodeId // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.nodeId|{}nodeId[0]
+        final fun <get-nodeId>(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.nodeId.<get-nodeId>|<get-nodeId>(){}[0]
+    final val rootId // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.rootId|{}rootId[0]
+        final fun <get-rootId>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.rootId.<get-rootId>|<get-rootId>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.component1|component1(){}[0]
+    final fun component2(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Int = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.copy|copy(kotlin.String;kotlin.Int){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes> { // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes) // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.GetViewAttributes){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes> // com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes.Companion.serializer|serializer(){}[0]
     }
 }
 
@@ -410,6 +696,181 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction :
     }
 }
 
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult> { // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute|null[0]
+    constructor <init>(kotlin/String, kotlin/Int, kotlin/String, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue) // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.<init>|<init>(kotlin.String;kotlin.Int;kotlin.String;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue){}[0]
+
+    final val attributeId // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.attributeId|{}attributeId[0]
+        final fun <get-attributeId>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.attributeId.<get-attributeId>|<get-attributeId>(){}[0]
+    final val nodeId // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.nodeId|{}nodeId[0]
+        final fun <get-nodeId>(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.nodeId.<get-nodeId>|<get-nodeId>(){}[0]
+    final val rootId // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.rootId|{}rootId[0]
+        final fun <get-rootId>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.rootId.<get-rootId>|<get-rootId>(){}[0]
+    final val value // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.value|{}value[0]
+        final fun <get-value>(): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.value.<get-value>|<get-value>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.component1|component1(){}[0]
+    final fun component2(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.component2|component2(){}[0]
+    final fun component3(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.component3|component3(){}[0]
+    final fun component4(): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.component4|component4(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Int = ..., kotlin/String = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.copy|copy(kotlin.String;kotlin.Int;kotlin.String;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute> { // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute) // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.SetViewAttribute){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute> // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute|null[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/String, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue, kotlin/Boolean) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.<init>|<init>(kotlin.String;kotlin.String;kotlin.String;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue;kotlin.Boolean){}[0]
+
+    final val editable // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.editable|{}editable[0]
+        final fun <get-editable>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.editable.<get-editable>|<get-editable>(){}[0]
+    final val group // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.group|{}group[0]
+        final fun <get-group>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.group.<get-group>|<get-group>(){}[0]
+    final val id // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.id|{}id[0]
+        final fun <get-id>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.id.<get-id>|<get-id>(){}[0]
+    final val label // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.label|{}label[0]
+        final fun <get-label>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.label.<get-label>|<get-label>(){}[0]
+    final val value // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.value|{}value[0]
+        final fun <get-value>(): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.value.<get-value>|<get-value>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.component2|component2(){}[0]
+    final fun component3(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.component3|component3(){}[0]
+    final fun component4(): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.component4|component4(){}[0]
+    final fun component5(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.component5|component5(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.copy|copy(kotlin.String;kotlin.String;kotlin.String;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue;kotlin.Boolean){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse|null[0]
+    constructor <init>(com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot?, kotlin/String? = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.<init>|<init>(com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot?;kotlin.String?){}[0]
+
+    final val message // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.message|{}message[0]
+        final fun <get-message>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.message.<get-message>|<get-message>(){}[0]
+    final val snapshot // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.snapshot|{}snapshot[0]
+        final fun <get-snapshot>(): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.snapshot.<get-snapshot>|<get-snapshot>(){}[0]
+
+    final fun component1(): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.component1|component1(){}[0]
+    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.component2|component2(){}[0]
+    final fun copy(com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot? = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.copy|copy(com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot?;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResponse.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult|null[0]
+    constructor <init>(kotlin/Boolean, kotlin/String? = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute? = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.<init>|<init>(kotlin.Boolean;kotlin.String?;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute?){}[0]
+
+    final val applied // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.applied|{}applied[0]
+        final fun <get-applied>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.applied.<get-applied>|<get-applied>(){}[0]
+    final val attribute // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.attribute|{}attribute[0]
+        final fun <get-attribute>(): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.attribute.<get-attribute>|<get-attribute>(){}[0]
+    final val message // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.message|{}message[0]
+        final fun <get-message>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.message.<get-message>|<get-message>(){}[0]
+
+    final fun component1(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.component1|component1(){}[0]
+    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.component2|component2(){}[0]
+    final fun component3(): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.component3|component3(){}[0]
+    final fun copy(kotlin/Boolean = ..., kotlin/String? = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute? = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.copy|copy(kotlin.Boolean;kotlin.String?;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot|null[0]
+    constructor <init>(kotlin/String, kotlin/Int, kotlin/String, kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute>) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.<init>|<init>(kotlin.String;kotlin.Int;kotlin.String;kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute>){}[0]
+
+    final val attributes // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.attributes|{}attributes[0]
+        final fun <get-attributes>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.attributes.<get-attributes>|<get-attributes>(){}[0]
+    final val nodeId // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.nodeId|{}nodeId[0]
+        final fun <get-nodeId>(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.nodeId.<get-nodeId>|<get-nodeId>(){}[0]
+    final val rootId // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.rootId|{}rootId[0]
+        final fun <get-rootId>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.rootId.<get-rootId>|<get-rootId>(){}[0]
+    final val viewClass // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.viewClass|{}viewClass[0]
+        final fun <get-viewClass>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.viewClass.<get-viewClass>|<get-viewClass>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.component1|component1(){}[0]
+    final fun component2(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.component2|component2(){}[0]
+    final fun component3(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.component3|component3(){}[0]
+    final fun component4(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.component4|component4(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Int = ..., kotlin/String = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttribute> = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.copy|copy(kotlin.String;kotlin.Int;kotlin.String;kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot.Companion.serializer|serializer(){}[0]
+    }
+}
+
 final class com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode : com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode|null[0]
     constructor <init>(kotlin/Int, kotlin/String, kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeBounds, kotlin.collections/List<kotlin/String> = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode> = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode.<init>|<init>(kotlin.Int;kotlin.String;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds;kotlin.collections.List<kotlin.String>;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode>){}[0]
 
@@ -488,3 +949,6 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode : com.kita
         final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode.Companion.serializer|serializer(){}[0]
     }
 }
+
+final val com.kitakkun.jetwhale.plugins.semantics.protocol/type // com.kitakkun.jetwhale.plugins.semantics.protocol/type|@com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue{}type[0]
+    final fun (com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue).<get-type>(): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType // com.kitakkun.jetwhale.plugins.semantics.protocol/type.<get-type>|<get-type>@com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue(){}[0]

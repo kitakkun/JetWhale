@@ -13,6 +13,9 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 import java.lang.ref.WeakReference
 
 /**
@@ -29,7 +32,9 @@ import java.lang.ref.WeakReference
  * screen, and a strong reference here would keep a destroyed activity's whole view tree alive for as
  * long as the process runs.
  */
-internal class AndroidWindowNodeSource(rootView: View) : ComposeNodeSource {
+internal class AndroidWindowNodeSource(rootView: View) :
+    ComposeNodeSource,
+    ViewAttributeSource {
     override val sourceId: String = "android-window-${System.identityHashCode(rootView).toString(16)}"
 
     private val rootViewRef = WeakReference(rootView)
@@ -60,11 +65,8 @@ internal class AndroidWindowNodeSource(rootView: View) : ComposeNodeSource {
         val rootView = attachedRootView()
             ?: return@await NodeActionResult(performed = false, message = "the window is no longer readable")
 
-        // The sign of the id says which half of the tree the node came from: Compose's semantics ids
-        // are non-negative, the ones this agent assigns to views are negative.
         if (request.nodeId < 0) {
-            val view = ViewNodeIds.viewOf(request.nodeId)?.takeIf { it.rootView === rootView }
-                ?: return@await unknownNode(request.nodeId)
+            val view = viewInWindow(request.nodeId, rootView) ?: return@await unknownNode(request.nodeId)
             view.performViewAction(request)
         } else {
             val node = rootView.findSemanticsNode(request.nodeId) ?: return@await unknownNode(request.nodeId)
@@ -72,11 +74,39 @@ internal class AndroidWindowNodeSource(rootView: View) : ComposeNodeSource {
         }
     }
 
+    // -- ViewAttributeSource ---------------------------------------------------
+    //
+    // A window is the only root that has platform attributes at all: its nodes include real `View`s.
+    // The work itself lives in ViewAttributes.kt; this only resolves the node and hops to the UI
+    // thread, the same way performAction does.
+
+    override suspend fun attributes(nodeId: Int): ViewAttributeSnapshot? = AndroidComposeUiThread.await {
+        val rootView = attachedRootView() ?: return@await null
+        viewInWindow(nodeId, rootView)?.readAttributes(rootId = sourceId, nodeId = nodeId)
+    }
+
+    override suspend fun setAttribute(nodeId: Int, attributeId: String, value: ViewAttributeValue): ViewAttributeResult = AndroidComposeUiThread.await {
+        val rootView = attachedRootView()
+            ?: return@await ViewAttributeResult(applied = false, message = "the window is no longer readable")
+        val view = viewInWindow(nodeId, rootView)
+            ?: return@await ViewAttributeResult(applied = false, message = noViewAttributesMessage(nodeId))
+        view.writeAttribute(attributeId = attributeId, value = value)
+    }
+
     private fun unknownNode(nodeId: Int): NodeActionResult = NodeActionResult(
         performed = false,
         message = "unknown nodeId: $nodeId (the node may have left this window; capture the tree again)",
     )
 }
+
+/**
+ * The `View` [nodeId] names, when it is a `View` node that is still part of [rootView]'s window.
+ *
+ * The sign of the id says which half of the tree the node came from: Compose's semantics ids are
+ * non-negative, the ones this agent assigns to views are negative — so a Compose id resolves to no
+ * view here, which is the right answer for both callers.
+ */
+private fun viewInWindow(nodeId: Int, rootView: View): View? = ViewNodeIds.viewOf(nodeId)?.takeIf { it.rootView === rootView }
 
 /**
  * Searches every composition in the window for a semantics node.

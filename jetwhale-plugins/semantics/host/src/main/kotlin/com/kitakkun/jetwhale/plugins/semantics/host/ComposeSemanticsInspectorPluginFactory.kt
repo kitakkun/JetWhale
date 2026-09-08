@@ -12,10 +12,14 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.semantics.protocol.CaptureNodeTree
+import com.kitakkun.jetwhale.plugins.semantics.protocol.GetViewAttributes
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
+import com.kitakkun.jetwhale.plugins.semantics.protocol.SetViewAttribute
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import com.kitakkun.jetwhale.protocol.messaging.request
 import kotlinx.coroutines.launch
@@ -66,6 +70,24 @@ private class ComposeNodeInspectorHostPlugin :
 
     private suspend fun performAction(request: PerformNodeAction): NodeActionResult = messenger.request(request)
 
+    // Attributes are read per node, on demand, so they stay out of the capture and out of the
+    // capture lock: a selection change must not queue behind an auto-refresh.
+    private suspend fun loadViewAttributes(request: GetViewAttributes): ViewAttributeResponse = messenger.request(request)
+
+    private suspend fun setViewAttribute(request: SetViewAttribute): ViewAttributeResult = messenger.request(request)
+
+    // Owned by the plugin rather than by the panel: the attributes outlive the panel being closed,
+    // a write outlives the editor that started it, and an agent's write goes through here too, so
+    // an open panel is never left showing a value the app no longer has. Built lazily because
+    // pluginScope is bound by the runtime after the instance is constructed.
+    private val viewAttributes by lazy {
+        ViewAttributeStore(
+            scope = pluginScope,
+            read = ::loadViewAttributes,
+            write = ::setViewAttribute,
+        )
+    }
+
     // -------------------------------------------------------------------------
     // JetWhaleHostPluginUi
     // -------------------------------------------------------------------------
@@ -78,6 +100,7 @@ private class ComposeNodeInspectorHostPlugin :
             roundTripMs = roundTripMs,
             errorMessage = errorMessage,
             actionStatus = actionStatus,
+            viewAttributes = viewAttributes.state,
             onCapture = { options ->
                 try {
                     capture(options)
@@ -101,6 +124,15 @@ private class ComposeNodeInspectorHostPlugin :
                     }
                 }
             },
+            onSelectedNodeChange = { key ->
+                // Only an Android View has attributes to read; anything else the tree lands on —
+                // a Compose node, nothing at all — leaves the store holding nothing.
+                when (val attributeKey = snapshot.viewAttributeNode(key)) {
+                    null -> viewAttributes.clear()
+                    else -> viewAttributes.select(rootId = attributeKey.rootId, nodeId = attributeKey.nodeId)
+                }
+            },
+            onCommitViewAttribute = viewAttributes::commit,
         )
     }
 
@@ -108,13 +140,22 @@ private class ComposeNodeInspectorHostPlugin :
     // JetWhaleMcpCapablePlugin
     // -------------------------------------------------------------------------
 
-    override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
-        GetNodeTreeCommand(capture = ::capture),
-        FindNodesCommand(capture = ::capture),
-        PerformNodeActionCommand(
-            lastSnapshot = { snapshot },
-            capture = ::capture,
-            perform = ::performAction,
-        ),
-    )
+    // Lazy for the same reason the store is: reading this list builds the store, and the store needs
+    // pluginScope. The runtime asks for the commands well after it has bound one.
+    override val mcpCommands: List<JetWhaleMcpCommand> by lazy {
+        listOf(
+            GetNodeTreeCommand(capture = ::capture),
+            FindNodesCommand(capture = ::capture),
+            PerformNodeActionCommand(
+                lastSnapshot = { snapshot },
+                capture = ::capture,
+                perform = ::performAction,
+            ),
+            GetViewAttributesCommand(getAttributes = viewAttributes::readAttributes),
+            SetViewAttributeCommand(
+                getAttributes = viewAttributes::readAttributes,
+                setAttribute = viewAttributes::writeAttribute,
+            ),
+        )
+    }
 }

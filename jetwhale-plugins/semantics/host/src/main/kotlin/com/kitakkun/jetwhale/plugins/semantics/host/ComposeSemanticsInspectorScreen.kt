@@ -56,6 +56,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -68,6 +69,11 @@ import kotlin.math.roundToInt
  * Captures are pull-based — a capture reads the debuggee's semantics on its main thread, so the app
  * pays only when someone is looking. Auto-refresh exists for watching a screen change, but is off by
  * default for the same reason.
+ *
+ * Data in, events out: everything the screen draws arrives as a value, and everything it wants done
+ * leaves as a callback. Which node is selected is the screen's own business — it is where the tree
+ * is clicked — so it is reported upward rather than asked for, and the plugin decides what reading
+ * to do about it.
  */
 @Composable
 internal fun ComposeSemanticsInspectorScreen(
@@ -76,8 +82,11 @@ internal fun ComposeSemanticsInspectorScreen(
     roundTripMs: Long?,
     errorMessage: String?,
     actionStatus: String?,
+    viewAttributes: ViewAttributesUiState,
     onCapture: suspend (NodeTreeCaptureOptions) -> Unit,
     onPerformAction: (PerformNodeAction) -> Unit,
+    onSelectedNodeChange: (NodeKey?) -> Unit,
+    onCommitViewAttribute: (ViewAttribute, String) -> Unit,
 ) {
     var merged by rememberPersistent("merged-tree", default = true)
     var interactiveOnly by rememberPersistent("interactive-only", default = false)
@@ -117,6 +126,12 @@ internal fun ComposeSemanticsInspectorScreen(
     }
     val selectedNode = selectedKey?.let { key ->
         snapshot?.roots?.firstOrNull { it.rootId == key.rootId }?.findNode(key.nodeId)
+    }
+
+    // Reported rather than acted on: what a selection is worth reading from the app is the plugin's
+    // decision, and this screen has no way to read anything anyway.
+    LaunchedEffect(selectedKey) {
+        onSelectedNodeChange(selectedKey)
     }
 
     // The host hands the plugin an unpainted scene, so the screen paints its own background;
@@ -165,7 +180,9 @@ internal fun ComposeSemanticsInspectorScreen(
                 NodeDetail(
                     rootId = selectedKey?.rootId,
                     node = selectedNode,
+                    viewAttributes = viewAttributes,
                     onPerformAction = onPerformAction,
+                    onCommitViewAttribute = onCommitViewAttribute,
                 )
             },
         )
@@ -352,7 +369,9 @@ private fun UiNode.actionSummary(): String = when {
 private fun NodeDetail(
     rootId: String?,
     node: UiNode?,
+    viewAttributes: ViewAttributesUiState,
     onPerformAction: (PerformNodeAction) -> Unit,
+    onCommitViewAttribute: (ViewAttribute, String) -> Unit,
 ) {
     if (node == null || rootId == null) {
         JwEmptyState(title = "Select a node to see its semantics and the actions it exposes.")
@@ -466,6 +485,13 @@ private fun NodeDetail(
             enabled = !node.boundsInScreen.isEmpty,
             style = JwButtonStyle.Text,
         )
+
+        // Only an Android View has platform attributes to show. A Compose node's semantics are a
+        // projection of composition state, so there is nothing here that could be edited to last.
+        if (node is ViewNode) {
+            JwHorizontalDivider()
+            ViewAttributesPanel(state = viewAttributes, onCommit = onCommitViewAttribute)
+        }
     }
 }
 

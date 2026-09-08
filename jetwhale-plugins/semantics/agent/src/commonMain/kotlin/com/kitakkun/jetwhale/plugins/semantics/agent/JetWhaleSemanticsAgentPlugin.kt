@@ -3,10 +3,12 @@ package com.kitakkun.jetwhale.plugins.semantics.agent
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
 import com.kitakkun.jetwhale.plugins.semantics.protocol.CaptureNodeTree
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.GetViewAttributes
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
+import com.kitakkun.jetwhale.plugins.semantics.protocol.SetViewAttribute
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.reply
 import kotlinx.coroutines.CancellationException
@@ -16,9 +18,11 @@ import kotlin.time.TimeSource
 /**
  * Platform-agnostic core of the Compose Semantics Inspector agent plugin.
  *
- * It answers two host requests — capture the semantics tree, and invoke one node's action — by
- * delegating to the [ComposeNodeSource]s registered in [ComposeNodeSourceRegistry]. Register the
- * plugin with the agent runtime, and install a platform probe so the registry has roots to read:
+ * It answers host requests — capture the semantics tree, invoke one node's action, and read or write
+ * a `View` node's platform attributes — by delegating to the [ComposeNodeSource]s registered in
+ * [ComposeNodeSourceRegistry]. The attribute requests need the optional [ViewAttributeSource]
+ * capability, which only the Android window source has. Register the plugin with the agent runtime,
+ * and install a platform probe so the registry has roots to read:
  *
  * ```kotlin
  * // Android, Application.onCreate()
@@ -41,6 +45,12 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
         }
         onRequest { request: PerformNodeAction ->
             reply(performAction(request))
+        }
+        onRequest { request: GetViewAttributes ->
+            reply(readViewAttributes(request))
+        }
+        onRequest { request: SetViewAttribute ->
+            reply(writeViewAttribute(request))
         }
     }
 
