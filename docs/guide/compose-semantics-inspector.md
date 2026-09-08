@@ -240,6 +240,32 @@ actually exposes. There is also a **Copy `adb shell input tap`** button for the 
 drive the app through the input system. Select an Android `View` node and its editable attributes
 appear below that — see [Editing View attributes](#editing-view-attributes).
 
+### Highlighting on the device
+
+Turn on **Highlight** and the app draws a translucent box over the node you have selected; hovering a
+row shows that node instead for as long as the pointer is on it, and the selection comes back when it
+leaves. It works for Compose nodes and Android `View` nodes alike — both report their bounds in the
+same window coordinates — and a node in a dialog is highlighted in the dialog's own window.
+
+Three things to know:
+
+- **It is off by default, on purpose.** The box is drawn into the app itself, so anything that takes
+  a screenshot of the device while it is up captures the box too — a `screencap`, the Android Device
+  plugin, a QA run. Turn it on to find something, turn it off before you capture.
+- **It never appears in the captured tree.** The box is a window overlay (`View.getOverlay()`), drawn
+  after the root view's children but not one of them, so the tree you are reading is not changed by
+  reading it.
+- **It follows the node, or goes away.** The box is put back where the node is as the window
+  redraws, so scrolling the app, a relayout, or a rotation the activity handles itself does not leave
+  it behind; a node that can no longer be found takes the box down rather than stranding it. A box on
+  screen is always in the right place.
+- **It clears itself.** The app drops a highlight it has not heard about for 30 seconds, so a host
+  that crashes or is killed cannot leave a box on the app's screen for the rest of the session.
+  Closing the inspector, disabling the plugin and disconnecting all clear it straight away.
+
+There is deliberately no MCP tool for this. An agent reads a node's bounds from the tree already, and
+a highlight would only put a box into the screenshots it takes.
+
 ## Can the user operate it?
 
 The question an agent has before it acts is one word: `operable`. A node is operable when it
