@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,11 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
@@ -332,17 +330,14 @@ private fun TextEditor(
         enabled = enabled,
         placeholder = placeholder,
         textStyle = JwTheme.textStyles.code,
-        modifier = modifier
-            .onFocusChanged { state ->
-                if (!state.isFocused) commit()
-            }
-            .onPreviewKeyEvent { event ->
-                if (event.type == KeyEventType.KeyDown && event.key == Key.Enter) {
-                    commit()
-                    true
-                } else {
-                    false
-                }
-            },
+        // Enter arrives as the field's own IME action rather than being taken off the key stream
+        // before it: an input method composing a word — a Japanese one converting kana — spends
+        // Enter on accepting its candidate, and a preview handler would swallow that keystroke and
+        // write the half-composed text instead.
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { commit() }),
+        modifier = modifier.onFocusChanged { state ->
+            if (!state.isFocused) commit()
+        },
     )
 }
