@@ -378,7 +378,7 @@ public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionStrat
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget : java/lang/Enum {
-	public static final field BODY_JSON_FIELD Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;
+	public static final field BODY_FIELD Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget$Companion;
 	public static final field HEADER Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;
 	public static final field URL_QUERY_PARAM Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionTarget;
