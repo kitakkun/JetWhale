@@ -27,7 +27,7 @@ public final class com/kitakkun/jetwhale/plugins/semantics/protocol/CaptureNodeT
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode {
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode : com/kitakkun/jetwhale/plugins/semantics/protocol/UiNode {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode$Companion;
 	public fun <init> (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Ljava/util/List;ZZZZZZZLjava/util/List;)V
 	public synthetic fun <init> (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Ljava/util/List;ZZZZZZZLjava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -53,26 +53,26 @@ public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode 
 	public final fun copy (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Ljava/util/List;ZZZZZZZLjava/util/List;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;
 	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Ljava/util/List;ZZZZZZZLjava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getActions ()Ljava/util/List;
-	public final fun getBounds ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
-	public final fun getBoundsInScreen ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
-	public final fun getChildren ()Ljava/util/List;
-	public final fun getContentDescription ()Ljava/lang/String;
-	public final fun getEditableText ()Ljava/lang/String;
-	public final fun getId ()I
+	public fun getActions ()Ljava/util/List;
+	public fun getBounds ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public fun getBoundsInScreen ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public fun getChildren ()Ljava/util/List;
+	public fun getContentDescription ()Ljava/lang/String;
+	public fun getEditableText ()Ljava/lang/String;
+	public fun getId ()I
 	public final fun getRole ()Ljava/lang/String;
 	public final fun getStateDescription ()Ljava/lang/String;
 	public final fun getTestTag ()Ljava/lang/String;
-	public final fun getText ()Ljava/lang/String;
-	public final fun getToggleableState ()Ljava/lang/String;
+	public fun getText ()Ljava/lang/String;
+	public fun getToggleableState ()Ljava/lang/String;
 	public fun hashCode ()I
-	public final fun isClickable ()Z
-	public final fun isEditable ()Z
-	public final fun isEnabled ()Z
-	public final fun isFocused ()Z
-	public final fun isScrollable ()Z
-	public final fun isSelected ()Z
-	public final fun isVisible ()Z
+	public fun isClickable ()Z
+	public fun isEditable ()Z
+	public fun isEnabled ()Z
+	public fun isFocused ()Z
+	public fun isScrollable ()Z
+	public fun isSelected ()Z
+	public fun isVisible ()Z
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -93,19 +93,19 @@ public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode$
 
 public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;FFFLcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;FFFLcom/kitakkun/jetwhale/plugins/semantics/protocol/UiNode;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()F
 	public final fun component4 ()F
 	public final fun component5 ()F
-	public final fun component6 ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;FFFLcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot;Ljava/lang/String;Ljava/lang/String;FFFLcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot;
+	public final fun component6 ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/UiNode;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;FFFLcom/kitakkun/jetwhale/plugins/semantics/protocol/UiNode;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot;Ljava/lang/String;Ljava/lang/String;FFFLcom/kitakkun/jetwhale/plugins/semantics/protocol/UiNode;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeRoot;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getDensity ()F
 	public final fun getLabel ()Ljava/lang/String;
-	public final fun getNode ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ComposeNode;
+	public final fun getNode ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/UiNode;
 	public final fun getRootId ()Ljava/lang/String;
 	public final fun getWindowOffsetX ()F
 	public final fun getWindowOffsetY ()F
@@ -321,6 +321,92 @@ public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/Pe
 }
 
 public final class com/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public abstract interface class com/kitakkun/jetwhale/plugins/semantics/protocol/UiNode {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/UiNode$Companion;
+	public abstract fun getActions ()Ljava/util/List;
+	public abstract fun getBounds ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public abstract fun getBoundsInScreen ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public abstract fun getChildren ()Ljava/util/List;
+	public abstract fun getContentDescription ()Ljava/lang/String;
+	public abstract fun getEditableText ()Ljava/lang/String;
+	public abstract fun getId ()I
+	public abstract fun getText ()Ljava/lang/String;
+	public abstract fun getToggleableState ()Ljava/lang/String;
+	public abstract fun isClickable ()Z
+	public abstract fun isEditable ()Z
+	public abstract fun isEnabled ()Z
+	public abstract fun isFocused ()Z
+	public abstract fun isScrollable ()Z
+	public abstract fun isSelected ()Z
+	public abstract fun isVisible ()Z
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/UiNode$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ViewNode : com/kitakkun/jetwhale/plugins/semantics/protocol/UiNode {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewNode$Companion;
+	public fun <init> (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Ljava/util/List;ZZZZZZZLjava/util/List;)V
+	public synthetic fun <init> (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Ljava/util/List;ZZZZZZZLjava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()I
+	public final fun component10 ()Ljava/util/List;
+	public final fun component11 ()Z
+	public final fun component12 ()Z
+	public final fun component13 ()Z
+	public final fun component14 ()Z
+	public final fun component15 ()Z
+	public final fun component16 ()Z
+	public final fun component17 ()Z
+	public final fun component18 ()Ljava/util/List;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun component8 ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public final fun component9 ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public final fun copy (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Ljava/util/List;ZZZZZZZLjava/util/List;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewNode;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewNode;ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;Ljava/util/List;ZZZZZZZLjava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getActions ()Ljava/util/List;
+	public fun getBounds ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public fun getBoundsInScreen ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeBounds;
+	public fun getChildren ()Ljava/util/List;
+	public fun getContentDescription ()Ljava/lang/String;
+	public fun getEditableText ()Ljava/lang/String;
+	public fun getId ()I
+	public final fun getResourceId ()Ljava/lang/String;
+	public fun getText ()Ljava/lang/String;
+	public fun getToggleableState ()Ljava/lang/String;
+	public final fun getViewClass ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun isClickable ()Z
+	public fun isEditable ()Z
+	public fun isEnabled ()Z
+	public fun isFocused ()Z
+	public fun isScrollable ()Z
+	public fun isSelected ()Z
+	public fun isVisible ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/ViewNode$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewNode$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewNode;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewNode;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ViewNode$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 

@@ -55,6 +55,8 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
+import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -318,6 +320,11 @@ private fun NodeRow(
         onClick = onSelect,
         onToggleExpanded = onToggleExpanded,
         trailingContent = {
+            // The two node types interleave in one tree, and which one a row is decides how to read
+            // it — so the Android View nodes are tagged rather than left to be inferred from the label.
+            if (row.node is ViewNode) {
+                JwTag(text = "View", tone = JwTone.Info)
+            }
             if (row.node.isInteractive) {
                 JwTag(text = row.node.actionSummary(), tone = JwTone.Accent)
             }
@@ -334,7 +341,7 @@ private fun NodeRow(
     )
 }
 
-private fun ComposeNode.actionSummary(): String = when {
+private fun UiNode.actionSummary(): String = when {
     isClickable -> "clickable"
     isEditable -> "editable"
     isScrollable -> "scrollable"
@@ -344,7 +351,7 @@ private fun ComposeNode.actionSummary(): String = when {
 @Composable
 private fun NodeDetail(
     rootId: String?,
-    node: ComposeNode?,
+    node: UiNode?,
     onPerformAction: (PerformNodeAction) -> Unit,
 ) {
     if (node == null || rootId == null) {
@@ -369,12 +376,21 @@ private fun NodeDetail(
         Column {
             PropertyRow("id", node.id.toString())
             PropertyRow("rootId", rootId)
-            node.role?.let { PropertyRow("role", it) }
+            when (node) {
+                is ViewNode -> {
+                    PropertyRow("viewClass", node.viewClass)
+                    node.resourceId?.let { PropertyRow("resourceId", "@id/$it") }
+                }
+
+                is ComposeNode -> {
+                    node.role?.let { PropertyRow("role", it) }
+                    node.testTag?.let { PropertyRow("testTag", it) }
+                    node.stateDescription?.let { PropertyRow("stateDescription", it, wrap = true) }
+                }
+            }
             node.text?.let { PropertyRow("text", it, wrap = true) }
             node.editableText?.let { PropertyRow("editableText", it, wrap = true) }
             node.contentDescription?.let { PropertyRow("contentDescription", it, wrap = true) }
-            node.testTag?.let { PropertyRow("testTag", it) }
-            node.stateDescription?.let { PropertyRow("stateDescription", it, wrap = true) }
             node.toggleableState?.let { PropertyRow("toggleableState", it) }
             PropertyRow("bounds (root)", node.bounds.formatted())
             PropertyRow("bounds (screen)", node.boundsInScreen.formatted())
@@ -455,12 +471,12 @@ private fun NodeDetail(
 
 private const val SCROLL_STEP_PX = 400f
 
-private fun ComposeNode.adbTapCommand(): String = "adb shell input tap ${boundsInScreen.centerX.roundToInt()} ${boundsInScreen.centerY.roundToInt()}"
+private fun UiNode.adbTapCommand(): String = "adb shell input tap ${boundsInScreen.centerX.roundToInt()} ${boundsInScreen.centerY.roundToInt()}"
 
 @Composable
 private fun ActionButton(
     label: String,
-    node: ComposeNode,
+    node: UiNode,
     action: NodeAction,
     rootId: String,
     onPerformAction: (PerformNodeAction) -> Unit,
@@ -476,7 +492,7 @@ private fun ActionButton(
     )
 }
 
-/** The semantics key an action arrives under in [ComposeNode.actions]. */
+/** The semantics key an action arrives under in [UiNode.actions]. */
 private val NodeAction.semanticsKeyName: String
     get() = when (this) {
         NodeAction.Click -> "OnClick"

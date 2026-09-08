@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="demo_android_view_label">AndroidView demo</string>
+    <string name="demo_android_view_label_tapped">AndroidView demo · tapped</string>
+    <string name="demo_android_view_button">Tap me</string>
+    <string name="demo_view_host_header">View host · header</string>
+</resources>

@@ -1,7 +1,7 @@
 package com.kitakkun.jetwhale.plugins.semantics.host
 
-import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 
 /** One line of the tree view. */
 internal sealed interface TreeRow {
@@ -13,7 +13,7 @@ internal sealed interface TreeRow {
 
     data class NodeRow(
         val rootId: String,
-        val node: ComposeNode,
+        val node: UiNode,
         val depth: Int,
         val expandable: Boolean,
         val expanded: Boolean,
@@ -33,7 +33,7 @@ internal sealed interface TreeRow {
 internal fun buildTreeRows(
     roots: List<ComposeRoot>,
     collapsedKeys: Set<NodeKey>,
-    predicate: (ComposeNode) -> Boolean,
+    predicate: (UiNode) -> Boolean,
 ): List<TreeRow> = buildList {
     for (root in roots) {
         val filtered = root.node?.filterTree(predicate)
@@ -44,7 +44,7 @@ internal fun buildTreeRows(
 
 private fun MutableList<TreeRow>.appendNodeRows(
     rootId: String,
-    node: ComposeNode,
+    node: UiNode,
     depth: Int,
     collapsedKeys: Set<NodeKey>,
 ) {
