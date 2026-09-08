@@ -48,6 +48,8 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * The platform attributes of the selected Android `View` node, and an editor for the ones that can
@@ -70,6 +72,12 @@ internal fun ViewAttributesPanel(
     var writeFailed by remember(rootId, nodeId) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
+    // Writes run one at a time. Each is its own coroutine, so two edits made in quick succession —
+    // a switch toggled twice, a field committed and then a dropdown picked — would otherwise race,
+    // and the row and the status line would settle on whichever answer happened to arrive last
+    // rather than on the last edit made.
+    val writeLock = remember(rootId, nodeId) { Mutex() }
+
     LaunchedEffect(rootId, nodeId) {
         try {
             val response = loadAttributes(GetViewAttributes(rootId = rootId, nodeId = nodeId))
@@ -83,28 +91,30 @@ internal fun ViewAttributesPanel(
 
     fun commit(attribute: ViewAttribute, text: String) {
         scope.launch {
-            val value = try {
-                parseViewAttributeValue(attribute.id, attribute.value, text)
-            } catch (e: JetWhaleMcpArgumentException) {
-                writeStatus = e.message
-                writeFailed = true
-                return@launch
-            }
-            try {
-                val result = writeAttribute(SetViewAttribute(rootId = rootId, nodeId = nodeId, attributeId = attribute.id, value = value))
-                // The row shows what came back, not what was asked for: an app may clamp a value or
-                // ignore it, and the difference is exactly what the panel is for.
-                result.attribute?.let { written ->
-                    attributes = attributes?.map { if (it.id == written.id) written else it }
+            writeLock.withLock {
+                val value = try {
+                    parseViewAttributeValue(attribute.id, attribute.value, text)
+                } catch (e: JetWhaleMcpArgumentException) {
+                    writeStatus = e.message
+                    writeFailed = true
+                    return@withLock
                 }
-                writeFailed = !result.applied
-                writeStatus = when {
-                    result.applied -> "${attribute.id}: ${result.attribute?.value?.asText() ?: "written"}"
-                    else -> "${attribute.id}: ${result.message ?: "not applied"}"
+                try {
+                    val result = writeAttribute(SetViewAttribute(rootId = rootId, nodeId = nodeId, attributeId = attribute.id, value = value))
+                    // The row shows what came back, not what was asked for: an app may clamp a value
+                    // or ignore it, and the difference is exactly what the panel is for.
+                    result.attribute?.let { written ->
+                        attributes = attributes?.map { if (it.id == written.id) written else it }
+                    }
+                    writeFailed = !result.applied
+                    writeStatus = when {
+                        result.applied -> "${attribute.id}: ${result.attribute?.value?.asText() ?: "written"}"
+                        else -> "${attribute.id}: ${result.message ?: "not applied"}"
+                    }
+                } catch (e: JetWhaleMessagingException) {
+                    writeStatus = "${attribute.id} failed: ${e.message}"
+                    writeFailed = true
                 }
-            } catch (e: JetWhaleMessagingException) {
-                writeStatus = "${attribute.id} failed: ${e.message}"
-                writeFailed = true
             }
         }
     }

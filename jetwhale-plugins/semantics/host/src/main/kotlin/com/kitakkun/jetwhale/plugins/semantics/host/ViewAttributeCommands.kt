@@ -33,11 +33,13 @@ internal class GetViewAttributesCommand(
     override val description =
         "Reads the platform attributes of one Android View node — visibility, layout size, padding, margins, alpha, " +
             "background color, text, text size and color — as {\"rootId\", \"nodeId\", \"viewClass\", \"attributes\": " +
-            "[{\"id\", \"label\", \"group\", \"type\", \"value\", \"options\", \"editable\"}]}. \"id\" is what " +
-            "setViewAttribute names, and \"type\" says how to write it: bool (\"true\"), int (\"24\"), float (\"0.5\"), " +
-            "text, color (\"#AARRGGBB\"), dimension (pixels, \"48\"), enum (one of \"options\") or layoutSize — " +
-            "layout.width / layout.height, which take either one of \"constants\" (\"WRAP_CONTENT\", \"MATCH_PARENT\") " +
-            "or a pixel figure, whichever the value currently reads as. \"editable\": false " +
+            "[{\"id\", \"label\", \"group\", \"type\", \"value\", \"editable\"}]}. \"id\" is what setViewAttribute " +
+            "names, and \"type\" says how to write it: bool (\"true\"), int (\"24\"), float (\"0.5\"), text, " +
+            "color (\"#AARRGGBB\"), dimension (pixels, \"48\"), enum (one of the entry's \"options\") or layoutSize — " +
+            "layout.width / layout.height, which always accept either one of the entry's \"constants\" " +
+            "(\"WRAP_CONTENT\", \"MATCH_PARENT\") or a pixel figure, whatever they currently read as. An entry also " +
+            "carries \"options\" for an enum, \"constants\" for a layoutSize, and \"dp\" for a dimension or for a " +
+            "layoutSize that names a length. \"editable\": false " +
             "marks a read-only attribute. Answers {\"message\"} instead when the node has no attributes. " +
             TEMPORARY_NOTICE
 
