@@ -84,7 +84,9 @@ internal fun View.performViewAction(request: PerformNodeAction): NodeActionResul
 
 /**
  * Actions a disabled view still answers — focus and scrolling stay meaningful — are excluded, so
- * only the ones a user could not trigger either are rejected up front.
+ * only the ones a user could not trigger either are rejected up front. So are the ones no view
+ * supports at all: gating those on the view being enabled would answer "the view is disabled" to a
+ * caller whose real problem is that the action does not exist on this side of the tree.
  */
 private val NodeAction.requiresEnabledView: Boolean
     get() = when (this) {
@@ -93,13 +95,13 @@ private val NodeAction.requiresEnabledView: Boolean
         NodeAction.SetText,
         NodeAction.InsertText,
         NodeAction.ImeAction,
-        NodeAction.Expand,
-        NodeAction.Collapse,
         -> true
 
         NodeAction.ScrollBy,
         NodeAction.RequestFocus,
         NodeAction.Dismiss,
+        NodeAction.Expand,
+        NodeAction.Collapse,
         -> false
     }
 
