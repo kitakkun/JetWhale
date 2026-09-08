@@ -84,7 +84,7 @@ class NetworkRedactionRulesTest {
     }
 
     @Test
-    fun `body json field rule redacts nested fields and array elements`() {
+    fun `body field rule redacts nested json fields and array elements`() {
         val rules = NetworkRedactionRules { bodyField("password") }
         val redacted = rules.redactAtCapture(request(body = """{"user":{"password":"pw"},"items":[{"password":"pw2","id":1}]}"""))
         assertEquals(
@@ -94,7 +94,7 @@ class NetworkRedactionRulesTest {
     }
 
     @Test
-    fun `masked body json field preserves string length and hides non-string shape`() {
+    fun `masked body field preserves json string length and hides non-string shape`() {
         val rules = NetworkRedactionRules { bodyField("secret", strategy = RedactionStrategy.MASK) }
         val redacted = rules.redactAtCapture(request(body = """{"secret":"abcd","nested":{"secret":1234567}}"""))
         assertEquals("""{"secret":"****","nested":{"secret":"***"}}""", redacted.body)

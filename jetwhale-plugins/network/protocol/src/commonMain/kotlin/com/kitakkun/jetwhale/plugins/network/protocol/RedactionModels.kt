@@ -109,8 +109,10 @@ private fun List<RedactionRule>.redactUrl(url: String): String {
 
 private const val FORM_URLENCODED_MEDIA_TYPE = "application/x-www-form-urlencoded"
 
-// A body that is neither structured JSON nor form-urlencoded (other content type, bare literal, or
-// truncated by maxBodyChars) is forwarded unchanged; only header/query rules can protect such bodies.
+// A form body is redacted parameter by parameter, so truncation by maxBodyChars only costs the
+// parameters that were cut off. Any other body that does not parse as structured JSON (other content
+// type, bare literal, or JSON truncated mid-value) is forwarded unchanged; only header and query
+// rules can protect it.
 private fun List<RedactionRule>.redactBody(body: String, headers: Map<String, List<String>>): String {
     if (none { it.target == RedactionTarget.BODY_FIELD }) return body
     if (headers.mediaType() == FORM_URLENCODED_MEDIA_TYPE) return redactFormBody(body)
