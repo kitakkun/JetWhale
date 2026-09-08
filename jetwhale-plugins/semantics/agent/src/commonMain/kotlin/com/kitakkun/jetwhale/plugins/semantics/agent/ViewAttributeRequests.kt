@@ -41,10 +41,13 @@ internal suspend fun writeViewAttribute(request: SetViewAttribute): ViewAttribut
     }
 }
 
-private fun sourceOf(rootId: String): ComposeNodeSource? = ComposeNodeSourceRegistry.sources.firstOrNull { it.sourceId == rootId }
+// The three below are the plumbing every optional-capability handler needs, so they are shared with
+// NodeHighlightRequests.kt rather than repeated there.
+
+internal fun sourceOf(rootId: String): ComposeNodeSource? = ComposeNodeSourceRegistry.sources.firstOrNull { it.sourceId == rootId }
+
+internal fun unknownRoot(rootId: String): String = "unknown rootId: $rootId (the root may have been detached; capture the tree again)"
+
+internal fun Throwable.describeFailure(): String = message?.takeIf { it.isNotBlank() } ?: (this::class.simpleName ?: "unknown error")
 
 private const val ROOT_WITHOUT_ATTRIBUTES: String = "this root has no View attributes (it is a composition read through its SemanticsOwner)"
-
-private fun unknownRoot(rootId: String): String = "unknown rootId: $rootId (the root may have been detached; capture the tree again)"
-
-private fun Throwable.describeFailure(): String = message?.takeIf { it.isNotBlank() } ?: (this::class.simpleName ?: "unknown error")
