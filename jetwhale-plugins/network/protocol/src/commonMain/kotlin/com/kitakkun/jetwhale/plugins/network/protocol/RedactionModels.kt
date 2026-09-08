@@ -147,6 +147,11 @@ private fun List<RedactionRule>.redactFormBody(body: String): String = body
         }
     }
 
+// Only two hex digits are an escape: toIntOrNull would also accept a sign, decoding "%-1" as a byte.
+private fun String.hexByteOrNull(): Int? = if (all { it.isHexDigit() }) toInt(radix = 16) else null
+
+private fun Char.isHexDigit(): Boolean = this in '0'..'9' || this in 'a'..'f' || this in 'A'..'F'
+
 private fun String.formUrlDecode(): String {
     if ('%' !in this && '+' !in this) return this
     val decoded = StringBuilder(length)
@@ -160,7 +165,7 @@ private fun String.formUrlDecode(): String {
     var index = 0
     while (index < length) {
         val char = this[index]
-        val escaped = if (char == '%' && index + 2 < length) substring(index + 1, index + 3).toIntOrNull(radix = 16) else null
+        val escaped = if (char == '%' && index + 2 < length) substring(index + 1, index + 3).hexByteOrNull() else null
         if (escaped != null) {
             bytes.add(escaped.toByte())
             index += 3

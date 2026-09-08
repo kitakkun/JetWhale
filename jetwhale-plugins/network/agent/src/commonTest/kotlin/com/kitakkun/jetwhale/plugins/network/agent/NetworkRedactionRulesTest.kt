@@ -126,6 +126,27 @@ class NetworkRedactionRulesTest {
     }
 
     @Test
+    fun `form body rule leaves a malformed percent escape as written`() {
+        val rules = NetworkRedactionRules { bodyField("a%-1b", "c%zzd") }
+        val redacted = rules.redactAtCapture(request(headers = formHeaders, body = "a%-1b=x&c%zzd=y"))
+        assertEquals("a%-1b=$REDACTED_PLACEHOLDER&c%zzd=$REDACTED_PLACEHOLDER", redacted.body)
+    }
+
+    @Test
+    fun `form body rule redacts every occurrence of a repeated parameter`() {
+        val rules = NetworkRedactionRules { bodyField("password") }
+        val redacted = rules.redactAtCapture(request(headers = formHeaders, body = "password=a&password=b"))
+        assertEquals("password=$REDACTED_PLACEHOLDER&password=$REDACTED_PLACEHOLDER", redacted.body)
+    }
+
+    @Test
+    fun `form body rule redacts a value that itself contains an equals sign`() {
+        val rules = NetworkRedactionRules { bodyField("token") }
+        val redacted = rules.redactAtCapture(request(headers = formHeaders, body = "token=a=b=c&x=1"))
+        assertEquals("token=$REDACTED_PLACEHOLDER&x=1", redacted.body)
+    }
+
+    @Test
     fun `form content type with a charset parameter is still treated as a form body`() {
         val rules = NetworkRedactionRules { bodyField("password") }
         val redacted = rules.redactAtCapture(
