@@ -19,13 +19,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,7 +30,6 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwCheckbox
@@ -56,14 +52,10 @@ import com.kitakkun.jetwhale.host.ui.LocalJwContentColor
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
-import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
-import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /**
@@ -74,149 +66,67 @@ import kotlin.math.roundToInt
  * pays only when someone is looking. Auto-refresh exists for watching a screen change, but is off by
  * default for the same reason.
  *
- * Data in, events out: everything the screen draws arrives as a value, and everything it wants done
- * leaves as a callback. Which node is selected is the screen's own business — it is where the tree
- * is clicked — so it is reported upward rather than asked for, and the plugin decides what reading
- * to do about it.
+ * Purely a view: everything it draws arrives in [uiState] and everything it wants done leaves
+ * through the callbacks [uiState] carries. Which node is selected, what the tree is filtered by and
+ * what a capture asks for are all decided in [composeSemanticsInspectorPresenter].
  */
 @Composable
-internal fun ComposeSemanticsInspectorScreen(
-    snapshot: NodeTreeSnapshot?,
-    capturing: Boolean,
-    roundTripMs: Long?,
-    errorMessage: String?,
-    actionStatus: String?,
-    viewAttributes: ViewAttributesUiState,
-    onCapture: suspend (NodeTreeCaptureOptions) -> Unit,
-    onPerformAction: (PerformNodeAction) -> Unit,
-    onSelectedNodeChange: (NodeKey?) -> Unit,
-    onCommitViewAttribute: (ViewAttribute, String) -> Unit,
-    highlightStatus: String?,
-    onHighlightTargetChange: (NodeKey?) -> Unit,
-) {
-    var merged by rememberPersistent("merged-tree", default = true)
-    var interactiveOnly by rememberPersistent("interactive-only", default = false)
-    var includeInvisible by rememberPersistent("include-invisible", default = false)
-    var autoRefresh by rememberPersistent("auto-refresh", default = false)
-    // Off by default, deliberately: the box is drawn into the app itself, so it would otherwise turn
-    // up in any `screencap` taken while the inspector is open — a QA run's screenshots included.
-    var highlightOnDevice by rememberPersistent("highlight-on-device", default = false)
-    val scope = rememberCoroutineScope()
-    var search by remember { mutableStateOf("") }
-    var selectedKey by remember { mutableStateOf<NodeKey?>(null) }
-    var hoveredKey by remember { mutableStateOf<NodeKey?>(null) }
-    val collapsedKeys = remember { mutableStateMapOf<NodeKey, Unit>() }
-
-    val options = NodeTreeCaptureOptions(merged = merged, includeInvisible = includeInvisible, maxDepth = null)
-
-    // Capture once when the screen opens, and again whenever an option changes what would be
-    // captured — an option the user toggled should show its effect without a second click.
-    LaunchedEffect(merged, includeInvisible) {
-        onCapture(options)
-    }
-    LaunchedEffect(autoRefresh, merged, includeInvisible) {
-        if (!autoRefresh) return@LaunchedEffect
-        while (true) {
-            delay(AUTO_REFRESH_INTERVAL_MILLIS)
-            // Awaited, not fired and forgotten: captures are serialised on the app's main thread,
-            // so a fixed-interval loop against a slow app would queue requests faster than they
-            // drain and leave the view showing an ever-older tree.
-            onCapture(options)
-        }
-    }
-
-    val highlighted = highlightTarget(enabled = highlightOnDevice, selected = selectedKey, hovered = hoveredKey)
-    // What to point at is a question about the view — which row is selected, which one the pointer is
-    // over — so the screen answers it and reports the answer. Sending it, holding it against the
-    // app's timeout and taking it down again all outlive this composition, so they are the plugin's.
-    LaunchedEffect(highlighted) { onHighlightTargetChange(highlighted) }
-    DisposableEffect(Unit) {
-        onDispose { onHighlightTargetChange(null) }
-    }
-
-    val rows = remember(snapshot, search, interactiveOnly, collapsedKeys.keys.toSet()) {
-        buildTreeRows(
-            roots = snapshot?.roots.orEmpty(),
-            collapsedKeys = collapsedKeys.keys.toSet(),
-            predicate = { node ->
-                (!interactiveOnly || node.isInteractive) && node.matchesFreeText(search)
-            },
-        )
-    }
-    val selectedNode = selectedKey?.let { key ->
-        snapshot?.roots?.firstOrNull { it.rootId == key.rootId }?.findNode(key.nodeId)
-    }
-
-    // Reported rather than acted on: what a selection is worth reading from the app is the plugin's
-    // decision, and this screen has no way to read anything anyway.
-    LaunchedEffect(selectedKey) {
-        onSelectedNodeChange(selectedKey)
-    }
-
+internal fun ComposeSemanticsInspectorScreen(uiState: ComposeSemanticsInspectorUiState) {
     // The host hands the plugin an unpainted scene, so the screen paints its own background;
     // without it the areas no child covers fall back to white and fight a dark theme.
     Column(Modifier.fillMaxSize().background(JwTheme.colors.surface)) {
         Toolbar(
-            capturing = capturing,
-            merged = merged,
-            interactiveOnly = interactiveOnly,
-            includeInvisible = includeInvisible,
-            autoRefresh = autoRefresh,
-            highlightOnDevice = highlightOnDevice,
-            search = search,
-            onRefresh = { scope.launch { onCapture(options) } },
-            onMergedChange = { merged = it },
-            onInteractiveOnlyChange = { interactiveOnly = it },
-            onIncludeInvisibleChange = { includeInvisible = it },
-            onAutoRefreshChange = { autoRefresh = it },
-            onHighlightOnDeviceChange = { highlightOnDevice = it },
-            onSearchChange = { search = it },
+            capturing = uiState.capturing,
+            merged = uiState.merged,
+            interactiveOnly = uiState.interactiveOnly,
+            includeInvisible = uiState.includeInvisible,
+            autoRefresh = uiState.autoRefresh,
+            highlightOnDevice = uiState.highlightOnDevice,
+            search = uiState.search,
+            onRefresh = uiState.onRefresh,
+            onMergedChange = uiState.onMergedChange,
+            onInteractiveOnlyChange = uiState.onInteractiveOnlyChange,
+            onIncludeInvisibleChange = uiState.onIncludeInvisibleChange,
+            onAutoRefreshChange = uiState.onAutoRefreshChange,
+            onHighlightOnDeviceChange = uiState.onHighlightOnDeviceChange,
+            onSearchChange = uiState.onSearchChange,
         )
         StatusLine(
-            snapshot = snapshot,
-            rowCount = rows.count { it is TreeRow.NodeRow },
-            roundTripMs = roundTripMs,
-            errorMessage = errorMessage,
-            actionStatus = actionStatus,
-            highlightStatus = highlightStatus,
+            summary = uiState.statusSummary,
+            warnings = uiState.warnings,
+            errorMessage = uiState.errorMessage,
+            actionStatus = uiState.actionStatus,
+            highlightStatus = uiState.highlightStatus,
         )
         JwHorizontalDivider()
         JwSplitPane(
             modifier = Modifier.fillMaxSize(),
             state = rememberJwSplitPaneState(TREE_PANE_FRACTION),
             first = {
-                if (rows.isEmpty()) {
-                    EmptyTreeMessage(snapshot = snapshot, search = search, interactiveOnly = interactiveOnly)
+                if (uiState.rows.isEmpty()) {
+                    JwEmptyState(title = uiState.emptyMessage.title, description = uiState.emptyMessage.description)
                 } else {
                     TreeList(
-                        rows = rows,
-                        selectedKey = selectedKey,
-                        onSelect = { selectedKey = it },
-                        onHoverChange = { key, hovered ->
-                            // A row that reports leaving must not clear a hover another row has
-                            // already taken over — the pointer arrives before the old row lets go.
-                            hoveredKey = if (hovered) key else hoveredKey.takeIf { it != key }
-                        },
-                        onToggleExpanded = { key ->
-                            if (collapsedKeys.remove(key) == null) collapsedKeys[key] = Unit
-                        },
+                        rows = uiState.rows,
+                        selectedKey = uiState.selectedKey,
+                        onSelect = uiState.onSelect,
+                        onHoverChange = uiState.onHoverChange,
+                        onToggleExpanded = uiState.onToggleExpanded,
                     )
                 }
             },
             second = {
                 NodeDetail(
-                    rootId = selectedKey?.rootId,
-                    node = selectedNode,
-                    viewAttributes = viewAttributes,
-                    onPerformAction = onPerformAction,
-                    onCommitViewAttribute = onCommitViewAttribute,
+                    rootId = uiState.selectedKey?.rootId,
+                    node = uiState.selectedNode,
+                    viewAttributes = uiState.viewAttributes,
+                    onPerformAction = uiState.onPerformAction,
+                    onCommitViewAttribute = uiState.onCommitViewAttribute,
                 )
             },
         )
     }
 }
-
-private const val AUTO_REFRESH_INTERVAL_MILLIS = 1_000L
 
 /** The tree gets a little more than half; node labels are longer than property rows. */
 private const val TREE_PANE_FRACTION = 0.58f
@@ -276,42 +186,21 @@ private fun Toolbar(
 
 @Composable
 private fun StatusLine(
-    snapshot: NodeTreeSnapshot?,
-    rowCount: Int,
-    roundTripMs: Long?,
+    summary: String,
+    warnings: List<String>,
     errorMessage: String?,
     actionStatus: String?,
     highlightStatus: String?,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        val summary = when (snapshot) {
-            null -> "Not captured yet."
-
-            else -> buildString {
-                append("${snapshot.roots.size} root(s) · $rowCount shown of ${snapshot.nodeCount()} · ")
-                append("${snapshot.captureDurationMs} ms on device")
-                roundTripMs?.let { append(" · $it ms round trip") }
-            }
-        }
         JwStatusLine(text = summary)
-        snapshot?.warnings?.forEach { warning -> JwStatusLine(text = warning, tone = JwTone.Warning) }
+        warnings.forEach { warning -> JwStatusLine(text = warning, tone = JwTone.Warning) }
         errorMessage?.let { JwStatusLine(text = it, tone = JwTone.Error) }
         actionStatus?.let { JwStatusLine(text = it, tone = JwTone.Accent) }
         // Only ever set when the app refused to show the highlight; a highlight that is up says so
         // by being on the device.
         highlightStatus?.let { JwStatusLine(text = "Highlight: $it", tone = JwTone.Warning) }
     }
-}
-
-@Composable
-private fun EmptyTreeMessage(snapshot: NodeTreeSnapshot?, search: String, interactiveOnly: Boolean) {
-    val (title, description) = when {
-        snapshot == null -> "Not captured yet" to "Press Refresh to capture the app's node tree."
-        snapshot.roots.isEmpty() -> "No Compose root reported" to "Install a probe: installJetWhaleSemanticsProbe(application), or call JetWhaleSemanticsProbe() inside your composition."
-        search.isNotBlank() || interactiveOnly -> "No node matches the current filter" to null
-        else -> "The app's Compose roots are empty" to null
-    }
-    JwEmptyState(title = title, description = description)
 }
 
 @Composable
