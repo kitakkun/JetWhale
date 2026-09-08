@@ -219,7 +219,7 @@ private fun SnackbarAction(label: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .height(JwMetrics.controlHeight)
-            .jwFocusRing(interactionSource, JwShapes.small)
+            .jwFocusRing(interactionSource, JwShapes.small, JwFocusRingStyle.Outset)
             .clip(JwShapes.small)
             .background(if (hovered) JwTheme.colors.onTooltip.copy(alpha = ACTION_HOVER_ALPHA) else Color.Transparent)
             .clickable(

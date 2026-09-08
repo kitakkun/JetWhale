@@ -62,7 +62,7 @@ public fun JwCheckbox(
         label = label,
         enabled = enabled,
         modifier = modifier
-            .jwFocusRing(interactionSource, JwShapes.small)
+            .jwFocusRing(interactionSource, JwShapes.small, JwFocusRingStyle.Outset)
             .clip(JwShapes.small)
             .toggleable(
                 value = checked,
@@ -99,7 +99,7 @@ public fun JwTriStateCheckbox(
         label = label,
         enabled = enabled,
         modifier = modifier
-            .jwFocusRing(interactionSource, JwShapes.small)
+            .jwFocusRing(interactionSource, JwShapes.small, JwFocusRingStyle.Outset)
             .clip(JwShapes.small)
             .triStateToggleable(
                 state = state,

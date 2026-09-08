@@ -93,8 +93,10 @@ does less, the name differs so the difference is not a surprise.
 - **Interaction feedback**: components draw no ripple; a hover tint and an accent focus ring take
   its place. The ring marks whatever holds focus — a click moves focus on desktop,
   so the control last clicked keeps it until focus moves on. `Modifier.jwFocusRing(interactionSource,
-  shape)` gives a custom control the same ring; it is drawn just outside the bounds, so a parent
-  that clips (`JwPanel`, `JwDialog`) trims it on a row flush with the edge.
+  shape)` gives a custom control the same ring; it is drawn just inside the bounds, so no parent
+  that clips (`JwPanel`, `JwDialog`) can trim it. `JwFocusRingStyle.Outset` moves it just outside
+  instead, for a small control — a switch, a checkbox, an icon button — whose painted surface
+  leaves no room for a ring inside it.
 - **Content color and text style flow down**: a control that paints a background provides
   `LocalJwContentColor` and `LocalJwTextStyle` for its content, and `JwText` / `JwIcon` read them.
   Use `JwText` rather than Material's `Text` inside Jw components, or the text keeps Material's

@@ -117,7 +117,7 @@ public fun JwButton(
     Row(
         modifier = modifier
             .height(JwMetrics.controlHeight)
-            .jwFocusRing(interactionSource, JwShapes.small)
+            .jwFocusRing(interactionSource, JwShapes.small, JwFocusRingStyle.Outset)
             .clip(JwShapes.small)
             .background(background)
             .border(JwMetrics.borderWidth, borderColor, JwShapes.small)

@@ -191,6 +191,14 @@ public final class com/kitakkun/jetwhale/host/ui/JwEmptyStateKt {
 	public static final fun JwEmptyState (Ljava/lang/String;Landroidx/compose/ui/Modifier;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
+public final class com/kitakkun/jetwhale/host/ui/JwFocusRingStyle : java/lang/Enum {
+	public static final field Inset Lcom/kitakkun/jetwhale/host/ui/JwFocusRingStyle;
+	public static final field Outset Lcom/kitakkun/jetwhale/host/ui/JwFocusRingStyle;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/ui/JwFocusRingStyle;
+	public static fun values ()[Lcom/kitakkun/jetwhale/host/ui/JwFocusRingStyle;
+}
+
 public final class com/kitakkun/jetwhale/host/ui/JwFormFieldKt {
 	public static final fun JwFormField (Ljava/lang/String;Landroidx/compose/ui/Modifier;Ljava/lang/String;ZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
@@ -224,7 +232,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwIcons {
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwInteractionKt {
-	public static final fun jwFocusRing (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/interaction/InteractionSource;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/runtime/Composer;I)Landroidx/compose/ui/Modifier;
+	public static final fun jwFocusRing (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/interaction/InteractionSource;Landroidx/compose/ui/graphics/Shape;Lcom/kitakkun/jetwhale/host/ui/JwFocusRingStyle;Landroidx/compose/runtime/Composer;II)Landroidx/compose/ui/Modifier;
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwKeyValueRowDefaults {

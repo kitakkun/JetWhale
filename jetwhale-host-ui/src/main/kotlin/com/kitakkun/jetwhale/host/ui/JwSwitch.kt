@@ -60,7 +60,7 @@ public fun JwSwitch(
     Box(
         modifier = modifier
             .size(width = TrackWidth, height = TrackHeight)
-            .jwFocusRing(interactionSource, CircleShape)
+            .jwFocusRing(interactionSource, CircleShape, JwFocusRingStyle.Outset)
             .clip(CircleShape)
             .semantics { this.contentDescription = contentDescription }
             .background(trackColor)

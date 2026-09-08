@@ -78,7 +78,7 @@ public fun JwTag(
     Row(
         modifier = modifier
             .height(JwTagDefaults.height)
-            .then(if (onClick != null) Modifier.jwFocusRing(interactionSource, shape) else Modifier)
+            .then(if (onClick != null) Modifier.jwFocusRing(interactionSource, shape, JwFocusRingStyle.Outset) else Modifier)
             .clip(shape)
             .then(if (background != null) Modifier.background(background, shape) else Modifier)
             .then(if (style == JwTagStyle.Outlined) Modifier.border(JwMetrics.borderWidth, tone.color.copy(alpha = 0.6f), shape) else Modifier)
