@@ -51,15 +51,11 @@ import com.kitakkun.jetwhale.host.ui.JwTreeRow
 import com.kitakkun.jetwhale.host.ui.LocalJwContentColor
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
-import com.kitakkun.jetwhale.plugins.semantics.protocol.GetViewAttributes
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
-import com.kitakkun.jetwhale.plugins.semantics.protocol.SetViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
-import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse
-import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -82,8 +78,7 @@ internal fun ComposeSemanticsInspectorScreen(
     actionStatus: String?,
     onCapture: suspend (NodeTreeCaptureOptions) -> Unit,
     onPerformAction: (PerformNodeAction) -> Unit,
-    onLoadViewAttributes: suspend (GetViewAttributes) -> ViewAttributeResponse,
-    onSetViewAttribute: suspend (SetViewAttribute) -> ViewAttributeResult,
+    viewAttributes: ViewAttributeStore,
 ) {
     var merged by rememberPersistent("merged-tree", default = true)
     var interactiveOnly by rememberPersistent("interactive-only", default = false)
@@ -123,6 +118,17 @@ internal fun ComposeSemanticsInspectorScreen(
     }
     val selectedNode = selectedKey?.let { key ->
         snapshot?.roots?.firstOrNull { it.rootId == key.rootId }?.findNode(key.nodeId)
+    }
+
+    // Only an Android View has attributes; anything else selected — a Compose node, nothing at all —
+    // is the store holding nothing. The store does the reading, on the plugin's own scope, so this
+    // only tells it which node the tree is on.
+    val attributeKey = selectedKey?.takeIf { selectedNode is ViewNode }
+    LaunchedEffect(attributeKey) {
+        when (attributeKey) {
+            null -> viewAttributes.clear()
+            else -> viewAttributes.select(rootId = attributeKey.rootId, nodeId = attributeKey.nodeId)
+        }
     }
 
     // The host hands the plugin an unpainted scene, so the screen paints its own background;
@@ -172,8 +178,7 @@ internal fun ComposeSemanticsInspectorScreen(
                     rootId = selectedKey?.rootId,
                     node = selectedNode,
                     onPerformAction = onPerformAction,
-                    onLoadViewAttributes = onLoadViewAttributes,
-                    onSetViewAttribute = onSetViewAttribute,
+                    viewAttributes = viewAttributes,
                 )
             },
         )
@@ -361,8 +366,7 @@ private fun NodeDetail(
     rootId: String?,
     node: UiNode?,
     onPerformAction: (PerformNodeAction) -> Unit,
-    onLoadViewAttributes: suspend (GetViewAttributes) -> ViewAttributeResponse,
-    onSetViewAttribute: suspend (SetViewAttribute) -> ViewAttributeResult,
+    viewAttributes: ViewAttributeStore,
 ) {
     if (node == null || rootId == null) {
         JwEmptyState(title = "Select a node to see its semantics and the actions it exposes.")
@@ -482,10 +486,11 @@ private fun NodeDetail(
         if (node is ViewNode) {
             JwHorizontalDivider()
             ViewAttributesPanel(
-                rootId = rootId,
-                nodeId = node.id,
-                loadAttributes = onLoadViewAttributes,
-                writeAttribute = onSetViewAttribute,
+                attributes = viewAttributes.attributes,
+                message = viewAttributes.message,
+                writeStatus = viewAttributes.writeStatus,
+                writeFailed = viewAttributes.writeFailed,
+                onCommit = viewAttributes::commit,
             )
         }
     }

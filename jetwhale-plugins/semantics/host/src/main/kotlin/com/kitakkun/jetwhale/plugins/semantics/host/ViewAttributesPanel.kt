@@ -13,11 +13,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,8 +23,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.ui.JwDropdownButton
 import com.kitakkun.jetwhale.host.ui.JwMenuItem
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
@@ -38,85 +34,25 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
-import com.kitakkun.jetwhale.plugins.semantics.protocol.GetViewAttributes
-import com.kitakkun.jetwhale.plugins.semantics.protocol.SetViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute
-import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse
-import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
-import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
  * The platform attributes of the selected Android `View` node, and an editor for the ones that can
  * be written.
  *
- * Attributes are fetched per node rather than carried by the capture — a tree of two hundred nodes
- * would otherwise haul thirty attributes each — so this loads whenever the selection changes.
+ * A view of [ViewAttributeStore] and nothing more: the read, the write and their outcome live on
+ * the plugin instance, so this panel can be closed and reopened without any of them being redone or
+ * lost, and an agent writing through the same store is seen here.
  */
-@OptIn(ExperimentalJetWhaleApi::class)
 @Composable
 internal fun ViewAttributesPanel(
-    rootId: String,
-    nodeId: Int,
-    loadAttributes: suspend (GetViewAttributes) -> ViewAttributeResponse,
-    writeAttribute: suspend (SetViewAttribute) -> ViewAttributeResult,
+    attributes: List<ViewAttribute>?,
+    message: String?,
+    writeStatus: String?,
+    writeFailed: Boolean,
+    onCommit: (ViewAttribute, String) -> Unit,
 ) {
-    var attributes by remember(rootId, nodeId) { mutableStateOf<List<ViewAttribute>?>(null) }
-    var message by remember(rootId, nodeId) { mutableStateOf<String?>(null) }
-    var writeStatus by remember(rootId, nodeId) { mutableStateOf<String?>(null) }
-    var writeFailed by remember(rootId, nodeId) { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-
-    // Writes run one at a time. Each is its own coroutine, so two edits made in quick succession —
-    // a switch toggled twice, a field committed and then a dropdown picked — would otherwise race,
-    // and the row and the status line would settle on whichever answer happened to arrive last
-    // rather than on the last edit made.
-    val writeLock = remember(rootId, nodeId) { Mutex() }
-
-    LaunchedEffect(rootId, nodeId) {
-        try {
-            val response = loadAttributes(GetViewAttributes(rootId = rootId, nodeId = nodeId))
-            attributes = response.snapshot?.attributes
-            message = response.message
-        } catch (e: JetWhaleMessagingException) {
-            attributes = null
-            message = "The app did not answer: ${e.message}"
-        }
-    }
-
-    fun commit(attribute: ViewAttribute, text: String) {
-        scope.launch {
-            writeLock.withLock {
-                val value = try {
-                    parseViewAttributeValue(attribute.id, attribute.value, text)
-                } catch (e: JetWhaleMcpArgumentException) {
-                    writeStatus = e.message
-                    writeFailed = true
-                    return@withLock
-                }
-                try {
-                    val result = writeAttribute(SetViewAttribute(rootId = rootId, nodeId = nodeId, attributeId = attribute.id, value = value))
-                    // The row shows what came back, not what was asked for: an app may clamp a value
-                    // or ignore it, and the difference is exactly what the panel is for.
-                    result.attribute?.let { written ->
-                        attributes = attributes?.map { if (it.id == written.id) written else it }
-                    }
-                    writeFailed = !result.applied
-                    writeStatus = when {
-                        result.applied -> "${attribute.id}: ${result.attribute?.value?.asText() ?: "written"}"
-                        else -> "${attribute.id}: ${result.message ?: "not applied"}"
-                    }
-                } catch (e: JetWhaleMessagingException) {
-                    writeStatus = "${attribute.id} failed: ${e.message}"
-                    writeFailed = true
-                }
-            }
-        }
-    }
-
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
         JwSectionHeader(title = "View attributes", contentPadding = PaddingValues(0.dp))
         JwText(
@@ -125,21 +61,20 @@ internal fun ViewAttributesPanel(
             color = JwTheme.colors.textSecondary,
         )
 
-        val loaded = attributes
         when {
-            loaded == null && message == null -> JwText(
+            attributes == null && message == null -> JwText(
                 text = "Reading the view's attributes…",
                 style = JwTheme.textStyles.bodySmall,
                 color = JwTheme.colors.textSecondary,
             )
 
-            loaded == null -> JwStatusLine(text = message.orEmpty(), tone = JwTone.Warning)
+            attributes == null -> JwStatusLine(text = message.orEmpty(), tone = JwTone.Warning)
 
             else -> {
-                for ((group, rows) in loaded.groupBy { it.group }) {
+                for ((group, rows) in attributes.groupBy { it.group }) {
                     JwSectionHeader(title = group, contentPadding = PaddingValues(0.dp))
                     for (attribute in rows) {
-                        AttributeRow(attribute = attribute, onCommit = { text -> commit(attribute, text) })
+                        AttributeRow(attribute = attribute, onCommit = { text -> onCommit(attribute, text) })
                     }
                 }
             }
