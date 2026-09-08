@@ -42,6 +42,8 @@ dependencies {
     testImplementation(libs.kotlinTest)
     testImplementation(libs.kotlinxSerializationJson)
     testImplementation(compose.desktop.currentOs)
+    // The presenter is a composable, so testing it means composing it.
+    testImplementation(libs.jetbrainsComposeUiTestJUnit4)
     testImplementation(libs.material3)
 }
 
