@@ -12,10 +12,14 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.semantics.protocol.CaptureNodeTree
+import com.kitakkun.jetwhale.plugins.semantics.protocol.GetViewAttributes
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
+import com.kitakkun.jetwhale.plugins.semantics.protocol.SetViewAttribute
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import com.kitakkun.jetwhale.protocol.messaging.request
 import kotlinx.coroutines.launch
@@ -66,6 +70,12 @@ private class ComposeNodeInspectorHostPlugin :
 
     private suspend fun performAction(request: PerformNodeAction): NodeActionResult = messenger.request(request)
 
+    // Attributes are read per node, on demand, so they stay out of the capture and out of the
+    // capture lock: a selection change must not queue behind an auto-refresh.
+    private suspend fun loadViewAttributes(request: GetViewAttributes): ViewAttributeResponse = messenger.request(request)
+
+    private suspend fun setViewAttribute(request: SetViewAttribute): ViewAttributeResult = messenger.request(request)
+
     // -------------------------------------------------------------------------
     // JetWhaleHostPluginUi
     // -------------------------------------------------------------------------
@@ -101,6 +111,8 @@ private class ComposeNodeInspectorHostPlugin :
                     }
                 }
             },
+            onLoadViewAttributes = ::loadViewAttributes,
+            onSetViewAttribute = ::setViewAttribute,
         )
     }
 
@@ -115,6 +127,11 @@ private class ComposeNodeInspectorHostPlugin :
             lastSnapshot = { snapshot },
             capture = ::capture,
             perform = ::performAction,
+        ),
+        GetViewAttributesCommand(getAttributes = ::loadViewAttributes),
+        SetViewAttributeCommand(
+            getAttributes = ::loadViewAttributes,
+            setAttribute = ::setViewAttribute,
         ),
     )
 }

@@ -12,9 +12,9 @@ browse it in the host and hand it to an AI agent over [MCP](/guide/mcp-server).
 - 👆 Run a node's own semantics action — click, long click, set text, scroll, focus, dismiss —
   from the host or from an AI agent
 - 🪟 Dialogs and popups appear as their own roots, because that is what they are in Compose
-- 🤝 On Android, the Android `View`s around and inside the composition are in the same tree — see
-  [Android View support](#android-view-support)
-- 🤖 Three MCP tools so an agent can see the screen structurally instead of guessing at pixels
+- 🤝 On Android, the Android `View`s around and inside the composition are in the same tree, and a
+  `View`'s attributes can be read and edited live — see [Android View support](#android-view-support)
+- 🤖 Five MCP tools so an agent can see the screen structurally instead of guessing at pixels
 
 ## What the tree contains
 
@@ -70,13 +70,45 @@ tap: `Click` → `performClick()`, `LongClick` → `performLongClick()`, `SetTex
 `requestFocus()`. `Dismiss`, `Expand` and `Collapse` have no `View` counterpart and come back
 `performed: false` saying so. As always, only what a node lists in `actions` can be invoked.
 
-Three limits are worth knowing:
+### Editing View attributes
+
+A `View` node also exposes its **platform attributes** — the properties a Layout Inspector shows —
+and most of them can be changed live, so you can try a padding, a color or a `GONE` without a
+rebuild. Select a `View` node in the host and the attributes appear under its semantics, grouped:
+
+| Group | Attributes |
+|---|---|
+| **State** | `visibility` (`VISIBLE`/`INVISIBLE`/`GONE`), `enabled`, `selected`, `activated`, `clickable`, `focusable`, and `focused` read-only |
+| **Layout** | `layout.width` / `layout.height` (either constant or a pixel length), `padding.*`, `margin.*` (when the parent hands out margins), `minWidth` / `minHeight`, and `bounds` read-only |
+| **Appearance** | `alpha`, `backgroundColor` (when the background is a flat color; otherwise `background` names the drawable, read-only), `elevation`, `translationX` / `translationY`, `rotation`, `scaleX` / `scaleY` |
+| **Text** | on a `TextView`: `text`, `hint`, `textSize`, `textColor`, `maxLines` |
+| **Info** | `id` (`@id/name`) and `class`, both read-only |
+
+Three things to know:
+
+- **It is a curated list, not reflection.** Every attribute is named explicitly. Reflection over a
+  view's getters is what makes the equivalent elsewhere fragile, and Android's non-SDK interface
+  restrictions block most of what it would reach anyway. The list says exactly what the agent will
+  touch.
+- **An edit is temporary.** The app owns the property: a relayout, a rebind, or the app writing it
+  itself takes the value back. This is a way to *see* a change, not to make one.
+- **Compose nodes have none.** A semantics node is a projection of composition state, so writing to
+  it would be undone by the next recomposition — which is why Android Studio's Layout Inspector
+  edits views and not Compose either. Asking for the attributes of a Compose node answers a message
+  saying so rather than failing.
+
+Attributes are fetched per node when you select one, never as part of a capture: a tree of two
+hundred nodes must not carry thirty attributes each.
+
+Two MCP tools do the same from an agent —
+[`getViewAttributes`](#com-kitakkun-jetwhale-semantics-getviewattributes) and
+[`setViewAttribute`](#com-kitakkun-jetwhale-semantics-setviewattribute).
+
+Two limits are worth knowing:
 
 - **A window with no Compose in it is not captured.** The composition is what announces a window to
   the probe, so a plain `AlertDialog` built from views does not appear. This plugin inspects Compose
   apps; it is not a general View inspector.
-- **No layout attributes.** `layoutParams`, padding, background and the rest are Layout Inspector's
-  job and are deliberately not reported.
 - **A merged capture can fold an `AndroidView` away.** The embedded views hang off the semantics
   node the `AndroidView { }` creates; when an ancestor merges its descendants (a `Button`, a
   `mergeDescendants = true` modifier), that node is folded into the ancestor in the merged tree and
@@ -193,11 +225,12 @@ Open the **Compose Semantics Inspector** in the host, select your app's session,
 
 Select a node to see its full semantics on the right, along with a button for every action it
 actually exposes. There is also a **Copy `adb shell input tap`** button for the times you do want to
-drive the app through the input system.
+drive the app through the input system. Select an Android `View` node and its editable attributes
+appear below that — see [Editing View attributes](#editing-view-attributes).
 
 ## MCP tools
 
-The plugin contributes three tools to the host's [MCP server](/guide/mcp-server). As with every
+The plugin contributes five tools to the host's [MCP server](/guide/mcp-server). As with every
 plugin tool, JetWhale injects the `sessionId` parameter and routes the call to the right session.
 
 ### `com.kitakkun.jetwhale.semantics.findNodes`
@@ -240,6 +273,28 @@ A typical agent loop:
 findNodes(testTag: "login-button")     → { "nodes": [{ "rootId": "compose-root-1f2e", "id": 42, … }] }
 performNodeAction(nodeId: 42, action: "Click")
 findNodes()                            → the new screen's interactive nodes
+```
+
+### `com.kitakkun.jetwhale.semantics.getViewAttributes`
+
+Reads one Android `View` node's platform attributes, addressed by `rootId` and `nodeId`. Each entry
+carries its `id` (what `setViewAttribute` names), `label`, `group`, `type`, `value` as a string, the
+`options` of an enum, and `editable: false` when it cannot be written. A node that has no attributes
+— a Compose node — comes back as a `message` rather than an error. See
+[Editing View attributes](#editing-view-attributes).
+
+### `com.kitakkun.jetwhale.semantics.setViewAttribute`
+
+Changes one attribute: `rootId`, `nodeId`, `attributeId`, and `value` as a **string**, read according
+to the attribute's own type — `"GONE"`, `"true"`, `"0.5"`, `"#80FF0000"`, `"24"` — so there is no
+sealed JSON to construct. The answer carries the attribute as it reads back afterwards, which is not
+always what was asked for: an app may clamp a value or ignore it. The edit is temporary, and only
+`View` nodes have attributes at all.
+
+```
+findNodes(resourceId: "status")   → { "nodes": [{ "rootId": "android-window-1f2e", "id": -4, "kind": "View" }] }
+getViewAttributes(rootId: "android-window-1f2e", nodeId: -4)
+setViewAttribute(rootId: "android-window-1f2e", nodeId: -4, attributeId: "textColor", value: "#FF0000FF")
 ```
 
 ## Why not the CLI?

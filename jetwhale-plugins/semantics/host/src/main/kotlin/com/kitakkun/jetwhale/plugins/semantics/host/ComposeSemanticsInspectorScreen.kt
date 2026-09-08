@@ -51,11 +51,15 @@ import com.kitakkun.jetwhale.host.ui.JwTreeRow
 import com.kitakkun.jetwhale.host.ui.LocalJwContentColor
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.GetViewAttributes
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
+import com.kitakkun.jetwhale.plugins.semantics.protocol.SetViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -78,6 +82,8 @@ internal fun ComposeSemanticsInspectorScreen(
     actionStatus: String?,
     onCapture: suspend (NodeTreeCaptureOptions) -> Unit,
     onPerformAction: (PerformNodeAction) -> Unit,
+    onLoadViewAttributes: suspend (GetViewAttributes) -> ViewAttributeResponse,
+    onSetViewAttribute: suspend (SetViewAttribute) -> ViewAttributeResult,
 ) {
     var merged by rememberPersistent("merged-tree", default = true)
     var interactiveOnly by rememberPersistent("interactive-only", default = false)
@@ -166,6 +172,8 @@ internal fun ComposeSemanticsInspectorScreen(
                     rootId = selectedKey?.rootId,
                     node = selectedNode,
                     onPerformAction = onPerformAction,
+                    onLoadViewAttributes = onLoadViewAttributes,
+                    onSetViewAttribute = onSetViewAttribute,
                 )
             },
         )
@@ -353,6 +361,8 @@ private fun NodeDetail(
     rootId: String?,
     node: UiNode?,
     onPerformAction: (PerformNodeAction) -> Unit,
+    onLoadViewAttributes: suspend (GetViewAttributes) -> ViewAttributeResponse,
+    onSetViewAttribute: suspend (SetViewAttribute) -> ViewAttributeResult,
 ) {
     if (node == null || rootId == null) {
         JwEmptyState(title = "Select a node to see its semantics and the actions it exposes.")
@@ -466,6 +476,18 @@ private fun NodeDetail(
             enabled = !node.boundsInScreen.isEmpty,
             style = JwButtonStyle.Text,
         )
+
+        // Only an Android View has platform attributes to show. A Compose node's semantics are a
+        // projection of composition state, so there is nothing here that could be edited to last.
+        if (node is ViewNode) {
+            JwHorizontalDivider()
+            ViewAttributesPanel(
+                rootId = rootId,
+                nodeId = node.id,
+                loadAttributes = onLoadViewAttributes,
+                writeAttribute = onSetViewAttribute,
+            )
+        }
     }
 }
 
