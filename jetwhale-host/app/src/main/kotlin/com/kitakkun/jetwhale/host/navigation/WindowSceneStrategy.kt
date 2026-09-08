@@ -1,8 +1,9 @@
 package com.kitakkun.jetwhale.host.navigation
 
-import androidx.compose.material.Surface
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -20,6 +21,7 @@ import com.kitakkun.jetwhale.host.LocalComposeWindow
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.app_icon
 import com.kitakkun.jetwhale.host.theme.isShortcutModifierPressed
+import com.kitakkun.jetwhale.host.ui.JwSurface
 import org.jetbrains.compose.resources.painterResource
 
 data class WindowProperties(
@@ -67,7 +69,9 @@ internal class WindowOverlayScene<T : Any>(
             },
         ) {
             CompositionLocalProvider(LocalComposeWindow provides this.window) {
-                Surface {
+                // The window paints its own background, as the main window does: a popout that
+                // drew none would show the platform's default behind a plugin.
+                JwSurface(modifier = Modifier.fillMaxSize()) {
                     windowEntry.entry.Content()
                 }
             }

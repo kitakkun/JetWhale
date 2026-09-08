@@ -26,8 +26,8 @@ Either way, installing copies just this directory into `~/.claude/plugins/cache`
 
 ## Why the skills live in the JetWhale repository
 
-A skill like these is only useful while it is true, and what it describes — MCP tool names, the QA agent's
-control API, which ports the launch tasks accept — moves with the code. Keeping it here means a
+Skills like these are only useful while they are true, and what they describe — MCP tool names, the QA agent's
+control API, which ports the launch tasks accept — moves with the code. Keeping them here means a
 change to the host and the change to its documented workflow land in the same commit, reviewed
 together. A separate repository would let the two drift, and a QA guide that quietly lies is worse
 than none.
