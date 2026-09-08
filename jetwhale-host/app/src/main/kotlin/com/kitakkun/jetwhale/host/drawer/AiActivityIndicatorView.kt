@@ -16,7 +16,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,16 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PlainTooltip
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipAnchorPosition
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -57,17 +49,21 @@ import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.ai_agent_connected
 import com.kitakkun.jetwhale.host.ai_agent_operating
+import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwMetrics
+import com.kitakkun.jetwhale.host.ui.JwPopupAnchor
+import com.kitakkun.jetwhale.host.ui.JwShapes
+import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwSurface
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.JwTooltip
 import org.jetbrains.compose.resources.stringResource
 
 private const val PULSE_PERIOD_MILLIS = 1100
 private const val AI_BORDER_ROTATION_PERIOD_MILLIS = 2000
 private const val AI_BANNER_COLOR_FADE_MILLIS = 300
-
-/**
- * Deliberately not a theme colour: this warm orange has to stand out against the (often primary-
- * tinted) selected drawer item, so it stays legible whether or not the operated plugin is selected.
- */
-val AiOperatingAccentColor = Color(0xFFFF8A00)
 
 /**
  * A border whose highlight sweeps continuously around the shape, marking the element an AI agent is
@@ -80,7 +76,8 @@ val AiOperatingAccentColor = Color(0xFFFF8A00)
 @Composable
 fun Modifier.aiOperatingBorder(
     color: Color,
-    width: Dp = 2.dp,
+    width: Dp,
+    cornerRadius: Dp,
 ): Modifier {
     val transition = rememberInfiniteTransition(label = "ai-operating-border")
     val angle by transition.animateFloat(
@@ -95,8 +92,7 @@ fun Modifier.aiOperatingBorder(
     val brushColors = listOf(color, Color.Transparent, color, Color.Transparent, color)
     return drawWithCache {
         val strokePx = width.toPx()
-        // minDimension/2 makes the corners fully round, matching the drawer item's pill.
-        val radius = size.minDimension / 2f
+        val radius = cornerRadius.toPx()
         val ring = Path().apply {
             fillType = PathFillType.EvenOdd
             addRoundRect(RoundRect(0f, 0f, size.width, size.height, CornerRadius(radius)))
@@ -148,7 +144,7 @@ fun aiActivityPulseAlpha(operating: Boolean): Float {
 }
 
 /**
- * Banner shown in the expanded drawer header while an AI agent is attached over MCP.
+ * Strip shown in the sidebar while an AI agent is attached over MCP.
  */
 @Composable
 fun AiActivityIndicatorView(
@@ -157,8 +153,8 @@ fun AiActivityIndicatorView(
 ) {
     AnimatedVisibility(
         visible = uiState.isAgentConnected,
-        // The banner slides in from the drawer's leading edge and leaves the same way, collapsing
-        // its height as it goes so the rest of the drawer closes the gap rather than jumping.
+        // The strip slides in from the sidebar's leading edge and leaves the same way, collapsing
+        // its height as it goes so the rest of the sidebar closes the gap rather than jumping.
         enter = slideInHorizontally { -it } + expandVertically() + fadeIn(),
         exit = slideOutHorizontally { -it } + shrinkVertically() + fadeOut(),
     ) {
@@ -167,40 +163,41 @@ fun AiActivityIndicatorView(
         // turns that into a soft glow instead of a jarring flicker between the two container colours.
         val containerColor by animateColorAsState(
             targetValue = if (uiState.isOperating) {
-                MaterialTheme.colorScheme.primaryContainer
+                JwTone.Warning.containerColor
             } else {
-                MaterialTheme.colorScheme.surfaceContainerHigh
+                JwTheme.colors.elevatedBackground
             },
             animationSpec = tween(AI_BANNER_COLOR_FADE_MILLIS),
             label = "ai-banner-color",
         )
-        Surface(
+        JwSurface(
             color = containerColor,
-            shape = MaterialTheme.shapes.medium,
+            shape = JwShapes.small,
+            border = BorderStroke(JwMetrics.borderWidth, JwTheme.colors.border),
             modifier = modifier.fillMaxWidth(),
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.padding(horizontal = JwSpacing.medium, vertical = JwSpacing.small),
+                horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
+                JwIcon(
                     imageVector = Icons.Default.SmartToy,
                     contentDescription = null,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .alpha(pulseAlpha),
+                    tint = if (uiState.isOperating) JwTheme.colors.aiAccent else JwTheme.colors.textSecondary,
+                    modifier = Modifier.alpha(pulseAlpha),
                 )
                 // Animate the height so the tool-name line slides in and out instead of snapping.
                 Column(modifier = Modifier.animateContentSize()) {
-                    Text(
+                    JwText(
                         text = stringResource(Res.string.ai_agent_connected),
-                        style = MaterialTheme.typography.labelLarge,
+                        style = JwTheme.textStyles.label,
                     )
                     uiState.operatingToolName?.let { toolName ->
-                        Text(
+                        JwText(
                             text = toolName,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = JwTheme.textStyles.code,
+                            color = JwTheme.colors.textSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -214,7 +211,6 @@ fun AiActivityIndicatorView(
 /**
  * Icon-only variant for the shrunk drawer, where the tool name has to live in a tooltip.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompactAiActivityIndicatorView(
     uiState: AiActivityUiState,
@@ -222,34 +218,22 @@ fun CompactAiActivityIndicatorView(
 ) {
     AnimatedVisibility(visible = uiState.isAgentConnected) {
         val pulseAlpha = aiActivityPulseAlpha(uiState.isOperating)
-        TooltipBox(
-            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Right),
-            tooltip = {
-                PlainTooltip {
-                    Text(uiState.operatingToolName ?: stringResource(Res.string.ai_agent_connected))
-                }
-            },
-            state = rememberTooltipState(),
+        // Beside the rail rather than below it, where the tooltip would cover the next item.
+        JwTooltip(
+            text = uiState.operatingToolName ?: stringResource(Res.string.ai_agent_connected),
+            anchor = JwPopupAnchor.EndCenter,
         ) {
-            Row(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.Center,
+            Box(
+                modifier = modifier.size(JwMetrics.controlHeight),
+                contentAlignment = Alignment.Center,
             ) {
-                Icon(
+                JwIcon(
                     imageVector = Icons.Default.SmartToy,
                     contentDescription = stringResource(
                         if (uiState.isOperating) Res.string.ai_agent_operating else Res.string.ai_agent_connected,
                     ),
-                    tint = if (uiState.isOperating) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    modifier = Modifier
-                        .size(24.dp)
-                        .alpha(pulseAlpha),
+                    tint = if (uiState.isOperating) JwTheme.colors.aiAccent else JwTheme.colors.textSecondary,
+                    modifier = Modifier.alpha(pulseAlpha),
                 )
             }
         }

@@ -6,7 +6,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,6 +16,7 @@ import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -40,8 +41,9 @@ import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
-import com.kitakkun.jetwhale.host.ui.AppEnvironment
-import com.kitakkun.jetwhale.host.ui.JetWhaleTheme
+import com.kitakkun.jetwhale.host.theme.AppEnvironment
+import com.kitakkun.jetwhale.host.theme.HostTheme
+import com.kitakkun.jetwhale.host.ui.JwSurface
 import kotlinx.serialization.modules.SerializersModule
 import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberMutation
@@ -142,9 +144,9 @@ fun JetWhaleApp() {
                 state2 = rememberSubscription(appGraph.appearanceSettingsSubscriptionKey),
                 fallback = SoilFallbackDefaults.none(),
             ) { theme, settings ->
-                JetWhaleTheme(theme.colorScheme) {
+                HostTheme(theme.colorScheme) {
                     AppEnvironment(settings.appLanguage) {
-                        Surface {
+                        JwSurface(modifier = Modifier.fillMaxSize()) {
                             context(retain { appGraph.toolingScaffoldScreenContext }) {
                                 ToolingScaffoldRoot(
                                     onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },

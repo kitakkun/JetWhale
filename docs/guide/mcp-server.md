@@ -117,7 +117,7 @@ showing.
 | `jetwhale.getLogs` | Reads the host's own captured stdout/stderr, filterable by level and substring |
 | `jetwhale.clearLogs` | Discards every captured host log entry |
 | `jetwhale.listInstalledPlugins` | Lists installed plugins and their enabled state, official plugins still available, and any failed or untrusted jar |
-| `jetwhale.setPluginEnabled` | Enables or disables an installed plugin, like the drawer toggle |
+| `jetwhale.setPluginEnabled` | Enables or disables an installed plugin, like the sidebar toggle |
 | `jetwhale.installOfficialPlugin` | Installs a plugin from the official catalog (see Permissions) |
 | `jetwhale.updateSettings` | Changes host settings; only the arguments you supply are touched |
 | `jetwhale.restartDebugServer` | Restarts the debug WebSocket server |
@@ -161,10 +161,10 @@ restarted, and notes explaining any deferred effect.
 |----------|----------|-----------------|
 | `destination` | yes | `HOME`, `PLUGIN`, `SETTINGS`, `INFO`, `LOG_VIEWER` |
 | `pluginId` | for `PLUGIN` | An installed, **enabled** plugin id. |
-| `sessionId` | no | Only for `PLUGIN`; defaults to the session already selected in the drawer. |
+| `sessionId` | no | Only for `PLUGIN`; defaults to the session already selected in the sidebar. |
 | `settingsSection` | no | Only for `SETTINGS`: `GENERAL`, `SERVER`, `AI_AGENTS`, `PLUGINS`. Defaults to `GENERAL`. `SERVER` is the page the window titles **Connection**. |
 
-Navigating to `PLUGIN` also selects that session in the drawer, which is what a subsequent
+Navigating to `PLUGIN` also selects that session in the sidebar, which is what a subsequent
 `jetwhale.screenshot` of the same plugin will show. The call waits up to two seconds for the window
 to confirm, and reports `applied: false` with a reason if it does not.
 
@@ -287,7 +287,7 @@ that keeps values visible to you but hidden from AI agents.
 
 The host has its own view of what agents can do and what they have done. Open it from the **wrench
 icon** at the top of the [drawer](/guide/host-window#the-rest-of-the-drawer), or from the **MCP
-badge** on a plugin's drawer row — which lands you already filtered to that plugin.
+badge** on a plugin's sidebar row — which lands you already filtered to that plugin.
 
 Two filter rows across the top narrow everything below by **Plugin** and by **Session**. Each is a
 multi-select: pick as many values as you like from the dropdown (it stays open so you can add

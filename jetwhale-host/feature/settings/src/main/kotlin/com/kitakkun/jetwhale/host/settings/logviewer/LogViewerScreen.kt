@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.host.settings.logviewer
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -10,6 +9,7 @@ import com.kitakkun.jetwhale.host.model.LogEntry
 import com.kitakkun.jetwhale.host.model.LogLevel
 import com.kitakkun.jetwhale.host.settings.logviewer.components.LogListContent
 import com.kitakkun.jetwhale.host.settings.logviewer.components.LogViewerToolbar
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.collections.immutable.persistentListOf
 import kotlin.time.Clock
 
@@ -42,7 +42,7 @@ fun LogViewerScreen(
 @Preview
 @Composable
 private fun LogViewerScreenPreview() {
-    MaterialTheme {
+    JwTheme(darkTheme = false) {
         LogViewerScreen(
             uiState = LogViewerScreenUiState(
                 logs = persistentListOf(

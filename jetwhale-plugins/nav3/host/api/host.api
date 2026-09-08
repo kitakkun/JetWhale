@@ -1,18 +1,3 @@
-public final class com/kitakkun/jetwhale/plugins/nav3/host/ComposableSingletons$Nav3NavigatorScreenKt {
-	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/nav3/host/ComposableSingletons$Nav3NavigatorScreenKt;
-	public fun <init> ()V
-	public final fun getLambda$-1116830631$com_kitakkun_jetwhale_plugins_nav3_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-1405533578$com_kitakkun_jetwhale_plugins_nav3_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-1565653880$com_kitakkun_jetwhale_plugins_nav3_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-1846595385$com_kitakkun_jetwhale_plugins_nav3_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-1995684359$com_kitakkun_jetwhale_plugins_nav3_host ()Lkotlin/jvm/functions/Function2;
-	public final fun getLambda$-220944812$com_kitakkun_jetwhale_plugins_nav3_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-954273972$com_kitakkun_jetwhale_plugins_nav3_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$1155875854$com_kitakkun_jetwhale_plugins_nav3_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$1411848141$com_kitakkun_jetwhale_plugins_nav3_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$1933186633$com_kitakkun_jetwhale_plugins_nav3_host ()Lkotlin/jvm/functions/Function2;
-}
-
 public final class com/kitakkun/jetwhale/plugins/nav3/host/Nav3HostPluginFactory : com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory {
 	public static final field $stable I
 	public fun <init> ()V

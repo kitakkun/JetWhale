@@ -9,8 +9,8 @@
     {
       "name": "jetwhale",
       "source": "./plugins/jetwhale",
-      "description": "Skills for developing JetWhale host plugins — currently a QA workflow that drives a plugin's real UI through the debug tool's MCP server.",
-      "version": "0.1.0",
+      "description": "Skills for developing JetWhale host plugins: a QA workflow that drives a plugin's real UI through the debug tool's MCP server, and a migration guide from plain Material 3 to the jetwhale-host-ui components.",
+      "version": "0.2.0",
       "author": {
         "name": "kitakkun",
         "url": "https://github.com/kitakkun"

@@ -9,6 +9,7 @@ on:
   pull_request:
     paths:
       - 'jetwhale-host-sdk/**'
+      - 'jetwhale-host-ui/**'
       - 'jetwhale-agent-sdk/**'
       - 'jetwhale-agent-runtime/**'
       - 'jetwhale-annotations/**'
@@ -45,6 +46,7 @@ jobs:
         run: |
           ./gradlew \
             :jetwhale-host-sdk:checkKotlinAbi \
+            :jetwhale-host-ui:checkKotlinAbi \
             :jetwhale-agent-sdk:checkKotlinAbi \
             :jetwhale-agent-runtime:checkKotlinAbi \
             :jetwhale-annotations:checkKotlinAbi \

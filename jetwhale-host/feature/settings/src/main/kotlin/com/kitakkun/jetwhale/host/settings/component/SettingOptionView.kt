@@ -1,20 +1,6 @@
 package com.kitakkun.jetwhale.host.settings.component
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,31 +8,30 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.ui.JwDropdownButton
+import com.kitakkun.jetwhale.host.ui.JwMenuItem
+import com.kitakkun.jetwhale.host.ui.JwPanel
+import com.kitakkun.jetwhale.host.ui.JwSwitch
+import com.kitakkun.jetwhale.host.ui.JwTextField
 
+/** Width shared by every control on the right of a [SettingsItemRow], so a page's controls align. */
+val SettingsControlWidth = 220.dp
+
+/** A titled panel of related settings. */
 @Composable
 fun SettingOptionView(
     label: String,
     content: @Composable SettingsContentScope.() -> Unit,
 ) {
-    Column(
-        modifier = Modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Column {
-            with(object : SettingsContentScope {}) {
-                content()
-            }
+    JwPanel(title = label) {
+        with(object : SettingsContentScope {}) {
+            content()
         }
     }
 }
 
 interface SettingsContentScope
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 context(_: SettingsContentScope)
 fun <T> DropdownSettingsItemView(
@@ -60,39 +45,21 @@ fun <T> DropdownSettingsItemView(
     SettingsItemRow(
         label = label,
     ) {
-        ExposedDropdownMenuBox(
+        JwDropdownButton(
+            text = itemNameProvider(currentItem),
             expanded = expanded,
             onExpandedChange = { expanded = it },
+            modifier = Modifier.width(SettingsControlWidth),
         ) {
-            Card(
-                onClick = { expanded = true },
-            ) {
-                Text(
-                    text = itemNameProvider(currentItem),
-                    modifier = Modifier.padding(
-                        vertical = 8.dp,
-                        horizontal = 16.dp,
-                    ),
+            items.forEach {
+                JwMenuItem(
+                    text = itemNameProvider(it),
+                    selected = it == currentItem,
+                    onClick = {
+                        expanded = false
+                        onSelect(it)
+                    },
                 )
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                items.forEach {
-                    DropdownMenuItem(
-                        text = { Text(text = itemNameProvider(it)) },
-                        onClick = {
-                            expanded = false
-                            onSelect(it)
-                        },
-                        trailingIcon = {
-                            if (it == currentItem) {
-                                Icon(Icons.Default.Check, null)
-                            }
-                        },
-                    )
-                }
             }
         }
     }
@@ -108,9 +75,10 @@ fun SwitchSettingsItemView(
     SettingsItemRow(
         label = label,
     ) {
-        Switch(
+        JwSwitch(
             checked = isChecked,
             onCheckedChange = onCheckedChange,
+            contentDescription = label,
         )
     }
 }
@@ -126,10 +94,11 @@ fun TextFieldSettingsItemView(
     SettingsItemRow(
         label = label,
     ) {
-        OutlinedTextField(
+        JwTextField(
             value = text,
             onValueChange = onTextChange,
             readOnly = readonly,
+            modifier = Modifier.width(SettingsControlWidth),
         )
     }
 }

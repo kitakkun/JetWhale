@@ -1,0 +1,185 @@
+name: Screenshot check
+
+# Screenshot tests of the jetwhale-host-ui component gallery, without committing images to the
+# repository. Images live on companion branches that only CI writes:
+#
+#   screenshots-main       the gallery as rendered from main — the baseline
+#   screenshots-pr-<n>     what pull request <n> renders, plus a side-by-side diff for every
+#                          image that differs from the baseline; deleted when the PR closes
+#
+# The pull-request job comments on the PR with the images (linked from the companion branch)
+# and fails when anything differs. Baseline and candidate are rendered on the same runner image,
+# so a difference is a change in the code, not in the platform's fonts.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'jetwhale-host-ui/**'
+      - 'gradle/libs.versions.toml'
+      - '.github/workflows/screenshot-check.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - 'jetwhale-host-ui/**'
+      - 'gradle/libs.versions.toml'
+      - '.github/workflows/screenshot-check.yml'
+      - '.github/actions/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  SCREENSHOT_DIR: jetwhale-host-ui/screenshots
+  OUTPUT_DIR: jetwhale-host-ui/build/outputs/roborazzi
+
+jobs:
+  # Re-render the baseline whenever main changes, so a PR is always compared against the main
+  # it would merge into.
+  record-baseline:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-java
+
+      - name: Record the gallery
+        run: ./gradlew :jetwhale-host-ui:recordRoborazziJvm
+
+      - name: Publish to screenshots-main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: .github/scripts/publish-screenshots.sh screenshots-main "$SCREENSHOT_DIR"
+
+  compare:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-java
+
+      - name: Fetch the baseline
+        id: baseline
+        run: |
+          mkdir -p "$SCREENSHOT_DIR"
+          if git fetch --depth 1 origin screenshots-main 2>/dev/null; then
+            git --work-tree=. checkout FETCH_HEAD -- . 2>/dev/null || true
+            # The companion branch holds only images at its root; move them where the tests look.
+            find . -maxdepth 1 -name '*.png' -exec mv {} "$SCREENSHOT_DIR"/ \;
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # compare, not verify: the task records the candidate and writes a *_compare.png beside
+      # every image that differs, and never fails — the verdict is decided below, after the
+      # images are published, so the reviewer can see what failed.
+      - name: Render and compare
+        run: ./gradlew :jetwhale-host-ui:compareRoborazziJvm
+
+      # What the PR rendered is the *_actual.png Roborazzi wrote for every image it compared (or
+      # found no baseline for); an image it found identical has no actual file, so the baseline
+      # copy stands in. A *_compare.png exists for every image that differs — or, with no
+      # baseline at all, for every image, which is not a difference and is not counted as one.
+      - name: Collect images
+        id: collect
+        env:
+          BASELINE: ${{ steps.baseline.outputs.present }}
+        run: |
+          mkdir -p publish
+          for f in "$OUTPUT_DIR"/*_actual.png; do
+            [ -e "$f" ] || continue
+            name=$(basename "$f"); cp "$f" "publish/${name%_actual.png}.png"
+          done
+          for f in "$SCREENSHOT_DIR"/*.png; do
+            [ -e "$f" ] || continue
+            name=$(basename "$f"); [ -e "publish/$name" ] || cp "$f" "publish/$name"
+          done
+          if [ "$BASELINE" = "true" ]; then
+            find "$OUTPUT_DIR" -name '*_compare.png' -exec cp {} publish/ \; 2>/dev/null || true
+          fi
+          changed=$(ls publish/*_compare.png 2>/dev/null | wc -l | tr -d ' ')
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          ls -la publish
+
+      - name: Publish to the PR's companion branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: .github/scripts/publish-screenshots.sh "screenshots-pr-${{ github.event.pull_request.number }}" publish
+
+      - name: Comment on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          CHANGED: ${{ steps.collect.outputs.changed }}
+          BASELINE: ${{ steps.baseline.outputs.present }}
+        run: |
+          branch="screenshots-pr-$PR"
+          raw="https://raw.githubusercontent.com/${{ github.repository }}/$branch"
+          {
+            echo "<!-- jw-screenshots -->"
+            echo "### Screenshot check"
+            echo
+            if [ "$BASELINE" != "true" ]; then
+              echo "No baseline yet (\`screenshots-main\` does not exist); recorded the gallery from this PR."
+            elif [ "$CHANGED" = "0" ]; then
+              echo "The gallery matches \`main\`."
+            else
+              echo "**$CHANGED image(s) differ from \`main\`.** Left: this PR · middle: diff · right: main."
+            fi
+            echo
+            for f in publish/*_compare.png; do
+              [ -e "$f" ] || continue
+              name=$(basename "$f")
+              echo "#### ${name%_compare.png}"
+              echo "![$name]($raw/$name?rev=$SHA)"
+              echo
+            done
+            echo "<details><summary>Gallery as rendered from this PR</summary>"
+            echo
+            for f in publish/*.png; do
+              name=$(basename "$f")
+              case "$name" in *_compare.png) continue;; esac
+              echo "**${name%.png}**"
+              echo
+              echo "![$name]($raw/$name?rev=$SHA)"
+              echo
+            done
+            echo "</details>"
+          } > comment.md
+          # One comment per PR, updated in place: find ours by its marker.
+          existing=$(gh api "repos/${{ github.repository }}/issues/$PR/comments" --paginate \
+            --jq '.[] | select(.body | startswith("<!-- jw-screenshots -->")) | .id' | head -1)
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$existing" -F body=@comment.md > /dev/null
+          else
+            gh pr comment "$PR" --body-file comment.md
+          fi
+
+      - name: Fail when the gallery changed
+        if: steps.collect.outputs.changed != '0'
+        run: |
+          echo "::error::${{ steps.collect.outputs.changed }} gallery image(s) differ from main; see the PR comment."
+          exit 1
+
+  cleanup:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete the PR's companion branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/screenshots-pr-${{ github.event.pull_request.number }}" \
+            || echo "no companion branch to delete"

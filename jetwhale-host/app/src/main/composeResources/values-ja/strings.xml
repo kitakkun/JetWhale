@@ -62,4 +62,12 @@
     <string name="mcp_tools_filter_all">すべて</string>
     <string name="mcp_tools_filter_add">フィルターを追加</string>
     <string name="mcp_tools_filter_remove">フィルターを解除</string>
+    <string name="app_short_name">JetWhale</string>
+    <string name="no_plugin_selected_hint">サイドバーでセッションとプラグインを選択してください。アプリは「設定 → 接続」で設定した debug server 経由で接続されます。</string>
+    <string name="collapse_sidebar">サイドバーを折りたたむ</string>
+    <string name="expand_sidebar">サイドバーを展開</string>
+    <string name="settings">設定</string>
+    <string name="info">JetWhale について</string>
+    <string name="plugin_actions">プラグインの操作</string>
+    <string name="mcp_tools_search_clear">検索をクリア</string>
 </resources>

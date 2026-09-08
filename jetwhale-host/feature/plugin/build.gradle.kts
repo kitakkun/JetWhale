@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(projects.jetwhaleHostSdk)
+    implementation(projects.jetwhaleHostUi)
     implementation(projects.jetwhaleHost.core.model)
     implementation(projects.jetwhaleHost.core.ui)
     implementation(projects.jetwhaleHost.core.architecture)

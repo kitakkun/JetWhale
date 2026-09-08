@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -26,26 +27,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -83,10 +66,31 @@ import com.kitakkun.jetwhale.host.mcp_tools_no_match
 import com.kitakkun.jetwhale.host.mcp_tools_parameters
 import com.kitakkun.jetwhale.host.mcp_tools_required
 import com.kitakkun.jetwhale.host.mcp_tools_search
+import com.kitakkun.jetwhale.host.mcp_tools_search_clear
 import com.kitakkun.jetwhale.host.mcp_tools_tab_history
 import com.kitakkun.jetwhale.host.mcp_tools_tab_tools
 import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwDropdownButton
+import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwIconButton
+import com.kitakkun.jetwhale.host.ui.JwIconButtonDefaults
+import com.kitakkun.jetwhale.host.ui.JwIcons
+import com.kitakkun.jetwhale.host.ui.JwListItem
+import com.kitakkun.jetwhale.host.ui.JwMenuItem
+import com.kitakkun.jetwhale.host.ui.JwSearchField
+import com.kitakkun.jetwhale.host.ui.JwShapes
+import com.kitakkun.jetwhale.host.ui.JwSurface
+import com.kitakkun.jetwhale.host.ui.JwTab
+import com.kitakkun.jetwhale.host.ui.JwTabRow
+import com.kitakkun.jetwhale.host.ui.JwTag
+import com.kitakkun.jetwhale.host.ui.JwTagStyle
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
 import org.jetbrains.compose.resources.stringResource
@@ -119,7 +123,7 @@ fun McpToolsScreen(
     onSelectPluginFilters: (Set<String>) -> Unit,
     onSelectSessionFilters: (Set<String>) -> Unit,
 ) {
-    Surface(shape = MaterialTheme.shapes.large) {
+    JwSurface(color = JwTheme.colors.elevatedBackground, shape = JwShapes.large) {
         Column(
             modifier = Modifier
                 // Take most of the window so tool descriptions and history are readable, but stop
@@ -154,12 +158,12 @@ fun McpToolsScreen(
                         onSelectionChange = onSelectSessionFilters,
                     )
                 }
-                Text(
+                JwText(
                     text = stringResource(
                         if (uiState.runningToolName != null) Res.string.mcp_tool_executing else Res.string.mcp_tools_available,
                     ),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = JwTheme.textStyles.label,
+                    color = JwTheme.colors.textSecondary,
                     // Held against the first chip row instead of the middle of a block whose height
                     // grows as chips wrap.
                     modifier = Modifier.padding(top = 8.dp),
@@ -168,28 +172,19 @@ fun McpToolsScreen(
             Spacer(Modifier.size(12.dp))
 
             var selectedTab by remember { mutableStateOf(McpToolsTab.Tools) }
-            SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
-                Tab(
+            JwTabRow {
+                JwTab(
+                    text = stringResource(Res.string.mcp_tools_tab_tools),
                     selected = selectedTab == McpToolsTab.Tools,
                     onClick = { selectedTab = McpToolsTab.Tools },
-                    text = { Text(stringResource(Res.string.mcp_tools_tab_tools)) },
                 )
-                Tab(
+                // How many calls the current scope holds, so the count is visible without opening
+                // the tab.
+                JwTab(
+                    text = stringResource(Res.string.mcp_tools_tab_history),
+                    count = uiState.callHistory.size.takeIf { it > 0 },
                     selected = selectedTab == McpToolsTab.History,
                     onClick = { selectedTab = McpToolsTab.History },
-                    text = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Text(stringResource(Res.string.mcp_tools_tab_history))
-                            if (uiState.callHistory.isNotEmpty()) {
-                                // How many calls the current scope holds, so the count is visible
-                                // without opening the tab.
-                                McpToolCallCountBadge(count = uiState.callHistory.size, running = false)
-                            }
-                        }
-                    },
                 )
             }
             Spacer(Modifier.size(12.dp))
@@ -218,8 +213,8 @@ fun McpToolsScreen(
     }
 }
 
-/** Icon size shared by the filter chips and the entries of their picker. */
-private val McpFilterIconSize = 18.dp
+/** The widest a filter tag grows before its label is cut, so one long session name cannot own the row. */
+private val McpFilterChipMaxWidth = 220.dp
 
 /**
  * One filter group: a removable chip per picked value, plus a chip that opens the picker. An empty
@@ -249,10 +244,10 @@ private fun McpFilterChipGroup(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(
+        JwText(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = JwTheme.textStyles.label,
+            color = JwTheme.colors.textSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             // Fixed width and held against the first chip row so both groups' labels line up even
@@ -269,82 +264,51 @@ private fun McpFilterChipGroup(
             modifier = Modifier.weight(1f),
         ) {
             selectedChips.forEach { option ->
-                InputChip(
-                    selected = true,
+                // Clicking the tag removes the value; the close glyph names what the click does.
+                JwTag(
+                    text = option.label,
+                    tone = JwTone.Accent,
+                    style = JwTagStyle.Tinted,
                     onClick = { onSelectionChange(selectedIds - option.id) },
-                    label = {
-                        Text(
-                            text = option.label,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.widthIn(max = 220.dp),
-                        )
-                    },
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = removeLabel,
-                            modifier = Modifier.size(McpFilterIconSize),
-                        )
-                    },
+                    trailingIcon = { JwIcon(imageVector = JwIcons.Close, contentDescription = removeLabel) },
+                    modifier = Modifier.widthIn(max = McpFilterChipMaxWidth),
                 )
             }
-            Box {
-                val filtering = selectedChips.isNotEmpty()
-                val addIcon: (@Composable () -> Unit)? = if (filtering) {
-                    {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(McpFilterIconSize),
-                        )
-                    }
+            val filtering = selectedChips.isNotEmpty()
+            // The menu survives every pick so several values can be added in one go, and a check
+            // marks what is already picked while it is open.
+            JwDropdownButton(
+                text = if (filtering) addLabel else allLabel,
+                expanded = expanded,
+                onExpandedChange = { expanded = it },
+                enabled = options.isNotEmpty(),
+                leadingIcon = if (filtering) {
+                    { JwIcon(imageVector = Icons.Default.Add, contentDescription = null) }
                 } else {
                     null
-                }
-                AssistChip(
-                    onClick = { expanded = true },
-                    enabled = options.isNotEmpty(),
-                    label = { Text(if (filtering) addLabel else allLabel) },
-                    leadingIcon = addIcon,
+                },
+                modifier = Modifier.width(IntrinsicSize.Max),
+            ) {
+                JwMenuItem(
+                    text = allLabel,
+                    selected = selectedIds.isEmpty(),
+                    onClick = { onSelectionChange(emptySet()) },
                 )
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                ) {
-                    // The menu survives every pick so several values can be added in one go, and a
-                    // check marks what is already picked while it is open.
-                    DropdownMenuItem(
-                        text = { Text(allLabel) },
-                        onClick = { onSelectionChange(emptySet()) },
-                        trailingIcon = { if (selectedIds.isEmpty()) McpFilterSelectedCheck() },
+                options.forEach { option ->
+                    val selected = option.id in selectedIds
+                    JwMenuItem(
+                        text = option.label,
+                        selected = selected,
+                        onClick = {
+                            onSelectionChange(
+                                if (selected) selectedIds - option.id else selectedIds + option.id,
+                            )
+                        },
                     )
-                    options.forEach { option ->
-                        val selected = option.id in selectedIds
-                        DropdownMenuItem(
-                            text = { Text(option.label) },
-                            onClick = {
-                                onSelectionChange(
-                                    if (selected) selectedIds - option.id else selectedIds + option.id,
-                                )
-                            },
-                            trailingIcon = { if (selected) McpFilterSelectedCheck() },
-                        )
-                    }
                 }
             }
         }
     }
-}
-
-/** Marks an entry of a filter picker as already narrowing the screen. */
-@Composable
-private fun McpFilterSelectedCheck() {
-    Icon(
-        imageVector = Icons.Default.Check,
-        contentDescription = null,
-        modifier = Modifier.size(McpFilterIconSize),
-    )
 }
 
 /**
@@ -359,19 +323,18 @@ internal fun McpToolCallCountBadge(count: Int, running: Boolean) {
         modifier = Modifier
             .clip(shape)
             .background(
-                if (running) AiOperatingAccentColor else MaterialTheme.colorScheme.surfaceContainerHighest,
+                if (running) JwTheme.colors.aiAccent else JwTheme.colors.neutralContainer,
                 shape,
             )
             .then(
-                if (running) Modifier.aiOperatingBorder(color = AiOperatingAccentColor, width = 2.dp) else Modifier,
+                if (running) Modifier.aiOperatingBorder(color = JwTheme.colors.aiAccent, width = 2.dp, cornerRadius = 4.dp) else Modifier,
             )
             .padding(horizontal = 7.dp, vertical = 2.dp),
     ) {
-        Text(
+        JwText(
             text = count.toString(),
-            style = MaterialTheme.typography.labelMedium,
-            fontFamily = FontFamily.Monospace,
-            color = if (running) Color.Black else MaterialTheme.colorScheme.onSurface,
+            style = JwTheme.textStyles.code,
+            color = if (running) Color.Black else JwTheme.colors.onSurface,
         )
     }
 }
@@ -402,52 +365,35 @@ private fun McpToolsPane(
     Row(modifier = modifier) {
         // Left pane: search + tool list.
         Column(modifier = Modifier.width(320.dp)) {
-            OutlinedTextField(
+            JwSearchField(
                 value = query,
                 onValueChange = onQueryChange,
-                singleLine = true,
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                placeholder = { Text(stringResource(Res.string.mcp_tools_search)) },
+                clearLabel = stringResource(Res.string.mcp_tools_search_clear),
+                placeholder = stringResource(Res.string.mcp_tools_search),
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.size(8.dp))
             LazyColumn(modifier = Modifier.fillMaxHeight()) {
                 items(filtered, key = { it.key }) { row ->
                     val isSelected = row.key == selected?.key
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(
-                                if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                            )
-                            .clickable { onSelectTool(row.key) }
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                    ) {
+                    JwListItem(selected = isSelected, onClick = { onSelectTool(row.key) }) {
                         // Takes the free space so the count sits against the right edge.
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(
+                            JwText(
                                 text = row.tool.name.substringAfterLast('.'),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontFamily = FontFamily.Monospace,
+                                style = JwTheme.textStyles.code,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                color = if (isSelected) {
-                                    MaterialTheme.colorScheme.onSecondaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
+                                color = JwTheme.colors.onSurface,
                             )
                             // The short name alone is ambiguous once plugins are mixed, so every row
                             // names the plugin that publishes the tool.
-                            Text(
+                            JwText(
                                 text = row.pluginName,
-                                style = MaterialTheme.typography.labelSmall,
+                                style = JwTheme.textStyles.labelSmall,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = JwTheme.colors.textSecondary,
                             )
                         }
                         if (row.callCount > 0 || row.running) {
@@ -457,7 +403,7 @@ private fun McpToolsPane(
                 }
             }
         }
-        VerticalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+        JwVerticalDivider(modifier = Modifier.padding(horizontal = 12.dp))
         // Right pane: the selected tool's detail.
         Column(
             modifier = Modifier
@@ -467,36 +413,35 @@ private fun McpToolsPane(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (selected == null) {
-                Text(
+                JwText(
                     text = stringResource(Res.string.mcp_tools_no_match),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = JwTheme.colors.textSecondary,
                 )
             } else {
-                Text(
+                JwText(
                     text = selected.tool.name.substringAfterLast('.'),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = JwTheme.textStyles.title,
                     fontFamily = FontFamily.Monospace,
                 )
-                Text(
+                JwText(
                     text = selected.pluginName,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = JwTheme.textStyles.label,
+                    color = JwTheme.colors.textSecondary,
                 )
-                Text(
+                JwText(
                     text = selected.tool.name,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = JwTheme.textStyles.code,
+                    color = JwTheme.colors.textSecondary,
                 )
-                Text(
+                JwText(
                     text = selected.tool.description,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = JwTheme.textStyles.body,
                 )
                 if (selected.tool.parameters.isNotEmpty()) {
                     Spacer(Modifier.size(4.dp))
-                    Text(
+                    JwText(
                         text = stringResource(Res.string.mcp_tools_parameters),
-                        style = MaterialTheme.typography.labelLarge,
+                        style = JwTheme.textStyles.label,
                     )
                     selected.tool.parameters.forEach { param -> McpParameterRow(param) }
                 }
@@ -516,10 +461,10 @@ private fun McpCallHistoryPane(
             modifier = modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
+            JwText(
                 text = stringResource(Res.string.mcp_history_empty),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = JwTheme.textStyles.body,
+                color = JwTheme.colors.textSecondary,
             )
         }
         return
@@ -541,7 +486,7 @@ private fun McpCallHistoryPane(
                 )
             }
         }
-        VerticalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+        JwVerticalDivider(modifier = Modifier.padding(horizontal = 12.dp))
         McpCallDetailPane(
             record = selected,
             modifier = Modifier
@@ -575,9 +520,9 @@ private fun McpCallDetailPane(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(
+            JwText(
                 text = record.toolName.substringAfterLast('.'),
-                style = MaterialTheme.typography.titleMedium,
+                style = JwTheme.textStyles.title,
                 fontFamily = FontFamily.Monospace,
             )
             McpCopyIconButton(
@@ -585,36 +530,33 @@ private fun McpCallDetailPane(
                 onClick = { clipboardManager.setText(AnnotatedString(record.toolName)) },
             )
         }
-        Text(
+        JwText(
             text = record.toolName,
-            style = MaterialTheme.typography.labelSmall,
-            fontFamily = FontFamily.Monospace,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = JwTheme.textStyles.code,
+            color = JwTheme.colors.textSecondary,
         )
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(
+            JwIcon(
                 imageVector = if (record.succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
                 contentDescription = null,
-                tint = if (record.succeeded) AiOperatingAccentColor else MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(16.dp),
+                tint = if (record.succeeded) JwTheme.colors.aiAccent else JwTheme.colors.error,
             )
-            Text(
+            JwText(
                 text = statusLabel,
-                style = MaterialTheme.typography.labelMedium,
+                style = JwTheme.textStyles.label,
                 color = if (record.succeeded) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                    JwTheme.colors.textSecondary
                 } else {
-                    MaterialTheme.colorScheme.error
+                    JwTheme.colors.error
                 },
             )
-            Text(
+            JwText(
                 text = finishedAt,
-                style = MaterialTheme.typography.labelMedium,
-                fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = JwTheme.textStyles.code,
+                color = JwTheme.colors.textSecondary,
             )
         }
 
@@ -623,9 +565,9 @@ private fun McpCallDetailPane(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(
+            JwText(
                 text = stringResource(Res.string.mcp_tools_parameters),
-                style = MaterialTheme.typography.labelLarge,
+                style = JwTheme.textStyles.label,
             )
             if (record.arguments.isNotEmpty()) {
                 McpCopyIconButton(
@@ -635,24 +577,22 @@ private fun McpCallDetailPane(
             }
         }
         if (record.arguments.isEmpty()) {
-            Text(
+            JwText(
                 text = stringResource(Res.string.mcp_history_no_arguments),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = JwTheme.textStyles.bodySmall,
+                color = JwTheme.colors.textSecondary,
             )
         } else {
             record.arguments.forEach { argument ->
                 Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    Text(
+                    JwText(
                         text = argument.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontFamily = FontFamily.Monospace,
+                        style = JwTheme.textStyles.code,
                     )
-                    Text(
+                    JwText(
                         text = argument.value,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = JwTheme.textStyles.code,
+                        color = JwTheme.colors.textSecondary,
                     )
                 }
             }
@@ -663,9 +603,9 @@ private fun McpCallDetailPane(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(
+            JwText(
                 text = stringResource(Res.string.mcp_history_response),
-                style = MaterialTheme.typography.labelLarge,
+                style = JwTheme.textStyles.label,
             )
             if (record.response.isNotEmpty()) {
                 McpCopyIconButton(
@@ -675,10 +615,10 @@ private fun McpCallDetailPane(
             }
         }
         if (record.response.isEmpty()) {
-            Text(
+            JwText(
                 text = stringResource(Res.string.mcp_history_no_response),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = JwTheme.textStyles.bodySmall,
+                color = JwTheme.colors.textSecondary,
             )
         } else {
             Box(
@@ -688,21 +628,22 @@ private fun McpCallDetailPane(
                     // pushing the copy action out of the pane.
                     .heightIn(max = 240.dp)
                     .clip(RoundedCornerShape(6.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                    .background(JwTheme.colors.neutralContainer)
                     .verticalScroll(rememberScrollState())
                     .padding(8.dp),
             ) {
-                Text(
+                JwText(
                     text = record.response,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = JwTheme.textStyles.code,
+                    color = JwTheme.colors.textSecondary,
                 )
             }
         }
 
         Spacer(Modifier.size(4.dp))
-        TextButton(
+        JwButton(
+            text = stringResource(Res.string.mcp_history_copy_details),
+            style = JwButtonStyle.Text,
             onClick = {
                 clipboardManager.setText(
                     AnnotatedString(
@@ -716,9 +657,7 @@ private fun McpCallDetailPane(
                     ),
                 )
             },
-        ) {
-            Text(stringResource(Res.string.mcp_history_copy_details))
-        }
+        )
     }
 }
 
@@ -728,15 +667,15 @@ private fun McpCopyIconButton(
     contentDescription: String,
     onClick: () -> Unit,
 ) {
-    IconButton(
+    JwIconButton(
         onClick = onClick,
-        modifier = Modifier.size(24.dp),
+        tooltip = contentDescription,
+        size = JwIconButtonDefaults.inlineSize,
     ) {
-        Icon(
-            imageVector = Icons.Default.ContentCopy,
-            contentDescription = contentDescription,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(16.dp),
+        JwIcon(
+            imageVector = JwIcons.Copy,
+            contentDescription = null,
+            tint = JwTheme.colors.textSecondary,
         )
     }
 }
@@ -803,36 +742,29 @@ private fun McpCallHistoryRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(6.dp))
-                .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+                .background(if (selected) JwTheme.colors.selection else Color.Transparent)
                 .clickable(role = Role.Button, onClick = onSelect)
                 .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(
+            JwIcon(
                 imageVector = if (record.succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
                 contentDescription = statusLabel,
-                tint = if (record.succeeded) AiOperatingAccentColor else MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(16.dp),
+                tint = if (record.succeeded) JwTheme.colors.aiAccent else JwTheme.colors.error,
             )
-            Text(
+            JwText(
                 text = record.toolName.substringAfterLast('.'),
-                style = MaterialTheme.typography.bodyMedium,
-                fontFamily = FontFamily.Monospace,
+                style = JwTheme.textStyles.code,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = if (selected) {
-                    MaterialTheme.colorScheme.onSecondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
+                color = if (selected) JwTheme.colors.onSelection else JwTheme.colors.onSurface,
                 modifier = Modifier.weight(1f),
             )
-            Text(
+            JwText(
                 text = finishedAt,
-                style = MaterialTheme.typography.labelSmall,
-                fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = JwTheme.textStyles.code,
+                color = JwTheme.colors.textSecondary,
             )
         }
     }
@@ -878,32 +810,30 @@ private fun McpParameterRow(param: McpToolParameterSummary) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(
+            JwText(
                 text = param.name,
-                style = MaterialTheme.typography.bodyMedium,
-                fontFamily = FontFamily.Monospace,
+                style = JwTheme.textStyles.code,
             )
             if (param.type.isNotEmpty()) {
-                Text(
+                JwText(
                     text = param.type,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = JwTheme.textStyles.code,
+                    color = JwTheme.colors.textSecondary,
                 )
             }
             if (param.required) {
-                Text(
+                JwText(
                     text = stringResource(Res.string.mcp_tools_required),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
+                    style = JwTheme.textStyles.labelSmall,
+                    color = JwTheme.colors.error,
                 )
             }
         }
         if (param.description.isNotEmpty()) {
-            Text(
+            JwText(
                 text = param.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = JwTheme.textStyles.bodySmall,
+                color = JwTheme.colors.textSecondary,
             )
         }
     }

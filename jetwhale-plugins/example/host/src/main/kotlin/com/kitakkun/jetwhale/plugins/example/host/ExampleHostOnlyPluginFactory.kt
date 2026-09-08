@@ -4,20 +4,20 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwKeyValueRow
+import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwToolbar
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
@@ -37,24 +37,17 @@ private class ExampleHostOnlyPlugin :
 
     private var counter by mutableIntStateOf(0)
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
-        Scaffold(
-            topBar = { TopAppBar(title = { Text("Example Host-only Plugin") }) },
-        ) {
+        Column(Modifier.fillMaxSize()) {
+            JwToolbar(title = "Example Host-only Plugin")
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(it)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(JwSpacing.large),
+                verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
             ) {
-                Text("This plugin has no agent counterpart and exchanges no messages — it is pure host UI.")
-                Text("Host-side counter: $counter")
-                Button(onClick = { counter++ }) {
-                    Text("Increment")
-                }
+                JwText("This plugin has no agent counterpart and exchanges no messages — it is pure host UI.")
+                JwKeyValueRow(key = "Host-side counter", value = counter.toString(), monospace = true)
+                JwButton(text = "Increment", onClick = { counter++ }, style = JwButtonStyle.Primary)
             }
         }
     }

@@ -37,6 +37,7 @@ kermit = "2.1.0"
 
 aboutLibraries = "15.0.4"
 spotless = "8.9.0"
+roborazzi = "1.73.0"
 conveyor = "2.0"
 conveyorControl = "1.1"
 
@@ -79,6 +80,7 @@ jetbrainsComposePreview = { module = "org.jetbrains.compose.ui:ui-tooling-previe
 jetbrainsComposeResources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "jetbrainsCompose" }
 jetbrainsComposeSplitPane = { module = "org.jetbrains.compose.components:components-splitpane", version.ref = "jetbrainsCompose" }
 jetbrainsComposeMaterialIconsExtended = { module = "org.jetbrains.compose.material:material-icons-extended", version = "1.7.3" }
+roborazziComposeDesktop = { module = "io.github.takahirom.roborazzi:roborazzi-compose-desktop", version.ref = "roborazzi" }
 jetbrainsComposeUiTestJUnit4 = { module = "org.jetbrains.compose.ui:ui-test-junit4", version.ref = "jetbrainsCompose" }
 material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
 
@@ -191,6 +193,7 @@ mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublis
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 
 # conventions
+roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 compose = { id = "compose" }
 jvm = { id = "jvm" }
 multiplatform = { id = "multiplatform" }

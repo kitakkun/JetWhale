@@ -15,16 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +32,7 @@ import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadding
 import com.kitakkun.jetwhale.host.settings.add_plugin_from_file
 import com.kitakkun.jetwhale.host.settings.approve_untrusted_plugin
+import com.kitakkun.jetwhale.host.settings.close
 import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
 import com.kitakkun.jetwhale.host.settings.component.SwitchSettingsItemView
 import com.kitakkun.jetwhale.host.settings.dialog_ok
@@ -64,6 +55,16 @@ import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint_macos
 import com.kitakkun.jetwhale.host.settings.sign_plugin_trust_registry_hint_windows
 import com.kitakkun.jetwhale.host.settings.untrusted_jar_hint
 import com.kitakkun.jetwhale.host.settings.untrusted_plugins
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwDialog
+import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
+import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwPanel
+import com.kitakkun.jetwhale.host.ui.JwProgressIndicator
+import com.kitakkun.jetwhale.host.ui.JwShapes
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -80,43 +81,39 @@ fun PluginSettingsScreen(
     var showFailedJarsDialog by remember { mutableStateOf(false) }
 
     if (showFailedJarsDialog) {
-        AlertDialog(
+        JwDialog(
             onDismissRequest = { showFailedJarsDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                )
-            },
-            title = { Text(stringResource(Res.string.failed_to_load_plugins)) },
+            closeLabel = stringResource(Res.string.close),
+            title = stringResource(Res.string.failed_to_load_plugins),
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
+                    JwText(
                         text = stringResource(Res.string.failed_jar_path_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = JwTheme.textStyles.bodySmall,
+                        color = JwTheme.colors.textSecondary,
                     )
-                    HorizontalDivider()
+                    JwHorizontalDivider()
                     uiState.failedJars.forEach { failedJar ->
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
+                            JwText(
                                 text = failedJar.jarPath,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = JwTheme.textStyles.bodySmall,
                             )
-                            Text(
+                            JwText(
                                 text = failedJar.reason,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
+                                style = JwTheme.textStyles.bodySmall,
+                                color = JwTheme.colors.error,
                             )
                         }
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showFailedJarsDialog = false }) {
-                    Text(stringResource(Res.string.dialog_ok))
-                }
+                JwButton(
+                    text = stringResource(Res.string.dialog_ok),
+                    onClick = { showFailedJarsDialog = false },
+                    style = JwButtonStyle.Text,
+                )
             },
         )
     }
@@ -130,9 +127,9 @@ fun PluginSettingsScreen(
         // belongs to, so the section's Root keeps a single set of subscriptions.
         if (page == SettingsScreenPage.InstalledPlugins) {
             item(key = "installed_header") {
-                Text(
+                JwText(
                     text = stringResource(Res.string.installed_plugins),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = JwTheme.textStyles.title,
                 )
             }
         }
@@ -145,18 +142,18 @@ fun PluginSettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    TextButton(
+                    JwButton(
+                        text = stringResource(Res.string.add_plugin_from_file),
                         onClick = onClickAddPlugin,
                         enabled = !uiState.isInstalling,
-                    ) {
-                        Text(stringResource(Res.string.add_plugin_from_file), maxLines = 1)
-                    }
-                    TextButton(
+                        style = JwButtonStyle.Text,
+                    )
+                    JwButton(
+                        text = stringResource(Res.string.install_from_maven),
                         onClick = onClickInstallFromMaven,
                         enabled = !uiState.isInstalling,
-                    ) {
-                        Text(stringResource(Res.string.install_from_maven), maxLines = 1)
-                    }
+                        style = JwButtonStyle.Text,
+                    )
                 }
             }
         }
@@ -166,12 +163,9 @@ fun PluginSettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                    )
+                    JwProgressIndicator()
                     uiState.installProgress?.let { progress ->
-                        Text(
+                        JwText(
                             text = when (progress) {
                                 is PluginInstallProgress.DownloadingPlugin ->
                                     stringResource(Res.string.install_progress_downloading_plugin)
@@ -186,8 +180,8 @@ fun PluginSettingsScreen(
                                 is PluginInstallProgress.LoadingPlugin ->
                                     stringResource(Res.string.install_progress_loading_plugin)
                             },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = JwTheme.textStyles.bodySmall,
+                            color = JwTheme.colors.textSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -200,15 +194,15 @@ fun PluginSettingsScreen(
         if (page == SettingsScreenPage.AddPlugins) {
             uiState.installError?.let { error ->
                 item(key = "install_error") {
-                    Text(
+                    JwText(
                         text = error,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodySmall,
+                        color = JwTheme.colors.onErrorContainer,
+                        style = JwTheme.textStyles.bodySmall,
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                color = MaterialTheme.colorScheme.errorContainer,
-                                shape = MaterialTheme.shapes.small,
+                                color = JwTheme.colors.errorContainer,
+                                shape = JwShapes.small,
                             )
                             .padding(12.dp),
                     )
@@ -227,10 +221,10 @@ fun PluginSettingsScreen(
         }
         if (page == SettingsScreenPage.InstalledPlugins && uiState.plugins.isEmpty()) {
             item(key = "no_plugins") {
-                Text(
+                JwText(
                     text = stringResource(Res.string.no_plugins_installed),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = JwTheme.textStyles.body,
+                    color = JwTheme.colors.textSecondary,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 16.dp),
@@ -239,23 +233,18 @@ fun PluginSettingsScreen(
         }
         if (page == SettingsScreenPage.InstalledPlugins && uiState.failedJars.isNotEmpty()) {
             item(key = "failed_jars") {
-                TextButton(
+                JwButton(
+                    text = stringResource(Res.string.failed_to_load_plugins) + " (${uiState.failedJars.size})",
                     onClick = { showFailedJarsDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(end = 8.dp),
-                    )
-                    Text(
-                        text = stringResource(Res.string.failed_to_load_plugins) +
-                            " (${uiState.failedJars.size})",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                    style = JwButtonStyle.Text,
+                    leadingIcon = {
+                        JwIcon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = JwTheme.colors.error,
+                        )
+                    },
+                )
             }
         }
         if (page == SettingsScreenPage.PluginSecurity && uiState.untrustedJarPaths.isNotEmpty()) {
@@ -268,9 +257,9 @@ fun PluginSettingsScreen(
         }
         if (page == SettingsScreenPage.AddPlugins && uiState.officialPlugins.isNotEmpty()) {
             item(key = "official_header") {
-                Text(
+                JwText(
                     text = stringResource(Res.string.official_plugins),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = JwTheme.textStyles.title,
                     modifier = Modifier.padding(top = 8.dp),
                 )
             }
@@ -300,10 +289,10 @@ fun PluginSettingsScreen(
                         HostOs.WINDOWS -> Res.string.sign_plugin_trust_registry_hint_windows
                         else -> Res.string.sign_plugin_trust_registry_hint_linux
                     }
-                    Text(
+                    JwText(
                         text = "${stringResource(Res.string.sign_plugin_trust_registry_hint)} ${stringResource(osHint)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = JwTheme.textStyles.bodySmall,
+                        color = JwTheme.colors.textSecondary,
                     )
                 }
             }
@@ -311,44 +300,45 @@ fun PluginSettingsScreen(
     }
 }
 
+/** Inset of an installed or official plugin row inside its panel. */
+private val PluginRowPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+
 @Composable
 private fun InstalledPluginRow(
     plugin: com.kitakkun.jetwhale.host.settings.component.PluginInfoUiState,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        shape = MaterialTheme.shapes.medium,
+    JwPanel(
         modifier = modifier.fillMaxWidth(),
+        contentPadding = PluginRowPadding,
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 modifier = Modifier.weight(1f),
             ) {
-                Text(
+                JwText(
                     text = plugin.name,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = JwTheme.textStyles.subtitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
+                JwText(
                     text = plugin.id,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = JwTheme.textStyles.bodySmall,
+                    color = JwTheme.colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Text(
+            JwText(
                 text = "v${plugin.version}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = JwTheme.textStyles.label,
+                color = JwTheme.colors.textSecondary,
                 maxLines = 1,
             )
         }
@@ -365,8 +355,8 @@ private fun UntrustedPluginsSection(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                color = MaterialTheme.colorScheme.errorContainer,
-                shape = MaterialTheme.shapes.small,
+                color = JwTheme.colors.errorContainer,
+                shape = JwShapes.small,
             )
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -375,36 +365,38 @@ private fun UntrustedPluginsSection(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
+            JwIcon(
                 imageVector = Icons.Default.Warning,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
+                tint = JwTheme.colors.error,
             )
-            Text(
+            JwText(
                 text = stringResource(Res.string.untrusted_plugins) + " (${untrustedJarPaths.size})",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                style = JwTheme.textStyles.subtitle,
+                color = JwTheme.colors.onErrorContainer,
             )
         }
-        Text(
+        JwText(
             text = stringResource(Res.string.untrusted_jar_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onErrorContainer,
+            style = JwTheme.textStyles.bodySmall,
+            color = JwTheme.colors.onErrorContainer,
         )
         untrustedJarPaths.forEach { path ->
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
+                JwText(
                     text = path,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = JwTheme.textStyles.bodySmall,
+                    color = JwTheme.colors.onErrorContainer,
                     modifier = Modifier.weight(1f),
                 )
-                Button(onClick = { onApprove(path) }) {
-                    Text(stringResource(Res.string.approve_untrusted_plugin))
-                }
+                JwButton(
+                    text = stringResource(Res.string.approve_untrusted_plugin),
+                    onClick = { onApprove(path) },
+                    style = JwButtonStyle.Primary,
+                )
             }
         }
     }
@@ -417,31 +409,29 @@ private fun OfficialPluginRow(
     onClickInstall: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        shape = MaterialTheme.shapes.medium,
+    JwPanel(
         modifier = modifier.fillMaxWidth(),
+        contentPadding = PluginRowPadding,
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier.weight(1f),
             ) {
-                Text(
+                JwText(
                     text = uiState.plugin.displayName,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = JwTheme.textStyles.subtitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
+                JwText(
                     text = uiState.plugin.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = JwTheme.textStyles.bodySmall,
+                    color = JwTheme.colors.textSecondary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -451,29 +441,25 @@ private fun OfficialPluginRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
+                    JwIcon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp),
+                        tint = JwTheme.colors.accent,
                     )
-                    Text(
+                    JwText(
                         text = stringResource(Res.string.official_plugin_installed),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
+                        style = JwTheme.textStyles.label,
+                        color = JwTheme.colors.accent,
                         maxLines = 1,
                     )
                 }
             } else {
-                FilledTonalButton(
+                JwButton(
+                    text = stringResource(Res.string.maven_install_install),
                     onClick = onClickInstall,
                     enabled = installEnabled,
-                ) {
-                    Text(
-                        text = stringResource(Res.string.maven_install_install),
-                        maxLines = 1,
-                    )
-                }
+                    style = JwButtonStyle.Secondary,
+                )
             }
         }
     }

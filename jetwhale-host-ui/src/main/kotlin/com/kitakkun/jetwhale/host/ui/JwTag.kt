@@ -1,0 +1,106 @@
+package com.kitakkun.jetwhale.host.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
+/** How a [JwTag] is drawn. */
+public enum class JwTagStyle {
+    /** Colored text on a hairline outline: the default, quiet enough to repeat on every row. */
+    Outlined,
+
+    /** Colored text on the tone's soft container. */
+    Tinted,
+
+    /** Contrasting text on the tone's strong color: reserved for the state that must be seen. */
+    Filled,
+}
+
+/** Sizes of a [JwTag]. */
+public object JwTagDefaults {
+    /** Height of a tag: fits on a [JwListItem] row without stretching it. */
+    public val height: Dp = 18.dp
+}
+
+/** Gap between a tag's text and its icons; tighter than [JwSpacing.extraSmall] to fit the height. */
+private val TagContentGap = 3.dp
+
+/**
+ * A small inline label — an HTTP method, a status code, "MCP", "mocked". [JwTagDefaults.height]
+ * tall, so it fits on a [JwListItem] row without stretching it.
+ *
+ * @param text the label, kept to one line.
+ * @param tone the color family.
+ * @param style how the tone is applied; see [JwTagStyle].
+ * @param onClick makes the tag a button, for a tag that opens something or toggles a choice.
+ * @param leadingIcon an optional glyph before the text.
+ * @param trailingIcon an optional glyph after the text, such as an "opens elsewhere" arrow.
+ */
+@Composable
+public fun JwTag(
+    text: String,
+    modifier: Modifier = Modifier,
+    tone: JwTone = JwTone.Neutral,
+    style: JwTagStyle = JwTagStyle.Outlined,
+    onClick: (() -> Unit)? = null,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable () -> Unit)? = null,
+) {
+    val shape = JwShapes.extraSmall
+    val interactionSource = remember { MutableInteractionSource() }
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val background = when (style) {
+        JwTagStyle.Outlined -> if (hovered && onClick != null) JwTheme.colors.hover else null
+        JwTagStyle.Tinted -> tone.containerColor
+        JwTagStyle.Filled -> tone.color
+    }
+    val contentColor = when (style) {
+        JwTagStyle.Outlined -> tone.color
+        JwTagStyle.Tinted -> tone.onContainerColor
+        JwTagStyle.Filled -> tone.onColor
+    }
+    Row(
+        modifier = modifier
+            .height(JwTagDefaults.height)
+            .then(if (onClick != null) Modifier.jwFocusRing(interactionSource, shape) else Modifier)
+            .clip(shape)
+            .then(if (background != null) Modifier.background(background, shape) else Modifier)
+            .then(if (style == JwTagStyle.Outlined) Modifier.border(JwMetrics.borderWidth, tone.color.copy(alpha = 0.6f), shape) else Modifier)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = onClick)
+                } else {
+                    Modifier
+                },
+            )
+            .padding(horizontal = JwSpacing.small),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(TagContentGap),
+    ) {
+        CompositionLocalProvider(LocalJwContentColor provides contentColor) {
+            leadingIcon?.invoke()
+            JwText(
+                text = text,
+                style = JwTheme.textStyles.labelSmall,
+                maxLines = 1,
+            )
+            trailingIcon?.invoke()
+        }
+    }
+}

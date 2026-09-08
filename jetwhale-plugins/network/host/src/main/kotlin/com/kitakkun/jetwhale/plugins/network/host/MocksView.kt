@@ -11,20 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,9 +18,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwDialog
+import com.kitakkun.jetwhale.host.ui.JwDropdownButton
+import com.kitakkun.jetwhale.host.ui.JwFormField
+import com.kitakkun.jetwhale.host.ui.JwMenuItem
+import com.kitakkun.jetwhale.host.ui.JwPanel
+import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwSwitch
+import com.kitakkun.jetwhale.host.ui.JwTag
+import com.kitakkun.jetwhale.host.ui.JwTagStyle
+import com.kitakkun.jetwhale.host.ui.JwText
+import com.kitakkun.jetwhale.host.ui.JwTextField
+import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
@@ -54,25 +53,26 @@ internal fun MocksTab(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(JwSpacing.large),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
-            Switch(mockingEnabled, onToggleMocking)
-            Text(
+            JwSwitch(mockingEnabled, onToggleMocking, contentDescription = "Mocking enabled")
+            JwText(
                 text = "Mocking enabled",
-                style = MaterialTheme.typography.bodyMedium,
+                style = JwTheme.textStyles.body,
             )
             Spacer(Modifier.weight(1f))
-            Button(onClick = { editing = blankRule() }) { Text("Add rule") }
+            JwButton(text = "Add rule", onClick = { editing = blankRule() }, style = JwButtonStyle.Primary)
         }
         if (rules.isEmpty()) {
-            Text(
+            JwText(
                 text = "No mock rules. Add one to override matching responses.",
-                color = MaterialTheme.colorScheme.outline,
+                style = JwTheme.textStyles.bodySmall,
+                color = JwTheme.colors.textSecondary,
             )
         }
         rules.forEach { rule ->
@@ -106,28 +106,25 @@ private fun MockRuleRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(Modifier.fillMaxWidth()) {
+    JwPanel {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(JwSpacing.large),
         ) {
-            Switch(rule.enabled, onToggle)
+            JwSwitch(rule.enabled, onToggle, contentDescription = "Rule enabled")
             Column(Modifier.weight(1f)) {
-                Text(
+                JwText(
                     text = rule.name.ifBlank { "(unnamed rule)" },
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = JwTheme.textStyles.label,
                 )
-                Text(
+                JwText(
                     text = "${rule.matcher.method ?: "ANY"} • ${rule.matcher.matchType} '${rule.matcher.urlPattern}' → ${rule.response.statusCode}",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.outline,
+                    style = JwTheme.textStyles.code,
+                    color = JwTheme.colors.textSecondary,
                 )
             }
-            TextButton(onEdit) { Text("Edit") }
-            TextButton(onDelete) { Text("Delete") }
+            JwButton(text = "Edit", onClick = onEdit, style = JwButtonStyle.Text)
+            JwButton(text = "Delete", onClick = onDelete, style = JwButtonStyle.Text, tone = JwTone.Error)
         }
     }
 }
@@ -135,138 +132,149 @@ private fun MockRuleRow(
 @Composable
 private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (MockRule) -> Unit) {
     var draft by remember(initial.id) { mutableStateOf(initial) }
-    AlertDialog(
+    JwDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Mock rule") },
+        closeLabel = "Close",
+        title = "Mock rule",
         confirmButton = {
-            TextButton(
+            JwButton(
+                text = "Save",
                 onClick = { onSave(draft) },
                 enabled = draft.matcher.urlPattern.isNotBlank(),
-            ) { Text("Save") }
+                style = JwButtonStyle.Primary,
+            )
         },
-        dismissButton = { TextButton(onDismiss) { Text("Cancel") } },
+        dismissButton = { JwButton(text = "Cancel", onClick = onDismiss, style = JwButtonStyle.Text) },
         text = {
             Column(
-                modifier = Modifier
-                    .heightIn(max = 460.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
             ) {
-                OutlinedTextField(
-                    value = draft.name,
-                    onValueChange = { draft = draft.copy(name = it) },
-                    label = { Text("Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MethodDropdown(
-                        method = draft.matcher.method,
-                        onSelect = { draft = draft.copy(matcher = draft.matcher.copy(method = it)) },
-                        modifier = Modifier.width(150.dp),
-                    )
-                    OutlinedTextField(
-                        value = draft.matcher.urlPattern,
-                        onValueChange = { draft = draft.copy(matcher = draft.matcher.copy(urlPattern = it)) },
-                        label = { Text("URL pattern") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
+                JwFormField(label = "Name") {
+                    JwTextField(
+                        value = draft.name,
+                        onValueChange = { draft = draft.copy(name = it) },
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    MockMatchType.entries.forEach { type ->
-                        FilterChip(
-                            selected = draft.matcher.matchType == type,
-                            onClick = { draft = draft.copy(matcher = draft.matcher.copy(matchType = type)) },
-                            label = { Text(type.name) },
+                Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
+                    JwFormField(label = "Method", modifier = Modifier.width(MethodFieldWidth)) {
+                        MethodDropdown(
+                            method = draft.matcher.method,
+                            onSelect = { draft = draft.copy(matcher = draft.matcher.copy(method = it)) },
+                        )
+                    }
+                    JwFormField(label = "URL pattern", modifier = Modifier.weight(1f)) {
+                        JwTextField(
+                            value = draft.matcher.urlPattern,
+                            onValueChange = { draft = draft.copy(matcher = draft.matcher.copy(urlPattern = it)) },
+                            textStyle = JwTheme.textStyles.code,
                         )
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = draft.response.statusCode.toString(),
-                        onValueChange = { value ->
-                            draft = draft.copy(
-                                response = draft.response.copy(
-                                    statusCode = value.toIntOrNull() ?: draft.response.statusCode,
-                                ),
+                JwFormField(label = "Match") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
+                        MockMatchType.entries.forEach { type ->
+                            val selected = draft.matcher.matchType == type
+                            JwTag(
+                                text = type.name,
+                                tone = if (selected) JwTone.Accent else JwTone.Neutral,
+                                style = if (selected) JwTagStyle.Filled else JwTagStyle.Outlined,
+                                onClick = { draft = draft.copy(matcher = draft.matcher.copy(matchType = type)) },
                             )
-                        },
-                        label = { Text("Status") },
-                        singleLine = true,
-                        modifier = Modifier.width(110.dp),
-                    )
-                    OutlinedTextField(
-                        value = draft.response.delayMs.toString(),
-                        onValueChange = { value ->
-                            draft = draft.copy(
-                                response = draft.response.copy(
-                                    delayMs = value.toLongOrNull() ?: draft.response.delayMs,
-                                ),
-                            )
-                        },
-                        label = { Text("Delay ms") },
-                        singleLine = true,
-                        modifier = Modifier.width(120.dp),
-                    )
-                    OutlinedTextField(
-                        value = draft.response.headers["Content-Type"].orEmpty(),
-                        onValueChange = { value ->
-                            val headers = if (value.isBlank()) {
-                                draft.response.headers - "Content-Type"
-                            } else {
-                                draft.response.headers + ("Content-Type" to value)
-                            }
-                            draft = draft.copy(response = draft.response.copy(headers = headers))
-                        },
-                        label = { Text("Content-Type") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
+                        }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
+                    JwFormField(label = "Status", modifier = Modifier.width(StatusFieldWidth)) {
+                        JwTextField(
+                            value = draft.response.statusCode.toString(),
+                            onValueChange = { value ->
+                                draft = draft.copy(
+                                    response = draft.response.copy(
+                                        statusCode = value.toIntOrNull() ?: draft.response.statusCode,
+                                    ),
+                                )
+                            },
+                            textStyle = JwTheme.textStyles.code,
+                        )
+                    }
+                    JwFormField(label = "Delay ms", modifier = Modifier.width(DelayFieldWidth)) {
+                        JwTextField(
+                            value = draft.response.delayMs.toString(),
+                            onValueChange = { value ->
+                                draft = draft.copy(
+                                    response = draft.response.copy(
+                                        delayMs = value.toLongOrNull() ?: draft.response.delayMs,
+                                    ),
+                                )
+                            },
+                            textStyle = JwTheme.textStyles.code,
+                        )
+                    }
+                    JwFormField(label = "Content-Type", modifier = Modifier.weight(1f)) {
+                        JwTextField(
+                            value = draft.response.headers["Content-Type"].orEmpty(),
+                            onValueChange = { value ->
+                                val headers = if (value.isBlank()) {
+                                    draft.response.headers - "Content-Type"
+                                } else {
+                                    draft.response.headers + ("Content-Type" to value)
+                                }
+                                draft = draft.copy(response = draft.response.copy(headers = headers))
+                            },
+                            textStyle = JwTheme.textStyles.code,
+                        )
+                    }
+                }
+                JwFormField(label = "Response body") {
+                    JwTextField(
+                        value = draft.response.body,
+                        onValueChange = { draft = draft.copy(response = draft.response.copy(body = it)) },
+                        singleLine = false,
+                        textStyle = JwTheme.textStyles.code,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = BodyEditorMinHeight),
                     )
                 }
-                OutlinedTextField(
-                    value = draft.response.body,
-                    onValueChange = { draft = draft.copy(response = draft.response.copy(body = it)) },
-                    label = { Text("Response body") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 100.dp),
-                )
             }
         },
     )
 }
 
+/** Fits "OPTIONS" plus the chevron. */
+private val MethodFieldWidth = 130.dp
+
+/** Three digits. */
+private val StatusFieldWidth = 80.dp
+
+/** Up to five digits of milliseconds. */
+private val DelayFieldWidth = 90.dp
+
+/** Enough lines to read a small JSON body without scrolling. */
+private val BodyEditorMinHeight = 100.dp
+
 private val httpMethods = listOf("ANY", "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS")
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MethodDropdown(method: String?, onSelect: (String?) -> Unit, modifier: Modifier) {
+private fun MethodDropdown(method: String?, onSelect: (String?) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val current = method?.takeIf { it.isNotBlank() } ?: "ANY"
-    ExposedDropdownMenuBox(
+    JwDropdownButton(
+        text = current,
         expanded = expanded,
         onExpandedChange = { expanded = it },
-        modifier = modifier,
     ) {
-        OutlinedTextField(
-            value = current,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Method") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            httpMethods.forEach { item ->
-                DropdownMenuItem(
-                    text = { Text(item) },
-                    onClick = {
-                        onSelect(item.takeIf { it != "ANY" })
-                        expanded = false
-                    },
-                )
-            }
+        httpMethods.forEach { item ->
+            JwMenuItem(
+                text = item,
+                selected = item == current,
+                onClick = {
+                    onSelect(item.takeIf { it != "ANY" })
+                    expanded = false
+                },
+            )
         }
     }
 }

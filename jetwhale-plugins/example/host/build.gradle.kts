@@ -12,6 +12,7 @@ dependencies {
     // Provided by the host at runtime, so compileOnly: these must be neither bundled into the
     // plugin jar nor listed in its dependency manifest.
     compileOnly(projects.jetwhaleHostSdk)
+    compileOnly(projects.jetwhaleHostUi)
     compileOnly(compose.desktop.currentOs)
     compileOnly(libs.material3)
     compileOnly(libs.kotlinxSerializationJson)

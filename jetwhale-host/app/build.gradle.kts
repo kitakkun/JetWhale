@@ -149,6 +149,7 @@ dependencies {
     implementation(projects.jetwhaleProtocol.core)
     implementation(projects.jetwhaleHost.feature.settings)
     implementation(projects.jetwhaleHost.feature.plugin)
+    implementation(projects.jetwhaleHostUi)
     implementation(projects.jetwhaleHost.core.model)
     implementation(projects.jetwhaleHost.core.data)
     // main() applies --log-level to the root logger; logback is on the runtime classpath through
