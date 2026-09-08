@@ -1,6 +1,9 @@
 package com.kitakkun.jetwhale.plugins.semantics.host
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -16,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -87,14 +91,20 @@ internal fun ComposeSemanticsInspectorScreen(
     onPerformAction: (PerformNodeAction) -> Unit,
     onSelectedNodeChange: (NodeKey?) -> Unit,
     onCommitViewAttribute: (ViewAttribute, String) -> Unit,
+    highlightStatus: String?,
+    onHighlightTargetChange: (NodeKey?) -> Unit,
 ) {
     var merged by rememberPersistent("merged-tree", default = true)
     var interactiveOnly by rememberPersistent("interactive-only", default = false)
     var includeInvisible by rememberPersistent("include-invisible", default = false)
     var autoRefresh by rememberPersistent("auto-refresh", default = false)
+    // Off by default, deliberately: the box is drawn into the app itself, so it would otherwise turn
+    // up in any `screencap` taken while the inspector is open — a QA run's screenshots included.
+    var highlightOnDevice by rememberPersistent("highlight-on-device", default = false)
     val scope = rememberCoroutineScope()
     var search by remember { mutableStateOf("") }
     var selectedKey by remember { mutableStateOf<NodeKey?>(null) }
+    var hoveredKey by remember { mutableStateOf<NodeKey?>(null) }
     val collapsedKeys = remember { mutableStateMapOf<NodeKey, Unit>() }
 
     val options = NodeTreeCaptureOptions(merged = merged, includeInvisible = includeInvisible, maxDepth = null)
@@ -113,6 +123,15 @@ internal fun ComposeSemanticsInspectorScreen(
             // drain and leave the view showing an ever-older tree.
             onCapture(options)
         }
+    }
+
+    val highlighted = highlightTarget(enabled = highlightOnDevice, selected = selectedKey, hovered = hoveredKey)
+    // What to point at is a question about the view — which row is selected, which one the pointer is
+    // over — so the screen answers it and reports the answer. Sending it, holding it against the
+    // app's timeout and taking it down again all outlive this composition, so they are the plugin's.
+    LaunchedEffect(highlighted) { onHighlightTargetChange(highlighted) }
+    DisposableEffect(Unit) {
+        onDispose { onHighlightTargetChange(null) }
     }
 
     val rows = remember(snapshot, search, interactiveOnly, collapsedKeys.keys.toSet()) {
@@ -143,12 +162,14 @@ internal fun ComposeSemanticsInspectorScreen(
             interactiveOnly = interactiveOnly,
             includeInvisible = includeInvisible,
             autoRefresh = autoRefresh,
+            highlightOnDevice = highlightOnDevice,
             search = search,
             onRefresh = { scope.launch { onCapture(options) } },
             onMergedChange = { merged = it },
             onInteractiveOnlyChange = { interactiveOnly = it },
             onIncludeInvisibleChange = { includeInvisible = it },
             onAutoRefreshChange = { autoRefresh = it },
+            onHighlightOnDeviceChange = { highlightOnDevice = it },
             onSearchChange = { search = it },
         )
         StatusLine(
@@ -157,6 +178,7 @@ internal fun ComposeSemanticsInspectorScreen(
             roundTripMs = roundTripMs,
             errorMessage = errorMessage,
             actionStatus = actionStatus,
+            highlightStatus = highlightStatus,
         )
         JwHorizontalDivider()
         JwSplitPane(
@@ -170,6 +192,11 @@ internal fun ComposeSemanticsInspectorScreen(
                         rows = rows,
                         selectedKey = selectedKey,
                         onSelect = { selectedKey = it },
+                        onHoverChange = { key, hovered ->
+                            // A row that reports leaving must not clear a hover another row has
+                            // already taken over — the pointer arrives before the old row lets go.
+                            hoveredKey = if (hovered) key else hoveredKey.takeIf { it != key }
+                        },
                         onToggleExpanded = { key ->
                             if (collapsedKeys.remove(key) == null) collapsedKeys[key] = Unit
                         },
@@ -207,12 +234,14 @@ private fun Toolbar(
     interactiveOnly: Boolean,
     includeInvisible: Boolean,
     autoRefresh: Boolean,
+    highlightOnDevice: Boolean,
     search: String,
     onRefresh: () -> Unit,
     onMergedChange: (Boolean) -> Unit,
     onInteractiveOnlyChange: (Boolean) -> Unit,
     onIncludeInvisibleChange: (Boolean) -> Unit,
     onAutoRefreshChange: (Boolean) -> Unit,
+    onHighlightOnDeviceChange: (Boolean) -> Unit,
     onSearchChange: (String) -> Unit,
 ) {
     FlowRow(
@@ -234,6 +263,7 @@ private fun Toolbar(
         JwCheckbox(checked = merged, onCheckedChange = onMergedChange, label = "Merged")
         JwCheckbox(checked = interactiveOnly, onCheckedChange = onInteractiveOnlyChange, label = "Interactive only")
         JwCheckbox(checked = includeInvisible, onCheckedChange = onIncludeInvisibleChange, label = "Include invisible")
+        JwCheckbox(checked = highlightOnDevice, onCheckedChange = onHighlightOnDeviceChange, label = "Highlight")
         JwSearchField(
             value = search,
             onValueChange = onSearchChange,
@@ -251,6 +281,7 @@ private fun StatusLine(
     roundTripMs: Long?,
     errorMessage: String?,
     actionStatus: String?,
+    highlightStatus: String?,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         val summary = when (snapshot) {
@@ -266,6 +297,9 @@ private fun StatusLine(
         snapshot?.warnings?.forEach { warning -> JwStatusLine(text = warning, tone = JwTone.Warning) }
         errorMessage?.let { JwStatusLine(text = it, tone = JwTone.Error) }
         actionStatus?.let { JwStatusLine(text = it, tone = JwTone.Accent) }
+        // Only ever set when the app refused to show the highlight; a highlight that is up says so
+        // by being on the device.
+        highlightStatus?.let { JwStatusLine(text = "Highlight: $it", tone = JwTone.Warning) }
     }
 }
 
@@ -285,6 +319,7 @@ private fun TreeList(
     rows: List<TreeRow>,
     selectedKey: NodeKey?,
     onSelect: (NodeKey) -> Unit,
+    onHoverChange: (NodeKey, Boolean) -> Unit,
     onToggleExpanded: (NodeKey) -> Unit,
 ) {
     LazyColumn(Modifier.fillMaxSize()) {
@@ -296,6 +331,7 @@ private fun TreeList(
                     row = row,
                     selected = selectedKey == NodeKey(row.rootId, row.node.id),
                     onSelect = { onSelect(NodeKey(row.rootId, row.node.id)) },
+                    onHoverChange = { hovered -> onHoverChange(NodeKey(row.rootId, row.node.id), hovered) },
                     onToggleExpanded = { onToggleExpanded(NodeKey(row.rootId, row.node.id)) },
                 )
             }
@@ -323,10 +359,17 @@ private fun NodeRow(
     row: TreeRow.NodeRow,
     selected: Boolean,
     onSelect: () -> Unit,
+    onHoverChange: (Boolean) -> Unit,
     onToggleExpanded: () -> Unit,
 ) {
     val label = row.node.displayLabel()
+    // JwTreeRow tracks hover for its own tint through an interaction source it keeps to itself, so
+    // the row is made hoverable a second time here rather than the component growing a callback.
+    val hoverInteractionSource = remember { MutableInteractionSource() }
+    val hovered by hoverInteractionSource.collectIsHoveredAsState()
+    LaunchedEffect(hovered) { onHoverChange(hovered) }
     JwTreeRow(
+        modifier = Modifier.hoverable(hoverInteractionSource),
         text = label,
         depth = row.depth,
         expandable = row.expandable,

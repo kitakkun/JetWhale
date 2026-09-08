@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.semantics.agent
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.graphics.Rect
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.ui.geometry.Offset
@@ -10,6 +11,7 @@ import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.getAllSemanticsNodes
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
@@ -17,6 +19,8 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 import java.lang.ref.WeakReference
+import kotlin.math.roundToInt
+import kotlin.time.Duration
 
 /**
  * Reads one Android **window** — its `View` hierarchy and every composition inside it — as a single
@@ -34,10 +38,14 @@ import java.lang.ref.WeakReference
  */
 internal class AndroidWindowNodeSource(rootView: View) :
     ComposeNodeSource,
-    ViewAttributeSource {
+    ViewAttributeSource,
+    NodeHighlightSource {
     override val sourceId: String = "android-window-${System.identityHashCode(rootView).toString(16)}"
 
     private val rootViewRef = WeakReference(rootView)
+
+    // At most one box per window, so pointing at another node moves this one.
+    private val highlightOverlay = NodeHighlightOverlay()
 
     // A detached window has nothing readable to report, and reading a composition inside it can
     // throw, so the attachment check gates every call rather than only the registration.
@@ -93,6 +101,37 @@ internal class AndroidWindowNodeSource(rootView: View) :
         view.writeAttribute(attributeId = attributeId, value = value)
     }
 
+    // -- NodeHighlightSource ---------------------------------------------------
+    //
+    // A window is the only root that can be pointed at: it has a decor view to hang an overlay on.
+    // The drawing lives in NodeHighlightOverlay.kt; this only resolves the node's bounds and hops to
+    // the UI thread, the same way the other two capabilities do.
+
+    override suspend fun highlight(nodeId: Int?, ttl: Duration): HighlightResult = AndroidComposeUiThread.await {
+        if (nodeId == null) {
+            highlightOverlay.clear()
+            return@await HighlightResult(shown = false)
+        }
+        val rootView = attachedRootView()
+            ?: return@await HighlightResult(shown = false, message = "the window is no longer readable")
+        // Passed as a lookup rather than as the bounds it currently reports: a scroll or a relayout
+        // moves the node, and the overlay follows it by asking again.
+        val resolveBounds = { rootView.highlightBoundsOf(nodeId) }
+        val bounds = resolveBounds()
+            ?: return@await HighlightResult(
+                shown = false,
+                message = "unknown nodeId: $nodeId (the node may have left this window; capture the tree again)",
+            )
+        if (bounds.isEmpty) {
+            return@await HighlightResult(
+                shown = false,
+                message = "node $nodeId has no area in this window (it is invisible, unmeasured, or fully clipped)",
+            )
+        }
+        highlightOverlay.show(rootView = rootView, resolveBounds = resolveBounds, ttl = ttl)
+        HighlightResult(shown = true)
+    }
+
     private fun unknownNode(nodeId: Int): NodeActionResult = NodeActionResult(
         performed = false,
         message = "unknown nodeId: $nodeId (the node may have left this window; capture the tree again)",
@@ -107,6 +146,25 @@ internal class AndroidWindowNodeSource(rootView: View) :
  * view here, which is the right answer for both callers.
  */
 private fun viewInWindow(nodeId: Int, rootView: View): View? = ViewNodeIds.viewOf(nodeId)?.takeIf { it.rootView === rootView }
+
+/**
+ * Where the node [nodeId] names sits in this window, in pixels, or `null` when the window has no such
+ * node.
+ *
+ * Both halves of the tree already report their bounds in the window's space — a `View`'s
+ * `getLocationInWindow`, a semantics node's `boundsInWindow` — which is the same space the overlay on
+ * the window's root view draws in, so nothing has to be converted.
+ */
+private fun View.highlightBoundsOf(nodeId: Int): Rect? = if (nodeId < 0) {
+    viewInWindow(nodeId, this)?.let { view ->
+        val location = IntArray(2).also(view::getLocationInWindow)
+        Rect(location[0], location[1], location[0] + view.width, location[1] + view.height)
+    }
+} else {
+    findSemanticsNode(nodeId)?.boundsInWindow?.let {
+        Rect(it.left.roundToInt(), it.top.roundToInt(), it.right.roundToInt(), it.bottom.roundToInt())
+    }
+}
 
 /**
  * Searches every composition in the window for a semantics node.

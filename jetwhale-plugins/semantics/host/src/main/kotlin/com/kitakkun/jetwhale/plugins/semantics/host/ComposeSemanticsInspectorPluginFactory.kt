@@ -88,6 +88,20 @@ private class ComposeNodeInspectorHostPlugin :
         )
     }
 
+    // Owned by the plugin rather than the screen so the box can be taken down when the instance goes
+    // away, which the screen's own composition scope is not around to do. Built lazily because
+    // pluginScope is bound by the runtime after the instance is constructed.
+    private val highlightController by lazy {
+        NodeHighlightController(
+            scope = pluginScope,
+            send = { request -> messenger.request(request) },
+        )
+    }
+
+    override fun onDispose() {
+        highlightController.clearAsync()
+    }
+
     // -------------------------------------------------------------------------
     // JetWhaleHostPluginUi
     // -------------------------------------------------------------------------
@@ -133,6 +147,8 @@ private class ComposeNodeInspectorHostPlugin :
                 }
             },
             onCommitViewAttribute = viewAttributes::commit,
+            highlightStatus = highlightController.statusMessage,
+            onHighlightTargetChange = highlightController::setTarget,
         )
     }
 
