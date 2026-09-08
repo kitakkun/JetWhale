@@ -9,7 +9,9 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.SetViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeType
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
+import com.kitakkun.jetwhale.plugins.semantics.protocol.type
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -19,6 +21,15 @@ import kotlinx.serialization.json.put
 
 // The two attribute tools. They sit apart from the tree tools because they address one View node
 // rather than the tree, and because only View nodes have anything to answer.
+
+// Both tools describe the value types from ViewAttributeType rather than spelling them out, so a
+// type added there cannot leave the descriptions behind — which is how they came to advertise a
+// shape a read no longer had.
+private val WRITTEN_AS_BY_TYPE = ViewAttributeType.entries.joinToString(", ") { "${it.wireName} takes ${it.writtenAs}" }
+
+private val EXTRA_FIELDS_BY_TYPE = ViewAttributeType.entries
+    .filter { it.extraFields.isNotEmpty() }
+    .joinToString("; ", prefix = "An entry also carries ") { "${it.extraFields.joinToString(" and ") { field -> "\"$field\"" }} for a ${it.wireName}" }
 
 private const val TEMPORARY_NOTICE =
     "Only Android View nodes (the ones findNodes marks \"kind\": \"View\", with a negative id) have attributes: a Compose " +
@@ -34,13 +45,9 @@ internal class GetViewAttributesCommand(
         "Reads the platform attributes of one Android View node — visibility, layout size, padding, margins, alpha, " +
             "background color, text, text size and color — as {\"rootId\", \"nodeId\", \"viewClass\", \"attributes\": " +
             "[{\"id\", \"label\", \"group\", \"type\", \"value\", \"editable\"}]}. \"id\" is what setViewAttribute " +
-            "names, and \"type\" says how to write it: bool (\"true\"), int (\"24\"), float (\"0.5\"), text, " +
-            "color (\"#AARRGGBB\"), dimension (pixels, \"48\"), enum (one of the entry's \"options\") or layoutSize — " +
-            "layout.width / layout.height, which always accept either one of the entry's \"constants\" " +
-            "(\"WRAP_CONTENT\", \"MATCH_PARENT\") or a pixel figure, whatever they currently read as. An entry also " +
-            "carries \"options\" for an enum, \"constants\" for a layoutSize, and \"dp\" for a dimension or for a " +
-            "layoutSize that names a length. \"editable\": false " +
-            "marks a read-only attribute. Answers {\"message\"} instead when the node has no attributes. " +
+            "names, and \"type\" says how to write it — $WRITTEN_AS_BY_TYPE. $EXTRA_FIELDS_BY_TYPE. " +
+            "\"editable\": false marks a read-only attribute. layoutSize is layout.width / layout.height. " +
+            "Answers {\"message\"} instead when the node has no attributes. " +
             TEMPORARY_NOTICE
 
     private val rootId by string("The root the node belongs to, as reported by findNodes or getNodeTree.")
@@ -165,17 +172,7 @@ internal fun ViewAttribute.toMcpJson(): JsonObject = buildJsonObject {
 }
 
 /** The `type` an agent sees, and the name [parseViewAttributeValue] reads a string under. */
-internal val ViewAttributeValue.typeName: String
-    get() = when (this) {
-        is ViewAttributeValue.BooleanValue -> "bool"
-        is ViewAttributeValue.IntValue -> "int"
-        is ViewAttributeValue.FloatValue -> "float"
-        is ViewAttributeValue.TextValue -> "text"
-        is ViewAttributeValue.ColorValue -> "color"
-        is ViewAttributeValue.DimensionValue -> "dimension"
-        is ViewAttributeValue.EnumValue -> "enum"
-        is ViewAttributeValue.LayoutSizeValue -> "layoutSize"
-    }
+internal val ViewAttributeValue.typeName: String get() = type.wireName
 
 /** The value as the string an agent both reads and writes it as. */
 internal fun ViewAttributeValue.asText(): String = when (this) {

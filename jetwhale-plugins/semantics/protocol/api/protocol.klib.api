@@ -30,6 +30,29 @@ final enum class com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction : k
     }
 }
 
+final enum class com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType : kotlin/Enum<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType|null[0]
+    enum entry Bool // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Bool|null[0]
+    enum entry Color // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Color|null[0]
+    enum entry Dimension // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Dimension|null[0]
+    enum entry Enum // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Enum|null[0]
+    enum entry Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Float|null[0]
+    enum entry Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Int|null[0]
+    enum entry LayoutSize // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.LayoutSize|null[0]
+    enum entry Text // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.Text|null[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.entries.<get-entries>|<get-entries>#static(){}[0]
+    final val extraFields // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.extraFields|{}extraFields[0]
+        final fun <get-extraFields>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.extraFields.<get-extraFields>|<get-extraFields>(){}[0]
+    final val wireName // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.wireName|{}wireName[0]
+        final fun <get-wireName>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.wireName.<get-wireName>|<get-wireName>(){}[0]
+    final val writtenAs // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.writtenAs|{}writtenAs[0]
+        final fun <get-writtenAs>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.writtenAs.<get-writtenAs>|<get-writtenAs>(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType.values|values#static(){}[0]
+}
+
 sealed interface com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode { // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode|null[0]
     abstract val actions // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode.actions|{}actions[0]
         abstract fun <get-actions>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/UiNode.actions.<get-actions>|<get-actions>(){}[0]
@@ -926,3 +949,6 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode : com.kita
         final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode.Companion.serializer|serializer(){}[0]
     }
 }
+
+final val com.kitakkun.jetwhale.plugins.semantics.protocol/type // com.kitakkun.jetwhale.plugins.semantics.protocol/type|@com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue{}type[0]
+    final fun (com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue).<get-type>(): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType // com.kitakkun.jetwhale.plugins.semantics.protocol/type.<get-type>|<get-type>@com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue(){}[0]

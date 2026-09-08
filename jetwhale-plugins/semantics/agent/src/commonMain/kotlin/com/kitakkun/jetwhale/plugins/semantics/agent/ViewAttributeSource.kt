@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.semantics.agent
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
+import com.kitakkun.jetwhale.plugins.semantics.protocol.type
 
 /**
  * A node source whose nodes carry platform attributes that can be read, and some of which can be
@@ -41,16 +42,7 @@ internal fun noViewAttributesMessage(nodeId: Int): String = if (nodeId >= 0) {
 }
 
 /** The `@SerialName` of [value]'s variant — how a message names the shape a caller sent or owes. */
-internal fun variantNameOf(value: ViewAttributeValue): String = when (value) {
-    is ViewAttributeValue.BooleanValue -> "bool"
-    is ViewAttributeValue.IntValue -> "int"
-    is ViewAttributeValue.FloatValue -> "float"
-    is ViewAttributeValue.TextValue -> "text"
-    is ViewAttributeValue.ColorValue -> "color"
-    is ViewAttributeValue.DimensionValue -> "dimension"
-    is ViewAttributeValue.EnumValue -> "enum"
-    is ViewAttributeValue.LayoutSizeValue -> "layoutSize"
-}
+internal fun variantNameOf(value: ViewAttributeValue): String = value.type.wireName
 
 /** Names what the attribute takes and what arrived, so a caller can fix the call from the message alone. */
 internal fun wrongVariantMessage(attributeId: String, expected: String, actual: ViewAttributeValue): String = "$attributeId expects a value of type '$expected', but a '${variantNameOf(actual)}' value was sent"

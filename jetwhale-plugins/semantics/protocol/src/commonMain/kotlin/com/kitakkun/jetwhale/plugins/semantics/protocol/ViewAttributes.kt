@@ -78,6 +78,49 @@ sealed interface ViewAttributeValue {
     ) : ViewAttributeValue
 }
 
+/**
+ * What a [ViewAttributeValue] variant is called on the wire, how a caller writes one as text, and
+ * the fields a read reports beside the value.
+ *
+ * One list rather than one per module. The same three facts are needed where a read is rendered,
+ * where a rejected write explains itself, and in the MCP tool's own description — and written out
+ * separately they drift: the description went out of step with what a read actually returned.
+ * [wireName] is pinned to the variant's `@SerialName` by a test.
+ */
+enum class ViewAttributeType(
+    val wireName: String,
+    /** How a caller writes a value of this type as text. */
+    val writtenAs: String,
+    /** What a read adds beside `value` for this type. */
+    val extraFields: List<String>,
+) {
+    Bool("bool", "\"true\"", emptyList()),
+    Int("int", "\"24\"", emptyList()),
+    Float("float", "\"0.5\"", emptyList()),
+    Text("text", "any text", emptyList()),
+    Color("color", "\"#AARRGGBB\"", emptyList()),
+    Dimension("dimension", "a length in pixels, \"48\"", listOf("dp")),
+    Enum("enum", "one of the entry's \"options\"", listOf("options")),
+    LayoutSize(
+        "layoutSize",
+        "one of the entry's \"constants\" (\"WRAP_CONTENT\", \"MATCH_PARENT\") or a length in pixels, whichever it currently reads as",
+        listOf("constants", "dp"),
+    ),
+}
+
+/** The type [this] travels as. */
+val ViewAttributeValue.type: ViewAttributeType
+    get() = when (this) {
+        is ViewAttributeValue.BooleanValue -> ViewAttributeType.Bool
+        is ViewAttributeValue.IntValue -> ViewAttributeType.Int
+        is ViewAttributeValue.FloatValue -> ViewAttributeType.Float
+        is ViewAttributeValue.TextValue -> ViewAttributeType.Text
+        is ViewAttributeValue.ColorValue -> ViewAttributeType.Color
+        is ViewAttributeValue.DimensionValue -> ViewAttributeType.Dimension
+        is ViewAttributeValue.EnumValue -> ViewAttributeType.Enum
+        is ViewAttributeValue.LayoutSizeValue -> ViewAttributeType.LayoutSize
+    }
+
 @Serializable
 data class ViewAttribute(
     /** Stable identifier a [SetViewAttribute] names, e.g. `visibility`, `padding.left`. */

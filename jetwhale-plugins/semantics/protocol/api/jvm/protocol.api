@@ -540,6 +540,23 @@ public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttribut
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeType : java/lang/Enum {
+	public static final field Bool Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeType;
+	public static final field Color Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeType;
+	public static final field Dimension Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeType;
+	public static final field Enum Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeType;
+	public static final field Float Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeType;
+	public static final field Int Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeType;
+	public static final field LayoutSize Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeType;
+	public static final field Text Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getExtraFields ()Ljava/util/List;
+	public final fun getWireName ()Ljava/lang/String;
+	public final fun getWrittenAs ()Ljava/lang/String;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeType;
+	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeType;
+}
+
 public abstract interface class com/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeValue {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeValue$Companion;
 }
@@ -772,6 +789,10 @@ public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/Vi
 
 public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeValue$TextValue$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributesKt {
+	public static final fun getType (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeValue;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeType;
 }
 
 public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ViewNode : com/kitakkun/jetwhale/plugins/semantics/protocol/UiNode {
