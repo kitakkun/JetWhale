@@ -73,7 +73,7 @@ public fun JwIconButton(
             modifier = Modifier
                 .size(size)
                 .then(if (tooltip != null) Modifier.semantics { contentDescription = tooltip } else Modifier)
-                .jwFocusRing(interactionSource, JwShapes.small)
+                .jwFocusRing(interactionSource, JwShapes.small, JwFocusRingStyle.Outset)
                 .clip(JwShapes.small)
                 .background(background)
                 .clickable(
