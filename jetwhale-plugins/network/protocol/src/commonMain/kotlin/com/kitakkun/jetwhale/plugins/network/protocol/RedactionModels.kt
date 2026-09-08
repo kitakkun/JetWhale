@@ -32,7 +32,9 @@ enum class RedactionStrategy {
 enum class RedactionTarget {
     HEADER,
     URL_QUERY_PARAM,
-    BODY_JSON_FIELD,
+
+    /** A field of a JSON body, or a field of an `application/x-www-form-urlencoded` body. */
+    BODY_FIELD,
 }
 
 /** A single redaction rule; [name] is matched case-insensitively against the [target]. */
@@ -56,7 +58,7 @@ fun List<RedactionRule>.redact(request: CapturedHttpRequest): CapturedHttpReques
     return request.copy(
         url = redactUrl(request.url),
         headers = redactHeaders(request.headers),
-        body = request.body?.let(::redactBody),
+        body = request.body?.let { redactBody(it, request.headers) },
     )
 }
 
@@ -65,7 +67,7 @@ fun List<RedactionRule>.redact(response: CapturedHttpResponse): CapturedHttpResp
     if (isEmpty()) return response
     return response.copy(
         headers = redactHeaders(response.headers),
-        body = response.body?.let(::redactBody),
+        body = response.body?.let { redactBody(it, response.headers) },
     )
 }
 
@@ -105,10 +107,13 @@ private fun List<RedactionRule>.redactUrl(url: String): String {
     return url.substring(0, queryStart + 1) + redactedQuery + url.substring(queryEnd)
 }
 
-// A body that is not structured JSON (non-JSON content type, bare literal, or truncated by
-// maxBodyChars) is forwarded unchanged; only header/query rules can protect such bodies.
-private fun List<RedactionRule>.redactBody(body: String): String {
-    if (none { it.target == RedactionTarget.BODY_JSON_FIELD }) return body
+private const val FORM_URLENCODED_MEDIA_TYPE = "application/x-www-form-urlencoded"
+
+// A body that is neither structured JSON nor form-urlencoded (other content type, bare literal, or
+// truncated by maxBodyChars) is forwarded unchanged; only header/query rules can protect such bodies.
+private fun List<RedactionRule>.redactBody(body: String, headers: Map<String, List<String>>): String {
+    if (none { it.target == RedactionTarget.BODY_FIELD }) return body
+    if (headers.mediaType() == FORM_URLENCODED_MEDIA_TYPE) return redactFormBody(body)
     val element = try {
         Json.parseToJsonElement(body).takeIf { it is JsonObject || it is JsonArray } ?: return body
     } catch (_: Exception) {
@@ -117,10 +122,60 @@ private fun List<RedactionRule>.redactBody(body: String): String {
     return Json.encodeToString(JsonElement.serializer(), redactFields(element))
 }
 
+private fun Map<String, List<String>>.mediaType(): String? = entries
+    .firstOrNull { (name, _) -> name.equals("Content-Type", ignoreCase = true) }
+    ?.value
+    ?.firstOrNull()
+    ?.substringBefore(';')
+    ?.trim()
+    ?.lowercase()
+
+// Names and values are form-decoded before matching and rendering, so a percent-encoded name still
+// matches its rule and a MASK still spans the value's real length rather than its encoded length.
+// The rendered replacement is written back verbatim, as URL query redaction does.
+private fun List<RedactionRule>.redactFormBody(body: String): String = body
+    .split('&')
+    .joinToString("&") { param ->
+        val name = param.substringBefore('=')
+        val strategy = strategyFor(RedactionTarget.BODY_FIELD, name.formUrlDecode())
+        if ('=' in param && strategy != null) {
+            "$name=${strategy.render(param.substringAfter('=').formUrlDecode())}"
+        } else {
+            param
+        }
+    }
+
+private fun String.formUrlDecode(): String {
+    if ('%' !in this && '+' !in this) return this
+    val decoded = StringBuilder(length)
+    // Percent-escapes are collected as bytes so a multi-byte UTF-8 sequence decodes as one character.
+    val bytes = mutableListOf<Byte>()
+    fun flushBytes() {
+        if (bytes.isEmpty()) return
+        decoded.append(bytes.toByteArray().decodeToString())
+        bytes.clear()
+    }
+    var index = 0
+    while (index < length) {
+        val char = this[index]
+        val escaped = if (char == '%' && index + 2 < length) substring(index + 1, index + 3).toIntOrNull(radix = 16) else null
+        if (escaped != null) {
+            bytes.add(escaped.toByte())
+            index += 3
+        } else {
+            flushBytes()
+            decoded.append(if (char == '+') ' ' else char)
+            index++
+        }
+    }
+    flushBytes()
+    return decoded.toString()
+}
+
 private fun List<RedactionRule>.redactFields(element: JsonElement): JsonElement = when (element) {
     is JsonObject -> JsonObject(
         element.mapValues { (key, value) ->
-            when (val strategy = strategyFor(RedactionTarget.BODY_JSON_FIELD, key)) {
+            when (val strategy = strategyFor(RedactionTarget.BODY_FIELD, key)) {
                 null -> redactFields(value)
                 else -> JsonPrimitive(strategy.render(value.stringContentOrPlaceholder()))
             }
