@@ -280,6 +280,23 @@ Everything else in this document applies unchanged — the plugin's own tools ta
 host-scoped plugin has one instance for the whole host, so its tools take **no `sessionId`** and can
 be called with no app connected.
 
+### Driving the device itself, without shelling out to adb
+
+Everything above about a wedged server, a dropped transport and a stale output file is the cost of
+running `adb` by hand. The **Android Device** plugin
+(`com.kitakkun.jetwhale.androiddevice`, in `jetwhale-plugins/android-device`) removes most of it: it
+is host-scoped, so enabling it gives you tools that need no session, and they cover the whole loop —
+`listDevices`, `waitForDevice`, `installApk`, `launchApp`, `currentActivity`, `tap` / `swipe` /
+`type` / `key`, `screenshot`, `logcat`, `clearAppData`. Every tool targets its device explicitly,
+validates coordinates against `wm size`, and reports the adb argument vectors it ran, so a failed
+step says which command failed rather than leaving you to guess.
+
+Use it for the debuggee side of a QA run — getting the app onto the device and into the right
+screen — and the host's own tools for the plugin UI you are actually verifying. When the app under
+test is Compose, pair it with the Compose Semantics Inspector: `findNodes` returns a `tap` point in
+screen pixels, which is what `androiddevice.tap` takes, so §5's density arithmetic never enters into
+it. See [Android Device](../../../../docs/guide/android-device.md) for the full tool list.
+
 ## 4. Reaching the tools
 
 The host's MCP server is SSE on `http://localhost:<mcp-server-port>/sse`, with **no

@@ -1,0 +1,17 @@
+{
+  "$schema": "../../../../../../../../../../schemas/plugin-manifest.schema.json",
+  "plugins": [
+    {
+      "pluginId": "com.kitakkun.jetwhale.androiddevice",
+      "pluginName": "Android Device",
+      "version": "1.0.0",
+      "factoryClass": "com.kitakkun.jetwhale.plugins.androiddevice.host.AndroidDevicePluginFactory",
+      "requiresAgent": false,
+      "scope": "host",
+      "icon": {
+        "activePath": "icons/android_device_filled.svg",
+        "inactivePath": "icons/android_device_outlined.svg"
+      }
+    }
+  ]
+}

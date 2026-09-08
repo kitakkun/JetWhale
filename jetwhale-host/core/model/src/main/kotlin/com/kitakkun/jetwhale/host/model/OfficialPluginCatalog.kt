@@ -60,6 +60,12 @@ object OfficialPluginCatalog {
             artifactId = "jetwhale-nav3-navigator",
         ),
         OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.androiddevice",
+            displayName = "Android Device",
+            description = "Drive a connected Android device or emulator over adb: install, launch, tap, type, screenshot, logcat.",
+            artifactId = "jetwhale-android-device",
+        ),
+        OfficialPlugin(
             pluginId = "com.kitakkun.jetwhale.semantics",
             displayName = "Compose Semantics Inspector",
             description = "Browse and drive the Compose node tree of connected debug sessions.",
