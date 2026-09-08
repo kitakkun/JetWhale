@@ -146,14 +146,15 @@ val networkAgent = JetWhaleNetworkAgentPlugin(
         header("Authorization", "Cookie")
         header("X-Session-Id", scope = RedactionScope.MCP_ONLY)
         urlQueryParam("token", strategy = RedactionStrategy.MASK)
-        bodyJsonField("password", "access_token")
+        bodyField("password", "access_token")
     },
 )
 ```
 
-Three rule targets are available — `header(...)`, `urlQueryParam(...)`, and `bodyJsonField(...)`
-(matches the field name anywhere in a JSON body). Name matching is case-insensitive, and each rule
-takes two options:
+Three rule targets are available — `header(...)`, `urlQueryParam(...)`, and `bodyField(...)`
+(matches the field name anywhere in a JSON body, or a parameter name of an
+`application/x-www-form-urlencoded` body). Name matching is case-insensitive, and each rule takes
+two options:
 
 - **`scope`** — where the rule is enforced:
   - `EVERYWHERE` (default): applied at capture time on the agent, so the value never leaves the

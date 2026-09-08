@@ -56,7 +56,7 @@ final enum class com.kitakkun.jetwhale.plugins.network.protocol/RedactionStrateg
 }
 
 final enum class com.kitakkun.jetwhale.plugins.network.protocol/RedactionTarget : kotlin/Enum<com.kitakkun.jetwhale.plugins.network.protocol/RedactionTarget> { // com.kitakkun.jetwhale.plugins.network.protocol/RedactionTarget|null[0]
-    enum entry BODY_JSON_FIELD // com.kitakkun.jetwhale.plugins.network.protocol/RedactionTarget.BODY_JSON_FIELD|null[0]
+    enum entry BODY_FIELD // com.kitakkun.jetwhale.plugins.network.protocol/RedactionTarget.BODY_FIELD|null[0]
     enum entry HEADER // com.kitakkun.jetwhale.plugins.network.protocol/RedactionTarget.HEADER|null[0]
     enum entry URL_QUERY_PARAM // com.kitakkun.jetwhale.plugins.network.protocol/RedactionTarget.URL_QUERY_PARAM|null[0]
 

@@ -23,7 +23,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.redact
  *         header("Authorization", "Cookie")
  *         header("X-Session-Id", scope = RedactionScope.MCP_ONLY)
  *         urlQueryParam("token", strategy = RedactionStrategy.MASK)
- *         bodyJsonField("password", "access_token")
+ *         bodyField("password", "access_token")
  *     },
  * )
  * ```
@@ -60,13 +60,16 @@ class NetworkRedactionRules private constructor(rules: List<RedactionRule>) {
             add(RedactionTarget.URL_QUERY_PARAM, names, scope, strategy)
         }
 
-        /** Redacts the values of the given field names anywhere in a JSON request/response body. */
-        fun bodyJsonField(
+        /**
+         * Redacts the values of the given field names anywhere in a JSON request/response body, or
+         * of the matching parameters of an `application/x-www-form-urlencoded` body.
+         */
+        fun bodyField(
             vararg names: String,
             scope: RedactionScope = RedactionScope.EVERYWHERE,
             strategy: RedactionStrategy = RedactionStrategy.PLACEHOLDER,
         ) {
-            add(RedactionTarget.BODY_JSON_FIELD, names, scope, strategy)
+            add(RedactionTarget.BODY_FIELD, names, scope, strategy)
         }
 
         private fun add(target: RedactionTarget, names: Array<out String>, scope: RedactionScope, strategy: RedactionStrategy) {

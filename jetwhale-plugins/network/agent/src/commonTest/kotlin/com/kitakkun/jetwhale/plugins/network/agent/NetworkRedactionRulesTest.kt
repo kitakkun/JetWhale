@@ -25,6 +25,8 @@ class NetworkRedactionRulesTest {
         timestampMs = 0L,
     )
 
+    private val formHeaders = mapOf("Content-Type" to listOf("application/x-www-form-urlencoded"))
+
     @Test
     fun `header rule redacts values case-insensitively and keeps other headers`() {
         val rules = NetworkRedactionRules { header("Authorization") }
@@ -46,7 +48,7 @@ class NetworkRedactionRulesTest {
     fun `mask strategy masks emoji as one asterisk per code point`() {
         val rules = NetworkRedactionRules {
             header("Authorization", strategy = RedactionStrategy.MASK)
-            bodyJsonField("secret", strategy = RedactionStrategy.MASK)
+            bodyField("secret", strategy = RedactionStrategy.MASK)
         }
         val redacted = rules.redactAtCapture(
             request(
@@ -82,8 +84,8 @@ class NetworkRedactionRulesTest {
     }
 
     @Test
-    fun `body json field rule redacts nested fields and array elements`() {
-        val rules = NetworkRedactionRules { bodyJsonField("password") }
+    fun `body field rule redacts nested json fields and array elements`() {
+        val rules = NetworkRedactionRules { bodyField("password") }
         val redacted = rules.redactAtCapture(request(body = """{"user":{"password":"pw"},"items":[{"password":"pw2","id":1}]}"""))
         assertEquals(
             """{"user":{"password":"$REDACTED_PLACEHOLDER"},"items":[{"password":"$REDACTED_PLACEHOLDER","id":1}]}""",
@@ -92,16 +94,68 @@ class NetworkRedactionRulesTest {
     }
 
     @Test
-    fun `masked body json field preserves string length and hides non-string shape`() {
-        val rules = NetworkRedactionRules { bodyJsonField("secret", strategy = RedactionStrategy.MASK) }
+    fun `masked body field preserves json string length and hides non-string shape`() {
+        val rules = NetworkRedactionRules { bodyField("secret", strategy = RedactionStrategy.MASK) }
         val redacted = rules.redactAtCapture(request(body = """{"secret":"abcd","nested":{"secret":1234567}}"""))
         assertEquals("""{"secret":"****","nested":{"secret":"***"}}""", redacted.body)
     }
 
     @Test
-    fun `non-json body is forwarded unchanged`() {
-        val rules = NetworkRedactionRules { bodyJsonField("password") }
-        assertEquals("password=pw&x=1", rules.redactAtCapture(request(body = "password=pw&x=1")).body)
+    fun `body without a structured content type is forwarded unchanged`() {
+        val rules = NetworkRedactionRules { bodyField("password") }
+        assertEquals("password: pw", rules.redactAtCapture(request(body = "password: pw")).body)
+    }
+
+    @Test
+    fun `form body rule redacts only matching params`() {
+        val rules = NetworkRedactionRules { bodyField("password") }
+        val redacted = rules.redactAtCapture(
+            request(headers = formHeaders, body = "PassWord=pw&user=alice&flag"),
+        )
+        assertEquals("PassWord=$REDACTED_PLACEHOLDER&user=alice&flag", redacted.body)
+    }
+
+    @Test
+    fun `form body rule matches percent-encoded names and masks the decoded value`() {
+        val rules = NetworkRedactionRules { bodyField("user password", strategy = RedactionStrategy.MASK) }
+        val redacted = rules.redactAtCapture(
+            // "%E3%81%82" is "\u3042", a single character encoded as three UTF-8 bytes.
+            request(headers = formHeaders, body = "user+password=ab%E3%81%82"),
+        )
+        assertEquals("user+password=***", redacted.body)
+    }
+
+    @Test
+    fun `form body rule leaves a malformed percent escape as written`() {
+        val rules = NetworkRedactionRules { bodyField("a%-1b", "c%zzd") }
+        val redacted = rules.redactAtCapture(request(headers = formHeaders, body = "a%-1b=x&c%zzd=y"))
+        assertEquals("a%-1b=$REDACTED_PLACEHOLDER&c%zzd=$REDACTED_PLACEHOLDER", redacted.body)
+    }
+
+    @Test
+    fun `form body rule redacts every occurrence of a repeated parameter`() {
+        val rules = NetworkRedactionRules { bodyField("password") }
+        val redacted = rules.redactAtCapture(request(headers = formHeaders, body = "password=a&password=b"))
+        assertEquals("password=$REDACTED_PLACEHOLDER&password=$REDACTED_PLACEHOLDER", redacted.body)
+    }
+
+    @Test
+    fun `form body rule redacts a value that itself contains an equals sign`() {
+        val rules = NetworkRedactionRules { bodyField("token") }
+        val redacted = rules.redactAtCapture(request(headers = formHeaders, body = "token=a=b=c&x=1"))
+        assertEquals("token=$REDACTED_PLACEHOLDER&x=1", redacted.body)
+    }
+
+    @Test
+    fun `form content type with a charset parameter is still treated as a form body`() {
+        val rules = NetworkRedactionRules { bodyField("password") }
+        val redacted = rules.redactAtCapture(
+            request(
+                headers = mapOf("content-type" to listOf("application/x-www-form-urlencoded; charset=UTF-8")),
+                body = "password=pw",
+            ),
+        )
+        assertEquals("password=$REDACTED_PLACEHOLDER", redacted.body)
     }
 
     @Test
@@ -127,7 +181,7 @@ class NetworkRedactionRulesTest {
     fun `response headers and body are redacted`() {
         val rules = NetworkRedactionRules {
             header("Set-Cookie")
-            bodyJsonField("access_token")
+            bodyField("access_token")
         }
         val redacted = rules.redactAtCapture(
             CapturedHttpResponse(

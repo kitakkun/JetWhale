@@ -24,8 +24,8 @@ public final class com/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionR
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules$Builder {
-	public final fun bodyJsonField ([Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;)V
-	public static synthetic fun bodyJsonField$default (Lcom/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules$Builder;[Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;ILjava/lang/Object;)V
+	public final fun bodyField ([Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;)V
+	public static synthetic fun bodyField$default (Lcom/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules$Builder;[Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;ILjava/lang/Object;)V
 	public final fun header ([Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;)V
 	public static synthetic fun header$default (Lcom/kitakkun/jetwhale/plugins/network/agent/NetworkRedactionRules$Builder;[Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;ILjava/lang/Object;)V
 	public final fun urlQueryParam ([Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionScope;Lcom/kitakkun/jetwhale/plugins/network/protocol/RedactionStrategy;)V
