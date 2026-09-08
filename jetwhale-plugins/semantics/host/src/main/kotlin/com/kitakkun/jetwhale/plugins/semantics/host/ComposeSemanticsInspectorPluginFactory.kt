@@ -103,9 +103,12 @@ private class ComposeNodeInspectorHostPlugin :
         highlightController.clearAsync()
     }
 
+    // The Root of the plugin's UI: it reads the plugin's own state, hands it to the presenter, and
+    // renders what comes back. Everything the screen holds is the presenter's; everything that has
+    // to outlive the composition — the attribute store, the highlight controller — is the plugin's.
     @Composable
     override fun Content() {
-        ComposeSemanticsInspectorScreen(
+        val uiState = composeSemanticsInspectorPresenter(
             snapshot = snapshot,
             capturing = capturing,
             roundTripMs = roundTripMs,
@@ -150,6 +153,7 @@ private class ComposeNodeInspectorHostPlugin :
             highlightStatus = highlightController.statusMessage,
             onHighlightTargetChange = highlightController::setTarget,
         )
+        ComposeSemanticsInspectorScreen(uiState = uiState)
     }
 
     // Lazy for the same reason the store is: reading this list builds the store, and the store needs
