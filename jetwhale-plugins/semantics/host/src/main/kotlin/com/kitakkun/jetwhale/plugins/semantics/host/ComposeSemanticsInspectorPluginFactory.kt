@@ -100,6 +100,7 @@ private class ComposeNodeInspectorHostPlugin :
             roundTripMs = roundTripMs,
             errorMessage = errorMessage,
             actionStatus = actionStatus,
+            viewAttributes = viewAttributes.state,
             onCapture = { options ->
                 try {
                     capture(options)
@@ -123,7 +124,15 @@ private class ComposeNodeInspectorHostPlugin :
                     }
                 }
             },
-            viewAttributes = viewAttributes,
+            onSelectedNodeChange = { key ->
+                // Only an Android View has attributes to read; anything else the tree lands on —
+                // a Compose node, nothing at all — leaves the store holding nothing.
+                when (val attributeKey = snapshot.viewAttributeNode(key)) {
+                    null -> viewAttributes.clear()
+                    else -> viewAttributes.select(rootId = attributeKey.rootId, nodeId = attributeKey.nodeId)
+                }
+            },
+            onCommitViewAttribute = viewAttributes::commit,
         )
     }
 

@@ -56,6 +56,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -68,6 +69,11 @@ import kotlin.math.roundToInt
  * Captures are pull-based — a capture reads the debuggee's semantics on its main thread, so the app
  * pays only when someone is looking. Auto-refresh exists for watching a screen change, but is off by
  * default for the same reason.
+ *
+ * Data in, events out: everything the screen draws arrives as a value, and everything it wants done
+ * leaves as a callback. Which node is selected is the screen's own business — it is where the tree
+ * is clicked — so it is reported upward rather than asked for, and the plugin decides what reading
+ * to do about it.
  */
 @Composable
 internal fun ComposeSemanticsInspectorScreen(
@@ -76,9 +82,11 @@ internal fun ComposeSemanticsInspectorScreen(
     roundTripMs: Long?,
     errorMessage: String?,
     actionStatus: String?,
+    viewAttributes: ViewAttributesUiState,
     onCapture: suspend (NodeTreeCaptureOptions) -> Unit,
     onPerformAction: (PerformNodeAction) -> Unit,
-    viewAttributes: ViewAttributeStore,
+    onSelectedNodeChange: (NodeKey?) -> Unit,
+    onCommitViewAttribute: (ViewAttribute, String) -> Unit,
 ) {
     var merged by rememberPersistent("merged-tree", default = true)
     var interactiveOnly by rememberPersistent("interactive-only", default = false)
@@ -120,15 +128,10 @@ internal fun ComposeSemanticsInspectorScreen(
         snapshot?.roots?.firstOrNull { it.rootId == key.rootId }?.findNode(key.nodeId)
     }
 
-    // Only an Android View has attributes; anything else selected — a Compose node, nothing at all —
-    // is the store holding nothing. The store does the reading, on the plugin's own scope, so this
-    // only tells it which node the tree is on.
-    val attributeKey = selectedKey?.takeIf { selectedNode is ViewNode }
-    LaunchedEffect(attributeKey) {
-        when (attributeKey) {
-            null -> viewAttributes.clear()
-            else -> viewAttributes.select(rootId = attributeKey.rootId, nodeId = attributeKey.nodeId)
-        }
+    // Reported rather than acted on: what a selection is worth reading from the app is the plugin's
+    // decision, and this screen has no way to read anything anyway.
+    LaunchedEffect(selectedKey) {
+        onSelectedNodeChange(selectedKey)
     }
 
     // The host hands the plugin an unpainted scene, so the screen paints its own background;
@@ -177,8 +180,9 @@ internal fun ComposeSemanticsInspectorScreen(
                 NodeDetail(
                     rootId = selectedKey?.rootId,
                     node = selectedNode,
-                    onPerformAction = onPerformAction,
                     viewAttributes = viewAttributes,
+                    onPerformAction = onPerformAction,
+                    onCommitViewAttribute = onCommitViewAttribute,
                 )
             },
         )
@@ -365,8 +369,9 @@ private fun UiNode.actionSummary(): String = when {
 private fun NodeDetail(
     rootId: String?,
     node: UiNode?,
+    viewAttributes: ViewAttributesUiState,
     onPerformAction: (PerformNodeAction) -> Unit,
-    viewAttributes: ViewAttributeStore,
+    onCommitViewAttribute: (ViewAttribute, String) -> Unit,
 ) {
     if (node == null || rootId == null) {
         JwEmptyState(title = "Select a node to see its semantics and the actions it exposes.")
@@ -485,13 +490,7 @@ private fun NodeDetail(
         // projection of composition state, so there is nothing here that could be edited to last.
         if (node is ViewNode) {
             JwHorizontalDivider()
-            ViewAttributesPanel(
-                attributes = viewAttributes.attributes,
-                message = viewAttributes.message,
-                writeStatus = viewAttributes.writeStatus,
-                writeFailed = viewAttributes.writeFailed,
-                onCommit = viewAttributes::commit,
-            )
+            ViewAttributesPanel(state = viewAttributes, onCommit = onCommitViewAttribute)
         }
     }
 }

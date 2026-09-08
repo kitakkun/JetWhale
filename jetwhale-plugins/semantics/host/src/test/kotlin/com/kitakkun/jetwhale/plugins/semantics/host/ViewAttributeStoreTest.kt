@@ -54,8 +54,8 @@ class ViewAttributeStoreTest {
         store.select(rootId = "window-1", nodeId = -4)
 
         assertEquals(listOf(GetViewAttributes(rootId = "window-1", nodeId = -4)), reads)
-        assertEquals(listOf(alpha), store.attributes)
-        assertNull(store.message)
+        assertEquals(listOf(alpha), store.state.attributes)
+        assertNull(store.state.message)
     }
 
     @Test
@@ -87,8 +87,8 @@ class ViewAttributeStoreTest {
 
         store.select(rootId = "window-1", nodeId = -4)
 
-        assertNull(store.attributes)
-        assertEquals("this node has no View attributes", store.message)
+        assertNull(store.state.attributes)
+        assertEquals("this node has no View attributes", store.state.message)
     }
 
     @Test
@@ -101,8 +101,8 @@ class ViewAttributeStoreTest {
 
         store.select(rootId = "window-1", nodeId = -4)
 
-        assertNull(store.attributes)
-        assertEquals("The app did not answer: timed out", store.message)
+        assertNull(store.state.attributes)
+        assertEquals("The app did not answer: timed out", store.state.message)
     }
 
     @Test
@@ -117,7 +117,7 @@ class ViewAttributeStoreTest {
         store.clear()
 
         assertNull(store.node)
-        assertNull(store.attributes)
+        assertNull(store.state.attributes)
     }
 
     @Test
@@ -136,8 +136,8 @@ class ViewAttributeStoreTest {
         store.commit(alpha, "half")
 
         assertTrue(writes.isEmpty())
-        assertTrue(store.writeFailed)
-        assertEquals("invalid value for alpha: \"half\" (expected a number)", store.writeStatus)
+        assertTrue(store.state.writeFailed)
+        assertEquals("invalid value for alpha: \"half\" (expected a number)", store.state.writeStatus)
     }
 
     @Test
@@ -152,9 +152,9 @@ class ViewAttributeStoreTest {
 
         store.commit(alpha, "4")
 
-        assertEquals(listOf(clamped), store.attributes)
-        assertEquals("alpha: 1.0", store.writeStatus)
-        assertEquals(false, store.writeFailed)
+        assertEquals(listOf(clamped), store.state.attributes)
+        assertEquals("alpha: 1.0", store.state.writeStatus)
+        assertEquals(false, store.state.writeFailed)
     }
 
     @Test
@@ -168,8 +168,8 @@ class ViewAttributeStoreTest {
 
         store.commit(alpha, "0.5")
 
-        assertTrue(store.writeFailed)
-        assertEquals("alpha: this view ignores alpha", store.writeStatus)
+        assertTrue(store.state.writeFailed)
+        assertEquals("alpha: this view ignores alpha", store.state.writeStatus)
     }
 
     @Test
@@ -197,7 +197,7 @@ class ViewAttributeStoreTest {
         first.complete(Unit)
 
         assertEquals(listOf("0.25", "0.75"), started)
-        assertEquals("alpha: 0.75", store.writeStatus)
+        assertEquals("alpha: 0.75", store.state.writeStatus)
     }
 
     @Test
@@ -214,8 +214,8 @@ class ViewAttributeStoreTest {
         )
 
         assertTrue(result.applied)
-        assertEquals(listOf(attribute("alpha", ViewAttributeValue.FloatValue(0.5f))), store.attributes)
-        assertEquals("alpha: 0.5", store.writeStatus)
+        assertEquals(listOf(attribute("alpha", ViewAttributeValue.FloatValue(0.5f))), store.state.attributes)
+        assertEquals("alpha: 0.5", store.state.writeStatus)
     }
 
     @Test
@@ -232,7 +232,7 @@ class ViewAttributeStoreTest {
         )
 
         assertTrue(result.applied)
-        assertEquals(listOf(alpha), store.attributes)
-        assertNull(store.writeStatus)
+        assertEquals(listOf(alpha), store.state.attributes)
+        assertNull(store.state.writeStatus)
     }
 }

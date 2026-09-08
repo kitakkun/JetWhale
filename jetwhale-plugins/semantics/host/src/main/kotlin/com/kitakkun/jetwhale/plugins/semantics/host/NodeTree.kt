@@ -48,6 +48,19 @@ internal fun NodeTreeSnapshot.findRootOf(nodeId: Int): ComposeRoot? = roots.last
 internal fun NodeTreeSnapshot.nodeCount(): Int = roots.sumOf { it.node?.asSequence()?.count() ?: 0 }
 
 /**
+ * The node whose platform attributes are worth reading, given what the tree has selected: only an
+ * Android `View` has any.
+ *
+ * `null` for a Compose node, for no selection, and for a key this snapshot does not hold — all of
+ * which mean the attribute section has nothing to show.
+ */
+internal fun NodeTreeSnapshot?.viewAttributeNode(selected: NodeKey?): NodeKey? {
+    if (selected == null) return null
+    val node = this?.roots?.firstOrNull { it.rootId == selected.rootId }?.findNode(selected.nodeId)
+    return selected.takeIf { node is ViewNode }
+}
+
+/**
  * `true` when the node offers something to do: an action, editable content, or scrolling.
  *
  * This is the filter that answers "what can be operated here" — the question both the tree view's

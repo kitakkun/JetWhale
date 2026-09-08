@@ -38,21 +38,41 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 
 /**
+ * Everything the attribute section draws, and nothing more.
+ *
+ * The read, the write and their outcome all live on the plugin instance; what reaches the
+ * composition is this value, so the panel is a function of data and the plugin is free to keep the
+ * attributes across the panel being closed and reopened, and to let an agent's write land in them.
+ */
+internal data class ViewAttributesUiState(
+    /** The attributes of the node the section is showing, or `null` while they are being read or could not be. */
+    val attributes: List<ViewAttribute>?,
+    /** Why there are no attributes to show, when there are none. */
+    val message: String?,
+    /** What the last write to the shown node came back with. */
+    val writeStatus: String?,
+    val writeFailed: Boolean,
+) {
+    companion object {
+        /** Nothing read and nothing written: the section before a `View` is selected. */
+        val Empty = ViewAttributesUiState(attributes = null, message = null, writeStatus = null, writeFailed = false)
+    }
+}
+
+/**
  * The platform attributes of the selected Android `View` node, and an editor for the ones that can
  * be written.
  *
- * A view of [ViewAttributeStore] and nothing more: the read, the write and their outcome live on
- * the plugin instance, so this panel can be closed and reopened without any of them being redone or
- * lost, and an agent writing through the same store is seen here.
+ * Data in, events out: [state] is what to draw and [onCommit] is the edit leaving. Nothing here
+ * reads or writes the app.
  */
 @Composable
 internal fun ViewAttributesPanel(
-    attributes: List<ViewAttribute>?,
-    message: String?,
-    writeStatus: String?,
-    writeFailed: Boolean,
+    state: ViewAttributesUiState,
     onCommit: (ViewAttribute, String) -> Unit,
 ) {
+    val attributes = state.attributes
+    val message = state.message
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
         JwSectionHeader(title = "View attributes", contentPadding = PaddingValues(0.dp))
         JwText(
@@ -80,7 +100,7 @@ internal fun ViewAttributesPanel(
             }
         }
 
-        writeStatus?.let { JwStatusLine(text = it, tone = if (writeFailed) JwTone.Error else JwTone.Accent) }
+        state.writeStatus?.let { JwStatusLine(text = it, tone = if (state.writeFailed) JwTone.Error else JwTone.Accent) }
     }
 }
 

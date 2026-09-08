@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.semantics.host
 
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -169,5 +170,32 @@ class NodeTreeTest {
         assertEquals("Send", node(id = 1, text = "Send").displayLabel())
         assertEquals("Button", node(id = 1, role = "Button").displayLabel())
         assertEquals("#1", node(id = 1).displayLabel())
+    }
+
+    @Test
+    fun `viewAttributeNode takes a selected View node`() {
+        val tree = snapshot(root("window-1", node = node(id = 1, children = listOf(viewNode(id = -4, viewClass = "android.widget.TextView")))))
+
+        assertEquals(NodeKey(rootId = "window-1", nodeId = -4), tree.viewAttributeNode(NodeKey(rootId = "window-1", nodeId = -4)))
+    }
+
+    @Test
+    fun `viewAttributeNode takes no Compose node, and no selection at all`() {
+        val tree = snapshot(root("window-1", node = node(id = 1)))
+
+        assertNull(tree.viewAttributeNode(NodeKey(rootId = "window-1", nodeId = 1)))
+        assertNull(tree.viewAttributeNode(null))
+    }
+
+    @Test
+    fun `viewAttributeNode takes no node this snapshot does not hold`() {
+        val tree = snapshot(root("window-1", node = viewNode(id = -4, viewClass = "android.widget.TextView")))
+
+        // The right id under the wrong root is as absent as an id nothing carries: node ids are
+        // only unique within their root.
+        assertNull(tree.viewAttributeNode(NodeKey(rootId = "window-2", nodeId = -4)))
+        assertNull(tree.viewAttributeNode(NodeKey(rootId = "window-1", nodeId = -9)))
+        val notCaptured: NodeTreeSnapshot? = null
+        assertNull(notCaptured.viewAttributeNode(NodeKey(rootId = "window-1", nodeId = -4)))
     }
 }

@@ -38,19 +38,8 @@ internal class ViewAttributeStore(
     var node: NodeKey? by mutableStateOf(null)
         private set
 
-    /** The attributes of [node], or `null` while they are being read or could not be. */
-    var attributes: List<ViewAttribute>? by mutableStateOf(null)
-        private set
-
-    /** Why there are no attributes to show, when there are none. */
-    var message: String? by mutableStateOf(null)
-        private set
-
-    /** What the last write to [node] came back with. */
-    var writeStatus: String? by mutableStateOf(null)
-        private set
-
-    var writeFailed: Boolean by mutableStateOf(false)
+    /** What the panel draws for [node]: one value, so the composition takes data rather than this store. */
+    var state: ViewAttributesUiState by mutableStateOf(ViewAttributesUiState.Empty)
         private set
 
     // Writes run one at a time. Each is its own coroutine, so two edits made in quick succession —
@@ -69,10 +58,7 @@ internal class ViewAttributeStore(
         val key = NodeKey(rootId = rootId, nodeId = nodeId)
         if (key == node) return
         node = key
-        attributes = null
-        message = null
-        writeStatus = null
-        writeFailed = false
+        state = ViewAttributesUiState.Empty
         scope.launch {
             val response = try {
                 read(GetViewAttributes(rootId = rootId, nodeId = nodeId))
@@ -80,24 +66,19 @@ internal class ViewAttributeStore(
                 // A read that comes back after the selection moved on describes a node nobody is
                 // looking at any more, so it is dropped rather than shown against the new one.
                 if (node == key) {
-                    attributes = null
-                    message = "The app did not answer: ${e.message}"
+                    state = state.copy(attributes = null, message = "The app did not answer: ${e.message}")
                 }
                 return@launch
             }
             if (node != key) return@launch
-            attributes = response.snapshot?.attributes
-            message = response.message
+            state = state.copy(attributes = response.snapshot?.attributes, message = response.message)
         }
     }
 
     /** Holds nothing — the selection is a Compose node, or there is no selection. */
     fun clear() {
         node = null
-        attributes = null
-        message = null
-        writeStatus = null
-        writeFailed = false
+        state = ViewAttributesUiState.Empty
     }
 
     /**
@@ -115,15 +96,13 @@ internal class ViewAttributeStore(
                 val value = try {
                     parseViewAttributeValue(attribute.id, attribute.value, text)
                 } catch (e: JetWhaleMcpArgumentException) {
-                    writeStatus = e.message
-                    writeFailed = true
+                    state = state.copy(writeStatus = e.message, writeFailed = true)
                     return@withLock
                 }
                 try {
                     apply(SetViewAttribute(rootId = key.rootId, nodeId = key.nodeId, attributeId = attribute.id, value = value))
                 } catch (e: JetWhaleMessagingException) {
-                    writeStatus = "${attribute.id} failed: ${e.message}"
-                    writeFailed = true
+                    state = state.copy(writeStatus = "${attribute.id} failed: ${e.message}", writeFailed = true)
                 }
             }
         }
@@ -152,13 +131,17 @@ internal class ViewAttributeStore(
     private fun record(attributeId: String, result: ViewAttributeResult) {
         // The row shows what came back, not what was asked for: an app may clamp a value or ignore
         // it, and the difference is exactly what the panel is for.
-        result.attribute?.let { written ->
-            attributes = attributes?.map { if (it.id == written.id) written else it }
+        val attributes = when (val written = result.attribute) {
+            null -> state.attributes
+            else -> state.attributes?.map { if (it.id == written.id) written else it }
         }
-        writeFailed = !result.applied
-        writeStatus = when {
-            result.applied -> "$attributeId: ${result.attribute?.value?.asText() ?: "written"}"
-            else -> "$attributeId: ${result.message ?: "not applied"}"
-        }
+        state = state.copy(
+            attributes = attributes,
+            writeFailed = !result.applied,
+            writeStatus = when {
+                result.applied -> "$attributeId: ${result.attribute?.value?.asText() ?: "written"}"
+                else -> "$attributeId: ${result.message ?: "not applied"}"
+            },
+        )
     }
 }
