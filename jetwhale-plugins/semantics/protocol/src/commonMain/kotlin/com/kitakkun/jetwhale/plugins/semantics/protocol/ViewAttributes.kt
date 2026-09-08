@@ -47,10 +47,35 @@ sealed interface ViewAttributeValue {
     @SerialName("dimension")
     data class DimensionValue(val px: Float, val dp: Float) : ViewAttributeValue
 
-    /** One of [options]; `layout.width`'s options include `MATCH_PARENT` / `WRAP_CONTENT`. */
+    /** One of [options], and nothing else. */
     @Serializable
     @SerialName("enum")
     data class EnumValue(val value: String, val options: List<String>) : ViewAttributeValue
+
+    /**
+     * A `layout.width` / `layout.height`, which is either one of the constants that name a rule or a
+     * length — and can be moved between the two.
+     *
+     * Both cases are one variant rather than an [EnumValue] and a [DimensionValue] taking turns,
+     * because the variant is what a host picks an editor from: were the shape to follow the current
+     * value, a size reading `WRAP_CONTENT` would offer no way to type a length, and a size reading
+     * as a length no way to get back.
+     *
+     * @param constant one of [constants] when the size names a rule, `null` when it is a length.
+     * @param px the length in pixels, `null` when [constant] is set. A write reads [px] only, so a
+     *   caller that has no density to hand may repeat the pixel figure in [dp].
+     * @param dp the same length at the root's density, for reading.
+     * @param constants the rules this size accepts, whichever case it is in — so an editor can
+     *   offer them while the size is a length.
+     */
+    @Serializable
+    @SerialName("layoutSize")
+    data class LayoutSizeValue(
+        val constant: String?,
+        val px: Float?,
+        val dp: Float?,
+        val constants: List<String>,
+    ) : ViewAttributeValue
 }
 
 @Serializable

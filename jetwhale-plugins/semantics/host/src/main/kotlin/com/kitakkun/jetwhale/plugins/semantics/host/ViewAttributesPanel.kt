@@ -147,7 +147,14 @@ private val AttributeLabelWidth = 120.dp
 /** Wide enough for `#AARRGGBB` and for the enum names, without crowding the pane. */
 private val AttributeEditorWidth = 180.dp
 
+/** The two halves of the layout-size editor: the wider one fits `MATCH_PARENT` without eliding it. */
+private val LayoutSizeChoiceWidth = 170.dp
+private val LayoutSizePixelWidth = 62.dp
+
 private val ColorSwatchSize = 16.dp
+
+/** The layout-size choice that is a length rather than one of the constants. */
+private const val FIXED_CHOICE = "Fixed"
 
 @Composable
 private fun AttributeRow(attribute: ViewAttribute, onCommit: (String) -> Unit) {
@@ -174,6 +181,8 @@ private fun AttributeRow(attribute: ViewAttribute, onCommit: (String) -> Unit) {
 
             value is ViewAttributeValue.EnumValue -> EnumEditor(value = value, onCommit = onCommit)
 
+            value is ViewAttributeValue.LayoutSizeValue -> LayoutSizeEditor(value = value, onCommit = onCommit)
+
             value is ViewAttributeValue.ColorValue -> Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
@@ -184,10 +193,22 @@ private fun AttributeRow(attribute: ViewAttribute, onCommit: (String) -> Unit) {
                         .background(Color(value.argb), JwShapes.extraSmall)
                         .border(1.dp, JwTheme.colors.border, JwShapes.extraSmall),
                 )
-                TextEditor(current = value.asText(), onCommit = onCommit)
+                TextEditor(
+                    current = value.asText(),
+                    enabled = true,
+                    placeholder = null,
+                    modifier = Modifier.width(AttributeEditorWidth),
+                    onCommit = onCommit,
+                )
             }
 
-            else -> TextEditor(current = value.asText(), onCommit = onCommit)
+            else -> TextEditor(
+                current = value.asText(),
+                enabled = true,
+                placeholder = null,
+                modifier = Modifier.width(AttributeEditorWidth),
+                onCommit = onCommit,
+            )
         }
     }
 }
@@ -216,24 +237,98 @@ private fun EnumEditor(value: ViewAttributeValue.EnumValue, onCommit: (String) -
 }
 
 /**
- * A field that commits on Enter or when it loses focus — never on every keystroke, which would send
- * a write to the app for each character typed.
+ * A layout size, whose editor is one shape whichever of the two cases the value is in: the
+ * constants and "Fixed" in a dropdown, and a pixel field that only "Fixed" enables.
+ *
+ * Picking "Fixed" writes nothing on its own — there is no length to write yet — it only opens the
+ * field, so the choice is remembered here until the number that follows it lands.
  */
 @Composable
-private fun TextEditor(current: String, onCommit: (String) -> Unit) {
+private fun LayoutSizeEditor(value: ViewAttributeValue.LayoutSizeValue, onCommit: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    var fixed by remember(value) { mutableStateOf(value.constant == null) }
+    val choice = if (fixed) FIXED_CHOICE else value.constant.orEmpty()
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
+    ) {
+        Box(Modifier.width(LayoutSizeChoiceWidth)) {
+            JwDropdownButton(
+                text = choice,
+                expanded = expanded,
+                onExpandedChange = { expanded = it },
+            ) {
+                for (constant in value.constants) {
+                    JwMenuItem(
+                        text = constant,
+                        selected = constant == choice,
+                        onClick = {
+                            expanded = false
+                            fixed = false
+                            onCommit(constant)
+                        },
+                    )
+                }
+                JwMenuItem(
+                    text = FIXED_CHOICE,
+                    selected = fixed,
+                    onClick = {
+                        expanded = false
+                        fixed = true
+                    },
+                )
+            }
+        }
+        TextEditor(
+            current = value.px?.toString().orEmpty(),
+            enabled = fixed,
+            placeholder = "px",
+            modifier = Modifier.width(LayoutSizePixelWidth),
+            onCommit = onCommit,
+        )
+    }
+}
+
+/**
+ * A field that commits on Enter or when it loses focus — never on every keystroke, which would send
+ * a write to the app for each character typed.
+ *
+ * A commit repeats nothing: the draft only reaches the app when it differs from what was last sent.
+ * Enter followed by a blur, or Enter twice, would otherwise write the same value again — the draft
+ * does not converge on [current] until the write comes back, and never converges at all when the
+ * write is refused.
+ */
+@Composable
+private fun TextEditor(
+    current: String,
+    enabled: Boolean,
+    placeholder: String?,
+    modifier: Modifier,
+    onCommit: (String) -> Unit,
+) {
     var draft by remember(current) { mutableStateOf(current) }
+    var committed by remember(current) { mutableStateOf(current) }
+
+    fun commit() {
+        if (draft == committed) return
+        committed = draft
+        onCommit(draft)
+    }
+
     JwTextField(
         value = draft,
         onValueChange = { draft = it },
+        enabled = enabled,
+        placeholder = placeholder,
         textStyle = JwTheme.textStyles.code,
-        modifier = Modifier
-            .width(AttributeEditorWidth)
+        modifier = modifier
             .onFocusChanged { state ->
-                if (!state.isFocused && draft != current) onCommit(draft)
+                if (!state.isFocused) commit()
             }
             .onPreviewKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown && event.key == Key.Enter) {
-                    onCommit(draft)
+                    commit()
                     true
                 } else {
                     false

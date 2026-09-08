@@ -466,15 +466,14 @@ private fun ViewAttributeValue.asVisibility(attributeId: String): Int {
     }
 }
 
-/** Accepts either of the two constants or a pixel length, which is how the attribute reads back too. */
-private fun ViewAttributeValue.asLayoutSize(attributeId: String): Int = when (this) {
-    is ViewAttributeValue.EnumValue -> when (value) {
+/** Either of the two constants or a pixel length, exactly as the attribute reads back. */
+private fun ViewAttributeValue.asLayoutSize(attributeId: String): Int {
+    val size = this as? ViewAttributeValue.LayoutSizeValue
+        ?: throw IllegalArgumentException(wrongVariantMessage(attributeId, "layoutSize", this))
+    return when (size.constant) {
+        null -> (size.px ?: throw IllegalArgumentException("$attributeId needs either a constant or a pixel length, but neither was sent")).roundToInt()
         "MATCH_PARENT" -> ViewGroup.LayoutParams.MATCH_PARENT
         "WRAP_CONTENT" -> ViewGroup.LayoutParams.WRAP_CONTENT
-        else -> throw IllegalArgumentException("unknown $attributeId: $value (expected one of ${LAYOUT_SIZE_CONSTANTS.joinToString(", ")}, or a dimension)")
+        else -> throw IllegalArgumentException("unknown $attributeId: ${size.constant} (expected one of ${LAYOUT_SIZE_CONSTANTS.joinToString(", ")}, or a pixel length)")
     }
-
-    is ViewAttributeValue.DimensionValue -> px.roundToInt()
-
-    else -> throw IllegalArgumentException(wrongVariantMessage(attributeId, "enum or dimension", this))
 }

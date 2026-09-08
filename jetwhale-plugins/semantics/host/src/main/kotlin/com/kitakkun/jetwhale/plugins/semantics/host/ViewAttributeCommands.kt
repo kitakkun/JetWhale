@@ -35,7 +35,9 @@ internal class GetViewAttributesCommand(
             "background color, text, text size and color — as {\"rootId\", \"nodeId\", \"viewClass\", \"attributes\": " +
             "[{\"id\", \"label\", \"group\", \"type\", \"value\", \"options\", \"editable\"}]}. \"id\" is what " +
             "setViewAttribute names, and \"type\" says how to write it: bool (\"true\"), int (\"24\"), float (\"0.5\"), " +
-            "text, color (\"#AARRGGBB\"), dimension (pixels, \"48\") or enum (one of \"options\"). \"editable\": false " +
+            "text, color (\"#AARRGGBB\"), dimension (pixels, \"48\"), enum (one of \"options\") or layoutSize — " +
+            "layout.width / layout.height, which take either one of \"constants\" (\"WRAP_CONTENT\", \"MATCH_PARENT\") " +
+            "or a pixel figure, whichever the value currently reads as. \"editable\": false " +
             "marks a read-only attribute. Answers {\"message\"} instead when the node has no attributes. " +
             TEMPORARY_NOTICE
 
@@ -85,7 +87,8 @@ internal class SetViewAttributeCommand(
     private val value by string(
         "The new value as a string, read according to the attribute's type: bool \"true\"/\"false\", int \"24\", float \"0.5\", " +
             "text as-is, color \"#AARRGGBB\" or \"#RRGGBB\", dimension as a pixel figure \"48\", enum as one of the options " +
-            "getViewAttributes listed, e.g. \"GONE\".",
+            "getViewAttributes listed, e.g. \"GONE\", layoutSize as one of the constants it listed — \"wrap_content\", " +
+            "\"match_parent\" — or a pixel figure \"500\".",
     )
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
@@ -146,6 +149,13 @@ internal fun ViewAttribute.toMcpJson(): JsonObject = buildJsonObject {
         // The pixel figure is authoritative; the dp figure is what makes it recognisable.
         is ViewAttributeValue.DimensionValue -> put("dp", current.dp)
 
+        // Both of what this takes are spelled out whichever one it currently reads as: the
+        // constants it accepts, and — when it is a length — that length in dp as well.
+        is ViewAttributeValue.LayoutSizeValue -> {
+            put("constants", JsonArray(current.constants.map { JsonPrimitive(it) }))
+            current.dp?.let { put("dp", it) }
+        }
+
         else -> Unit
     }
     // Most attributes can be written; the read-only ones are the ones worth pointing out.
@@ -162,6 +172,7 @@ internal val ViewAttributeValue.typeName: String
         is ViewAttributeValue.ColorValue -> "color"
         is ViewAttributeValue.DimensionValue -> "dimension"
         is ViewAttributeValue.EnumValue -> "enum"
+        is ViewAttributeValue.LayoutSizeValue -> "layoutSize"
     }
 
 /** The value as the string an agent both reads and writes it as. */
@@ -173,15 +184,16 @@ internal fun ViewAttributeValue.asText(): String = when (this) {
     is ViewAttributeValue.ColorValue -> formatArgb(argb)
     is ViewAttributeValue.DimensionValue -> px.toString()
     is ViewAttributeValue.EnumValue -> value
+    is ViewAttributeValue.LayoutSizeValue -> constant ?: px?.toString() ?: ""
 }
 
 /**
  * Reads [text] as a new value for an attribute whose value currently reads as [current] — the
  * current variant is what an agent would otherwise have to reconstruct as sealed JSON by hand.
  *
- * A layout size is the one attribute that takes either shape, so a numeric string is accepted where
- * an enum reads today and a name where a dimension does; the agent decides whether the name is one
- * it knows.
+ * The variant is fixed per attribute, so what each branch accepts is the whole of what the attribute
+ * takes: a dimension is a number and nothing else, an enum is one of its options, and the one
+ * attribute that takes either a name or a number — a layout size — says so in its own variant.
  */
 @OptIn(ExperimentalJetWhaleApi::class)
 internal fun parseViewAttributeValue(attributeId: String, current: ViewAttributeValue, text: String): ViewAttributeValue = when (current) {
@@ -204,21 +216,23 @@ internal fun parseViewAttributeValue(attributeId: String, current: ViewAttribute
     )
 
     is ViewAttributeValue.DimensionValue -> {
-        val px = text.trim().toFloatOrNull()
-        if (px != null) {
-            ViewAttributeValue.DimensionValue(px = px, dp = px)
-        } else {
-            ViewAttributeValue.EnumValue(value = text.trim().uppercase(), options = emptyList())
-        }
+        val px = text.trim().toFloatOrNull() ?: invalidValue(attributeId, text, "a length in pixels")
+        ViewAttributeValue.DimensionValue(px = px, dp = px)
     }
 
-    is ViewAttributeValue.EnumValue -> {
-        val match = current.options.firstOrNull { it.equals(text.trim(), ignoreCase = true) }
+    is ViewAttributeValue.EnumValue -> ViewAttributeValue.EnumValue(
+        value = current.options.firstOrNull { it.equals(text.trim(), ignoreCase = true) }
+            ?: invalidValue(attributeId, text, "one of ${current.options.joinToString(", ")}"),
+        options = current.options,
+    )
+
+    is ViewAttributeValue.LayoutSizeValue -> {
+        val constant = current.constants.firstOrNull { it.equals(text.trim(), ignoreCase = true) }
         val px = text.trim().toFloatOrNull()
         when {
-            match != null -> ViewAttributeValue.EnumValue(value = match, options = current.options)
-            px != null -> ViewAttributeValue.DimensionValue(px = px, dp = px)
-            else -> invalidValue(attributeId, text, "one of ${current.options.joinToString(", ")}")
+            constant != null -> current.copy(constant = constant, px = null, dp = null)
+            px != null -> current.copy(constant = null, px = px, dp = px)
+            else -> invalidValue(attributeId, text, "one of ${current.constants.joinToString(", ")}, or a length in pixels")
         }
     }
 }

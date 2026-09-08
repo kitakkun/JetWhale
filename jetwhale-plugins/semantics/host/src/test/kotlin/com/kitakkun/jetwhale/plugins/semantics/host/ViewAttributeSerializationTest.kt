@@ -18,6 +18,8 @@ import kotlin.test.assertEquals
  * to hold is that every value variant survives the trip and that each keeps its own discriminator —
  * a variant that decoded as another one would silently write the wrong property.
  */
+private val LAYOUT_SIZE_CONSTANTS = listOf("MATCH_PARENT", "WRAP_CONTENT")
+
 class ViewAttributeSerializationTest {
     private val json = Json
 
@@ -29,6 +31,9 @@ class ViewAttributeSerializationTest {
         ViewAttributeValue.ColorValue(0x80FF0000.toInt()) to "color",
         ViewAttributeValue.DimensionValue(px = 48f, dp = 24f) to "dimension",
         ViewAttributeValue.EnumValue("GONE", listOf("VISIBLE", "INVISIBLE", "GONE")) to "enum",
+        // Both cases of the one variant, because it is the pair of them that has to survive.
+        ViewAttributeValue.LayoutSizeValue(constant = "WRAP_CONTENT", px = null, dp = null, constants = LAYOUT_SIZE_CONSTANTS) to "layoutSize",
+        ViewAttributeValue.LayoutSizeValue(constant = null, px = 500f, dp = 250f, constants = LAYOUT_SIZE_CONSTANTS) to "layoutSize",
     )
 
     @Test

@@ -11,17 +11,31 @@ import kotlin.test.assertTrue
  */
 class ViewAttributeSourceTest {
     @Test
-    fun `reports a layout size that names a rule as that rule and offers both`() {
+    fun `reports a layout size that names a rule as that rule and no length`() {
         val value = layoutSizeValue(constantName = "MATCH_PARENT", px = -1f, density = 2f)
 
-        assertEquals(ViewAttributeValue.EnumValue("MATCH_PARENT", listOf("MATCH_PARENT", "WRAP_CONTENT")), value)
+        assertEquals(
+            ViewAttributeValue.LayoutSizeValue(constant = "MATCH_PARENT", px = null, dp = null, constants = listOf("MATCH_PARENT", "WRAP_CONTENT")),
+            value,
+        )
     }
 
     @Test
-    fun `reports a layout size that is a length as a dimension in both pixels and dp`() {
+    fun `reports a layout size that is a length in both pixels and dp and no constant`() {
         val value = layoutSizeValue(constantName = null, px = 48f, density = 2f)
 
-        assertEquals(ViewAttributeValue.DimensionValue(px = 48f, dp = 24f), value)
+        assertEquals(
+            ViewAttributeValue.LayoutSizeValue(constant = null, px = 48f, dp = 24f, constants = listOf("MATCH_PARENT", "WRAP_CONTENT")),
+            value,
+        )
+    }
+
+    @Test
+    fun `a layout size offers the constants whichever of the two cases it is in`() {
+        val constants = listOf("MATCH_PARENT", "WRAP_CONTENT")
+
+        assertEquals(constants, layoutSizeValue(constantName = "WRAP_CONTENT", px = -2f, density = 2f).constants)
+        assertEquals(constants, layoutSizeValue(constantName = null, px = 48f, density = 2f).constants)
     }
 
     @Test
@@ -41,6 +55,7 @@ class ViewAttributeSourceTest {
             ViewAttributeValue.ColorValue(0) to "color",
             ViewAttributeValue.DimensionValue(px = 1f, dp = 1f) to "dimension",
             ViewAttributeValue.EnumValue("A", listOf("A")) to "enum",
+            ViewAttributeValue.LayoutSizeValue(constant = "WRAP_CONTENT", px = null, dp = null, constants = listOf("WRAP_CONTENT")) to "layoutSize",
         )
 
         for ((value, name) in variants) {

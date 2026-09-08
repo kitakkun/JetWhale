@@ -46,6 +46,13 @@ private fun response(vararg attributes: ViewAttribute): ViewAttributeResponse = 
     ),
 )
 
+private fun layoutSize(constant: String?, px: Float?, dp: Float?): ViewAttributeValue.LayoutSizeValue = ViewAttributeValue.LayoutSizeValue(
+    constant = constant,
+    px = px,
+    dp = dp,
+    constants = listOf("MATCH_PARENT", "WRAP_CONTENT"),
+)
+
 private fun arguments(vararg pairs: Pair<String, Any>): JsonObject = buildJsonObject {
     for ((key, value) in pairs) {
         when (value) {
@@ -78,6 +85,54 @@ class ViewAttributeCommandsTest {
         assertEquals("dimension", rows[1]["type"]?.jsonPrimitive?.content)
         assertEquals("48.0", rows[1]["value"]?.jsonPrimitive?.content)
         assertEquals(24f, rows[1]["dp"]?.jsonPrimitive?.content?.toFloat())
+    }
+
+    @Test
+    fun `getViewAttributes shows a layout size's constants even while it reads as one of them`() {
+        val command = GetViewAttributesCommand(
+            getAttributes = {
+                response(
+                    attribute("layout.width", layoutSize(constant = "WRAP_CONTENT", px = null, dp = null), group = "Layout"),
+                    attribute("layout.height", layoutSize(constant = null, px = 500f, dp = 250f), group = "Layout"),
+                )
+            },
+        )
+
+        val rows = command.run(arguments("rootId" to "window-1", "nodeId" to -4))["attributes"]!!.jsonArray.map { it.jsonObject }
+
+        assertEquals("layoutSize", rows[0]["type"]?.jsonPrimitive?.content)
+        assertEquals("WRAP_CONTENT", rows[0]["value"]?.jsonPrimitive?.content)
+        assertEquals(listOf("MATCH_PARENT", "WRAP_CONTENT"), rows[0]["constants"]!!.jsonArray.map { it.jsonPrimitive.content })
+        assertNull(rows[0]["dp"])
+        // …and the same constants are offered while it reads as a length.
+        assertEquals("500.0", rows[1]["value"]?.jsonPrimitive?.content)
+        assertEquals(listOf("MATCH_PARENT", "WRAP_CONTENT"), rows[1]["constants"]!!.jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(250f, rows[1]["dp"]?.jsonPrimitive?.content?.toFloat())
+    }
+
+    @Test
+    fun `setViewAttribute takes a plain string for a layout size, constant or number`() {
+        val sent = mutableListOf<ViewAttributeValue>()
+        val command = SetViewAttributeCommand(
+            getAttributes = { response(attribute("layout.width", layoutSize(constant = "WRAP_CONTENT", px = null, dp = null), group = "Layout")) },
+            setAttribute = { request ->
+                sent += request.value
+                ViewAttributeResult(applied = true)
+            },
+        )
+
+        for (text in listOf("wrap_content", "match_parent", "500")) {
+            command.run(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "layout.width", "value" to text))
+        }
+
+        assertEquals(
+            listOf<ViewAttributeValue>(
+                layoutSize(constant = "WRAP_CONTENT", px = null, dp = null),
+                layoutSize(constant = "MATCH_PARENT", px = null, dp = null),
+                layoutSize(constant = null, px = 500f, dp = 500f),
+            ),
+            sent,
+        )
     }
 
     @Test
@@ -213,17 +268,45 @@ class ViewAttributeValueParsingTest {
     }
 
     @Test
-    fun `accepts either shape for a layout size, which reads as either`() {
-        // Written where it currently reads as a length…
-        assertEquals(
-            ViewAttributeValue.EnumValue("MATCH_PARENT", emptyList()),
-            parseViewAttributeValue("layout.width", ViewAttributeValue.DimensionValue(px = 100f, dp = 50f), "match_parent"),
-        )
-        // …and where it currently reads as one of the two constants.
-        assertEquals(
-            ViewAttributeValue.DimensionValue(px = 100f, dp = 100f),
-            parseViewAttributeValue("layout.width", ViewAttributeValue.EnumValue("WRAP_CONTENT", listOf("MATCH_PARENT", "WRAP_CONTENT")), "100"),
-        )
+    fun `reads a layout size as a constant or as a length, whichever it currently is`() {
+        val wrapping = layoutSize(constant = "WRAP_CONTENT", px = null, dp = null)
+        val fixed = layoutSize(constant = null, px = 100f, dp = 50f)
+
+        // A constant, in whatever case it was typed, from either starting point…
+        assertEquals(layoutSize(constant = "MATCH_PARENT", px = null, dp = null), parseViewAttributeValue("layout.width", fixed, "match_parent"))
+        assertEquals(layoutSize(constant = "WRAP_CONTENT", px = null, dp = null), parseViewAttributeValue("layout.width", fixed, "wrap_content"))
+        // …and a length, likewise.
+        assertEquals(layoutSize(constant = null, px = 500f, dp = 500f), parseViewAttributeValue("layout.width", wrapping, "500"))
+        assertEquals(layoutSize(constant = null, px = 500f, dp = 500f), parseViewAttributeValue("layout.width", fixed, "500"))
+    }
+
+    @Test
+    fun `names both the constants and the length a layout size could have been`() {
+        val failure = assertFailsWith<JetWhaleMcpArgumentException> {
+            parseViewAttributeValue("layout.width", layoutSize(constant = "WRAP_CONTENT", px = null, dp = null), "as wide as it likes")
+        }
+
+        assertTrue(failure.message!!.contains("MATCH_PARENT, WRAP_CONTENT"), failure.message!!)
+        assertTrue(failure.message!!.contains("a length in pixels"), failure.message!!)
+    }
+
+    @Test
+    fun `refuses a dimension that is not a number rather than passing it on as a name`() {
+        val failure = assertFailsWith<JetWhaleMcpArgumentException> {
+            parseViewAttributeValue("padding.left", ViewAttributeValue.DimensionValue(px = 0f, dp = 0f), "banana")
+        }
+
+        assertTrue(failure.message!!.contains("invalid value for padding.left"), failure.message!!)
+        assertTrue(failure.message!!.contains("expected a length in pixels"), failure.message!!)
+    }
+
+    @Test
+    fun `refuses a number for an enum, whose options are the whole of what it takes`() {
+        val failure = assertFailsWith<JetWhaleMcpArgumentException> {
+            parseViewAttributeValue("visibility", ViewAttributeValue.EnumValue("VISIBLE", listOf("VISIBLE", "INVISIBLE", "GONE")), "500")
+        }
+
+        assertTrue(failure.message!!.contains("VISIBLE, INVISIBLE, GONE"), failure.message!!)
     }
 
     @Test

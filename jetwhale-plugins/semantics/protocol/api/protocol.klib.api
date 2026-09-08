@@ -235,6 +235,43 @@ sealed interface com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeV
         }
     }
 
+    final class LayoutSizeValue : com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue|null[0]
+        constructor <init>(kotlin/String?, kotlin/Float?, kotlin/Float?, kotlin.collections/List<kotlin/String>) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.<init>|<init>(kotlin.String?;kotlin.Float?;kotlin.Float?;kotlin.collections.List<kotlin.String>){}[0]
+
+        final val constant // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.constant|{}constant[0]
+            final fun <get-constant>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.constant.<get-constant>|<get-constant>(){}[0]
+        final val constants // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.constants|{}constants[0]
+            final fun <get-constants>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.constants.<get-constants>|<get-constants>(){}[0]
+        final val dp // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.dp|{}dp[0]
+            final fun <get-dp>(): kotlin/Float? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.dp.<get-dp>|<get-dp>(){}[0]
+        final val px // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.px|{}px[0]
+            final fun <get-px>(): kotlin/Float? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.px.<get-px>|<get-px>(){}[0]
+
+        final fun component1(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.component1|component1(){}[0]
+        final fun component2(): kotlin/Float? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.component2|component2(){}[0]
+        final fun component3(): kotlin/Float? // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.component3|component3(){}[0]
+        final fun component4(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.component4|component4(){}[0]
+        final fun copy(kotlin/String? = ..., kotlin/Float? = ..., kotlin/Float? = ..., kotlin.collections/List<kotlin/String> = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.copy|copy(kotlin.String?;kotlin.Float?;kotlin.Float?;kotlin.collections.List<kotlin.String>){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue.LayoutSizeValue){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.Companion|null[0]
+            final val $childSerializers // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.Companion.$childSerializers|{}$childSerializers[0]
+
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue> // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.LayoutSizeValue.Companion.serializer|serializer(){}[0]
+        }
+    }
+
     final class TextValue : com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue { // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue|null[0]
         constructor <init>(kotlin/String) // com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue.TextValue.<init>|<init>(kotlin.String){}[0]
 

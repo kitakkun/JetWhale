@@ -49,6 +49,7 @@ internal fun variantNameOf(value: ViewAttributeValue): String = when (value) {
     is ViewAttributeValue.ColorValue -> "color"
     is ViewAttributeValue.DimensionValue -> "dimension"
     is ViewAttributeValue.EnumValue -> "enum"
+    is ViewAttributeValue.LayoutSizeValue -> "layoutSize"
 }
 
 /** Names what the attribute takes and what arrived, so a caller can fix the call from the message alone. */
@@ -56,16 +57,17 @@ internal fun wrongVariantMessage(attributeId: String, expected: String, actual: 
 
 /**
  * A layout size as either of the two constants that are not lengths at all, or as the length it
- * otherwise is.
+ * otherwise is — one value either way, so an editor for it never changes shape.
  *
  * @param constantName `MATCH_PARENT` or `WRAP_CONTENT` when the raw size is one of them, `null`
  *   when it is a pixel figure.
  */
-internal fun layoutSizeValue(constantName: String?, px: Float, density: Float): ViewAttributeValue = if (constantName != null) {
-    ViewAttributeValue.EnumValue(value = constantName, options = LAYOUT_SIZE_CONSTANTS)
-} else {
-    ViewAttributeValue.DimensionValue(px = px, dp = px / density)
-}
+internal fun layoutSizeValue(constantName: String?, px: Float, density: Float): ViewAttributeValue.LayoutSizeValue = ViewAttributeValue.LayoutSizeValue(
+    constant = constantName,
+    px = px.takeIf { constantName == null },
+    dp = (px / density).takeIf { constantName == null },
+    constants = LAYOUT_SIZE_CONSTANTS,
+)
 
 /** The two `layout.width` / `layout.height` values that name a rule instead of a length. */
 internal val LAYOUT_SIZE_CONSTANTS: List<String> = listOf("MATCH_PARENT", "WRAP_CONTENT")

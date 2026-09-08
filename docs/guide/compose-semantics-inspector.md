@@ -79,10 +79,17 @@ rebuild. Select a `View` node in the host and the attributes appear under its se
 | Group | Attributes |
 |---|---|
 | **State** | `visibility` (`VISIBLE`/`INVISIBLE`/`GONE`), `enabled`, `selected`, `activated`, `clickable`, `focusable`, and `focused` read-only |
-| **Layout** | `layout.width` / `layout.height` (either constant or a pixel length), `padding.*`, `margin.*` (when the parent hands out margins), `minWidth` / `minHeight`, and `bounds` read-only |
+| **Layout** | `layout.width` / `layout.height` (`MATCH_PARENT`, `WRAP_CONTENT` or a pixel length), `padding.*`, `margin.*` (when the parent hands out margins), `minWidth` / `minHeight`, and `bounds` read-only |
 | **Appearance** | `alpha`, `backgroundColor` (when the background is a flat color; otherwise `background` names the drawable, read-only), `elevation`, `translationX` / `translationY`, `rotation`, `scaleX` / `scaleY` |
 | **Text** | on a `TextView`: `text`, `hint`, `textSize`, `textColor`, `maxLines` |
 | **Info** | `id` (`@id/name`) and `class`, both read-only |
+
+Each attribute has one type, and the type is what decides the editor — a `visibility` is always a
+dropdown of its options, a `padding.left` always a pixel field. `layout.width` and `layout.height`
+take *either* a constant or a length, so they have a type of their own that says both: a dropdown of
+`MATCH_PARENT`, `WRAP_CONTENT` and **Fixed**, with a pixel field that Fixed enables. The editor looks
+the same whichever the size currently is, so a `WRAP_CONTENT` can be given a width and a width can be
+put back to `WRAP_CONTENT`.
 
 Three things to know:
 
@@ -283,11 +290,25 @@ carries its `id` (what `setViewAttribute` names), `label`, `group`, `type`, `val
 — a Compose node — comes back as a `message` rather than an error. See
 [Editing View attributes](#editing-view-attributes).
 
+`type` is one of `bool`, `int`, `float`, `text`, `color`, `dimension`, `enum` and `layoutSize`, and
+it is the whole of what the attribute takes: a `dimension` is a pixel figure and nothing else, an
+`enum` is one of its `options` and nothing else. A `layoutSize` — `layout.width`, `layout.height` —
+is the one that takes either, and it lists its `constants` whichever it currently reads as, so both
+possibilities are visible from a single read:
+
+```
+{ "id": "layout.width", "type": "layoutSize", "value": "WRAP_CONTENT",
+  "constants": ["MATCH_PARENT", "WRAP_CONTENT"] }
+{ "id": "layout.width", "type": "layoutSize", "value": "500.0", "dp": 250.0,
+  "constants": ["MATCH_PARENT", "WRAP_CONTENT"] }
+```
+
 ### `com.kitakkun.jetwhale.semantics.setViewAttribute`
 
 Changes one attribute: `rootId`, `nodeId`, `attributeId`, and `value` as a **string**, read according
 to the attribute's own type — `"GONE"`, `"true"`, `"0.5"`, `"#80FF0000"`, `"24"` — so there is no
-sealed JSON to construct. The answer carries the attribute as it reads back afterwards, which is not
+sealed JSON to construct. A `layoutSize` takes one of its constants, case-insensitively, or a pixel
+figure: `"wrap_content"`, `"match_parent"`, `"500"`. The answer carries the attribute as it reads back afterwards, which is not
 always what was asked for: an app may clamp a value or ignore it. The edit is temporary, and only
 `View` nodes have attributes at all.
 
