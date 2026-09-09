@@ -83,6 +83,11 @@ object NodeHitTesting {
  *
  * Children are walked in reverse because the last drawn sits on top, and a child wins over its
  * parent — which is what makes a button inside a clickable row take the tap.
+ *
+ * Compose guarantees the order this relies on: its semantics children come from the layout's
+ * z-sorted children, so `Modifier.zIndex` is already accounted for. An Android `ViewGroup` is
+ * captured in child order instead, which is paint order until a view is raised by `elevation` or
+ * `translationZ` — a raised sibling can therefore be missed as an obstruction.
  */
 private fun UiNode.topmostAt(screenX: Float, screenY: Float): UiNode? {
     if (!isVisible || !boundsInScreen.contains(screenX, screenY)) return null

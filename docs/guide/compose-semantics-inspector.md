@@ -261,6 +261,11 @@ finger would not reach:
   `OnTouchListener`),
 - a gesture an ancestor swallows before the node sees it.
 
+On the Compose side the order this relies on is guaranteed — semantics children come from the
+layout's z-sorted children, so `Modifier.zIndex` is accounted for. An Android `ViewGroup` is read in
+child order, which is paint order until a view is raised by `elevation` or `translationZ`; a raised
+sibling can be missed as an obstruction.
+
 Both are rarer than they sound. Sweeping the demo app point by point — comparing what the tree
 predicts against what a real touch does — the tree was right at every interactive node; the only
 places the two parted company were empty ones, where Material's `Surface` takes a touch that no node
