@@ -14,8 +14,8 @@ package com.kitakkun.jetwhale.plugins.semantics.protocol
  * finger would not reach — never the other way round.
  */
 object NodeHitTesting {
-    /** Where a tap at a point ends up. */
-    sealed interface TouchTarget {
+    /** Where a tap at a point ends up. Internal: what a caller needs from it is [nodeAt] and the flags on the nodes. */
+    internal sealed interface TouchTarget {
         /** A node takes it. */
         data class Node(val ref: NodeRef) : TouchTarget
 
@@ -54,9 +54,9 @@ object NodeHitTesting {
     /**
      * Where a tap at ([screenX], [screenY]) ends up, distinguishing a window that swallows it from
      * nothing taking it at all — the difference between "a dialog is in the way" and "there is
-     * nothing here".
+     * nothing here", which is what [UiNode.obscuredBy] is filled from.
      */
-    fun targetAt(roots: List<ComposeRoot>, screenX: Float, screenY: Float): TouchTarget {
+    internal fun targetAt(roots: List<ComposeRoot>, screenX: Float, screenY: Float): TouchTarget {
         for (index in roots.indices.reversed()) {
             val root = roots[index]
             val rootNode = root.node ?: continue

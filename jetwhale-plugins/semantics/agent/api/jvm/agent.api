@@ -57,10 +57,6 @@ public final class com/kitakkun/jetwhale/plugins/semantics/agent/SemanticsOwnerN
 	public static synthetic fun registerSemanticsOwner$default (Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSourceRegistry;Landroidx/compose/ui/semantics/SemanticsOwner;Ljava/lang/String;Ljava/lang/String;FLkotlin/jvm/functions/Function0;Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeUiThread;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSourceRegistry$Registration;
 }
 
-public abstract interface class com/kitakkun/jetwhale/plugins/semantics/agent/TouchProbeSource {
-	public abstract fun probeTouch (FFLkotlin/coroutines/Continuation;)Ljava/lang/Object;
-}
-
 public abstract interface class com/kitakkun/jetwhale/plugins/semantics/agent/ViewAttributeSource {
 	public abstract fun attributes (ILkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun setAttribute (ILjava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeValue;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

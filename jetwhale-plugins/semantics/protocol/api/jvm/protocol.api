@@ -257,41 +257,6 @@ public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesti
 	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting;
 	public final fun nodeAt (Ljava/util/List;FF)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef;
 	public final fun resolve (Ljava/util/List;)Ljava/util/List;
-	public final fun targetAt (Ljava/util/List;FF)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget;
-}
-
-public abstract interface class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget {
-}
-
-public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget$Node : com/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget {
-	public fun <init> (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef;)V
-	public final fun component1 ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef;
-	public final fun copy (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget$Node;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget$Node;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget$Node;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getRef ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget$Nothing : com/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget {
-	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget$Nothing;
-	public fun equals (Ljava/lang/Object;)Z
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget$Window : com/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget {
-	public fun <init> (Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef;
-	public final fun copy (Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget$Window;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget$Window;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesting$TouchTarget$Window;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getRootId ()Ljava/lang/String;
-	public final fun getRootNode ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
 }
 
 public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef {
@@ -430,35 +395,6 @@ public final class com/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeA
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ProbeTouch : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
-	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ProbeTouch$Companion;
-	public fun <init> (FF)V
-	public final fun component1 ()F
-	public final fun component2 ()F
-	public final fun copy (FF)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ProbeTouch;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ProbeTouch;FFILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ProbeTouch;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getScreenX ()F
-	public final fun getScreenY ()F
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/ProbeTouch$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ProbeTouch$$serializer;
-	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ProbeTouch;
-	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
-	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ProbeTouch;)V
-	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
-	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
-}
-
-public final class com/kitakkun/jetwhale/plugins/semantics/protocol/ProbeTouch$Companion {
-	public final fun serializer ()Lkotlinx/serialization/KSerializer;
-}
-
 public final class com/kitakkun/jetwhale/plugins/semantics/protocol/SetViewAttribute : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/SetViewAttribute$Companion;
 	public fun <init> (Ljava/lang/String;ILjava/lang/String;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/ViewAttributeValue;)V
@@ -489,38 +425,6 @@ public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/Se
 }
 
 public final class com/kitakkun/jetwhale/plugins/semantics/protocol/SetViewAttribute$Companion {
-	public final fun serializer ()Lkotlinx/serialization/KSerializer;
-}
-
-public final class com/kitakkun/jetwhale/plugins/semantics/protocol/TouchProbeResult {
-	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/TouchProbeResult$Companion;
-	public fun <init> (ZLjava/lang/String;Ljava/lang/String;)V
-	public synthetic fun <init> (ZLjava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Z
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()Ljava/lang/String;
-	public final fun copy (ZLjava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/TouchProbeResult;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/TouchProbeResult;ZLjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/TouchProbeResult;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getConsumed ()Z
-	public final fun getMessage ()Ljava/lang/String;
-	public final fun getRootId ()Ljava/lang/String;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
-}
-
-public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/TouchProbeResult$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/TouchProbeResult$$serializer;
-	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/TouchProbeResult;
-	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
-	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/TouchProbeResult;)V
-	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
-	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
-}
-
-public final class com/kitakkun/jetwhale/plugins/semantics/protocol/TouchProbeResult$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 

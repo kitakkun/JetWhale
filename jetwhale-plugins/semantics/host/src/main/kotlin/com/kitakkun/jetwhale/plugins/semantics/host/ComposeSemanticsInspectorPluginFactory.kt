@@ -17,9 +17,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
-import com.kitakkun.jetwhale.plugins.semantics.protocol.ProbeTouch
 import com.kitakkun.jetwhale.plugins.semantics.protocol.SetViewAttribute
-import com.kitakkun.jetwhale.plugins.semantics.protocol.TouchProbeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
@@ -71,10 +69,6 @@ private class ComposeNodeInspectorHostPlugin :
     }
 
     private suspend fun performAction(request: PerformNodeAction): NodeActionResult = messenger.request(request)
-
-    // Outside the capture lock: a probe sends an event rather than reading the tree, and holding
-    // the lock would make it queue behind an auto-refresh for no reason.
-    private suspend fun probeTouch(request: ProbeTouch): TouchProbeResult = messenger.request(request)
 
     // Attributes are read per node, on demand, so they stay out of the capture and out of the
     // capture lock: a selection change must not queue behind an auto-refresh.
@@ -145,7 +139,6 @@ private class ComposeNodeInspectorHostPlugin :
             GetNodeTreeCommand(capture = ::capture),
             FindNodesCommand(capture = ::capture),
             NodeAtCommand(capture = ::capture),
-            ProbeTouchCommand(capture = ::capture, probe = ::probeTouch),
             PerformNodeActionCommand(
                 lastSnapshot = { snapshot },
                 capture = ::capture,

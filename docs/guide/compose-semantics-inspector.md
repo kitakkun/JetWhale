@@ -16,7 +16,7 @@ browse it in the host and hand it to an AI agent over [MCP](/guide/mcp-server).
   `View`'s attributes can be read and edited live — see [Android View support](#android-view-support)
 - 🖐 Whether a tap aimed at a node would actually arrive, worked out from the capture rather than by
   tapping — see [Can a finger reach it?](#can-a-finger-reach-it)
-- 🤖 Seven MCP tools so an agent can see the screen structurally instead of guessing at pixels
+- 🤖 Six MCP tools so an agent can see the screen structurally instead of guessing at pixels
 
 ## What the tree contains
 
@@ -261,7 +261,11 @@ finger would not reach:
   `OnTouchListener`),
 - a gesture an ancestor swallows before the node sees it.
 
-`probeTouch` is the answer to both: it asks the app rather than the tree.
+Both are rarer than they sound. Sweeping the demo app point by point — comparing what the tree
+predicts against what a real touch does — the tree was right at every interactive node; the only
+places the two parted company were empty ones, where Material's `Surface` takes a touch that no node
+was going to get anyway. Where it matters, treat `hittable: false` as reliable and `hittable: true`
+as "nothing in the tree is in the way".
 
 Note that none of this constrains `performNodeAction`, which invokes the node's own action and never
 goes near the input system. Hittability is about whether a **person** could tap it — a UI check, not
@@ -279,7 +283,6 @@ app's *Compose nodes* screen, 27 nodes of which 8 are interactive:
 | --- | --- | --- |
 | `adb shell input tap` | nothing — it only fires | 329 ms |
 | `adb shell input tap` + `uiautomator dump` | one point, having changed the screen | 3,621 ms |
-| **`probeTouch`** | one point, really consumed, nothing clicked | **88 ms** |
 | **`nodeAt`** | one point, from the tree | **30 ms** |
 | **`getNodeTree`** | **every** node's reachability at once | **30 ms** |
 
@@ -290,17 +293,12 @@ The ratio is the smaller half of it. What the numbers buy is *frequency*: at 30 
 after every action, which at three seconds it cannot. And the answer is a node with its `testTag`,
 role and id — something to act on next — rather than a rectangle.
 
-`probeTouch` is the slower one because it waits on the app's main thread, and it varies with what
-that thread is doing: 88 ms on an idle screen, but several hundred while a ripple from the previous
-probe is still animating on an emulator. It is the tool for the blind spots above, not the one to
-call in a loop.
-
 Treat all of these as indicative. They come from an emulator, which is slower than a device, and a
 bigger screen means more nodes.
 
 ## MCP tools
 
-The plugin contributes seven tools to the host's [MCP server](/guide/mcp-server). As with every
+The plugin contributes six tools to the host's [MCP server](/guide/mcp-server). As with every
 plugin tool, JetWhale injects the `sessionId` parameter and routes the call to the right session.
 
 ### `com.kitakkun.jetwhale.semantics.findNodes`
@@ -328,16 +326,6 @@ you are looking for one element.
 Which node a tap at a screen coordinate would be dispatched to, or `null` when nothing there takes
 touch input. The question you have once you have picked a point from a screenshot rather than from a
 node's own bounds — see [Can a finger reach it?](#can-a-finger-reach-it).
-
-### `com.kitakkun.jetwhale.semantics.probeTouch`
-
-Sends a real touch down at a coordinate and cancels it immediately, then reports what the app did
-with it alongside what the tree predicted: `consumed`, `expected`, `agrees`. Nothing is clicked — the
-cancel ends the gesture before a click can complete — though a pressed state or a ripple may flash.
-
-`consumed: true` with `expected: null` is the one to look for: something takes touches there that the
-tree cannot see. A modal window swallowing the tap is reported as `swallowedByWindow` rather than as
-that — it is in the tree, and it agrees with the app.
 
 ### `com.kitakkun.jetwhale.semantics.performNodeAction`
 

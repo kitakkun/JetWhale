@@ -738,35 +738,6 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction :
     }
 }
 
-final class com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch|null[0]
-    constructor <init>(kotlin/Float, kotlin/Float) // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.<init>|<init>(kotlin.Float;kotlin.Float){}[0]
-
-    final val screenX // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.screenX|{}screenX[0]
-        final fun <get-screenX>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.screenX.<get-screenX>|<get-screenX>(){}[0]
-    final val screenY // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.screenY|{}screenY[0]
-        final fun <get-screenY>(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.screenY.<get-screenY>|<get-screenY>(){}[0]
-
-    final fun component1(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.component1|component1(){}[0]
-    final fun component2(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.component2|component2(){}[0]
-    final fun copy(kotlin/Float = ..., kotlin/Float = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.copy|copy(kotlin.Float;kotlin.Float){}[0]
-    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.equals|equals(kotlin.Any?){}[0]
-    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.hashCode|hashCode(){}[0]
-    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.toString|toString(){}[0]
-
-    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch> { // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.$serializer|null[0]
-        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.$serializer.descriptor|{}descriptor[0]
-            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
-
-        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.$serializer.childSerializers|childSerializers(){}[0]
-        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
-        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch) // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.ProbeTouch){}[0]
-    }
-
-    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.Companion|null[0]
-        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch> // com.kitakkun.jetwhale.plugins.semantics.protocol/ProbeTouch.Companion.serializer|serializer(){}[0]
-    }
-}
-
 final class com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult> { // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute|null[0]
     constructor <init>(kotlin/String, kotlin/Int, kotlin/String, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue) // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.<init>|<init>(kotlin.String;kotlin.Int;kotlin.String;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue){}[0]
 
@@ -801,38 +772,6 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute : 
         final val $childSerializers // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.Companion.$childSerializers|{}$childSerializers[0]
 
         final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute> // com.kitakkun.jetwhale.plugins.semantics.protocol/SetViewAttribute.Companion.serializer|serializer(){}[0]
-    }
-}
-
-final class com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult { // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult|null[0]
-    constructor <init>(kotlin/Boolean, kotlin/String? = ..., kotlin/String? = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.<init>|<init>(kotlin.Boolean;kotlin.String?;kotlin.String?){}[0]
-
-    final val consumed // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.consumed|{}consumed[0]
-        final fun <get-consumed>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.consumed.<get-consumed>|<get-consumed>(){}[0]
-    final val message // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.message|{}message[0]
-        final fun <get-message>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.message.<get-message>|<get-message>(){}[0]
-    final val rootId // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.rootId|{}rootId[0]
-        final fun <get-rootId>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.rootId.<get-rootId>|<get-rootId>(){}[0]
-
-    final fun component1(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.component1|component1(){}[0]
-    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.component2|component2(){}[0]
-    final fun component3(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.component3|component3(){}[0]
-    final fun copy(kotlin/Boolean = ..., kotlin/String? = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.copy|copy(kotlin.Boolean;kotlin.String?;kotlin.String?){}[0]
-    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.equals|equals(kotlin.Any?){}[0]
-    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.hashCode|hashCode(){}[0]
-    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.toString|toString(){}[0]
-
-    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult> { // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.$serializer|null[0]
-        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.$serializer.descriptor|{}descriptor[0]
-            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
-
-        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.$serializer.childSerializers|childSerializers(){}[0]
-        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
-        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult) // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.TouchProbeResult){}[0]
-    }
-
-    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.Companion|null[0]
-        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult> // com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult.Companion.serializer|serializer(){}[0]
     }
 }
 
@@ -1062,44 +1001,6 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode : com.kita
 final object com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting|null[0]
     final fun nodeAt(kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot>, kotlin/Float, kotlin/Float): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef? // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.nodeAt|nodeAt(kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot>;kotlin.Float;kotlin.Float){}[0]
     final fun resolve(kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot>): kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.resolve|resolve(kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot>){}[0]
-    final fun targetAt(kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot>, kotlin/Float, kotlin/Float): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.targetAt|targetAt(kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot>;kotlin.Float;kotlin.Float){}[0]
-
-    sealed interface TouchTarget { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget|null[0]
-        final class Node : com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node|null[0]
-            constructor <init>(com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef) // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.<init>|<init>(com.kitakkun.jetwhale.plugins.semantics.protocol.NodeRef){}[0]
-
-            final val ref // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.ref|{}ref[0]
-                final fun <get-ref>(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.ref.<get-ref>|<get-ref>(){}[0]
-
-            final fun component1(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.component1|component1(){}[0]
-            final fun copy(com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.copy|copy(com.kitakkun.jetwhale.plugins.semantics.protocol.NodeRef){}[0]
-            final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.equals|equals(kotlin.Any?){}[0]
-            final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.hashCode|hashCode(){}[0]
-            final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.toString|toString(){}[0]
-        }
-
-        final class Window : com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window|null[0]
-            constructor <init>(kotlin/String, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef?) // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.<init>|<init>(kotlin.String;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeRef?){}[0]
-
-            final val rootId // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.rootId|{}rootId[0]
-                final fun <get-rootId>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.rootId.<get-rootId>|<get-rootId>(){}[0]
-            final val rootNode // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.rootNode|{}rootNode[0]
-                final fun <get-rootNode>(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef? // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.rootNode.<get-rootNode>|<get-rootNode>(){}[0]
-
-            final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.component1|component1(){}[0]
-            final fun component2(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef? // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.component2|component2(){}[0]
-            final fun copy(kotlin/String = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef? = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.copy|copy(kotlin.String;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeRef?){}[0]
-            final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.equals|equals(kotlin.Any?){}[0]
-            final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.hashCode|hashCode(){}[0]
-            final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.toString|toString(){}[0]
-        }
-
-        final object Nothing : com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Nothing|null[0]
-            final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Nothing.equals|equals(kotlin.Any?){}[0]
-            final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Nothing.hashCode|hashCode(){}[0]
-            final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Nothing.toString|toString(){}[0]
-        }
-    }
 }
 
 final val com.kitakkun.jetwhale.plugins.semantics.protocol/type // com.kitakkun.jetwhale.plugins.semantics.protocol/type|@com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue{}type[0]

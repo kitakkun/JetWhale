@@ -3,8 +3,6 @@ package com.kitakkun.jetwhale.plugins.semantics.agent
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
-import android.os.SystemClock
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -16,7 +14,6 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
-import com.kitakkun.jetwhale.plugins.semantics.protocol.TouchProbeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
@@ -38,8 +35,7 @@ import java.lang.ref.WeakReference
  */
 internal class AndroidWindowNodeSource(rootView: View) :
     ComposeNodeSource,
-    ViewAttributeSource,
-    TouchProbeSource {
+    ViewAttributeSource {
     override val sourceId: String = "android-window-${System.identityHashCode(rootView).toString(16)}"
 
     private val rootViewRef = WeakReference(rootView)
@@ -97,20 +93,6 @@ internal class AndroidWindowNodeSource(rootView: View) :
         val view = viewInWindow(nodeId, rootView)
             ?: return@await ViewAttributeResult(applied = false, message = noViewAttributesMessage(nodeId))
         view.writeAttribute(attributeId = attributeId, value = value)
-    }
-
-    override suspend fun probeTouch(screenX: Float, screenY: Float): TouchProbeResult = AndroidComposeUiThread.await {
-        val rootView = attachedRootView()
-            ?: return@await TouchProbeResult(consumed = false, message = "the window is no longer readable")
-        val offset = rootView.windowOffsetOnScreen()
-        val inWindow = Offset(screenX - offset.x, screenY - offset.y)
-
-        // One downTime for both: it is what identifies them as one gesture, and a cancel that opens
-        // its own does not retract the down — it leaves the pressed state behind.
-        val downTime = SystemClock.uptimeMillis()
-        val consumed = rootView.dispatchProbe(MotionEvent.ACTION_DOWN, inWindow, downTime)
-        rootView.dispatchProbe(MotionEvent.ACTION_CANCEL, inWindow, downTime)
-        TouchProbeResult(consumed = consumed, rootId = sourceId)
     }
 
     private fun unknownNode(nodeId: Int): NodeActionResult = NodeActionResult(
@@ -171,16 +153,6 @@ internal fun View.describeWindow(): String {
         activityName
     } else {
         "$activityName / ${javaClass.simpleName}"
-    }
-}
-
-/** Dispatches one synthetic pointer event into the window and reports whether it was taken. */
-private fun View.dispatchProbe(action: Int, inWindow: Offset, downTime: Long): Boolean {
-    val event = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), action, inWindow.x, inWindow.y, 0)
-    return try {
-        dispatchTouchEvent(event)
-    } finally {
-        event.recycle()
     }
 }
 
