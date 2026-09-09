@@ -83,6 +83,7 @@ class NodeHitTestingTest {
                     button(id = 2, at = rect(0f, 500f, 100f, 550f)),
                     rootId = "dialog",
                     isTouchModal = true,
+                    bounds = rect(0f, 480f, 200f, 600f),
                 ),
             ),
         )
@@ -98,7 +99,7 @@ class NodeHitTestingTest {
         val roots = NodeHitTesting.resolve(
             listOf(
                 root(button(id = 1, at = rect(0f, 0f, 100f, 50f))),
-                root(button(id = 2, at = rect(0f, 0f, 100f, 50f)), rootId = "popup"),
+                root(button(id = 2, at = rect(0f, 0f, 100f, 50f)), rootId = "popup", bounds = rect(0f, 0f, 100f, 50f)),
             ),
         )
 
@@ -123,7 +124,7 @@ class NodeHitTestingTest {
     fun `nodeAt reports the topmost accepting node`() {
         val roots = listOf(
             root(button(id = 1, at = rect(0f, 0f, 100f, 50f))),
-            root(button(id = 2, at = rect(0f, 0f, 40f, 20f)), rootId = "popup"),
+            root(button(id = 2, at = rect(0f, 0f, 40f, 20f)), rootId = "popup", bounds = rect(0f, 0f, 40f, 20f)),
         )
 
         assertEquals(NodeRef("popup", 2), NodeHitTesting.nodeAt(roots, 10f, 10f))
@@ -135,17 +136,36 @@ class NodeHitTestingTest {
     fun `nodeAt stops at a touch-modal window`() {
         val roots = listOf(
             root(button(id = 1, at = rect(0f, 0f, 100f, 50f))),
-            root(button(id = 2, at = rect(0f, 500f, 100f, 550f)), rootId = "dialog", isTouchModal = true),
+            root(
+                button(id = 2, at = rect(0f, 500f, 100f, 550f)),
+                rootId = "dialog",
+                isTouchModal = true,
+                bounds = rect(0f, 480f, 200f, 600f),
+            ),
         )
 
         assertNull(NodeHitTesting.nodeAt(roots, 10f, 10f), "the dialog takes it, and has nothing at the point")
     }
 
     @Test
+    fun `a point inside a window that nothing accepts is nobody's, not the window's`() {
+        // Every window is touch-modal, the activity's included; a tap landing in it that no node
+        // takes is not the window swallowing anything — the app takes no touch at all.
+        val roots = listOf(root(button(id = 1, at = rect(0f, 0f, 100f, 50f)), isTouchModal = true))
+
+        assertEquals(NodeHitTesting.TouchTarget.Nothing, NodeHitTesting.targetAt(roots, 500f, 500f))
+    }
+
+    @Test
     fun `a window swallowing the tap is told apart from nothing taking it`() {
         val withDialog = listOf(
             root(button(id = 1, at = rect(0f, 0f, 100f, 50f))),
-            root(button(id = 2, at = rect(0f, 500f, 100f, 550f)), rootId = "dialog", isTouchModal = true),
+            root(
+                button(id = 2, at = rect(0f, 500f, 100f, 550f)),
+                rootId = "dialog",
+                isTouchModal = true,
+                bounds = rect(0f, 480f, 200f, 600f),
+            ),
         )
 
         assertEquals(
@@ -171,6 +191,8 @@ private fun root(
     vararg children: UiNode,
     rootId: String = ROOT_ID,
     isTouchModal: Boolean = false,
+    /** The window's own area. A dialog's is a box in the middle of the screen, not the screen. */
+    bounds: NodeBounds = rect(0f, 0f, 1000f, 1000f),
 ) = ComposeRoot(
     rootId = rootId,
     label = rootId,
@@ -180,8 +202,8 @@ private fun root(
     isTouchModal = isTouchModal,
     node = ComposeNode(
         id = 0,
-        bounds = rect(0f, 0f, 1000f, 1000f),
-        boundsInScreen = rect(0f, 0f, 1000f, 1000f),
+        bounds = bounds,
+        boundsInScreen = bounds,
         children = children.toList(),
     ),
 )

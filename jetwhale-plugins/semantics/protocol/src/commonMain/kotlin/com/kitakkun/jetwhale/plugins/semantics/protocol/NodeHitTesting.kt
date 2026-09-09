@@ -59,11 +59,18 @@ object NodeHitTesting {
     fun targetAt(roots: List<ComposeRoot>, screenX: Float, screenY: Float): TouchTarget {
         for (index in roots.indices.reversed()) {
             val root = roots[index]
-            root.node?.topmostAt(screenX, screenY)?.let { return TouchTarget.Node(NodeRef(root.rootId, it.id)) }
-            // A touch-modal window takes what lands outside it too, so the search stops at one
-            // whether or not it had anything at the point.
-            if (root.isTouchModal) {
-                return TouchTarget.Window(root.rootId, root.node?.let { NodeRef(root.rootId, it.id) })
+            val rootNode = root.node ?: continue
+            val insideWindow = rootNode.boundsInScreen.contains(screenX, screenY)
+            if (!insideWindow && !root.isTouchModal) continue
+
+            rootNode.topmostAt(screenX, screenY)?.let { return TouchTarget.Node(NodeRef(root.rootId, it.id)) }
+            // Either way the search stops here: a window takes delivery of everything inside it,
+            // and a touch-modal one takes what lands outside it as well. Neither passes the touch
+            // to the window below. Landing inside a window that has nothing to accept it is not
+            // the window swallowing the tap — it is nothing taking it, and the app reports as much.
+            return when {
+                insideWindow -> TouchTarget.Nothing
+                else -> TouchTarget.Window(root.rootId, NodeRef(root.rootId, rootNode.id))
             }
         }
         return TouchTarget.Nothing
