@@ -88,6 +88,7 @@ private fun mockRuleFrom(tx: HttpTransaction, response: CapturedHttpResponse): M
             statusCode = response.statusCode,
             headers = contentType?.let { mapOf("Content-Type" to it) }.orEmpty(),
             body = response.body.orEmpty(),
+            bodyEncoding = response.bodyEncoding,
         ),
     )
 }

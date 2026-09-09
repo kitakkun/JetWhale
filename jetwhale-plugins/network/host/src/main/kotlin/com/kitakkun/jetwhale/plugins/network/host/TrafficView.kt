@@ -52,6 +52,8 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
+import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
+import com.kitakkun.jetwhale.plugins.network.protocol.mediaType
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
 
@@ -335,6 +337,9 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
 
 @Composable
 private fun BodyTab(tx: HttpTransaction) {
+    // Bound to locals so the null checks below smart-cast: both bodies come from another module.
+    val responseBody = tx.response?.body
+    val requestBody = tx.request.body
     Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
         when {
             // The failure detail itself is shown above the tabs; here just note there is no body.
@@ -342,13 +347,29 @@ private fun BodyTab(tx: HttpTransaction) {
 
             tx.response == null -> EmptyHint("Pending…")
 
-            tx.response.body.isNullOrEmpty() -> EmptyHint("No response body")
+            responseBody.isNullOrEmpty() -> EmptyHint("No response body")
 
-            else -> BodyBlock(label = "body", body = tx.response.body, truncated = tx.response.bodyTruncated)
+            tx.response.bodyEncoding == BodyEncoding.BASE64 -> ImageBodyBlock(
+                body = responseBody,
+                mediaType = tx.response.headers.mediaType(),
+                url = tx.request.url,
+                truncated = tx.response.bodyTruncated,
+            )
+
+            else -> BodyBlock(label = "body", body = responseBody, truncated = tx.response.bodyTruncated)
         }
-        if (!tx.request.body.isNullOrEmpty()) {
+        if (!requestBody.isNullOrEmpty()) {
             MinorLabel("Request body")
-            BodyBlock(label = "body", body = tx.request.body, truncated = tx.request.bodyTruncated)
+            if (tx.request.bodyEncoding == BodyEncoding.BASE64) {
+                ImageBodyBlock(
+                    body = requestBody,
+                    mediaType = tx.request.headers.mediaType(),
+                    url = tx.request.url,
+                    truncated = tx.request.bodyTruncated,
+                )
+            } else {
+                BodyBlock(label = "body", body = requestBody, truncated = tx.request.bodyTruncated)
+            }
         }
     }
 }

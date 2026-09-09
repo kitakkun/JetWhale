@@ -1,8 +1,10 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
+import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
+import com.kitakkun.jetwhale.plugins.network.protocol.mediaType
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.add
@@ -45,7 +47,7 @@ private fun JsonObjectBuilder.putRequest(request: CapturedHttpRequest) {
     put("url", request.url)
     put("timestampMs", request.timestampMs)
     putHeaders(request.headers)
-    request.body?.let { put("body", it) }
+    putBody(request.body, request.bodyEncoding, request.headers)
     if (request.bodyTruncated) put("bodyTruncated", true)
 }
 
@@ -55,9 +57,29 @@ private fun JsonObjectBuilder.putResponse(response: CapturedHttpResponse) {
     put("durationMs", response.durationMs)
     put("fromMock", response.fromMock)
     putHeaders(response.headers)
-    response.body?.let { put("body", it) }
+    putBody(response.body, response.bodyEncoding, response.headers)
     if (response.bodyTruncated) put("bodyTruncated", true)
 }
+
+/**
+ * A binary body is summarized rather than included: its Base64 form is megabytes of noise an agent
+ * cannot use, and it would crowd out everything else in the tool result. The image itself is
+ * available in the host UI, which previews and exports it.
+ */
+private fun JsonObjectBuilder.putBody(body: String?, encoding: BodyEncoding, headers: Map<String, List<String>>) {
+    if (body == null) return
+    when (encoding) {
+        BodyEncoding.TEXT -> put("body", body)
+
+        BodyEncoding.BASE64 -> {
+            put("body", "<${headers.mediaType() ?: "binary"} body, ${base64DecodedSize(body)} bytes, shown in the host UI>")
+            put("bodyEncoding", encoding.name)
+        }
+    }
+}
+
+/** Size of the bytes a padded Base64 string decodes to, without decoding it. */
+internal fun base64DecodedSize(base64: String): Int = base64.length / 4 * 3 - base64.takeLast(2).count { it == '=' }
 
 private fun JsonObjectBuilder.putFailure(failure: HttpRequestFailure) {
     put("message", failure.message)

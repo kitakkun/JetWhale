@@ -34,6 +34,7 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
@@ -228,15 +229,25 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
                     }
                 }
                 JwFormField(label = "Response body") {
-                    JwTextField(
-                        value = draft.response.body,
-                        onValueChange = { draft = draft.copy(response = draft.response.copy(body = it)) },
-                        singleLine = false,
-                        textStyle = JwTheme.textStyles.code,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = BodyEditorMinHeight),
-                    )
+                    if (draft.response.bodyEncoding == BodyEncoding.BASE64) {
+                        // Binary bodies come from "Mock this" on a captured image. They are served
+                        // verbatim; editing Base64 by hand in a text field would only corrupt them.
+                        JwText(
+                            text = "Binary body captured from the response • ${formatByteSize(base64DecodedSize(draft.response.body))}",
+                            style = JwTheme.textStyles.bodySmall,
+                            color = JwTheme.colors.textSecondary,
+                        )
+                    } else {
+                        JwTextField(
+                            value = draft.response.body,
+                            onValueChange = { draft = draft.copy(response = draft.response.copy(body = it)) },
+                            singleLine = false,
+                            textStyle = JwTheme.textStyles.code,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = BodyEditorMinHeight),
+                        )
+                    }
                 }
             }
         },
