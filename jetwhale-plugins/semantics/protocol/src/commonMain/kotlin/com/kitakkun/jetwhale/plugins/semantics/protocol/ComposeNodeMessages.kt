@@ -40,3 +40,33 @@ data class PerformNodeAction(
     /** Vertical scroll distance in pixels for [NodeAction.ScrollBy]; ignored otherwise. */
     val scrollY: Float = 0f,
 ) : JetWhaleRequest<NodeActionResult>
+
+/**
+ * Sends a real touch down at a screen point and takes it straight back with a cancel, to find out
+ * whether anything in the app consumes a touch there.
+ *
+ * The one question a capture cannot answer. [NodeHitTesting] reads the tree, so it cannot see an
+ * overlay that takes touches without exposing semantics, nor a gesture an ancestor swallows;
+ * dispatching the event and asking the platform does. Down-then-cancel is deliberately not a tap:
+ * the sequence a click needs never completes, so nothing is clicked — though a pressed state or a
+ * ripple can flash where the touch landed.
+ */
+@SerialName("compose/probe_touch")
+@Serializable
+data class ProbeTouch(
+    /** X in screen pixels — the space [UiNode.boundsInScreen] is in. */
+    val screenX: Float,
+    /** Y in screen pixels. */
+    val screenY: Float,
+) : JetWhaleRequest<TouchProbeResult>
+
+/** What the platform did with the touch [ProbeTouch] sent. */
+@Serializable
+data class TouchProbeResult(
+    /** `true` when the app took the touch down; `false` when it fell through everything. */
+    val consumed: Boolean,
+    /** The window the probe was dispatched to, when one was found under the point. */
+    val rootId: String? = null,
+    /** Why no touch was sent — no window under the point, or a platform that cannot dispatch one. */
+    val message: String? = null,
+)

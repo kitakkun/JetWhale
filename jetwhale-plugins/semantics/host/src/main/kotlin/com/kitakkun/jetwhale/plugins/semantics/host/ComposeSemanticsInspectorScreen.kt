@@ -345,6 +345,11 @@ private fun NodeRow(
             if (row.node.isInteractive) {
                 JwTag(text = row.node.actionSummary(), tone = JwTone.Accent)
             }
+            // A node that offers an action a finger cannot reach is the one worth spotting from the
+            // tree, without opening it.
+            if (!row.node.isHittable) {
+                JwTag(text = "unreachable", tone = JwTone.Warning)
+            }
             // A node with no semantics of its own is already labelled by its id; repeating it here
             // would render "#12 #12".
             if (!label.startsWith("#")) {
@@ -427,6 +432,13 @@ private fun NodeDetail(
                 wrap = true,
             )
             PropertyRow("actions", node.actions.joinToString(", ").ifEmpty { "—" }, wrap = true)
+            if (!node.isHittable) {
+                PropertyRow(
+                    "reachable by touch",
+                    node.obscuredBy?.let { "no — #${it.nodeId} takes the tap (${it.rootId})" } ?: "no — nothing to aim at",
+                    wrap = true,
+                )
+            }
         }
 
         JwHorizontalDivider()

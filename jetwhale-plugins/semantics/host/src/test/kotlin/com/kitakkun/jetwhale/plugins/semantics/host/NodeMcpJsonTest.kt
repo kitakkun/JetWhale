@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.semantics.host
 
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeRef
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -32,6 +33,25 @@ class NodeMcpJsonTest {
         assertEquals(10, json["bounds"]?.jsonObject?.get("left")?.jsonPrimitive?.content?.toInt())
         assertEquals(60, json["tap"]?.jsonObject?.get("x")?.jsonPrimitive?.content?.toInt())
         assertEquals(40, json["tap"]?.jsonObject?.get("y")?.jsonPrimitive?.content?.toInt())
+    }
+
+    @Test
+    fun `a node a tap cannot reach says so, and names what takes the tap`() {
+        val json = node(
+            id = 7,
+            isClickable = true,
+            isHittable = false,
+            obscuredBy = NodeRef(rootId = "dialog", nodeId = 3),
+        ).toMcpJson()
+
+        assertEquals(false, json["hittable"]?.jsonPrimitive?.content?.toBoolean())
+        assertEquals("dialog", json["obscuredBy"]?.jsonObject?.get("rootId")?.jsonPrimitive?.content)
+        assertEquals(3, json["obscuredBy"]?.jsonObject?.get("id")?.jsonPrimitive?.content?.toInt())
+    }
+
+    @Test
+    fun `a reachable node stays silent about it`() {
+        assertNull(node(id = 7, isClickable = true).toMcpJson()["hittable"])
     }
 
     @Test

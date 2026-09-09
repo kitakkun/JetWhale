@@ -235,9 +235,39 @@ actually exposes. There is also a **Copy `adb shell input tap`** button for the 
 drive the app through the input system. Select an Android `View` node and its editable attributes
 appear below that — see [Editing View attributes](#editing-view-attributes).
 
+## Can a finger reach it?
+
+Every captured node says whether a tap aimed at it would actually arrive. A node that accepts touch
+input but cannot receive one is marked `"hittable": false`, with `obscuredBy` naming what takes the
+tap instead, and the tree view tags the row **unreachable**.
+
+It is worked out from the capture alone — no tap sent, nothing to wait for — by walking the windows
+from the top down and, within a window, the last-drawn node first, the way the platform dispatches a
+touch. That catches what is worth catching:
+
+| The button is… | Reported as |
+| --- | --- |
+| under a dialog or a popup | `hittable: false`, `obscuredBy` the node on top |
+| behind a modal window, anywhere on screen | `hittable: false` |
+| scrolled out of its container | `hittable: false`, no `obscuredBy` — no area to aim at |
+| under a later sibling that takes touches | `hittable: false`, `obscuredBy` that sibling |
+
+Two things a capture cannot see, and both make it *optimistic* — a node can read as reachable that a
+finger would not reach:
+
+- an overlay that consumes touches without exposing any semantics (a bare `pointerInput`, an
+  `OnTouchListener`),
+- a gesture an ancestor swallows before the node sees it.
+
+`probeTouch` is the answer to both: it asks the app rather than the tree.
+
+Note that none of this constrains `performNodeAction`, which invokes the node's own action and never
+goes near the input system. Hittability is about whether a **person** could tap it — a UI check, not
+a precondition for driving the app.
+
 ## MCP tools
 
-The plugin contributes five tools to the host's [MCP server](/guide/mcp-server). As with every
+The plugin contributes seven tools to the host's [MCP server](/guide/mcp-server). As with every
 plugin tool, JetWhale injects the `sessionId` parameter and routes the call to the right session.
 
 ### `com.kitakkun.jetwhale.semantics.findNodes`
@@ -259,6 +289,21 @@ see [Android View support](#android-view-support).
 The whole tree, structure included. Takes `merged`, `includeInvisible`, `maxDepth`,
 `interactiveOnly` and `rootId`. Use it when the layout itself is the question; use `findNodes` when
 you are looking for one element.
+
+### `com.kitakkun.jetwhale.semantics.nodeAt`
+
+Which node a tap at a screen coordinate would be dispatched to, or `null` when nothing there takes
+touch input. The question you have once you have picked a point from a screenshot rather than from a
+node's own bounds — see [Can a finger reach it?](#can-a-finger-reach-it).
+
+### `com.kitakkun.jetwhale.semantics.probeTouch`
+
+Sends a real touch down at a coordinate and cancels it immediately, then reports what the app did
+with it alongside what the tree predicted: `consumed`, `expected`, `agrees`. Nothing is clicked — the
+cancel ends the gesture before a click can complete — though a pressed state or a ripple may flash.
+
+`consumed: true` with `expected: null` is the one to look for: something takes touches there that the
+tree cannot see.
 
 ### `com.kitakkun.jetwhale.semantics.performNodeAction`
 

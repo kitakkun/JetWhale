@@ -5,10 +5,13 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.CaptureNodeTree
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.GetViewAttributes
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeHitTesting
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ProbeTouch
 import com.kitakkun.jetwhale.plugins.semantics.protocol.SetViewAttribute
+import com.kitakkun.jetwhale.plugins.semantics.protocol.TouchProbeResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.reply
 import kotlinx.coroutines.CancellationException
@@ -46,6 +49,9 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
         onRequest { request: PerformNodeAction ->
             reply(performAction(request))
         }
+        onRequest { request: ProbeTouch ->
+            reply(probeTouch(request))
+        }
         onRequest { request: GetViewAttributes ->
             reply(readViewAttributes(request))
         }
@@ -74,11 +80,15 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
             }
         }
 
+        // Only here are all the windows in hand, and a tap is dispatched across the whole stack of
+        // them: a dialog decides what can be touched in the window underneath it.
+        val hitTested = NodeHitTesting.resolve(roots)
+
         return NodeTreeSnapshot(
             capturedAtMs = Clock.System.now().toEpochMilliseconds(),
             captureDurationMs = started.elapsedNow().inWholeMilliseconds,
             options = options,
-            roots = roots,
+            roots = hitTested,
             warnings = warnings,
         )
     }
@@ -96,6 +106,36 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
         } catch (e: Throwable) {
             NodeActionResult(performed = false, message = "action failed: ${e.describe()}")
         }
+    }
+
+    /**
+     * Sends the probe into the topmost window that takes it.
+     *
+     * Windows are tried from the top down, and one that consumes the touch ends the search — which
+     * is how the input system itself resolves a point, including the dialog that takes what lands
+     * outside it. A window that consumes nothing falls through to the one below, as it does on the
+     * device.
+     */
+    private suspend fun probeTouch(request: ProbeTouch): TouchProbeResult {
+        val probes = ComposeNodeSourceRegistry.sources.filterIsInstance<TouchProbeSource>()
+        if (probes.isEmpty()) {
+            return TouchProbeResult(
+                consumed = false,
+                message = "no window can be probed: this platform dispatches no touch events, or no probe is installed",
+            )
+        }
+        var last = TouchProbeResult(consumed = false)
+        for (probe in probes.asReversed()) {
+            last = try {
+                probe.probeTouch(request.screenX, request.screenY)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                TouchProbeResult(consumed = false, message = "the probe failed: ${e.describe()}")
+            }
+            if (last.consumed) return last
+        }
+        return last
     }
 
     private fun Throwable.describe(): String = message?.takeIf { it.isNotBlank() } ?: (this::class.simpleName ?: "unknown error")

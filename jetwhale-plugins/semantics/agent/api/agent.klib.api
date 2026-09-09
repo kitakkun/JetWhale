@@ -18,6 +18,10 @@ abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread
     abstract suspend fun <#A1: kotlin/Any?> await(kotlin/Function0<#A1>): #A1 // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread.await|await(kotlin.Function0<0:0>){0§<kotlin.Any?>}[0]
 }
 
+abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/TouchProbeSource { // com.kitakkun.jetwhale.plugins.semantics.agent/TouchProbeSource|null[0]
+    abstract suspend fun probeTouch(kotlin/Float, kotlin/Float): com.kitakkun.jetwhale.plugins.semantics.protocol/TouchProbeResult // com.kitakkun.jetwhale.plugins.semantics.agent/TouchProbeSource.probeTouch|probeTouch(kotlin.Float;kotlin.Float){}[0]
+}
+
 abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/ViewAttributeSource { // com.kitakkun.jetwhale.plugins.semantics.agent/ViewAttributeSource|null[0]
     abstract suspend fun attributes(kotlin/Int): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot? // com.kitakkun.jetwhale.plugins.semantics.agent/ViewAttributeSource.attributes|attributes(kotlin.Int){}[0]
     abstract suspend fun setAttribute(kotlin/Int, kotlin/String, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult // com.kitakkun.jetwhale.plugins.semantics.agent/ViewAttributeSource.setAttribute|setAttribute(kotlin.Int;kotlin.String;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue){}[0]

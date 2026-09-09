@@ -71,6 +71,19 @@ data class ComposeRoot(
     val windowOffsetY: Float,
     /** The root node, or `null` when the root has no content yet. */
     val node: UiNode?,
+    /**
+     * `true` when this window takes touches that land outside it, which is what an Android window
+     * without `FLAG_NOT_TOUCH_MODAL` does — a normal dialog. Nothing in a window below such a
+     * window can be touched, wherever it sits on screen.
+     */
+    val isTouchModal: Boolean = false,
+)
+
+/** Addresses one node of a [NodeTreeSnapshot]. Ids are only unique within a root, so both halves are needed. */
+@Serializable
+data class NodeRef(
+    val rootId: String,
+    val nodeId: Int,
 )
 
 /**
@@ -130,6 +143,22 @@ sealed interface UiNode {
      */
     val isVisible: Boolean
 
+    /**
+     * `false` when a tap at the center of [boundsInScreen] would not reach this node — it is
+     * covered, clipped away, or behind another window. [obscuredBy] then names what takes the tap.
+     *
+     * Only a node that accepts touch input is tested; anything else reports `true`, having nothing
+     * to be obstructed for. Being hittable is about delivery, not about what the node does with the
+     * event: a disabled button is still hittable, and a node whose ancestor swallows the gesture
+     * still reads as hittable because no capture can see that. [PerformNodeAction] bypasses this
+     * entirely — it invokes the node's own action — so this answers "could a finger do it", not
+     * "can the agent do it".
+     */
+    val isHittable: Boolean
+
+    /** What receives a tap aimed at this node instead of it, when [isHittable] is `false`. */
+    val obscuredBy: NodeRef?
+
     /** Children of either type: an Android tree crosses between the two wherever the real UI does. */
     val children: List<UiNode>
 }
@@ -163,6 +192,8 @@ data class ComposeNode(
     override val isEditable: Boolean = false,
     override val isScrollable: Boolean = false,
     override val isVisible: Boolean = true,
+    override val isHittable: Boolean = true,
+    override val obscuredBy: NodeRef? = null,
     override val children: List<UiNode> = emptyList(),
 ) : UiNode
 
@@ -197,6 +228,8 @@ data class ViewNode(
     override val isEditable: Boolean = false,
     override val isScrollable: Boolean = false,
     override val isVisible: Boolean = true,
+    override val isHittable: Boolean = true,
+    override val obscuredBy: NodeRef? = null,
     override val children: List<UiNode> = emptyList(),
 ) : UiNode
 

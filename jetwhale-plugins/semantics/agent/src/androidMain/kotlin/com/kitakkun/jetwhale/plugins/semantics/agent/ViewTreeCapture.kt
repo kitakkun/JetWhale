@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
 import android.content.res.Resources
+import android.graphics.Rect
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Checkable
@@ -60,7 +61,7 @@ internal fun View.toViewNode(
         contentDescription = contentDescription?.toString()?.takeIf { it.isNotEmpty() },
         toggleableState = (this as? Checkable)?.let { if (it.isChecked) "On" else "Off" },
         bounds = bounds,
-        boundsInScreen = bounds.translated(windowOffsetX, windowOffsetY),
+        boundsInScreen = visibleBoundsInWindow().translated(windowOffsetX, windowOffsetY),
         actions = viewActionNames(),
         isEnabled = isEnabled,
         isClickable = isClickable,
@@ -163,6 +164,25 @@ private fun View.resourceEntryName(): String? {
     } catch (_: Resources.NotFoundException) {
         null
     }
+}
+
+/**
+ * The part of the view a finger can actually reach, in window coordinates: its bounds with every
+ * ancestor's clipping applied, empty when a scrolling container has taken it off screen entirely.
+ *
+ * The unclipped [boundsInWindow] says where the view was laid out, which is what the tree draws and
+ * measures; this says where it can be tapped. Compose draws the same distinction between
+ * `boundsInRoot` and `boundsInWindow`, and both trees report the pair the same way round.
+ */
+private fun View.visibleBoundsInWindow(): NodeBounds {
+    val visible = Rect()
+    if (!getGlobalVisibleRect(visible)) return NodeBounds(0f, 0f, 0f, 0f)
+    return NodeBounds(
+        left = visible.left.toFloat(),
+        top = visible.top.toFloat(),
+        right = visible.right.toFloat(),
+        bottom = visible.bottom.toFloat(),
+    )
 }
 
 /** Where the view sits in its window, in pixels — the same space Compose reports `boundsInWindow` in. */

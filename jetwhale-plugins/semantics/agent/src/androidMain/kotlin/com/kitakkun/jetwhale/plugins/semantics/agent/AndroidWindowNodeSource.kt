@@ -3,8 +3,11 @@ package com.kitakkun.jetwhale.plugins.semantics.agent
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.SystemClock
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.semantics.SemanticsNode
@@ -13,6 +16,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
+import com.kitakkun.jetwhale.plugins.semantics.protocol.TouchProbeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
@@ -34,7 +38,8 @@ import java.lang.ref.WeakReference
  */
 internal class AndroidWindowNodeSource(rootView: View) :
     ComposeNodeSource,
-    ViewAttributeSource {
+    ViewAttributeSource,
+    TouchProbeSource {
     override val sourceId: String = "android-window-${System.identityHashCode(rootView).toString(16)}"
 
     private val rootViewRef = WeakReference(rootView)
@@ -52,6 +57,7 @@ internal class AndroidWindowNodeSource(rootView: View) :
             density = rootView.resources.displayMetrics.density,
             windowOffsetX = offset.x,
             windowOffsetY = offset.y,
+            isTouchModal = rootView.isTouchModal(),
             node = rootView.toViewNode(
                 options = options,
                 windowOffsetX = offset.x,
@@ -91,6 +97,21 @@ internal class AndroidWindowNodeSource(rootView: View) :
         val view = viewInWindow(nodeId, rootView)
             ?: return@await ViewAttributeResult(applied = false, message = noViewAttributesMessage(nodeId))
         view.writeAttribute(attributeId = attributeId, value = value)
+    }
+
+    // -- TouchProbeSource ------------------------------------------------------
+
+    override suspend fun probeTouch(screenX: Float, screenY: Float): TouchProbeResult = AndroidComposeUiThread.await {
+        val rootView = attachedRootView()
+            ?: return@await TouchProbeResult(consumed = false, message = "the window is no longer readable")
+        val offset = rootView.windowOffsetOnScreen()
+        val inWindow = Offset(screenX - offset.x, screenY - offset.y)
+
+        // Down then cancel: the platform runs its own hit test for the down, which is the answer
+        // being asked for, and the cancel ends the gesture before any click could complete.
+        val consumed = rootView.dispatchProbe(MotionEvent.ACTION_DOWN, inWindow)
+        rootView.dispatchProbe(MotionEvent.ACTION_CANCEL, inWindow)
+        TouchProbeResult(consumed = consumed, rootId = sourceId)
     }
 
     private fun unknownNode(nodeId: Int): NodeActionResult = NodeActionResult(
@@ -152,6 +173,34 @@ internal fun View.describeWindow(): String {
     } else {
         "$activityName / ${javaClass.simpleName}"
     }
+}
+
+/**
+ * Dispatches one synthetic pointer event into the window and reports whether it was taken.
+ *
+ * Recycled straight away: an event this code allocates is this code's to release, and a probe is
+ * called often enough by an agent working across a screen for that to matter.
+ */
+private fun View.dispatchProbe(action: Int, inWindow: Offset): Boolean {
+    val now = SystemClock.uptimeMillis()
+    val event = MotionEvent.obtain(now, now, action, inWindow.x, inWindow.y, 0)
+    return try {
+        dispatchTouchEvent(event)
+    } finally {
+        event.recycle()
+    }
+}
+
+/**
+ * Whether this window takes the touches that land outside it — a dialog does, which is what puts
+ * the window underneath it out of a finger's reach.
+ *
+ * A window root's layout params are the window's own; anything else is a view inside one, and a
+ * view cannot claim its window's touches, so it reports `false`.
+ */
+internal fun View.isTouchModal(): Boolean {
+    val params = layoutParams as? WindowManager.LayoutParams ?: return false
+    return params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL == 0
 }
 
 /**
