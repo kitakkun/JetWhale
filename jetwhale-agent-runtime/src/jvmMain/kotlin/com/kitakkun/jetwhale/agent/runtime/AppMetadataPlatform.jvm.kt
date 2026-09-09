@@ -5,3 +5,6 @@ package com.kitakkun.jetwhale.agent.runtime
 internal actual fun getDeviceId(): String? = null
 
 internal actual fun resolveDefaultAppName(): String? = null
+
+// A plain JVM process has no launcher icon to resolve. Provide one explicitly through the `app { }` DSL when needed.
+internal actual fun resolveDefaultAppIconPng(): ByteArray? = null

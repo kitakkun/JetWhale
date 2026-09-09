@@ -22,7 +22,7 @@ internal fun resolveAppMetadata(config: ResolvedAppConfiguration): JetWhaleAppMe
     appName = config.appName ?: resolveDefaultAppName(),
     deviceId = config.deviceId ?: getDeviceId(),
     deviceName = config.deviceName ?: getDeviceModelName(),
-    appIconPngBase64 = encodeAppIconOrNull(config.appIconPng),
+    appIconPngBase64 = encodeAppIconOrNull(config.appIconPng ?: resolveDefaultAppIconPng()),
 )
 
 @OptIn(ExperimentalEncodingApi::class)
@@ -72,3 +72,10 @@ internal expect fun getDeviceId(): String?
  * Resolves the human-readable application name for the current platform, or null when unavailable.
  */
 internal expect fun resolveDefaultAppName(): String?
+
+/**
+ * Resolves the application icon for the current platform as PNG bytes, or null when unavailable.
+ * Implementations must downscale the icon to at most 64x64 pixels, and must never throw:
+ * icon resolution is best-effort and must not break a debug session.
+ */
+internal expect fun resolveDefaultAppIconPng(): ByteArray?
