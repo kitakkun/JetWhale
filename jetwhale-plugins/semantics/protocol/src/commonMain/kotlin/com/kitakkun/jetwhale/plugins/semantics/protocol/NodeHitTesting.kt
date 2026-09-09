@@ -92,8 +92,6 @@ private fun UiNode.resolveHits(rootId: String, winnerAt: (x: Float, y: Float) ->
     // and reporting every label as unhittable would bury the nodes where it matters.
     if (!acceptsTouch) return withHits(isHittable = true, obscuredBy = null, children = resolvedChildren)
 
-    // No area to aim at is its own kind of unreachable, and there is nothing to name as taking the
-    // tap instead.
     if (boundsInScreen.isEmpty) return withHits(isHittable = false, obscuredBy = null, children = resolvedChildren)
 
     val self = NodeRef(rootId, id)
@@ -104,8 +102,7 @@ private fun UiNode.resolveHits(rootId: String, winnerAt: (x: Float, y: Float) ->
             children = resolvedChildren,
         )
 
-        // The window itself is named rather than nothing at all: "a dialog is over this" is the
-        // reading, and its root node is what a caller would look at next.
+        // Named rather than left blank: the window is what a caller looks at next.
         is NodeHitTesting.TouchTarget.Window -> withHits(isHittable = false, obscuredBy = winner.rootNode, children = resolvedChildren)
 
         NodeHitTesting.TouchTarget.Nothing -> withHits(isHittable = false, obscuredBy = null, children = resolvedChildren)

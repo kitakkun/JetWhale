@@ -99,18 +99,14 @@ internal class AndroidWindowNodeSource(rootView: View) :
         view.writeAttribute(attributeId = attributeId, value = value)
     }
 
-    // -- TouchProbeSource ------------------------------------------------------
-
     override suspend fun probeTouch(screenX: Float, screenY: Float): TouchProbeResult = AndroidComposeUiThread.await {
         val rootView = attachedRootView()
             ?: return@await TouchProbeResult(consumed = false, message = "the window is no longer readable")
         val offset = rootView.windowOffsetOnScreen()
         val inWindow = Offset(screenX - offset.x, screenY - offset.y)
 
-        // Down then cancel: the platform runs its own hit test for the down, which is the answer
-        // being asked for, and the cancel ends the gesture before any click could complete. Both
-        // events carry the same downTime, which is what identifies them as one gesture — a cancel
-        // that opens its own would not retract the down, leaving a pressed state behind.
+        // One downTime for both: it is what identifies them as one gesture, and a cancel that opens
+        // its own does not retract the down — it leaves the pressed state behind.
         val downTime = SystemClock.uptimeMillis()
         val consumed = rootView.dispatchProbe(MotionEvent.ACTION_DOWN, inWindow, downTime)
         rootView.dispatchProbe(MotionEvent.ACTION_CANCEL, inWindow, downTime)
@@ -178,12 +174,7 @@ internal fun View.describeWindow(): String {
     }
 }
 
-/**
- * Dispatches one synthetic pointer event into the window and reports whether it was taken.
- *
- * Recycled straight away: an event this code allocates is this code's to release, and a probe is
- * called often enough by an agent working across a screen for that to matter.
- */
+/** Dispatches one synthetic pointer event into the window and reports whether it was taken. */
 private fun View.dispatchProbe(action: Int, inWindow: Offset, downTime: Long): Boolean {
     val event = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), action, inWindow.x, inWindow.y, 0)
     return try {

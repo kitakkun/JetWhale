@@ -175,9 +175,7 @@ private fun View.resourceEntryName(): String? {
  * `boundsInRoot` and `boundsInWindow`, and both trees report the pair the same way round.
  *
  * The "global" in `getGlobalVisibleRect` is the root of the view hierarchy — this window — not the
- * display, so the caller adds the window's own offset to reach screen coordinates. Measured on a
- * dialog, whose window starts at (120, 926): its decor view reports exactly that origin once the
- * offset is added, rather than twice it.
+ * display, so the caller adds the window's own offset to reach screen coordinates.
  */
 private fun View.visibleBoundsInWindow(): NodeBounds {
     val visible = Rect()
