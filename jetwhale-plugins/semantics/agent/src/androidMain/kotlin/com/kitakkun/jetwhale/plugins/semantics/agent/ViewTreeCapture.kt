@@ -46,7 +46,11 @@ internal fun View.toViewNode(
     }
 
     val bounds = boundsInWindow()
-    val visible = visibility == View.VISIBLE && isShown && !bounds.isEmpty
+    val visibleBounds = visibleBoundsInWindow()
+    // Decided on the clipped bounds, as the Compose side is: `isShown` says the view and its
+    // ancestors are VISIBLE, not that any of it is on screen, so a row scrolled out of a container
+    // would otherwise report itself visible while occupying no pixels a finger could reach.
+    val visible = visibility == View.VISIBLE && isShown && !visibleBounds.isEmpty
     if (!visible && !options.includeInvisible && children.isEmpty()) return null
 
     val editable = this as? EditText
@@ -61,7 +65,7 @@ internal fun View.toViewNode(
         contentDescription = contentDescription?.toString()?.takeIf { it.isNotEmpty() },
         toggleableState = (this as? Checkable)?.let { if (it.isChecked) "On" else "Off" },
         bounds = bounds,
-        boundsInScreen = visibleBoundsInWindow().translated(windowOffsetX, windowOffsetY),
+        boundsInScreen = visibleBounds.translated(windowOffsetX, windowOffsetY),
         actions = viewActionNames(),
         isEnabled = isEnabled,
         isClickable = isClickable,
