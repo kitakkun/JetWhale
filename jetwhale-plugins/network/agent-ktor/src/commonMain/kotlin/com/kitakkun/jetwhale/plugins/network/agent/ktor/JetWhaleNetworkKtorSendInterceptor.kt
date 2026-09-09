@@ -32,11 +32,15 @@ import io.ktor.client.plugins.HttpSendInterceptor
  * buffered and delays the caller until the stream ends. Headers the engine injects
  * (User-Agent, Accept-Encoding, Host) are not visible here and are omitted.
  *
+ * Image bodies are captured as bytes instead of text so the host can preview and export them.
+ *
  * @param maxBodyChars request/response bodies longer than this are truncated for transport.
+ * @param maxImageBytes image bodies larger than this are skipped rather than truncated, since a
+ *   partial image cannot be decoded.
  */
-fun JetWhaleNetworkAgentPlugin.ktorSendInterceptor(client: HttpClient, maxBodyChars: Int = 100_000): HttpSendInterceptor {
+fun JetWhaleNetworkAgentPlugin.ktorSendInterceptor(client: HttpClient, maxBodyChars: Int = 100_000, maxImageBytes: Int = 2 * 1024 * 1024): HttpSendInterceptor {
     val agent = this
     return { request ->
-        agent.monitorSend(client, request, maxBodyChars) { execute(it) }
+        agent.monitorSend(client, request, maxBodyChars, maxImageBytes) { execute(it) }
     }
 }

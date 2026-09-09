@@ -1,10 +1,13 @@
 package com.kitakkun.jetwhale.plugins.network.agent.okhttp
 
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
+import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
+import com.kitakkun.jetwhale.plugins.network.protocol.bodyBytes
+import com.kitakkun.jetwhale.plugins.network.protocol.isPreviewableImageMediaType
 import okhttp3.Headers
 import okhttp3.Headers.Companion.toHeaders
 import okhttp3.Interceptor
@@ -18,6 +21,7 @@ import okio.Buffer
 import okio.Sink
 import okio.Timeout
 import okio.buffer
+import kotlin.io.encoding.Base64
 import kotlin.time.TimeSource
 
 /**
@@ -41,13 +45,22 @@ import kotlin.time.TimeSource
  * response is returned, so a long-lived streaming response that isn't `text/event-stream` (which
  * is skipped) delays the caller until that many bytes have arrived or the stream ends.
  *
+ * Image bodies are captured as bytes instead of text so the host can preview and export them.
+ *
  * @param maxBodyChars request/response bodies longer than this are truncated for transport.
+ * @param maxImageBytes image bodies larger than this are skipped rather than truncated, since a
+ *   partial image cannot be decoded.
  */
-fun JetWhaleNetworkAgentPlugin.okHttpInterceptor(maxBodyChars: Int = 100_000): Interceptor = JetWhaleNetworkOkHttpInterceptor(agent = this, maxBodyChars = maxBodyChars)
+fun JetWhaleNetworkAgentPlugin.okHttpInterceptor(maxBodyChars: Int = 100_000, maxImageBytes: Int = 2 * 1024 * 1024): Interceptor = JetWhaleNetworkOkHttpInterceptor(
+    agent = this,
+    maxBodyChars = maxBodyChars,
+    maxImageBytes = maxImageBytes,
+)
 
 private class JetWhaleNetworkOkHttpInterceptor(
     private val agent: JetWhaleNetworkAgentPlugin,
     private val maxBodyChars: Int,
+    private val maxImageBytes: Int,
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
@@ -67,7 +80,7 @@ private class JetWhaleNetworkOkHttpInterceptor(
     }
 
     private fun recordRequest(request: Request, txId: String) {
-        val body = captureRequestBodySafely(request.body, maxBodyChars)
+        val body = captureRequestBodySafely(request.body, maxBodyChars, maxImageBytes)
         agent.recordRequest(
             CapturedHttpRequest(
                 txId = txId,
@@ -76,6 +89,7 @@ private class JetWhaleNetworkOkHttpInterceptor(
                 headers = request.headersWithBodyDefaults(),
                 body = body.text,
                 bodyTruncated = body.truncated,
+                bodyEncoding = body.encoding,
                 timestampMs = System.currentTimeMillis(),
             ),
         )
@@ -100,7 +114,7 @@ private class JetWhaleNetworkOkHttpInterceptor(
     }
 
     private fun recordResponse(response: Response, fromMock: Boolean, txId: String, started: TimeSource.Monotonic.ValueTimeMark) {
-        val body = captureResponseBodySafely(response, maxBodyChars)
+        val body = captureResponseBodySafely(response, maxBodyChars, maxImageBytes)
         agent.recordResponse(
             CapturedHttpResponse(
                 txId = txId,
@@ -109,6 +123,7 @@ private class JetWhaleNetworkOkHttpInterceptor(
                 headers = response.headers.toCapturedMap(),
                 body = body.text,
                 bodyTruncated = body.truncated,
+                bodyEncoding = body.encoding,
                 durationMs = started.elapsedNow().inWholeMilliseconds,
                 fromMock = fromMock,
             ),
@@ -116,7 +131,7 @@ private class JetWhaleNetworkOkHttpInterceptor(
     }
 }
 
-private data class BodyCapture(val text: String?, val truncated: Boolean)
+private data class BodyCapture(val text: String?, val truncated: Boolean, val encoding: BodyEncoding = BodyEncoding.TEXT)
 
 private fun String.truncate(max: Int): BodyCapture = if (length <= max) BodyCapture(this, false) else BodyCapture(substring(0, max), true)
 
@@ -125,21 +140,36 @@ private fun String.truncate(max: Int): BodyCapture = if (length <= max) BodyCapt
  * materialized up front (one-shot, duplex) are replaced with a placeholder, and reads are
  * byte-capped so large uploads aren't held in memory.
  */
-private fun captureRequestBodySafely(body: RequestBody?, maxChars: Int): BodyCapture {
+private fun captureRequestBodySafely(body: RequestBody?, maxChars: Int, maxImageBytes: Int): BodyCapture {
     if (body == null) return BodyCapture(null, false)
     // One-shot bodies can't be read twice; duplex bodies can't be materialized up front.
     if (body.isOneShot() || body.isDuplex()) return BodyCapture("<streaming request body>", false)
+    val mediaType = body.contentType()?.let { "${it.type}/${it.subtype}" }
+    val isImage = isPreviewableImageMediaType(mediaType)
     return try {
         // Keep at most maxChars * 4 bytes (the widest UTF encoding of one char) so large uploads
-        // (files, multipart) are streamed through instead of fully materialized in memory.
-        val sink = TruncatingSink(maxBytes = maxChars * 4L)
+        // (files, multipart) are streamed through instead of fully materialized in memory. An image
+        // is kept whole up to its own cap instead, since a partial one cannot be decoded.
+        val sink = TruncatingSink(maxBytes = if (isImage) maxImageBytes + 1L else maxChars * 4L)
         sink.buffer().use { body.writeTo(it) }
+        if (isImage) return encodeImage(sink.captured.readByteArray(), mediaType, maxImageBytes)
         val charset = body.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8
         val capture = sink.captured.readString(charset).truncate(maxChars)
         if (sink.overflowed && !capture.truncated) capture.copy(truncated = true) else capture
     } catch (_: Exception) {
         BodyCapture(null, false)
     }
+}
+
+/**
+ * Base64-encodes an image body for transport, or replaces it with a marker when it exceeds
+ * [maxImageBytes] — the host can render nothing useful from a partial image, and a large one would
+ * dominate the event stream.
+ */
+private fun encodeImage(bytes: ByteArray, mediaType: String?, maxImageBytes: Int): BodyCapture = if (bytes.size > maxImageBytes) {
+    BodyCapture("<${mediaType ?: "image"} body over the $maxImageBytes-byte maxImageBytes limit>", false)
+} else {
+    BodyCapture(Base64.encode(bytes), false, BodyEncoding.BASE64)
 }
 
 /** Retains the first [maxBytes] written and discards the rest, flagging [overflowed]. */
@@ -167,7 +197,7 @@ private class TruncatingSink(private val maxBytes: Long) : Sink {
  * bodies that can't be peeked safely (WebSocket upgrades, encoded bodies, endless streams)
  * are replaced with a placeholder instead.
  */
-private fun captureResponseBodySafely(response: Response, maxChars: Int): BodyCapture {
+private fun captureResponseBodySafely(response: Response, maxChars: Int, maxImageBytes: Int): BodyCapture {
     if (response.isWebSocketUpgrade()) {
         // A WebSocket upgrade response (101) has no conventional body — the connection has
         // already switched to the raw frame stream by the time this interceptor sees it, so
@@ -185,6 +215,14 @@ private fun captureResponseBodySafely(response: Response, maxChars: Int): BodyCa
     if (contentType?.startsWith("text/event-stream", ignoreCase = true) == true) {
         // peekBody(n) blocks until n bytes are buffered or EOF — would hang on a never-ending stream.
         return BodyCapture("<streaming response body>", false)
+    }
+    val mediaType = contentType?.substringBefore(';')?.trim()?.lowercase()
+    if (isPreviewableImageMediaType(mediaType)) {
+        return try {
+            encodeImage(response.peekBody(maxImageBytes + 1L).bytes(), mediaType, maxImageBytes)
+        } catch (_: Exception) {
+            BodyCapture(null, false)
+        }
     }
     return try {
         val peeked = response.peekBody(maxChars + 1L)
@@ -205,7 +243,7 @@ private fun buildMockResponse(request: Request, mock: MockResponseSpec): Respons
         .code(mock.statusCode)
         .message(httpStatusDescription(mock.statusCode))
         .headers(headers)
-        .body(mock.body.toResponseBody(headers["Content-Type"]?.toMediaTypeOrNull()))
+        .body(mock.bodyBytes().toResponseBody(headers["Content-Type"]?.toMediaTypeOrNull()))
         .build()
 }
 

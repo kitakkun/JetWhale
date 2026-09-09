@@ -23,13 +23,17 @@ import io.ktor.client.plugins.api.createClientPlugin
  * buffered and delays the caller until the stream ends. Headers the engine injects
  * (User-Agent, Accept-Encoding, Host) are not visible to a client plugin and are omitted.
  *
+ * Image bodies are captured as bytes instead of text so the host can preview and export them.
+ *
  * @param maxBodyChars request/response bodies longer than this are truncated for transport.
+ * @param maxImageBytes image bodies larger than this are skipped rather than truncated, since a
+ *   partial image cannot be decoded.
  */
-fun JetWhaleNetworkAgentPlugin.ktorClientPlugin(maxBodyChars: Int = 100_000): ClientPlugin<Unit> {
+fun JetWhaleNetworkAgentPlugin.ktorClientPlugin(maxBodyChars: Int = 100_000, maxImageBytes: Int = 2 * 1024 * 1024): ClientPlugin<Unit> {
     val agent = this
     return createClientPlugin("JetWhaleNetworkMonitor") {
         on(Send) { request ->
-            agent.monitorSend(client, request, maxBodyChars) { proceed(it) }
+            agent.monitorSend(client, request, maxBodyChars, maxImageBytes) { proceed(it) }
         }
     }
 }

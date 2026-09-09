@@ -6,6 +6,22 @@
 // - Show declarations: true
 
 // Library unique name: <com.kitakkun.jetwhale.plugins.network:protocol>
+final enum class com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding : kotlin/Enum<com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding> { // com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding|null[0]
+    enum entry BASE64 // com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding.BASE64|null[0]
+    enum entry TEXT // com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding.TEXT|null[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding> // com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding // com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding> // com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding.values|values#static(){}[0]
+
+    final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding> // com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding.Companion.serializer|serializer(){}[0]
+        final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    }
+}
+
 final enum class com.kitakkun.jetwhale.plugins.network.protocol/MockMatchType : kotlin/Enum<com.kitakkun.jetwhale.plugins.network.protocol/MockMatchType> { // com.kitakkun.jetwhale.plugins.network.protocol/MockMatchType|null[0]
     enum entry CONTAINS // com.kitakkun.jetwhale.plugins.network.protocol/MockMatchType.CONTAINS|null[0]
     enum entry EXACT // com.kitakkun.jetwhale.plugins.network.protocol/MockMatchType.EXACT|null[0]
@@ -73,10 +89,12 @@ final enum class com.kitakkun.jetwhale.plugins.network.protocol/RedactionTarget 
 }
 
 final class com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest { // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest|null[0]
-    constructor <init>(kotlin/String, kotlin/String, kotlin/String, kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> = ..., kotlin/String? = ..., kotlin/Boolean = ..., kotlin/Long) // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.<init>|<init>(kotlin.String;kotlin.String;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>;kotlin.String?;kotlin.Boolean;kotlin.Long){}[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/String, kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> = ..., kotlin/String? = ..., kotlin/Boolean = ..., com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding = ..., kotlin/Long) // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.<init>|<init>(kotlin.String;kotlin.String;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>;kotlin.String?;kotlin.Boolean;com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding;kotlin.Long){}[0]
 
     final val body // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.body|{}body[0]
         final fun <get-body>(): kotlin/String? // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.body.<get-body>|<get-body>(){}[0]
+    final val bodyEncoding // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.bodyEncoding|{}bodyEncoding[0]
+        final fun <get-bodyEncoding>(): com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.bodyEncoding.<get-bodyEncoding>|<get-bodyEncoding>(){}[0]
     final val bodyTruncated // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.bodyTruncated|{}bodyTruncated[0]
         final fun <get-bodyTruncated>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.bodyTruncated.<get-bodyTruncated>|<get-bodyTruncated>(){}[0]
     final val headers // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.headers|{}headers[0]
@@ -96,8 +114,9 @@ final class com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest {
     final fun component4(): kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.component4|component4(){}[0]
     final fun component5(): kotlin/String? // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.component5|component5(){}[0]
     final fun component6(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.component6|component6(){}[0]
-    final fun component7(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.component7|component7(){}[0]
-    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> = ..., kotlin/String? = ..., kotlin/Boolean = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.copy|copy(kotlin.String;kotlin.String;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>;kotlin.String?;kotlin.Boolean;kotlin.Long){}[0]
+    final fun component7(): com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.component7|component7(){}[0]
+    final fun component8(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.component8|component8(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> = ..., kotlin/String? = ..., kotlin/Boolean = ..., com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.copy|copy(kotlin.String;kotlin.String;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>;kotlin.String?;kotlin.Boolean;com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding;kotlin.Long){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest.toString|toString(){}[0]
@@ -119,10 +138,12 @@ final class com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest {
 }
 
 final class com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse { // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse|null[0]
-    constructor <init>(kotlin/String, kotlin/Int, kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> = ..., kotlin/String? = ..., kotlin/Boolean = ..., kotlin/Long, kotlin/Boolean = ...) // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.<init>|<init>(kotlin.String;kotlin.Int;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>;kotlin.String?;kotlin.Boolean;kotlin.Long;kotlin.Boolean){}[0]
+    constructor <init>(kotlin/String, kotlin/Int, kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> = ..., kotlin/String? = ..., kotlin/Boolean = ..., com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding = ..., kotlin/Long, kotlin/Boolean = ...) // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.<init>|<init>(kotlin.String;kotlin.Int;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>;kotlin.String?;kotlin.Boolean;com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding;kotlin.Long;kotlin.Boolean){}[0]
 
     final val body // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.body|{}body[0]
         final fun <get-body>(): kotlin/String? // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.body.<get-body>|<get-body>(){}[0]
+    final val bodyEncoding // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.bodyEncoding|{}bodyEncoding[0]
+        final fun <get-bodyEncoding>(): com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.bodyEncoding.<get-bodyEncoding>|<get-bodyEncoding>(){}[0]
     final val bodyTruncated // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.bodyTruncated|{}bodyTruncated[0]
         final fun <get-bodyTruncated>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.bodyTruncated.<get-bodyTruncated>|<get-bodyTruncated>(){}[0]
     final val durationMs // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.durationMs|{}durationMs[0]
@@ -144,9 +165,10 @@ final class com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse 
     final fun component4(): kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component4|component4(){}[0]
     final fun component5(): kotlin/String? // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component5|component5(){}[0]
     final fun component6(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component6|component6(){}[0]
-    final fun component7(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component7|component7(){}[0]
-    final fun component8(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component8|component8(){}[0]
-    final fun copy(kotlin/String = ..., kotlin/Int = ..., kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> = ..., kotlin/String? = ..., kotlin/Boolean = ..., kotlin/Long = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.copy|copy(kotlin.String;kotlin.Int;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>;kotlin.String?;kotlin.Boolean;kotlin.Long;kotlin.Boolean){}[0]
+    final fun component7(): com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component7|component7(){}[0]
+    final fun component8(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component8|component8(){}[0]
+    final fun component9(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.component9|component9(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Int = ..., kotlin/String = ..., kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>> = ..., kotlin/String? = ..., kotlin/Boolean = ..., com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding = ..., kotlin/Long = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.copy|copy(kotlin.String;kotlin.Int;kotlin.String;kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>;kotlin.String?;kotlin.Boolean;com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding;kotlin.Long;kotlin.Boolean){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse.toString|toString(){}[0]
@@ -265,10 +287,12 @@ final class com.kitakkun.jetwhale.plugins.network.protocol/MockMatcher { // com.
 }
 
 final class com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec { // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec|null[0]
-    constructor <init>(kotlin/Int = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin/String = ..., kotlin/Long = ...) // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.<init>|<init>(kotlin.Int;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.String;kotlin.Long){}[0]
+    constructor <init>(kotlin/Int = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin/String = ..., com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding = ..., kotlin/Long = ...) // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.<init>|<init>(kotlin.Int;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.String;com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding;kotlin.Long){}[0]
 
     final val body // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.body|{}body[0]
         final fun <get-body>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.body.<get-body>|<get-body>(){}[0]
+    final val bodyEncoding // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.bodyEncoding|{}bodyEncoding[0]
+        final fun <get-bodyEncoding>(): com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.bodyEncoding.<get-bodyEncoding>|<get-bodyEncoding>(){}[0]
     final val delayMs // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.delayMs|{}delayMs[0]
         final fun <get-delayMs>(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.delayMs.<get-delayMs>|<get-delayMs>(){}[0]
     final val headers // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.headers|{}headers[0]
@@ -279,8 +303,9 @@ final class com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec { //
     final fun component1(): kotlin/Int // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.component1|component1(){}[0]
     final fun component2(): kotlin.collections/Map<kotlin/String, kotlin/String> // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.component2|component2(){}[0]
     final fun component3(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.component3|component3(){}[0]
-    final fun component4(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.component4|component4(){}[0]
-    final fun copy(kotlin/Int = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin/String = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.copy|copy(kotlin.Int;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.String;kotlin.Long){}[0]
+    final fun component4(): com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.component4|component4(){}[0]
+    final fun component5(): kotlin/Long // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.component5|component5(){}[0]
+    final fun copy(kotlin/Int = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin/String = ..., com.kitakkun.jetwhale.plugins.network.protocol/BodyEncoding = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.copy|copy(kotlin.Int;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.String;com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding;kotlin.Long){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec.toString|toString(){}[0]
@@ -563,6 +588,9 @@ final object com.kitakkun.jetwhale.plugins.network.protocol/GetRedactionConfig :
 final const val com.kitakkun.jetwhale.plugins.network.protocol/REDACTED_PLACEHOLDER // com.kitakkun.jetwhale.plugins.network.protocol/REDACTED_PLACEHOLDER|{}REDACTED_PLACEHOLDER[0]
     final fun <get-REDACTED_PLACEHOLDER>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.protocol/REDACTED_PLACEHOLDER.<get-REDACTED_PLACEHOLDER>|<get-REDACTED_PLACEHOLDER>(){}[0]
 
+final fun (com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec).com.kitakkun.jetwhale.plugins.network.protocol/bodyBytes(): kotlin/ByteArray // com.kitakkun.jetwhale.plugins.network.protocol/bodyBytes|bodyBytes@com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec(){}[0]
 final fun (kotlin.collections/List<com.kitakkun.jetwhale.plugins.network.protocol/MockRule>).com.kitakkun.jetwhale.plugins.network.protocol/findMatching(kotlin/String, kotlin/String, kotlin/Boolean): com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec? // com.kitakkun.jetwhale.plugins.network.protocol/findMatching|findMatching@kotlin.collections.List<com.kitakkun.jetwhale.plugins.network.protocol.MockRule>(kotlin.String;kotlin.String;kotlin.Boolean){}[0]
 final fun (kotlin.collections/List<com.kitakkun.jetwhale.plugins.network.protocol/RedactionRule>).com.kitakkun.jetwhale.plugins.network.protocol/redact(com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest): com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest // com.kitakkun.jetwhale.plugins.network.protocol/redact|redact@kotlin.collections.List<com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule>(com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest){}[0]
 final fun (kotlin.collections/List<com.kitakkun.jetwhale.plugins.network.protocol/RedactionRule>).com.kitakkun.jetwhale.plugins.network.protocol/redact(com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse): com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse // com.kitakkun.jetwhale.plugins.network.protocol/redact|redact@kotlin.collections.List<com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule>(com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse){}[0]
+final fun (kotlin.collections/Map<kotlin/String, kotlin.collections/List<kotlin/String>>).com.kitakkun.jetwhale.plugins.network.protocol/mediaType(): kotlin/String? // com.kitakkun.jetwhale.plugins.network.protocol/mediaType|mediaType@kotlin.collections.Map<kotlin.String,kotlin.collections.List<kotlin.String>>(){}[0]
+final fun com.kitakkun.jetwhale.plugins.network.protocol/isPreviewableImageMediaType(kotlin/String?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.protocol/isPreviewableImageMediaType|isPreviewableImageMediaType(kotlin.String?){}[0]

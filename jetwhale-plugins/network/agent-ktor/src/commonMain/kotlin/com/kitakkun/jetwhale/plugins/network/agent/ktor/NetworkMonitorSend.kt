@@ -1,10 +1,13 @@
 package com.kitakkun.jetwhale.plugins.network.agent.ktor
 
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
+import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
+import com.kitakkun.jetwhale.plugins.network.protocol.bodyBytes
+import com.kitakkun.jetwhale.plugins.network.protocol.isPreviewableImageMediaType
 import io.ktor.client.HttpClient
 import io.ktor.client.call.HttpClientCall
 import io.ktor.client.call.save
@@ -12,6 +15,7 @@ import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.HttpResponseData
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpHeaders
@@ -25,6 +29,7 @@ import io.ktor.utils.io.InternalAPI
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlin.io.encoding.Base64
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
@@ -41,6 +46,7 @@ internal suspend fun JetWhaleNetworkAgentPlugin.monitorSend(
     client: HttpClient,
     request: HttpRequestBuilder,
     maxBodyChars: Int,
+    maxImageBytes: Int,
     proceed: suspend (HttpRequestBuilder) -> HttpClientCall,
 ): HttpClientCall {
     val txId = newTransactionId()
@@ -48,7 +54,7 @@ internal suspend fun JetWhaleNetworkAgentPlugin.monitorSend(
     val method = request.method.value
     val url = request.url.buildString()
 
-    recordRequest(request, txId, method, url, maxBodyChars)
+    recordRequest(request, txId, method, url, maxBodyChars, maxImageBytes)
     val mock = findMock(method, url)
 
     val call = if (mock != null) {
@@ -68,7 +74,7 @@ internal suspend fun JetWhaleNetworkAgentPlugin.monitorSend(
         }
     }
 
-    val (callToReturn, body) = captureResponseBodySafely(call, maxBodyChars)
+    val (callToReturn, body) = captureResponseBodySafely(call, maxBodyChars, maxImageBytes)
     recordResponse(
         CapturedHttpResponse(
             txId = txId,
@@ -77,6 +83,7 @@ internal suspend fun JetWhaleNetworkAgentPlugin.monitorSend(
             headers = callToReturn.response.headers.toCapturedMap(),
             body = body.text,
             bodyTruncated = body.truncated,
+            bodyEncoding = body.encoding,
             durationMs = started.elapsedNow().inWholeMilliseconds,
             fromMock = mock != null,
         ),
@@ -84,8 +91,8 @@ internal suspend fun JetWhaleNetworkAgentPlugin.monitorSend(
     return callToReturn
 }
 
-private fun JetWhaleNetworkAgentPlugin.recordRequest(request: HttpRequestBuilder, txId: String, method: String, url: String, maxBodyChars: Int) {
-    val body = captureRequestBodySafely(request.body, maxBodyChars)
+private fun JetWhaleNetworkAgentPlugin.recordRequest(request: HttpRequestBuilder, txId: String, method: String, url: String, maxBodyChars: Int, maxImageBytes: Int) {
+    val body = captureRequestBodySafely(request.body, maxBodyChars, maxImageBytes)
     recordRequest(
         CapturedHttpRequest(
             txId = txId,
@@ -94,6 +101,7 @@ private fun JetWhaleNetworkAgentPlugin.recordRequest(request: HttpRequestBuilder
             headers = request.capturedRequestHeaders(),
             body = body.text,
             bodyTruncated = body.truncated,
+            bodyEncoding = body.encoding,
             timestampMs = GMTDate().timestamp,
         ),
     )
@@ -121,13 +129,13 @@ private suspend fun serveMock(client: HttpClient, request: HttpRequestBuilder, m
             }
         }.build(),
         version = HttpProtocolVersion.HTTP_1_1,
-        body = ByteReadChannel(mock.body.encodeToByteArray()),
+        body = ByteReadChannel(mock.bodyBytes()),
         callContext = parentContext + Job(parentContext[Job]),
     )
     return HttpClientCall(client, request.build(), responseData)
 }
 
-private data class BodyCapture(val text: String?, val truncated: Boolean)
+private data class BodyCapture(val text: String?, val truncated: Boolean, val encoding: BodyEncoding = BodyEncoding.TEXT)
 
 private fun String.truncate(max: Int): BodyCapture = if (length <= max) BodyCapture(this, false) else BodyCapture(substring(0, max), true)
 
@@ -135,11 +143,34 @@ private fun String.truncate(max: Int): BodyCapture = if (length <= max) BodyCapt
  * Reads the request body for capture without breaking the actual send: channel/stream bodies
  * that can't be read without consuming them are replaced with a placeholder instead.
  */
-private fun captureRequestBodySafely(content: Any?, maxChars: Int): BodyCapture = when (content) {
-    is OutgoingContent.ByteArrayContent -> content.bytes().decodeToString().truncate(maxChars)
+private fun captureRequestBodySafely(content: Any?, maxChars: Int, maxImageBytes: Int): BodyCapture = when (content) {
+    is OutgoingContent.ByteArrayContent -> {
+        val mediaType = content.contentType?.mediaType()
+        if (isPreviewableImageMediaType(mediaType)) {
+            encodeImage(content.bytes(), mediaType, maxImageBytes)
+        } else {
+            content.bytes().decodeToString().truncate(maxChars)
+        }
+    }
+
     is OutgoingContent -> BodyCapture(content.contentType?.let { "<$it>" }, false)
+
     else -> BodyCapture(null, false)
 }
+
+/**
+ * Base64-encodes an image body for transport, or replaces it with a marker when it exceeds
+ * [maxImageBytes] — the host can render nothing useful from a partial image, and a large one would
+ * dominate the event stream.
+ */
+private fun encodeImage(bytes: ByteArray, mediaType: String?, maxImageBytes: Int): BodyCapture = if (bytes.size > maxImageBytes) {
+    BodyCapture("<${mediaType ?: "image"} body over the $maxImageBytes-byte maxImageBytes limit>", false)
+} else {
+    BodyCapture(Base64.encode(bytes), false, BodyEncoding.BASE64)
+}
+
+/** The content type without its parameters, lowercased, as [isPreviewableImageMediaType] expects. */
+private fun ContentType.mediaType(): String = "$contentType/$contentSubtype".lowercase()
 
 /**
  * Reads the response body for capture without consuming or blocking the caller's response:
@@ -147,7 +178,7 @@ private fun captureRequestBodySafely(content: Any?, maxChars: Int): BodyCapture 
  * placeholder instead. Returns the call the caller should receive — the original one when the
  * body was left untouched, or a saved copy whose body is still readable.
  */
-private suspend fun captureResponseBodySafely(call: HttpClientCall, maxChars: Int): Pair<HttpClientCall, BodyCapture> {
+private suspend fun captureResponseBodySafely(call: HttpClientCall, maxChars: Int, maxImageBytes: Int): Pair<HttpClientCall, BodyCapture> {
     val response = call.response
 
     // A WebSocket upgrade response (101) has no conventional body — by the time this runs, the
@@ -167,6 +198,10 @@ private suspend fun captureResponseBodySafely(call: HttpClientCall, maxChars: In
     // save() buffers the body so we can read it for inspection and still hand a fresh, readable
     // response to the caller.
     val saved = call.save()
+    val mediaType = contentType?.substringBefore(';')?.trim()?.lowercase()
+    if (isPreviewableImageMediaType(mediaType)) {
+        return saved to encodeImage(saved.response.readRawBytes(), mediaType, maxImageBytes)
+    }
     return saved to saved.response.bodyAsText().truncate(maxChars)
 }
 

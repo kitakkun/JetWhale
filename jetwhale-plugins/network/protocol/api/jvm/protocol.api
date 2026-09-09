@@ -6,21 +6,36 @@ public final class com/kitakkun/jetwhale/plugins/network/protocol/Ack {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class com/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding : java/lang/Enum {
+	public static final field BASE64 Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding$Companion;
+	public static final field TEXT Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;
+	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJ)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;ZLcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;J)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;ZLcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()Ljava/lang/String;
 	public final fun component4 ()Ljava/util/Map;
 	public final fun component5 ()Ljava/lang/String;
 	public final fun component6 ()Z
-	public final fun component7 ()J
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJ)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
+	public final fun component7 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;
+	public final fun component8 ()J
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;ZLcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;J)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/lang/String;ZLcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;JILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBody ()Ljava/lang/String;
+	public final fun getBodyEncoding ()Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;
 	public final fun getBodyTruncated ()Z
 	public final fun getHeaders ()Ljava/util/Map;
 	public final fun getMethod ()Ljava/lang/String;
@@ -48,20 +63,22 @@ public final class com/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRe
 
 public final class com/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse$Companion;
-	public fun <init> (Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJZ)V
-	public synthetic fun <init> (Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/lang/String;ZLcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;JZ)V
+	public synthetic fun <init> (Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/lang/String;ZLcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;JZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()I
 	public final fun component3 ()Ljava/lang/String;
 	public final fun component4 ()Ljava/util/Map;
 	public final fun component5 ()Ljava/lang/String;
 	public final fun component6 ()Z
-	public final fun component7 ()J
-	public final fun component8 ()Z
-	public final fun copy (Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJZ)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/lang/String;ZJZILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
+	public final fun component7 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;
+	public final fun component8 ()J
+	public final fun component9 ()Z
+	public final fun copy (Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/lang/String;ZLcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;JZ)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;Ljava/lang/String;ILjava/lang/String;Ljava/util/Map;Ljava/lang/String;ZLcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;JZILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBody ()Ljava/lang/String;
+	public final fun getBodyEncoding ()Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;
 	public final fun getBodyTruncated ()Z
 	public final fun getDurationMs ()J
 	public final fun getFromMock ()Z
@@ -102,6 +119,11 @@ public final class com/kitakkun/jetwhale/plugins/network/protocol/GetRedactionCo
 	public fun hashCode ()I
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/protocol/HttpModelsKt {
+	public static final fun isPreviewableImageMediaType (Ljava/lang/String;)Z
+	public static final fun mediaType (Ljava/util/Map;)Ljava/lang/String;
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure {
@@ -211,22 +233,25 @@ public final class com/kitakkun/jetwhale/plugins/network/protocol/MockMatcher$Co
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/protocol/MockModelsKt {
+	public static final fun bodyBytes (Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;)[B
 	public static final fun findMatching (Ljava/util/List;Ljava/lang/String;Ljava/lang/String;Z)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec$Companion;
 	public fun <init> ()V
-	public fun <init> (ILjava/util/Map;Ljava/lang/String;J)V
-	public synthetic fun <init> (ILjava/util/Map;Ljava/lang/String;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ILjava/util/Map;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;J)V
+	public synthetic fun <init> (ILjava/util/Map;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()I
 	public final fun component2 ()Ljava/util/Map;
 	public final fun component3 ()Ljava/lang/String;
-	public final fun component4 ()J
-	public final fun copy (ILjava/util/Map;Ljava/lang/String;J)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;ILjava/util/Map;Ljava/lang/String;JILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;
+	public final fun component4 ()Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;
+	public final fun component5 ()J
+	public final fun copy (ILjava/util/Map;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;J)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;ILjava/util/Map;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;JILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/protocol/MockResponseSpec;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getBody ()Ljava/lang/String;
+	public final fun getBodyEncoding ()Lcom/kitakkun/jetwhale/plugins/network/protocol/BodyEncoding;
 	public final fun getDelayMs ()J
 	public final fun getHeaders ()Ljava/util/Map;
 	public final fun getStatusCode ()I

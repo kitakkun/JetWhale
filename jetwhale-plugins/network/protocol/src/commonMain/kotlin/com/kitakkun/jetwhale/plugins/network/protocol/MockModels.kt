@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.network.protocol
 
 import com.kitakkun.jetwhale.annotations.McpDescription
 import kotlinx.serialization.Serializable
+import kotlin.io.encoding.Base64
 
 /** How a [MockMatcher.urlPattern] is compared against a request URL. */
 @Serializable
@@ -35,9 +36,21 @@ data class MockResponseSpec(
     val headers: Map<String, String> = emptyMap(),
     @McpDescription("Body of the mocked response. Defaults to empty.")
     val body: String = "",
+    @McpDescription("How body carries the response bytes: TEXT for a textual body, BASE64 for binary such as an image. Defaults to TEXT.")
+    val bodyEncoding: BodyEncoding = BodyEncoding.TEXT,
     @McpDescription("Artificial delay before the mocked response is delivered, in milliseconds. Defaults to 0.")
     val delayMs: Long = 0,
 )
+
+/**
+ * The bytes an adapter should serve for this mock, decoding a [BodyEncoding.BASE64] body.
+ * A body that is not valid Base64 is served as its raw text, so a hand-edited rule reaches the
+ * client instead of turning into an empty response.
+ */
+fun MockResponseSpec.bodyBytes(): ByteArray = when (bodyEncoding) {
+    BodyEncoding.TEXT -> body.encodeToByteArray()
+    BodyEncoding.BASE64 -> runCatching { Base64.decode(body) }.getOrElse { body.encodeToByteArray() }
+}
 
 /**
  * A single mock rule. Owned by the host UI and pushed to the agent via

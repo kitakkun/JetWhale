@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.network.agent.ktor
 
+import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
@@ -8,6 +9,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.api.ClientPlugin
 import io.ktor.client.plugins.api.Send
@@ -20,11 +22,13 @@ import io.ktor.client.request.post
 import io.ktor.client.request.prepareGet
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.OutgoingContent
+import io.ktor.http.contentType
 import io.ktor.http.headersOf
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
@@ -38,11 +42,90 @@ import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlin.io.encoding.Base64
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.milliseconds
 
+/** Not valid UTF-8: decoding these as text would destroy them, which is the point of Base64. */
+private val IMAGE_BYTES = ByteArray(300) { (it * 7).toByte() }
+
+private fun MockRequestHandleScope.respondImage(bytes: ByteArray) = respond(
+    content = bytes,
+    status = HttpStatusCode.OK,
+    headers = headersOf(HttpHeaders.ContentType, ContentType.Image.PNG.toString()),
+)
+
 class JetWhaleNetworkKtorPluginTest {
+
+    @Test
+    fun `captures an image response as Base64 bytes`() = runBlocking {
+        val (agent, events) = agentWithEvents()
+        val client = HttpClient(MockEngine { respondImage(IMAGE_BYTES) }) { install(agent.ktorClientPlugin()) }
+
+        // The caller still receives the untouched bytes, not the capture's copy.
+        assertContentEquals(IMAGE_BYTES, client.get("http://example/logo.png").readRawBytes())
+
+        val received = events.last() as ResponseReceived
+        assertEquals(BodyEncoding.BASE64, received.response.bodyEncoding)
+        assertContentEquals(IMAGE_BYTES, Base64.decode(received.response.body!!))
+    }
+
+    @Test
+    fun `replaces an image response over maxImageBytes with a marker instead of truncating it`() = runBlocking {
+        val (agent, events) = agentWithEvents()
+        val client = HttpClient(MockEngine { respondImage(IMAGE_BYTES) }) {
+            install(agent.ktorClientPlugin(maxImageBytes = IMAGE_BYTES.size - 1))
+        }
+
+        client.get("http://example/logo.png")
+
+        val received = events.last() as ResponseReceived
+        // A partial image cannot be decoded, so the capture says so rather than shipping half of it.
+        assertEquals(BodyEncoding.TEXT, received.response.bodyEncoding)
+        assertEquals("<image/png body over the ${IMAGE_BYTES.size - 1}-byte maxImageBytes limit>", received.response.body)
+    }
+
+    @Test
+    fun `captures an uploaded image as Base64 bytes`() = runBlocking {
+        val (agent, events) = agentWithEvents()
+        val client = HttpClient(MockEngine { respond(content = "ok") }) { install(agent.ktorClientPlugin()) }
+
+        client.post("http://example/upload") {
+            contentType(ContentType.Image.PNG)
+            setBody(IMAGE_BYTES)
+        }
+
+        val sent = events.first() as RequestSent
+        assertEquals(BodyEncoding.BASE64, sent.request.bodyEncoding)
+        assertContentEquals(IMAGE_BYTES, Base64.decode(sent.request.body!!))
+    }
+
+    @Test
+    fun `serves a Base64 mock body as raw bytes`() = runBlocking {
+        val (agent, _) = agentWithEvents()
+        agent.seedMockRules(
+            listOf(
+                MockRule(
+                    id = "image",
+                    matcher = MockMatcher(urlPattern = "/logo.png"),
+                    response = MockResponseSpec(
+                        headers = mapOf(HttpHeaders.ContentType to ContentType.Image.PNG.toString()),
+                        body = Base64.encode(IMAGE_BYTES),
+                        bodyEncoding = BodyEncoding.BASE64,
+                    ),
+                ),
+            ),
+        )
+        val client = HttpClient(
+            MockEngine { respond(content = "unmocked", status = HttpStatusCode.InternalServerError) },
+        ) {
+            install(agent.ktorClientPlugin())
+        }
+
+        assertContentEquals(IMAGE_BYTES, client.get("http://example/logo.png").readRawBytes())
+    }
 
     @Test
     fun `serves a mock response whose body reads back without a coroutine-job cast crash`() = runBlocking {
