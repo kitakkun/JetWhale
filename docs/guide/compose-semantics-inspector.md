@@ -14,7 +14,9 @@ browse it in the host and hand it to an AI agent over [MCP](/guide/mcp-server).
 - 🪟 Dialogs and popups appear as their own roots, because that is what they are in Compose
 - 🤝 On Android, the Android `View`s around and inside the composition are in the same tree, and a
   `View`'s attributes can be read and edited live — see [Android View support](#android-view-support)
-- 🤖 Five MCP tools so an agent can see the screen structurally instead of guessing at pixels
+- 🖐 Whether a tap aimed at a node would actually arrive, worked out from the capture rather than by
+  tapping — see [Can a finger reach it?](#can-a-finger-reach-it)
+- 🤖 Seven MCP tools so an agent can see the screen structurally instead of guessing at pixels
 
 ## What the tree contains
 
@@ -264,6 +266,37 @@ finger would not reach:
 Note that none of this constrains `performNodeAction`, which invokes the node's own action and never
 goes near the input system. Hittability is about whether a **person** could tap it — a UI check, not
 a precondition for driving the app.
+
+### Why not just tap it and see?
+
+Because a tap is not a question. It fires the action, changes the screen, and still does not say
+what it hit — finding that out means dumping the hierarchy afterwards and undoing whatever happened.
+
+Measured on the same emulator and screen as the [capture benchmarks](#why-not-the-cli) — the demo
+app's *Compose nodes* screen, 27 nodes of which 8 are interactive:
+
+| | answers | median |
+| --- | --- | --- |
+| `adb shell input tap` | nothing — it only fires | 329 ms |
+| `adb shell input tap` + `uiautomator dump` | one point, having changed the screen | 3,621 ms |
+| **`probeTouch`** | one point, really consumed, nothing clicked | **88 ms** |
+| **`nodeAt`** | one point, from the tree | **30 ms** |
+| **`getNodeTree`** | **every** node's reachability at once | **30 ms** |
+
+One capture carries the whole screen's answer, so per interactive node it is about 4 ms — against
+329 ms per point for a tap that also has to be undone.
+
+The ratio is the smaller half of it. What the numbers buy is *frequency*: at 30 ms an agent can ask
+after every action, which at three seconds it cannot. And the answer is a node with its `testTag`,
+role and id — something to act on next — rather than a rectangle.
+
+`probeTouch` is the slower one because it waits on the app's main thread, and it varies with what
+that thread is doing: 88 ms on an idle screen, but several hundred while a ripple from the previous
+probe is still animating on an emulator. It is the tool for the blind spots above, not the one to
+call in a loop.
+
+Treat all of these as indicative. They come from an emulator, which is slower than a device, and a
+bigger screen means more nodes.
 
 ## MCP tools
 
