@@ -187,7 +187,7 @@ private fun runPresenter(
                     mcpServerStatus = McpServerStatus.Stopped,
                     debuggerSettings = settingsFlow.collectAsStateValue(),
                     sslCertificates = emptyList<SslCertificateEntry>(),
-                    mcpPermissionsSnapshot = McpPermissionsSnapshot(emptyPermissions, emptyList()),
+                    mcpPermissionsSnapshot = McpPermissionsSnapshot(emptyPermissions, emptyList(), isOverriddenForLaunch = false),
                 )
             }
         }
