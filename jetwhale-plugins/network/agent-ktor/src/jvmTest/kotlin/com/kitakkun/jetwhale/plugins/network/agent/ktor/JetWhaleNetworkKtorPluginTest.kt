@@ -148,9 +148,8 @@ class JetWhaleNetworkKtorPluginTest {
 
         val response = client.get("http://example/todos/1")
 
-        // Before the fix, the synthesized call carried the Send-pipeline's StandaloneCoroutine as its
-        // callContext Job, so reading the mocked body threw "StandaloneCoroutine cannot be cast to
-        // CompletableJob".
+        // Reading a mocked body needs the synthesized call's context Job to be a CompletableJob,
+        // which the Send pipeline's own StandaloneCoroutine is not.
         assertEquals(200, response.status.value)
         assertEquals("{\"ok\":true}", response.bodyAsText())
     }

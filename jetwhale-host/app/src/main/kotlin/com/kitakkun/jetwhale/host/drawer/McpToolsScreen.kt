@@ -126,8 +126,6 @@ fun McpToolsScreen(
     JwSurface(color = JwTheme.colors.elevatedBackground, shape = JwShapes.large) {
         Column(
             modifier = Modifier
-                // Take most of the window so tool descriptions and history are readable, but stop
-                // growing past a comfortable reading width on a large display.
                 .fillMaxSize(MCP_TOOLS_DIALOG_WINDOW_FRACTION)
                 .sizeIn(
                     minWidth = 640.dp,
@@ -363,7 +361,6 @@ private fun McpToolsPane(
     val selected = filtered.firstOrNull { it.key == selectedToolKey } ?: filtered.firstOrNull()
 
     Row(modifier = modifier) {
-        // Left pane: search + tool list.
         Column(modifier = Modifier.width(320.dp)) {
             JwSearchField(
                 value = query,
@@ -377,7 +374,6 @@ private fun McpToolsPane(
                 items(filtered, key = { it.key }) { row ->
                     val isSelected = row.key == selected?.key
                     JwListItem(selected = isSelected, onClick = { onSelectTool(row.key) }) {
-                        // Takes the free space so the count sits against the right edge.
                         Column(modifier = Modifier.weight(1f)) {
                             JwText(
                                 text = row.tool.name.substringAfterLast('.'),
@@ -404,7 +400,6 @@ private fun McpToolsPane(
             }
         }
         JwVerticalDivider(modifier = Modifier.padding(horizontal = 12.dp))
-        // Right pane: the selected tool's detail.
         Column(
             modifier = Modifier
                 .weight(1f)

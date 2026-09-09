@@ -16,7 +16,6 @@ class ClickToolTest {
     @Test
     fun `dispatchClick returns false when scene has no clickable elements`() {
         val scene = createTestScene()
-        // Render once to sync the semantics tree
         renderTestScene(scene)
 
         val result = dispatchClick(scene, 100f, 100f)
@@ -33,7 +32,6 @@ class ClickToolTest {
                     .clickable { clicked = true },
             )
         }
-        // Render to build the semantics tree and lay out nodes
         renderTestScene(scene)
 
         val result = dispatchClick(scene, 100f, 100f)

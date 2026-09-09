@@ -346,9 +346,7 @@ private fun PluginList(
                 underAiControl = plugin.underAiControl,
                 exposesMcpTools = plugin.exposesMcpTools,
                 onClickMcpBadge = { onOpenMcpTools(plugin.id) },
-                onClick = {
-                    // do nothing
-                },
+                onClick = {},
                 popupMenuContent = { dismiss ->
                     JwMenuItem(
                         text = stringResource(Res.string.enable),
@@ -377,9 +375,7 @@ private fun PluginList(
                 underAiControl = plugin.underAiControl,
                 exposesMcpTools = plugin.exposesMcpTools,
                 onClickMcpBadge = { onOpenMcpTools(plugin.id) },
-                onClick = {
-                    // do nothing
-                },
+                onClick = {},
                 modifier = Modifier.animateItem(),
             )
         }

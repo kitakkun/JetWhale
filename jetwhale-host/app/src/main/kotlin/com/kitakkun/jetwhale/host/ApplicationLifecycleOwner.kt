@@ -64,8 +64,7 @@ class ApplicationLifecycleOwner(
             // malicious jar dropped into ~/.jetwhale/plugins from auto-running in the host process.
             pluginTrustService.loadTrustedPlugins()
 
-            // Loads dev plugins (if any) and starts watching the dev directory for hot reload.
-            // No-op unless the jetwhale.devPluginsDir system property is set.
+            // A no-op unless the jetwhale.devPluginsDir system property is set.
             pluginHotReloadService.start()
 
             mutableApplicationStateFlow.update { ApplicationState.INITIALIZED }

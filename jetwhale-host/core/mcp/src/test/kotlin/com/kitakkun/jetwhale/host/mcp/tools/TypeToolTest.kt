@@ -138,7 +138,6 @@ class TypeToolTest {
         dispatchTyping(scene, "hello")
         assertEquals("hello", textState.text.toString())
 
-        // Focus the text field so it can receive key events
         fun findFocusableNode(node: SemanticsNode): SemanticsNode? {
             node.children.forEach { child -> findFocusableNode(child)?.let { return it } }
             return if (node.config.getOrNull(SemanticsActions.RequestFocus) != null) node else null

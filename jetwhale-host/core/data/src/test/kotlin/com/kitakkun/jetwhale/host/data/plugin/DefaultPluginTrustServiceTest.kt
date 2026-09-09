@@ -151,9 +151,7 @@ class DefaultPluginTrustServiceTest {
         val diskFactory = FakePluginFactoryRepository()
         val diskService = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskRepository, diskFactory, diskSigner)
 
-        // Approve with signing off: the registry is written unsigned.
         diskService.trustAndLoad(jar.absolutePath)
-        // Turn signing on: a key is provisioned and the existing registry is re-signed.
         diskService.setSigningEnabled(true)
 
         // Fresh start with the same (now-present) key. Without the re-sign the unsigned registry would

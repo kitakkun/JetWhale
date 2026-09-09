@@ -5,8 +5,6 @@ import com.kitakkun.jetwhale.protocol.messaging.JetWhaleRequest
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// -- Events: agent (debuggee) -> host ----------------------------------------
-
 @SerialName("network/request_sent")
 @Serializable
 data class RequestSent(val request: CapturedHttpRequest) : JetWhaleEvent
@@ -19,8 +17,6 @@ data class ResponseReceived(val response: CapturedHttpResponse) : JetWhaleEvent
 @Serializable
 data class RequestFailed(val failure: HttpRequestFailure) : JetWhaleEvent
 
-// -- Requests: host -> agent (debuggee) --------------------------------------
-
 @SerialName("network/set_mock_rules")
 @Serializable
 data class SetMockRules(val rules: List<MockRule>) : JetWhaleRequest<Ack>
@@ -28,8 +24,6 @@ data class SetMockRules(val rules: List<MockRule>) : JetWhaleRequest<Ack>
 @SerialName("network/set_mocking_enabled")
 @Serializable
 data class SetMockingEnabled(val enabled: Boolean) : JetWhaleRequest<Ack>
-
-// -- Preparation messages (sent from the host's onPrepare) --------------------
 
 /**
  * Host -> agent, on connect: fetches the mock configuration the agent holds (it is the source of
@@ -48,8 +42,6 @@ data object GetMockConfig : JetWhaleRequest<MockConfig>
 @SerialName("network/get_redaction_config")
 @Serializable
 data object GetRedactionConfig : JetWhaleRequest<RedactionConfig>
-
-// -- Replies -----------------------------------------------------------------
 
 @SerialName("network/ack")
 @Serializable

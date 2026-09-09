@@ -163,8 +163,8 @@ class MessagingServiceResolutionTest {
         val socketClient = RecordingSocketClient(reachable = setOf(reachable))
         var firstCall = true
         val service = service(socketClient) {
-            // Resolution is not supposed to throw, but one escaping used to take the loop down with
-            // it, leaving the agent silently dead for the life of the process.
+            // Resolution is not supposed to throw, but one escaping must not take the loop down
+            // with it and leave the agent silently dead for the life of the process.
             if (firstCall) {
                 firstCall = false
                 throw IllegalStateException("resolver blew up")

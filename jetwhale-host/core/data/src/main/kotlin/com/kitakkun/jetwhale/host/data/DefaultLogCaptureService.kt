@@ -25,7 +25,7 @@ class DefaultLogCaptureService : LogCaptureService {
     private var originalErr: PrintStream? = null
     private var isCapturing = false
 
-    private val maxLogEntries = 10000 // Limit to prevent memory issues
+    private val maxLogEntries = 10000
 
     override fun startCapture() {
         if (isCapturing) return
