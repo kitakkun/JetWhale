@@ -173,6 +173,11 @@ private fun View.resourceEntryName(): String? {
  * The unclipped [boundsInWindow] says where the view was laid out, which is what the tree draws and
  * measures; this says where it can be tapped. Compose draws the same distinction between
  * `boundsInRoot` and `boundsInWindow`, and both trees report the pair the same way round.
+ *
+ * The "global" in `getGlobalVisibleRect` is the root of the view hierarchy — this window — not the
+ * display, so the caller adds the window's own offset to reach screen coordinates. Measured on a
+ * dialog, whose window starts at (120, 926): its decor view reports exactly that origin once the
+ * offset is added, rather than twice it.
  */
 private fun View.visibleBoundsInWindow(): NodeBounds {
     val visible = Rect()

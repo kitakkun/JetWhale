@@ -108,9 +108,12 @@ internal class AndroidWindowNodeSource(rootView: View) :
         val inWindow = Offset(screenX - offset.x, screenY - offset.y)
 
         // Down then cancel: the platform runs its own hit test for the down, which is the answer
-        // being asked for, and the cancel ends the gesture before any click could complete.
-        val consumed = rootView.dispatchProbe(MotionEvent.ACTION_DOWN, inWindow)
-        rootView.dispatchProbe(MotionEvent.ACTION_CANCEL, inWindow)
+        // being asked for, and the cancel ends the gesture before any click could complete. Both
+        // events carry the same downTime, which is what identifies them as one gesture — a cancel
+        // that opens its own would not retract the down, leaving a pressed state behind.
+        val downTime = SystemClock.uptimeMillis()
+        val consumed = rootView.dispatchProbe(MotionEvent.ACTION_DOWN, inWindow, downTime)
+        rootView.dispatchProbe(MotionEvent.ACTION_CANCEL, inWindow, downTime)
         TouchProbeResult(consumed = consumed, rootId = sourceId)
     }
 
@@ -181,9 +184,8 @@ internal fun View.describeWindow(): String {
  * Recycled straight away: an event this code allocates is this code's to release, and a probe is
  * called often enough by an agent working across a screen for that to matter.
  */
-private fun View.dispatchProbe(action: Int, inWindow: Offset): Boolean {
-    val now = SystemClock.uptimeMillis()
-    val event = MotionEvent.obtain(now, now, action, inWindow.x, inWindow.y, 0)
+private fun View.dispatchProbe(action: Int, inWindow: Offset, downTime: Long): Boolean {
+    val event = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), action, inWindow.x, inWindow.y, 0)
     return try {
         dispatchTouchEvent(event)
     } finally {

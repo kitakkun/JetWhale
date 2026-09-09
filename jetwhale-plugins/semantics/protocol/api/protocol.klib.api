@@ -1062,6 +1062,44 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/ViewNode : com.kita
 final object com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting|null[0]
     final fun nodeAt(kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot>, kotlin/Float, kotlin/Float): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef? // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.nodeAt|nodeAt(kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot>;kotlin.Float;kotlin.Float){}[0]
     final fun resolve(kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot>): kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.resolve|resolve(kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot>){}[0]
+    final fun targetAt(kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot>, kotlin/Float, kotlin/Float): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.targetAt|targetAt(kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot>;kotlin.Float;kotlin.Float){}[0]
+
+    sealed interface TouchTarget { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget|null[0]
+        final class Node : com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node|null[0]
+            constructor <init>(com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef) // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.<init>|<init>(com.kitakkun.jetwhale.plugins.semantics.protocol.NodeRef){}[0]
+
+            final val ref // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.ref|{}ref[0]
+                final fun <get-ref>(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.ref.<get-ref>|<get-ref>(){}[0]
+
+            final fun component1(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.component1|component1(){}[0]
+            final fun copy(com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.copy|copy(com.kitakkun.jetwhale.plugins.semantics.protocol.NodeRef){}[0]
+            final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.equals|equals(kotlin.Any?){}[0]
+            final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.hashCode|hashCode(){}[0]
+            final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Node.toString|toString(){}[0]
+        }
+
+        final class Window : com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window|null[0]
+            constructor <init>(kotlin/String, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef?) // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.<init>|<init>(kotlin.String;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeRef?){}[0]
+
+            final val rootId // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.rootId|{}rootId[0]
+                final fun <get-rootId>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.rootId.<get-rootId>|<get-rootId>(){}[0]
+            final val rootNode // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.rootNode|{}rootNode[0]
+                final fun <get-rootNode>(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef? // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.rootNode.<get-rootNode>|<get-rootNode>(){}[0]
+
+            final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.component1|component1(){}[0]
+            final fun component2(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef? // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.component2|component2(){}[0]
+            final fun copy(kotlin/String = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeRef? = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.copy|copy(kotlin.String;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeRef?){}[0]
+            final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.equals|equals(kotlin.Any?){}[0]
+            final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.hashCode|hashCode(){}[0]
+            final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Window.toString|toString(){}[0]
+        }
+
+        final object Nothing : com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Nothing|null[0]
+            final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Nothing.equals|equals(kotlin.Any?){}[0]
+            final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Nothing.hashCode|hashCode(){}[0]
+            final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.TouchTarget.Nothing.toString|toString(){}[0]
+        }
+    }
 }
 
 final val com.kitakkun.jetwhale.plugins.semantics.protocol/type // com.kitakkun.jetwhale.plugins.semantics.protocol/type|@com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue{}type[0]

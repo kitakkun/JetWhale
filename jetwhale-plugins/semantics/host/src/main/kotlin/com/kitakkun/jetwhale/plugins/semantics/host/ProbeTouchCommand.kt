@@ -55,28 +55,37 @@ internal class ProbeTouchCommand(
         } catch (e: JetWhaleMessagingException) {
             return agentErrorJson(e)
         }
-        val expectedRef = NodeHitTesting.nodeAt(snapshot.roots, pointX, pointY)
+        val target = NodeHitTesting.targetAt(snapshot.roots, pointX, pointY)
+        val expectedRef = (target as? NodeHitTesting.TouchTarget.Node)?.ref
         val expected = expectedRef?.let { ref ->
             snapshot.roots.firstOrNull { it.rootId == ref.rootId }?.findNode(ref.nodeId)
         }
+        // A window that swallows the tap is expected to consume it even though no node takes it, so
+        // it agrees with a consuming app rather than reading as an overlay nobody can see.
+        val expectsConsumption = target !is NodeHitTesting.TouchTarget.Nothing
 
         return buildJsonObject {
             put("consumed", result.consumed)
             result.rootId?.let { put("rootId", it) }
             put("expected", expected?.toMcpJson(rootId = expectedRef?.rootId, includeChildren = false) ?: JsonNull)
-            put("agrees", result.consumed == (expected != null))
-            val note = result.message ?: disagreementNote(consumed = result.consumed, expected = expected != null)
+            (target as? NodeHitTesting.TouchTarget.Window)?.let { put("swallowedByWindow", it.rootId) }
+            put("agrees", result.consumed == expectsConsumption)
+            val note = result.message ?: note(target, consumed = result.consumed)
             note?.let { put("note", it) }
         }.toString()
     }
 }
 
-private fun disagreementNote(consumed: Boolean, expected: Boolean): String? = when {
-    consumed && !expected ->
+private fun note(target: NodeHitTesting.TouchTarget, consumed: Boolean): String? = when {
+    target is NodeHitTesting.TouchTarget.Window ->
+        "a touch-modal window (${target.rootId}) is over this point: it takes every tap that lands outside it, so " +
+            "nothing in the windows below can be reached until it goes away."
+
+    consumed && target is NodeHitTesting.TouchTarget.Nothing ->
         "something consumes touches here that the node tree does not show — an overlay with no semantics, or a gesture " +
             "handler on a plain layout. A node underneath cannot be tapped even though it looks reachable."
 
-    !consumed && expected ->
+    !consumed && target is NodeHitTesting.TouchTarget.Node ->
         "the node here advertises an action but the app took no touch: its gesture handling may sit elsewhere, or an " +
             "ancestor is refusing the event."
 

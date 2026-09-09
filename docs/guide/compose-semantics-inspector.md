@@ -248,7 +248,7 @@ touch. That catches what is worth catching:
 | The button is… | Reported as |
 | --- | --- |
 | under a dialog or a popup | `hittable: false`, `obscuredBy` the node on top |
-| behind a modal window, anywhere on screen | `hittable: false` |
+| behind a modal window, anywhere on screen | `hittable: false`, `obscuredBy` that window's root |
 | scrolled out of its container | `hittable: false`, no `obscuredBy` — no area to aim at |
 | under a later sibling that takes touches | `hittable: false`, `obscuredBy` that sibling |
 
@@ -303,7 +303,8 @@ with it alongside what the tree predicted: `consumed`, `expected`, `agrees`. Not
 cancel ends the gesture before a click can complete — though a pressed state or a ripple may flash.
 
 `consumed: true` with `expected: null` is the one to look for: something takes touches there that the
-tree cannot see.
+tree cannot see. A modal window swallowing the tap is reported as `swallowedByWindow` rather than as
+that — it is in the tree, and it agrees with the app.
 
 ### `com.kitakkun.jetwhale.semantics.performNodeAction`
 

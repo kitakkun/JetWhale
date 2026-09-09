@@ -14,32 +14,59 @@ package com.kitakkun.jetwhale.plugins.semantics.protocol
  * finger would not reach — never the other way round.
  */
 object NodeHitTesting {
+    /** Where a tap at a point ends up. */
+    sealed interface TouchTarget {
+        /** A node takes it. */
+        data class Node(val ref: NodeRef) : TouchTarget
+
+        /**
+         * A touch-modal window takes it although nothing in that window accepts one at the point —
+         * a dialog's scrim, which swallows every tap outside the dialog rather than passing it down.
+         */
+        data class Window(val rootId: String, val rootNode: NodeRef?) : TouchTarget
+
+        /** Nothing takes it: the tap reaches the bottom of the stack unclaimed. */
+        data object Nothing : TouchTarget
+    }
+
     /**
      * The captured roots with [UiNode.isHittable] and [UiNode.obscuredBy] filled in.
      *
      * Runs where the capture is assembled, so every consumer reads one answer instead of each
      * recomputing its own.
+     *
+     * One walk of the tree per node that accepts touch, so the cost is the accepting nodes times the
+     * tree — not the tree squared, since a label asks nothing. A screen has few of the former even
+     * when it has many of the latter, which is what keeps this off the capture's critical path.
      */
     fun resolve(roots: List<ComposeRoot>): List<ComposeRoot> = roots.map { root ->
-        root.copy(node = root.node?.resolveHits(root.rootId) { x, y -> nodeAt(roots, x, y) })
+        root.copy(node = root.node?.resolveHits(root.rootId) { x, y -> targetAt(roots, x, y) })
     }
 
     /**
-     * What a tap at ([screenX], [screenY]) reaches, or `null` when nothing there accepts touch
-     * input.
+     * What a tap at ([screenX], [screenY]) reaches, or `null` when no node takes it.
      *
      * The question an agent has when it works out a coordinate for itself — from a screenshot, say —
-     * rather than from a node's own bounds.
+     * rather than from a node's own bounds. [targetAt] separates the two ways of reaching `null`.
      */
-    fun nodeAt(roots: List<ComposeRoot>, screenX: Float, screenY: Float): NodeRef? {
+    fun nodeAt(roots: List<ComposeRoot>, screenX: Float, screenY: Float): NodeRef? = (targetAt(roots, screenX, screenY) as? TouchTarget.Node)?.ref
+
+    /**
+     * Where a tap at ([screenX], [screenY]) ends up, distinguishing a window that swallows it from
+     * nothing taking it at all — the difference between "a dialog is in the way" and "there is
+     * nothing here".
+     */
+    fun targetAt(roots: List<ComposeRoot>, screenX: Float, screenY: Float): TouchTarget {
         for (index in roots.indices.reversed()) {
             val root = roots[index]
-            root.node?.topmostAt(screenX, screenY)?.let { return NodeRef(root.rootId, it.id) }
+            root.node?.topmostAt(screenX, screenY)?.let { return TouchTarget.Node(NodeRef(root.rootId, it.id)) }
             // A touch-modal window takes what lands outside it too, so the search stops at one
             // whether or not it had anything at the point.
-            if (root.isTouchModal) return null
+            if (root.isTouchModal) {
+                return TouchTarget.Window(root.rootId, root.node?.let { NodeRef(root.rootId, it.id) })
+            }
         }
-        return null
+        return TouchTarget.Nothing
     }
 }
 
@@ -58,7 +85,7 @@ private fun UiNode.topmostAt(screenX: Float, screenY: Float): UiNode? {
     return takeIf { it.acceptsTouch }
 }
 
-private fun UiNode.resolveHits(rootId: String, winnerAt: (x: Float, y: Float) -> NodeRef?): UiNode {
+private fun UiNode.resolveHits(rootId: String, winnerAt: (x: Float, y: Float) -> NodeHitTesting.TouchTarget): UiNode {
     val resolvedChildren = children.map { it.resolveHits(rootId, winnerAt) }
 
     // Only a node that accepts touch is asked about: for anything else there is no tap to obstruct,
@@ -70,12 +97,19 @@ private fun UiNode.resolveHits(rootId: String, winnerAt: (x: Float, y: Float) ->
     if (boundsInScreen.isEmpty) return withHits(isHittable = false, obscuredBy = null, children = resolvedChildren)
 
     val self = NodeRef(rootId, id)
-    val winner = winnerAt(boundsInScreen.centerX, boundsInScreen.centerY)
-    return withHits(
-        isHittable = winner == self,
-        obscuredBy = winner?.takeIf { it != self },
-        children = resolvedChildren,
-    )
+    return when (val winner = winnerAt(boundsInScreen.centerX, boundsInScreen.centerY)) {
+        is NodeHitTesting.TouchTarget.Node -> withHits(
+            isHittable = winner.ref == self,
+            obscuredBy = winner.ref.takeIf { it != self },
+            children = resolvedChildren,
+        )
+
+        // The window itself is named rather than nothing at all: "a dialog is over this" is the
+        // reading, and its root node is what a caller would look at next.
+        is NodeHitTesting.TouchTarget.Window -> withHits(isHittable = false, obscuredBy = winner.rootNode, children = resolvedChildren)
+
+        NodeHitTesting.TouchTarget.Nothing -> withHits(isHittable = false, obscuredBy = null, children = resolvedChildren)
+    }
 }
 
 private fun UiNode.withHits(isHittable: Boolean, obscuredBy: NodeRef?, children: List<UiNode>): UiNode = when (this) {

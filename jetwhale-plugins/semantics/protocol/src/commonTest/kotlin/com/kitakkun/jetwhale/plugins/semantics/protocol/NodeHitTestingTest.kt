@@ -89,7 +89,7 @@ class NodeHitTestingTest {
 
         val behind = roots.first().node!!.children.single()
         assertEquals(false, behind.isHittable, "a dialog takes the taps that land outside it too")
-        assertNull(behind.obscuredBy, "the dialog covers no part of it, so nothing there names itself")
+        assertEquals(NodeRef("dialog", 0), behind.obscuredBy, "the dialog window itself is what takes the tap")
         assertTrue(roots.last().node!!.children.single().isHittable)
     }
 
@@ -139,6 +139,23 @@ class NodeHitTestingTest {
         )
 
         assertNull(NodeHitTesting.nodeAt(roots, 10f, 10f), "the dialog takes it, and has nothing at the point")
+    }
+
+    @Test
+    fun `a window swallowing the tap is told apart from nothing taking it`() {
+        val withDialog = listOf(
+            root(button(id = 1, at = rect(0f, 0f, 100f, 50f))),
+            root(button(id = 2, at = rect(0f, 500f, 100f, 550f)), rootId = "dialog", isTouchModal = true),
+        )
+
+        assertEquals(
+            NodeHitTesting.TouchTarget.Window("dialog", NodeRef("dialog", 0)),
+            NodeHitTesting.targetAt(withDialog, 10f, 10f),
+        )
+        assertEquals(
+            NodeHitTesting.TouchTarget.Nothing,
+            NodeHitTesting.targetAt(withDialog.take(1), 500f, 500f),
+        )
     }
 }
 
