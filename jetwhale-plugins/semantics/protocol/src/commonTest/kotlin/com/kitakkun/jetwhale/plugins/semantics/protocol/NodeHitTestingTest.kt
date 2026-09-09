@@ -148,7 +148,7 @@ class NodeHitTestingTest {
     }
 
     @Test
-    fun `a point inside a window that nothing accepts is nobody's, not the window's`() {
+    fun `a point inside a window that nothing accepts is nobody's rather than the window's`() {
         // Every window is touch-modal, the activity's included; a tap landing in it that no node
         // takes is not the window swallowing anything — the app takes no touch at all.
         val roots = listOf(root(button(id = 1, at = rect(0f, 0f, 100f, 50f)), isTouchModal = true))
