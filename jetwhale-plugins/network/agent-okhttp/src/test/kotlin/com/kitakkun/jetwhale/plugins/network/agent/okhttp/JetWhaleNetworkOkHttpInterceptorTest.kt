@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.agent.sdk.messaging.JetWhaleOfflineCapableMessenger
 import com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
+import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
@@ -27,13 +28,16 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okio.Buffer
 import java.io.IOException
 import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlin.io.encoding.Base64
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
@@ -208,6 +212,71 @@ class JetWhaleNetworkOkHttpInterceptorTest {
     }
 
     @Test
+    fun `captures an image response as Base64 bytes`() {
+        server.enqueue(imageResponse(IMAGE_BYTES))
+        val request = Request.Builder().url(server.url("/logo.png")).build()
+        client().newCall(request).execute().close()
+
+        val received = events.last() as ResponseReceived
+        assertEquals(BodyEncoding.BASE64, received.response.bodyEncoding)
+        assertEquals(false, received.response.bodyTruncated)
+        assertContentEquals(IMAGE_BYTES, Base64.decode(received.response.body!!))
+    }
+
+    @Test
+    fun `replaces an image response over maxImageBytes with a marker instead of truncating it`() {
+        server.enqueue(imageResponse(IMAGE_BYTES))
+        val request = Request.Builder().url(server.url("/logo.png")).build()
+        val client = OkHttpClient.Builder().addInterceptor(agent.okHttpInterceptor(maxImageBytes = IMAGE_BYTES.size - 1)).build()
+        client.newCall(request).execute().close()
+
+        val received = events.last() as ResponseReceived
+        // A partial image cannot be decoded, so the capture says so rather than shipping half of it.
+        assertEquals(BodyEncoding.TEXT, received.response.bodyEncoding)
+        assertEquals("<image/png body over the ${IMAGE_BYTES.size - 1}-byte maxImageBytes limit>", received.response.body)
+    }
+
+    @Test
+    fun `captures an uploaded image as Base64 bytes`() {
+        server.enqueue(MockResponse().setResponseCode(200))
+        val request = Request.Builder()
+            .url(server.url("/upload"))
+            .post(IMAGE_BYTES.toRequestBody("image/png".toMediaType()))
+            .build()
+        client().newCall(request).execute().close()
+
+        val sent = events[0] as RequestSent
+        assertEquals(BodyEncoding.BASE64, sent.request.bodyEncoding)
+        assertContentEquals(IMAGE_BYTES, Base64.decode(sent.request.body!!))
+    }
+
+    @Test
+    fun `serves a Base64 mock body as raw bytes`() {
+        applyMockRules(
+            listOf(
+                MockRule(
+                    id = "image",
+                    matcher = MockMatcher(urlPattern = "/logo.png"),
+                    response = MockResponseSpec(
+                        headers = mapOf("Content-Type" to "image/png"),
+                        body = Base64.encode(IMAGE_BYTES),
+                        bodyEncoding = BodyEncoding.BASE64,
+                    ),
+                ),
+            ),
+        )
+        val request = Request.Builder().url(server.url("/logo.png")).build()
+        val response = client().newCall(request).execute()
+
+        assertContentEquals(IMAGE_BYTES, response.body.bytes())
+    }
+
+    private fun imageResponse(bytes: ByteArray) = MockResponse()
+        .setResponseCode(200)
+        .setHeader("Content-Type", "image/png")
+        .setBody(Buffer().write(bytes))
+
+    @Test
     fun `truncates request bodies longer than maxBodyChars`() {
         server.enqueue(MockResponse().setResponseCode(200))
         val longBody = "y".repeat(1_000_000)
@@ -233,6 +302,9 @@ class JetWhaleNetworkOkHttpInterceptorTest {
 
     companion object {
         private const val SMALL_BODY_CAP = 100
+
+        /** Not valid UTF-8: decoding these as text would destroy them, which is the point of Base64. */
+        private val IMAGE_BYTES = ByteArray(300) { (it * 7).toByte() }
     }
 }
 

@@ -58,7 +58,7 @@ fun List<RedactionRule>.redact(request: CapturedHttpRequest): CapturedHttpReques
     return request.copy(
         url = redactUrl(request.url),
         headers = redactHeaders(request.headers),
-        body = request.body?.let { redactBody(it, request.headers) },
+        body = request.body?.let { redactBody(it, request.headers, request.bodyEncoding) },
     )
 }
 
@@ -67,7 +67,7 @@ fun List<RedactionRule>.redact(response: CapturedHttpResponse): CapturedHttpResp
     if (isEmpty()) return response
     return response.copy(
         headers = redactHeaders(response.headers),
-        body = response.body?.let { redactBody(it, response.headers) },
+        body = response.body?.let { redactBody(it, response.headers, response.bodyEncoding) },
     )
 }
 
@@ -113,8 +113,10 @@ private const val FORM_URLENCODED_MEDIA_TYPE = "application/x-www-form-urlencode
 // parameters that were cut off. Any other body that does not parse as structured JSON (other content
 // type, bare literal, or JSON truncated mid-value) is forwarded unchanged; only header and query
 // rules can protect it.
-private fun List<RedactionRule>.redactBody(body: String, headers: Map<String, List<String>>): String {
+private fun List<RedactionRule>.redactBody(body: String, headers: Map<String, List<String>>, encoding: BodyEncoding): String {
     if (none { it.target == RedactionTarget.BODY_FIELD }) return body
+    // A Base64 body carries opaque bytes with no fields to match, and it can be megabytes long.
+    if (encoding == BodyEncoding.BASE64) return body
     if (headers.mediaType() == FORM_URLENCODED_MEDIA_TYPE) return redactFormBody(body)
     val element = try {
         Json.parseToJsonElement(body).takeIf { it is JsonObject || it is JsonArray } ?: return body
@@ -123,14 +125,6 @@ private fun List<RedactionRule>.redactBody(body: String, headers: Map<String, Li
     }
     return Json.encodeToString(JsonElement.serializer(), redactFields(element))
 }
-
-private fun Map<String, List<String>>.mediaType(): String? = entries
-    .firstOrNull { (name, _) -> name.equals("Content-Type", ignoreCase = true) }
-    ?.value
-    ?.firstOrNull()
-    ?.substringBefore(';')
-    ?.trim()
-    ?.lowercase()
 
 // Names and values are form-decoded before matching and rendering, so a percent-encoded name still
 // matches its rule and a MASK still spans the value's real length rather than its encoded length.

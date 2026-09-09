@@ -25,6 +25,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.coroutines.launch
@@ -117,6 +118,18 @@ internal fun NetworkTestScreen() {
         item {
             Button(
                 onClick = {
+                    fire("GET image") {
+                        val response = DIModule.httpClient.get(SAMPLE_IMAGE_URL)
+                        "${response.status.value} ${response.readRawBytes().size} bytes"
+                    }
+                },
+            ) {
+                Text("GET an image")
+            }
+        }
+        item {
+            Button(
+                onClick = {
                     fire("GET /nonexistent-path") { base ->
                         val response = DIModule.httpClient.get("$base/nonexistent-path")
                         "${response.status.value} ${response.bodyAsText()}"
@@ -135,3 +148,9 @@ internal fun NetworkTestScreen() {
         }
     }
 }
+
+/**
+ * Absolute on purpose: the image request ignores the base URL above so the Network Inspector's
+ * image preview can be exercised against any backend.
+ */
+private const val SAMPLE_IMAGE_URL = "https://picsum.photos/240/160.jpg"

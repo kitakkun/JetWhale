@@ -119,6 +119,15 @@ networkAgent.ktorClientPlugin(maxBodyChars = 500_000)
 networkAgent.okHttpInterceptor(maxBodyChars = 500_000)
 ```
 
+Image bodies are captured as bytes rather than text, under their own limit (default **2 MiB**).
+A larger image is skipped rather than truncated — half an image cannot be decoded — and the capture
+shows a marker saying so. Raise the limit when you need to inspect bigger images:
+
+```kotlin
+networkAgent.ktorClientPlugin(maxImageBytes = 8 * 1024 * 1024)
+networkAgent.okHttpInterceptor(maxImageBytes = 8 * 1024 * 1024)
+```
+
 ## Inspecting traffic
 
 Open the **Network Inspector** plugin in the JetWhale host and select your app's session. Each HTTP
@@ -126,6 +135,11 @@ transaction appears live as your app makes requests. Select a transaction to ins
 and response — headers, bodies (with a dedicated JSON view), and status. Right-click a transaction
 for **Copy as cURL**, **Copy URL** and its request/response bodies, to share it or reproduce the
 request elsewhere.
+
+An image body (`image/*`, except SVG, which stays text) is shown as a picture instead of as text,
+with its dimensions and size. **Copy image** puts it on the clipboard and **Save image…** writes the
+original bytes — the exact file the server sent — where you choose. **Mock this** on an image
+response keeps those bytes, so the mock serves the same image back.
 
 The host keeps the **latest 500 transactions** per session; older ones are dropped as new traffic
 arrives. Use **clear** (or `com.kitakkun.jetwhale.network.clearTransactions`) before reproducing an
@@ -230,6 +244,10 @@ id, and returns it. `contentType` is a convenience that only fills in a `Content
 `setMockRules` instead takes a JSON list of complete rules and **replaces** the whole set — the tool
 to reach for when setting up a scenario, editing a rule (reuse its `id`), or disabling one
 (`enabled: false`) rather than deleting it.
+
+An image body is summarized in tool results (media type and size) rather than inlined as Base64:
+the bytes are of no use to an agent and would crowd out the rest of the result. View the image in
+the host window instead.
 
 [Redaction rules](#redacting-sensitive-values) apply to MCP output as well: values redacted with
 `RedactionScope.MCP_ONLY` are hidden from these tools' results **and** from `jetwhale.screenshot`

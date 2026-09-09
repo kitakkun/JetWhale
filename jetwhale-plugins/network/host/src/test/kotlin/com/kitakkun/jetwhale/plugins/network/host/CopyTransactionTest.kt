@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
+import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -14,6 +15,7 @@ class CopyTransactionTest {
         headers: Map<String, List<String>> = emptyMap(),
         body: String? = null,
         bodyTruncated: Boolean = false,
+        bodyEncoding: BodyEncoding = BodyEncoding.TEXT,
     ) = CapturedHttpRequest(
         txId = "tx",
         method = method,
@@ -21,6 +23,7 @@ class CopyTransactionTest {
         headers = headers,
         body = body,
         bodyTruncated = bodyTruncated,
+        bodyEncoding = bodyEncoding,
         timestampMs = 0L,
     )
 
@@ -35,6 +38,23 @@ class CopyTransactionTest {
     fun getWithBody_keepsMethodExplicit() {
         val command = buildCurlCommand(request(body = """{"q":1}"""))
         assertTrue("-X GET" in command)
+    }
+
+    @Test
+    fun binaryBody_isOmittedAndFlagged() {
+        val command = buildCurlCommand(
+            request(
+                method = "POST",
+                headers = mapOf("Content-Type" to listOf("image/png")),
+                body = "iVBORw0KGgo=",
+                bodyEncoding = BodyEncoding.BASE64,
+            ),
+        )
+        // The Base64 capture must never reach the command line: it is neither the original bytes
+        // nor something a shell can send.
+        assertFalse("iVBORw0KGgo=" in command)
+        assertFalse("--data-raw" in command)
+        assertTrue(command.startsWith("# NOTE: request body was captured as binary (image/png)"))
     }
 
     @Test

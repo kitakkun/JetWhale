@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
+import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
+import com.kitakkun.jetwhale.plugins.network.protocol.mediaType
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 
@@ -20,10 +22,12 @@ private val PLACEHOLDER_BODY = Regex("^<[^<>]+>$")
  *
  * Content-Length is dropped (curl derives it from the body). A truncated capture can't be
  * replayed faithfully, so it's flagged with a leading comment instead of silently emitting
- * a partial body; a placeholder body is omitted entirely and flagged the same way.
+ * a partial body; a placeholder body and a binary (Base64) capture are omitted entirely and
+ * flagged the same way.
  */
 internal fun buildCurlCommand(request: CapturedHttpRequest): String {
-    val body = request.body?.takeUnless { it.matches(PLACEHOLDER_BODY) }
+    val binary = request.bodyEncoding == BodyEncoding.BASE64
+    val body = request.body?.takeUnless { binary || it.matches(PLACEHOLDER_BODY) }
     // --globoff: curl expands [] and {} in URLs itself, even inside shell quotes.
     val lines = mutableListOf("curl --globoff")
     // -X GET must be explicit when a body is present, or --data-raw switches the method to POST.
@@ -43,6 +47,7 @@ internal fun buildCurlCommand(request: CapturedHttpRequest): String {
     }
     val command = lines.joinToString(" \\\n  ")
     val note = when {
+        binary -> "# NOTE: request body was captured as binary (${request.headers.mediaType() ?: "unknown media type"}); the command omits it\n"
         body == null && request.body != null -> "# NOTE: request body was not captured (${request.body}); the command omits it\n"
         request.bodyTruncated -> "# NOTE: request body was truncated at capture time\n"
         else -> ""

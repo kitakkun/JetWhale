@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
+import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
@@ -66,5 +67,22 @@ class NetworkMcpJsonTest {
         val responseJson = json["response"]!!.jsonObject
         assertEquals("""{"ok":true}""", responseJson["body"]?.jsonPrimitive?.content)
         assertNull(json["failure"])
+    }
+
+    @Test
+    fun `detail summarizes a binary body instead of inlining its Base64`() {
+        val response = CapturedHttpResponse(
+            txId = "tx-1",
+            statusCode = 200,
+            headers = mapOf("Content-Type" to listOf("image/png")),
+            body = "AAECAwQFBgc=",
+            bodyEncoding = BodyEncoding.BASE64,
+            durationMs = 7,
+        )
+        val json = HttpTransaction(request = request, response = response).toDetailJson()
+        val body = json["response"]?.jsonObject?.get("body")?.jsonPrimitive?.content
+
+        assertEquals("<image/png body, 8 bytes, shown in the host UI>", body)
+        assertEquals("BASE64", json["response"]?.jsonObject?.get("bodyEncoding")?.jsonPrimitive?.content)
     }
 }
