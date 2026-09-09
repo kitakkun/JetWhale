@@ -70,9 +70,7 @@ class CommandLineArgumentsParser {
 
                 "--headless" -> headless = true
 
-                else -> {
-                    // Ignore unknown arguments
-                }
+                else -> Unit
             }
         }
 

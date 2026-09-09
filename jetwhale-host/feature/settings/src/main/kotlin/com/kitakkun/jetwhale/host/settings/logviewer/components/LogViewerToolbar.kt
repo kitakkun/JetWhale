@@ -32,7 +32,6 @@ fun LogViewerToolbar(
     onClearLogs: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // A flat bar with a hairline under it, like every other toolbar in the host.
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier

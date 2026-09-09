@@ -57,7 +57,6 @@ class DragToolTest {
                         awaitPointerEventScope {
                             while (true) {
                                 val event = awaitPointerEvent()
-                                // Filter only Press/Move/Release to avoid Enter/Exit noise
                                 if (event.type !in listOf(PointerEventType.Press, PointerEventType.Move, PointerEventType.Release)) continue
                                 val pos = event.changes.firstOrNull()?.position ?: continue
                                 receivedEvents += ReceivedEvent(event.type, pos)
@@ -118,13 +117,11 @@ class DragToolTest {
             "Expected at least ${steps - 1} drag events, got ${dragPositions.size}",
         )
 
-        // Positions should be monotonically increasing toward the end
         for (i in 1 until dragPositions.size) {
             assertTrue(dragPositions[i].x >= dragPositions[i - 1].x, "Drag X should be non-decreasing at step $i")
             assertTrue(dragPositions[i].y >= dragPositions[i - 1].y, "Drag Y should be non-decreasing at step $i")
         }
 
-        // Last position should be at or near the end
         assertEquals(400f, dragPositions.last().x, 0.01f, "Last drag position X should be at endX")
         assertEquals(400f, dragPositions.last().y, 0.01f, "Last drag position Y should be at endY")
     }

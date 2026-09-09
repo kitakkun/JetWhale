@@ -70,10 +70,6 @@ class JetWhaleNetworkAgentPlugin(
         }
     }
 
-    // ---------------------------------------------------------------------------------------
-    // Adapter-facing capture API (transport-agnostic)
-    // ---------------------------------------------------------------------------------------
-
     /** Generates a transaction id correlating a request with its response/failure. */
     @OptIn(ExperimentalUuidApi::class)
     fun newTransactionId(): String = Uuid.random().toString()

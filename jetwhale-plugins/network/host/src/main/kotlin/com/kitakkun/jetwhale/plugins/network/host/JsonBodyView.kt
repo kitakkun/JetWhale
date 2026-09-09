@@ -74,10 +74,6 @@ internal fun BodyBlock(label: String, body: String?, truncated: Boolean) {
 
 private enum class BodyMode { Tree, Raw }
 
-// ---------------------------------------------------------------------------------------
-// Accordion tree
-// ---------------------------------------------------------------------------------------
-
 @Composable
 private fun JsonTreeNode(element: JsonElement, label: String?, colors: JsonColors, depth: Int = 0) {
     when (element) {
@@ -159,10 +155,6 @@ private fun JsonLeaf(label: String?, primitive: JsonPrimitive, colors: JsonColor
         modifier = Modifier.padding(start = (depth * 16 + 16).dp, top = 1.dp, bottom = 1.dp),
     )
 }
-
-// ---------------------------------------------------------------------------------------
-// Raw (syntax-highlighted, pretty-printed)
-// ---------------------------------------------------------------------------------------
 
 private fun highlightedJson(element: JsonElement, colors: JsonColors): AnnotatedString = buildAnnotatedString { appendJson(element, 0, colors) }
 

@@ -67,7 +67,6 @@ fun PluginScreenRoot() {
                             PluginScreenErrorFallback(
                                 pluginId = screenContext.pluginId,
                                 errorBoundaryContext = it,
-                                // force recompose when reset is clicked
                                 onClickReset = { reset = !reset },
                             )
                         },

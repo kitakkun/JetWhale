@@ -61,10 +61,6 @@ private class ExampleHostPlugin :
         )
     }
 
-    // -------------------------------------------------------------------------
-    // JetWhaleMcpCapablePlugin
-    // -------------------------------------------------------------------------
-
     override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
         object : JetWhaleMcpCommand() {
             override val name = "com.kitakkun.jetwhale.example.sendPing"

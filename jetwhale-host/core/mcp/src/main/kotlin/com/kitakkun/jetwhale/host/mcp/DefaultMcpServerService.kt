@@ -188,10 +188,6 @@ class DefaultMcpServerService(
         toolRegistry.unregister(pluginId, sessionId)
     }
 
-    // ---------------------------------------------------------------------------
-    // MCP Server factory — creates a new Server instance per SSE connection
-    // ---------------------------------------------------------------------------
-
     private fun createMcpServer(): Server {
         val server = Server(
             serverInfo = Implementation(name = "jetwhale", version = "1.0.0"),

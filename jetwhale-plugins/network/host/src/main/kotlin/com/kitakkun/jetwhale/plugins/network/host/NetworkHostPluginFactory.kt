@@ -139,10 +139,6 @@ private class NetworkHostPlugin :
         )
     }
 
-    // -------------------------------------------------------------------------
-    // JetWhaleMcpCapablePlugin
-    // -------------------------------------------------------------------------
-
     override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
         ListTransactionsCommand(transactions = { transactions.toList() }, redactForMcp = { it.redactedForMcp() }),
         GetTransactionCommand(transactions = { transactions.toList() }, redactForMcp = { it.redactedForMcp() }),

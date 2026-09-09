@@ -23,8 +23,7 @@ import kotlinx.serialization.json.put
 // rather than the tree, and because only View nodes have anything to answer.
 
 // Both tools describe the value types from ViewAttributeType rather than spelling them out, so a
-// type added there cannot leave the descriptions behind — which is how they came to advertise a
-// shape a read no longer had.
+// type added there cannot leave the descriptions behind.
 private val WRITTEN_AS_BY_TYPE = ViewAttributeType.entries.joinToString(", ") { "${it.wireName} takes ${it.writtenAs}" }
 
 private val EXTRA_FIELDS_BY_TYPE = ViewAttributeType.entries

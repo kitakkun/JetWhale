@@ -85,7 +85,6 @@ fun main(args: Array<String>) = runBlocking {
             additionalPluginDirectories = AdditionalPluginDirectories(cliOptions.pluginDirs),
         )
 
-    // Start capturing logs
     appGraph.logCaptureService.startCapture()
 
     appGraph.applicationLifecycleOwner.initialize()
@@ -175,9 +174,7 @@ fun main(args: Array<String>) = runBlocking {
                     ApplicationLifecycleOwner.ApplicationState.NONE,
                     ApplicationLifecycleOwner.ApplicationState.INITIALIZED,
                     ApplicationLifecycleOwner.ApplicationState.STOPPED,
-                    -> {
-                        // show nothing
-                    }
+                    -> Unit
                 }
             }
 

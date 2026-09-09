@@ -69,7 +69,6 @@ class ScreenshotToolTest {
 
     @Test
     fun `captureScreenshot renders colors of side-by-side boxes correctly`() {
-        // Two 50x50 boxes: red on the left, blue on the right
         val scene = createTestScene {
             Row {
                 Box(modifier = Modifier.size(50.dp).background(Color.Red))
@@ -83,7 +82,6 @@ class ScreenshotToolTest {
         scene.render(Canvas(imageBitmap))
         val pixels = imageBitmap.toPixelMap()
 
-        // Sample the center of each box
         assertEquals(Color.Red, pixels[25, 25], "Expected red at center of left box")
         assertEquals(Color.Blue, pixels[75, 25], "Expected blue at center of right box")
     }

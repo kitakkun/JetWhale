@@ -88,10 +88,6 @@ private class ComposeNodeInspectorHostPlugin :
         )
     }
 
-    // -------------------------------------------------------------------------
-    // JetWhaleHostPluginUi
-    // -------------------------------------------------------------------------
-
     @Composable
     override fun Content() {
         ComposeSemanticsInspectorScreen(
@@ -135,10 +131,6 @@ private class ComposeNodeInspectorHostPlugin :
             onCommitViewAttribute = viewAttributes::commit,
         )
     }
-
-    // -------------------------------------------------------------------------
-    // JetWhaleMcpCapablePlugin
-    // -------------------------------------------------------------------------
 
     // Lazy for the same reason the store is: reading this list builds the store, and the store needs
     // pluginScope. The runtime asks for the commands well after it has bound one.

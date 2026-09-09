@@ -234,7 +234,6 @@ class DefaultMcpServerServiceTest {
 
         service.start(host, port)
         try {
-            // Emit Ready event after server started (simulates Android device connecting later)
             eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId))
 
             // The event is handled asynchronously by the service's collector, so the registration

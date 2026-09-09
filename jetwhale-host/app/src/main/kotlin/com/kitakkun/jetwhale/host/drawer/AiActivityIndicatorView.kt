@@ -187,7 +187,6 @@ fun AiActivityIndicatorView(
                     tint = if (uiState.isOperating) JwTheme.colors.aiAccent else JwTheme.colors.textSecondary,
                     modifier = Modifier.alpha(pulseAlpha),
                 )
-                // Animate the height so the tool-name line slides in and out instead of snapping.
                 Column(modifier = Modifier.animateContentSize()) {
                     JwText(
                         text = stringResource(Res.string.ai_agent_connected),
