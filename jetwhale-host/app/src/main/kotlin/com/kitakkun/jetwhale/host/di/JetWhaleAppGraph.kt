@@ -32,6 +32,7 @@ import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
 import dev.zacsweers.metro.Provides
+import dev.zacsweers.metro.SingleIn
 import kotlinx.serialization.json.Json
 import soil.query.SwrCachePlus
 import soil.query.SwrCachePlusPolicy
@@ -77,7 +78,12 @@ interface JetWhaleAppGraph : ScreenContext {
         ): JetWhaleAppGraph
     }
 
+    // One cache for the process. Unscoped, every read of `swrClient` built another SwrCachePlus with
+    // a CoroutineScope of its own — and JetWhaleApp reads it from composition, so each recomposition
+    // leaked one and handed the subtree a cache that shared no query, mutation or subscription with
+    // the one the composition before it used.
     @Provides
+    @SingleIn(AppScope::class)
     fun provideSwrClient(): SwrClientPlus = SwrCachePlus(SwrCachePlusPolicy(SwrCacheScope()))
 
     @Provides
