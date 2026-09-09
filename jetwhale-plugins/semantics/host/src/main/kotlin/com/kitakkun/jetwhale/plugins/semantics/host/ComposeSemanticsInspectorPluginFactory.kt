@@ -138,6 +138,7 @@ private class ComposeNodeInspectorHostPlugin :
         listOf(
             GetNodeTreeCommand(capture = ::capture),
             FindNodesCommand(capture = ::capture),
+            NodeAtCommand(capture = ::capture),
             PerformNodeActionCommand(
                 lastSnapshot = { snapshot },
                 capture = ::capture,

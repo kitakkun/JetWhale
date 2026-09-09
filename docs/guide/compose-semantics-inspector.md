@@ -14,7 +14,9 @@ browse it in the host and hand it to an AI agent over [MCP](/guide/mcp-server).
 - 🪟 Dialogs and popups appear as their own roots, because that is what they are in Compose
 - 🤝 On Android, the Android `View`s around and inside the composition are in the same tree, and a
   `View`'s attributes can be read and edited live — see [Android View support](#android-view-support)
-- 🤖 Five MCP tools so an agent can see the screen structurally instead of guessing at pixels
+- 🖐 Whether a tap aimed at a node would actually arrive, worked out from the capture rather than by
+  tapping — see [Can a finger reach it?](#can-a-finger-reach-it)
+- 🤖 Six MCP tools so an agent can see the screen structurally instead of guessing at pixels
 
 ## What the tree contains
 
@@ -235,9 +237,73 @@ actually exposes. There is also a **Copy `adb shell input tap`** button for the 
 drive the app through the input system. Select an Android `View` node and its editable attributes
 appear below that — see [Editing View attributes](#editing-view-attributes).
 
+## Can a finger reach it?
+
+Every captured node says whether a tap aimed at it would actually arrive. A node that accepts touch
+input but cannot receive one is marked `"hittable": false`, with `obscuredBy` naming what takes the
+tap instead, and the tree view tags the row **unreachable**.
+
+It is worked out from the capture alone — no tap sent, nothing to wait for — by walking the windows
+from the top down and, within a window, the last-drawn node first, the way the platform dispatches a
+touch. That catches what is worth catching:
+
+| The button is… | Reported as |
+| --- | --- |
+| under a dialog or a popup | `hittable: false`, `obscuredBy` the node on top |
+| behind a modal window, anywhere on screen | `hittable: false`, `obscuredBy` that window's root |
+| scrolled out of its container | `hittable: false`, no `obscuredBy` — no area to aim at |
+| under a later sibling that takes touches | `hittable: false`, `obscuredBy` that sibling |
+
+Two things a capture cannot see, and both make it *optimistic* — a node can read as reachable that a
+finger would not reach:
+
+- an overlay that consumes touches without exposing any semantics (a bare `pointerInput`, an
+  `OnTouchListener`),
+- a gesture an ancestor swallows before the node sees it.
+
+On the Compose side the order this relies on is guaranteed — semantics children come from the
+layout's z-sorted children, so `Modifier.zIndex` is accounted for. An Android `ViewGroup` is read in
+child order, which is paint order until a view is raised by `elevation` or `translationZ`; a raised
+sibling can be missed as an obstruction.
+
+Both are rarer than they sound. Sweeping the demo app point by point — comparing what the tree
+predicts against what a real touch does — the tree was right at every interactive node; the only
+places the two parted company were empty ones, where Material's `Surface` takes a touch that no node
+was going to get anyway. Where it matters, treat `hittable: false` as reliable and `hittable: true`
+as "nothing in the tree is in the way".
+
+Note that none of this constrains `performNodeAction`, which invokes the node's own action and never
+goes near the input system. Hittability is about whether a **person** could tap it — a UI check, not
+a precondition for driving the app.
+
+### Why not just tap it and see?
+
+Because a tap is not a question. It fires the action, changes the screen, and still does not say
+what it hit — finding that out means dumping the hierarchy afterwards and undoing whatever happened.
+
+Measured on the same emulator and screen as the [capture benchmarks](#why-not-the-cli) — the demo
+app's *Compose nodes* screen, 27 nodes of which 8 are interactive:
+
+| | answers | median |
+| --- | --- | --- |
+| `adb shell input tap` | nothing — it only fires | 329 ms |
+| `adb shell input tap` + `uiautomator dump` | one point, having changed the screen | 3,621 ms |
+| **`nodeAt`** | one point, from the tree | **30 ms** |
+| **`getNodeTree`** | **every** node's reachability at once | **30 ms** |
+
+One capture carries the whole screen's answer, so per interactive node it is about 4 ms — against
+329 ms per point for a tap that also has to be undone.
+
+The ratio is the smaller half of it. What the numbers buy is *frequency*: at 30 ms an agent can ask
+after every action, which at three seconds it cannot. And the answer is a node with its `testTag`,
+role and id — something to act on next — rather than a rectangle.
+
+Treat all of these as indicative. They come from an emulator, which is slower than a device, and a
+bigger screen means more nodes.
+
 ## MCP tools
 
-The plugin contributes five tools to the host's [MCP server](/guide/mcp-server). As with every
+The plugin contributes six tools to the host's [MCP server](/guide/mcp-server). As with every
 plugin tool, JetWhale injects the `sessionId` parameter and routes the call to the right session.
 
 ### `com.kitakkun.jetwhale.semantics.findNodes`
@@ -259,6 +325,12 @@ see [Android View support](#android-view-support).
 The whole tree, structure included. Takes `merged`, `includeInvisible`, `maxDepth`,
 `interactiveOnly` and `rootId`. Use it when the layout itself is the question; use `findNodes` when
 you are looking for one element.
+
+### `com.kitakkun.jetwhale.semantics.nodeAt`
+
+Which node a tap at a screen coordinate would be dispatched to, or `null` when nothing there takes
+touch input. The question you have once you have picked a point from a screenshot rather than from a
+node's own bounds — see [Can a finger reach it?](#can-a-finger-reach-it).
 
 ### `com.kitakkun.jetwhale.semantics.performNodeAction`
 

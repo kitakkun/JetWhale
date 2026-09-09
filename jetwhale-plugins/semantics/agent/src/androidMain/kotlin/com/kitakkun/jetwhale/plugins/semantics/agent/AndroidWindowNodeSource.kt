@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.semantics.SemanticsNode
@@ -52,6 +53,7 @@ internal class AndroidWindowNodeSource(rootView: View) :
             density = rootView.resources.displayMetrics.density,
             windowOffsetX = offset.x,
             windowOffsetY = offset.y,
+            isTouchModal = rootView.isTouchModal(),
             node = rootView.toViewNode(
                 options = options,
                 windowOffsetX = offset.x,
@@ -152,6 +154,18 @@ internal fun View.describeWindow(): String {
     } else {
         "$activityName / ${javaClass.simpleName}"
     }
+}
+
+/**
+ * Whether this window takes the touches that land outside it — a dialog does, which is what puts
+ * the window underneath it out of a finger's reach.
+ *
+ * A window root's layout params are the window's own; anything else is a view inside one, and a
+ * view cannot claim its window's touches, so it reports `false`.
+ */
+internal fun View.isTouchModal(): Boolean {
+    val params = layoutParams as? WindowManager.LayoutParams ?: return false
+    return params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL == 0
 }
 
 /**

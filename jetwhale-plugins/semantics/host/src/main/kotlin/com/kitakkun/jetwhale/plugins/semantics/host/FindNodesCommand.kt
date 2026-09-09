@@ -34,6 +34,10 @@ internal class FindNodesCommand(
     private val interactiveOnly by booleanOrNull(
         "Keep only nodes that expose an action, are editable, or scroll. Defaults to true when no other criterion is given, false otherwise.",
     )
+    private val hittableOnly by booleanOrNull(
+        "Keep only nodes a tap actually reaches — not covered by another node or window, and not clipped away. " +
+            "Off by default, so a node that is on screen but unreachable still turns up, marked \"hittable\": false.",
+    )
     private val exact by booleanOrNull("Compare whole values instead of substrings. Defaults to false.")
     private val merged by booleanOrNull("Search the merged tree (default true). See getNodeTree.")
     private val includeInvisible by booleanOrNull("Include nodes that are not laid out or fully clipped away. Defaults to false.")
@@ -49,6 +53,7 @@ internal class FindNodesCommand(
             testTag = arguments[testTag],
             resourceId = arguments[resourceId],
             role = arguments[role],
+            hittableOnly = arguments[hittableOnly] ?: false,
             exact = arguments[exact] ?: false,
         )
         // With no criterion at all, "every node on screen" is never the useful answer; the caller is

@@ -102,12 +102,15 @@ internal data class NodeQuery(
     val resourceId: String? = null,
     val role: String? = null,
     val interactiveOnly: Boolean = false,
+    /** Keep only nodes a tap actually reaches — see [UiNode.isHittable]. */
+    val hittableOnly: Boolean = false,
     /** Compare whole values instead of substrings. Substring matching is the default because a
      *  caller usually knows part of a label, not its exact composition. */
     val exact: Boolean = false,
 ) {
     val isEmpty: Boolean
-        get() = text == null && contentDescription == null && testTag == null && resourceId == null && role == null && !interactiveOnly
+        get() = text == null && contentDescription == null && testTag == null && resourceId == null && role == null &&
+            !interactiveOnly && !hittableOnly
 }
 
 /**
@@ -117,6 +120,7 @@ internal data class NodeQuery(
  */
 internal fun UiNode.matches(query: NodeQuery): Boolean {
     if (query.interactiveOnly && !isInteractive) return false
+    if (query.hittableOnly && !isHittable) return false
     if (!fieldMatches(query.text, listOfNotNull(text, editableText), query.exact)) return false
     if (!fieldMatches(query.contentDescription, listOfNotNull(contentDescription), query.exact)) return false
     if (!fieldMatches(query.testTag, listOfNotNull((this as? ComposeNode)?.testTag), query.exact)) return false

@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeRef
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
@@ -20,6 +21,8 @@ internal fun node(
     isScrollable: Boolean = false,
     isEnabled: Boolean = true,
     isVisible: Boolean = true,
+    isHittable: Boolean = true,
+    obscuredBy: NodeRef? = null,
     bounds: NodeBounds = NodeBounds(0f, 0f, 100f, 40f),
     children: List<UiNode> = emptyList(),
 ): ComposeNode = ComposeNode(
@@ -36,6 +39,8 @@ internal fun node(
     isEditable = isEditable,
     isScrollable = isScrollable,
     isVisible = isVisible,
+    isHittable = isHittable,
+    obscuredBy = obscuredBy,
     children = children,
 )
 
@@ -63,12 +68,18 @@ internal fun viewNode(
     children = children,
 )
 
-internal fun root(rootId: String, label: String = rootId, node: UiNode?): ComposeRoot = ComposeRoot(
+internal fun root(
+    rootId: String,
+    label: String = rootId,
+    node: UiNode?,
+    isTouchModal: Boolean = false,
+): ComposeRoot = ComposeRoot(
     rootId = rootId,
     label = label,
     density = 2f,
     windowOffsetX = 0f,
     windowOffsetY = 0f,
+    isTouchModal = isTouchModal,
     node = node,
 )
 

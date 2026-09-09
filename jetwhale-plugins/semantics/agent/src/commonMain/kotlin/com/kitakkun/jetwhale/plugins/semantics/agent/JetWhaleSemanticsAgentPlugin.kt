@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.CaptureNodeTree
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.GetViewAttributes
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeHitTesting
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
@@ -74,11 +75,15 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
             }
         }
 
+        // Only here are all the windows in hand, and a tap is dispatched across the whole stack of
+        // them: a dialog decides what can be touched in the window underneath it.
+        val hitTested = NodeHitTesting.resolve(roots)
+
         return NodeTreeSnapshot(
             capturedAtMs = Clock.System.now().toEpochMilliseconds(),
             captureDurationMs = started.elapsedNow().inWholeMilliseconds,
             options = options,
-            roots = roots,
+            roots = hitTested,
             warnings = warnings,
         )
     }
