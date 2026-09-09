@@ -134,9 +134,9 @@ public interface JetWhaleAppConfigurationScope {
     public var deviceName: String?
 
     /**
-     * Application icon as PNG bytes. Auto-resolved from the launcher icon on Android when left null.
-     * Provide an image already downscaled to at most 64x64 pixels; icons whose base64-encoded form
-     * exceeds 32KB are dropped so the negotiation payload stays small.
+     * Application icon as PNG bytes. Auto-resolved from the app's own icon on Android, iOS and
+     * macOS when left null. Provide an image already downscaled to at most 64x64 pixels; icons whose
+     * base64-encoded form exceeds 32KB are dropped so the negotiation payload stays small.
      */
     public var appIconPng: ByteArray?
 }

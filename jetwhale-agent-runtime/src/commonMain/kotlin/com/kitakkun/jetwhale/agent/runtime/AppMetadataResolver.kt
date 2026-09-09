@@ -27,7 +27,9 @@ internal fun resolveAppMetadata(config: ResolvedAppConfiguration): JetWhaleAppMe
 
 @OptIn(ExperimentalEncodingApi::class)
 internal fun encodeAppIconOrNull(png: ByteArray?): String? {
-    if (png == null) return null
+    // An encoder that produced nothing is a failure, not an icon: send no icon rather than an
+    // empty string the host would only fail to decode.
+    if (png == null || png.isEmpty()) return null
     val encoded = Base64.encode(png)
     if (encoded.length > MAX_APP_ICON_BASE64_LENGTH) {
         JetWhaleLogger.w("App icon dropped: base64 length ${encoded.length} exceeds the $MAX_APP_ICON_BASE64_LENGTH character cap")
@@ -75,7 +77,8 @@ internal expect fun resolveDefaultAppName(): String?
 
 /**
  * Resolves the application icon for the current platform as PNG bytes, or null when unavailable.
- * Implementations must downscale the icon to at most 64x64 pixels, and must never throw:
- * icon resolution is best-effort and must not break a debug session.
+ * Implementations must downscale the icon to at most 64x64 pixels, and must return null rather than
+ * propagate a failure wherever the platform can raise one: icon resolution is best-effort and must
+ * not break a debug session.
  */
 internal expect fun resolveDefaultAppIconPng(): ByteArray?
