@@ -5,6 +5,7 @@
 
     <application
         android:name="com.kitakkun.jetwhale.demo.DemoApplication"
+        android:icon="@mipmap/ic_launcher"
         android:label="JetWhale Demo App">
         <activity
             android:name="com.kitakkun.jetwhale.demo.MainActivity"

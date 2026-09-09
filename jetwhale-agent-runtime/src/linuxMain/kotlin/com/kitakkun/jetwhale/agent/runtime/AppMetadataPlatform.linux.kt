@@ -4,3 +4,6 @@ package com.kitakkun.jetwhale.agent.runtime
 internal actual fun getDeviceId(): String? = null
 
 internal actual fun resolveDefaultAppName(): String? = null
+
+// No launcher icon to resolve on Linux native. Provide one explicitly through the `app { }` DSL when needed.
+internal actual fun resolveDefaultAppIconPng(): ByteArray? = null

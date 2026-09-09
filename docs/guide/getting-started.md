@@ -189,14 +189,14 @@ startJetWhale {
 How much is resolved for you differs sharply by platform — Android and iOS fill in everything,
 desktop and web mostly do not:
 
-| Platform | `appName` | `deviceId` | `deviceName` |
-|----------|-----------|------------|--------------|
-| **Android** | the application label | `Settings.Secure.ANDROID_ID` | `Build.MODEL` |
-| **iOS** | `CFBundleDisplayName` / `CFBundleName` | `identifierForVendor` | the device name |
-| **macOS (native)** | `CFBundleDisplayName` / `CFBundleName` | — | the host's localized name |
-| **Desktop (JVM)** | — | — | the `os.name` system property |
-| **Linux / Windows (native)** | — | — | the machine's host name |
-| **Web (JS / WasmJS)** | — | — | `"Web Browser"` |
+| Platform | `appName` | `deviceId` | `deviceName` | `appIconPng` |
+|----------|-----------|------------|--------------|--------------|
+| **Android** | the application label | `Settings.Secure.ANDROID_ID` | `Build.MODEL` | the launcher icon, rasterized to 64x64 |
+| **iOS** | `CFBundleDisplayName` / `CFBundleName` | `identifierForVendor` | the device name | the bundle's icon, rasterized to 64x64 |
+| **macOS (native)** | `CFBundleDisplayName` / `CFBundleName` | — | the host's localized name | the bundle's icon, rasterized to 64x64 |
+| **Desktop (JVM)** | — | — | the `os.name` system property | — |
+| **Linux / Windows (native)** | — | — | the machine's host name | — |
+| **Web (JS / WasmJS)** | — | — | `"Web Browser"` | — |
 
 A dash means nothing is resolved and the field stays empty unless you set it in `app { }`. On
 desktop and web in particular, setting `appName` is what makes a session readable in the host's

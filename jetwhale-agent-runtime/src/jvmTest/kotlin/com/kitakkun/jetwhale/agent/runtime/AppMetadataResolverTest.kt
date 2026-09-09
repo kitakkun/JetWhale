@@ -14,6 +14,11 @@ class AppMetadataResolverTest {
         assertNull(encodeAppIconOrNull(null))
     }
 
+    @Test
+    fun `encodeAppIconOrNull returns null for an icon that encoded to nothing`() {
+        assertNull(encodeAppIconOrNull(ByteArray(0)))
+    }
+
     @OptIn(ExperimentalEncodingApi::class)
     @Test
     fun `encodeAppIconOrNull encodes a small icon as base64`() {
