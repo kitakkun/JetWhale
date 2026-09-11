@@ -51,6 +51,12 @@ internal class AndroidWindowNodeSource(rootView: View) :
     // At most one box per window, so pointing at another node moves this one.
     private val highlightOverlay = NodeHighlightOverlay()
 
+    // The overlay otherwise comes down only with its window; a probe disposed while the window stays
+    // up would leave the box there until the TTL.
+    override fun onUnregistered() {
+        highlightOverlay.clearFromAnyThread()
+    }
+
     // A detached window has nothing readable to report, and reading a composition inside it can
     // throw, so the attachment check gates every call rather than only the registration.
     private fun attachedRootView(): View? = rootViewRef.get()?.takeIf { it.isAttachedToWindow }
@@ -126,8 +132,9 @@ internal class AndroidWindowNodeSource(rootView: View) :
             return@await HighlightResult(shown = false, message = "the window is no longer readable")
         }
         // Passed as a lookup rather than as the bounds it currently reports: a scroll or a relayout
-        // moves the node, and the overlay follows it by asking again.
-        val resolveBounds = { rootView.highlightBoundsOf(nodeId) }
+        // moves the node, and the overlay follows it by asking again. Through the weak reference, so
+        // a box left up does not keep a destroyed window's view tree alive until its TTL.
+        val resolveBounds = { attachedRootView()?.highlightBoundsOf(nodeId) }
         val bounds = resolveBounds()
         if (bounds == null) {
             highlightOverlay.clear()
@@ -185,10 +192,15 @@ private fun View.highlightBoundsOf(nodeId: Int): Rect? = if (nodeId < 0) {
         Rect().also { visible -> if (!view.getGlobalVisibleRect(visible)) visible.setEmpty() }
     }
 } else {
-    findSemanticsNode(nodeId)?.boundsInWindow?.let {
-        Rect(it.left.roundToInt(), it.top.roundToInt(), it.right.roundToInt(), it.bottom.roundToInt())
+    findSemanticsNode(nodeId)?.boundsInWindow?.let { bounds ->
+        // A node not yet placed reports unspecified bounds, which round to nothing rather than to an
+        // exception; empty is what "not on screen yet" means to the overlay.
+        if (bounds.isFinite) Rect(bounds.left.roundToInt(), bounds.top.roundToInt(), bounds.right.roundToInt(), bounds.bottom.roundToInt()) else Rect()
     }
 }
+
+private val androidx.compose.ui.geometry.Rect.isFinite: Boolean
+    get() = left.isFinite() && top.isFinite() && right.isFinite() && bottom.isFinite()
 
 /**
  * Searches every composition in the window for a semantics node.

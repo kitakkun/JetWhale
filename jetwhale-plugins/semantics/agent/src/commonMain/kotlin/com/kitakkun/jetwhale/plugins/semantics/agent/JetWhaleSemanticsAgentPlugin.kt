@@ -19,6 +19,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.time.Clock
 import kotlin.time.TimeSource
 
@@ -65,7 +67,10 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
             // teardown: the clear it started on deactivation could land after this request and wipe
             // the box just drawn. Waiting for it keeps the two in the order they were asked in.
             teardown?.join()
-            reply(showHighlight(request))
+            // Requests are dispatched concurrently, and each one hops to the app's main thread, so
+            // two in flight could finish in either order and leave the box on the node the host asked
+            // for first. The lock hands them to the overlay in the order they arrived.
+            reply(highlightMutex.withLock { showHighlight(request) })
         }
     }
 
@@ -73,18 +78,19 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
     // it: a dropped connection and a disabled plugin both take it down. The agent-side TTL stays as
     // the net for a host that dies without either happening.
     override suspend fun onDisconnected() {
-        clearAllHighlights()
+        highlightMutex.withLock { clearAllHighlights() }
     }
 
     override fun onDeactivate() {
         // Deactivation is not a suspending hook and clearing hops to the app's UI thread, so it runs
         // on a scope of its own rather than blocking the runtime's teardown. Only the next highlight
         // request waits on it.
-        teardown = teardownScope.launch { clearAllHighlights() }
+        teardown = teardownScope.launch { highlightMutex.withLock { clearAllHighlights() } }
     }
 
     private val teardownScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var teardown: Job? = null
+    private val highlightMutex = Mutex()
 
     private suspend fun capture(options: NodeTreeCaptureOptions): NodeTreeSnapshot {
         val started = TimeSource.Monotonic.markNow()

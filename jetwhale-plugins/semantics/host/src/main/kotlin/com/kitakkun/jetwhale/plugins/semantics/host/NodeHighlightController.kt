@@ -91,7 +91,8 @@ internal class NodeHighlightController(
         val result = try {
             send(HighlightNode(rootId = target.rootId, nodeId = target.nodeId, ttlMs = HIGHLIGHT_TTL_MILLIS))
         } catch (e: JetWhaleMessagingException) {
-            shownIn = null
+            // shownIn stays: a timeout is a failure too, and the app may have drawn the box before
+            // the reply was lost. An extra clear costs nothing; a box left up costs the user.
             statusMessage = "Highlight failed: ${e.message}"
             return false
         }
