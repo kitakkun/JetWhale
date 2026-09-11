@@ -6,8 +6,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.kitakkun.jetwhale.host.LocalComposeWindow
@@ -30,7 +28,7 @@ fun EntryProviderScope<NavKey>.infoEntry(
     onClickOSSLicenses: () -> Unit,
 ) {
     entry<InfoNavKey>(
-        metadata = StableDialogSceneStrategy.dialog(),
+        metadata = InfoNavKey.presentation.metadata,
     ) {
         InfoScreen(
             onClickOSSLicenses = onClickOSSLicenses,
@@ -70,12 +68,7 @@ fun EntryProviderScope<NavKey>.pluginEntries(
         }
     }
     entry<PluginPopoutNavKey>(
-        metadata = WindowSceneStrategy.window(
-            WindowProperties(
-                width = 800.dp,
-                height = 600.dp,
-            ),
-        ),
+        metadata = PluginPopoutNavKey.PRESENTATION.metadata,
     ) { navKey ->
         val window = LocalComposeWindow.current
 
@@ -113,11 +106,7 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     onOpenLogViewer: () -> Unit,
 ) {
     entry<SettingsNavKey>(
-        metadata = StableDialogSceneStrategy.dialog(
-            dialogProperties = DialogProperties(
-                usePlatformDefaultWidth = false,
-            ),
-        ),
+        metadata = SettingsNavKey.PRESENTATION.metadata,
     ) { navKey ->
         context(
             retain {
@@ -138,11 +127,7 @@ fun EntryProviderScope<NavKey>.licensesEntry(
     onClickBack: () -> Unit,
 ) {
     entry<LicensesNavKey>(
-        metadata = StableDialogSceneStrategy.dialog(
-            dialogProperties = DialogProperties(
-                usePlatformDefaultWidth = false,
-            ),
-        ),
+        metadata = LicensesNavKey.presentation.metadata,
     ) {
         context(
             retain {
@@ -159,12 +144,7 @@ fun EntryProviderScope<NavKey>.licensesEntry(
 context(appGraph: JetWhaleAppGraph)
 fun EntryProviderScope<NavKey>.logViewerEntry() {
     entry<LogViewerNavKey>(
-        metadata = WindowSceneStrategy.window(
-            WindowProperties(
-                width = 1000.dp,
-                height = 700.dp,
-            ),
-        ),
+        metadata = LogViewerNavKey.presentation.metadata,
     ) {
         val window = LocalComposeWindow.current
         val windowTitle = stringResource(Res.string.log_viewer_window_title)
@@ -186,11 +166,7 @@ fun EntryProviderScope<NavKey>.logViewerEntry() {
 context(appGraph: JetWhaleAppGraph)
 fun EntryProviderScope<NavKey>.mcpToolsEntry() {
     entry<McpToolsNavKey>(
-        metadata = StableDialogSceneStrategy.dialog(
-            dialogProperties = DialogProperties(
-                usePlatformDefaultWidth = false,
-            ),
-        ),
+        metadata = McpToolsNavKey.PRESENTATION.metadata,
     ) { navKey ->
         context(
             retain {
