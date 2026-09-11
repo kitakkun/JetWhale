@@ -258,7 +258,8 @@ touch. That catches what is worth catching:
 
 The last two differ because the gesture does: a tap stops at the deepest node that takes it, while
 a drag is seen by every scrollable on the way down. So `obscuredBy` on a scrollable only ever names
-something outside it — a sibling drawn on top, or another window.
+something outside it — a sibling drawn on top, or another window. A node that accepts both — a
+scrollable that is also clickable — reads `hittable: true` when either gesture gets through.
 
 Two things a capture cannot see, and both make it *optimistic* — a node can read as reachable that a
 finger would not reach:

@@ -151,7 +151,11 @@ sealed interface UiNode {
      * What counts as reaching depends on the gesture. A tap is consumed by the deepest node that
      * takes it, so a clickable node is obstructed by its own clickable child. A drag is seen by every
      * scrollable on the way down, so a scrollable is obstructed only by something outside its
-     * subtree — a sibling drawn on top, or another window.
+     * subtree — a sibling drawn on top, or another window. A node that accepts more than one
+     * gesture is hittable when any of them reaches it: a scrollable that is also clickable reads
+     * `true` with its center on its own button, although the click would land on the button. One
+     * flag cannot say which gesture gets through; that it errs towards reachable is in keeping
+     * with the rest of this answer.
      *
      * Only a node that accepts touch input is tested; anything else reports `true`, having nothing
      * to be obstructed for. Being hittable is about delivery, not about what the node does with the

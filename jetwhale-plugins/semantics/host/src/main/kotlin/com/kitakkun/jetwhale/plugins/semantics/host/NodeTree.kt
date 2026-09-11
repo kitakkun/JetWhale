@@ -102,7 +102,7 @@ internal data class NodeQuery(
     val resourceId: String? = null,
     val role: String? = null,
     val interactiveOnly: Boolean = false,
-    /** Keep only nodes a tap actually reaches — see [UiNode.isHittable]. */
+    /** Keep only nodes a gesture they accept actually reaches — see [UiNode.isHittable]. */
     val hittableOnly: Boolean = false,
     /** Compare whole values instead of substrings. Substring matching is the default because a
      *  caller usually knows part of a label, not its exact composition. */
