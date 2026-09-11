@@ -14,8 +14,9 @@ browse it in the host and hand it to an AI agent over [MCP](/guide/mcp-server).
 - 🪟 Dialogs and popups appear as their own roots, because that is what they are in Compose
 - 🤝 On Android, the Android `View`s around and inside the composition are in the same tree, and a
   `View`'s attributes can be read and edited live — see [Android View support](#android-view-support)
-- 🖐 Whether a tap aimed at a node would actually arrive, worked out from the capture rather than by
-  tapping — see [Can a finger reach it?](#can-a-finger-reach-it)
+- 🖐 Whether the user could operate a node right now — enabled, and reached by a gesture it
+  accepts — worked out from the capture rather than by tapping — see
+  [Can the user operate it?](#can-the-user-operate-it)
 - 🤖 Six MCP tools so an agent can see the screen structurally instead of guessing at pixels
 
 ## What the tree contains
@@ -237,11 +238,21 @@ actually exposes. There is also a **Copy `adb shell input tap`** button for the 
 drive the app through the input system. Select an Android `View` node and its editable attributes
 appear below that — see [Editing View attributes](#editing-view-attributes).
 
+## Can the user operate it?
+
+The question an agent has before it acts is one word: `operable`. A node is operable when it
+offers something to do (an action, editable content, or scrolling), is enabled, and a gesture it
+accepts actually reaches it. A node that offers something to do but fails one of those is marked
+`"operable": false`, with `enabled`, `hittable` and `obscuredBy` saying which; the tree view tags
+the row **not operable**. `findNodes(operableOnly: true)` keeps only the nodes that pass.
+
+A label is never marked either way: there is nothing on it to operate.
+
 ## Can a finger reach it?
 
-Every captured node says whether a gesture aimed at it would actually arrive. A node that accepts
-touch input but cannot receive one is marked `"hittable": false`, with `obscuredBy` naming what takes
-the touch instead, and the tree view tags the row **unreachable**.
+The reachability half of that answer is its own flag. Every captured node says whether a gesture
+aimed at it would actually arrive. A node that accepts touch input but cannot receive one is marked
+`"hittable": false`, with `obscuredBy` naming what takes the touch instead.
 
 It is worked out from the capture alone — no tap sent, nothing to wait for — by walking the windows
 from the top down and, within a window, the last-drawn node first, the way the platform dispatches a
@@ -322,7 +333,9 @@ point.
 Criteria (`text`, `contentDescription`, `testTag`, `resourceId`, `role`) are combined with AND and
 match case-insensitively by substring unless `exact` is set — `resourceId` is the exception, always
 compared whole, because a resource id is an identifier rather than a label. With no criteria at all
-it lists everything interactive on screen — a good way to answer "what can I do here?".
+it lists everything interactive on screen — a good way to answer "what can I do here?". Add
+`operableOnly: true` to narrow that to what the user could operate right now — see
+[Can the user operate it?](#can-the-user-operate-it).
 
 An Android `View` node is marked with `"kind": "View"` and carries its `viewClass` and `resourceId` —
 see [Android View support](#android-view-support).

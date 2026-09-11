@@ -69,6 +69,14 @@ internal fun NodeTreeSnapshot?.viewAttributeNode(selected: NodeKey?): NodeKey? {
 internal val UiNode.isInteractive: Boolean
     get() = actions.isNotEmpty() || isClickable || isEditable || isScrollable
 
+/**
+ * `true` when the user could operate the node right now: it is [isInteractive], enabled, and a
+ * gesture it accepts reaches it. The one answer an agent wants before it acts; the three facts it
+ * is made of say why when it is `false`.
+ */
+internal val UiNode.isOperable: Boolean
+    get() = isInteractive && isEnabled && isHittable
+
 /** How a node should read in a list: its own label if it has one, otherwise its role or id. */
 internal fun UiNode.displayLabel(): String {
     val label = text ?: contentDescription ?: editableText ?: (this as? ComposeNode)?.testTag
@@ -102,15 +110,15 @@ internal data class NodeQuery(
     val resourceId: String? = null,
     val role: String? = null,
     val interactiveOnly: Boolean = false,
-    /** Keep only nodes a gesture they accept actually reaches — see [UiNode.isHittable]. */
-    val hittableOnly: Boolean = false,
+    /** Keep only nodes the user could operate right now — see [UiNode.isOperable]. */
+    val operableOnly: Boolean = false,
     /** Compare whole values instead of substrings. Substring matching is the default because a
      *  caller usually knows part of a label, not its exact composition. */
     val exact: Boolean = false,
 ) {
     val isEmpty: Boolean
         get() = text == null && contentDescription == null && testTag == null && resourceId == null && role == null &&
-            !interactiveOnly && !hittableOnly
+            !interactiveOnly && !operableOnly
 }
 
 /**
@@ -120,7 +128,7 @@ internal data class NodeQuery(
  */
 internal fun UiNode.matches(query: NodeQuery): Boolean {
     if (query.interactiveOnly && !isInteractive) return false
-    if (query.hittableOnly && !isHittable) return false
+    if (query.operableOnly && !isOperable) return false
     if (!fieldMatches(query.text, listOfNotNull(text, editableText), query.exact)) return false
     if (!fieldMatches(query.contentDescription, listOfNotNull(contentDescription), query.exact)) return false
     if (!fieldMatches(query.testTag, listOfNotNull((this as? ComposeNode)?.testTag), query.exact)) return false

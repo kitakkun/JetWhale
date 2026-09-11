@@ -51,7 +51,26 @@ class NodeMcpJsonTest {
 
     @Test
     fun `a reachable node stays silent about it`() {
-        assertNull(node(id = 7, isClickable = true).toMcpJson()["hittable"])
+        val json = node(id = 7, isClickable = true).toMcpJson()
+
+        assertNull(json["hittable"])
+        assertNull(json["operable"])
+    }
+
+    @Test
+    fun `something to operate that cannot be operated says so, next to the reason`() {
+        val disabled = node(id = 7, isClickable = true, isEnabled = false).toMcpJson()
+        assertEquals(false, disabled["operable"]?.jsonPrimitive?.content?.toBoolean())
+        assertEquals(false, disabled["enabled"]?.jsonPrimitive?.content?.toBoolean())
+
+        val obstructed = node(id = 8, isClickable = true, isHittable = false).toMcpJson()
+        assertEquals(false, obstructed["operable"]?.jsonPrimitive?.content?.toBoolean())
+        assertEquals(false, obstructed["hittable"]?.jsonPrimitive?.content?.toBoolean())
+    }
+
+    @Test
+    fun `a label is never called inoperable, having nothing to operate`() {
+        assertNull(node(id = 1, text = "label", isEnabled = false).toMcpJson()["operable"])
     }
 
     @Test
