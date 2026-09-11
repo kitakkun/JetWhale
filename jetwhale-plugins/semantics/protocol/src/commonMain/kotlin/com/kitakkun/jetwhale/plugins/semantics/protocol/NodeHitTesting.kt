@@ -107,12 +107,17 @@ private fun UiNode.resolveHits(rootId: String, winnerAt: (x: Float, y: Float) ->
     if (boundsInScreen.isEmpty) return withHits(isHittable = false, obscuredBy = null, children = resolvedChildren)
 
     val self = NodeRef(rootId, id)
-    return when (val winner = winnerAt(boundsInScreen.centerX, boundsInScreen.centerY)) {
-        is NodeHitTesting.TouchTarget.Node -> withHits(
-            isHittable = winner.ref == self,
-            obscuredBy = winner.ref.takeIf { it != self },
-            children = resolvedChildren,
-        )
+    val centerX = boundsInScreen.centerX
+    val centerY = boundsInScreen.centerY
+    return when (val winner = winnerAt(centerX, centerY)) {
+        is NodeHitTesting.TouchTarget.Node -> {
+            val reached = winner.ref == self || (isScrollable && winner.ref == descendantWinnerAt(rootId, centerX, centerY))
+            withHits(
+                isHittable = reached,
+                obscuredBy = winner.ref.takeUnless { reached },
+                children = resolvedChildren,
+            )
+        }
 
         // Named rather than left blank: the window is what a caller looks at next.
         is NodeHitTesting.TouchTarget.Window -> withHits(isHittable = false, obscuredBy = winner.rootNode, children = resolvedChildren)
@@ -120,6 +125,18 @@ private fun UiNode.resolveHits(rootId: String, winnerAt: (x: Float, y: Float) ->
         NodeHitTesting.TouchTarget.Nothing -> withHits(isHittable = false, obscuredBy = null, children = resolvedChildren)
     }
 }
+
+/**
+ * The node this subtree alone would dispatch a touch at the point to, or `null` when none of it
+ * accepts one there. Equal to the window's winner exactly when that winner lies in this subtree.
+ *
+ * A scrollable asks this because a gesture is not consumed by the leaf alone: Compose delivers
+ * pointer events to every pointer-input node from the root down to the hit leaf, and an Android
+ * `ViewGroup` sees them first in `onInterceptTouchEvent`. A drag that starts on a row still scrolls
+ * the list around it, so a descendant taking the touch obstructs nothing. A click is different: a
+ * clickable descendant consumes the tap and the ancestor's click never fires.
+ */
+private fun UiNode.descendantWinnerAt(rootId: String, screenX: Float, screenY: Float): NodeRef? = topmostAt(screenX, screenY)?.let { NodeRef(rootId, it.id) }
 
 private fun UiNode.withHits(isHittable: Boolean, obscuredBy: NodeRef?, children: List<UiNode>): UiNode = when (this) {
     is ComposeNode -> copy(isHittable = isHittable, obscuredBy = obscuredBy, children = children)

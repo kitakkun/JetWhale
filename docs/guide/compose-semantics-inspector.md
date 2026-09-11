@@ -239,9 +239,9 @@ appear below that — see [Editing View attributes](#editing-view-attributes).
 
 ## Can a finger reach it?
 
-Every captured node says whether a tap aimed at it would actually arrive. A node that accepts touch
-input but cannot receive one is marked `"hittable": false`, with `obscuredBy` naming what takes the
-tap instead, and the tree view tags the row **unreachable**.
+Every captured node says whether a gesture aimed at it would actually arrive. A node that accepts
+touch input but cannot receive one is marked `"hittable": false`, with `obscuredBy` naming what takes
+the touch instead, and the tree view tags the row **unreachable**.
 
 It is worked out from the capture alone — no tap sent, nothing to wait for — by walking the windows
 from the top down and, within a window, the last-drawn node first, the way the platform dispatches a
@@ -253,6 +253,13 @@ touch. That catches what is worth catching:
 | behind a modal window, anywhere on screen | `hittable: false`, `obscuredBy` that window's root |
 | scrolled out of its container | `hittable: false`, no `obscuredBy` — no area to aim at |
 | under a later sibling that takes touches | `hittable: false`, `obscuredBy` that sibling |
+| a clickable row whose center is its own button | `hittable: false`, `obscuredBy` that button — the tap is consumed there |
+| a list whose center is one of its own rows | `hittable: true` — a drag starting on the row still scrolls the list |
+
+The last two differ because the gesture does: a tap stops at the deepest node that takes it, while
+a drag is seen by every scrollable on the way down. So `obscuredBy` on a scrollable only ever names
+something outside it — a sibling drawn on top, or another window. A node that accepts both — a
+scrollable that is also clickable — reads `hittable: true` when either gesture gets through.
 
 Two things a capture cannot see, and both make it *optimistic* — a node can read as reachable that a
 finger would not reach:

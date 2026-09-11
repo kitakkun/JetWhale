@@ -35,7 +35,7 @@ internal class FindNodesCommand(
         "Keep only nodes that expose an action, are editable, or scroll. Defaults to true when no other criterion is given, false otherwise.",
     )
     private val hittableOnly by booleanOrNull(
-        "Keep only nodes a tap actually reaches — not covered by another node or window, and not clipped away. " +
+        "Keep only nodes a gesture they accept actually reaches — not covered by another node or window, and not clipped away. " +
             "Off by default, so a node that is on screen but unreachable still turns up, marked \"hittable\": false.",
     )
     private val exact by booleanOrNull("Compare whole values instead of substrings. Defaults to false.")

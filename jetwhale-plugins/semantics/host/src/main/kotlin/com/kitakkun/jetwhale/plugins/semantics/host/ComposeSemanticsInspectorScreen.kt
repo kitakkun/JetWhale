@@ -435,7 +435,7 @@ private fun NodeDetail(
             if (!node.isHittable) {
                 PropertyRow(
                     "reachable by touch",
-                    node.obscuredBy?.let { "no — #${it.nodeId} takes the tap (${it.rootId})" } ?: "no — nothing to aim at",
+                    node.obscuredBy?.let { "no — #${it.nodeId} takes the touch (${it.rootId})" } ?: "no — nothing to aim at",
                     wrap = true,
                 )
             }

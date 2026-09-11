@@ -65,6 +65,63 @@ class NodeHitTestingTest {
     }
 
     @Test
+    fun `a list is not obstructed by the row its center lands on`() {
+        val roots = NodeHitTesting.resolve(
+            listOf(
+                root(
+                    list(
+                        id = 1,
+                        at = rect(0f, 0f, 100f, 200f),
+                        children = listOf(button(id = 2, at = rect(0f, 80f, 100f, 120f))),
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(roots.node(1).isHittable, "a drag starting on the row still scrolls the list")
+        assertNull(roots.node(1).obscuredBy)
+        assertTrue(roots.node(2).isHittable)
+    }
+
+    @Test
+    fun `a list that is also clickable reads reachable while its row takes the tap`() {
+        val roots = NodeHitTesting.resolve(
+            listOf(
+                root(
+                    list(
+                        id = 1,
+                        at = rect(0f, 0f, 100f, 200f),
+                        children = listOf(button(id = 2, at = rect(0f, 80f, 100f, 120f))),
+                        isClickable = true,
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(roots.node(1).isHittable, "one flag answers for every gesture the node accepts, and the drag gets through")
+        assertNull(roots.node(1).obscuredBy)
+    }
+
+    @Test
+    fun `a list is still obstructed by a sibling drawn over its center`() {
+        val roots = NodeHitTesting.resolve(
+            listOf(
+                root(
+                    list(
+                        id = 1,
+                        at = rect(0f, 0f, 100f, 200f),
+                        children = listOf(button(id = 2, at = rect(0f, 80f, 100f, 120f))),
+                    ),
+                    button(id = 3, at = rect(0f, 80f, 100f, 120f)),
+                ),
+            ),
+        )
+
+        assertEquals(false, roots.node(1).isHittable)
+        assertEquals(NodeRef(ROOT_ID, 3), roots.node(1).obscuredBy)
+    }
+
+    @Test
     fun `a node clipped out of its scroll container has no area to tap`() {
         val roots = NodeHitTesting.resolve(
             listOf(root(button(id = 1, at = rect(0f, 0f, 100f, 50f), inScreen = rect(0f, 0f, 0f, 0f)))),
@@ -219,6 +276,16 @@ private fun button(
     boundsInScreen = inScreen,
     isClickable = true,
     actions = listOf("OnClick"),
+    children = children,
+)
+
+private fun list(id: Int, at: NodeBounds, children: List<UiNode>, isClickable: Boolean = false) = ComposeNode(
+    id = id,
+    bounds = at,
+    boundsInScreen = at,
+    isClickable = isClickable,
+    isScrollable = true,
+    actions = listOfNotNull("ScrollBy", "OnClick".takeIf { isClickable }),
     children = children,
 )
 
