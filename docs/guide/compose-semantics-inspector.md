@@ -240,11 +240,11 @@ appear below that — see [Editing View attributes](#editing-view-attributes).
 
 ## Can the user operate it?
 
-The question an agent has before it acts is one word: `interactable`. A node is interactable when it
+The question an agent has before it acts is one word: `operable`. A node is operable when it
 offers something to do (an action, editable content, or scrolling), is enabled, and a gesture it
 accepts actually reaches it. A node that offers something to do but fails one of those is marked
-`"interactable": false`, with `enabled`, `hittable` and `obscuredBy` saying which; the tree view tags
-the row **not interactable**. `findNodes(interactableOnly: true)` keeps only the nodes that pass.
+`"operable": false`, with `enabled`, `hittable` and `obscuredBy` saying which; the tree view tags
+the row **not operable**. `findNodes(operableOnly: true)` keeps only the nodes that pass.
 
 A label is never marked either way: there is nothing on it to operate.
 
@@ -334,7 +334,7 @@ Criteria (`text`, `contentDescription`, `testTag`, `resourceId`, `role`) are com
 match case-insensitively by substring unless `exact` is set — `resourceId` is the exception, always
 compared whole, because a resource id is an identifier rather than a label. With no criteria at all
 it lists everything interactive on screen — a good way to answer "what can I do here?". Add
-`interactableOnly: true` to narrow that to what the user could operate right now — see
+`operableOnly: true` to narrow that to what the user could operate right now — see
 [Can the user operate it?](#can-the-user-operate-it).
 
 An Android `View` node is marked with `"kind": "View"` and carries its `viewClass` and `resourceId` —

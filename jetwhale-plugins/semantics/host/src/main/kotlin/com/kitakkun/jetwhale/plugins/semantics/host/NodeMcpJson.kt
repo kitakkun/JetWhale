@@ -81,7 +81,7 @@ internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean =
     if (isScrollable) put("scrollable", true)
     if (!isVisible) put("visible", false)
     // Something to operate that cannot be operated is the surprising case; the flags below say why.
-    if (isInteractive && !isInteractable) put("interactable", false)
+    if (isInteractive && !isOperable) put("operable", false)
     // The reason a caller reaches for coordinates at all: the touch would land somewhere else.
     if (!isHittable) {
         put("hittable", false)

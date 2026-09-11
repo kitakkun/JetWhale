@@ -347,8 +347,8 @@ private fun NodeRow(
             }
             // A node that offers something to do but cannot be operated is the one worth spotting
             // from the tree, without opening it.
-            if (row.node.isInteractive && !row.node.isInteractable) {
-                JwTag(text = "not interactable", tone = JwTone.Warning)
+            if (row.node.isInteractive && !row.node.isOperable) {
+                JwTag(text = "not operable", tone = JwTone.Warning)
             }
             // A node with no semantics of its own is already labelled by its id; repeating it here
             // would render "#12 #12".
@@ -432,8 +432,8 @@ private fun NodeDetail(
                 wrap = true,
             )
             PropertyRow("actions", node.actions.joinToString(", ").ifEmpty { "—" }, wrap = true)
-            if (node.isInteractive && !node.isInteractable) {
-                PropertyRow("interactable", "no — ${node.whyNotInteractable()}", wrap = true)
+            if (node.isInteractive && !node.isOperable) {
+                PropertyRow("operable", "no — ${node.whyNotOperable()}", wrap = true)
             }
         }
 
@@ -551,7 +551,7 @@ private fun PropertyRow(label: String, value: String, wrap: Boolean = false) {
     JwKeyValueRow(key = label, value = value, keyWidth = PropertyKeyWidth, monospace = true, wrap = wrap)
 }
 
-private fun UiNode.whyNotInteractable(): String {
+private fun UiNode.whyNotOperable(): String {
     if (!isEnabled) return "disabled"
     return obscuredBy?.let { "#${it.nodeId} takes the touch (${it.rootId})" } ?: "nothing to aim at"
 }

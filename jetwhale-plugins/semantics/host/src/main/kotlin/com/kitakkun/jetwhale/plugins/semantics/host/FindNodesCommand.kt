@@ -34,10 +34,10 @@ internal class FindNodesCommand(
     private val interactiveOnly by booleanOrNull(
         "Keep only nodes that expose an action, are editable, or scroll. Defaults to true when no other criterion is given, false otherwise.",
     )
-    private val interactableOnly by booleanOrNull(
+    private val operableOnly by booleanOrNull(
         "Keep only nodes the user could operate right now: interactive, enabled, and reached by a gesture they accept — " +
             "not disabled, covered by another node or window, or clipped away. Off by default, so such a node still turns up, " +
-            "marked \"interactable\": false with \"enabled\", \"hittable\" and \"obscuredBy\" saying why.",
+            "marked \"operable\": false with \"enabled\", \"hittable\" and \"obscuredBy\" saying why.",
     )
     private val exact by booleanOrNull("Compare whole values instead of substrings. Defaults to false.")
     private val merged by booleanOrNull("Search the merged tree (default true). See getNodeTree.")
@@ -54,7 +54,7 @@ internal class FindNodesCommand(
             testTag = arguments[testTag],
             resourceId = arguments[resourceId],
             role = arguments[role],
-            interactableOnly = arguments[interactableOnly] ?: false,
+            operableOnly = arguments[operableOnly] ?: false,
             exact = arguments[exact] ?: false,
         )
         // With no criterion at all, "every node on screen" is never the useful answer; the caller is

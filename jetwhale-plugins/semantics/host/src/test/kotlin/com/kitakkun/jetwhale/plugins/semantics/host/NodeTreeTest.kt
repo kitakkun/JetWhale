@@ -90,16 +90,16 @@ class NodeTreeTest {
     }
 
     @Test
-    fun `isInteractable needs something to do, an enabled node, and a gesture that reaches it`() {
-        assertTrue(node(id = 1, isClickable = true).isInteractable)
-        assertFalse(node(id = 2, isClickable = true, isEnabled = false).isInteractable)
-        assertFalse(node(id = 3, isClickable = true, isHittable = false).isInteractable)
-        assertFalse(node(id = 4, text = "just a label").isInteractable, "a label offers nothing to operate")
+    fun `isOperable needs something to do, an enabled node, and a gesture that reaches it`() {
+        assertTrue(node(id = 1, isClickable = true).isOperable)
+        assertFalse(node(id = 2, isClickable = true, isEnabled = false).isOperable)
+        assertFalse(node(id = 3, isClickable = true, isHittable = false).isOperable)
+        assertFalse(node(id = 4, text = "just a label").isOperable, "a label offers nothing to operate")
     }
 
     @Test
-    fun `matches rejects a disabled or obstructed node when interactableOnly is set`() {
-        val query = NodeQuery(interactableOnly = true)
+    fun `matches rejects a disabled or obstructed node when operableOnly is set`() {
+        val query = NodeQuery(operableOnly = true)
 
         assertTrue(node(id = 1, isClickable = true).matches(query))
         assertFalse(node(id = 2, isClickable = true, isEnabled = false).matches(query))
