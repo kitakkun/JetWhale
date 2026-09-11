@@ -411,9 +411,10 @@ Things to know:
 - **Declaring nothing is the default and stays valid.** A tool that declares no output advertises no
   `outputSchema`, which is how it says its answer is prose for a human-like reader. Only declare an
   output when the tool really does answer with one fixed structure.
-- **MCP requires the output schema to describe an object**, so `T` must serialize to a JSON object. A
-  list or a sealed hierarchy has to be wrapped in a `@Serializable` class holding it; declaring one
-  directly fails at construction time rather than advertising a schema MCP rejects.
+- **MCP requires the output schema to describe an object with named properties**, so `T` must
+  serialize to one. A list, a map or a sealed hierarchy has to be wrapped in a `@Serializable` class
+  holding it; declaring one directly fails at construction time rather than advertising a schema
+  MCP rejects or cannot carry.
 - **The declaration is enforced.** Once a command declares an output, a successful answer has to come
   from that declaration's `result(...)`; one built with `JetWhaleMcpResult.json(...)` or `text(...)`
   would be delivered under a schema nothing checked it against, so the host refuses it as a

@@ -20,6 +20,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNamingStrategy
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
@@ -424,6 +425,60 @@ class McpParameterDslTest {
     }
 
     @Test
+    fun `a nullable property's schema admits null under the default format`() {
+        val command = object : JetWhaleMcpCommand() {
+            override val name = "test.explicitNulls"
+            override val description = "answers with a possibly null detail"
+            val answer = serializableOutput<Answer>()
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = answer.result(Answer(detail = null))
+        }
+
+        val schema = assertNotNull(command.toDescriptor().outputSchema)
+        val payload = assertNotNull(runBlocking { command.run(JetWhaleMcpArguments(JsonObject(emptyMap()))) }.structuredContent)
+
+        // The default format writes the null out, so the schema has to admit what its own payload carries.
+        assertEquals(listOf("detail"), schema.strings("required"))
+        assertEquals(listOf("string", "null"), schema.property("detail").strings("type"))
+        assertEquals(JsonNull, payload["detail"])
+    }
+
+    @Test
+    fun `a nullable enum property's schema lists null among its entries`() {
+        // Parameters and outputs share the walker, so the enum case is checked on the cheaper side.
+        val nullableEnum = NullableEnumCommand().toDescriptor().parameters.getValue("choice").schema.property("kind")
+
+        assertEquals(listOf("string", "null"), nullableEnum.strings("type"))
+        assertEquals(listOf(JsonPrimitive("GET"), JsonPrimitive("POST"), JsonNull), (nullableEnum.getValue("enum") as JsonArray).toList())
+    }
+
+    @Serializable
+    private enum class Verb { GET, POST }
+
+    @Serializable
+    private data class Choice(val kind: Verb?)
+
+    private class NullableEnumCommand : JetWhaleMcpCommand() {
+        override val name = "test.nullableEnum"
+        override val description = "takes a possibly null enum"
+        private val choice by serializable<Choice>("A choice.")
+        override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text("ok")
+    }
+
+    @Test
+    fun `an output type that is a map fails fast`() {
+        val exception = assertFailsWith<IllegalStateException> {
+            object : JetWhaleMcpCommand() {
+                override val name = "test.mapOutput"
+                override val description = "tries to answer with a bare map"
+                private val counts = serializableOutput<Map<String, Int>>()
+                override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = counts.result(emptyMap())
+            }
+        }
+        // MCP's ToolSchema carries only named properties, so a map's value schema would be lost on the wire.
+        assertTrue("named properties" in exception.message!!, exception.message!!)
+    }
+
+    @Test
     fun `a command that declares no output advertises none`() {
         assertNull(StringMapCommand().toDescriptor().outputSchema)
     }
@@ -445,7 +500,7 @@ class McpParameterDslTest {
                 override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = rules.result(emptyList())
             }
         }
-        assertTrue("does not serialize to a JSON object" in exception.message!!, exception.message!!)
+        assertTrue("does not serialize to a JSON object with named properties" in exception.message!!, exception.message!!)
     }
 
     @Test

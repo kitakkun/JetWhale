@@ -218,8 +218,8 @@ public abstract class JetWhaleMcpCommand(
      * parameter's, and [JetWhaleMcpOutput.result] encodes with the same [json] — so what the agent is
      * promised and what it receives come from one declaration and cannot drift.
      *
-     * MCP requires a tool's output schema to describe an object, so [T] must serialize to a JSON
-     * object; a list or a sealed hierarchy has to be wrapped in a class holding it.
+     * MCP requires a tool's output schema to describe an object with named properties, so [T] must
+     * serialize to one; a list, a map or a sealed hierarchy has to be wrapped in a class holding it.
      *
      * Declare this only as a property of the command, next to its parameters. Leave it out entirely
      * when the tool answers with unstructured text — a tool that declares no output advertises no
@@ -230,8 +230,10 @@ public abstract class JetWhaleMcpCommand(
     /** Explicit-serializer form of [serializableOutput], for types whose serializer cannot be resolved from the type argument. */
     protected fun <T : Any> serializableOutput(serializer: KSerializer<T>): JetWhaleMcpOutput<T> {
         val schema = serializer.descriptor.toJsonSchema(json)
-        check((schema["type"] as? JsonPrimitive)?.content == "object") {
-            "Output type ${serializer.descriptor.serialName} of '$name' does not serialize to a JSON object, which MCP requires of a tool's output schema. Wrap it in a @Serializable class."
+        // MCP's output schema names the object's properties, so a map — an object with none — has no
+        // more of a place at the root than a list does.
+        check((schema["type"] as? JsonPrimitive)?.content == "object" && "properties" in schema) {
+            "Output type ${serializer.descriptor.serialName} of '$name' does not serialize to a JSON object with named properties, which MCP requires of a tool's output schema. Wrap it in a @Serializable class."
         }
         return declareOutput(JetWhaleMcpOutput(schema = schema, json = json, serializer = serializer))
     }

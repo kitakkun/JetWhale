@@ -15,6 +15,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonNamingStrategy
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
@@ -31,7 +32,8 @@ import kotlinx.serialization.json.putJsonObject
  * default is therefore required (it must be present, and may be `null`), which matches how
  * kotlinx.serialization decodes it. A format with `explicitNulls = false` is the exception: it reads
  * a missing nullable property as `null` and leaves a `null` one out when writing, so there a nullable
- * property is never required. A sealed hierarchy becomes a `oneOf` over its subclasses, each
+ * property is never required. A nullable property's schema admits JSON `null` next to its type, since
+ * that is what the format writes for it. A sealed hierarchy becomes a `oneOf` over its subclasses, each
  * carrying the class discriminator as a `const`. Open polymorphic types are advertised as an
  * unconstrained `object`, since their subclasses are only known at runtime.
  *
@@ -56,6 +58,11 @@ private class SchemaContext(
 )
 
 private fun SerialDescriptor.buildSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
+    val schema = nonNullSchema(context, enclosingTypes)
+    return if (isNullable) schema.allowingNull() else schema
+}
+
+private fun SerialDescriptor.nonNullSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
     // A value class is transparent on the wire: it encodes as its single underlying element.
     if (isInline) return getElementDescriptor(0).buildSchema(context, enclosingTypes)
 
@@ -182,5 +189,47 @@ private fun SchemaContext.jsonNameOf(descriptor: SerialDescriptor, index: Int): 
 private fun List<Annotation>.mcpDescription(): String? = filterIsInstance<McpDescription>().firstOrNull()?.value
 
 private fun JsonObject.withDescription(description: String): JsonObject = JsonObject(this + ("description" to JsonPrimitive(description)))
+
+/**
+ * Widens a schema so that JSON `null` validates against it, in the form each shape supports: `type`
+ * gains `"null"`, an `enum` gains the `null` entry, and a `oneOf` gains a null variant.
+ */
+private fun JsonObject.allowingNull(): JsonObject {
+    val type = this["type"]
+    return when {
+        type is JsonPrimitive -> buildJsonObject {
+            for ((key, value) in this@allowingNull) {
+                when (key) {
+                    "type" -> putJsonArray("type") {
+                        add(type)
+                        add("null")
+                    }
+
+                    "enum" -> putJsonArray("enum") {
+                        (value as JsonArray).forEach { add(it) }
+                        add(JsonNull)
+                    }
+
+                    else -> put(key, value)
+                }
+            }
+        }
+
+        "oneOf" in this -> buildJsonObject {
+            for ((key, value) in this@allowingNull) {
+                if (key == "oneOf") {
+                    putJsonArray("oneOf") {
+                        (value as JsonArray).forEach { add(it) }
+                        add(typeOnly("null"))
+                    }
+                } else {
+                    put(key, value)
+                }
+            }
+        }
+
+        else -> this
+    }
+}
 
 private fun typeOnly(type: String): JsonObject = buildJsonObject { put("type", type) }
