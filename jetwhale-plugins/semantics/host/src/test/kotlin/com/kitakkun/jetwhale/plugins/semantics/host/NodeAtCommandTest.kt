@@ -68,5 +68,5 @@ private fun nodeAt(x: Int, y: Int, withDialog: Boolean = false): JsonObject {
             ),
         )
     }
-    return Json.parseToJsonElement(result).jsonObject
+    return checkNotNull(result.structuredContent)
 }

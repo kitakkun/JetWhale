@@ -27,7 +27,7 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private fun JetWhaleMcpCommand.run(arguments: JsonObject): JsonObject = runBlocking {
-    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
+    checkNotNull(execute(JetWhaleMcpArguments(arguments)).structuredContent)
 }
 
 private fun attribute(
