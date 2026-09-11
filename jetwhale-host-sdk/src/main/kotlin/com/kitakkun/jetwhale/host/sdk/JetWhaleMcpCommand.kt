@@ -284,6 +284,11 @@ public abstract class JetWhaleMcpCommand(
     }
 
     private fun <T : Any> declareOutput(output: JetWhaleMcpOutput<T>): JetWhaleMcpOutput<T> {
+        // A text command's execute is final and never goes through the declaration, so every
+        // successful call of such a tool would be refused by run().
+        check(this !is JetWhaleMcpTextCommand) {
+            "'$name' is a JetWhaleMcpTextCommand, whose answer is always plain text, so it cannot declare an output. Extend JetWhaleMcpCommand instead."
+        }
         check(!declarationsSealed) {
             "The output of '$name' was declared after its schema was read. Declare the output only as a property declaration on the command, never inside execute()."
         }

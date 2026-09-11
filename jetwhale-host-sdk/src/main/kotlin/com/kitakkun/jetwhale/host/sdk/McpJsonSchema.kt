@@ -38,12 +38,15 @@ import kotlinx.serialization.json.putJsonObject
  * unconstrained `object`, since their subclasses are only known at runtime.
  *
  * The schema follows [json]'s configuration — its class discriminator and naming strategy — so the
- * shape advertised to the caller is the shape the same format decodes.
+ * shape advertised to the caller is the shape the same format decodes. Under
+ * [ClassDiscriminatorMode.ALL_JSON_OBJECTS] every class schema carries the discriminator too, pinned
+ * to the class's serial name, since that is what the format writes.
  */
 internal fun SerialDescriptor.toJsonSchema(json: Json): JsonObject = buildSchema(
     SchemaContext(
         classDiscriminator = json.configuration.classDiscriminator,
         writesClassDiscriminator = json.configuration.classDiscriminatorMode != ClassDiscriminatorMode.NONE,
+        writesClassDiscriminatorOnEveryClass = json.configuration.classDiscriminatorMode == ClassDiscriminatorMode.ALL_JSON_OBJECTS,
         namingStrategy = json.configuration.namingStrategy,
         explicitNulls = json.configuration.explicitNulls,
     ),
@@ -53,6 +56,7 @@ internal fun SerialDescriptor.toJsonSchema(json: Json): JsonObject = buildSchema
 private class SchemaContext(
     val classDiscriminator: String,
     val writesClassDiscriminator: Boolean,
+    val writesClassDiscriminatorOnEveryClass: Boolean,
     val namingStrategy: JsonNamingStrategy?,
     val explicitNulls: Boolean,
 )
@@ -114,18 +118,22 @@ private inline fun SerialDescriptor.guarded(enclosingTypes: MutableSet<String>, 
     }
 }
 
-private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject = buildJsonObject {
-    put("type", "object")
-    putJsonObject("properties") {
-        for (index in 0 until elementsCount) {
-            put(context.jsonNameOf(this@classSchema, index), elementSchema(index, context, enclosingTypes))
+private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
+    val schema = buildJsonObject {
+        put("type", "object")
+        putJsonObject("properties") {
+            for (index in 0 until elementsCount) {
+                put(context.jsonNameOf(this@classSchema, index), elementSchema(index, context, enclosingTypes))
+            }
         }
+        val required = (0 until elementsCount)
+            .filterNot { isElementOptional(it) }
+            .filterNot { !context.explicitNulls && getElementDescriptor(it).isNullable }
+            .map { context.jsonNameOf(this@classSchema, it) }
+        if (required.isNotEmpty()) putJsonArray("required") { required.forEach { add(it) } }
     }
-    val required = (0 until elementsCount)
-        .filterNot { isElementOptional(it) }
-        .filterNot { !context.explicitNulls && getElementDescriptor(it).isNullable }
-        .map { context.jsonNameOf(this@classSchema, it) }
-    if (required.isNotEmpty()) putJsonArray("required") { required.forEach { add(it) } }
+    if (!context.writesClassDiscriminatorOnEveryClass) return schema
+    return schema.withDiscriminator(annotations.classDiscriminatorOr(context.classDiscriminator), serialName)
 }
 
 /**
@@ -135,9 +143,7 @@ private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes:
  * discriminator pinned to a constant.
  */
 private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
-    // A type-level annotation overrides the format-wide discriminator, the same way Json resolves it.
-    val discriminator = annotations.filterIsInstance<JsonClassDiscriminator>().firstOrNull()?.discriminator
-        ?: context.classDiscriminator
+    val discriminator = annotations.classDiscriminatorOr(context.classDiscriminator)
     val subclasses = getElementDescriptor(1)
     return buildJsonObject {
         putJsonArray("oneOf") {
@@ -157,11 +163,17 @@ private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes
 
 private fun SerialDescriptor.variantSchema(discriminator: String?, serialName: String, context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
     val schema = buildSchema(context, enclosingTypes)
-    val properties = schema["properties"] as? JsonObject ?: JsonObject(emptyMap())
-    val required = (schema["required"] as? JsonArray).orEmpty().map { (it as JsonPrimitive).content }
     // ClassDiscriminatorMode.NONE writes no discriminator, so advertising one would describe input
-    // this format cannot produce; the variant shapes are still worth showing.
-    if (discriminator == null) return schema
+    // this format cannot produce; the variant shapes are still worth showing. Under ALL_JSON_OBJECTS
+    // the class schema already carries it.
+    if (discriminator == null || context.writesClassDiscriminatorOnEveryClass) return schema
+    return schema.withDiscriminator(discriminator, serialName)
+}
+
+/** Pins [discriminator] to [serialName] ahead of the object's own properties, as `Json` writes it. */
+private fun JsonObject.withDiscriminator(discriminator: String, serialName: String): JsonObject {
+    val properties = this["properties"] as? JsonObject ?: JsonObject(emptyMap())
+    val required = (this["required"] as? JsonArray).orEmpty().map { (it as JsonPrimitive).content }
     val discriminatorSchema = buildJsonObject {
         put("type", "string")
         put("const", serialName)
@@ -170,9 +182,12 @@ private fun SerialDescriptor.variantSchema(discriminator: String?, serialName: S
         put("type", "object")
         put("properties", JsonObject(mapOf(discriminator to discriminatorSchema) + properties))
         putJsonArray("required") { (listOf(discriminator) + required).forEach { add(it) } }
-        schema["description"]?.let { put("description", it) }
+        this@withDiscriminator["description"]?.let { put("description", it) }
     }
 }
+
+// A type-level annotation overrides the format-wide discriminator, the same way Json resolves it.
+private fun List<Annotation>.classDiscriminatorOr(default: String): String = filterIsInstance<JsonClassDiscriminator>().firstOrNull()?.discriminator ?: default
 
 private fun SerialDescriptor.elementSchema(index: Int, context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
     val schema = getElementDescriptor(index).buildSchema(context, enclosingTypes)

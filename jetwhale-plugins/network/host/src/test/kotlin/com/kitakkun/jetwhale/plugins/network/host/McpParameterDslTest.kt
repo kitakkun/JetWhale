@@ -16,6 +16,7 @@ import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.ClassDiscriminatorMode
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -476,6 +477,39 @@ class McpParameterDslTest {
         }
         // MCP's ToolSchema carries only named properties, so a map's value schema would be lost on the wire.
         assertTrue("named properties" in exception.message!!, exception.message!!)
+    }
+
+    @Test
+    fun `a text command cannot declare an output`() {
+        val exception = assertFailsWith<IllegalStateException> {
+            object : JetWhaleMcpTextCommand() {
+                override val name = "test.textWithOutput"
+                override val description = "a text command that tries to promise a shape"
+                private val mockConfig = serializableOutput<MockConfigResult>()
+                override suspend fun executeText(arguments: JetWhaleMcpArguments): String = "ok"
+            }
+        }
+        // Its execute never goes through the declaration, so every successful call would be refused.
+        assertTrue("cannot declare an output" in exception.message!!, exception.message!!)
+    }
+
+    @Test
+    fun `a format that writes the discriminator on every object advertises it on every class`() {
+        val everyObject = Json(from = DefaultArgumentJson) { classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS }
+        val command = object : JetWhaleMcpCommand(everyObject) {
+            override val name = "test.discriminatorEverywhere"
+            override val description = "answers with a discriminated object"
+            val answer = serializableOutput<Answer>()
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = answer.result(Answer(detail = "d"))
+        }
+
+        val schema = assertNotNull(command.toDescriptor().outputSchema)
+        val payload = assertNotNull(runBlocking { command.run(JetWhaleMcpArguments(JsonObject(emptyMap()))) }.structuredContent)
+
+        // What the format writes, the schema has to name — for the root and for nested classes alike.
+        val serialName = (schema.property("type").getValue("const") as JsonPrimitive).content
+        assertEquals(listOf("type", "detail"), schema.strings("required"))
+        assertEquals(JsonPrimitive(serialName), payload["type"])
     }
 
     @Test
