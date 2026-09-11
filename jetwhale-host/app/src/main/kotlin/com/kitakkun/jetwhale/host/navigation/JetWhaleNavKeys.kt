@@ -4,19 +4,26 @@ import androidx.navigation3.runtime.NavKey
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import kotlinx.serialization.Serializable
 
+/**
+ * A key whose entry is drawn over the main window's content — a dialog or a window of its own —
+ * rather than as that content. Navigating the content underneath must leave these where they are:
+ * see [showBelowOverlays].
+ */
+sealed interface OverlayNavKey : NavKey
+
 @Serializable
 data object EmptyPluginNavKey : NavKey
 
 @Serializable
 data class SettingsNavKey(
     val initialPage: SettingsScreenPage = SettingsScreenPage.Appearance,
-) : NavKey
+) : OverlayNavKey
 
 @Serializable
-data object LicensesNavKey : NavKey
+data object LicensesNavKey : OverlayNavKey
 
 @Serializable
-data object InfoNavKey : NavKey
+data object InfoNavKey : OverlayNavKey
 
 @Serializable
 data class PluginNavKey(
@@ -29,7 +36,7 @@ data class PluginPopoutNavKey(
     val pluginId: String,
     val sessionId: String,
     val pluginName: String,
-) : NavKey
+) : OverlayNavKey
 
 /**
  * A plugin the drawer lists greyed out, opened to say why it can't run: switched off, with a way to
@@ -45,7 +52,7 @@ data class DisabledPluginNavKey(
 ) : NavKey
 
 @Serializable
-data object LogViewerNavKey : NavKey
+data object LogViewerNavKey : OverlayNavKey
 
 /**
  * The MCP tools browser. [pluginId] and [sessionId] seed the screen's filters — null means
@@ -56,4 +63,4 @@ data object LogViewerNavKey : NavKey
 data class McpToolsNavKey(
     val pluginId: String?,
     val sessionId: String?,
-) : NavKey
+) : OverlayNavKey
