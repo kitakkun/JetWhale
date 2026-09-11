@@ -16,6 +16,7 @@ import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -27,6 +28,7 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.ClassDiscriminatorMode
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNamingStrategy
 import kotlinx.serialization.json.JsonNull
@@ -35,6 +37,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -542,6 +545,38 @@ class McpParameterDslTest {
             runBlocking { command.run(JetWhaleMcpArguments(JsonObject(emptyMap()))) }
         }
         assertTrue("does not fit the output schema" in exception.message!!, exception.message!!)
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    @Serializable
+    @JsonClassDiscriminator("kind")
+    private sealed interface Shape
+
+    @Serializable
+    @SerialName("circle")
+    private data class Circle(val radius: Int) : Shape
+
+    @Serializable
+    private data class Drawing(val shape: Shape)
+
+    @Test
+    fun `a sealed base's own discriminator wins over the per-class one under ALL_JSON_OBJECTS`() {
+        val everyObject = Json(from = DefaultArgumentJson) { classDiscriminatorMode = ClassDiscriminatorMode.ALL_JSON_OBJECTS }
+        val command = object : JetWhaleMcpCommand(everyObject) {
+            override val name = "test.sealedDiscriminatorEverywhere"
+            override val description = "answers with a discriminated sealed value"
+            val drawing = serializableOutput<Drawing>()
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = drawing.result(Drawing(Circle(radius = 2)))
+        }
+
+        val schema = assertNotNull(command.toDescriptor().outputSchema)
+        val payload = assertNotNull(runBlocking { command.run(JetWhaleMcpArguments(JsonObject(emptyMap()))) }.structuredContent)
+        val circle = (schema.property("shape").getValue("oneOf") as JsonArray).single { "kind" in it.jsonObject.obj("properties") }.jsonObject
+
+        // Json writes the base's key inside a sealed value, not the one the subclass would use alone.
+        assertEquals(listOf("kind", "radius"), circle.strings("required"))
+        assertEquals("circle", (circle.property("kind").getValue("const") as JsonPrimitive).content)
+        assertEquals(setOf("kind", "radius"), payload.getValue("shape").jsonObject.keys)
     }
 
     @Test

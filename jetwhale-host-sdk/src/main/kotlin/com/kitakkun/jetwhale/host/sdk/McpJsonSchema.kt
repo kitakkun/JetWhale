@@ -164,10 +164,28 @@ private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes
 private fun SerialDescriptor.variantSchema(discriminator: String?, serialName: String, context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
     val schema = buildSchema(context, enclosingTypes)
     // ClassDiscriminatorMode.NONE writes no discriminator, so advertising one would describe input
-    // this format cannot produce; the variant shapes are still worth showing. Under ALL_JSON_OBJECTS
-    // the class schema already carries it.
-    if (discriminator == null || context.writesClassDiscriminatorOnEveryClass) return schema
-    return schema.withDiscriminator(discriminator, serialName)
+    // this format cannot produce; the variant shapes are still worth showing.
+    if (discriminator == null) return schema
+    if (!context.writesClassDiscriminatorOnEveryClass) return schema.withDiscriminator(discriminator, serialName)
+    // The class schema already carries a discriminator, but under the key the subclass would use on
+    // its own; inside a sealed value Json writes the base's key, so that one wins.
+    val ownDiscriminator = annotations.classDiscriminatorOr(context.classDiscriminator)
+    if (ownDiscriminator == discriminator) return schema
+    return schema.withoutProperty(ownDiscriminator).withDiscriminator(discriminator, serialName)
+}
+
+private fun JsonObject.withoutProperty(name: String): JsonObject {
+    val properties = (this["properties"] as? JsonObject).orEmpty() - name
+    val required = (this["required"] as? JsonArray).orEmpty().filterNot { (it as JsonPrimitive).content == name }
+    return buildJsonObject {
+        for ((key, value) in this@withoutProperty) {
+            when (key) {
+                "properties" -> put(key, JsonObject(properties))
+                "required" -> if (required.isNotEmpty()) putJsonArray(key) { required.forEach { add(it) } }
+                else -> put(key, value)
+            }
+        }
+    }
 }
 
 /** Pins [discriminator] to [serialName] ahead of the object's own properties, as `Json` writes it. */
