@@ -30,4 +30,11 @@ interface ComposeNodeSource {
 
     /** Invokes [request]'s action on the node it names within this root. */
     suspend fun performAction(request: PerformNodeAction): NodeActionResult
+
+    /**
+     * Called once the last claim on this root is released and it has left the registry, on the
+     * releasing thread. Anything the source put on the screen for the host — a highlight — comes
+     * down here, because the root itself may well stay up after the probe that read it is gone.
+     */
+    fun onUnregistered() {}
 }

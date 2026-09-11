@@ -99,6 +99,11 @@ internal class NodeHighlightOverlay {
         if (ttlMs > 0) mainHandler.postDelayed(expire, ttlMs)
     }
 
+    /** [clear], from whichever thread the caller is on. */
+    fun clearFromAnyThread() {
+        if (Looper.myLooper() == Looper.getMainLooper()) clear() else mainHandler.post { clear() }
+    }
+
     /** Takes the box down and stops watching the window. Doing this with nothing showing is a no-op. */
     fun clear() {
         mainHandler.removeCallbacks(expire)
@@ -126,7 +131,14 @@ internal class NodeHighlightOverlay {
     private fun moveToCurrentBounds() {
         val rootView = attachedRootRef?.get() ?: return
         val current = drawable ?: return
-        val bounds = resolveBounds?.invoke()
+        // Runs from a posted callback with nothing above it to catch: a composition disposed between
+        // frames can make the lookup throw, and an exception here would take the app down. A node
+        // that cannot be resolved is a node that is gone.
+        val bounds = try {
+            resolveBounds?.invoke()
+        } catch (_: Throwable) {
+            null
+        }
         if (bounds == null || bounds.isEmpty) {
             clear()
             return

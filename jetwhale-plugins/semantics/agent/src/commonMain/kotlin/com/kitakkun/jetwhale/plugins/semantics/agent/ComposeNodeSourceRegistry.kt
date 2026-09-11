@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.update
 
 /**
@@ -42,7 +43,7 @@ object ComposeNodeSourceRegistry {
 
     /** Drops every registration. Intended for tests and for tearing down an install. */
     fun clear() {
-        entries.value = emptyList()
+        entries.getAndUpdate { emptyList() }.forEach { it.source.onUnregistered() }
     }
 
     private data class Entry(val source: ComposeNodeSource, val claims: Int) {
@@ -56,14 +57,22 @@ object ComposeNodeSourceRegistry {
 
         override fun close() {
             if (!closed.compareAndSet(expect = false, update = true)) return
+            var unregistered: ComposeNodeSource? = null
             entries.update { current ->
+                unregistered = null
                 val index = current.indexOfFirst { it.source.sourceId == sourceId }
                 when {
                     index < 0 -> current
-                    current[index].claims <= 1 -> current.filterIndexed { i, _ -> i != index }
+
+                    current[index].claims <= 1 -> {
+                        unregistered = current[index].source
+                        current.filterIndexed { i, _ -> i != index }
+                    }
+
                     else -> current.toMutableList().apply { this[index] = this[index].copy(claims = this[index].claims - 1) }
                 }
             }
+            unregistered?.onUnregistered()
         }
     }
 }
