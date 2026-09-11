@@ -15,7 +15,15 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.descriptors.element
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.ClassDiscriminatorMode
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -510,6 +518,30 @@ class McpParameterDslTest {
         val serialName = (schema.property("type").getValue("const") as JsonPrimitive).content
         assertEquals(listOf("type", "detail"), schema.strings("required"))
         assertEquals(JsonPrimitive(serialName), payload["type"])
+    }
+
+    // Describes an object yet writes an array: the declaration check passes, the encoding does not.
+    private object ArrayAnswerSerializer : KSerializer<Answer> {
+        private val wire = ListSerializer(String.serializer())
+        override val descriptor: SerialDescriptor = buildClassSerialDescriptor("ArrayAnswer") { element<String>("detail") }
+        override fun serialize(encoder: Encoder, value: Answer) = encoder.encodeSerializableValue(wire, listOf(value.detail.orEmpty()))
+        override fun deserialize(decoder: Decoder): Answer = Answer(decoder.decodeSerializableValue(wire).single())
+    }
+
+    @Test
+    fun `an output whose serializer writes something other than an object is refused when it runs`() {
+        val command = object : JetWhaleMcpCommand() {
+            override val name = "test.scalarOutput"
+            override val description = "declares an object and encodes a string"
+            val answer = serializableOutput(ArrayAnswerSerializer)
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = answer.result(Answer(detail = "d"))
+        }
+        assertNotNull(command.toDescriptor().outputSchema)
+
+        val exception = assertFailsWith<IllegalStateException> {
+            runBlocking { command.run(JetWhaleMcpArguments(JsonObject(emptyMap()))) }
+        }
+        assertTrue("does not fit the output schema" in exception.message!!, exception.message!!)
     }
 
     @Test

@@ -462,7 +462,11 @@ public class JetWhaleMcpOutput<T : Any> internal constructor(
      * output schema does not apply to it.
      */
     public fun result(value: T): JetWhaleMcpResult {
-        val payload = json.encodeToJsonElement(serializer, value) as JsonObject
+        // The declaration was checked against the serializer's descriptor; a custom serializer can
+        // still write something else at run time, which would break the promise the schema made.
+        val payload = checkNotNull(json.encodeToJsonElement(serializer, value) as? JsonObject) {
+            "The serializer of ${serializer.descriptor.serialName} describes a JSON object but encoded something else, so the answer does not fit the output schema it was declared with."
+        }
         return JetWhaleMcpResult(
             content = listOf(JetWhaleMcpContent.Text(payload.toString())),
             structuredContent = payload,
