@@ -74,8 +74,8 @@ fun ToolingScaffold(
             // Above the content, not over it: the plugin below is the thing the follow just
             // brought into view, so an overlay would cover what it announces.
             FollowingAiOperationBanner(
-                visible = uiState.aiActivity.isFollowingOperation,
-                toolName = uiState.aiActivity.operatingToolName.orEmpty(),
+                visible = uiState.aiActivity.showsFollowBanner,
+                followingToolName = uiState.aiActivity.operatingToolName.takeIf { uiState.aiActivity.isFollowingOperation },
                 onClickStopFollowing = onClickStopFollowingAiOperation,
             )
             // The snackbar is overlaid on the content area only: messages stay clear of the sidebar
