@@ -369,6 +369,11 @@ private fun NodeRow(
     val hoverInteractionSource = remember { MutableInteractionSource() }
     val hovered by hoverInteractionSource.collectIsHoveredAsState()
     LaunchedEffect(hovered) { onHoverChange(hovered) }
+    // A row filtered or collapsed away under a resting pointer never reports leaving on its own, and
+    // the box would stay on a node the pointer is no longer over.
+    DisposableEffect(Unit) {
+        onDispose { onHoverChange(false) }
+    }
     JwTreeRow(
         modifier = Modifier.hoverable(hoverInteractionSource),
         text = label,

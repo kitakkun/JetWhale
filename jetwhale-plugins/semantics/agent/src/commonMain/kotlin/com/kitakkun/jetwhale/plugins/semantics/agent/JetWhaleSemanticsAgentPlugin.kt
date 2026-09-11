@@ -16,6 +16,7 @@ import com.kitakkun.jetwhale.protocol.messaging.reply
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
@@ -60,6 +61,10 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
             reply(writeViewAttribute(request))
         }
         onRequest { request: HighlightNode ->
+            // A plugin disabled and re-enabled in quick succession would otherwise race its own
+            // teardown: the clear it started on deactivation could land after this request and wipe
+            // the box just drawn. Waiting for it keeps the two in the order they were asked in.
+            teardown?.join()
             reply(showHighlight(request))
         }
     }
@@ -73,11 +78,13 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
 
     override fun onDeactivate() {
         // Deactivation is not a suspending hook and clearing hops to the app's UI thread, so it runs
-        // on a scope of its own rather than blocking the runtime's teardown. Nothing waits on it.
-        teardownScope.launch { clearAllHighlights() }
+        // on a scope of its own rather than blocking the runtime's teardown. Only the next highlight
+        // request waits on it.
+        teardown = teardownScope.launch { clearAllHighlights() }
     }
 
     private val teardownScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var teardown: Job? = null
 
     private suspend fun capture(options: NodeTreeCaptureOptions): NodeTreeSnapshot {
         val started = TimeSource.Monotonic.markNow()

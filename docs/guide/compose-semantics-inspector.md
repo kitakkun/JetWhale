@@ -247,7 +247,7 @@ row shows that node instead for as long as the pointer is on it, and the selecti
 leaves. It works for Compose nodes and Android `View` nodes alike — both report their bounds in the
 same window coordinates — and a node in a dialog is highlighted in the dialog's own window.
 
-Three things to know:
+Four things to know:
 
 - **It is off by default, on purpose.** The box is drawn into the app itself, so anything that takes
   a screenshot of the device while it is up captures the box too — a `screencap`, the Android Device

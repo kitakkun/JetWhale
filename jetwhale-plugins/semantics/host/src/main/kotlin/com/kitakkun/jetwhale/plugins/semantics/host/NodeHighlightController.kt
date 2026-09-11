@@ -7,9 +7,12 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Which node the device should be drawing a box over, given what the user is doing.
@@ -81,6 +84,10 @@ internal class NodeHighlightController(
             statusMessage = null
             return false
         }
+        // Recorded before the answer comes back, not after: a new target cancels this call, and a
+        // request cancelled after the app drew the box would otherwise leave the controller thinking
+        // that root has nothing to clear — stranding a box there until its own TTL runs out.
+        shownIn = target.rootId
         val result = try {
             send(HighlightNode(rootId = target.rootId, nodeId = target.nodeId, ttlMs = HIGHLIGHT_TTL_MILLIS))
         } catch (e: JetWhaleMessagingException) {
@@ -101,10 +108,17 @@ internal class NodeHighlightController(
     /**
      * Takes the box down without waiting for the app to answer, for the callers that cannot suspend:
      * the tree view leaving the composition and the plugin instance being disposed.
+     *
+     * Started in place and shielded from cancellation: the runtime cancels the instance's scope
+     * right after `onDispose` returns, which would otherwise stop the clear before its request left,
+     * leaving the box up until the app's own TTL. A peer closed in the meantime fails the send, and
+     * that is caught where the send is.
      */
     fun clearAsync() {
         holding?.cancel()
-        scope.launch { clear() }
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            withContext(NonCancellable) { clear() }
+        }
     }
 
     private suspend fun clearIn(rootId: String) {
