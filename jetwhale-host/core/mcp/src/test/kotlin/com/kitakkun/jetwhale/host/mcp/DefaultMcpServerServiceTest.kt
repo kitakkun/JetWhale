@@ -760,6 +760,16 @@ class DefaultMcpServerServiceTest {
     }
 
     @Test
+    fun `a plugin tool called with a null sessionId is told the argument is missing`() = runBlocking {
+        val toolName = "com.example.test.greet"
+        val callResult = callPluginTool(FakeMcpCapablePlugin(toolName), toolName, arguments = mapOf("sessionId" to null))
+
+        assertEquals(true, callResult.isError)
+        // Routing on the literal text "null" would blame a session that was never named.
+        assertContains(callResult.content.filterIsInstance<TextContent>().single().text, "Missing required argument: sessionId")
+    }
+
+    @Test
     fun `a plugin tool called for a session that does not have it names that session`() = runBlocking {
         val toolName = "com.example.test.greet"
         val callResult = callPluginTool(FakeMcpCapablePlugin(toolName), toolName, arguments = mapOf("sessionId" to "session-gone"))

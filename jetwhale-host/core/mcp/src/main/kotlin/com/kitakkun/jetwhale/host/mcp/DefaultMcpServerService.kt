@@ -36,6 +36,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonNull
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.seconds
 
@@ -233,7 +234,9 @@ class DefaultMcpServerService(
                 // Forward the arguments as raw JSON so structured (object/array) parameters keep
                 // their shape; the command's parameter DSL decodes each value by its declared type.
                 val arguments = request.arguments ?: emptyMap()
-                val sessionId = arguments["sessionId"]?.jsonContent
+                // An explicit null is as absent as no key at all, which is how the command's own
+                // argument accessors read it.
+                val sessionId = arguments["sessionId"]?.takeUnless { it is JsonNull }?.jsonContent
                     ?: return@addPluginTool errorResult("Missing required argument: sessionId")
                 // A tool is listed for as long as any session offers it, so a call naming a session
                 // that no longer has the plugin is a caller mistake rather than a server fault.
