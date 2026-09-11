@@ -74,11 +74,14 @@ internal fun newlyConnectedSessions(
 }
 
 /**
- * Whether following this call is something the user would see happen in the main window.
+ * Whether this call puts the agent's work on the main window's screen.
  *
- * Mirrors what [com.kitakkun.jetwhale.host.model.FollowAiOperationService] decides, so the banner
- * announces a move rather than merely an agent being busy. A call that named no session is followed
- * against the drawer's own selection, which is where [selectedSessionId] comes in.
+ * Deliberately wider than what [com.kitakkun.jetwhale.host.model.FollowAiOperationService] navigates
+ * on: the service skips a plugin the window already shows, but the banner should still say the
+ * agent is driving what the user is looking at — a burst of calls to one plugin moves the window
+ * once and keeps operating it. Only a popped-out plugin is excluded, as it is watched in its own
+ * window. A call that named no session is judged against the drawer's own selection, which is where
+ * [selectedSessionId] comes in.
  */
 internal fun McpToolInvocation?.movesTheWindow(
     selectedSessionId: String,
