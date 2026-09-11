@@ -36,6 +36,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -749,7 +750,26 @@ class DefaultMcpServerServiceTest {
      * Starts the service with [plugin] loaded for one session and calls [toolName] on it. Every
      * result-shape test needs the same registration dance, and only the answer is interesting.
      */
-    private suspend fun callPluginTool(plugin: JetWhaleHostPlugin, toolName: String): CallToolResult {
+    @Test
+    fun `a plugin tool called without a sessionId is told which argument is missing`() = runBlocking {
+        val toolName = "com.example.test.greet"
+        val callResult = callPluginTool(FakeMcpCapablePlugin(toolName), toolName, arguments = emptyMap())
+
+        assertEquals(true, callResult.isError)
+        assertContains(callResult.content.filterIsInstance<TextContent>().single().text, "Missing required argument: sessionId")
+    }
+
+    @Test
+    fun `a plugin tool called for a session that does not have it names that session`() = runBlocking {
+        val toolName = "com.example.test.greet"
+        val callResult = callPluginTool(FakeMcpCapablePlugin(toolName), toolName, arguments = mapOf("sessionId" to "session-gone"))
+
+        assertEquals(true, callResult.isError)
+        // The two mistakes need different corrections, so the agent must be able to tell them apart.
+        assertContains(callResult.content.filterIsInstance<TextContent>().single().text, "session 'session-gone'")
+    }
+
+    private suspend fun callPluginTool(plugin: JetWhaleHostPlugin, toolName: String, arguments: Map<String, Any?> = mapOf("sessionId" to "test-session-result")): CallToolResult {
         val pluginId = "com.example.test"
         val sessionId = "test-session-result"
         every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
@@ -761,7 +781,7 @@ class DefaultMcpServerServiceTest {
         return try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
             try {
-                client.callTool(toolName, mapOf("sessionId" to sessionId))
+                client.callTool(toolName, arguments)
             } finally {
                 client.close()
             }

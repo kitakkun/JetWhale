@@ -233,10 +233,12 @@ class DefaultMcpServerService(
                 // Forward the arguments as raw JSON so structured (object/array) parameters keep
                 // their shape; the command's parameter DSL decodes each value by its declared type.
                 val arguments = request.arguments ?: emptyMap()
+                val sessionId = arguments["sessionId"]?.jsonContent
+                    ?: return@addPluginTool errorResult("Missing required argument: sessionId")
                 // A tool is listed for as long as any session offers it, so a call naming a session
                 // that no longer has the plugin is a caller mistake rather than a server fault.
                 toolRegistry.dispatch(toolName, arguments)?.toCallToolResult()
-                    ?: errorResult("no plugin instance handles $toolName for the requested sessionId")
+                    ?: errorResult("no plugin instance handles $toolName for session '$sessionId'; pick a session from jetwhale.listSessions")
             }
         }
     }
