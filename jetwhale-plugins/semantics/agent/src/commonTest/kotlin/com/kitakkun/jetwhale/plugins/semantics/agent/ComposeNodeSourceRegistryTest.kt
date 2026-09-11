@@ -36,7 +36,7 @@ class ComposeNodeSourceRegistryTest {
     }
 
     @Test
-    fun `a root is told when its last claim is released, and not before`() {
+    fun `a root is told when its last claim is released and not before`() {
         val source = FakeSource("root-1")
         val first = ComposeNodeSourceRegistry.register(source)
         val second = ComposeNodeSourceRegistry.register(FakeSource("root-1"))
