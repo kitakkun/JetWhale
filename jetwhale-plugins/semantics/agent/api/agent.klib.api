@@ -12,6 +12,7 @@ abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSour
 
     abstract suspend fun capture(com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions): com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot? // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource.capture|capture(com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions){}[0]
     abstract suspend fun performAction(com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource.performAction|performAction(com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction){}[0]
+    open fun onUnregistered() // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource.onUnregistered|onUnregistered(){}[0]
 }
 
 abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread { // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread|null[0]
