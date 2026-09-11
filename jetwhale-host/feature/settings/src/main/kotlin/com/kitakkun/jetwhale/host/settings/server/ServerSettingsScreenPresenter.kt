@@ -316,6 +316,7 @@ fun serverSettingsScreenPresenter(
                     },
                 )
             },
+            isOverriddenForLaunch = mcpPermissionsSnapshot.isOverriddenForLaunch,
         ),
         isDebugApplyVisible = isDebugDirty || isDebugStartFailed,
         isMcpApplyVisible = isMcpDirty || isMcpStartFailed,

@@ -25,6 +25,13 @@ data class McpPermissionPlugin(
 data class McpPermissionsSnapshot(
     val permissions: McpPermissions,
     val plugins: List<McpPermissionPlugin>,
+    /**
+     * True while this launch was started with `--mcp-allow-all-permissions`. [permissions] then
+     * reports what the override grants rather than what is stored, and nothing the user picks can
+     * change it for this process — so the screen has to say so and refuse the edit, instead of
+     * taking a click that goes nowhere.
+     */
+    val isOverriddenForLaunch: Boolean,
 )
 
 typealias McpPermissionsSnapshotSubscriptionKey = SubscriptionKey<McpPermissionsSnapshot>

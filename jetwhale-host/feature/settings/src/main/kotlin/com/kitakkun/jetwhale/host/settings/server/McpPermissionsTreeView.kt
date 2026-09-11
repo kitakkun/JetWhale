@@ -24,6 +24,7 @@ import com.kitakkun.jetwhale.host.settings.mcp_permission_group_navigate
 import com.kitakkun.jetwhale.host.settings.mcp_permission_group_observe
 import com.kitakkun.jetwhale.host.settings.mcp_permission_group_settings_and_servers
 import com.kitakkun.jetwhale.host.settings.mcp_permission_host_label
+import com.kitakkun.jetwhale.host.settings.mcp_permission_launch_override_note
 import com.kitakkun.jetwhale.host.settings.mcp_permission_no_plugins
 import com.kitakkun.jetwhale.host.settings.mcp_permission_note
 import com.kitakkun.jetwhale.host.settings.mcp_permission_plugin_inspect
@@ -57,6 +58,12 @@ data class McpPluginPermissionUiState(
 data class McpPermissionsUiState(
     val allowedHostGroups: Set<McpHostToolGroup>,
     val plugins: List<McpPluginPermissionUiState>,
+    /**
+     * True while a launch flag allows every tool. The tree then shows what the launch actually
+     * grants and takes no input: a stored choice cannot win against the override for this process,
+     * so an editable box here would swallow the click and change nothing on screen.
+     */
+    val isOverriddenForLaunch: Boolean,
 )
 
 @Composable
@@ -85,8 +92,20 @@ fun McpPermissionsTreeView(
             style = JwTheme.textStyles.bodySmall,
             color = JwTheme.colors.textSecondary,
         )
+        if (uiState.isOverriddenForLaunch) {
+            JwText(
+                text = stringResource(Res.string.mcp_permission_launch_override_note),
+                style = JwTheme.textStyles.bodySmall,
+                color = JwTheme.colors.warning,
+            )
+        }
         tree.forEach { node ->
-            PermissionNodeView(node = node, depth = 0, expanded = expanded)
+            PermissionNodeView(
+                node = node,
+                depth = 0,
+                expanded = expanded,
+                enabled = !uiState.isOverriddenForLaunch,
+            )
         }
     }
 }
@@ -207,9 +226,10 @@ private fun PermissionNodeView(
     node: PermissionNode,
     depth: Int,
     expanded: MutableMap<String, Boolean>,
+    enabled: Boolean,
 ) {
     when (node) {
-        is PermissionNode.Leaf -> LeafRow(node = node, depth = depth)
+        is PermissionNode.Leaf -> LeafRow(node = node, depth = depth, enabled = enabled)
 
         is PermissionNode.Branch -> {
             val isExpanded = expanded[node.id] ?: node.startExpanded
@@ -217,6 +237,7 @@ private fun PermissionNodeView(
                 node = node,
                 depth = depth,
                 isExpanded = isExpanded,
+                enabled = enabled,
                 onToggleExpanded = { expanded[node.id] = !isExpanded },
             )
             if (isExpanded) {
@@ -229,7 +250,12 @@ private fun PermissionNodeView(
                     )
                 }
                 node.children.forEach { child ->
-                    PermissionNodeView(node = child, depth = depth + 1, expanded = expanded)
+                    PermissionNodeView(
+                        node = child,
+                        depth = depth + 1,
+                        expanded = expanded,
+                        enabled = enabled,
+                    )
                 }
             }
         }
@@ -241,6 +267,7 @@ private fun BranchRow(
     node: PermissionNode.Branch,
     depth: Int,
     isExpanded: Boolean,
+    enabled: Boolean,
     onToggleExpanded: () -> Unit,
 ) {
     val leaves = node.leaves
@@ -256,7 +283,7 @@ private fun BranchRow(
         JwTriStateCheckbox(
             state = toggleStateOf(leaves.map { it.allowed }),
             label = null,
-            enabled = leaves.isNotEmpty(),
+            enabled = enabled && leaves.isNotEmpty(),
             // A partially-ticked parent turns everything on: the alternative — clearing a mixed
             // selection — throws away choices the user made one by one.
             onClick = {
@@ -297,11 +324,12 @@ private fun BranchRow(
 }
 
 @Composable
-private fun LeafRow(node: PermissionNode.Leaf, depth: Int) {
+private fun LeafRow(node: PermissionNode.Leaf, depth: Int, enabled: Boolean) {
     JwCheckbox(
         checked = node.allowed,
         onCheckedChange = node.onSetAllowed,
         label = node.label,
+        enabled = enabled,
         modifier = Modifier.padding(start = INDENT_STEP * depth),
     )
 }

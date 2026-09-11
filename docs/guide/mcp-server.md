@@ -240,7 +240,9 @@ Starting the host with `--mcp-allow-all-permissions` allows everything for that 
 This is for automated QA, where a run that has to enable a plugin or restart a server would
 otherwise stop at a checkbox nobody is there to tick. Nothing is written back, so your own host keeps
 whatever you chose, and the settings screen and `jetwhale.getStatus` both show the lifted state
-rather than disagreeing with what the agent can actually do. Setting it requires being able to start
+rather than disagreeing with what the agent can actually do. Because nothing you pick can win against
+the override for that process, the permission tree is read-only for such a launch and says why —
+restart without the flag to edit it again. Setting it requires being able to start
 the host process — already more than the unauthenticated MCP port grants — so it opens no door that
 was closed to that caller.
 

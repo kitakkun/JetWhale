@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.data.settings
 
 import com.kitakkun.jetwhale.host.mcp.McpServerService
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
+import com.kitakkun.jetwhale.host.model.McpPermissionOverride
 import com.kitakkun.jetwhale.host.model.McpPermissionPlugin
 import com.kitakkun.jetwhale.host.model.McpPermissionsRepository
 import com.kitakkun.jetwhale.host.model.McpPermissionsSnapshot
@@ -20,6 +21,7 @@ class DefaultMcpPermissionsSnapshotSubscriptionKey(
     private val permissionsRepository: McpPermissionsRepository,
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val mcpServerService: McpServerService,
+    private val launchOverride: McpPermissionOverride,
 ) : McpPermissionsSnapshotSubscriptionKey by buildSubscriptionKey(
     id = SubscriptionId("mcp_permissions_view"),
     subscribe = {
@@ -42,6 +44,7 @@ class DefaultMcpPermissionsSnapshotSubscriptionKey(
                         )
                     }
                     .sortedBy { it.displayName },
+                isOverriddenForLaunch = launchOverride.allowAll,
             )
         }
     },
