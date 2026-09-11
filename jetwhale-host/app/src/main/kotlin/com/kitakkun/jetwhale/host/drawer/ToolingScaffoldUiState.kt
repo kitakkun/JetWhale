@@ -12,6 +12,8 @@ import kotlinx.collections.immutable.ImmutableList
 data class AiActivityUiState(
     val isAgentConnected: Boolean,
     val operatingToolName: String?,
+    /** Whether the window is set to move to whatever plugin an agent operates. */
+    val isFollowModeOn: Boolean,
     /**
      * Whether the window is following the operation on screen right now — the mode is on and the
      * call in flight names a plugin. Only then is there a movement to announce and offer to stop.
@@ -20,10 +22,18 @@ data class AiActivityUiState(
 ) {
     val isOperating: Boolean get() = operatingToolName != null
 
+    /**
+     * Whether the strip that announces a follow is on screen. It stays up for as long as a follow
+     * could happen — the mode is on and an agent is connected — rather than for each call, so the
+     * plugin under it keeps its place through a burst of operations instead of jumping at every one.
+     */
+    val showsFollowBanner: Boolean get() = isFollowModeOn && isAgentConnected
+
     companion object {
         val Idle = AiActivityUiState(
             isAgentConnected = false,
             operatingToolName = null,
+            isFollowModeOn = false,
             isFollowingOperation = false,
         )
     }

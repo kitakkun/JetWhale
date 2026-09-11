@@ -206,6 +206,7 @@ fun toolingScaffoldPresenter(
         aiActivity = AiActivityUiState(
             isAgentConnected = mcpActivity.hasConnectedClient,
             operatingToolName = activeInvocation?.toolName,
+            isFollowModeOn = followAiOperationEnabled,
             // Announce only what the window actually does: a call that names no plugin never moves
             // it, and a plugin popped out into its own window is watched there, not here.
             isFollowingOperation = followAiOperationEnabled && activeInvocation.movesTheWindow(selectedSessionId, isPluginPoppedOut),

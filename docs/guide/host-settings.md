@@ -165,8 +165,10 @@ working.
 
 Only a tool call that names a plugin moves the window; host-level calls (navigation, settings,
 status) leave it alone, and so does a plugin already popped out into its own window — it is visible
-where it is. While the window is following, a banner above the plugin names the tool running and
-offers **Stop following**, which turns the setting off without a trip back to this page.
+where it is. While the setting is on and an agent is connected, a banner above the plugin offers
+**Stop following**, which turns the setting off without a trip back to this page; while a call is
+moving the window it also names the tool running. The banner stays up between calls on purpose, so
+the plugin under it keeps its place through a burst of operations instead of jumping at every one.
 
 ## Plugins
 

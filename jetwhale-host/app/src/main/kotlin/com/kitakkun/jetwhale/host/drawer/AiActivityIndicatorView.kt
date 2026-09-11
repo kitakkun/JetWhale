@@ -246,6 +246,7 @@ private fun AiActivityIndicatorConnectedPreview() {
         uiState = AiActivityUiState(
             isAgentConnected = true,
             operatingToolName = null,
+            isFollowModeOn = true,
             isFollowingOperation = false,
         ),
     )
@@ -258,6 +259,7 @@ private fun AiActivityIndicatorOperatingPreview() {
         uiState = AiActivityUiState(
             isAgentConnected = true,
             operatingToolName = "jetwhale.click",
+            isFollowModeOn = true,
             isFollowingOperation = true,
         ),
     )

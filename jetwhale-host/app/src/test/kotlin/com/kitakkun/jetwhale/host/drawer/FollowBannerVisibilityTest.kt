@@ -81,3 +81,25 @@ class FollowBannerVisibilityTest {
         )
     }
 }
+
+class FollowBannerPresenceTest {
+    private fun state(isAgentConnected: Boolean, isFollowModeOn: Boolean, operatingToolName: String? = null) = AiActivityUiState(
+        isAgentConnected = isAgentConnected,
+        operatingToolName = operatingToolName,
+        isFollowModeOn = isFollowModeOn,
+        isFollowingOperation = operatingToolName != null,
+    )
+
+    @Test
+    fun `the strip is up whenever a follow could happen, call or no call`() {
+        assertTrue(state(isAgentConnected = true, isFollowModeOn = true).showsFollowBanner)
+        assertTrue(state(isAgentConnected = true, isFollowModeOn = true, operatingToolName = "jetwhale.click").showsFollowBanner)
+    }
+
+    @Test
+    fun `the strip is down when nothing could move the window`() {
+        assertFalse(state(isAgentConnected = false, isFollowModeOn = true).showsFollowBanner)
+        assertFalse(state(isAgentConnected = true, isFollowModeOn = false).showsFollowBanner)
+        assertFalse(AiActivityUiState.Idle.showsFollowBanner)
+    }
+}
