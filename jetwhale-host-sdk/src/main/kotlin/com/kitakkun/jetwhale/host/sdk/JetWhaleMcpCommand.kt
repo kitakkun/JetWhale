@@ -51,7 +51,7 @@ import kotlin.reflect.KProperty
  *
  * A command whose answer has a known shape declares it once with [serializableOutput], which derives
  * the tool's output schema from the type and hands back the [JetWhaleMcpOutput] that builds the
- * matching result. Declaring nothing means the tool answers with unstructured text and advertises no
+ * matching result; the host refuses a successful answer built any other way. Declaring nothing means the tool answers with unstructured text and advertises no
  * output schema.
  *
  * Expose commands through [JetWhaleMcpCapablePlugin]. A [JetWhaleMcpException] (thrown by [execute]
@@ -94,6 +94,21 @@ public abstract class JetWhaleMcpCommand(
      *   [JetWhaleMcpOutput.result] when the command declares an output.
      */
     public abstract suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult
+
+    /**
+     * Runs the tool the way the host does: [execute], then a check that a command which declared an
+     * output built its successful answer through it. An answer built any other way — `text(...)`,
+     * or `json(...)` around a hand-assembled object — would reach the agent under a schema nothing
+     * checked it against, so it is refused as a programming error rather than delivered.
+     */
+    public suspend fun run(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
+        val result = execute(arguments)
+        val output = declaredOutput ?: return result
+        check(result.isError || result.output === output) {
+            "'$name' declares an output but answered without it. Build a successful result with the JetWhaleMcpOutput handed back by serializableOutput(), or report a failure with JetWhaleMcpResult.error()."
+        }
+        return result
+    }
 
     public fun toDescriptor(): JetWhaleMcpToolDescriptor {
         declarationsSealed = true
@@ -437,7 +452,15 @@ public class JetWhaleMcpOutput<T : Any> internal constructor(
      * a [JetWhaleMcpException]: a failed call carries a message, not the tool's answer, so the
      * output schema does not apply to it.
      */
-    public fun result(value: T): JetWhaleMcpResult = JetWhaleMcpResult.json(json.encodeToJsonElement(serializer, value) as JsonObject)
+    public fun result(value: T): JetWhaleMcpResult {
+        val payload = json.encodeToJsonElement(serializer, value) as JsonObject
+        return JetWhaleMcpResult(
+            content = listOf(JetWhaleMcpContent.Text(payload.toString())),
+            structuredContent = payload,
+            isError = false,
+            output = this,
+        )
+    }
 }
 
 /**

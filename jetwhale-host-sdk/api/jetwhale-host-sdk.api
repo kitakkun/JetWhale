@@ -218,6 +218,7 @@ public abstract class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand {
 	public static synthetic fun long$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	protected final fun longOrNull (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	public static synthetic fun longOrNull$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
+	public final fun run (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpArguments;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	protected final fun serializable (Lkotlinx/serialization/KSerializer;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	public static synthetic fun serializable$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpCommand;Lkotlinx/serialization/KSerializer;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;
 	protected final fun serializableOrNull (Lkotlinx/serialization/KSerializer;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDeclaration;

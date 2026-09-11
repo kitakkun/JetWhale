@@ -15,6 +15,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -369,6 +370,57 @@ class McpParameterDslTest {
         assertTrue(payload.getValue("enabled") is JsonPrimitive)
         // The same payload is repeated as text, which is what JetWhaleMcpResult.json produces.
         assertEquals(payload.toString(), execute(OutputCommand()))
+    }
+
+    @Test
+    fun `a declared output refuses a successful answer built without it`() {
+        val command = object : JetWhaleMcpCommand() {
+            override val name = "test.bypassedOutput"
+            override val description = "declares an output and then answers around it"
+            private val mockConfig = serializableOutput<MockConfigResult>()
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.json(buildJsonObject { put("enabled", true) })
+        }
+
+        // The agent was promised the declared shape, and nothing checked this payload against it.
+        val exception = assertFailsWith<IllegalStateException> {
+            runBlocking { command.run(JetWhaleMcpArguments(JsonObject(emptyMap()))) }
+        }
+        assertTrue("declares an output but answered without it" in exception.message!!, exception.message!!)
+    }
+
+    @Test
+    fun `a declared output still lets the command report a failure`() {
+        val command = object : JetWhaleMcpCommand() {
+            override val name = "test.failingOutput"
+            override val description = "declares an output and fails"
+            private val mockConfig = serializableOutput<MockConfigResult>()
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.error("the debuggee is gone")
+        }
+
+        val result = runBlocking { command.run(JetWhaleMcpArguments(JsonObject(emptyMap()))) }
+
+        assertTrue(result.isError)
+    }
+
+    @Serializable
+    private data class Answer(val detail: String?)
+
+    @Test
+    fun `a format without explicit nulls does not require a nullable property it would leave out`() {
+        val implicitNulls = Json(from = DefaultArgumentJson) { explicitNulls = false }
+        val command = object : JetWhaleMcpCommand(implicitNulls) {
+            override val name = "test.implicitNulls"
+            override val description = "answers with a possibly absent detail"
+            val answer = serializableOutput<Answer>()
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = answer.result(Answer(detail = null))
+        }
+
+        val schema = assertNotNull(command.toDescriptor().outputSchema)
+        val payload = assertNotNull(runBlocking { command.run(JetWhaleMcpArguments(JsonObject(emptyMap()))) }.structuredContent)
+
+        // The format drops the null on the wire, so a schema requiring it would be broken by its own payload.
+        assertNull(schema["required"])
+        assertEquals(emptySet(), payload.keys)
     }
 
     @Test

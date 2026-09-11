@@ -50,7 +50,7 @@ abstract class HostMcpCommand :
             permission = McpToolPermission.HostGroup(group),
         ) { request ->
             try {
-                execute(JetWhaleMcpArguments(JsonObject(request.arguments ?: emptyMap()))).toCallToolResult()
+                run(JetWhaleMcpArguments(JsonObject(request.arguments ?: emptyMap()))).toCallToolResult()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: JetWhaleMcpException) {

@@ -414,6 +414,10 @@ Things to know:
 - **MCP requires the output schema to describe an object**, so `T` must serialize to a JSON object. A
   list or a sealed hierarchy has to be wrapped in a `@Serializable` class holding it; declaring one
   directly fails at construction time rather than advertising a schema MCP rejects.
+- **The declaration is enforced.** Once a command declares an output, a successful answer has to come
+  from that declaration's `result(...)`; one built with `JetWhaleMcpResult.json(...)` or `text(...)`
+  would be delivered under a schema nothing checked it against, so the host refuses it as a
+  programming error.
 - **A failure is not the tool's answer.** A command that declares an output can still return
   `JetWhaleMcpResult.error(...)` or throw `JetWhaleMcpException` — a failed call carries a message,
   and the output schema does not apply to it.

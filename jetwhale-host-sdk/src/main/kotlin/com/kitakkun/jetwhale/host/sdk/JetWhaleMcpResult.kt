@@ -51,6 +51,9 @@ public class JetWhaleMcpResult internal constructor(
     public val content: List<JetWhaleMcpContent>,
     public val structuredContent: JsonObject?,
     public val isError: Boolean,
+    // The declaration that encoded [structuredContent], so the host can tell an answer that
+    // honors the tool's declared output from one assembled by hand under the same schema.
+    internal val output: JetWhaleMcpOutput<*>?,
 ) {
     override fun equals(other: Any?): Boolean = this === other ||
         (
@@ -75,6 +78,7 @@ public class JetWhaleMcpResult internal constructor(
             content = listOf(JetWhaleMcpContent.Text(text)),
             structuredContent = null,
             isError = false,
+            output = null,
         )
 
         /**
@@ -85,6 +89,7 @@ public class JetWhaleMcpResult internal constructor(
             content = listOf(JetWhaleMcpContent.Text(json.toString())),
             structuredContent = json,
             isError = false,
+            output = null,
         )
 
         /** A successful result carrying a single image. @see JetWhaleMcpContent.Image */
@@ -92,6 +97,7 @@ public class JetWhaleMcpResult internal constructor(
             content = listOf(JetWhaleMcpContent.Image(base64Data = base64Data, mimeType = mimeType)),
             structuredContent = null,
             isError = false,
+            output = null,
         )
 
         /**
@@ -105,6 +111,7 @@ public class JetWhaleMcpResult internal constructor(
             content = listOf(JetWhaleMcpContent.Text(message)),
             structuredContent = null,
             isError = true,
+            output = null,
         )
     }
 }

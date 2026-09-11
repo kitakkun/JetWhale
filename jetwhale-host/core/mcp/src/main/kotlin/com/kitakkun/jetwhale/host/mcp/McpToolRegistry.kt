@@ -84,7 +84,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
         ) as? JetWhaleMcpCapablePlugin ?: return null
         val command = plugin.mcpCommands.firstOrNull { it.name == toolName } ?: return null
         return try {
-            command.execute(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
+            command.run(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
         } catch (e: JetWhaleMcpException) {
             // A failure the command chose to report becomes a failed result the AI agent can read
             // and correct, instead of an MCP-level failure.

@@ -29,7 +29,9 @@ import kotlinx.serialization.json.putJsonObject
  *
  * A property is listed in `required` when it has no default value; a nullable property without a
  * default is therefore required (it must be present, and may be `null`), which matches how
- * kotlinx.serialization decodes it. A sealed hierarchy becomes a `oneOf` over its subclasses, each
+ * kotlinx.serialization decodes it. A format with `explicitNulls = false` is the exception: it reads
+ * a missing nullable property as `null` and leaves a `null` one out when writing, so there a nullable
+ * property is never required. A sealed hierarchy becomes a `oneOf` over its subclasses, each
  * carrying the class discriminator as a `const`. Open polymorphic types are advertised as an
  * unconstrained `object`, since their subclasses are only known at runtime.
  *
@@ -41,6 +43,7 @@ internal fun SerialDescriptor.toJsonSchema(json: Json): JsonObject = buildSchema
         classDiscriminator = json.configuration.classDiscriminator,
         writesClassDiscriminator = json.configuration.classDiscriminatorMode != ClassDiscriminatorMode.NONE,
         namingStrategy = json.configuration.namingStrategy,
+        explicitNulls = json.configuration.explicitNulls,
     ),
     mutableSetOf(),
 )
@@ -49,6 +52,7 @@ private class SchemaContext(
     val classDiscriminator: String,
     val writesClassDiscriminator: Boolean,
     val namingStrategy: JsonNamingStrategy?,
+    val explicitNulls: Boolean,
 )
 
 private fun SerialDescriptor.buildSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
@@ -112,6 +116,7 @@ private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes:
     }
     val required = (0 until elementsCount)
         .filterNot { isElementOptional(it) }
+        .filterNot { !context.explicitNulls && getElementDescriptor(it).isNullable }
         .map { context.jsonNameOf(this@classSchema, it) }
     if (required.isNotEmpty()) putJsonArray("required") { required.forEach { add(it) } }
 }
