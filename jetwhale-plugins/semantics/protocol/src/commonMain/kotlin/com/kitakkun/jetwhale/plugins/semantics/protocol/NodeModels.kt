@@ -144,8 +144,14 @@ sealed interface UiNode {
     val isVisible: Boolean
 
     /**
-     * `false` when a tap at the center of [boundsInScreen] would not reach this node — it is
-     * covered, clipped away, or behind another window. [obscuredBy] then names what takes the tap.
+     * `false` when a gesture this node accepts, started at the center of [boundsInScreen], would not
+     * reach it — it is covered, clipped away, or behind another window. [obscuredBy] then names
+     * what takes the touch.
+     *
+     * What counts as reaching depends on the gesture. A tap is consumed by the deepest node that
+     * takes it, so a clickable node is obstructed by its own clickable child. A drag is seen by every
+     * scrollable on the way down, so a scrollable is obstructed only by something outside its
+     * subtree — a sibling drawn on top, or another window.
      *
      * Only a node that accepts touch input is tested; anything else reports `true`, having nothing
      * to be obstructed for. Being hittable is about delivery, not about what the node does with the
@@ -156,7 +162,7 @@ sealed interface UiNode {
      */
     val isHittable: Boolean
 
-    /** What receives a tap aimed at this node instead of it, when [isHittable] is `false`. */
+    /** What takes the touch aimed at this node instead of it, when [isHittable] is `false`. */
     val obscuredBy: NodeRef?
 
     /** Children of either type: an Android tree crosses between the two wherever the real UI does. */
