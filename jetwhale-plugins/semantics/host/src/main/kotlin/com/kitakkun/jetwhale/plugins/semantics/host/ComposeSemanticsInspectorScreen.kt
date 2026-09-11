@@ -345,10 +345,10 @@ private fun NodeRow(
             if (row.node.isInteractive) {
                 JwTag(text = row.node.actionSummary(), tone = JwTone.Accent)
             }
-            // A node that offers an action a finger cannot reach is the one worth spotting from the
-            // tree, without opening it.
-            if (!row.node.isHittable) {
-                JwTag(text = "unreachable", tone = JwTone.Warning)
+            // A node that offers something to do but cannot be operated is the one worth spotting
+            // from the tree, without opening it.
+            if (row.node.isInteractive && !row.node.isInteractable) {
+                JwTag(text = "not interactable", tone = JwTone.Warning)
             }
             // A node with no semantics of its own is already labelled by its id; repeating it here
             // would render "#12 #12".
@@ -432,12 +432,8 @@ private fun NodeDetail(
                 wrap = true,
             )
             PropertyRow("actions", node.actions.joinToString(", ").ifEmpty { "—" }, wrap = true)
-            if (!node.isHittable) {
-                PropertyRow(
-                    "reachable by touch",
-                    node.obscuredBy?.let { "no — #${it.nodeId} takes the touch (${it.rootId})" } ?: "no — nothing to aim at",
-                    wrap = true,
-                )
+            if (node.isInteractive && !node.isInteractable) {
+                PropertyRow("interactable", "no — ${node.whyNotInteractable()}", wrap = true)
             }
         }
 
@@ -553,4 +549,9 @@ private val NodeAction.semanticsKeyName: String
 @Composable
 private fun PropertyRow(label: String, value: String, wrap: Boolean = false) {
     JwKeyValueRow(key = label, value = value, keyWidth = PropertyKeyWidth, monospace = true, wrap = wrap)
+}
+
+private fun UiNode.whyNotInteractable(): String {
+    if (!isEnabled) return "disabled"
+    return obscuredBy?.let { "#${it.nodeId} takes the touch (${it.rootId})" } ?: "nothing to aim at"
 }

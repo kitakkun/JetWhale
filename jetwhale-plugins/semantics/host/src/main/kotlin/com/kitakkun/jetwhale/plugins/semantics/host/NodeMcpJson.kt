@@ -80,8 +80,9 @@ internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean =
     if (isEditable) put("editable", true)
     if (isScrollable) put("scrollable", true)
     if (!isVisible) put("visible", false)
-    // A node that accepts touch but cannot receive one is the surprising case, and the reason a
-    // caller reaches for coordinates at all: it says the tap would land somewhere else.
+    // Something to operate that cannot be operated is the surprising case; the flags below say why.
+    if (isInteractive && !isInteractable) put("interactable", false)
+    // The reason a caller reaches for coordinates at all: the touch would land somewhere else.
     if (!isHittable) {
         put("hittable", false)
         obscuredBy?.let { obstruction ->
