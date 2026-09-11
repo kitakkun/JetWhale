@@ -117,17 +117,27 @@ internal class AndroidWindowNodeSource(rootView: View) :
             highlightOverlay.clear()
             return@await HighlightResult(shown = false)
         }
+        // A request that cannot be honored still replaces what was showing: the caller asked to point
+        // at something else, and a box left on the previous node would answer a question nobody is
+        // asking any more.
         val rootView = attachedRootView()
-            ?: return@await HighlightResult(shown = false, message = "the window is no longer readable")
+        if (rootView == null) {
+            highlightOverlay.clear()
+            return@await HighlightResult(shown = false, message = "the window is no longer readable")
+        }
         // Passed as a lookup rather than as the bounds it currently reports: a scroll or a relayout
         // moves the node, and the overlay follows it by asking again.
         val resolveBounds = { rootView.highlightBoundsOf(nodeId) }
         val bounds = resolveBounds()
-            ?: return@await HighlightResult(
+        if (bounds == null) {
+            highlightOverlay.clear()
+            return@await HighlightResult(
                 shown = false,
                 message = "unknown nodeId: $nodeId (the node may have left this window; capture the tree again)",
             )
+        }
         if (bounds.isEmpty) {
+            highlightOverlay.clear()
             return@await HighlightResult(
                 shown = false,
                 message = "node $nodeId has no area in this window (it is invisible, unmeasured, or fully clipped)",
@@ -158,17 +168,21 @@ private fun viewInWindow(nodeId: Int, rootView: View): View? = ViewNodeIds.viewO
  * `View`s have to scroll for the node.
  */
 private class SemanticsNodeInWindow(val node: SemanticsNode, val hostView: View)
- * Where the node [nodeId] names sits in this window, in pixels, or `null` when the window has no such
- * node.
+
+/**
+ * Where the node [nodeId] names can be seen in this window, in pixels, or `null` when the window has
+ * no such node. Empty when the node is there but has no visible area.
  *
  * Both halves of the tree already report their bounds in the window's space — a `View`'s
- * `getLocationInWindow`, a semantics node's `boundsInWindow` — which is the same space the overlay on
- * the window's root view draws in, so nothing has to be converted.
+ * `getGlobalVisibleRect` (whose "global" is the window's root), a semantics node's `boundsInWindow`
+ * — which is the same space the overlay on the window's root view draws in, so nothing has to be
+ * converted. The visible rect rather than the laid-out one: the overlay hangs on the window's root,
+ * above every `ScrollView` and clipping parent, so a box the size of the layout would be painted over
+ * content the view itself is clipped away from.
  */
 private fun View.highlightBoundsOf(nodeId: Int): Rect? = if (nodeId < 0) {
     viewInWindow(nodeId, this)?.let { view ->
-        val location = IntArray(2).also(view::getLocationInWindow)
-        Rect(location[0], location[1], location[0] + view.width, location[1] + view.height)
+        Rect().also { visible -> if (!view.getGlobalVisibleRect(visible)) visible.setEmpty() }
     }
 } else {
     findSemanticsNode(nodeId)?.boundsInWindow?.let {

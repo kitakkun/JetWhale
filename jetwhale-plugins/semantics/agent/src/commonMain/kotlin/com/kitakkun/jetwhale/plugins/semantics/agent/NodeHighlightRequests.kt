@@ -15,6 +15,11 @@ internal suspend fun showHighlight(request: HighlightNode): HighlightResult {
         ?: return HighlightResult(shown = false, message = unknownRoot(request.rootId))
     val highlightSource = source as? NodeHighlightSource
         ?: return HighlightResult(shown = false, message = ROOT_WITHOUT_HIGHLIGHT)
+    // A box that is shown has to be able to expire: the TTL is what stops a host that dies without
+    // saying so from leaving one on the app's screen. A clear needs none, so only a show is checked.
+    if (request.nodeId != null && request.ttlMs <= 0) {
+        return HighlightResult(shown = false, message = "ttlMs must be positive to show a highlight, but was ${request.ttlMs}")
+    }
     return try {
         highlightSource.highlight(nodeId = request.nodeId, ttl = request.ttlMs.milliseconds)
     } catch (e: CancellationException) {
