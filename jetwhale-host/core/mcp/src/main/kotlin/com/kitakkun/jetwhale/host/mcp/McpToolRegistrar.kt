@@ -38,7 +38,7 @@ class McpToolRegistrar(
             description = description,
             inputSchema = inputSchema,
             permission = permission,
-            // Built-in tools describe their answer in prose rather than as structured content.
+            // No built-in tool advertises an output schema, whatever it answers with.
             outputSchema = null,
             // Tools that drive a plugin UI declare this argument; the rest report no target.
             resolvePluginId = { request -> request.arguments?.get("pluginId")?.jsonContent },
@@ -53,8 +53,8 @@ class McpToolRegistrar(
      * agent never names — so attribution has to be resolved from the session instead of read off the
      * arguments. Without this the plugin's own tools would be the only ones the UI cannot attribute.
      *
-     * [outputSchema] is null for a tool whose command declares no output shape, which is how it says
-     * it answers with unstructured text.
+     * [outputSchema] is null for a tool whose command declares no output shape; its answer may still
+     * be structured, the agent is just not told the shape in advance.
      */
     fun addPluginTool(
         name: String,

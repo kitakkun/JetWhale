@@ -226,8 +226,7 @@ class DefaultMcpServerService(
                 name = toolName,
                 description = descriptor.description,
                 inputSchema = inputSchema,
-                // A command that declares no output shape advertises none, so an agent keeps reading
-                // that tool's answer as text.
+                // A command that declares no output shape advertises none, whatever it answers with.
                 outputSchema = descriptor.outputSchema?.toToolSchema(),
                 resolvePluginIdForSession = { sessionId -> toolRegistry.pluginIdFor(toolName, sessionId) },
             ) { request ->

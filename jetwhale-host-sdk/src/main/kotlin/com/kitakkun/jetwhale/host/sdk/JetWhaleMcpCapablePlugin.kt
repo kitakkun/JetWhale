@@ -39,9 +39,10 @@ public interface JetWhaleMcpCapablePlugin {
  * @param description  Human-readable description shown to the AI agent.
  * @param parameters   Parameter descriptors keyed by parameter name.
  * @param outputSchema JSON Schema of the structured content the tool answers with, always an
- *                     `object` schema as MCP requires. Null when the command declares no output,
- *                     which is how a tool says it answers with unstructured text; both defaults
- *                     describe the tool that declares nothing beyond its name and description.
+ *                     `object` schema as MCP requires. Null when the command declares no output:
+ *                     the tool advertises no shape for its answer, which may still be structured
+ *                     JSON; both defaults describe the tool that declares nothing beyond its name
+ *                     and description.
  */
 @ExperimentalJetWhaleApi
 public data class JetWhaleMcpToolDescriptor(

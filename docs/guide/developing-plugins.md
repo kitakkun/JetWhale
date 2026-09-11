@@ -409,8 +409,9 @@ instead of calling it once to find out, and what it is promised cannot drift fro
 Things to know:
 
 - **Declaring nothing is the default and stays valid.** A tool that declares no output advertises no
-  `outputSchema`, which is how it says its answer is prose for a human-like reader. Only declare an
-  output when the tool really does answer with one fixed structure.
+  `outputSchema`; it may still answer with `JetWhaleMcpResult.json(...)`, the agent is just not told
+  the shape in advance. Only declare an output when the tool really does answer with one fixed
+  structure.
 - **MCP requires the output schema to describe an object with named properties**, so `T` must
   serialize to one. A list, a map or a sealed hierarchy has to be wrapped in a `@Serializable` class
   holding it; declaring one directly fails at construction time rather than advertising a schema

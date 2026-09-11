@@ -51,8 +51,9 @@ import kotlin.reflect.KProperty
  *
  * A command whose answer has a known shape declares it once with [serializableOutput], which derives
  * the tool's output schema from the type and hands back the [JetWhaleMcpOutput] that builds the
- * matching result; the host refuses a successful answer built any other way. Declaring nothing means the tool answers with unstructured text and advertises no
- * output schema.
+ * matching result; the host refuses a successful answer built any other way. Declaring nothing means
+ * the tool advertises no output schema — its answer may still be JSON, built with
+ * [JetWhaleMcpResult.json], the agent is just not told its shape in advance.
  *
  * Expose commands through [JetWhaleMcpCapablePlugin]. A [JetWhaleMcpException] (thrown by [execute]
  * for a failure of any kind, or by the argument accessors as the narrower
@@ -221,9 +222,10 @@ public abstract class JetWhaleMcpCommand(
      * MCP requires a tool's output schema to describe an object with named properties, so [T] must
      * serialize to one; a list, a map or a sealed hierarchy has to be wrapped in a class holding it.
      *
-     * Declare this only as a property of the command, next to its parameters. Leave it out entirely
-     * when the tool answers with unstructured text — a tool that declares no output advertises no
-     * output schema, which is what an agent reading prose expects.
+     * Declare this only as a property of the command, next to its parameters. Leave it out when the
+     * answer's shape is not worth advertising — prose, or JSON whose shape varies from call to call,
+     * as the Network Inspector's transaction tools answer with. A tool that declares no output
+     * advertises no output schema and may still answer with [JetWhaleMcpResult.json].
      */
     protected inline fun <reified T : Any> serializableOutput(): JetWhaleMcpOutput<T> = serializableOutput(serializer<T>())
 
