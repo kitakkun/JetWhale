@@ -14,6 +14,26 @@ fun <T : NavKey> NavBackStack<T>.addSingleTop(index: Int, navKey: T) {
 }
 
 /**
+ * Shows [navKey] as the main window's content without disturbing what is drawn over it.
+ *
+ * The overlays at the top of the stack — dialogs and popout windows, see [OverlayNavKey] — are
+ * rendered only while they sit above the content, so appending the key would push them under it
+ * and take them down. An agent following its own operations, or a caller navigating over MCP,
+ * changes what the window shows underneath; a settings dialog the user has open is theirs to close.
+ */
+fun NavBackStack<NavKey>.showBelowOverlays(navKey: NavKey) {
+    removeIf { it == navKey }
+    add(indexOfFirstTrailingOverlay(), navKey)
+}
+
+/** Index of the first key in the run of overlays at the top of the stack, or the size when there is none. */
+private fun NavBackStack<NavKey>.indexOfFirstTrailingOverlay(): Int {
+    var index = size
+    while (index > 0 && this[index - 1] is OverlayNavKey) index--
+    return index
+}
+
+/**
  * Shows the MCP tools browser, seeded with the scope it was opened from.
  *
  * At most one browser window exists: opening it from a different scope re-seeds the filters rather
@@ -40,7 +60,7 @@ fun NavBackStack<NavKey>.isPluginPoppedOut(pluginId: String, sessionId: String):
  * Docks a popped-out plugin: shows it in the main window and closes its popout window.
  */
 fun NavBackStack<NavKey>.bringPluginBackToMainWindow(pluginId: String, sessionId: String) {
-    addSingleTop(
+    showBelowOverlays(
         PluginNavKey(
             pluginId = pluginId,
             sessionId = sessionId,
