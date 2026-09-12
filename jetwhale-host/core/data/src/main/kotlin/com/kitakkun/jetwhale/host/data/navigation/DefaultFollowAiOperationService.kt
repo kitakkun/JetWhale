@@ -62,6 +62,8 @@ class DefaultFollowAiOperationService(
 private fun HostDestination.alreadyShows(invocation: McpToolInvocation, pluginId: String): Boolean {
     val matchesSession = { sessionId: String? -> invocation.sessionId == null || invocation.sessionId == sessionId }
     val poppedOut = poppedOutPlugins.any { it.pluginId == pluginId && matchesSession(it.sessionId) }
-    val onScreen = kind == HostDestinationKind.PLUGIN && this.pluginId == pluginId && matchesSession(this.sessionId)
+    // Judged on the content, not the top: a plugin under a dialog the user has open is on screen the
+    // moment the dialog closes, and following would only reopen the same plugin under it.
+    val onScreen = content.kind == HostDestinationKind.PLUGIN && content.pluginId == pluginId && matchesSession(content.sessionId)
     return poppedOut || onScreen
 }

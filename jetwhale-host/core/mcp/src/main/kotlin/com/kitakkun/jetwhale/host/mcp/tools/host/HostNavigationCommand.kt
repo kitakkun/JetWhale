@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.host.mcp.HostMcpCommand
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
+import com.kitakkun.jetwhale.host.model.HostContent
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
@@ -66,14 +67,18 @@ class HostNavigationCommand(
                 ),
             )
 
+        // A request for content is confirmed against the content, so what is reported is the content
+        // — with the dialog still open over it named separately, since the caller may want it gone.
+        val shown = if (request.isForContent) applied.content else HostContent(applied.kind, applied.pluginId, applied.sessionId)
         return Json.encodeToString(
             NavigateResult(
                 applied = true,
-                destination = applied.kind.name,
-                pluginId = applied.pluginId,
-                sessionId = applied.sessionId,
+                destination = shown.kind.name,
+                pluginId = shown.pluginId,
+                sessionId = shown.sessionId,
                 settingsSection = applied.settingsSection?.name,
-                poppedOut = applied.poppedOutPlugins.any { it.pluginId == applied.pluginId && it.sessionId == applied.sessionId },
+                poppedOut = applied.poppedOutPlugins.any { it.pluginId == shown.pluginId && it.sessionId == shown.sessionId },
+                overlay = applied.kind.name.takeIf { request.isForContent && applied.kind != applied.content.kind },
             ),
         )
     }
@@ -113,8 +118,16 @@ class HostNavigationCommand(
     }
 }
 
+/** Home and a plugin are the window's content; the rest open over it. */
+private val HostNavigationRequest.isForContent: Boolean
+    get() = this is HostNavigationRequest.Home || this is HostNavigationRequest.Plugin
+
+/**
+ * Whether the window shows what was asked for. Content is judged under whatever dialog the user has
+ * open: navigating to it leaves the dialog up, and the request still did what it said.
+ */
 private fun HostNavigationRequest.matches(destination: HostDestination): Boolean = when (this) {
-    HostNavigationRequest.Home -> destination.kind == HostDestinationKind.HOME
+    HostNavigationRequest.Home -> destination.content.kind == HostDestinationKind.HOME
 
     HostNavigationRequest.Info -> destination.kind == HostDestinationKind.INFO
 
@@ -123,9 +136,9 @@ private fun HostNavigationRequest.matches(destination: HostDestination): Boolean
     is HostNavigationRequest.Settings -> destination.kind == HostDestinationKind.SETTINGS && destination.settingsSection == section
 
     is HostNavigationRequest.Plugin ->
-        destination.kind == HostDestinationKind.PLUGIN &&
-            destination.pluginId == pluginId &&
-            (sessionId == null || destination.sessionId == sessionId)
+        destination.content.kind == HostDestinationKind.PLUGIN &&
+            destination.content.pluginId == pluginId &&
+            (sessionId == null || destination.content.sessionId == sessionId)
 }
 
 @Serializable
@@ -136,5 +149,7 @@ data class NavigateResult(
     val sessionId: String? = null,
     val settingsSection: String? = null,
     val poppedOut: Boolean = false,
+    /** The dialog still open over the content a HOME or PLUGIN request was applied under, if any. */
+    val overlay: String? = null,
     val reason: String? = null,
 )

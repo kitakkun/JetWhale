@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.navigation
 
 import androidx.navigation3.runtime.NavKey
+import com.kitakkun.jetwhale.host.model.HostContent
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostSettingsSection
@@ -14,22 +15,31 @@ import com.kitakkun.jetwhale.host.settings.SettingsScreenSection
  * than leaking into `core/model`.
  *
  * The top-most entry that is not a popout wins: popouts render in their own windows and are
- * reported alongside whatever the main window shows.
+ * reported alongside whatever the main window shows. A dialog on top is the destination, and the
+ * content it is drawn over is reported as [HostDestination.content], so a caller that changed the
+ * content under it can see that it did.
  */
 fun List<NavKey>.toHostDestination(): HostDestination {
     val poppedOut = filterIsInstance<PluginPopoutNavKey>().map { PoppedOutPlugin(it.pluginId, it.sessionId) }
+    val content = when (val top = lastOrNull { it !is OverlayNavKey }) {
+        is PluginNavKey -> HostContent(HostDestinationKind.PLUGIN, top.pluginId, top.sessionId)
+        DisabledPluginNavKey -> HostContent(HostDestinationKind.DISABLED_PLUGIN)
+        else -> HostContent(HostDestinationKind.HOME)
+    }
     return when (val top = lastOrNull { it !is PluginPopoutNavKey }) {
         is PluginNavKey -> HostDestination(
             kind = HostDestinationKind.PLUGIN,
             pluginId = top.pluginId,
             sessionId = top.sessionId,
             poppedOutPlugins = poppedOut,
+            content = content,
         )
 
         is SettingsNavKey -> HostDestination(
             kind = HostDestinationKind.SETTINGS,
             settingsSection = top.initialPage.toHostSettingsSection(),
             poppedOutPlugins = poppedOut,
+            content = content,
         )
 
         is McpToolsNavKey -> HostDestination(
@@ -37,17 +47,18 @@ fun List<NavKey>.toHostDestination(): HostDestination {
             pluginId = top.pluginId,
             sessionId = top.sessionId,
             poppedOutPlugins = poppedOut,
+            content = content,
         )
 
-        InfoNavKey -> HostDestination(HostDestinationKind.INFO, poppedOutPlugins = poppedOut)
+        InfoNavKey -> HostDestination(HostDestinationKind.INFO, poppedOutPlugins = poppedOut, content = content)
 
-        LicensesNavKey -> HostDestination(HostDestinationKind.LICENSES, poppedOutPlugins = poppedOut)
+        LicensesNavKey -> HostDestination(HostDestinationKind.LICENSES, poppedOutPlugins = poppedOut, content = content)
 
-        LogViewerNavKey -> HostDestination(HostDestinationKind.LOG_VIEWER, poppedOutPlugins = poppedOut)
+        LogViewerNavKey -> HostDestination(HostDestinationKind.LOG_VIEWER, poppedOutPlugins = poppedOut, content = content)
 
-        DisabledPluginNavKey -> HostDestination(HostDestinationKind.DISABLED_PLUGIN, poppedOutPlugins = poppedOut)
+        DisabledPluginNavKey -> HostDestination(HostDestinationKind.DISABLED_PLUGIN, poppedOutPlugins = poppedOut, content = content)
 
-        else -> HostDestination(HostDestinationKind.HOME, poppedOutPlugins = poppedOut)
+        else -> HostDestination(HostDestinationKind.HOME, poppedOutPlugins = poppedOut, content = content)
     }
 }
 

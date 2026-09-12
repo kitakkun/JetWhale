@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.mcp.tools.host
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
+import com.kitakkun.jetwhale.host.model.HostContent
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationService
@@ -34,6 +35,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class HostNavigationCommandTest {
@@ -131,6 +133,50 @@ class HostNavigationCommandTest {
 
         assertTrue(result.applied)
         assertTrue(result.poppedOut)
+    }
+
+    @Test
+    fun `navigate to a plugin is confirmed under a dialog the user has open, and names the dialog`() = runBlocking {
+        currentView.value = viewState(
+            HostDestination(
+                kind = HostDestinationKind.SETTINGS,
+                settingsSection = HostSettingsSection.GENERAL,
+                content = HostContent(HostDestinationKind.PLUGIN, "com.example.agent", "session-1"),
+            ),
+        )
+
+        val result = command
+            .execute(arguments("destination" to JsonPrimitive("PLUGIN"), "pluginId" to JsonPrimitive("com.example.agent")))
+            .decode()
+
+        assertTrue(result.applied)
+        assertEquals("PLUGIN", result.destination)
+        assertEquals("com.example.agent", result.pluginId)
+        assertEquals("SETTINGS", result.overlay)
+    }
+
+    @Test
+    fun `navigate home is confirmed under a dialog too`() = runBlocking {
+        currentView.value = viewState(HostDestination(kind = HostDestinationKind.INFO, content = HostContent(HostDestinationKind.HOME)))
+
+        val result = command.execute(arguments("destination" to JsonPrimitive("HOME"))).decode()
+
+        assertTrue(result.applied)
+        assertEquals("HOME", result.destination)
+        assertEquals("INFO", result.overlay)
+    }
+
+    @Test
+    fun `a dialog request is confirmed on the dialog itself, and names no overlay`() = runBlocking {
+        currentView.value = viewState(
+            HostDestination(kind = HostDestinationKind.INFO, content = HostContent(HostDestinationKind.PLUGIN, "com.example.agent", "session-1")),
+        )
+
+        val result = command.execute(arguments("destination" to JsonPrimitive("INFO"))).decode()
+
+        assertTrue(result.applied)
+        assertEquals("INFO", result.destination)
+        assertNull(result.overlay)
     }
 
     @Test
