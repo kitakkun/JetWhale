@@ -10,8 +10,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -43,6 +47,13 @@ internal class NodeHighlightController(
 
     /** Keeps the current target alive; a new target replaces it. */
     private var holding: Job? = null
+
+    /**
+     * One request on the wire at a time, in the order the targets were set. Cancelling [holding]
+     * stops it only at its next suspension, so without this a replaced target could still enqueue
+     * its request after the replacement's and be the one the app paints last.
+     */
+    private val sending = Mutex()
 
     /** Why the app is not showing what was asked for, for the screen's status line. */
     var statusMessage: String? by mutableStateOf(null)
@@ -89,7 +100,7 @@ internal class NodeHighlightController(
         // that root has nothing to clear — stranding a box there until its own TTL runs out.
         shownIn = target.rootId
         val result = try {
-            send(HighlightNode(rootId = target.rootId, nodeId = target.nodeId, ttlMs = HIGHLIGHT_TTL_MILLIS))
+            sendInOrder(HighlightNode(rootId = target.rootId, nodeId = target.nodeId, ttlMs = HIGHLIGHT_TTL_MILLIS))
         } catch (e: JetWhaleMessagingException) {
             // shownIn stays: a timeout is a failure too, and the app may have drawn the box before
             // the reply was lost. An extra clear costs nothing; a box left up costs the user.
@@ -122,10 +133,17 @@ internal class NodeHighlightController(
         }
     }
 
+    private suspend fun sendInOrder(request: HighlightNode): HighlightResult = sending.withLock {
+        // Taking the lock does not check for cancellation on its fast path; a target replaced while
+        // waiting here has nothing left to say.
+        currentCoroutineContext().ensureActive()
+        send(request)
+    }
+
     private suspend fun clearIn(rootId: String) {
         shownIn = null
         try {
-            send(HighlightNode(rootId = rootId, nodeId = null, ttlMs = HIGHLIGHT_TTL_MILLIS))
+            sendInOrder(HighlightNode(rootId = rootId, nodeId = null, ttlMs = HIGHLIGHT_TTL_MILLIS))
         } catch (e: JetWhaleMessagingException) {
             // The window that was showing the box is unreachable, which is also how it stops showing
             // one: the overlay went away with it, and the agent's own TTL covers the rest.

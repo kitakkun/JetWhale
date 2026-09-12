@@ -30,11 +30,20 @@ interface ComposeNodeSource {
 
     /** Invokes [request]'s action on the node it names within this root. */
     suspend fun performAction(request: PerformNodeAction): NodeActionResult
+}
 
+/**
+ * A source that wants to hear when it leaves the registry.
+ *
+ * Optional, like [NodeHighlightSource]: a source with nothing on the screen has nothing to take
+ * down, and a capability interface leaves [ComposeNodeSource] as it was for the sources already
+ * compiled against it.
+ */
+interface RegistryAwareNodeSource : ComposeNodeSource {
     /**
      * Called once the last claim on this root is released and it has left the registry, on the
      * releasing thread. Anything the source put on the screen for the host — a highlight — comes
      * down here, because the root itself may well stay up after the probe that read it is gone.
      */
-    fun onUnregistered() {}
+    fun onUnregistered()
 }

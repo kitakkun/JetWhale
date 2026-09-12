@@ -12,7 +12,6 @@ abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSour
 
     abstract suspend fun capture(com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeCaptureOptions): com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot? // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource.capture|capture(com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions){}[0]
     abstract suspend fun performAction(com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource.performAction|performAction(com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction){}[0]
-    open fun onUnregistered() // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource.onUnregistered|onUnregistered(){}[0]
 }
 
 abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread { // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread|null[0]
@@ -21,6 +20,10 @@ abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread
 
 abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/NodeHighlightSource { // com.kitakkun.jetwhale.plugins.semantics.agent/NodeHighlightSource|null[0]
     abstract suspend fun highlight(kotlin/Int?, kotlin.time/Duration): com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult // com.kitakkun.jetwhale.plugins.semantics.agent/NodeHighlightSource.highlight|highlight(kotlin.Int?;kotlin.time.Duration){}[0]
+}
+
+abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/RegistryAwareNodeSource : com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource { // com.kitakkun.jetwhale.plugins.semantics.agent/RegistryAwareNodeSource|null[0]
+    abstract fun onUnregistered() // com.kitakkun.jetwhale.plugins.semantics.agent/RegistryAwareNodeSource.onUnregistered|onUnregistered(){}[0]
 }
 
 abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/ViewAttributeSource { // com.kitakkun.jetwhale.plugins.semantics.agent/ViewAttributeSource|null[0]

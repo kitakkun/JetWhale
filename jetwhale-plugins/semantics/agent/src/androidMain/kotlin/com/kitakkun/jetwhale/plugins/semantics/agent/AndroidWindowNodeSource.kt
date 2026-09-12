@@ -3,7 +3,6 @@ package com.kitakkun.jetwhale.plugins.semantics.agent
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
-import android.graphics.Rect
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -41,7 +40,7 @@ import kotlin.time.Duration
  * long as the process runs.
  */
 internal class AndroidWindowNodeSource(rootView: View) :
-    ComposeNodeSource,
+    RegistryAwareNodeSource,
     ViewAttributeSource,
     NodeHighlightSource {
     override val sourceId: String = "android-window-${System.identityHashCode(rootView).toString(16)}"
@@ -51,9 +50,16 @@ internal class AndroidWindowNodeSource(rootView: View) :
     // At most one box per window, so pointing at another node moves this one.
     private val highlightOverlay = NodeHighlightOverlay()
 
+    // Read on the main thread, where the overlay is touched: a highlight request that resolved this
+    // source before it was unregistered still reaches the UI thread afterwards, and must not put a
+    // box back that nothing will renew or clear.
+    @Volatile
+    private var unregistered = false
+
     // The overlay otherwise comes down only with its window; a probe disposed while the window stays
     // up would leave the box there until the TTL.
     override fun onUnregistered() {
+        unregistered = true
         highlightOverlay.clearFromAnyThread()
     }
 
@@ -119,9 +125,9 @@ internal class AndroidWindowNodeSource(rootView: View) :
     // the UI thread, the same way the other two capabilities do.
 
     override suspend fun highlight(nodeId: Int?, ttl: Duration): HighlightResult = AndroidComposeUiThread.await {
-        if (nodeId == null) {
+        if (nodeId == null || unregistered) {
             highlightOverlay.clear()
-            return@await HighlightResult(shown = false)
+            return@await HighlightResult(shown = false, message = "the window is no longer readable".takeIf { unregistered })
         }
         // A request that cannot be honored still replaces what was showing: the caller asked to point
         // at something else, and a box left on the previous node would answer a question nobody is
@@ -187,19 +193,19 @@ private class SemanticsNodeInWindow(val node: SemanticsNode, val hostView: View)
  * above every `ScrollView` and clipping parent, so a box the size of the layout would be painted over
  * content the view itself is clipped away from.
  */
-private fun View.highlightBoundsOf(nodeId: Int): Rect? = if (nodeId < 0) {
+private fun View.highlightBoundsOf(nodeId: Int): android.graphics.Rect? = if (nodeId < 0) {
     viewInWindow(nodeId, this)?.let { view ->
-        Rect().also { visible -> if (!view.getGlobalVisibleRect(visible)) visible.setEmpty() }
+        android.graphics.Rect().also { visible -> if (!view.getGlobalVisibleRect(visible)) visible.setEmpty() }
     }
 } else {
-    findSemanticsNode(nodeId)?.boundsInWindow?.let { bounds ->
+    findSemanticsNode(nodeId)?.node?.boundsInWindow?.let { bounds ->
         // A node not yet placed reports unspecified bounds, which round to nothing rather than to an
         // exception; empty is what "not on screen yet" means to the overlay.
-        if (bounds.isFinite) Rect(bounds.left.roundToInt(), bounds.top.roundToInt(), bounds.right.roundToInt(), bounds.bottom.roundToInt()) else Rect()
+        if (bounds.isFinite) android.graphics.Rect(bounds.left.roundToInt(), bounds.top.roundToInt(), bounds.right.roundToInt(), bounds.bottom.roundToInt()) else android.graphics.Rect()
     }
 }
 
-private val androidx.compose.ui.geometry.Rect.isFinite: Boolean
+private val Rect.isFinite: Boolean
     get() = left.isFinite() && top.isFinite() && right.isFinite() && bottom.isFinite()
 
 /**

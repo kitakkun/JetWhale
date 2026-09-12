@@ -82,7 +82,7 @@ class ComposeNodeSourceRegistryTest {
         assertEquals(1, ComposeNodeSourceRegistry.sources.size)
     }
 
-    private class FakeSource(override val sourceId: String) : ComposeNodeSource {
+    private class FakeSource(override val sourceId: String) : RegistryAwareNodeSource {
         var unregisteredCount = 0
         override suspend fun capture(options: NodeTreeCaptureOptions): ComposeRoot? = null
         override suspend fun performAction(request: PerformNodeAction): NodeActionResult = NodeActionResult(performed = false)
