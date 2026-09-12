@@ -14,10 +14,12 @@ import androidx.compose.ui.node.InteroperableComposeUiNode
 import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.recyclerview.widget.RecyclerView
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.advertisedAs
 import kotlin.math.ceil
 import kotlin.math.floor
 
@@ -140,18 +142,8 @@ private fun SemanticsNode.interopViewNodes(
     return listOfNotNull(interopView.toViewNode(options, windowOffsetX, windowOffsetY, depth))
 }
 
-/** The names this view's actions are advertised under — the semantics keys of their Compose counterparts. */
-private fun View.viewActionNames(): List<String> = buildList {
-    if (isClickable) add("OnClick")
-    if (isLongClickable) add("OnLongClick")
-    if (this@viewActionNames is EditText) {
-        add("SetText")
-        add("InsertTextAtCursor")
-        add("PerformImeAction")
-    }
-    if (isScrollable()) add("ScrollBy")
-    if (hasItemPositions()) add("ScrollToIndex")
-    if (isFocusable) add("RequestFocus")
+private fun View.viewActionNames(): List<String> = NodeAction.entries.mapNotNull { action ->
+    action.advertisedAs?.takeIf { action.viewHandler.isOfferedBy(this) }
 }
 
 /** Whether the view is a list that can be told which item to show — the View side of `ScrollToIndex`. */
