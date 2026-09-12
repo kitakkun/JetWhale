@@ -62,19 +62,43 @@ internal fun SemanticsNode.scrollIntoView(revealInHost: (boundsInRoot: Rect) -> 
     val hostScrolled = revealInHost(Rect(positionInRoot + carried, size.toSize()))
 
     return when {
+        containersDeclined > 0 -> NodeActionResult(
+            performed = false,
+            message = "a scrollable ancestor declined to scroll (it may be at its end, or scrolling may be disabled)" +
+                if (containersScrolled > 0 || hostScrolled) "; the containers outside it did scroll" else "",
+        )
+
         containersScrolled > 0 || hostScrolled -> NodeActionResult(
             performed = true,
             message = "scrolled ${containersScrolled + (if (hostScrolled) 1 else 0)} container(s); the scroll lands on the next frame, so capture the tree again to see the new bounds",
         )
 
-        containersDeclined > 0 -> NodeActionResult(
-            performed = false,
-            message = "a scrollable ancestor declined to scroll (it may be at its end, or scrolling may be disabled)",
-        )
+        isWhollyUnclipped -> NodeActionResult(performed = true, message = "the node is already in view")
 
-        else -> NodeActionResult(performed = true, message = "the node is already in view")
+        else -> NodeActionResult(
+            performed = false,
+            message = "the node is clipped by something on its path that cannot scroll — a non-scrollable clip, or the edge of the composition",
+        )
     }
 }
+
+/**
+ * Whether every pixel of the node is inside every ancestor's clip. [SemanticsNode.boundsInRoot] is
+ * clipped by the ancestors on the way up and the unclipped rectangle is not, so they agree only when
+ * nothing cuts the node off — which is the one case "already in view" may claim.
+ */
+private val SemanticsNode.isWhollyUnclipped: Boolean
+    get() {
+        if (!layoutInfo.isPlaced) return false
+        val unclipped = Rect(positionInRoot, size.toSize())
+        val clipped = boundsInRoot
+        return abs(clipped.left - unclipped.left) < CLIP_TOLERANCE_PX &&
+            abs(clipped.top - unclipped.top) < CLIP_TOLERANCE_PX &&
+            abs(clipped.right - unclipped.right) < CLIP_TOLERANCE_PX &&
+            abs(clipped.bottom - unclipped.bottom) < CLIP_TOLERANCE_PX
+    }
+
+private const val CLIP_TOLERANCE_PX = 0.5f
 
 /**
  * Where a scrollable's viewport sits in root coordinates. The clipping that matters is the
