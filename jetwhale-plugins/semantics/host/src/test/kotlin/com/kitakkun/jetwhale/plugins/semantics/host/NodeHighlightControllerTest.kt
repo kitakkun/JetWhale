@@ -100,7 +100,7 @@ class NodeHighlightControllerTest {
         val controller = recorder.controller()
 
         controller.show(firstRoot)
-        controller.clear()
+        controller.show(null)
 
         assertEquals(HighlightNode(rootId = "window-1", nodeId = null, ttlMs = HIGHLIGHT_TTL_MILLIS), recorder.sent.last())
     }
@@ -109,7 +109,7 @@ class NodeHighlightControllerTest {
     fun `clearing with nothing showing sends nothing`() = runBlocking {
         val recorder = Recorder()
 
-        recorder.controller().clear()
+        recorder.controller().show(null)
 
         assertTrue(recorder.sent.isEmpty())
     }

@@ -112,11 +112,6 @@ internal class NodeHighlightController(
         return result.shown
     }
 
-    /** Takes the box down, wherever it is. Safe to call with nothing showing. */
-    suspend fun clear() {
-        show(null)
-    }
-
     /**
      * Takes the box down without waiting for the app to answer, for the callers that cannot suspend:
      * the tree view leaving the composition and the plugin instance being disposed.
@@ -129,7 +124,7 @@ internal class NodeHighlightController(
     fun clearAsync() {
         holding?.cancel()
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
-            withContext(NonCancellable) { clear() }
+            withContext(NonCancellable) { show(null) }
         }
     }
 

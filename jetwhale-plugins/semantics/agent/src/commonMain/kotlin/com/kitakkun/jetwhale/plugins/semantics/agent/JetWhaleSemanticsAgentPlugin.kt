@@ -108,7 +108,7 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
             } catch (e: Throwable) {
                 // One unreadable root (a view detached mid-capture, a toolkit-specific failure)
                 // must not cost the caller the roots that did read cleanly.
-                warnings += "${source.sourceId}: failed to capture (${e.describe()})"
+                warnings += "${source.sourceId}: failed to capture (${e.describeFailure()})"
             }
         }
 
@@ -126,21 +126,16 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
     }
 
     private suspend fun performAction(request: PerformNodeAction): NodeActionResult {
-        val source = ComposeNodeSourceRegistry.sources.firstOrNull { it.sourceId == request.rootId }
-            ?: return NodeActionResult(
-                performed = false,
-                message = "unknown rootId: ${request.rootId} (the root may have been detached; capture the tree again)",
-            )
+        val source = ComposeNodeSourceRegistry.sourceOf(request.rootId)
+            ?: return NodeActionResult(performed = false, message = ComposeNodeSourceRegistry.unknownRootMessage(request.rootId))
         return try {
             source.performAction(request)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            NodeActionResult(performed = false, message = "action failed: ${e.describe()}")
+            NodeActionResult(performed = false, message = "action failed: ${e.describeFailure()}")
         }
     }
-
-    private fun Throwable.describe(): String = message?.takeIf { it.isNotBlank() } ?: (this::class.simpleName ?: "unknown error")
 
     companion object {
         const val PLUGIN_ID: String = "com.kitakkun.jetwhale.semantics"
