@@ -7,6 +7,7 @@
 
 // Library unique name: <com.kitakkun.jetwhale.plugins.semantics:protocol>
 final enum class com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction : kotlin/Enum<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction> { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction|null[0]
+    enum entry BringIntoView // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.BringIntoView|null[0]
     enum entry Click // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.Click|null[0]
     enum entry Collapse // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.Collapse|null[0]
     enum entry Dismiss // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.Dismiss|null[0]
@@ -16,6 +17,7 @@ final enum class com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction : k
     enum entry LongClick // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.LongClick|null[0]
     enum entry RequestFocus // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.RequestFocus|null[0]
     enum entry ScrollBy // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.ScrollBy|null[0]
+    enum entry ScrollToIndex // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.ScrollToIndex|null[0]
     enum entry SetText // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.SetText|null[0]
 
     final val entries // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction.entries|#static{}entries[0]
@@ -696,10 +698,12 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/NodeTreeSnapshot { 
 }
 
 final class com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult> { // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction|null[0]
-    constructor <init>(kotlin/String, kotlin/Int, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction, kotlin/String? = ..., kotlin/Float = ..., kotlin/Float = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.<init>|<init>(kotlin.String;kotlin.Int;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction;kotlin.String?;kotlin.Float;kotlin.Float){}[0]
+    constructor <init>(kotlin/String, kotlin/Int, com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction, kotlin/String? = ..., kotlin/Float = ..., kotlin/Float = ..., kotlin/Int? = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.<init>|<init>(kotlin.String;kotlin.Int;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction;kotlin.String?;kotlin.Float;kotlin.Float;kotlin.Int?){}[0]
 
     final val action // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.action|{}action[0]
         final fun <get-action>(): com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.action.<get-action>|<get-action>(){}[0]
+    final val index // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.index|{}index[0]
+        final fun <get-index>(): kotlin/Int? // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.index.<get-index>|<get-index>(){}[0]
     final val nodeId // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.nodeId|{}nodeId[0]
         final fun <get-nodeId>(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.nodeId.<get-nodeId>|<get-nodeId>(){}[0]
     final val rootId // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.rootId|{}rootId[0]
@@ -717,7 +721,8 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction :
     final fun component4(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.component4|component4(){}[0]
     final fun component5(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.component5|component5(){}[0]
     final fun component6(): kotlin/Float // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.component6|component6(){}[0]
-    final fun copy(kotlin/String = ..., kotlin/Int = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction = ..., kotlin/String? = ..., kotlin/Float = ..., kotlin/Float = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.copy|copy(kotlin.String;kotlin.Int;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction;kotlin.String?;kotlin.Float;kotlin.Float){}[0]
+    final fun component7(): kotlin/Int? // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.component7|component7(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Int = ..., com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction = ..., kotlin/String? = ..., kotlin/Float = ..., kotlin/Float = ..., kotlin/Int? = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.copy|copy(kotlin.String;kotlin.Int;com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction;kotlin.String?;kotlin.Float;kotlin.Float;kotlin.Int?){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/PerformNodeAction.toString|toString(){}[0]

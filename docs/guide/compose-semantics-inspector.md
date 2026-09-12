@@ -69,9 +69,11 @@ degrading.
 
 `performNodeAction` works on a `View` node too, running the view's own API rather than a synthesised
 tap: `Click` → `performClick()`, `LongClick` → `performLongClick()`, `SetText` / `InsertText` on an
-`EditText`, `ImeAction` → `onEditorAction`, `ScrollBy` → `scrollBy`, `RequestFocus` →
-`requestFocus()`. `Dismiss`, `Expand` and `Collapse` have no `View` counterpart and come back
-`performed: false` saying so. As always, only what a node lists in `actions` can be invoked.
+`EditText`, `ImeAction` → `onEditorAction`, `ScrollBy` → `scrollBy`, `ScrollToIndex` →
+`RecyclerView.scrollToPosition` / `ListView.setSelection`, `BringIntoView` →
+`requestRectangleOnScreen`, `RequestFocus` → `requestFocus()`. `Dismiss`, `Expand` and `Collapse`
+have no `View` counterpart and come back `performed: false` saying so. As always, only what a node
+lists in `actions` can be invoked — except `BringIntoView`, which every node takes.
 
 ### Editing View attributes
 
@@ -355,8 +357,9 @@ node's own bounds — see [Can a finger reach it?](#can-a-finger-reach-it).
 ### `com.kitakkun.jetwhale.semantics.performNodeAction`
 
 Invokes a node's own semantics action: `Click`, `LongClick`, `SetText`, `InsertText`, `ImeAction`,
-`ScrollBy`, `RequestFocus`, `Dismiss`, `Expand`, `Collapse`. On an Android `View` node it runs the
-view's own equivalent — see [Android View support](#android-view-support).
+`ScrollBy`, `ScrollToIndex`, `RequestFocus`, `Dismiss`, `Expand`, `Collapse` — plus `BringIntoView`,
+which is not the node's own but works on any node. On an Android `View` node it runs the view's own
+equivalent — see [Android View support](#android-view-support).
 
 This runs the action the node itself declared, so it needs no coordinates and cannot land on
 whatever moved into that spot in the meantime — prefer it over `adb shell input tap`. `rootId` is
@@ -373,6 +376,37 @@ findNodes(testTag: "login-button")     → { "nodes": [{ "rootId": "compose-root
 performNodeAction(nodeId: 42, action: "Click")
 findNodes()                            → the new screen's interactive nodes
 ```
+
+#### Getting a node on screen
+
+A node that exists but sits outside the viewport is a poor target for a screenshot or a finger.
+`BringIntoView` scrolls it in the way accessibility's "show on screen" does: every scrollable ancestor
+is scrolled by the least amount that reveals the whole node, innermost first, and on Android the
+window's `View`s around the composition are scrolled too — so it crosses a `LazyColumn` inside a
+`ScrollView`, or a `RecyclerView` inside an `AndroidView { }`, in one call. No gesture, no
+coordinates, and a node that is already fully visible reports `performed: true` with a note saying
+nothing moved.
+
+```
+findNodes(text: "Terms of service")    → { "nodes": [{ "id": 87, "isVisible": false, … }] }
+performNodeAction(nodeId: 87, action: "BringIntoView")
+getNodeTree()                          → node 87 now has on-screen bounds
+```
+
+`BringIntoView` needs the node to exist, and a lazy container only composes the items near its
+viewport — an item far down a `LazyColumn` has no node yet. `ScrollToIndex` is the step before:
+invoke it on the *container* with the item's `index`, then capture again and the item is there.
+`LazyColumn`, `LazyRow`, the lazy grids and `Pager` expose it; on the View side so do `RecyclerView`
+and `ListView`.
+
+```
+findNodes(testTag: "feed")             → { "nodes": [{ "id": 12, "actions": ["ScrollBy", "ScrollToIndex", …] }] }
+performNodeAction(nodeId: 12, action: "ScrollToIndex", index: 240)
+findNodes(text: "Item 240")            → now composed, and BringIntoView can finish the job if needed
+```
+
+Both scrolls are applied by the container on its next frame, so a capture taken in the same breath
+still shows the old bounds — capture again after.
 
 ### `com.kitakkun.jetwhale.semantics.getViewAttributes`
 

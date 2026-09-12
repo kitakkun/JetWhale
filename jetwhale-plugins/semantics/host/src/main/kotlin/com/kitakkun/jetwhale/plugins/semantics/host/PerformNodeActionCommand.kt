@@ -26,11 +26,14 @@ internal class PerformNodeActionCommand(
             "needs no coordinates and cannot land on something that moved in the meantime — prefer it over " +
             "`adb shell input tap`. Returns {\"performed\", \"rootId\", \"nodeId\", \"action\", \"message\"}; " +
             "performed=false with a message when the node does not expose the action or declined it. " +
-            "Capture the tree again afterwards to see the result."
+            "BringIntoView scrolls whatever surrounds the node — Compose scrollables and Android Views alike — " +
+            "by the least amount that shows it whole, and works on any node; ScrollToIndex scrolls a lazy " +
+            "list or RecyclerView to an item that may not be composed yet. Both land on the next frame: " +
+            "capture the tree again afterwards to see the result."
 
     private val nodeId by int("The node's id, as reported by findNodes or getNodeTree.")
     private val action by enum(
-        "The semantics action to invoke. Click is what a tap would do. SetText/InsertText require text; ScrollBy uses scrollX/scrollY.",
+        "The semantics action to invoke. Click is what a tap would do. SetText/InsertText require text; ScrollBy uses scrollX/scrollY; ScrollToIndex requires index; BringIntoView takes nothing.",
         NodeAction.entries,
     )
     private val rootId by stringOrNull(
@@ -39,6 +42,7 @@ internal class PerformNodeActionCommand(
     private val text by stringOrNull("The text for SetText or InsertText.")
     private val scrollX by intOrNull("Horizontal scroll distance in pixels for ScrollBy. Defaults to 0.")
     private val scrollY by intOrNull("Vertical scroll distance in pixels for ScrollBy. Defaults to 0.")
+    private val index by intOrNull("The item index for ScrollToIndex, counted from 0 over the container's items.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val nodeId = arguments[nodeId]
@@ -55,6 +59,7 @@ internal class PerformNodeActionCommand(
                     text = arguments[text],
                     scrollX = (arguments[scrollX] ?: 0).toFloat(),
                     scrollY = (arguments[scrollY] ?: 0).toFloat(),
+                    index = arguments[index],
                 ),
             )
         } catch (e: JetWhaleMessagingException) {

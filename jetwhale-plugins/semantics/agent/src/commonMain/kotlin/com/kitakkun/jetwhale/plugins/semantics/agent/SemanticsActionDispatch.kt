@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.semantics.AccessibilityAction
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsConfiguration
@@ -20,8 +21,14 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
  * meanwhile, and reports back whether the node actually handled it.
  *
  * Must be called on the thread that owns the composition.
+ *
+ * @param revealInHost how [NodeAction.BringIntoView] reaches past the composition, see
+ *   [scrollIntoView].
  */
-internal fun SemanticsNode.performSemanticsAction(request: PerformNodeAction): NodeActionResult {
+internal fun SemanticsNode.performSemanticsAction(
+    request: PerformNodeAction,
+    revealInHost: (boundsInRoot: Rect) -> Boolean,
+): NodeActionResult {
     val config = config
     if (request.action.requiresEnabled && config.getOrNull(SemanticsProperties.Disabled) != null) {
         return NodeActionResult(performed = false, message = "the node is disabled")
@@ -50,6 +57,19 @@ internal fun SemanticsNode.performSemanticsAction(request: PerformNodeAction): N
 
         NodeAction.ScrollBy -> config.invokeAction(SemanticsActions.ScrollBy) { it(request.scrollX, request.scrollY) }
 
+        NodeAction.ScrollToIndex -> {
+            val index = request.index
+                ?: return NodeActionResult(performed = false, message = "ScrollToIndex requires the 'index' argument")
+            // A lazy container throws on an index outside its item count instead of answering false.
+            try {
+                config.invokeAction(SemanticsActions.ScrollToIndex) { it(index) }
+            } catch (e: IllegalArgumentException) {
+                NodeActionResult(performed = false, message = e.message ?: "index $index is out of bounds")
+            }
+        }
+
+        NodeAction.BringIntoView -> scrollIntoView(revealInHost)
+
         NodeAction.RequestFocus -> config.invokeAction(SemanticsActions.RequestFocus) { it() }
 
         NodeAction.Dismiss -> config.invokeAction(SemanticsActions.Dismiss) { it() }
@@ -76,6 +96,8 @@ private val NodeAction.requiresEnabled: Boolean
         -> true
 
         NodeAction.ScrollBy,
+        NodeAction.ScrollToIndex,
+        NodeAction.BringIntoView,
         NodeAction.RequestFocus,
         NodeAction.Dismiss,
         -> false

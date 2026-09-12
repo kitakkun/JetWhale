@@ -56,6 +56,12 @@ kotlin {
             api(libs.jetbrainsComposeUi)
             implementation(libs.kotlinxCoroutinesCore)
         }
+        androidMain.dependencies {
+            // `ScrollToIndex` on a View node drives a RecyclerView when the app has one. Compile-only:
+            // the agent must not pull the library into an app that does not use it, and the code
+            // checks for the class before touching it.
+            compileOnly(libs.androidxRecyclerView)
+        }
         commonTest.dependencies {
             implementation(libs.kotlinTest)
         }

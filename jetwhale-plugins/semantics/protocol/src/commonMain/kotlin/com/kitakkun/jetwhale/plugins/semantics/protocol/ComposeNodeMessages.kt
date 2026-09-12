@@ -39,4 +39,6 @@ data class PerformNodeAction(
     val scrollX: Float = 0f,
     /** Vertical scroll distance in pixels for [NodeAction.ScrollBy]; ignored otherwise. */
     val scrollY: Float = 0f,
+    /** Item index for [NodeAction.ScrollToIndex]; ignored otherwise. */
+    val index: Int? = null,
 ) : JetWhaleRequest<NodeActionResult>

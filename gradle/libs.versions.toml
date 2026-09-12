@@ -17,6 +17,7 @@ kotlinxDatetime = "0.8.0"
 androidGradlePlugin = "9.3.1"
 androidxCoreKtx = "1.19.0"
 androidxActivity = "1.13.0"
+androidxRecyclerView = "1.4.0"
 
 jetbrainsCompose = "1.11.1"
 material3 = "1.11.0-alpha07"
@@ -70,6 +71,7 @@ kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.r
 androidxCoreKtx = { module = "androidx.core:core-ktx", version.ref = "androidxCoreKtx" }
 androidxActivityCompose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivity" }
 androidxActivityKtx = { module = "androidx.activity:activity-ktx", version.ref = "androidxActivity" }
+androidxRecyclerView = { module = "androidx.recyclerview:recyclerview", version.ref = "androidxRecyclerView" }
 androidxDatastorePreferences = { module = "androidx.datastore:datastore-preferences", version.ref = "androidxDatastore" }
 androidxDatastoreCoreOkio = { module = "androidx.datastore:datastore-core-okio", version.ref = "androidxDatastore" }
 

@@ -68,7 +68,9 @@ class SemanticsOwnerNodeSource(
                 performed = false,
                 message = "unknown nodeId: ${request.nodeId} (the node may have left the composition; capture the tree again)",
             )
-        node.performSemanticsAction(request)
+        // An owner is the whole of what this source can see, so there is nothing around the
+        // composition for BringIntoView to scroll.
+        node.performSemanticsAction(request, revealInHost = { false })
     }
 }
 
