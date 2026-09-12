@@ -25,9 +25,16 @@ data class HighlightNode(
     val ttlMs: Long,
 ) : JetWhaleRequest<HighlightResult>
 
-/** Separate from the request so a node that has gone away is an answer, not a transport failure. */
+/**
+ * Separate from the request so a node that has gone away is an answer, not a transport failure.
+ *
+ * @param retryLater whether a refusal is expected to lift on its own — the node is there but has no
+ *   area right now, as one scrolled out of a lazy list has — so a host keeping the highlight alive
+ *   should keep asking rather than give up on it.
+ */
 @Serializable
 data class HighlightResult(
     val shown: Boolean,
     val message: String? = null,
+    val retryLater: Boolean = false,
 )

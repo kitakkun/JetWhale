@@ -35,5 +35,8 @@ class NodeHighlightSerializationTest {
 
         val refused = HighlightResult(shown = false, message = "unknown nodeId: -4")
         assertEquals(refused, json.decodeFromString<HighlightResult>(json.encodeToString(refused)))
+
+        val deferred = HighlightResult(shown = false, message = "node 12 has no area", retryLater = true)
+        assertEquals(deferred, json.decodeFromString<HighlightResult>(json.encodeToString(deferred)))
     }
 }

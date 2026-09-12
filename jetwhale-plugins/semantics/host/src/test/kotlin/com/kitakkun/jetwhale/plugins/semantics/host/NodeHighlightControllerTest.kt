@@ -6,6 +6,9 @@ import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -57,7 +60,7 @@ class NodeHighlightControllerTest {
         val recorder = Recorder()
         val controller = recorder.controller()
 
-        assertTrue(controller.show(firstRoot))
+        assertTrue(controller.show(firstRoot).shown)
         assertEquals(
             listOf(HighlightNode(rootId = "window-1", nodeId = -4, ttlMs = HIGHLIGHT_TTL_MILLIS)),
             recorder.sent,
@@ -119,7 +122,7 @@ class NodeHighlightControllerTest {
         val recorder = Recorder(answer = { HighlightResult(shown = false, message = "unknown nodeId: -4") })
         val controller = recorder.controller()
 
-        assertFalse(controller.show(firstRoot))
+        assertFalse(controller.show(firstRoot).shown)
         assertEquals("unknown nodeId: -4", controller.statusMessage)
     }
 
@@ -139,15 +142,88 @@ class NodeHighlightControllerTest {
         val recorder = Recorder(answer = { throw JetWhaleMessagingException("the session is gone") })
         val controller = recorder.controller()
 
-        assertFalse(controller.show(firstRoot))
+        assertFalse(controller.show(firstRoot).shown)
         assertEquals("Highlight failed: the session is gone", controller.statusMessage)
+    }
+
+    // -- setTarget, on virtual time -------------------------------------------
+
+    @Test
+    fun `a target replaced within the debounce is never sent`() = runTest {
+        val recorder = Recorder()
+        val controller = recorder.controller(backgroundScope)
+
+        controller.setTarget(firstRoot)
+        advanceTimeBy(HIGHLIGHT_HOVER_DEBOUNCE_MILLIS / 2)
+        controller.setTarget(secondRoot)
+        advanceTimeBy(HIGHLIGHT_HOVER_DEBOUNCE_MILLIS)
+        runCurrent()
+
+        assertEquals(listOf(secondRoot.nodeId), recorder.sent.map { it.nodeId })
+    }
+
+    @Test
+    fun `a standing target is renewed before the app forgets it`() = runTest {
+        val recorder = Recorder()
+        val controller = recorder.controller(backgroundScope)
+
+        controller.setTarget(firstRoot)
+        advanceTimeBy(HIGHLIGHT_HOVER_DEBOUNCE_MILLIS)
+        runCurrent()
+        assertEquals(1, recorder.sent.size)
+
+        advanceTimeBy(HIGHLIGHT_RENEWAL_MILLIS)
+        runCurrent()
+        assertEquals(listOf(firstRoot.nodeId, firstRoot.nodeId), recorder.sent.map { it.nodeId })
+    }
+
+    @Test
+    fun `dropping the target clears the highlight without waiting`() = runTest {
+        val recorder = Recorder()
+        val controller = recorder.controller(backgroundScope)
+
+        controller.setTarget(firstRoot)
+        advanceTimeBy(HIGHLIGHT_HOVER_DEBOUNCE_MILLIS)
+        runCurrent()
+        controller.setTarget(null)
+        runCurrent()
+
+        assertEquals(HighlightNode(rootId = "window-1", nodeId = null, ttlMs = HIGHLIGHT_TTL_MILLIS), recorder.sent.last())
+        advanceTimeBy(HIGHLIGHT_RENEWAL_MILLIS)
+        runCurrent()
+        assertEquals(2, recorder.sent.size)
+    }
+
+    @Test
+    fun `a refusal the app expects to lift keeps the target renewed`() = runTest {
+        val recorder = Recorder(answer = { HighlightResult(shown = false, message = "node -4 has no area", retryLater = true) })
+        val controller = recorder.controller(backgroundScope)
+
+        controller.setTarget(firstRoot)
+        advanceTimeBy(HIGHLIGHT_HOVER_DEBOUNCE_MILLIS + HIGHLIGHT_RENEWAL_MILLIS * 2)
+        runCurrent()
+
+        assertEquals(3, recorder.sent.size)
+        assertEquals("node -4 has no area", controller.statusMessage)
+    }
+
+    @Test
+    fun `a plain refusal stops the renewal`() = runTest {
+        val recorder = Recorder(answer = { HighlightResult(shown = false, message = "unknown nodeId: -4") })
+        val controller = recorder.controller(backgroundScope)
+
+        controller.setTarget(firstRoot)
+        advanceTimeBy(HIGHLIGHT_HOVER_DEBOUNCE_MILLIS + HIGHLIGHT_RENEWAL_MILLIS * 2)
+        runCurrent()
+
+        assertEquals(1, recorder.sent.size)
     }
 
     private class Recorder(private val answer: (HighlightNode) -> HighlightResult = { HighlightResult(shown = true) }) {
         val sent = mutableListOf<HighlightNode>()
 
-        fun controller(): NodeHighlightController = NodeHighlightController(
-            scope = CoroutineScope(Dispatchers.Unconfined),
+        fun controller(scope: CoroutineScope = CoroutineScope(Dispatchers.Unconfined)): NodeHighlightController = NodeHighlightController(
+            scope = scope,
             send = { request ->
                 sent += request
                 answer(request)
