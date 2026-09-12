@@ -15,7 +15,7 @@ internal object TextActions {
         override val runsOnDisabledNode = false
 
         override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult {
-            val text = request.text ?: return missingText(NodeAction.SetText)
+            val text = request.text ?: return NodeActionResult.missingArgument(NodeAction.SetText, "text")
             node.focusForEditing()
             return node.config.invokeAction(SemanticsActions.SetText) { it(AnnotatedString(text)) }
         }
@@ -25,7 +25,7 @@ internal object TextActions {
         override val runsOnDisabledNode = false
 
         override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult {
-            val text = request.text ?: return missingText(NodeAction.InsertText)
+            val text = request.text ?: return NodeActionResult.missingArgument(NodeAction.InsertText, "text")
             node.focusForEditing()
             return node.config.invokeAction(SemanticsActions.InsertTextAtCursor) { it(AnnotatedString(text)) }
         }

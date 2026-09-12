@@ -18,7 +18,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
  * Must be called on the thread that owns the composition.
  *
  * @param revealInHost how [NodeAction.BringIntoView] reaches past the composition, see
- *   [scrollIntoView].
+ *   [ScrollActions.BringIntoView].
  */
 internal fun SemanticsNode.performSemanticsAction(
     request: PerformNodeAction,

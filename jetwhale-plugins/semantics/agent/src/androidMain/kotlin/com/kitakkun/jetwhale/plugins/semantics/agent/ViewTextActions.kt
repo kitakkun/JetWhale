@@ -16,8 +16,8 @@ internal object ViewTextActions {
         override fun isOfferedBy(view: View) = view is EditText
 
         override fun perform(view: View, request: PerformNodeAction): NodeActionResult {
-            val text = request.text ?: return missingText(NodeAction.SetText)
-            val field = view as? EditText ?: return notSupported("the view is not an EditText")
+            val text = request.text ?: return NodeActionResult.missingArgument(NodeAction.SetText, "text")
+            val field = view as? EditText ?: return NodeActionResult.notSupported("the view is not an EditText")
             field.focusForEditing()
             field.setText(text)
             return NodeActionResult(performed = true)
@@ -30,8 +30,8 @@ internal object ViewTextActions {
         override fun isOfferedBy(view: View) = view is EditText
 
         override fun perform(view: View, request: PerformNodeAction): NodeActionResult {
-            val text = request.text ?: return missingText(NodeAction.InsertText)
-            val field = view as? EditText ?: return notSupported("the view is not an EditText")
+            val text = request.text ?: return NodeActionResult.missingArgument(NodeAction.InsertText, "text")
+            val field = view as? EditText ?: return NodeActionResult.notSupported("the view is not an EditText")
             field.focusForEditing()
             field.text.insert(field.selectionEnd.coerceAtLeast(0), text)
             return NodeActionResult(performed = true)
@@ -44,7 +44,7 @@ internal object ViewTextActions {
         override fun isOfferedBy(view: View) = view is EditText
 
         override fun perform(view: View, request: PerformNodeAction): NodeActionResult {
-            val field = view as? TextView ?: return notSupported("the view is not a TextView")
+            val field = view as? TextView ?: return NodeActionResult.notSupported("the view is not a TextView")
             // A field that declares no IME action still submits on Done, which is what the platform
             // shows for it — so that is what the fallback sends.
             val imeAction = (field.imeOptions and EditorInfo.IME_MASK_ACTION)

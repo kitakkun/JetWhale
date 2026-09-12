@@ -48,9 +48,5 @@ internal class UnsupportedOnView(private val action: NodeAction) : ViewActionHan
 
     override fun isOfferedBy(view: View) = false
 
-    override fun perform(view: View, request: PerformNodeAction): NodeActionResult = notSupported("$action is not supported on a View node")
+    override fun perform(view: View, request: PerformNodeAction): NodeActionResult = NodeActionResult.notSupported("$action is not supported on a View node")
 }
-
-internal fun performed(handled: Boolean, declined: String): NodeActionResult = NodeActionResult(performed = handled, message = if (handled) null else declined)
-
-internal fun notSupported(reason: String): NodeActionResult = NodeActionResult(performed = false, message = reason)

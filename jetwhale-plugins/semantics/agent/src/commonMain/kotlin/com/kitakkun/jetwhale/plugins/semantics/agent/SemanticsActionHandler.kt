@@ -1,11 +1,7 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.semantics.AccessibilityAction
-import androidx.compose.ui.semantics.SemanticsConfiguration
 import androidx.compose.ui.semantics.SemanticsNode
-import androidx.compose.ui.semantics.SemanticsPropertyKey
-import androidx.compose.ui.semantics.getOrNull
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
@@ -28,7 +24,7 @@ internal interface SemanticsActionHandler {
      * Must be called on the thread that owns the composition.
      *
      * @param revealInHost how [NodeAction.BringIntoView] reaches past the composition, see
-     *   [scrollIntoView]. Every other handler ignores it.
+     *   [ScrollActions.BringIntoView]. Every other handler ignores it.
      */
     fun perform(
         node: SemanticsNode,
@@ -52,22 +48,3 @@ internal val NodeAction.semanticsHandler: SemanticsActionHandler
         NodeAction.Expand -> StateActions.Expand
         NodeAction.Collapse -> StateActions.Collapse
     }
-
-internal fun <T : Function<Boolean>> SemanticsConfiguration.invokeAction(
-    key: SemanticsPropertyKey<AccessibilityAction<T>>,
-    invoke: (T) -> Boolean,
-): NodeActionResult {
-    // An AccessibilityAction may advertise a label with no handler behind it (a node that says it
-    // is clickable but delegates the click elsewhere), so the handler is what decides.
-    val handler = getOrNull(key)?.action
-        ?: return NodeActionResult(performed = false, message = "the node does not expose ${key.name}")
-    val performed = invoke(handler)
-    return NodeActionResult(
-        performed = performed,
-        message = if (performed) null else "${key.name} ran but reported that it did not handle the request",
-    )
-}
-
-internal fun missingText(action: NodeAction): NodeActionResult = NodeActionResult(performed = false, message = "$action requires the 'text' argument")
-
-internal fun missingIndex(): NodeActionResult = NodeActionResult(performed = false, message = "ScrollToIndex requires the 'index' argument")

@@ -15,8 +15,8 @@ internal object ViewPointerActions {
         override fun isOfferedBy(view: View) = view.isClickable
 
         override fun perform(view: View, request: PerformNodeAction): NodeActionResult {
-            if (!view.isClickable) return notSupported("the view is not clickable")
-            return performed(view.performClick(), "performClick() returned false")
+            if (!view.isClickable) return NodeActionResult.notSupported("the view is not clickable")
+            return NodeActionResult.performedIf(view.performClick(), "performClick() returned false")
         }
     }
 
@@ -26,8 +26,8 @@ internal object ViewPointerActions {
         override fun isOfferedBy(view: View) = view.isLongClickable
 
         override fun perform(view: View, request: PerformNodeAction): NodeActionResult {
-            if (!view.isLongClickable) return notSupported("the view is not long-clickable")
-            return performed(view.performLongClick(), "performLongClick() returned false")
+            if (!view.isLongClickable) return NodeActionResult.notSupported("the view is not long-clickable")
+            return NodeActionResult.performedIf(view.performLongClick(), "performLongClick() returned false")
         }
     }
 }

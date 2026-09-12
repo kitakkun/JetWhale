@@ -13,8 +13,8 @@ internal object ViewStateActions {
         override fun isOfferedBy(view: View) = view.isFocusable
 
         override fun perform(view: View, request: PerformNodeAction): NodeActionResult {
-            if (!view.isFocusable) return notSupported("the view is not focusable")
-            return performed(view.requestFocus(), "requestFocus() returned false")
+            if (!view.isFocusable) return NodeActionResult.notSupported("the view is not focusable")
+            return NodeActionResult.performedIf(view.requestFocus(), "requestFocus() returned false")
         }
     }
 
