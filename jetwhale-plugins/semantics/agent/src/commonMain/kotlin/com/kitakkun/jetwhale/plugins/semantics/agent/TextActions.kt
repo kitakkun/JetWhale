@@ -16,7 +16,9 @@ internal object TextActions {
 
         override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult {
             val text = request.text ?: return NodeActionResult.missingArgument(NodeAction.SetText, "text")
-            node.focusForEditing()
+            // A text field only accepts programmatic edits while it holds focus, exactly as when a
+            // user types into it, so take focus first when the node offers it.
+            node.config.getOrNull(SemanticsActions.RequestFocus)?.action?.invoke()
             return node.config.invokeAction(SemanticsActions.SetText) { it(AnnotatedString(text)) }
         }
     }
@@ -26,7 +28,7 @@ internal object TextActions {
 
         override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult {
             val text = request.text ?: return NodeActionResult.missingArgument(NodeAction.InsertText, "text")
-            node.focusForEditing()
+            node.config.getOrNull(SemanticsActions.RequestFocus)?.action?.invoke()
             return node.config.invokeAction(SemanticsActions.InsertTextAtCursor) { it(AnnotatedString(text)) }
         }
     }
@@ -35,13 +37,5 @@ internal object TextActions {
         override val runsOnDisabledNode = false
 
         override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult = node.config.invokeAction(SemanticsActions.OnImeAction) { it() }
-    }
-
-    /**
-     * A text field only accepts programmatic edits while it holds focus, exactly as when a user
-     * types into it, so focus is taken first when the node offers it.
-     */
-    private fun SemanticsNode.focusForEditing() {
-        config.getOrNull(SemanticsActions.RequestFocus)?.action?.invoke()
     }
 }

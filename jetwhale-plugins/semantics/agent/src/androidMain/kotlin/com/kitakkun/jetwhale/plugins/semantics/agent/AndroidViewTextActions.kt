@@ -18,7 +18,9 @@ internal object AndroidViewTextActions {
         override fun perform(view: View, request: PerformNodeAction): NodeActionResult {
             val text = request.text ?: return NodeActionResult.missingArgument(NodeAction.SetText, "text")
             val field = view as? EditText ?: return NodeActionResult.notSupported("the view is not an EditText")
-            field.focusForEditing()
+            // The same order a user goes through, and the one an app's focus-driven validation
+            // expects: take focus first, then write.
+            field.requestFocus()
             field.setText(text)
             return NodeActionResult(performed = true)
         }
@@ -32,7 +34,7 @@ internal object AndroidViewTextActions {
         override fun perform(view: View, request: PerformNodeAction): NodeActionResult {
             val text = request.text ?: return NodeActionResult.missingArgument(NodeAction.InsertText, "text")
             val field = view as? EditText ?: return NodeActionResult.notSupported("the view is not an EditText")
-            field.focusForEditing()
+            field.requestFocus()
             field.text.insert(field.selectionEnd.coerceAtLeast(0), text)
             return NodeActionResult(performed = true)
         }
@@ -53,13 +55,5 @@ internal object AndroidViewTextActions {
             field.onEditorAction(imeAction)
             return NodeActionResult(performed = true)
         }
-    }
-
-    /**
-     * The same order a user goes through, and the one an app's focus-driven validation expects:
-     * take focus first, then write.
-     */
-    private fun EditText.focusForEditing() {
-        requestFocus()
     }
 }
