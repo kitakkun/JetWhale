@@ -384,7 +384,9 @@ private fun NodeDetail(
     }
 
     val clipboard = LocalClipboardManager.current
-    var textInput by remember(node.id) { mutableStateOf(node.editableText ?: "") }
+    // Ids are per root, so the same id in another root is another node.
+    var textInput by remember(rootId, node.id) { mutableStateOf(node.editableText ?: "") }
+    var indexInput by remember(rootId, node.id) { mutableStateOf("") }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large),
@@ -450,6 +452,12 @@ private fun NodeDetail(
             ActionButton("Dismiss", node, NodeAction.Dismiss, rootId, onPerformAction)
             ActionButton("Expand", node, NodeAction.Expand, rootId, onPerformAction)
             ActionButton("Collapse", node, NodeAction.Collapse, rootId, onPerformAction)
+            // Offered even for a node whose reported bounds are empty: those are the clipped bounds,
+            // and a node clipped away entirely is exactly the one this brings back.
+            JwButton(
+                text = "Bring into view",
+                onClick = { onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.BringIntoView)) },
+            )
         }
 
         if (node.actions.contains("SetText")) {
@@ -487,6 +495,26 @@ private fun NodeDetail(
             }
         }
 
+        if (node.actions.contains("ScrollToIndex")) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
+                JwTextField(
+                    value = indexInput,
+                    onValueChange = { indexInput = it },
+                    placeholder = "Item index",
+                    modifier = Modifier.weight(1f),
+                )
+                JwButton(
+                    text = "Scroll to index",
+                    onClick = {
+                        indexInput.toIntOrNull()?.let { index ->
+                            onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.ScrollToIndex, index = index))
+                        }
+                    },
+                    enabled = indexInput.toIntOrNull() != null,
+                )
+            }
+        }
+
         JwButton(
             text = "Copy `adb shell input tap` for these bounds",
             onClick = { clipboard.setText(AnnotatedString(node.adbTapCommand())) },
@@ -517,7 +545,7 @@ private fun ActionButton(
 ) {
     // Only offer what the node actually advertises: a button for an action the node does not expose
     // would always come back "not exposed", which is noise rather than feedback.
-    val exposed = node.actions.contains(action.semanticsKeyName)
+    val exposed = action.semanticsKeyName?.let(node.actions::contains) ?: true
     if (!exposed) return
     JwButton(
         text = label,
@@ -526,8 +554,11 @@ private fun ActionButton(
     )
 }
 
-/** The semantics key an action arrives under in [UiNode.actions]. */
-private val NodeAction.semanticsKeyName: String
+/**
+ * The semantics key an action arrives under in [UiNode.actions], or `null` for an action that is
+ * not the node's own and so applies to every node.
+ */
+private val NodeAction.semanticsKeyName: String?
     get() = when (this) {
         NodeAction.Click -> "OnClick"
         NodeAction.LongClick -> "OnLongClick"
@@ -535,6 +566,8 @@ private val NodeAction.semanticsKeyName: String
         NodeAction.InsertText -> "InsertTextAtCursor"
         NodeAction.ImeAction -> "PerformImeAction"
         NodeAction.ScrollBy -> "ScrollBy"
+        NodeAction.ScrollToIndex -> "ScrollToIndex"
+        NodeAction.BringIntoView -> null
         NodeAction.RequestFocus -> "RequestFocus"
         NodeAction.Dismiss -> "Dismiss"
         NodeAction.Expand -> "Expand"

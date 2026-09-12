@@ -1,9 +1,12 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
+import android.graphics.Rect
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.widget.AbsListView
 import android.widget.EditText
 import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
@@ -70,6 +73,13 @@ internal fun View.performViewAction(request: PerformNodeAction): NodeActionResul
             NodeActionResult(performed = true)
         }
 
+        NodeAction.ScrollToIndex -> {
+            val index = request.index ?: return NodeActionResult(performed = false, message = "ScrollToIndex requires the 'index' argument")
+            scrollToIndex(index)
+        }
+
+        NodeAction.BringIntoView -> bringIntoView()
+
         NodeAction.RequestFocus -> {
             if (!isFocusable) return notSupported("the view is not focusable")
             performed(requestFocus(), "requestFocus() returned false")
@@ -98,12 +108,58 @@ private val NodeAction.requiresEnabledView: Boolean
         -> true
 
         NodeAction.ScrollBy,
+        NodeAction.ScrollToIndex,
+        NodeAction.BringIntoView,
         NodeAction.RequestFocus,
         NodeAction.Dismiss,
         NodeAction.Expand,
         NodeAction.Collapse,
         -> false
     }
+
+/**
+ * `requestRectangleOnScreen` is the platform's own "show on screen": every scrolling parent —
+ * `ScrollView`, `RecyclerView`, and the holder Compose puts around an `AndroidView { }` — answers
+ * `requestChildRectangleOnScreen`, so the one call climbs out through Compose containers too.
+ * Immediate rather than animated, so the next capture already sees the result.
+ */
+private fun View.bringIntoView(): NodeActionResult {
+    val whole = Rect(0, 0, width, height)
+    if (whole.isEmpty) return notSupported("the view has no size to bring into view")
+    val visible = Rect()
+    if (getLocalVisibleRect(visible) && visible == whole) {
+        return NodeActionResult(performed = true, message = "the view is already in view")
+    }
+    return performed(requestRectangleOnScreen(whole, true), "no ancestor scrolled the view into view")
+}
+
+/**
+ * The item-position scroll of the two list widgets the platform and AndroidX offer. `RecyclerView`
+ * is checked only when the app ships it: the agent compiles against it without bundling it, and
+ * an `is` check on a class the app does not have would blow up rather than answer `false`.
+ */
+private fun View.scrollToIndex(index: Int): NodeActionResult = when {
+    this is AbsListView -> {
+        if (index !in 0 until count) {
+            notSupported("index $index is out of bounds [0, $count)")
+        } else {
+            setSelection(index)
+            NodeActionResult(performed = true)
+        }
+    }
+
+    isRecyclerViewAvailable && this is RecyclerView -> {
+        val itemCount = adapter?.itemCount ?: 0
+        if (index !in 0 until itemCount) {
+            notSupported("index $index is out of bounds [0, $itemCount)")
+        } else {
+            scrollToPosition(index)
+            NodeActionResult(performed = true)
+        }
+    }
+
+    else -> notSupported("the view is not a RecyclerView or a ListView")
+}
 
 private fun performed(handled: Boolean, declined: String): NodeActionResult = NodeActionResult(performed = handled, message = if (handled) null else declined)
 

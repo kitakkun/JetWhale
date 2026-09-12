@@ -266,6 +266,10 @@ data class NodeBounds(
  * On a [ComposeNode] it is the node's own semantics action. On a [ViewNode] it is the closest
  * equivalent the platform offers — [Click] calls `performClick()`, [SetText] sets an `EditText`'s
  * content — and [Dismiss], [Expand] and [Collapse] have none, so they report that they did not run.
+ *
+ * [BringIntoView] is the one action that is not the node's own: it drives the scrollable
+ * containers *around* the node, so it applies to any node with bounds rather than only to those
+ * that advertise it.
  */
 @Serializable
 enum class NodeAction {
@@ -286,6 +290,21 @@ enum class NodeAction {
 
     /** Scrolls a scrollable node by `scrollX`/`scrollY` pixels via `SemanticsActions.ScrollBy`. */
     ScrollBy,
+
+    /**
+     * Scrolls a lazy container (`LazyColumn`, `LazyRow`, a grid, a `Pager`; a `RecyclerView` or
+     * `ListView` on the View side) so that the item at `index` is at its start, via
+     * `SemanticsActions.ScrollToIndex`. Requires `index`. The way to reach an item that has no node
+     * yet because the container has not composed it.
+     */
+    ScrollToIndex,
+
+    /**
+     * Scrolls every scrollable ancestor by the least amount that shows the whole node, the way
+     * accessibility's "show on screen" does — no gesture, no coordinates. A node that is already
+     * fully visible reports `performed` with nothing moved.
+     */
+    BringIntoView,
 
     /** Gives the node keyboard focus via `SemanticsActions.RequestFocus`. */
     RequestFocus,

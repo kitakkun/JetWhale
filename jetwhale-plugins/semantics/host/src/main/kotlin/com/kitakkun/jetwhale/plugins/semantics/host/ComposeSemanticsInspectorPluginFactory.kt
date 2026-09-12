@@ -22,6 +22,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import com.kitakkun.jetwhale.protocol.messaging.request
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -108,8 +109,11 @@ private class ComposeNodeInspectorHostPlugin :
                 pluginScope.launch {
                     actionStatus = try {
                         val result = performAction(request)
-                        // Re-read straight away: an action changes the very tree the user is
-                        // looking at, and a stale tree next to a "done" message reads as a failure.
+                        // Re-read once the app has drawn the result: an action changes the very tree
+                        // the user is looking at, and a stale tree next to a "done" message reads as a
+                        // failure. A scroll is applied on the app's next frame, so straight away is
+                        // too early.
+                        delay(ACTION_SETTLE_MS)
                         capture(snapshot?.options ?: NodeTreeCaptureOptions())
                         when {
                             result.performed -> "${request.action} on #${request.nodeId}: done"
@@ -152,3 +156,6 @@ private class ComposeNodeInspectorHostPlugin :
         )
     }
 }
+
+/** Comfortably more than one frame at 60 Hz, and still below what a user notices. */
+private const val ACTION_SETTLE_MS = 50L

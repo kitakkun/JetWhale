@@ -165,6 +165,7 @@ public final class com/kitakkun/jetwhale/plugins/semantics/protocol/GetViewAttri
 }
 
 public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction : java/lang/Enum {
+	public static final field BringIntoView Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
 	public static final field Click Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
 	public static final field Collapse Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction$Companion;
@@ -175,6 +176,7 @@ public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction :
 	public static final field LongClick Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
 	public static final field RequestFocus Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
 	public static final field ScrollBy Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public static final field ScrollToIndex Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
 	public static final field SetText Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
@@ -359,18 +361,20 @@ public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeSnap
 
 public final class com/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction$Companion;
-	public fun <init> (Ljava/lang/String;ILcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;Ljava/lang/String;FF)V
-	public synthetic fun <init> (Ljava/lang/String;ILcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;Ljava/lang/String;FFILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;ILcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;Ljava/lang/String;FFLjava/lang/Integer;)V
+	public synthetic fun <init> (Ljava/lang/String;ILcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;Ljava/lang/String;FFLjava/lang/Integer;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()I
 	public final fun component3 ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
 	public final fun component4 ()Ljava/lang/String;
 	public final fun component5 ()F
 	public final fun component6 ()F
-	public final fun copy (Ljava/lang/String;ILcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;Ljava/lang/String;FF)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;Ljava/lang/String;ILcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;Ljava/lang/String;FFILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;
+	public final fun component7 ()Ljava/lang/Integer;
+	public final fun copy (Ljava/lang/String;ILcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;Ljava/lang/String;FFLjava/lang/Integer;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;Ljava/lang/String;ILcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;Ljava/lang/String;FFLjava/lang/Integer;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAction ()Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
+	public final fun getIndex ()Ljava/lang/Integer;
 	public final fun getNodeId ()I
 	public final fun getRootId ()Ljava/lang/String;
 	public final fun getScrollX ()F

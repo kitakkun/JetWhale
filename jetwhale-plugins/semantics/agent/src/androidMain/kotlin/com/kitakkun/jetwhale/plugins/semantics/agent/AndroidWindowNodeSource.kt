@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.getAllSemanticsNodes
@@ -71,8 +72,8 @@ internal class AndroidWindowNodeSource(rootView: View) :
             val view = viewInWindow(request.nodeId, rootView) ?: return@await unknownNode(request.nodeId)
             view.performViewAction(request)
         } else {
-            val node = rootView.findSemanticsNode(request.nodeId) ?: return@await unknownNode(request.nodeId)
-            node.performSemanticsAction(request)
+            val found = rootView.findSemanticsNode(request.nodeId) ?: return@await unknownNode(request.nodeId)
+            found.node.performSemanticsAction(request, revealInHost = found.hostView::requestRectangleOnScreenNow)
         }
     }
 
@@ -111,17 +112,33 @@ internal class AndroidWindowNodeSource(rootView: View) :
 private fun viewInWindow(nodeId: Int, rootView: View): View? = ViewNodeIds.viewOf(nodeId)?.takeIf { it.rootView === rootView }
 
 /**
+ * A semantics node together with the view its composition is drawn into — the view whose
+ * coordinate space the node's root coordinates are, and the one to ask when the window's own
+ * `View`s have to scroll for the node.
+ */
+private class SemanticsNodeInWindow(val node: SemanticsNode, val hostView: View)
+
+/**
  * Searches every composition in the window for a semantics node.
  *
  * A node id addresses the same layout node in both trees, but a node merged into its parent is only
  * present in the unmerged one — so a lookup that missed in the merged tree still has somewhere to
  * look. The merged tree comes first because its config carries the actions a caller saw advertised.
  */
-private fun View.findSemanticsNode(id: Int): SemanticsNode? = composeRootsInWindow().firstNotNullOfOrNull { root ->
+private fun View.findSemanticsNode(id: Int): SemanticsNodeInWindow? = composeRootsInWindow().firstNotNullOfOrNull { root ->
     val owner = root.semanticsOwner
-    owner.getAllSemanticsNodes(mergingEnabled = true, skipDeactivatedNodes = true).firstOrNull { it.id == id }
+    val node = owner.getAllSemanticsNodes(mergingEnabled = true, skipDeactivatedNodes = true).firstOrNull { it.id == id }
         ?: owner.getAllSemanticsNodes(mergingEnabled = false, skipDeactivatedNodes = true).firstOrNull { it.id == id }
+    node?.let { SemanticsNodeInWindow(node = it, hostView = root.view) }
 }
+
+/**
+ * Scrolls the window's `View`s so that [bounds], in this view's own coordinates, is on screen —
+ * `ScrollView`, `RecyclerView` and a Compose `AndroidView { }` holder all answer
+ * `requestChildRectangleOnScreen`, so one call climbs the whole way up. Immediate rather than
+ * animated, so the next capture already sees the result.
+ */
+private fun View.requestRectangleOnScreenNow(bounds: Rect): Boolean = requestRectangleOnScreen(bounds.toOutwardAndroidRect(), true)
 
 /**
  * Every composition in this view's subtree, outermost first. A composition's own children are not
