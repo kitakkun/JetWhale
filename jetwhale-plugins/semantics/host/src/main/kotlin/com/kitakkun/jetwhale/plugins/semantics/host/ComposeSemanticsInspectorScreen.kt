@@ -384,8 +384,9 @@ private fun NodeDetail(
     }
 
     val clipboard = LocalClipboardManager.current
-    var textInput by remember(node.id) { mutableStateOf(node.editableText ?: "") }
-    var indexInput by remember(node.id) { mutableStateOf("") }
+    // Ids are per root, so the same id in another root is another node.
+    var textInput by remember(rootId, node.id) { mutableStateOf(node.editableText ?: "") }
+    var indexInput by remember(rootId, node.id) { mutableStateOf("") }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large),
@@ -451,10 +452,11 @@ private fun NodeDetail(
             ActionButton("Dismiss", node, NodeAction.Dismiss, rootId, onPerformAction)
             ActionButton("Expand", node, NodeAction.Expand, rootId, onPerformAction)
             ActionButton("Collapse", node, NodeAction.Collapse, rootId, onPerformAction)
+            // Offered even for a node whose reported bounds are empty: those are the clipped bounds,
+            // and a node clipped away entirely is exactly the one this brings back.
             JwButton(
                 text = "Bring into view",
                 onClick = { onPerformAction(PerformNodeAction(rootId = rootId, nodeId = node.id, action = NodeAction.BringIntoView)) },
-                enabled = !node.bounds.isEmpty,
             )
         }
 

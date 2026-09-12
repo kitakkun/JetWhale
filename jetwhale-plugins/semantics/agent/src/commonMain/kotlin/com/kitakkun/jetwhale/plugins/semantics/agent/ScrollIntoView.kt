@@ -30,6 +30,11 @@ import kotlin.math.sign
  *   answers `false`.
  */
 internal fun SemanticsNode.scrollIntoView(revealInHost: (boundsInRoot: Rect) -> Boolean): NodeActionResult {
+    // A node that is not placed has no position to compute a scroll from — a capture taken with
+    // includeInvisible, or a node that left the layout since.
+    if (!layoutInfo.isPlaced) {
+        return NodeActionResult(performed = false, message = "the node is not laid out, so there is nothing to scroll to")
+    }
     var containersScrolled = 0
     var containersDeclined = 0
     var carried = Offset.Zero
@@ -89,7 +94,6 @@ internal fun SemanticsNode.scrollIntoView(revealInHost: (boundsInRoot: Rect) -> 
  */
 private val SemanticsNode.isWhollyUnclipped: Boolean
     get() {
-        if (!layoutInfo.isPlaced) return false
         val unclipped = Rect(positionInRoot, size.toSize())
         val clipped = boundsInRoot
         return abs(clipped.left - unclipped.left) < CLIP_TOLERANCE_PX &&
