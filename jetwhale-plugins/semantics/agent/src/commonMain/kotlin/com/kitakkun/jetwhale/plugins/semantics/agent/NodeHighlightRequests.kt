@@ -11,8 +11,8 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /** Shows one node on the device, or clears the root's highlight, saying why when it cannot. */
 internal suspend fun showHighlight(request: HighlightNode): HighlightResult {
-    val source = sourceOf(request.rootId)
-        ?: return HighlightResult(shown = false, message = unknownRoot(request.rootId))
+    val source = ComposeNodeSourceRegistry.sourceOf(request.rootId)
+        ?: return HighlightResult(shown = false, message = ComposeNodeSourceRegistry.unknownRootMessage(request.rootId))
     val highlightSource = source as? NodeHighlightSource
         ?: return HighlightResult(shown = false, message = ROOT_WITHOUT_HIGHLIGHT)
     // A box that is shown has to be able to expire: the TTL is what stops a host that dies without

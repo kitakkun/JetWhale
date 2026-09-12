@@ -24,6 +24,12 @@ object ComposeNodeSourceRegistry {
     /** The registered roots, oldest registration first. */
     val sources: List<ComposeNodeSource> get() = entries.value.map { it.source }
 
+    /** The registered root a request names, or `null` when no such root is registered. */
+    internal fun sourceOf(rootId: String): ComposeNodeSource? = sources.firstOrNull { it.sourceId == rootId }
+
+    /** The answer every request gets for a root that is not registered. */
+    internal fun unknownRootMessage(rootId: String): String = "unknown rootId: $rootId (the root may have been detached; capture the tree again)"
+
     /**
      * Claims [source]'s root and returns a handle releasing that claim. When a source with the same
      * [ComposeNodeSource.sourceId] is already registered, the existing one keeps serving captures
