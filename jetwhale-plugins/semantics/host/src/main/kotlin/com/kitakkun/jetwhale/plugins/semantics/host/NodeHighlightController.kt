@@ -19,19 +19,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
- * Which node the device should be drawing a box over, given what the user is doing.
- *
- * Hover wins over selection while the pointer is on a row, because that is the question being asked
- * at that moment — "which one is this?" — and the selection is still there when the pointer leaves.
- * The toggle is checked here rather than at every call site so that turning it off is one answer:
- * nothing.
- */
-internal fun highlightTarget(enabled: Boolean, selected: NodeKey?, hovered: NodeKey?): NodeKey? = when {
-    !enabled -> null
-    else -> hovered ?: selected
-}
-
-/**
  * Keeps the device's highlight in step with the host's tree view.
  *
  * It owns the one fact the screen cannot recompute — which root is currently showing a box — because
@@ -90,7 +77,14 @@ internal class NodeHighlightController(
     suspend fun show(target: NodeKey?): HighlightResult {
         val leaving = shownIn
         if (leaving != null && leaving != target?.rootId) {
-            clearIn(leaving)
+            shownIn = null
+            try {
+                sendInOrder(HighlightNode(rootId = leaving, nodeId = null, ttlMs = HIGHLIGHT_TTL_MILLIS))
+            } catch (e: JetWhaleMessagingException) {
+                // The window that was showing the box is unreachable, which is also how it stops
+                // showing one: the overlay went away with it, and the agent's own TTL covers the rest.
+                statusMessage = "Clearing the highlight failed: ${e.message}"
+            }
         }
         if (target == null) {
             statusMessage = null
@@ -135,17 +129,6 @@ internal class NodeHighlightController(
         // waiting here has nothing left to say.
         currentCoroutineContext().ensureActive()
         send(request)
-    }
-
-    private suspend fun clearIn(rootId: String) {
-        shownIn = null
-        try {
-            sendInOrder(HighlightNode(rootId = rootId, nodeId = null, ttlMs = HIGHLIGHT_TTL_MILLIS))
-        } catch (e: JetWhaleMessagingException) {
-            // The window that was showing the box is unreachable, which is also how it stops showing
-            // one: the overlay went away with it, and the agent's own TTL covers the rest.
-            statusMessage = "Clearing the highlight failed: ${e.message}"
-        }
     }
 }
 

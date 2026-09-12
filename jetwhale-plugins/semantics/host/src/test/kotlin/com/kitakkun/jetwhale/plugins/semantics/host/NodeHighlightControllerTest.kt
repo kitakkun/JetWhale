@@ -15,43 +15,10 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * The decisions behind the on-device highlight, driven without a composition: what the host wants
- * shown, and what it actually sends to get there.
- */
+/** The on-device highlight driven without a composition: what the host sends to keep it in step. */
 class NodeHighlightControllerTest {
     private val firstRoot = NodeKey(rootId = "window-1", nodeId = -4)
     private val secondRoot = NodeKey(rootId = "window-2", nodeId = 12)
-
-    // -- highlightTarget -------------------------------------------------------
-
-    @Test
-    fun `the selected node is highlighted when nothing is hovered`() {
-        assertEquals(firstRoot, highlightTarget(enabled = true, selected = firstRoot, hovered = null))
-    }
-
-    @Test
-    fun `a hovered row overrides the selection`() {
-        assertEquals(secondRoot, highlightTarget(enabled = true, selected = firstRoot, hovered = secondRoot))
-    }
-
-    @Test
-    fun `leaving a hovered row goes back to the selection`() {
-        val whileHovering = highlightTarget(enabled = true, selected = firstRoot, hovered = secondRoot)
-        val afterLeaving = highlightTarget(enabled = true, selected = firstRoot, hovered = null)
-        assertEquals(secondRoot, whileHovering)
-        assertEquals(firstRoot, afterLeaving)
-    }
-
-    @Test
-    fun `the toggle being off highlights nothing at all`() {
-        assertEquals(null, highlightTarget(enabled = false, selected = firstRoot, hovered = secondRoot))
-    }
-
-    @Test
-    fun `nothing is highlighted with nothing selected and nothing hovered`() {
-        assertEquals(null, highlightTarget(enabled = true, selected = null, hovered = null))
-    }
 
     // -- NodeHighlightController ----------------------------------------------
 
