@@ -4,7 +4,6 @@ import com.kitakkun.jetwhale.host.mcp.HostMcpCommand
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
-import com.kitakkun.jetwhale.host.model.HostContent
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
@@ -67,20 +66,25 @@ class HostNavigationCommand(
                 ),
             )
 
-        // A request for content is confirmed against the content, so what is reported is the content
-        // — with the dialog still open over it named separately, since the caller may want it gone.
-        val shown = if (request.isForContent) applied.content else HostContent(applied.kind, applied.pluginId, applied.sessionId)
-        return Json.encodeToString(
+        val result = if (request.isForContent) {
             NavigateResult(
                 applied = true,
-                destination = shown.kind.name,
-                pluginId = shown.pluginId,
-                sessionId = shown.sessionId,
+                destination = applied.content.kind.name,
+                pluginId = applied.content.pluginId,
+                sessionId = applied.content.sessionId,
+                poppedOut = applied.poppedOutPlugins.any { it.pluginId == applied.content.pluginId && it.sessionId == applied.content.sessionId },
+                overlay = applied.kind.name.takeIf { it != applied.content.kind.name },
+            )
+        } else {
+            NavigateResult(
+                applied = true,
+                destination = applied.kind.name,
+                pluginId = applied.pluginId,
+                sessionId = applied.sessionId,
                 settingsSection = applied.settingsSection?.name,
-                poppedOut = applied.poppedOutPlugins.any { it.pluginId == shown.pluginId && it.sessionId == shown.sessionId },
-                overlay = applied.kind.name.takeIf { request.isForContent && applied.kind != applied.content.kind },
-            ),
-        )
+            )
+        }
+        return Json.encodeToString(result)
     }
 
     private suspend fun JetWhaleMcpArguments.toRequest(): HostNavigationRequest = when (this[destination]) {

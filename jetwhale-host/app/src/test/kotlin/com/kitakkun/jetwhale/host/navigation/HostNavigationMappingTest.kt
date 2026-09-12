@@ -10,7 +10,7 @@ class HostNavigationMappingTest {
     private val plugin = PluginNavKey(pluginId = "plugin-1", sessionId = "session-1")
 
     @Test
-    fun `a dialog on top is the destination, and the plugin under it is the content`() {
+    fun `a dialog on top is the destination and the plugin under it is the content`() {
         val destination = listOf<NavKey>(EmptyPluginNavKey, plugin, SettingsNavKey()).toHostDestination()
 
         assertEquals(HostDestinationKind.SETTINGS, destination.kind)

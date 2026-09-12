@@ -136,7 +136,7 @@ class HostNavigationCommandTest {
     }
 
     @Test
-    fun `navigate to a plugin is confirmed under a dialog the user has open, and names the dialog`() = runBlocking {
+    fun `navigate to a plugin is confirmed under a dialog the user has open and names the dialog`() = runBlocking {
         currentView.value = viewState(
             HostDestination(
                 kind = HostDestinationKind.SETTINGS,
@@ -153,6 +153,7 @@ class HostNavigationCommandTest {
         assertEquals("PLUGIN", result.destination)
         assertEquals("com.example.agent", result.pluginId)
         assertEquals("SETTINGS", result.overlay)
+        assertNull(result.settingsSection)
     }
 
     @Test
@@ -167,7 +168,7 @@ class HostNavigationCommandTest {
     }
 
     @Test
-    fun `a dialog request is confirmed on the dialog itself, and names no overlay`() = runBlocking {
+    fun `a dialog request is confirmed on the dialog itself and names no overlay`() = runBlocking {
         currentView.value = viewState(
             HostDestination(kind = HostDestinationKind.INFO, content = HostContent(HostDestinationKind.PLUGIN, "com.example.agent", "session-1")),
         )

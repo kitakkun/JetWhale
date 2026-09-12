@@ -51,7 +51,7 @@ class ShowBelowOverlaysTest {
     }
 
     @Test
-    fun `an overlay below the content top is content history, not something to preserve on top`() {
+    fun `an overlay below the content top is content history rather than something to preserve on top`() {
         val backStack = NavBackStack<NavKey>(EmptyPluginNavKey, SettingsNavKey(), otherPlugin)
 
         backStack.showBelowOverlays(plugin)

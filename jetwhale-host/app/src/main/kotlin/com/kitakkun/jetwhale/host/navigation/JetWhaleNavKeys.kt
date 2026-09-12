@@ -48,12 +48,12 @@ data class SettingsNavKey(
 
 @Serializable
 data object LicensesNavKey : OverlayNavKey {
-    override val presentation: OverlayPresentation = FULL_WIDTH_DIALOG
+    override val presentation: OverlayPresentation get() = FULL_WIDTH_DIALOG
 }
 
 @Serializable
 data object InfoNavKey : OverlayNavKey {
-    override val presentation: OverlayPresentation = OverlayPresentation.Dialog(DialogProperties())
+    override val presentation: OverlayPresentation get() = OverlayPresentation.Dialog(DialogProperties())
 }
 
 @Serializable
@@ -82,7 +82,7 @@ data object DisabledPluginNavKey : NavKey
 
 @Serializable
 data object LogViewerNavKey : OverlayNavKey {
-    override val presentation: OverlayPresentation = OverlayPresentation.Window(
+    override val presentation: OverlayPresentation get() = OverlayPresentation.Window(
         WindowProperties(width = 1000.dp, height = 700.dp),
     )
 }
