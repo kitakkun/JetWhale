@@ -43,7 +43,7 @@ object ComposeNodeSourceRegistry {
 
     /** Drops every registration. Intended for tests and for tearing down an install. */
     fun clear() {
-        entries.getAndUpdate { emptyList() }.forEach { it.source.onUnregistered() }
+        entries.getAndUpdate { emptyList() }.forEach { (it.source as? RegistryAwareNodeSource)?.onUnregistered() }
     }
 
     private data class Entry(val source: ComposeNodeSource, val claims: Int) {
@@ -72,7 +72,7 @@ object ComposeNodeSourceRegistry {
                     else -> current.toMutableList().apply { this[index] = this[index].copy(claims = this[index].claims - 1) }
                 }
             }
-            unregistered?.onUnregistered()
+            (unregistered as? RegistryAwareNodeSource)?.onUnregistered()
         }
     }
 }

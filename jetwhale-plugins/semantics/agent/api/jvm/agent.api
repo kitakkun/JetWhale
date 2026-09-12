@@ -1,12 +1,7 @@
 public abstract interface class com/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSource {
 	public abstract fun capture (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun getSourceId ()Ljava/lang/String;
-	public fun onUnregistered ()V
 	public abstract fun performAction (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-}
-
-public final class com/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSource$DefaultImpls {
-	public static fun onUnregistered (Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSource;)V
 }
 
 public final class com/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSourceRegistry {
@@ -52,13 +47,16 @@ public abstract interface class com/kitakkun/jetwhale/plugins/semantics/agent/No
 	public abstract fun highlight-8Mi8wO0 (Ljava/lang/Integer;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public abstract interface class com/kitakkun/jetwhale/plugins/semantics/agent/RegistryAwareNodeSource : com/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSource {
+	public abstract fun onUnregistered ()V
+}
+
 public final class com/kitakkun/jetwhale/plugins/semantics/agent/SemanticsOwnerNodeSource : com/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSource {
 	public static final field $stable I
 	public fun <init> (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeUiThread;)V
 	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeUiThread;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun capture (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeTreeCaptureOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun getSourceId ()Ljava/lang/String;
-	public fun onUnregistered ()V
 	public fun performAction (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/PerformNodeAction;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
