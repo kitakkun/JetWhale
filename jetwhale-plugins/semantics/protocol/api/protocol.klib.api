@@ -555,16 +555,19 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode : com
 }
 
 final class com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult { // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult|null[0]
-    constructor <init>(kotlin/Boolean, kotlin/String? = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.<init>|<init>(kotlin.Boolean;kotlin.String?){}[0]
+    constructor <init>(kotlin/Boolean, kotlin/String? = ..., kotlin/Boolean = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.<init>|<init>(kotlin.Boolean;kotlin.String?;kotlin.Boolean){}[0]
 
     final val message // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.message|{}message[0]
         final fun <get-message>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.message.<get-message>|<get-message>(){}[0]
+    final val retryLater // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.retryLater|{}retryLater[0]
+        final fun <get-retryLater>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.retryLater.<get-retryLater>|<get-retryLater>(){}[0]
     final val shown // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.shown|{}shown[0]
         final fun <get-shown>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.shown.<get-shown>|<get-shown>(){}[0]
 
     final fun component1(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.component1|component1(){}[0]
     final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.component2|component2(){}[0]
-    final fun copy(kotlin/Boolean = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.copy|copy(kotlin.Boolean;kotlin.String?){}[0]
+    final fun component3(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.component3|component3(){}[0]
+    final fun copy(kotlin/Boolean = ..., kotlin/String? = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.copy|copy(kotlin.Boolean;kotlin.String?;kotlin.Boolean){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.toString|toString(){}[0]

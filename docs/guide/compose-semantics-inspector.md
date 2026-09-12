@@ -257,8 +257,9 @@ Four things to know:
   reading it.
 - **It follows the node, or goes away.** The box is put back where the node is as the window
   redraws, so scrolling the app, a relayout, or a rotation the activity handles itself does not leave
-  it behind; a node that can no longer be found takes the box down rather than stranding it. A box on
-  screen is always in the right place.
+  it behind; a node that can no longer be found takes the box down rather than stranding it, and a
+  node that is only out of view for now — scrolled out of a lazy list, say — gets its box back when
+  it comes back while still selected. A box on screen is always in the right place.
 - **It clears itself.** The app drops a highlight it has not heard about for 30 seconds, so a host
   that crashes or is killed cannot leave a box on the app's screen for the rest of the session.
   Closing the inspector, disabling the plugin and disconnecting all clear it straight away.

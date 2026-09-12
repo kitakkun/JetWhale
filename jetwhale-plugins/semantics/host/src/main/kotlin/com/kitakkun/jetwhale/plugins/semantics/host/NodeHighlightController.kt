@@ -72,10 +72,10 @@ internal class NodeHighlightController(
         holding = scope.launch {
             // Only a target waits: taking the box down is an answer the user already committed to.
             if (target != null) delay(HIGHLIGHT_HOVER_DEBOUNCE_MILLIS)
-            if (!show(target)) return@launch
-            while (true) {
+            var result = show(target)
+            while (result.shown || result.retryLater) {
                 delay(HIGHLIGHT_RENEWAL_MILLIS)
-                if (!show(target)) return@launch
+                result = show(target)
             }
         }
     }
@@ -83,17 +83,18 @@ internal class NodeHighlightController(
     /**
      * Draws [target] on the device, or clears the highlight when it is `null`.
      *
-     * @return whether the app is showing it — `false` for a root that refused, so a caller renewing
-     *   the highlight stops asking rather than repeating a request that will not start working.
+     * @return the app's answer, so a caller renewing the highlight can tell a refusal that will not
+     *   start working from one the app expects to lift. A clear and a failed send both answer
+     *   `shown = false`.
      */
-    suspend fun show(target: NodeKey?): Boolean {
+    suspend fun show(target: NodeKey?): HighlightResult {
         val leaving = shownIn
         if (leaving != null && leaving != target?.rootId) {
             clearIn(leaving)
         }
         if (target == null) {
             statusMessage = null
-            return false
+            return HighlightResult(shown = false)
         }
         // Recorded before the answer comes back, not after: a new target cancels this call, and a
         // request cancelled after the app drew the box would otherwise leave the controller thinking
@@ -104,12 +105,13 @@ internal class NodeHighlightController(
         } catch (e: JetWhaleMessagingException) {
             // shownIn stays: a timeout is a failure too, and the app may have drawn the box before
             // the reply was lost. An extra clear costs nothing; a box left up costs the user.
-            statusMessage = "Highlight failed: ${e.message}"
-            return false
+            val failure = "Highlight failed: ${e.message}"
+            statusMessage = failure
+            return HighlightResult(shown = false, message = failure)
         }
         shownIn = if (result.shown) target.rootId else null
         statusMessage = if (result.shown) null else result.message
-        return result.shown
+        return result
     }
 
     /**
