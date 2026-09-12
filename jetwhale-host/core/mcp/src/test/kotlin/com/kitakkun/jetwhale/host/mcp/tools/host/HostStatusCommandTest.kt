@@ -8,9 +8,11 @@ import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
+import com.kitakkun.jetwhale.host.model.HostContent
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationService
+import com.kitakkun.jetwhale.host.model.HostSettingsSection
 import com.kitakkun.jetwhale.host.model.HostVersionInfo
 import com.kitakkun.jetwhale.host.model.HostViewState
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
@@ -126,6 +128,24 @@ class HostStatusCommandTest {
         assertEquals("PLUGIN", ui.destination)
         assertEquals("com.example", ui.pluginId)
         assertEquals("s1", ui.selectedSessionId)
+    }
+
+    @Test
+    fun `getStatus reports the content under a dialog the host window has open`() = runBlocking {
+        currentView.value = HostViewState(
+            destination = HostDestination(
+                kind = HostDestinationKind.SETTINGS,
+                settingsSection = HostSettingsSection.GENERAL,
+                content = HostContent(HostDestinationKind.PLUGIN, "com.example", "s1"),
+            ),
+            selectedSessionId = "s1",
+            selectedPluginId = "com.example",
+        )
+
+        val ui = requireNotNull(command.execute(arguments()).decode().ui)
+        assertEquals("SETTINGS", ui.destination)
+        assertEquals("PLUGIN", ui.content.destination)
+        assertEquals("com.example", ui.content.pluginId)
     }
 
     @Test
