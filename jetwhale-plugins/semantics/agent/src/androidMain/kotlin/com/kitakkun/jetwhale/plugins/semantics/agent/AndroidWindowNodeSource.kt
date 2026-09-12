@@ -154,6 +154,7 @@ internal class AndroidWindowNodeSource(rootView: View) :
             return@await HighlightResult(
                 shown = false,
                 message = "node $nodeId has no area in this window (it is invisible, unmeasured, or fully clipped)",
+                retryLater = true,
             )
         }
         highlightOverlay.show(rootView = rootView, resolveBounds = resolveBounds, ttl = ttl)
@@ -184,7 +185,7 @@ private class SemanticsNodeInWindow(val node: SemanticsNode, val hostView: View)
 
 /**
  * Where the node [nodeId] names can be seen in this window, in pixels, or `null` when the window has
- * no such node. Empty when the node is there but has no visible area.
+ * no such node. Empty when the node is there but has no visible area, or is not visible at all.
  *
  * Both halves of the tree already report their bounds in the window's space — a `View`'s
  * `getGlobalVisibleRect` (whose "global" is the window's root), a semantics node's `boundsInWindow`
@@ -195,7 +196,10 @@ private class SemanticsNodeInWindow(val node: SemanticsNode, val hostView: View)
  */
 private fun View.highlightBoundsOf(nodeId: Int): android.graphics.Rect? = if (nodeId < 0) {
     viewInWindow(nodeId, this)?.let { view ->
-        android.graphics.Rect().also { visible -> if (!view.getGlobalVisibleRect(visible)) visible.setEmpty() }
+        // Visibility as the captured tree decides it: `getGlobalVisibleRect` still reports a rect for
+        // an INVISIBLE view, which occupies its space without drawing anything to point at.
+        val shown = view.visibility == View.VISIBLE && view.isShown
+        android.graphics.Rect().also { visible -> if (!shown || !view.getGlobalVisibleRect(visible)) visible.setEmpty() }
     }
 } else {
     findSemanticsNode(nodeId)?.node?.boundsInWindow?.let { bounds ->
