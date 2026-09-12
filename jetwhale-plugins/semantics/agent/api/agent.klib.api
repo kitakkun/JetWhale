@@ -18,6 +18,14 @@ abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread
     abstract suspend fun <#A1: kotlin/Any?> await(kotlin/Function0<#A1>): #A1 // com.kitakkun.jetwhale.plugins.semantics.agent/ComposeUiThread.await|await(kotlin.Function0<0:0>){0§<kotlin.Any?>}[0]
 }
 
+abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/NodeHighlightSource { // com.kitakkun.jetwhale.plugins.semantics.agent/NodeHighlightSource|null[0]
+    abstract suspend fun highlight(kotlin/Int?, kotlin.time/Duration): com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult // com.kitakkun.jetwhale.plugins.semantics.agent/NodeHighlightSource.highlight|highlight(kotlin.Int?;kotlin.time.Duration){}[0]
+}
+
+abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/RegistryAwareNodeSource : com.kitakkun.jetwhale.plugins.semantics.agent/ComposeNodeSource { // com.kitakkun.jetwhale.plugins.semantics.agent/RegistryAwareNodeSource|null[0]
+    abstract fun onUnregistered() // com.kitakkun.jetwhale.plugins.semantics.agent/RegistryAwareNodeSource.onUnregistered|onUnregistered(){}[0]
+}
+
 abstract interface com.kitakkun.jetwhale.plugins.semantics.agent/ViewAttributeSource { // com.kitakkun.jetwhale.plugins.semantics.agent/ViewAttributeSource|null[0]
     abstract suspend fun attributes(kotlin/Int): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeSnapshot? // com.kitakkun.jetwhale.plugins.semantics.agent/ViewAttributeSource.attributes|attributes(kotlin.Int){}[0]
     abstract suspend fun setAttribute(kotlin/Int, kotlin/String, com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeResult // com.kitakkun.jetwhale.plugins.semantics.agent/ViewAttributeSource.setAttribute|setAttribute(kotlin.Int;kotlin.String;com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue){}[0]

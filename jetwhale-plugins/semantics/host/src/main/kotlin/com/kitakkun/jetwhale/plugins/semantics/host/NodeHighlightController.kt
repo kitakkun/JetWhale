@@ -1,0 +1,152 @@
+package com.kitakkun.jetwhale.plugins.semantics.host
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightResult
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+
+/**
+ * Keeps the device's highlight in step with the host's tree view.
+ *
+ * It owns the one fact the screen cannot recompute — which root is currently showing a box — because
+ * a root only ever clears its own overlay: moving the highlight from a dialog to the screen behind it
+ * has to tell the dialog to stop showing one.
+ */
+internal class NodeHighlightController(
+    /** Outlives the tree view, so leaving the screen can still take the box down. */
+    private val scope: CoroutineScope,
+    private val send: suspend (HighlightNode) -> HighlightResult,
+) {
+    private var shownIn: String? = null
+
+    /** Keeps the current target alive; a new target replaces it. */
+    private var holding: Job? = null
+
+    /**
+     * One request on the wire at a time, in the order the targets were set. Cancelling [holding]
+     * stops it only at its next suspension, so without this a replaced target could still enqueue
+     * its request after the replacement's and be the one the app paints last.
+     */
+    private val sending = Mutex()
+
+    /** Why the app is not showing what was asked for, for the screen's status line. */
+    var statusMessage: String? by mutableStateOf(null)
+        private set
+
+    /**
+     * Points the device at [target], or takes the box down when it is `null`.
+     *
+     * The waiting lives here rather than in the screen that reported the target. A pointer crossing
+     * rows on its way somewhere must not send a request per row, and the app drops a highlight it
+     * has not heard about for [HIGHLIGHT_TTL_MILLIS], so one left standing has to be renewed for as
+     * long as it stands — neither is something a composition should be holding open.
+     */
+    fun setTarget(target: NodeKey?) {
+        holding?.cancel()
+        holding = scope.launch {
+            // Only a target waits: taking the box down is an answer the user already committed to.
+            if (target != null) delay(HIGHLIGHT_HOVER_DEBOUNCE_MILLIS)
+            var result = show(target)
+            while (result.shown || result.retryLater) {
+                delay(HIGHLIGHT_RENEWAL_MILLIS)
+                result = show(target)
+            }
+        }
+    }
+
+    /**
+     * Draws [target] on the device, or clears the highlight when it is `null`.
+     *
+     * @return the app's answer, so a caller renewing the highlight can tell a refusal that will not
+     *   start working from one the app expects to lift. A clear and a failed send both answer
+     *   `shown = false`.
+     */
+    suspend fun show(target: NodeKey?): HighlightResult {
+        val leaving = shownIn
+        if (leaving != null && leaving != target?.rootId) {
+            shownIn = null
+            try {
+                sendInOrder(HighlightNode(rootId = leaving, nodeId = null, ttlMs = HIGHLIGHT_TTL_MILLIS))
+            } catch (e: JetWhaleMessagingException) {
+                // The window that was showing the box is unreachable, which is also how it stops
+                // showing one: the overlay went away with it, and the agent's own TTL covers the rest.
+                statusMessage = "Clearing the highlight failed: ${e.message}"
+            }
+        }
+        if (target == null) {
+            statusMessage = null
+            return HighlightResult(shown = false)
+        }
+        // Recorded before the answer comes back, not after: a new target cancels this call, and a
+        // request cancelled after the app drew the box would otherwise leave the controller thinking
+        // that root has nothing to clear — stranding a box there until its own TTL runs out.
+        shownIn = target.rootId
+        val result = try {
+            sendInOrder(HighlightNode(rootId = target.rootId, nodeId = target.nodeId, ttlMs = HIGHLIGHT_TTL_MILLIS))
+        } catch (e: JetWhaleMessagingException) {
+            // shownIn stays: a timeout is a failure too, and the app may have drawn the box before
+            // the reply was lost. An extra clear costs nothing; a box left up costs the user.
+            val failure = "Highlight failed: ${e.message}"
+            statusMessage = failure
+            return HighlightResult(shown = false, message = failure)
+        }
+        shownIn = if (result.shown) target.rootId else null
+        statusMessage = if (result.shown) null else result.message
+        return result
+    }
+
+    /**
+     * Takes the box down without waiting for the app to answer, for the callers that cannot suspend:
+     * the tree view leaving the composition and the plugin instance being disposed.
+     *
+     * Started in place and shielded from cancellation: the runtime cancels the instance's scope
+     * right after `onDispose` returns, which would otherwise stop the clear before its request left,
+     * leaving the box up until the app's own TTL. A peer closed in the meantime fails the send, and
+     * that is caught where the send is.
+     */
+    fun clearAsync() {
+        holding?.cancel()
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            withContext(NonCancellable) { show(null) }
+        }
+    }
+
+    private suspend fun sendInOrder(request: HighlightNode): HighlightResult = sending.withLock {
+        // Taking the lock does not check for cancellation on its fast path; a target replaced while
+        // waiting here has nothing left to say.
+        currentCoroutineContext().ensureActive()
+        send(request)
+    }
+}
+
+/**
+ * How long the app keeps a highlight without hearing from the host again.
+ *
+ * Long enough that a user reading a row is never left without the box, short enough that a host that
+ * crashed does not leave one in the app for the rest of the session.
+ */
+internal const val HIGHLIGHT_TTL_MILLIS: Long = 30_000
+
+/** Renewed well inside the TTL so a slow round trip cannot let it lapse while the row is still selected. */
+internal const val HIGHLIGHT_RENEWAL_MILLIS: Long = HIGHLIGHT_TTL_MILLIS / 3
+
+/**
+ * How long the pointer has to rest on a row before it is highlighted.
+ *
+ * Without it, running the pointer down the tree would send a request per row it crossed, each one a
+ * hop to the app's main thread.
+ */
+internal const val HIGHLIGHT_HOVER_DEBOUNCE_MILLIS: Long = 80

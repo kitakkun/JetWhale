@@ -4,6 +4,8 @@ import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
 import com.kitakkun.jetwhale.plugins.semantics.protocol.CaptureNodeTree
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.GetViewAttributes
+import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeHitTesting
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
@@ -13,17 +15,28 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.SetViewAttribute
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.reply
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlin.concurrent.Volatile
 import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
 /**
  * Platform-agnostic core of the Compose Semantics Inspector agent plugin.
  *
- * It answers host requests — capture the semantics tree, invoke one node's action, and read or write
- * a `View` node's platform attributes — by delegating to the [ComposeNodeSource]s registered in
- * [ComposeNodeSourceRegistry]. The attribute requests need the optional [ViewAttributeSource]
- * capability, which only the Android window source has. Register the plugin with the agent runtime,
- * and install a platform probe so the registry has roots to read:
+ * It answers host requests — capture the semantics tree, invoke one node's action, read or write a
+ * `View` node's platform attributes, and draw a box over one node on the device — by delegating to
+ * the [ComposeNodeSource]s registered in [ComposeNodeSourceRegistry]. The last two need the optional
+ * [ViewAttributeSource] and [NodeHighlightSource] capabilities, which only the Android window source
+ * has. Register the plugin with the agent runtime, and install a platform probe so the registry has
+ * roots to read:
  *
  * ```kotlin
  * // Android, Application.onCreate()
@@ -53,7 +66,38 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
         onRequest { request: SetViewAttribute ->
             reply(writeViewAttribute(request))
         }
+        onRequest { request: HighlightNode ->
+            // A plugin disabled and re-enabled in quick succession would otherwise race its own
+            // teardown: the clear it started on deactivation could land after this request and wipe
+            // the box just drawn. Waiting for it keeps the two in the order they were asked in.
+            teardown?.join()
+            // Requests are dispatched concurrently, and each one hops to the app's main thread, so
+            // two in flight could finish in either order and leave the box on the node the host asked
+            // for first. The lock hands them to the overlay in the order they arrived.
+            reply(highlightMutex.withLock { highlight(request) })
+        }
     }
+
+    // A highlight is drawn into the app's own window, so it must not outlive the host that asked for
+    // it: a dropped connection and a disabled plugin both take it down. The agent-side TTL stays as
+    // the net for a host that dies without either happening.
+    override suspend fun onDisconnected() {
+        highlightMutex.withLock { clearAllHighlights() }
+    }
+
+    override fun onDeactivate() {
+        // Deactivation is not a suspending hook and clearing hops to the app's UI thread, so it runs
+        // on a scope of its own rather than blocking the runtime's teardown. Only the next highlight
+        // request waits on it.
+        teardown = teardownScope.launch { highlightMutex.withLock { clearAllHighlights() } }
+    }
+
+    private val teardownScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    // Written by onDeactivate, read by request handlers on whatever thread dispatches them.
+    @Volatile
+    private var teardown: Job? = null
+    private val highlightMutex = Mutex()
 
     private suspend fun capture(options: NodeTreeCaptureOptions): NodeTreeSnapshot {
         val started = TimeSource.Monotonic.markNow()
@@ -71,7 +115,7 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
             } catch (e: Throwable) {
                 // One unreadable root (a view detached mid-capture, a toolkit-specific failure)
                 // must not cost the caller the roots that did read cleanly.
-                warnings += "${source.sourceId}: failed to capture (${e.describe()})"
+                warnings += "${source.sourceId}: failed to capture (${e.describeFailure()})"
             }
         }
 
@@ -88,25 +132,66 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
         )
     }
 
+    /** Shows one node on the device, or clears the root's highlight, saying why when it cannot. */
+    private suspend fun highlight(request: HighlightNode): HighlightResult {
+        val source = ComposeNodeSourceRegistry.sourceOf(request.rootId)
+            ?: return HighlightResult(shown = false, message = ComposeNodeSourceRegistry.unknownRootMessage(request.rootId))
+        val highlightSource = source as? NodeHighlightSource
+            ?: return HighlightResult(shown = false, message = ROOT_WITHOUT_HIGHLIGHT)
+        // A box that is shown has to be able to expire: the TTL is what stops a host that dies without
+        // saying so from leaving one on the app's screen. A clear needs none, so only a show is checked.
+        if (request.nodeId != null && request.ttlMs <= 0) {
+            return HighlightResult(shown = false, message = "ttlMs must be positive to show a highlight, but was ${request.ttlMs}")
+        }
+        return try {
+            highlightSource.highlight(nodeId = request.nodeId, ttl = request.ttlMs.milliseconds)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            HighlightResult(shown = false, message = "highlighting failed: ${e.describeFailure()}")
+        }
+    }
+
+    /**
+     * Takes every highlight down.
+     *
+     * The box belongs to a host that is looking at the tree, so it must not outlive one that has
+     * stopped. The per-root TTL stays regardless — it is the net for a host that dies without saying
+     * so.
+     */
+    private suspend fun clearAllHighlights() {
+        for (source in ComposeNodeSourceRegistry.sources) {
+            val highlightSource = source as? NodeHighlightSource ?: continue
+            try {
+                // Nothing is left up by a clear, so the TTL it carries is only there to satisfy the
+                // signature.
+                highlightSource.highlight(nodeId = null, ttl = Duration.ZERO)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Throwable) {
+                // A root that cannot be reached has nothing left to clear: its window is gone, and
+                // with it the overlay. One unreachable root must not stop the others from being
+                // cleared.
+            }
+        }
+    }
+
     private suspend fun performAction(request: PerformNodeAction): NodeActionResult {
-        val source = ComposeNodeSourceRegistry.sources.firstOrNull { it.sourceId == request.rootId }
-            ?: return NodeActionResult(
-                performed = false,
-                message = "unknown rootId: ${request.rootId} (the root may have been detached; capture the tree again)",
-            )
+        val source = ComposeNodeSourceRegistry.sourceOf(request.rootId)
+            ?: return NodeActionResult(performed = false, message = ComposeNodeSourceRegistry.unknownRootMessage(request.rootId))
         return try {
             source.performAction(request)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
-            NodeActionResult(performed = false, message = "action failed: ${e.describe()}")
+            NodeActionResult(performed = false, message = "action failed: ${e.describeFailure()}")
         }
     }
 
-    private fun Throwable.describe(): String = message?.takeIf { it.isNotBlank() } ?: (this::class.simpleName ?: "unknown error")
-
     companion object {
         const val PLUGIN_ID: String = "com.kitakkun.jetwhale.semantics"
+
+        private const val ROOT_WITHOUT_HIGHLIGHT: String = "this root cannot be highlighted (it is a composition read through its SemanticsOwner, which has no window to draw in)"
 
         internal const val NO_PROBE_WARNING: String =
             "No Compose root is registered. Install a probe in the app: installJetWhaleSemanticsProbe(application) " +
