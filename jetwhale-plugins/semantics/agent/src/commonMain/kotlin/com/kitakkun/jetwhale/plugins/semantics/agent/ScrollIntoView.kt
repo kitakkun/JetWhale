@@ -48,9 +48,12 @@ internal fun SemanticsNode.scrollIntoView(revealInHost: (boundsInRoot: Rect) -> 
             )
             if (delta != Offset.Zero) {
                 val oriented = ancestor.inItsScrollDirection(delta)
-                val handled = scrollBy(oriented.x, oriented.y)
-                if (handled) containersScrolled++ else containersDeclined++
-                carried -= delta
+                if (scrollBy(oriented.x, oriented.y)) {
+                    containersScrolled++
+                    carried -= delta
+                } else {
+                    containersDeclined++
+                }
             }
         }
         ancestor = ancestor.parent
