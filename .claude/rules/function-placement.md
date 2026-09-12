@@ -43,17 +43,24 @@ SDK modules) is designed for its callers outside the module, and its extensions 
 
 ## Not worth a function
 
-A function has to do something its call site cannot say in one line. It is not worth existing when:
+A named function is a claim: that its body recurs, or that it is too much to read in place. A
+reader who meets one assumes one of the two and looks for the other callers. A helper that has one
+caller and a short body makes a claim the code does not back, so the default for a body used once
+is to write it inline.
+
+It is not worth existing when:
 
 - Its body is a single call that passes the receiver and arguments straight through:
   `private fun EditText.focusForEditing() { requestFocus() }` is `requestFocus()` under another
   name. Call the original. If the reason for the call is not obvious, that reason is a comment at
   the call site, not a function name.
 - Its body is one expression used at one call site. Write the expression there.
+- It has one call site and its body is short — a loop, a branch, a few statements. Having a shape
+  worth naming is not enough on its own; write it where it is used.
 
-Extract a function when the body has a shape worth naming — a computation, a branch, a sequence —
-or when the same non-trivial body appears at several call sites. Naming a single forwarding call
-adds a hop for the reader and nothing for the code.
+Extract a function when the same non-trivial body appears at several call sites, or when the body
+is long enough that the caller stops reading as one thing — several concerns, each with its own
+considerations. Then the name is carrying something.
 
 ## Why
 
