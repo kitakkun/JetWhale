@@ -316,6 +316,27 @@ enum class NodeAction {
     Collapse,
 }
 
+/**
+ * The name this action is advertised under in [UiNode.actions] — the semantics key of its Compose
+ * counterpart, which a [ViewNode] reuses for the same purpose — or `null` for an action that is not
+ * the node's own and so applies to every node.
+ */
+val NodeAction.advertisedAs: String?
+    get() = when (this) {
+        NodeAction.Click -> "OnClick"
+        NodeAction.LongClick -> "OnLongClick"
+        NodeAction.SetText -> "SetText"
+        NodeAction.InsertText -> "InsertTextAtCursor"
+        NodeAction.ImeAction -> "PerformImeAction"
+        NodeAction.ScrollBy -> "ScrollBy"
+        NodeAction.ScrollToIndex -> "ScrollToIndex"
+        NodeAction.BringIntoView -> null
+        NodeAction.RequestFocus -> "RequestFocus"
+        NodeAction.Dismiss -> "Dismiss"
+        NodeAction.Expand -> "Expand"
+        NodeAction.Collapse -> "Collapse"
+    }
+
 /** Outcome of a [PerformNodeAction]. */
 @Serializable
 data class NodeActionResult(

@@ -1,0 +1,180 @@
+package com.kitakkun.jetwhale.plugins.semantics.agent
+
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.toSize
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
+import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
+import kotlin.math.abs
+import kotlin.math.sign
+
+/** Moving a scrollable, or moving the scrollables around a node so that it shows. */
+internal object ScrollActions {
+    object ScrollBy : SemanticsActionHandler {
+        override val runsOnDisabledNode = true
+
+        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult = node.config.invokeAction(SemanticsActions.ScrollBy) { it(request.scrollX, request.scrollY) }
+    }
+
+    object ScrollToIndex : SemanticsActionHandler {
+        override val runsOnDisabledNode = true
+
+        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult {
+            val index = request.index ?: return NodeActionResult.missingArgument(NodeAction.ScrollToIndex, "index")
+            // A lazy container throws on an index outside its item count instead of answering false.
+            return try {
+                node.config.invokeAction(SemanticsActions.ScrollToIndex) { it(index) }
+            } catch (e: IllegalArgumentException) {
+                NodeActionResult(performed = false, message = e.message ?: "index $index is out of bounds")
+            }
+        }
+    }
+
+    /**
+     * Scrolls every scrollable ancestor of the node by the least amount that shows the whole node,
+     * then asks `revealInHost` to do the same for whatever holds the composition.
+     *
+     * This is what Compose itself does for accessibility's "show on screen": walk up to each
+     * ancestor with a `ScrollBy` action, compute how far the node sits outside that ancestor's
+     * viewport, scroll by that, and carry the movement into the next ancestor's calculation. Each
+     * `ScrollBy` is applied by the container on its next frame, so the node's bounds read the same
+     * until then — which is why the movement is carried by hand rather than re-read.
+     *
+     * `revealInHost` is given the bounds the node will have in root coordinates once the scrolls
+     * above have landed, scrolls whatever contains the composition — the Android `View`s around it —
+     * and says whether anything moved. A composition that fills its window has nothing outside it
+     * and answers `false`.
+     */
+    object BringIntoView : SemanticsActionHandler {
+        override val runsOnDisabledNode = true
+
+        override fun perform(node: SemanticsNode, request: PerformNodeAction, revealInHost: (Rect) -> Boolean): NodeActionResult {
+            // A node that is not placed has no position to compute a scroll from — a capture taken with
+            // includeInvisible, or a node that left the layout since.
+            if (!node.layoutInfo.isPlaced) {
+                return NodeActionResult(performed = false, message = "the node is not laid out, so there is nothing to scroll to")
+            }
+            var containersScrolled = 0
+            var containersDeclined = 0
+            var carried = Offset.Zero
+            var ancestor = node.parent
+            while (ancestor != null) {
+                // A merged ancestor's config can carry a ScrollBy folded in from a scrollable descendant
+                // that is not on this node's path; Compose reads the unmerged config here, which is
+                // internal. A scrollable inside a merging container is rare enough to live with.
+                val scrollBy = ancestor.config.getOrNull(SemanticsActions.ScrollBy)?.action
+                if (scrollBy != null) {
+                    val delta = ancestor.alongItsAxes(
+                        scrollDeltaToReveal(
+                            target = Rect(node.positionInRoot + carried, node.size.toSize()),
+                            viewport = ancestor.viewportInRoot(),
+                        ),
+                    )
+                    if (delta != Offset.Zero) {
+                        val oriented = ancestor.inItsScrollDirection(delta)
+                        if (scrollBy(oriented.x, oriented.y)) {
+                            containersScrolled++
+                            carried -= delta
+                        } else {
+                            containersDeclined++
+                        }
+                    }
+                }
+                ancestor = ancestor.parent
+            }
+
+            val hostScrolled = revealInHost(Rect(node.positionInRoot + carried, node.size.toSize()))
+
+            return when {
+                containersDeclined > 0 -> NodeActionResult(
+                    performed = false,
+                    message = "a scrollable ancestor declined to scroll (it may be at its end, or scrolling may be disabled)" +
+                        if (containersScrolled > 0 || hostScrolled) "; the containers outside it did scroll" else "",
+                )
+
+                containersScrolled > 0 || hostScrolled -> NodeActionResult(
+                    performed = true,
+                    message = "scrolled ${containersScrolled + (if (hostScrolled) 1 else 0)} container(s); the scroll lands on the next frame, so capture the tree again to see the new bounds",
+                )
+
+                node.isWhollyUnclipped -> NodeActionResult(performed = true, message = "the node is already in view")
+
+                else -> NodeActionResult(
+                    performed = false,
+                    message = "the node is clipped by something on its path that cannot scroll — a non-scrollable clip, or the edge of the composition",
+                )
+            }
+        }
+
+        /**
+         * How far [target] has to move, in root coordinates, to end up inside [viewport]: the
+         * smaller of the two moves that would align either edge, and nothing on an axis where the
+         * target already fits or overhangs the viewport on both sides.
+         */
+        internal fun scrollDeltaToReveal(target: Rect, viewport: Rect): Offset = Offset(
+            x = leastAligningDelta(target.left - viewport.left, target.right - viewport.right),
+            y = leastAligningDelta(target.top - viewport.top, target.bottom - viewport.bottom),
+        )
+
+        private fun leastAligningDelta(alignStart: Float, alignEnd: Float): Float = when {
+            sign(alignStart) != sign(alignEnd) -> 0f
+            abs(alignStart) < abs(alignEnd) -> alignStart
+            else -> alignEnd
+        }
+
+        /**
+         * Whether every pixel of the node is inside every ancestor's clip. [SemanticsNode.boundsInRoot]
+         * is clipped by the ancestors on the way up and the unclipped rectangle is not, so they agree
+         * only when nothing cuts the node off — which is the one case "already in view" may claim.
+         */
+        private val SemanticsNode.isWhollyUnclipped: Boolean
+            get() {
+                val unclipped = Rect(positionInRoot, size.toSize())
+                val clipped = boundsInRoot
+                return abs(clipped.left - unclipped.left) < CLIP_TOLERANCE_PX &&
+                    abs(clipped.top - unclipped.top) < CLIP_TOLERANCE_PX &&
+                    abs(clipped.right - unclipped.right) < CLIP_TOLERANCE_PX &&
+                    abs(clipped.bottom - unclipped.bottom) < CLIP_TOLERANCE_PX
+            }
+
+        private const val CLIP_TOLERANCE_PX = 0.5f
+
+        /**
+         * Where a scrollable's viewport sits in root coordinates. The clipping that matters is the
+         * scrollable's own — its size in its direct parent — not what any further ancestor clips
+         * away, so the bounds in the parent are taken and only translated to root.
+         */
+        private fun SemanticsNode.viewportInRoot(): Rect {
+            val coordinates = layoutInfo.coordinates
+            val parentInRoot = coordinates.parentLayoutCoordinates?.positionInRoot() ?: Offset.Zero
+            return coordinates.boundsInParent().translate(parentInRoot)
+        }
+
+        /** [delta] with the axes this container cannot scroll along zeroed: a `LazyRow` is not asked to move down. */
+        private fun SemanticsNode.alongItsAxes(delta: Offset): Offset = Offset(
+            x = if (config.getOrNull(SemanticsProperties.HorizontalScrollAxisRange) == null) 0f else delta.x,
+            y = if (config.getOrNull(SemanticsProperties.VerticalScrollAxisRange) == null) 0f else delta.y,
+        )
+
+        /**
+         * `ScrollBy` counts in the container's own direction: a `reverseScrolling` container and a
+         * right-to-left layout both flip the sign of a move meant in root coordinates.
+         */
+        private fun SemanticsNode.inItsScrollDirection(delta: Offset): Offset {
+            var x = delta.x
+            var y = delta.y
+            if (config.getOrNull(SemanticsProperties.HorizontalScrollAxisRange)?.reverseScrolling == true) x = -x
+            if (layoutInfo.layoutDirection == LayoutDirection.Rtl) x = -x
+            if (config.getOrNull(SemanticsProperties.VerticalScrollAxisRange)?.reverseScrolling == true) y = -y
+            return Offset(x, y)
+        }
+    }
+}

@@ -4,7 +4,6 @@ import android.content.res.Resources
 import android.graphics.Rect
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AbsListView
 import android.widget.Checkable
 import android.widget.EditText
 import android.widget.TextView
@@ -13,13 +12,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.node.InteroperableComposeUiNode
 import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.semantics.SemanticsNode
-import androidx.recyclerview.widget.RecyclerView
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
-import kotlin.math.ceil
-import kotlin.math.floor
+import com.kitakkun.jetwhale.plugins.semantics.protocol.advertisedAs
 
 /**
  * Converts an Android `View` subtree into the transport model, descending into every composition it
@@ -140,30 +138,8 @@ private fun SemanticsNode.interopViewNodes(
     return listOfNotNull(interopView.toViewNode(options, windowOffsetX, windowOffsetY, depth))
 }
 
-/** The names this view's actions are advertised under — the semantics keys of their Compose counterparts. */
-private fun View.viewActionNames(): List<String> = buildList {
-    if (isClickable) add("OnClick")
-    if (isLongClickable) add("OnLongClick")
-    if (this@viewActionNames is EditText) {
-        add("SetText")
-        add("InsertTextAtCursor")
-        add("PerformImeAction")
-    }
-    if (isScrollable()) add("ScrollBy")
-    if (hasItemPositions()) add("ScrollToIndex")
-    if (isFocusable) add("RequestFocus")
-}
-
-/** Whether the view is a list that can be told which item to show — the View side of `ScrollToIndex`. */
-internal fun View.hasItemPositions(): Boolean = this is AbsListView || (isRecyclerViewAvailable && this is RecyclerView)
-
-/**
- * The agent compiles against `RecyclerView` without bundling it, so an app that does not ship the
- * library must never reach an `is RecyclerView` check: the class fails to resolve and the check
- * throws instead of answering `false`.
- */
-internal val isRecyclerViewAvailable: Boolean by lazy {
-    runCatching { Class.forName("androidx.recyclerview.widget.RecyclerView") }.isSuccess
+private fun View.viewActionNames(): List<String> = NodeAction.entries.mapNotNull { action ->
+    action.advertisedAs?.takeIf { action.androidViewHandler.isOfferedBy(this) }
 }
 
 /**
@@ -225,15 +201,4 @@ private fun NodeBounds.translated(offsetX: Float, offsetY: Float): NodeBounds = 
     top = top + offsetY,
     right = right + offsetX,
     bottom = bottom + offsetY,
-)
-
-/**
- * The smallest integer rectangle that covers [this] — a request to show it must not lose the
- * fraction of a pixel at either edge.
- */
-internal fun androidx.compose.ui.geometry.Rect.toOutwardAndroidRect(): Rect = Rect(
-    floor(left).toInt(),
-    floor(top).toInt(),
-    ceil(right).toInt(),
-    ceil(bottom).toInt(),
 )

@@ -1008,5 +1008,7 @@ final object com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting { /
     final fun resolve(kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot>): kotlin.collections/List<com.kitakkun.jetwhale.plugins.semantics.protocol/ComposeRoot> // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeHitTesting.resolve|resolve(kotlin.collections.List<com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot>){}[0]
 }
 
+final val com.kitakkun.jetwhale.plugins.semantics.protocol/advertisedAs // com.kitakkun.jetwhale.plugins.semantics.protocol/advertisedAs|@com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction{}advertisedAs[0]
+    final fun (com.kitakkun.jetwhale.plugins.semantics.protocol/NodeAction).<get-advertisedAs>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/advertisedAs.<get-advertisedAs>|<get-advertisedAs>@com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction(){}[0]
 final val com.kitakkun.jetwhale.plugins.semantics.protocol/type // com.kitakkun.jetwhale.plugins.semantics.protocol/type|@com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue{}type[0]
     final fun (com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeValue).<get-type>(): com.kitakkun.jetwhale.plugins.semantics.protocol/ViewAttributeType // com.kitakkun.jetwhale.plugins.semantics.protocol/type.<get-type>|<get-type>@com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue(){}[0]

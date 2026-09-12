@@ -19,6 +19,8 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 import java.lang.ref.WeakReference
+import kotlin.math.ceil
+import kotlin.math.floor
 
 /**
  * Reads one Android **window** — its `View` hierarchy and every composition inside it — as a single
@@ -139,6 +141,17 @@ private fun View.findSemanticsNode(id: Int): SemanticsNodeInWindow? = composeRoo
  * animated, so the next capture already sees the result.
  */
 private fun View.requestRectangleOnScreenNow(bounds: Rect): Boolean = requestRectangleOnScreen(bounds.toOutwardAndroidRect(), true)
+
+/**
+ * The smallest integer rectangle that covers [this] — a request to show it must not lose the
+ * fraction of a pixel at either edge.
+ */
+private fun Rect.toOutwardAndroidRect(): android.graphics.Rect = android.graphics.Rect(
+    floor(left).toInt(),
+    floor(top).toInt(),
+    ceil(right).toInt(),
+    ceil(bottom).toInt(),
+)
 
 /**
  * Every composition in this view's subtree, outermost first. A composition's own children are not
