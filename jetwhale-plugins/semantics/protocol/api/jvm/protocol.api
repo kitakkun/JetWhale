@@ -261,6 +261,10 @@ public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeHitTesti
 	public final fun resolve (Ljava/util/List;)Ljava/util/List;
 }
 
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeModelsKt {
+	public static final fun getAdvertisedAs (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;)Ljava/lang/String;
+}
+
 public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeRef$Companion;
 	public fun <init> (Ljava/lang/String;I)V

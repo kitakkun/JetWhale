@@ -58,6 +58,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttribute
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.advertisedAs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -545,7 +546,7 @@ private fun ActionButton(
 ) {
     // Only offer what the node actually advertises: a button for an action the node does not expose
     // would always come back "not exposed", which is noise rather than feedback.
-    val exposed = action.semanticsKeyName?.let(node.actions::contains) ?: true
+    val exposed = action.advertisedAs?.let(node.actions::contains) ?: true
     if (!exposed) return
     JwButton(
         text = label,
@@ -553,26 +554,6 @@ private fun ActionButton(
         enabled = node.isEnabled,
     )
 }
-
-/**
- * The semantics key an action arrives under in [UiNode.actions], or `null` for an action that is
- * not the node's own and so applies to every node.
- */
-private val NodeAction.semanticsKeyName: String?
-    get() = when (this) {
-        NodeAction.Click -> "OnClick"
-        NodeAction.LongClick -> "OnLongClick"
-        NodeAction.SetText -> "SetText"
-        NodeAction.InsertText -> "InsertTextAtCursor"
-        NodeAction.ImeAction -> "PerformImeAction"
-        NodeAction.ScrollBy -> "ScrollBy"
-        NodeAction.ScrollToIndex -> "ScrollToIndex"
-        NodeAction.BringIntoView -> null
-        NodeAction.RequestFocus -> "RequestFocus"
-        NodeAction.Dismiss -> "Dismiss"
-        NodeAction.Expand -> "Expand"
-        NodeAction.Collapse -> "Collapse"
-    }
 
 /**
  * @param wrap `true` for values worth reading in full at a glance — the action list, the app's own
