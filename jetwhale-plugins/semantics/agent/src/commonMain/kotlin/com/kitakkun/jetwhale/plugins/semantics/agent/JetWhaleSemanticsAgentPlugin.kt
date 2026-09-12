@@ -21,6 +21,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.concurrent.Volatile
 import kotlin.time.Clock
 import kotlin.time.TimeSource
 
@@ -89,6 +90,9 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
     }
 
     private val teardownScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    // Written by onDeactivate, read by request handlers on whatever thread dispatches them.
+    @Volatile
     private var teardown: Job? = null
     private val highlightMutex = Mutex()
 
