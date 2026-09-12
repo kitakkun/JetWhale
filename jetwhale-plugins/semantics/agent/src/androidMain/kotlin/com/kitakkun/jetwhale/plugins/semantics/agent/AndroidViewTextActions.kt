@@ -9,8 +9,8 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 
 /** Editing and submitting an `EditText`. */
-internal object ViewTextActions {
-    object SetText : ViewActionHandler {
+internal object AndroidViewTextActions {
+    object SetText : AndroidViewActionHandler {
         override val runsOnDisabledView = false
 
         override fun isOfferedBy(view: View) = view is EditText
@@ -24,7 +24,7 @@ internal object ViewTextActions {
         }
     }
 
-    object InsertText : ViewActionHandler {
+    object InsertText : AndroidViewActionHandler {
         override val runsOnDisabledView = false
 
         override fun isOfferedBy(view: View) = view is EditText
@@ -38,7 +38,7 @@ internal object ViewTextActions {
         }
     }
 
-    object ImeAction : ViewActionHandler {
+    object ImeAction : AndroidViewActionHandler {
         override val runsOnDisabledView = false
 
         override fun isOfferedBy(view: View) = view is EditText

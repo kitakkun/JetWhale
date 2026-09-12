@@ -8,8 +8,8 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
  * `performClick()` rather than a synthesised tap: the listener the app registered still runs, with
  * no coordinates involved and no chance of landing on whatever moved into that spot.
  */
-internal object ViewPointerActions {
-    object Click : ViewActionHandler {
+internal object AndroidViewPointerActions {
+    object Click : AndroidViewActionHandler {
         override val runsOnDisabledView = false
 
         override fun isOfferedBy(view: View) = view.isClickable
@@ -20,7 +20,7 @@ internal object ViewPointerActions {
         }
     }
 
-    object LongClick : ViewActionHandler {
+    object LongClick : AndroidViewActionHandler {
         override val runsOnDisabledView = false
 
         override fun isOfferedBy(view: View) = view.isLongClickable

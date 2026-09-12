@@ -6,8 +6,8 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 
 /** Focus is the one state change a `View` offers; dismissal, expansion and collapse have no counterpart. */
-internal object ViewStateActions {
-    object RequestFocus : ViewActionHandler {
+internal object AndroidViewStateActions {
+    object RequestFocus : AndroidViewActionHandler {
         override val runsOnDisabledView = true
 
         override fun isOfferedBy(view: View) = view.isFocusable
@@ -18,7 +18,7 @@ internal object ViewStateActions {
         }
     }
 
-    val Dismiss: ViewActionHandler = UnsupportedOnView(NodeAction.Dismiss)
-    val Expand: ViewActionHandler = UnsupportedOnView(NodeAction.Expand)
-    val Collapse: ViewActionHandler = UnsupportedOnView(NodeAction.Collapse)
+    val Dismiss: AndroidViewActionHandler = UnsupportedOnAndroidView(NodeAction.Dismiss)
+    val Expand: AndroidViewActionHandler = UnsupportedOnAndroidView(NodeAction.Expand)
+    val Collapse: AndroidViewActionHandler = UnsupportedOnAndroidView(NodeAction.Collapse)
 }

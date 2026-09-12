@@ -15,7 +15,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
  * Must be called on the main thread.
  */
 internal fun View.performViewAction(request: PerformNodeAction): NodeActionResult {
-    val handler = request.action.viewHandler
+    val handler = request.action.androidViewHandler
     if (!handler.runsOnDisabledView && !isEnabled) {
         return NodeActionResult(performed = false, message = "the view is disabled")
     }

@@ -139,7 +139,7 @@ private fun SemanticsNode.interopViewNodes(
 }
 
 private fun View.viewActionNames(): List<String> = NodeAction.entries.mapNotNull { action ->
-    action.advertisedAs?.takeIf { action.viewHandler.isOfferedBy(this) }
+    action.advertisedAs?.takeIf { action.androidViewHandler.isOfferedBy(this) }
 }
 
 /**

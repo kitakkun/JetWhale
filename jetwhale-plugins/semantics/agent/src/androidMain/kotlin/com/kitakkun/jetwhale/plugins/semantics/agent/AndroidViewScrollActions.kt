@@ -10,8 +10,8 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 import kotlin.math.roundToInt
 
 /** Moving a scrolling view, or moving the scrolling views around a view so that it shows. */
-internal object ViewScrollActions {
-    object ScrollBy : ViewActionHandler {
+internal object AndroidViewScrollActions {
+    object ScrollBy : AndroidViewActionHandler {
         override val runsOnDisabledView = true
 
         override fun isOfferedBy(view: View) = view.isScrollable()
@@ -29,7 +29,7 @@ internal object ViewScrollActions {
      * bundling it, and an `is` check on a class the app does not have would blow up rather than
      * answer `false`.
      */
-    object ScrollToIndex : ViewActionHandler {
+    object ScrollToIndex : AndroidViewActionHandler {
         override val runsOnDisabledView = true
 
         override fun isOfferedBy(view: View) = view is AbsListView || (isRecyclerViewAvailable && view is RecyclerView)
@@ -75,7 +75,7 @@ internal object ViewScrollActions {
      * answers `requestChildRectangleOnScreen`, so the one call climbs out through Compose containers
      * too. Immediate rather than animated, so the next capture already sees the result.
      */
-    object BringIntoView : ViewActionHandler {
+    object BringIntoView : AndroidViewActionHandler {
         override val runsOnDisabledView = true
 
         override fun isOfferedBy(view: View) = true

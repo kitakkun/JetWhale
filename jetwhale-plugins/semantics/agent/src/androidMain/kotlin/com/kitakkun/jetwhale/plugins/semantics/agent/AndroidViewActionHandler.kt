@@ -7,10 +7,10 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 
 /**
  * How one [NodeAction] runs on an Android `View` — the counterpart of [SemanticsActionHandler],
- * grouped the same way: [ViewPointerActions], [ViewTextActions], [ViewScrollActions],
- * [ViewStateActions]. [viewHandler] is the one registry that binds an action to its handler.
+ * grouped the same way: [AndroidViewPointerActions], [AndroidViewTextActions], [AndroidViewScrollActions],
+ * [AndroidViewStateActions]. [androidViewHandler] is the one registry that binds an action to its handler.
  */
-internal interface ViewActionHandler {
+internal interface AndroidViewActionHandler {
     /**
      * Whether a disabled view still answers. Focus and scrolling stay meaningful on a disabled
      * view. So does an action no view supports at all: gating that on the view being enabled would
@@ -26,24 +26,24 @@ internal interface ViewActionHandler {
     fun perform(view: View, request: PerformNodeAction): NodeActionResult
 }
 
-internal val NodeAction.viewHandler: ViewActionHandler
+internal val NodeAction.androidViewHandler: AndroidViewActionHandler
     get() = when (this) {
-        NodeAction.Click -> ViewPointerActions.Click
-        NodeAction.LongClick -> ViewPointerActions.LongClick
-        NodeAction.SetText -> ViewTextActions.SetText
-        NodeAction.InsertText -> ViewTextActions.InsertText
-        NodeAction.ImeAction -> ViewTextActions.ImeAction
-        NodeAction.ScrollBy -> ViewScrollActions.ScrollBy
-        NodeAction.ScrollToIndex -> ViewScrollActions.ScrollToIndex
-        NodeAction.BringIntoView -> ViewScrollActions.BringIntoView
-        NodeAction.RequestFocus -> ViewStateActions.RequestFocus
-        NodeAction.Dismiss -> ViewStateActions.Dismiss
-        NodeAction.Expand -> ViewStateActions.Expand
-        NodeAction.Collapse -> ViewStateActions.Collapse
+        NodeAction.Click -> AndroidViewPointerActions.Click
+        NodeAction.LongClick -> AndroidViewPointerActions.LongClick
+        NodeAction.SetText -> AndroidViewTextActions.SetText
+        NodeAction.InsertText -> AndroidViewTextActions.InsertText
+        NodeAction.ImeAction -> AndroidViewTextActions.ImeAction
+        NodeAction.ScrollBy -> AndroidViewScrollActions.ScrollBy
+        NodeAction.ScrollToIndex -> AndroidViewScrollActions.ScrollToIndex
+        NodeAction.BringIntoView -> AndroidViewScrollActions.BringIntoView
+        NodeAction.RequestFocus -> AndroidViewStateActions.RequestFocus
+        NodeAction.Dismiss -> AndroidViewStateActions.Dismiss
+        NodeAction.Expand -> AndroidViewStateActions.Expand
+        NodeAction.Collapse -> AndroidViewStateActions.Collapse
     }
 
 /** A handler for an action a `View` has no counterpart for; it reports that it did not run rather than pretending. */
-internal class UnsupportedOnView(private val action: NodeAction) : ViewActionHandler {
+internal class UnsupportedOnAndroidView(private val action: NodeAction) : AndroidViewActionHandler {
     override val runsOnDisabledView = true
 
     override fun isOfferedBy(view: View) = false
