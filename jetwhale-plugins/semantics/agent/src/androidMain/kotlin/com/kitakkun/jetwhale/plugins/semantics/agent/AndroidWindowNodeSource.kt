@@ -205,12 +205,10 @@ private fun View.highlightBoundsOf(nodeId: Int): android.graphics.Rect? = if (no
     findSemanticsNode(nodeId)?.node?.boundsInWindow?.let { bounds ->
         // A node not yet placed reports unspecified bounds, which round to nothing rather than to an
         // exception; empty is what "not on screen yet" means to the overlay.
-        if (bounds.isFinite) android.graphics.Rect(bounds.left.roundToInt(), bounds.top.roundToInt(), bounds.right.roundToInt(), bounds.bottom.roundToInt()) else android.graphics.Rect()
+        val placed = bounds.left.isFinite() && bounds.top.isFinite() && bounds.right.isFinite() && bounds.bottom.isFinite()
+        if (placed) android.graphics.Rect(bounds.left.roundToInt(), bounds.top.roundToInt(), bounds.right.roundToInt(), bounds.bottom.roundToInt()) else android.graphics.Rect()
     }
 }
-
-private val Rect.isFinite: Boolean
-    get() = left.isFinite() && top.isFinite() && right.isFinite() && bottom.isFinite()
 
 /**
  * Searches every composition in the window for a semantics node.

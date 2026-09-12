@@ -126,7 +126,9 @@ internal fun ComposeSemanticsInspectorScreen(
         }
     }
 
-    val highlighted = highlightTarget(enabled = highlightOnDevice, selected = selectedKey, hovered = hoveredKey)
+    // Hover wins over selection while the pointer is on a row — "which one is this?" is the question
+    // being asked at that moment — and the selection is still there when the pointer leaves.
+    val highlighted = if (highlightOnDevice) hoveredKey ?: selectedKey else null
     // What to point at is a question about the view — which row is selected, which one the pointer is
     // over — so the screen answers it and reports the answer. Sending it, holding it against the
     // app's timeout and taking it down again all outlive this composition, so they are the plugin's.

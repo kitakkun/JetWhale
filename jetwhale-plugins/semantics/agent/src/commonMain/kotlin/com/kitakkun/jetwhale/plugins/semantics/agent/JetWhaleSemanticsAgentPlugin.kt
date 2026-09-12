@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.CaptureNodeTree
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.GetViewAttributes
 import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeHitTesting
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
@@ -23,6 +24,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.concurrent.Volatile
 import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
 /**
@@ -71,7 +74,7 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
             // Requests are dispatched concurrently, and each one hops to the app's main thread, so
             // two in flight could finish in either order and leave the box on the node the host asked
             // for first. The lock hands them to the overlay in the order they arrived.
-            reply(highlightMutex.withLock { showHighlight(request) })
+            reply(highlightMutex.withLock { highlight(request) })
         }
     }
 
@@ -129,6 +132,50 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
         )
     }
 
+    /** Shows one node on the device, or clears the root's highlight, saying why when it cannot. */
+    private suspend fun highlight(request: HighlightNode): HighlightResult {
+        val source = ComposeNodeSourceRegistry.sourceOf(request.rootId)
+            ?: return HighlightResult(shown = false, message = ComposeNodeSourceRegistry.unknownRootMessage(request.rootId))
+        val highlightSource = source as? NodeHighlightSource
+            ?: return HighlightResult(shown = false, message = ROOT_WITHOUT_HIGHLIGHT)
+        // A box that is shown has to be able to expire: the TTL is what stops a host that dies without
+        // saying so from leaving one on the app's screen. A clear needs none, so only a show is checked.
+        if (request.nodeId != null && request.ttlMs <= 0) {
+            return HighlightResult(shown = false, message = "ttlMs must be positive to show a highlight, but was ${request.ttlMs}")
+        }
+        return try {
+            highlightSource.highlight(nodeId = request.nodeId, ttl = request.ttlMs.milliseconds)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            HighlightResult(shown = false, message = "highlighting failed: ${e.describeFailure()}")
+        }
+    }
+
+    /**
+     * Takes every highlight down.
+     *
+     * The box belongs to a host that is looking at the tree, so it must not outlive one that has
+     * stopped. The per-root TTL stays regardless — it is the net for a host that dies without saying
+     * so.
+     */
+    private suspend fun clearAllHighlights() {
+        for (source in ComposeNodeSourceRegistry.sources) {
+            val highlightSource = source as? NodeHighlightSource ?: continue
+            try {
+                // Nothing is left up by a clear, so the TTL it carries is only there to satisfy the
+                // signature.
+                highlightSource.highlight(nodeId = null, ttl = Duration.ZERO)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Throwable) {
+                // A root that cannot be reached has nothing left to clear: its window is gone, and
+                // with it the overlay. One unreachable root must not stop the others from being
+                // cleared.
+            }
+        }
+    }
+
     private suspend fun performAction(request: PerformNodeAction): NodeActionResult {
         val source = ComposeNodeSourceRegistry.sourceOf(request.rootId)
             ?: return NodeActionResult(performed = false, message = ComposeNodeSourceRegistry.unknownRootMessage(request.rootId))
@@ -143,6 +190,8 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
 
     companion object {
         const val PLUGIN_ID: String = "com.kitakkun.jetwhale.semantics"
+
+        private const val ROOT_WITHOUT_HIGHLIGHT: String = "this root cannot be highlighted (it is a composition read through its SemanticsOwner, which has no window to draw in)"
 
         internal const val NO_PROBE_WARNING: String =
             "No Compose root is registered. Install a probe in the app: installJetWhaleSemanticsProbe(application) " +
