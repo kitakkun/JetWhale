@@ -23,14 +23,9 @@ fun <T : NavKey> NavBackStack<T>.addSingleTop(index: Int, navKey: T) {
  */
 fun NavBackStack<NavKey>.showBelowOverlays(navKey: NavKey) {
     removeIf { it == navKey }
-    add(indexOfFirstTrailingOverlay(), navKey)
-}
-
-/** Index of the first key in the run of overlays at the top of the stack, or the size when there is none. */
-private fun NavBackStack<NavKey>.indexOfFirstTrailingOverlay(): Int {
     var index = size
     while (index > 0 && this[index - 1] is OverlayNavKey) index--
-    return index
+    add(index, navKey)
 }
 
 /**
