@@ -43,7 +43,7 @@ class HostSettingsCommandsTest {
 
     @Test
     fun `updateSettings applies only the arguments that were supplied`() = runBlocking {
-        val result = updateSettings.execute(arguments("persistData" to JsonPrimitive(true))).decodeSettings()
+        val result = updateSettings.executeForText(arguments("persistData" to JsonPrimitive(true))).decodeSettings()
 
         assertEquals(mapOf("persistData" to "true"), result.applied)
         verifySuspend { settingsRepository.updatePersistData(true) }
@@ -52,7 +52,7 @@ class HostSettingsCommandsTest {
 
     @Test
     fun `updateSettings persists the mcp port without restarting the mcp server`() = runBlocking {
-        val result = updateSettings.execute(arguments("mcpServerPort" to JsonPrimitive(7100))).decodeSettings()
+        val result = updateSettings.executeForText(arguments("mcpServerPort" to JsonPrimitive(7100))).decodeSettings()
 
         assertFalse(result.mcpServerRestarted)
         assertFalse(result.debugServerRestarted)
@@ -64,7 +64,7 @@ class HostSettingsCommandsTest {
     @Test
     fun `updateSettings restarts the debug server when the ws port changed`() = runBlocking {
         serverPortFlow.value = 5090
-        val result = updateSettings.execute(arguments("serverPort" to JsonPrimitive(5090))).decodeSettings()
+        val result = updateSettings.executeForText(arguments("serverPort" to JsonPrimitive(5090))).decodeSettings()
 
         assertTrue(result.debugServerRestarted)
         verifySuspend { debugWebSocketServer.stop() }
@@ -74,7 +74,7 @@ class HostSettingsCommandsTest {
     @Test
     fun `updateSettings restarts the debug server when adb auto port mapping changed`() = runBlocking {
         // The setting is read when the server starts, so it is inert until the server restarts.
-        val result = updateSettings.execute(arguments("adbAutoPortMappingEnabled" to JsonPrimitive(true))).decodeSettings()
+        val result = updateSettings.executeForText(arguments("adbAutoPortMappingEnabled" to JsonPrimitive(true))).decodeSettings()
 
         assertTrue(result.debugServerRestarted)
         verifySuspend { debugWebSocketServer.stop() }
@@ -82,14 +82,14 @@ class HostSettingsCommandsTest {
 
     @Test
     fun `updateSettings does not claim a change is pending once it has restarted the server`() = runBlocking {
-        val result = updateSettings.execute(arguments("adbAutoPortMappingEnabled" to JsonPrimitive(true))).decodeSettings()
+        val result = updateSettings.executeForText(arguments("adbAutoPortMappingEnabled" to JsonPrimitive(true))).decodeSettings()
 
         assertFalse(result.notes.any { "still running" in it })
     }
 
     @Test
     fun `updateSettings can persist a ws change without restarting when asked`() = runBlocking {
-        val result = updateSettings.execute(
+        val result = updateSettings.executeForText(
             arguments(
                 "serverPort" to JsonPrimitive(5090),
                 "restartDebugServer" to JsonPrimitive(false),
@@ -104,7 +104,7 @@ class HostSettingsCommandsTest {
     @Test
     fun `updateSettings rejects an out-of-range port before writing anything`(): Unit = runBlocking {
         assertFailsWith<JetWhaleMcpArgumentException> {
-            updateSettings.execute(
+            updateSettings.executeForText(
                 arguments(
                     "persistData" to JsonPrimitive(true),
                     "serverPort" to JsonPrimitive(70000),
@@ -116,12 +116,12 @@ class HostSettingsCommandsTest {
 
     @Test
     fun `updateSettings rejects a call that changes nothing`(): Unit = runBlocking {
-        assertFailsWith<JetWhaleMcpArgumentException> { updateSettings.execute(arguments()) }
+        assertFailsWith<JetWhaleMcpArgumentException> { updateSettings.executeForText(arguments()) }
     }
 
     @Test
     fun `restartDebugServer starts with the configured wss port when wss is enabled`() = runBlocking {
-        RestartDebugServerCommand(settingsRepository, debugWebSocketServer).execute(arguments())
+        RestartDebugServerCommand(settingsRepository, debugWebSocketServer).executeForText(arguments())
 
         verifySuspend { debugWebSocketServer.stop() }
         verifySuspend { debugWebSocketServer.start("localhost", 5080, 5443) }
@@ -132,7 +132,7 @@ class HostSettingsCommandsTest {
         wssEnabledFlow.value = false
 
         val result = RestartDebugServerCommand(settingsRepository, debugWebSocketServer)
-            .execute(arguments())
+            .executeForText(arguments())
             .let { Json.decodeFromString<RestartDebugServerResult>(it) }
 
         verifySuspend { debugWebSocketServer.start("localhost", 5080, null) }
@@ -142,7 +142,7 @@ class HostSettingsCommandsTest {
     @Test
     fun `restartDebugServer reports the state the server ended up in`() = runBlocking {
         val result = RestartDebugServerCommand(settingsRepository, debugWebSocketServer)
-            .execute(arguments())
+            .executeForText(arguments())
             .let { Json.decodeFromString<RestartDebugServerResult>(it) }
 
         assertEquals("Started", result.state)

@@ -15,6 +15,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonNamingStrategy
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
@@ -29,18 +30,25 @@ import kotlinx.serialization.json.putJsonObject
  *
  * A property is listed in `required` when it has no default value; a nullable property without a
  * default is therefore required (it must be present, and may be `null`), which matches how
- * kotlinx.serialization decodes it. A sealed hierarchy becomes a `oneOf` over its subclasses, each
+ * kotlinx.serialization decodes it. A format with `explicitNulls = false` is the exception: it reads
+ * a missing nullable property as `null` and leaves a `null` one out when writing, so there a nullable
+ * property is never required. A nullable property's schema admits JSON `null` next to its type, since
+ * that is what the format writes for it. A sealed hierarchy becomes a `oneOf` over its subclasses, each
  * carrying the class discriminator as a `const`. Open polymorphic types are advertised as an
  * unconstrained `object`, since their subclasses are only known at runtime.
  *
  * The schema follows [json]'s configuration — its class discriminator and naming strategy — so the
- * shape advertised to the caller is the shape the same format decodes.
+ * shape advertised to the caller is the shape the same format decodes. Under
+ * [ClassDiscriminatorMode.ALL_JSON_OBJECTS] every class schema carries the discriminator too, pinned
+ * to the class's serial name, since that is what the format writes.
  */
 internal fun SerialDescriptor.toJsonSchema(json: Json): JsonObject = buildSchema(
     SchemaContext(
         classDiscriminator = json.configuration.classDiscriminator,
         writesClassDiscriminator = json.configuration.classDiscriminatorMode != ClassDiscriminatorMode.NONE,
+        writesClassDiscriminatorOnEveryClass = json.configuration.classDiscriminatorMode == ClassDiscriminatorMode.ALL_JSON_OBJECTS,
         namingStrategy = json.configuration.namingStrategy,
+        explicitNulls = json.configuration.explicitNulls,
     ),
     mutableSetOf(),
 )
@@ -48,10 +56,17 @@ internal fun SerialDescriptor.toJsonSchema(json: Json): JsonObject = buildSchema
 private class SchemaContext(
     val classDiscriminator: String,
     val writesClassDiscriminator: Boolean,
+    val writesClassDiscriminatorOnEveryClass: Boolean,
     val namingStrategy: JsonNamingStrategy?,
+    val explicitNulls: Boolean,
 )
 
 private fun SerialDescriptor.buildSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
+    val schema = nonNullSchema(context, enclosingTypes)
+    return if (isNullable) schema.allowingNull() else schema
+}
+
+private fun SerialDescriptor.nonNullSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
     // A value class is transparent on the wire: it encodes as its single underlying element.
     if (isInline) return getElementDescriptor(0).buildSchema(context, enclosingTypes)
 
@@ -103,17 +118,22 @@ private inline fun SerialDescriptor.guarded(enclosingTypes: MutableSet<String>, 
     }
 }
 
-private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject = buildJsonObject {
-    put("type", "object")
-    putJsonObject("properties") {
-        for (index in 0 until elementsCount) {
-            put(context.jsonNameOf(this@classSchema, index), elementSchema(index, context, enclosingTypes))
+private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
+    val schema = buildJsonObject {
+        put("type", "object")
+        putJsonObject("properties") {
+            for (index in 0 until elementsCount) {
+                put(context.jsonNameOf(this@classSchema, index), elementSchema(index, context, enclosingTypes))
+            }
         }
+        val required = (0 until elementsCount)
+            .filterNot { isElementOptional(it) }
+            .filterNot { !context.explicitNulls && getElementDescriptor(it).isNullable }
+            .map { context.jsonNameOf(this@classSchema, it) }
+        if (required.isNotEmpty()) putJsonArray("required") { required.forEach { add(it) } }
     }
-    val required = (0 until elementsCount)
-        .filterNot { isElementOptional(it) }
-        .map { context.jsonNameOf(this@classSchema, it) }
-    if (required.isNotEmpty()) putJsonArray("required") { required.forEach { add(it) } }
+    if (!context.writesClassDiscriminatorOnEveryClass) return schema
+    return schema.withDiscriminator(annotations.classDiscriminatorOr(context.classDiscriminator), serialName)
 }
 
 /**
@@ -123,9 +143,7 @@ private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes:
  * discriminator pinned to a constant.
  */
 private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
-    // A type-level annotation overrides the format-wide discriminator, the same way Json resolves it.
-    val discriminator = annotations.filterIsInstance<JsonClassDiscriminator>().firstOrNull()?.discriminator
-        ?: context.classDiscriminator
+    val discriminator = annotations.classDiscriminatorOr(context.classDiscriminator)
     val subclasses = getElementDescriptor(1)
     return buildJsonObject {
         putJsonArray("oneOf") {
@@ -145,11 +163,35 @@ private fun SerialDescriptor.sealedSchema(context: SchemaContext, enclosingTypes
 
 private fun SerialDescriptor.variantSchema(discriminator: String?, serialName: String, context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
     val schema = buildSchema(context, enclosingTypes)
-    val properties = schema["properties"] as? JsonObject ?: JsonObject(emptyMap())
-    val required = (schema["required"] as? JsonArray).orEmpty().map { (it as JsonPrimitive).content }
     // ClassDiscriminatorMode.NONE writes no discriminator, so advertising one would describe input
     // this format cannot produce; the variant shapes are still worth showing.
     if (discriminator == null) return schema
+    if (!context.writesClassDiscriminatorOnEveryClass) return schema.withDiscriminator(discriminator, serialName)
+    // The class schema already carries a discriminator, but under the key the subclass would use on
+    // its own; inside a sealed value Json writes the base's key, so that one wins.
+    val ownDiscriminator = annotations.classDiscriminatorOr(context.classDiscriminator)
+    if (ownDiscriminator == discriminator) return schema
+    return schema.withoutProperty(ownDiscriminator).withDiscriminator(discriminator, serialName)
+}
+
+private fun JsonObject.withoutProperty(name: String): JsonObject {
+    val properties = (this["properties"] as? JsonObject).orEmpty() - name
+    val required = (this["required"] as? JsonArray).orEmpty().filterNot { (it as JsonPrimitive).content == name }
+    return buildJsonObject {
+        for ((key, value) in this@withoutProperty) {
+            when (key) {
+                "properties" -> put(key, JsonObject(properties))
+                "required" -> if (required.isNotEmpty()) putJsonArray(key) { required.forEach { add(it) } }
+                else -> put(key, value)
+            }
+        }
+    }
+}
+
+/** Pins [discriminator] to [serialName] ahead of the object's own properties, as `Json` writes it. */
+private fun JsonObject.withDiscriminator(discriminator: String, serialName: String): JsonObject {
+    val properties = this["properties"] as? JsonObject ?: JsonObject(emptyMap())
+    val required = (this["required"] as? JsonArray).orEmpty().map { (it as JsonPrimitive).content }
     val discriminatorSchema = buildJsonObject {
         put("type", "string")
         put("const", serialName)
@@ -158,9 +200,12 @@ private fun SerialDescriptor.variantSchema(discriminator: String?, serialName: S
         put("type", "object")
         put("properties", JsonObject(mapOf(discriminator to discriminatorSchema) + properties))
         putJsonArray("required") { (listOf(discriminator) + required).forEach { add(it) } }
-        schema["description"]?.let { put("description", it) }
+        this@withDiscriminator["description"]?.let { put("description", it) }
     }
 }
+
+// A type-level annotation overrides the format-wide discriminator, the same way Json resolves it.
+private fun List<Annotation>.classDiscriminatorOr(default: String): String = filterIsInstance<JsonClassDiscriminator>().firstOrNull()?.discriminator ?: default
 
 private fun SerialDescriptor.elementSchema(index: Int, context: SchemaContext, enclosingTypes: MutableSet<String>): JsonObject {
     val schema = getElementDescriptor(index).buildSchema(context, enclosingTypes)
@@ -177,5 +222,47 @@ private fun SchemaContext.jsonNameOf(descriptor: SerialDescriptor, index: Int): 
 private fun List<Annotation>.mcpDescription(): String? = filterIsInstance<McpDescription>().firstOrNull()?.value
 
 private fun JsonObject.withDescription(description: String): JsonObject = JsonObject(this + ("description" to JsonPrimitive(description)))
+
+/**
+ * Widens a schema so that JSON `null` validates against it, in the form each shape supports: `type`
+ * gains `"null"`, an `enum` gains the `null` entry, and a `oneOf` gains a null variant.
+ */
+private fun JsonObject.allowingNull(): JsonObject {
+    val type = this["type"]
+    return when {
+        type is JsonPrimitive -> buildJsonObject {
+            for ((key, value) in this@allowingNull) {
+                when (key) {
+                    "type" -> putJsonArray("type") {
+                        add(type)
+                        add("null")
+                    }
+
+                    "enum" -> putJsonArray("enum") {
+                        (value as JsonArray).forEach { add(it) }
+                        add(JsonNull)
+                    }
+
+                    else -> put(key, value)
+                }
+            }
+        }
+
+        "oneOf" in this -> buildJsonObject {
+            for ((key, value) in this@allowingNull) {
+                if (key == "oneOf") {
+                    putJsonArray("oneOf") {
+                        (value as JsonArray).forEach { add(it) }
+                        add(typeOnly("null"))
+                    }
+                } else {
+                    put(key, value)
+                }
+            }
+        }
+
+        else -> this
+    }
+}
 
 private fun typeOnly(type: String): JsonObject = buildJsonObject { put("type", type) }

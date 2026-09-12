@@ -72,11 +72,11 @@ internal fun NavBackStackSnapshot.toMcpJson(): JsonObject = buildJsonObject {
 }
 
 /** The outcome of a mutation as a tool result, with the resulting stack so the caller can verify it. */
-internal fun MutationResult.toMcpJson(): String = buildJsonObject {
+internal fun MutationResult.toMcpJson(): JsonObject = buildJsonObject {
     put("applied", error == null)
     error?.let { put("error", it) }
     snapshot?.let { put("stack", it.toMcpJson()) }
-}.toString()
+}
 
 internal fun List<NavKeyTypeDescriptor>.toMcpJson(): JsonObject = buildJsonObject {
     putJsonArray("keyTypes") {

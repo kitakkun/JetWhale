@@ -7,7 +7,6 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.nav3.protocol.MutationResult
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -22,7 +21,7 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private fun JetWhaleMcpCommand.run(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
-    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
+    checkNotNull(execute(JetWhaleMcpArguments(arguments)).structuredContent)
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)

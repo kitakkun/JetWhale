@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 plugins {
     alias(libs.plugins.jvm)
+    alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.jetbrainsCompose)
     // Provides packagePlugin / installPlugin / stageDevPlugin / runJetWhale / runJetWhaleHot (published).
