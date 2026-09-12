@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.host.model.McpPermissions
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock
@@ -232,7 +233,7 @@ private class ObserveCommand : HostMcpCommand() {
     override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String = "Observes."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = "observed"
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text("observed")
 }
 
 private class RestartCommand : HostMcpCommand() {
@@ -240,7 +241,7 @@ private class RestartCommand : HostMcpCommand() {
     override val group: McpHostToolGroup = McpHostToolGroup.SETTINGS_AND_SERVERS
     override val description: String = "Restarts."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = "restarted"
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text("restarted")
 }
 
 /** Stands in for the built-in UI tools: takes a `pluginId`, so the check resolves per call. */

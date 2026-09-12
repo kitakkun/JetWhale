@@ -276,7 +276,9 @@ Running against a real app costs a device, and `adb` is where the time goes:
   through, and delete the output file before each run.
 
 Everything else in this document applies unchanged — the plugin's own tools take the same
-`sessionId` the built-ins do.
+`sessionId` the built-ins do, unless the plugin declares `"scope": "host"` in its manifest. A
+host-scoped plugin has one instance for the whole host, so its tools take **no `sessionId`** and can
+be called with no app connected.
 
 ## 4. Reaching the tools
 

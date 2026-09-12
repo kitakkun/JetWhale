@@ -4,6 +4,8 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpContent
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
@@ -26,6 +28,10 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+/** The text of a single-block result, which is what every command under test answers with. */
+@OptIn(ExperimentalJetWhaleApi::class)
+private val JetWhaleMcpResult.text: String get() = (content.single() as JetWhaleMcpContent.Text).text
+
 @OptIn(ExperimentalJetWhaleApi::class)
 class NetworkMcpCommandsTest {
     private fun tx(txId: String, timestampMs: Long, url: String = "https://api.example.com/$txId", method: String = "GET") = HttpTransaction(
@@ -38,7 +44,7 @@ class NetworkMcpCommandsTest {
 
     private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, String>): String = executeJson(command, *args.map { (key, value) -> key to JsonPrimitive(value) }.toTypedArray())
 
-    private fun executeJson(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
+    private fun executeJson(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))).text }
 
     private fun txIdsOf(result: String): List<String> = Json.parseToJsonElement(result).jsonObject
         .getValue("transactions").jsonArray
@@ -205,9 +211,9 @@ class NetworkMcpCommandsTest {
             override val name = "test.late"
             override val description = "declares a parameter inside execute"
 
-            override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+            override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
                 val late by stringOrNull("declared too late")
-                return late.name
+                return JetWhaleMcpResult.text(late.name)
             }
         }
         command.toDescriptor()
@@ -225,7 +231,7 @@ class NetworkMcpCommandsTest {
                 private val first by stringOrNull("first declaration", name = "x")
                 private val second by stringOrNull("second declaration", name = "x")
 
-                override suspend fun execute(arguments: JetWhaleMcpArguments): String = "unused"
+                override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text("unused")
             }
         }
         assertTrue("declared twice" in exception.message!!, exception.message!!)

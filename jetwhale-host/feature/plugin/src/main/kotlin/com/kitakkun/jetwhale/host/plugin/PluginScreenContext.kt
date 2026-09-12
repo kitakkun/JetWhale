@@ -15,11 +15,13 @@ import kotlinx.coroutines.flow.filter
  * Screen context for a plugin instance. The plugin/session ids arrive as NavKey arguments, so
  * this is created via assisted injection; the compose-scene query is keyed by those ids and
  * built by the injected [PluginComposeSceneQueryKeyFactory].
+ *
+ * [sessionId] is null for a host-scoped plugin, whose single instance belongs to no session.
  */
 @AssistedInject
 class PluginScreenContext(
     @Assisted val pluginId: String,
-    @Assisted val sessionId: String,
+    @Assisted val sessionId: String?,
     pluginComposeSceneQueryKeyFactory: PluginComposeSceneQueryKeyFactory,
     pluginHotReloadService: PluginHotReloadService,
     val headlessPluginsSubscriptionKey: HeadlessPluginsSubscriptionKey,
@@ -36,6 +38,6 @@ class PluginScreenContext(
 
     @AssistedFactory
     fun interface Factory {
-        fun create(pluginId: String, sessionId: String): PluginScreenContext
+        fun create(pluginId: String, sessionId: String?): PluginScreenContext
     }
 }

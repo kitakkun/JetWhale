@@ -15,4 +15,6 @@ data class DrawerPluginItemUiState(
     val exposesMcpTools: Boolean,
     /** True when this plugin renders no UI in the selected session, so opening it shows nothing. */
     val isHeadless: Boolean,
+    /** True when a single instance serves the whole host, so the plugin needs no session to be usable. */
+    val isHostScoped: Boolean,
 )

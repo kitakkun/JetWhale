@@ -6,5 +6,5 @@ package com.kitakkun.jetwhale.host.model
  * interface and create a key per plugin instance.
  */
 fun interface PluginComposeSceneQueryKeyFactory {
-    fun create(pluginId: String, sessionId: String): PluginComposeSceneQueryKey
+    fun create(pluginId: String, sessionId: String?): PluginComposeSceneQueryKey
 }

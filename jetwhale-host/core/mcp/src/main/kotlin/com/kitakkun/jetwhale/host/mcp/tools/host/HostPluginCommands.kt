@@ -12,8 +12,10 @@ import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginScope
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
@@ -42,7 +44,7 @@ class ListInstalledPluginsCommand(
     override val description: String =
         "Host-wide: lists every plugin installed into the debug tool and whether it is enabled, plus the official plugins that could still be installed and any jar that failed to load or is awaiting trust. Use jetwhale.listPlugins instead to see what a particular debug session advertises."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val loaded = pluginFactoryRepository.loadedPlugins
         val enabledPluginIds = enabledPluginsRepository.enabledPluginIdsFlow.first()
 
@@ -52,23 +54,26 @@ class ListInstalledPluginsCommand(
                 name = plugin.manifest.pluginName,
                 version = plugin.manifest.version,
                 requiresAgent = plugin.manifest.requiresAgent,
+                scope = if (plugin.manifest.scope == JetWhaleHostPluginScope.HOST) "host" else "session",
                 enabled = plugin.manifest.pluginId in enabledPluginIds,
             )
         }.sortedBy { it.pluginId }
 
-        return Json.encodeToString(
-            ListInstalledPluginsResult(
-                installed = installed,
-                availableOfficial = OfficialPluginCatalog.plugins.map { official ->
-                    OfficialPluginJson(
-                        pluginId = official.pluginId,
-                        displayName = official.displayName,
-                        description = official.description,
-                        installed = official.pluginId in loaded,
-                    )
-                },
-                failedJars = pluginFactoryRepository.failedJarsFlow.first().map { FailedJarJson(it.jarPath, it.reason) },
-                untrustedJars = pluginTrustService.untrustedJarPathsFlow.first(),
+        return JetWhaleMcpResult.text(
+            Json.encodeToString(
+                ListInstalledPluginsResult(
+                    installed = installed,
+                    availableOfficial = OfficialPluginCatalog.plugins.map { official ->
+                        OfficialPluginJson(
+                            pluginId = official.pluginId,
+                            displayName = official.displayName,
+                            description = official.description,
+                            installed = official.pluginId in loaded,
+                        )
+                    },
+                    failedJars = pluginFactoryRepository.failedJarsFlow.first().map { FailedJarJson(it.jarPath, it.reason) },
+                    untrustedJars = pluginTrustService.untrustedJarPathsFlow.first(),
+                ),
             ),
         )
     }
@@ -93,36 +98,44 @@ class SetPluginEnabledCommand(
     private val pluginId by string("The plugin to toggle; from jetwhale.listInstalledPlugins.")
     private val enabled by boolean("True to enable the plugin, false to disable it.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val targetPluginId = arguments[pluginId]
         if (targetPluginId !in pluginFactoryRepository.loadedPlugins) {
             throw JetWhaleMcpArgumentException("invalid pluginId: '$targetPluginId' is not installed. See jetwhale.listInstalledPlugins.")
         }
         val shouldEnable = arguments[enabled]
+        // A host-scoped plugin is instantiated whether or not anything is connected, so it is worth
+        // waiting for even with no session.
+        val isHostScoped = pluginFactoryRepository.loadedPlugins[targetPluginId]?.manifest?.scope == JetWhaleHostPluginScope.HOST
 
         // Reconciliation runs asynchronously, so collect the Ready events before flipping the flag —
         // otherwise "ok" would be reported before any instance actually exists. With nothing
-        // connected there is nothing to instantiate, so skip the wait entirely.
+        // connected and nothing host-scoped there is nothing to instantiate, so skip the wait entirely.
         val hasActiveSession = debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().any { it.isActive }
         val instantiatedSessions = mutableSetOf<String>()
+        var instantiatedForHost = false
         coroutineScope {
             val collector = launch {
                 pluginInstanceService.pluginInstanceEventFlow
                     .filterIsInstance<PluginInstanceEvent.Ready>()
                     .filter { it.pluginId == targetPluginId }
-                    .collect { instantiatedSessions += it.sessionId }
+                    // A host-scoped instance reports a null sessionId: it belongs to the host itself.
+                    .collect { event -> event.sessionId?.let { instantiatedSessions += it } ?: run { instantiatedForHost = true } }
             }
             enabledPluginsRepository.setPluginEnabled(targetPluginId, shouldEnable)
-            if (shouldEnable && hasActiveSession) delay(INSTANTIATION_TIMEOUT_MILLIS)
+            if (shouldEnable && (hasActiveSession || isHostScoped)) delay(INSTANTIATION_TIMEOUT_MILLIS)
             collector.cancel()
         }
 
-        return Json.encodeToString(
-            SetPluginEnabledResult(
-                pluginId = targetPluginId,
-                enabled = shouldEnable,
-                instantiatedForSessions = instantiatedSessions.sorted(),
-                reconnectRequiredForNewTools = shouldEnable,
+        return JetWhaleMcpResult.text(
+            Json.encodeToString(
+                SetPluginEnabledResult(
+                    pluginId = targetPluginId,
+                    enabled = shouldEnable,
+                    instantiatedForSessions = instantiatedSessions.sorted(),
+                    instantiatedForHost = instantiatedForHost,
+                    reconnectRequiredForNewTools = shouldEnable,
+                ),
             ),
         )
     }
@@ -142,7 +155,7 @@ class InstallOfficialPluginCommand(
 
     private val pluginId by string("The official plugin to install; from the availableOfficial list of jetwhale.listInstalledPlugins.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         // Whether an agent may install at all is the Manage plugins permission, enforced for every
         // tool in the group by McpToolRegistrar before this runs.
         val targetPluginId = arguments[pluginId]
@@ -151,12 +164,14 @@ class InstallOfficialPluginCommand(
                 "invalid pluginId: '$targetPluginId' is not an official plugin. Only ${OfficialPluginCatalog.plugins.joinToString { it.pluginId }} can be installed over MCP.",
             )
         if (targetPluginId in pluginFactoryRepository.loadedPlugins) {
-            return Json.encodeToString(
-                InstallOfficialPluginResult(
-                    pluginId = targetPluginId,
-                    installed = true,
-                    alreadyInstalled = true,
-                    nextStep = "jetwhale.setPluginEnabled",
+            return JetWhaleMcpResult.text(
+                Json.encodeToString(
+                    InstallOfficialPluginResult(
+                        pluginId = targetPluginId,
+                        installed = true,
+                        alreadyInstalled = true,
+                        nextStep = "jetwhale.setPluginEnabled",
+                    ),
                 ),
             )
         }
@@ -167,12 +182,14 @@ class InstallOfficialPluginCommand(
 
         withContext(Dispatchers.IO) { officialPluginInstallService.install(plugin) }
 
-        return Json.encodeToString(
-            InstallOfficialPluginResult(
-                pluginId = targetPluginId,
-                installed = true,
-                alreadyInstalled = false,
-                nextStep = "jetwhale.setPluginEnabled",
+        return JetWhaleMcpResult.text(
+            Json.encodeToString(
+                InstallOfficialPluginResult(
+                    pluginId = targetPluginId,
+                    installed = true,
+                    alreadyInstalled = false,
+                    nextStep = "jetwhale.setPluginEnabled",
+                ),
             ),
         )
     }
@@ -183,6 +200,8 @@ data class SetPluginEnabledResult(
     val pluginId: String,
     val enabled: Boolean,
     val instantiatedForSessions: List<String>,
+    /** True when this call brought up the single instance of a host-scoped plugin. */
+    val instantiatedForHost: Boolean,
     val reconnectRequiredForNewTools: Boolean,
 )
 
@@ -210,6 +229,8 @@ data class InstalledPluginJson(
     val name: String,
     val version: String,
     val requiresAgent: Boolean,
+    /** "session" for one instance per debug session, "host" for a single host-wide instance. */
+    val scope: String,
     val enabled: Boolean,
 )
 

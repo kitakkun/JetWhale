@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.network.host
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -13,5 +14,5 @@ internal class ClearTransactionsCommand(
     override val name = "$TOOL_PREFIX.clearTransactions"
     override val description = "Clears the captured HTTP transaction list."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = buildJsonObject { put("clearedCount", clearTransactions()) }.toString()
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult = JetWhaleMcpResult.text(buildJsonObject { put("clearedCount", clearTransactions()) }.toString())
 }

@@ -222,7 +222,7 @@ class ScrollToolTest {
         private val scene: PluginComposeScene,
     ) : PluginComposeSceneService {
         override fun updateHostDensity(density: Density) = Unit
-        override suspend fun getOrCreatePluginScene(pluginId: String, sessionId: String): PluginComposeScene = scene
+        override suspend fun getOrCreatePluginScene(pluginId: String, sessionId: String?): PluginComposeScene = scene
         override fun disposePluginSceneForSession(sessionId: String) = Unit
         override fun disposePluginScenesForPlugin(pluginId: String) = Unit
         override fun disposeAllPluginScenes() = Unit
