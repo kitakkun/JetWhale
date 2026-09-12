@@ -10,10 +10,8 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpTextCommand
-import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock

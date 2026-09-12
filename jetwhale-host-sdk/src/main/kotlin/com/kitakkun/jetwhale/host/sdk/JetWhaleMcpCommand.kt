@@ -229,7 +229,15 @@ public abstract class JetWhaleMcpCommand(
      */
     protected inline fun <reified T : Any> serializableOutput(): JetWhaleMcpOutput<T> = serializableOutput(serializer<T>())
 
-    /** Explicit-serializer form of [serializableOutput], for types whose serializer cannot be resolved from the type argument. */
+    /**
+     * Explicit-serializer form of [serializableOutput], for types whose serializer cannot be resolved
+     * from the type argument.
+     *
+     * The schema is derived from [serializer]'s descriptor and the payload from what it writes, so
+     * the two agree exactly when the serializer honors kotlinx.serialization's own contract that a
+     * descriptor describes its encoding. A hand-written serializer that breaks it advertises a shape
+     * it does not produce; that is checked no further than the payload being a JSON object.
+     */
     protected fun <T : Any> serializableOutput(serializer: KSerializer<T>): JetWhaleMcpOutput<T> {
         val schema = serializer.descriptor.toJsonSchema(json)
         // MCP's output schema names the object's properties, so a map — an object with none — has no
