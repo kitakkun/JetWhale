@@ -32,6 +32,18 @@ data class HostDestination(
     val sessionId: String? = null,
     val settingsSection: HostSettingsSection? = null,
     val poppedOutPlugins: List<PoppedOutPlugin> = emptyList(),
+    /**
+     * What the main window shows as its content, under whatever dialog is open over it. Defaults
+     * to the top itself, which is right whenever nothing is drawn over the content.
+     */
+    val content: HostContent = HostContent(kind, pluginId, sessionId),
+)
+
+/** The main window's content — a plugin, or the empty home — as distinct from a dialog over it. */
+data class HostContent(
+    val kind: HostDestinationKind,
+    val pluginId: String? = null,
+    val sessionId: String? = null,
 )
 
 data class HostViewState(
