@@ -41,6 +41,20 @@ SDK modules) is designed for its callers outside the module, and its extensions 
   on the type they produce (5). Implementations declared in the same file as their interface follow
   rule 2 as usual.
 
+## Not worth a function
+
+A function has to do something its call site cannot say in one line. It is not worth existing when:
+
+- Its body is a single call that passes the receiver and arguments straight through:
+  `private fun EditText.focusForEditing() { requestFocus() }` is `requestFocus()` under another
+  name. Call the original. If the reason for the call is not obvious, that reason is a comment at
+  the call site, not a function name.
+- Its body is one expression used at one call site. Write the expression there.
+
+Extract a function when the body has a shape worth naming — a computation, a branch, a sequence —
+or when the same non-trivial body appears at several call sites. Naming a single forwarding call
+adds a hop for the reader and nothing for the code.
+
 ## Why
 
 A function reachable from more places than use it is a question at every call site: "who else
