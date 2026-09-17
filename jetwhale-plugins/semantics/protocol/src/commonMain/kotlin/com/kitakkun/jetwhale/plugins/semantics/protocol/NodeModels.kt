@@ -349,7 +349,10 @@ enum class NodeAction {
     /** Submits an editable node via `SemanticsActions.OnImeAction`. */
     ImeAction,
 
-    /** Scrolls a scrollable node by `scrollX`/`scrollY` pixels via `SemanticsActions.ScrollBy`. */
+    /**
+     * Scrolls a scrollable node by `scrollX`/`scrollY`, in the root's unit (pixels; points on iOS),
+     * via `SemanticsActions.ScrollBy`.
+     */
     ScrollBy,
 
     /**

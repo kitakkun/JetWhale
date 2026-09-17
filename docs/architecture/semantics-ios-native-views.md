@@ -270,6 +270,11 @@ first package, which ships the official plugins only.
   API, but which nodes SwiftUI chooses to expose is SwiftUI's business. The findings are from
   iOS 26.2; the demo should be run on the oldest deployment target it supports before the first
   release.
+- **Roots are in registration order.** `NodeHitTesting` reads roots bottom to top, and the probe
+  registers windows as it finds them, not by `windowLevel`. An app with two overlapping windows of
+  its own — rare on iOS, where sheets and alerts stay inside the one window — could get the
+  obstruction between them the wrong way round. The registry has no reordering, so this waits for
+  a real case.
 - **Element order is traversal order.** `NodeHitTesting` reads children as paint order, last on
   top, which holds for `subviews` but is only an assumption for `accessibilityElements`: a toolkit
   may order those for VoiceOver rather than by stacking. Overlapping SwiftUI or Compose siblings

@@ -68,10 +68,14 @@ internal class IosWindowNodeSource(private val window: UIWindow) : ComposeNodeSo
  * Whether [node] is in this window's tree right now, not only in its last capture. The registry
  * keeps the last capture's objects alive, so a dismissed dialog's button still resolves by id; a
  * view answers through its `window`, a bare element only by being found again under the window.
+ * Objects are compared by address: a Kotlin reference to an Objective-C object is a wrapper, and
+ * UIKit may hand back a different wrapper for the same object.
  */
+@OptIn(ExperimentalForeignApi::class)
 private fun UIWindow.stillHolds(node: NSObject): Boolean {
-    if (node is UIView) return node.window === this
-    return anyDescendant { it === node }
+    val address = node.objcPtr().toLong()
+    if (node is UIView) return node.window?.objcPtr()?.toLong() == objcPtr().toLong()
+    return anyDescendant { it.objcPtr().toLong() == address }
 }
 
 private fun NSObject.anyDescendant(predicate: (NSObject) -> Boolean): Boolean = accessibilityChildren().any { child ->
