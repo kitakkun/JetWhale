@@ -183,6 +183,34 @@ class NodeTreeTest {
     }
 
     @Test
+    fun `displayLabel names an iOS node by its class, identifier and label`() {
+        assertEquals(
+            "AccessibilityNode · swiftui-button · SwiftUI Button",
+            appleNode(id = -1, className = "SwiftUI.AccessibilityNode", accessibilityIdentifier = "swiftui-button", text = "SwiftUI Button").displayLabel(),
+        )
+        assertEquals("UITextField", appleNode(id = -2, className = "UITextField").displayLabel())
+    }
+
+    @Test
+    fun `a testTag query finds an iOS node by its accessibility identifier`() {
+        val target = appleNode(id = -1, className = "AccessibilityElement", accessibilityIdentifier = "increment-button")
+
+        assertTrue(target.matches(NodeQuery(testTag = "increment")))
+        assertTrue(target.matches(NodeQuery(testTag = "increment-button", exact = true)))
+        assertFalse(target.matches(NodeQuery(testTag = "other")))
+        assertFalse(target.matches(NodeQuery(resourceId = "increment-button")))
+    }
+
+    @Test
+    fun `matchesFreeText searches an iOS node's class and identifier`() {
+        val target = appleNode(id = -1, className = "SwiftUI.AccessibilityNode", accessibilityIdentifier = "swiftui-toggle")
+
+        assertTrue(target.matchesFreeText("accessibilitynode"))
+        assertTrue(target.matchesFreeText("swiftui"))
+        assertFalse(target.matchesFreeText("UITextField"))
+    }
+
+    @Test
     fun `displayLabel prefers the node's own label and falls back to role then id`() {
         assertEquals("Button · Send", node(id = 1, role = "Button", text = "Send").displayLabel())
         assertEquals("Send", node(id = 1, text = "Send").displayLabel())

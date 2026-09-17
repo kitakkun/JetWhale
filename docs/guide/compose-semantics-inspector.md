@@ -32,6 +32,10 @@ Two views of it are available, switchable in the host and per MCP call:
 | **Merged** (default) | A `Button`'s label is folded into the clickable node — one node per control. This is what accessibility services and `performClick` see, and usually what you want. |
 | **Unmerged** | Every semantics node stays separate, closer to how the UI is written. Useful when you need to see exactly which composable contributed which property. |
 
+On Android the tree also carries the `View`s around and inside the composition; on iOS it is read
+through the accessibility protocol and carries UIKit and SwiftUI content alongside Compose. See
+[Android View support](#android-view-support) and [iOS support](#ios-support).
+
 ## Android View support
 
 Very little Compose is *only* Compose. A screen usually sits in an Activity's or a Fragment's layout,
@@ -129,6 +133,63 @@ Two limits are worth knowing:
 Other platforms are unaffected: desktop reads a composition through its `SemanticsOwner`, and its
 roots stay one-per-composition.
 
+## iOS support
+
+On iOS the capture does not read Compose through a `SemanticsOwner` — Compose Multiplatform hands
+none out for the scene an app shows — but through the **accessibility protocol**, which every
+toolkit on the platform publishes into: UIKit views are their own accessibility objects, SwiftUI
+lists its nodes through its hosting view, and Compose Multiplatform lists its semantics tree from
+the view it draws into. One walk per window covers all three, whether the app is Compose with a
+SwiftUI bar above it, SwiftUI with a `ComposeUIViewController` inside, or plain UIKit:
+
+```
+UIWindow                                  ← the root; one per app, dialogs and sheets included
+└─ _UIHostingView                         ← SwiftUI
+   ├─ AccessibilityNode · swiftui-button  ← a SwiftUI Button
+   ├─ UITextField · swiftui-name          ← a SwiftUI TextField is a real UITextField
+   └─ ComposeContainerView                ← where Compose starts
+      └─ AccessibilityRoot
+         └─ AccessibilityElement · increment-button   ← a Compose Button, testTag and all
+```
+
+Every node on iOS is a `"type": "apple"` node — there are no `"compose"` nodes, because the
+Compose content arrives through the same protocol as everything else. It fills the same fields a
+Compose node does, so a consumer that only reads the tree needs nothing new. What is particular to
+it:
+
+| | `apple` node |
+|---|---|
+| `id` | **negative**, assigned by the agent and valid while the object is alive |
+| `className` | the Objective-C class: `UITextField`, `SwiftUI.AccessibilityNode`, Compose's `AccessibilityElement` |
+| `accessibilityIdentifier` | where SwiftUI's `.accessibilityIdentifier(_:)` **and** a Compose `Modifier.testTag` both land — `findNodes(testTag:)` matches it |
+| `accessibilityValue` | the value as the toolkit reports it: a switch's `"1"`, a slider's `"50%"` |
+| `traits` | the set `UIAccessibilityTraits`, by name: `Button`, `Selected`, `NotEnabled`, `ToggleButton`… |
+
+Coordinates are **points**, the unit every iOS tool takes, and the root's `density` is `1`.
+`merged` has no effect: the accessibility tree is the merged one, and it is the only one there is.
+
+What the accessibility protocol does not carry, the capture cannot report: a Compose `role` and
+`stateDescription` are folded into label and traits; whether a bare SwiftUI or Compose element
+scrolls is not known until it is asked to, so only a `UIScrollView` reads `scrollable`; and a node
+scrolled out of its container reports its laid-out frame, clipped to the window rather than to the
+container.
+
+`performNodeAction` runs the accessibility protocol's counterpart, or the view's own API when the
+node is a view that has one:
+
+| Action | UIKit view | SwiftUI node | Compose element |
+|---|---|---|---|
+| `Click` | `accessibilityActivate()`, else the control's touch-up actions | `accessibilityActivate()` — runs the `Button`'s closure, flips a `Toggle` | `accessibilityActivate()` — runs `onClick`, toggles a `Checkbox` |
+| `SetText` / `InsertText` | on a `UITextField` / `UITextView` | same: the `TextField` is a `UITextField` underneath | not available — the element's value is read-only |
+| `ImeAction` | the field's delegate `textFieldShouldReturn:` | same — where `onSubmit` lives | not available |
+| `ScrollBy` | `UIScrollView.setContentOffset`, by the distance asked | `accessibilityScroll`, by **direction**: one page, distance ignored | same |
+| `ScrollToIndex` | `UITableView` / `UICollectionView` | a `List` is a `UICollectionView` | not available |
+| `BringIntoView` | every `UIScrollView` above the view | a bare node only reports whether it is already in view | same |
+| `RequestFocus` | `becomeFirstResponder()` | on the backing `UITextField` | not available |
+| `Dismiss` | `accessibilityPerformEscape()`, tried on any node | same | same |
+| `Expand` / `Collapse` | a custom action of that name | same | same |
+| `LongClick` | not available | | |
+
 ## Setup
 
 ### Install the host plugin
@@ -217,6 +278,20 @@ Use this when the Application layer is not yours to touch, or when only one scre
 readable. It registers **its own** root for as long as it stays composed — on Android, the window
 that root lives in. A `Dialog` or `Popup` is a root of its own, so add a call inside those too, or
 install the Application-level probe, which finds them all.
+
+#### On iOS
+
+```kotlin
+import com.kitakkun.jetwhale.plugins.semantics.agent.installJetWhaleSemanticsProbe
+
+installJetWhaleSemanticsProbe()
+```
+
+Call it once at startup, on the main thread — before or after `startJetWhale`. It registers every
+window the app has and follows `UIWindowDidBecomeVisible` / `UIWindowDidBecomeHidden` for the ones
+that open later; there is nothing per screen to add, and no composition to put a call inside. A
+pure Swift app cannot call it yet: the agent's start API has no Swift surface, so the call has to
+sit in Kotlin the app links, as in the demo's `cmpAppViewController()`.
 
 ::: warning Debug builds only
 The probe makes your app's UI structure readable, and the actions below make it drivable, over the
@@ -359,7 +434,8 @@ node's own bounds — see [Can a finger reach it?](#can-a-finger-reach-it).
 Invokes a node's own semantics action: `Click`, `LongClick`, `SetText`, `InsertText`, `ImeAction`,
 `ScrollBy`, `ScrollToIndex`, `RequestFocus`, `Dismiss`, `Expand`, `Collapse` — plus `BringIntoView`,
 which is not the node's own but works on any node. On an Android `View` node it runs the view's own
-equivalent — see [Android View support](#android-view-support).
+equivalent — see [Android View support](#android-view-support); on iOS it runs the accessibility
+protocol's — see [iOS support](#ios-support).
 
 This runs the action the node itself declared, so it needs no coordinates and cannot land on
 whatever moved into that spot in the meantime — prefer it over `adb shell input tap`. `rootId` is
@@ -509,7 +585,8 @@ The capture and action layer is written against `SemanticsOwner`, which lives in
 |---|---|---|
 | **Android** | ✅ | `installJetWhaleSemanticsProbe(application)`, or `JetWhaleSemanticsProbe()` in a composition — captures the window, Android `View`s included |
 | **Desktop (JVM)** | ✅ | `JetWhaleSemanticsProbe()` inside your `Window { }`, under `@OptIn(ExperimentalComposeUiApi::class)` |
-| iOS, JS, Wasm | — | the standard entry points expose no owner — see [iOS and web](#ios-and-web) |
+| **iOS** | ✅ | `installJetWhaleSemanticsProbe()` at startup — reads the accessibility tree, so UIKit and SwiftUI come along; see [iOS support](#ios-support) |
+| JS, Wasm | — | the standard entry points expose no owner — see [Web](#web) |
 
 Those are the targets the agent artifact ships for — Compose Multiplatform's own set. Linux, mingw
 and macOS are absent: the first two have no `androidx.compose.ui` at all, and macOS needs the whole
@@ -524,21 +601,20 @@ probe carries that marker too — opt in at the call site
 (`@OptIn(ExperimentalComposeUiApi::class)`), or the module will not compile. The Android probe has
 no such requirement.
 
-### iOS and web
+iOS is the odd one out: it has a probe, but not one that reads a `SemanticsOwner`. Compose
+Multiplatform hands none out for the scene an app shows — `ComposeUIViewController` builds its
+`ComposeScene` internally, and `PlatformContext.SemanticsOwnerListener`, the seam that would deliver
+the owners, is only consulted for a scene the caller constructs. What Compose does publish on iOS is
+its accessibility tree, and that is what the iOS probe reads — see [iOS support](#ios-support) for
+what that changes.
 
-There is no probe on iOS, JS or Wasm because Compose Multiplatform hands out no `SemanticsOwner` for
-the scene your app actually shows — not to a probe, and not to your own code either.
+### Web
 
-`ComposeUIViewController`, `ComposeUIView` and `ComposeViewport` build their `ComposeScene`
-internally. `PlatformContext.SemanticsOwnerListener` is the seam that would deliver the owners, but
-it is only consulted for a scene the caller constructs, so an app cannot supply one. Nor is there a
-route from inside the composition: `SemanticsNode.root` is public, but reaching a `SemanticsNode`
-needs an owner to begin with.
-
-Desktop was in the same position until Compose Multiplatform 1.10 exposed
-`ComposeWindow.semanticsOwners`; iOS and web have no equivalent yet. The plugin's capture and action
-layer is already common code, so a probe for both targets is a small addition once an owner can be
-reached.
+There is no probe on JS or Wasm: `ComposeViewport` builds its scene internally, like iOS, and the
+browser has no accessibility tree the agent could read instead. Desktop was in the same position
+until Compose Multiplatform 1.10 exposed `ComposeWindow.semanticsOwners`; web has no equivalent
+yet. The plugin's capture and action layer is already common code, so a probe is a small addition
+once an owner can be reached.
 
 Until then, `registerSemanticsOwner` is the seam to use for any host you build yourself on top of
 `ComposeScene` — including `ImageComposeScene`, whose `semanticsOwners` *is* available on these
@@ -565,14 +641,15 @@ your classpath; pass your own `ComposeUiThread` to `registerSemanticsOwner` if t
 
 ## Troubleshooting
 
-**"The app reported no Compose root."** No probe is installed. Add
-`installJetWhaleSemanticsProbe(application)`, or `JetWhaleSemanticsProbe()` inside your
-composition. On iOS, JS and Wasm this is expected — see [iOS and web](#ios-and-web).
+**"No root is registered."** No probe is installed. Add `installJetWhaleSemanticsProbe(application)`
+on Android, `installJetWhaleSemanticsProbe()` on iOS, or `JetWhaleSemanticsProbe()` inside your
+composition. On JS and Wasm this is expected — see [Web](#web).
 
-**A dialog's contents are missing.** A dialog is a separate window. The Application-level probe
-finds it; an in-composition probe only registers the window it was called in. A dialog built from
-Android views with no Compose in it is not captured at all — see
-[Android View support](#android-view-support).
+**A dialog's contents are missing.** On Android a dialog is a separate window. The Application-level
+probe finds it; an in-composition probe only registers the window it was called in. A dialog built
+from Android views with no Compose in it is not captured at all — see
+[Android View support](#android-view-support). On iOS a dialog stays inside the window that showed
+it and is part of that root.
 
 **An action comes back `performed: false`.** The message says why — the node does not expose that
 action, it is disabled, or its handler declined. Capture the tree again and check the node's

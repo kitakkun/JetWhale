@@ -104,6 +104,26 @@ class NodeMcpJsonTest {
     }
 
     @Test
+    fun `spells out an iOS node by its class, identifier, value and traits`() {
+        val json = appleNode(
+            id = -2,
+            className = "SwiftUI.AccessibilityNode",
+            accessibilityIdentifier = "swiftui-toggle",
+            accessibilityValue = "1",
+            traits = listOf("Button", "ToggleButton"),
+            text = "Flag",
+        ).toMcpJson()
+
+        assertEquals("Apple", json["kind"]?.jsonPrimitive?.content)
+        assertEquals("SwiftUI.AccessibilityNode", json["className"]?.jsonPrimitive?.content)
+        assertEquals("swiftui-toggle", json["accessibilityIdentifier"]?.jsonPrimitive?.content)
+        assertEquals("1", json["accessibilityValue"]?.jsonPrimitive?.content)
+        assertEquals(listOf("Button", "ToggleButton"), json["traits"]?.jsonArray?.map { it.jsonPrimitive.content })
+        assertEquals("Flag", json["text"]?.jsonPrimitive?.content)
+        assertNull(json["viewClass"])
+    }
+
+    @Test
     fun `omits the kind of a Compose node, which is what most of a tree is`() {
         val json = node(id = 1, text = "label").toMcpJson()
 

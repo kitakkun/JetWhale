@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.semantics.host
 
+import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
@@ -61,6 +62,32 @@ internal fun viewNode(
     resourceId = resourceId,
     text = text,
     contentDescription = contentDescription,
+    bounds = bounds,
+    boundsInScreen = bounds,
+    actions = actions,
+    isClickable = isClickable,
+    children = children,
+)
+
+/** An iOS node, as an iOS capture reports one: a negative id, a class, and an accessibility identifier in place of a tag. */
+internal fun appleNode(
+    id: Int,
+    className: String,
+    accessibilityIdentifier: String? = null,
+    accessibilityValue: String? = null,
+    traits: List<String> = emptyList(),
+    text: String? = null,
+    actions: List<String> = emptyList(),
+    isClickable: Boolean = false,
+    bounds: NodeBounds = NodeBounds(0f, 0f, 100f, 40f),
+    children: List<UiNode> = emptyList(),
+): AppleNode = AppleNode(
+    id = id,
+    className = className,
+    accessibilityIdentifier = accessibilityIdentifier,
+    accessibilityValue = accessibilityValue,
+    traits = traits,
+    text = text,
     bounds = bounds,
     boundsInScreen = bounds,
     actions = actions,

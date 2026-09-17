@@ -87,8 +87,9 @@ data class NodeRef(
 )
 
 /**
- * One node of the captured tree: a Compose semantics node ([ComposeNode]), or on Android an
- * interoperating `View` ([ViewNode]).
+ * One node of the captured tree: a Compose semantics node ([ComposeNode]), on Android an
+ * interoperating `View` ([ViewNode]), or on iOS anything the window publishes through accessibility
+ * ([AppleNode]).
  *
  * Everything declared here a node of either type answers, so a consumer that only reads the tree —
  * searching it, drawing it, tapping its bounds — never has to know which type it holds.
@@ -97,8 +98,8 @@ data class NodeRef(
 sealed interface UiNode {
     /**
      * Addresses the node within its root and stays valid while the node is on screen. A
-     * [ComposeNode] reports its semantics id, which is non-negative; a [ViewNode] reports a negative
-     * id assigned by the agent, so the two can never collide.
+     * [ComposeNode] reports its semantics id, which is non-negative; a [ViewNode] or an [AppleNode]
+     * reports a negative id assigned by the agent, so the two can never collide.
      */
     val id: Int
 
@@ -169,7 +170,7 @@ sealed interface UiNode {
     /** What takes the touch aimed at this node instead of it, when [isHittable] is `false`. */
     val obscuredBy: NodeRef?
 
-    /** Children of either type: an Android tree crosses between the two wherever the real UI does. */
+    /** Children of any type: an Android tree crosses between Compose and `View` wherever the real UI does. */
     val children: List<UiNode>
 }
 
@@ -243,7 +244,55 @@ data class ViewNode(
     override val children: List<UiNode> = emptyList(),
 ) : UiNode
 
-/** A rectangle in pixels. */
+/**
+ * A node of an iOS window: a UIKit `UIView`, or an object a toolkit publishes through the `NSObject`
+ * accessibility protocol without a view of its own — a SwiftUI node, a Compose Multiplatform
+ * element. Only the class name says which, and a consumer rarely needs to know: label, value,
+ * traits and frame are the same protocol on all three.
+ *
+ * Bounds are in **points**, the unit every iOS tool takes, and the root's `density` is `1`.
+ *
+ * Optional properties default to the unremarkable state, as on [ComposeNode].
+ */
+@Serializable
+@SerialName("apple")
+data class AppleNode(
+    /** Assigned by the agent and negative, so it cannot collide with a [ComposeNode]'s id. */
+    override val id: Int,
+    /**
+     * The Objective-C class name: `UITextField`, `SwiftUI.AccessibilityNode`, Compose's
+     * `AccessibilityElement`. A SwiftUI hosting view carries a mangled Swift name.
+     */
+    val className: String,
+    /**
+     * `accessibilityIdentifier`, which is where SwiftUI's `.accessibilityIdentifier(_:)` and a Compose
+     * `Modifier.testTag` both land — the test-tag equivalent of this node type.
+     */
+    val accessibilityIdentifier: String? = null,
+    /** `accessibilityValue` as the toolkit reports it: a switch's `"1"`, a slider's `"50%"`, a field's content. */
+    val accessibilityValue: String? = null,
+    /** The names of the set `UIAccessibilityTraits` bits, e.g. `Button`, `Selected`, `NotEnabled`. */
+    val traits: List<String> = emptyList(),
+    override val text: String? = null,
+    override val editableText: String? = null,
+    override val contentDescription: String? = null,
+    override val toggleableState: String? = null,
+    override val bounds: NodeBounds,
+    override val boundsInScreen: NodeBounds,
+    override val actions: List<String> = emptyList(),
+    override val isEnabled: Boolean = true,
+    override val isClickable: Boolean = false,
+    override val isFocused: Boolean = false,
+    override val isSelected: Boolean = false,
+    override val isEditable: Boolean = false,
+    override val isScrollable: Boolean = false,
+    override val isVisible: Boolean = true,
+    override val isHittable: Boolean = true,
+    override val obscuredBy: NodeRef? = null,
+    override val children: List<UiNode> = emptyList(),
+) : UiNode
+
+/** A rectangle in pixels — in points on iOS, where the root's `density` is `1`. */
 @Serializable
 data class NodeBounds(
     val left: Float,
@@ -266,6 +315,9 @@ data class NodeBounds(
  * On a [ComposeNode] it is the node's own semantics action. On a [ViewNode] it is the closest
  * equivalent the platform offers — [Click] calls `performClick()`, [SetText] sets an `EditText`'s
  * content — and [Dismiss], [Expand] and [Collapse] have none, so they report that they did not run.
+ * On an [AppleNode] it is the accessibility protocol's counterpart — [Click] is
+ * `accessibilityActivate()`, [Dismiss] is `accessibilityPerformEscape()` — or the `UIView` API when
+ * the node is a view that has one.
  *
  * [BringIntoView] is the one action that is not the node's own: it drives the scrollable
  * containers *around* the node, so it applies to any node with bounds rather than only to those

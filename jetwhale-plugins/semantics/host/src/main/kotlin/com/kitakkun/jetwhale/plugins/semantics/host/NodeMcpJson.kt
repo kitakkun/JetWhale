@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.semantics.host
 
+import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
@@ -51,13 +52,21 @@ internal fun ComposeRoot.toMcpJson(): JsonObject = buildJsonObject {
 internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean = true): JsonObject = buildJsonObject {
     put("id", id)
     rootId?.let { put("rootId", it) }
-    // Only the surprising kind is emitted: most of a tree is Compose, and an Android View node is
-    // the one a caller has to read differently — negative id, a class instead of a role.
+    // Only the surprising kinds are emitted: most of a tree is Compose, and a View or an iOS node
+    // is the one a caller has to read differently — negative id, a class instead of a role.
     when (this@toMcpJson) {
         is ViewNode -> {
             put("kind", "View")
             put("viewClass", viewClass)
             resourceId?.let { put("resourceId", it) }
+        }
+
+        is AppleNode -> {
+            put("kind", "Apple")
+            put("className", className)
+            accessibilityIdentifier?.let { put("accessibilityIdentifier", it) }
+            accessibilityValue?.let { put("accessibilityValue", it) }
+            if (traits.isNotEmpty()) put("traits", JsonArray(traits.map { JsonPrimitive(it) }))
         }
 
         is ComposeNode -> {

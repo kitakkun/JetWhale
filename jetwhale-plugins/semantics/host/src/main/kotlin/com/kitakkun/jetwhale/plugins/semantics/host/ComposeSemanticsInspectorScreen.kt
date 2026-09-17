@@ -50,6 +50,7 @@ import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTreeRow
 import com.kitakkun.jetwhale.host.ui.LocalJwContentColor
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
+import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
@@ -338,10 +339,12 @@ private fun NodeRow(
         onClick = onSelect,
         onToggleExpanded = onToggleExpanded,
         trailingContent = {
-            // The two node types interleave in one tree, and which one a row is decides how to read
-            // it — so the Android View nodes are tagged rather than left to be inferred from the label.
-            if (row.node is ViewNode) {
-                JwTag(text = "View", tone = JwTone.Info)
+            // The node types interleave in one tree, and which one a row is decides how to read it —
+            // so the non-Compose nodes are tagged rather than left to be inferred from the label.
+            when (row.node) {
+                is ViewNode -> JwTag(text = "View", tone = JwTone.Info)
+                is AppleNode -> JwTag(text = "iOS", tone = JwTone.Info)
+                is ComposeNode -> Unit
             }
             if (row.node.isInteractive) {
                 JwTag(text = row.node.actionSummary(), tone = JwTone.Accent)
@@ -413,6 +416,13 @@ private fun NodeDetail(
                     node.role?.let { PropertyRow("role", it) }
                     node.testTag?.let { PropertyRow("testTag", it) }
                     node.stateDescription?.let { PropertyRow("stateDescription", it, wrap = true) }
+                }
+
+                is AppleNode -> {
+                    PropertyRow("className", node.className)
+                    node.accessibilityIdentifier?.let { PropertyRow("accessibilityIdentifier", it) }
+                    node.accessibilityValue?.let { PropertyRow("accessibilityValue", it, wrap = true) }
+                    if (node.traits.isNotEmpty()) PropertyRow("traits", node.traits.joinToString(", "), wrap = true)
                 }
             }
             node.text?.let { PropertyRow("text", it, wrap = true) }
