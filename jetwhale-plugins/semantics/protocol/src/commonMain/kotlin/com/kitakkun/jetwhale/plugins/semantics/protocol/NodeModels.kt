@@ -11,9 +11,12 @@ import kotlinx.serialization.Serializable
  * only lay out pixels (a `Box` with no semantics of its own) do not appear on their own.
  *
  * On Android the tree also carries the Android `View`s around and inside the composition — the
- * layout hosting a `ComposeView` and the content of an `AndroidView { }` — as [ViewNode]s. These
- * options apply to them identically: depth counts every node whatever its type, and a `View` with
- * empty bounds or `visibility == GONE` is invisible rather than absent.
+ * layout hosting a `ComposeView` and the content of an `AndroidView { }` — as [ViewNode]s. On iOS
+ * the tree is the window's accessibility tree, in which UIKit views, SwiftUI nodes and Compose
+ * elements all appear as [AppleNode]s, and [merged] has no effect: the accessibility tree is the
+ * merged one. These options apply to every type identically: depth counts every node, and a node
+ * with empty bounds or hidden by its platform is invisible — left out by default, and kept with
+ * `isVisible = false` under [includeInvisible].
  */
 @Serializable
 data class NodeTreeCaptureOptions(
@@ -29,7 +32,7 @@ data class NodeTreeCaptureOptions(
     val maxDepth: Int? = null,
 )
 
-/** One capture of every Compose root known to the agent. */
+/** One capture of every root known to the agent. */
 @Serializable
 data class NodeTreeSnapshot(
     /** When the capture was taken, in epoch milliseconds on the device. */
@@ -38,7 +41,7 @@ data class NodeTreeSnapshot(
     val captureDurationMs: Long,
     /** Echoes the options the capture ran with, so a consumer can tell merged from unmerged. */
     val options: NodeTreeCaptureOptions,
-    /** One entry per Compose root (window), in registration order — the newest window is last. */
+    /** One entry per root (window), in registration order — the newest window is last. */
     val roots: List<ComposeRoot>,
     /**
      * Roots that could not be captured, e.g. because their view was detached mid-capture. Reported
@@ -48,12 +51,14 @@ data class NodeTreeSnapshot(
 )
 
 /**
- * A single root — one platform window and everything the agent can read inside it. A dialog or a
- * popup gets its own root, so a snapshot normally has more than one entry while a dialog is open.
+ * A single root — one platform window and everything the agent can read inside it.
  *
  * On Android a root is the window as a whole: its node tree starts at the window's decor view and
- * descends through the Android `View` hierarchy into every composition it hosts. Elsewhere a root is
- * one composition, and its tree is the semantics tree alone.
+ * descends through the Android `View` hierarchy into every composition it hosts, and a dialog or a
+ * popup is a window of its own, so a snapshot has more than one entry while one is open. On iOS a
+ * root is a `UIWindow` read through its accessibility tree, and a dialog or a sheet stays inside
+ * the window that presented it. On desktop a root is one composition, and its tree is the
+ * semantics tree alone.
  */
 @Serializable
 data class ComposeRoot(
@@ -61,10 +66,10 @@ data class ComposeRoot(
     val rootId: String,
     /** Human-readable origin, e.g. `MainActivity` or `PopupWindow`. */
     val label: String,
-    /** Device density (px per dp) of this root, for converting the pixel bounds below to dp. */
+    /** Device density (px per dp) of this root, for converting the pixel bounds below to dp; `1` on iOS, where bounds are points. */
     val density: Float,
     /**
-     * Where this root's window sits on screen, in pixels. Node bounds are reported in both root and
+     * Where this root's window sits on screen, in the root's unit (pixels, points on iOS). Node bounds are reported in both root and
      * screen coordinates, so this is only needed to reason about the window itself.
      */
     val windowOffsetX: Float,
@@ -87,8 +92,9 @@ data class NodeRef(
 )
 
 /**
- * One node of the captured tree: a Compose semantics node ([ComposeNode]), or on Android an
- * interoperating `View` ([ViewNode]).
+ * One node of the captured tree: a Compose semantics node ([ComposeNode]), on Android an
+ * interoperating `View` ([ViewNode]), or on iOS anything the window publishes through accessibility
+ * ([AppleNode]).
  *
  * Everything declared here a node of either type answers, so a consumer that only reads the tree —
  * searching it, drawing it, tapping its bounds — never has to know which type it holds.
@@ -97,8 +103,8 @@ data class NodeRef(
 sealed interface UiNode {
     /**
      * Addresses the node within its root and stays valid while the node is on screen. A
-     * [ComposeNode] reports its semantics id, which is non-negative; a [ViewNode] reports a negative
-     * id assigned by the agent, so the two can never collide.
+     * [ComposeNode] reports its semantics id, which is non-negative; a [ViewNode] or an [AppleNode]
+     * reports a negative id assigned by the agent, so the two can never collide.
      */
     val id: Int
 
@@ -113,13 +119,17 @@ sealed interface UiNode {
     /** `On`, `Off` or `Indeterminate` for a toggleable node, or for a `Checkable` `View`. */
     val toggleableState: String?
 
-    /** Bounds in this root's coordinate space, in pixels. */
+    /**
+     * Bounds in this root's coordinate space, in the platform's own unit: pixels on Android and
+     * desktop, points on iOS (where [ComposeRoot.density] is `1`).
+     */
     val bounds: NodeBounds
 
     /**
-     * Bounds in screen coordinates, in pixels — the ones to feed to `adb shell input tap`. Prefer
-     * [PerformNodeAction] where possible: it invokes the node's own action and does not depend on
-     * the window still being where it was when the snapshot was taken.
+     * Bounds in screen coordinates, in the same unit as [bounds] — what a coordinate-taking tool on
+     * that platform expects. Prefer [PerformNodeAction] where possible: it invokes the node's own
+     * action and does not depend on the window still being where it was when the snapshot was
+     * taken.
      */
     val boundsInScreen: NodeBounds
 
@@ -169,7 +179,7 @@ sealed interface UiNode {
     /** What takes the touch aimed at this node instead of it, when [isHittable] is `false`. */
     val obscuredBy: NodeRef?
 
-    /** Children of either type: an Android tree crosses between the two wherever the real UI does. */
+    /** Children of any type: an Android tree crosses between Compose and `View` wherever the real UI does. */
     val children: List<UiNode>
 }
 
@@ -243,7 +253,55 @@ data class ViewNode(
     override val children: List<UiNode> = emptyList(),
 ) : UiNode
 
-/** A rectangle in pixels. */
+/**
+ * A node of an iOS window: a UIKit `UIView`, or an object a toolkit publishes through the `NSObject`
+ * accessibility protocol without a view of its own — a SwiftUI node, a Compose Multiplatform
+ * element. Only the class name says which, and a consumer rarely needs to know: label, value,
+ * traits and frame are the same protocol on all three.
+ *
+ * Bounds are in **points**, the unit every iOS tool takes, and the root's `density` is `1`.
+ *
+ * Optional properties default to the unremarkable state, as on [ComposeNode].
+ */
+@Serializable
+@SerialName("apple")
+data class AppleNode(
+    /** Assigned by the agent and negative, so it cannot collide with a [ComposeNode]'s id. */
+    override val id: Int,
+    /**
+     * The Objective-C class name: `UITextField`, `SwiftUI.AccessibilityNode`, Compose's
+     * `AccessibilityElement`. A SwiftUI hosting view carries a mangled Swift name.
+     */
+    val className: String,
+    /**
+     * `accessibilityIdentifier`, which is where SwiftUI's `.accessibilityIdentifier(_:)` and a Compose
+     * `Modifier.testTag` both land — the test-tag equivalent of this node type.
+     */
+    val accessibilityIdentifier: String? = null,
+    /** `accessibilityValue` as the toolkit reports it: a switch's `"1"`, a slider's `"50%"`, a field's content. */
+    val accessibilityValue: String? = null,
+    /** The names of the set `UIAccessibilityTraits` bits, e.g. `Button`, `Selected`, `NotEnabled`. */
+    val traits: List<String> = emptyList(),
+    override val text: String? = null,
+    override val editableText: String? = null,
+    override val contentDescription: String? = null,
+    override val toggleableState: String? = null,
+    override val bounds: NodeBounds,
+    override val boundsInScreen: NodeBounds,
+    override val actions: List<String> = emptyList(),
+    override val isEnabled: Boolean = true,
+    override val isClickable: Boolean = false,
+    override val isFocused: Boolean = false,
+    override val isSelected: Boolean = false,
+    override val isEditable: Boolean = false,
+    override val isScrollable: Boolean = false,
+    override val isVisible: Boolean = true,
+    override val isHittable: Boolean = true,
+    override val obscuredBy: NodeRef? = null,
+    override val children: List<UiNode> = emptyList(),
+) : UiNode
+
+/** A rectangle in pixels — in points on iOS, where the root's `density` is `1`. */
 @Serializable
 data class NodeBounds(
     val left: Float,
@@ -266,6 +324,9 @@ data class NodeBounds(
  * On a [ComposeNode] it is the node's own semantics action. On a [ViewNode] it is the closest
  * equivalent the platform offers — [Click] calls `performClick()`, [SetText] sets an `EditText`'s
  * content — and [Dismiss], [Expand] and [Collapse] have none, so they report that they did not run.
+ * On an [AppleNode] it is the accessibility protocol's counterpart — [Click] is
+ * `accessibilityActivate()`, [Dismiss] is `accessibilityPerformEscape()` — or the `UIView` API when
+ * the node is a view that has one.
  *
  * [BringIntoView] is the one action that is not the node's own: it drives the scrollable
  * containers *around* the node, so it applies to any node with bounds rather than only to those
@@ -288,7 +349,10 @@ enum class NodeAction {
     /** Submits an editable node via `SemanticsActions.OnImeAction`. */
     ImeAction,
 
-    /** Scrolls a scrollable node by `scrollX`/`scrollY` pixels via `SemanticsActions.ScrollBy`. */
+    /**
+     * Scrolls a scrollable node by `scrollX`/`scrollY`, in the root's unit (pixels; points on iOS),
+     * via `SemanticsActions.ScrollBy`.
+     */
     ScrollBy,
 
     /**

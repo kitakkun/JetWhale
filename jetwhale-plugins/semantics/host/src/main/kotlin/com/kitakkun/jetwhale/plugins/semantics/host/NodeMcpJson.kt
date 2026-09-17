@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.semantics.host
 
+import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
@@ -20,7 +21,8 @@ import kotlin.math.roundToInt
  * Deliberately not the transport model verbatim: absent and default-valued properties are dropped
  * so a large tree stays readable, and each node carries a ready-made `tap` point, because the whole
  * reason to read this instead of `adb shell uiautomator dump` is to act on it immediately.
- * Coordinates are screen pixels.
+ * Coordinates are screen pixels, or points on iOS — each node says which in `unit`, since a flat
+ * `findNodes` result does not carry its root's density.
  */
 internal fun NodeTreeSnapshot.toMcpJson(): JsonObject = buildJsonObject {
     put("capturedAtMs", capturedAtMs)
@@ -51,13 +53,22 @@ internal fun ComposeRoot.toMcpJson(): JsonObject = buildJsonObject {
 internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean = true): JsonObject = buildJsonObject {
     put("id", id)
     rootId?.let { put("rootId", it) }
-    // Only the surprising kind is emitted: most of a tree is Compose, and an Android View node is
-    // the one a caller has to read differently — negative id, a class instead of a role.
+    // Only the surprising kinds are emitted: most of a tree is Compose, and a View or an iOS node
+    // is the one a caller has to read differently — negative id, a class instead of a role.
     when (this@toMcpJson) {
         is ViewNode -> {
             put("kind", "View")
             put("viewClass", viewClass)
             resourceId?.let { put("resourceId", it) }
+        }
+
+        is AppleNode -> {
+            put("kind", "Apple")
+            put("unit", "pt")
+            put("className", className)
+            accessibilityIdentifier?.let { put("accessibilityIdentifier", it) }
+            accessibilityValue?.let { put("accessibilityValue", it) }
+            if (traits.isNotEmpty()) put("traits", JsonArray(traits.map { JsonPrimitive(it) }))
         }
 
         is ComposeNode -> {
@@ -95,6 +106,7 @@ internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean =
 
     if (actions.isNotEmpty()) put("actions", JsonArray(actions.map { JsonPrimitive(it) }))
 
+    if (this@toMcpJson !is AppleNode) put("unit", "px")
     putJsonObject("bounds") {
         put("left", boundsInScreen.left.roundToInt())
         put("top", boundsInScreen.top.roundToInt())

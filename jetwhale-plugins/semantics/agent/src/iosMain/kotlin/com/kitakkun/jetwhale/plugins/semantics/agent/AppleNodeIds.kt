@@ -1,0 +1,103 @@
+package com.kitakkun.jetwhale.plugins.semantics.agent
+
+import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.objcPtr
+import platform.UIKit.UIWindow
+import platform.darwin.NSObject
+
+/**
+ * Hands out the [UiNode.id] an accessibility object is reported under, and resolves one back.
+ *
+ * Nothing on the object itself survives a capture as an identifier: `accessibilityIdentifier` is
+ * optional and shared by every instance of the same view, and an address is reused once the object
+ * is freed. So ids are assigned here, counting **down** from `-1`, the same range the Android agent
+ * uses for `View`s and disjoint from Compose's non-negative semantics ids.
+ *
+ * Objects are held **strongly**, for as long as the latest capture of their window reported them.
+ * A weak reference would not do: a Kotlin reference to an Objective-C object is a wrapper the
+ * runtime may collect while the object itself lives on, so a weak reference to it is gone by the
+ * time an action arrives. Holding the object keeps its address unique, which is what makes the
+ * address a sound key, and [trackingCapture] releases whatever a window no longer shows — so the
+ * registry never holds more than one screen's worth per window.
+ *
+ * The window an object was captured in is recorded with it. A view knows its window, but a bare
+ * element SwiftUI or Compose published does not say which view it hangs off, and this is the one
+ * place that knew when it was captured.
+ *
+ * Main thread only, like everything that reads the tree.
+ */
+@OptIn(ExperimentalForeignApi::class)
+internal object AppleNodeIds {
+    private class Entry(val id: Int, val obj: NSObject, val window: UIWindow) {
+        // A window arriving from a notification may be a different Kotlin wrapper for the same
+        // object, so windows are compared the way objects are keyed: by address.
+        val windowAddress: Long = window.address()
+    }
+
+    private val entriesByAddress = HashMap<Long, Entry>()
+    private val entriesById = HashMap<Int, Entry>()
+    private var nextId = -1
+    private var seenInCapture: MutableSet<Long>? = null
+
+    /**
+     * Runs one capture of [window]. Every object [idOf] sees inside [block] is retained; every
+     * object the previous capture of this window reported and this one did not is released.
+     *
+     * A capture that throws releases nothing: the plugin keeps serving the previous snapshot in
+     * that case, and its ids must keep resolving.
+     */
+    fun <T> trackingCapture(window: UIWindow, block: () -> T): T {
+        val seen = HashSet<Long>()
+        seenInCapture = seen
+        val result = try {
+            block()
+        } finally {
+            seenInCapture = null
+        }
+        val windowAddress = window.address()
+        val stale = entriesByAddress.filterValues { it.windowAddress == windowAddress && it.obj.address() !in seen }
+        stale.forEach { (address, entry) ->
+            entriesByAddress.remove(address)
+            entriesById.remove(entry.id)
+        }
+        return result
+    }
+
+    /**
+     * The id for [obj], captured in [window], assigning one on first sight. An object seen again
+     * under another window — a view moved between windows — keeps its id and follows the window,
+     * so the tree that just reported it can address it.
+     */
+    fun idOf(obj: NSObject, window: UIWindow): Int {
+        val address = obj.address()
+        seenInCapture?.add(address)
+        val known = entriesByAddress[address]
+        val entry = when {
+            known == null -> Entry(id = nextId, obj = obj, window = window).also { nextId -= 1 }
+            known.windowAddress != window.address() -> Entry(id = known.id, obj = obj, window = window)
+            else -> return known.id
+        }
+        entriesByAddress[address] = entry
+        entriesById[entry.id] = entry
+        return entry.id
+    }
+
+    /** Drops everything captured in [window]; for a window that will not be captured again. */
+    fun release(window: UIWindow) {
+        val windowAddress = window.address()
+        val gone = entriesByAddress.filterValues { it.windowAddress == windowAddress }
+        gone.forEach { (address, entry) ->
+            entriesByAddress.remove(address)
+            entriesById.remove(entry.id)
+        }
+    }
+
+    /** The object [id] names, or `null` once it has left its window's latest capture, or was captured in another window. */
+    fun objectOf(id: Int, window: UIWindow): NSObject? = entriesById[id]?.takeIf { it.windowAddress == window.address() }?.obj
+
+    /** The window [obj] was last captured in, or `null` for an object no capture has reported. */
+    fun windowOf(obj: NSObject): UIWindow? = entriesByAddress[obj.address()]?.window
+
+    private fun NSObject.address(): Long = objcPtr().toLong()
+}

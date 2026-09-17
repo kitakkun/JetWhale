@@ -50,6 +50,7 @@ import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTreeRow
 import com.kitakkun.jetwhale.host.ui.LocalJwContentColor
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
+import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
@@ -274,9 +275,9 @@ private fun StatusLine(
 private fun EmptyTreeMessage(snapshot: NodeTreeSnapshot?, search: String, interactiveOnly: Boolean) {
     val (title, description) = when {
         snapshot == null -> "Not captured yet" to "Press Refresh to capture the app's node tree."
-        snapshot.roots.isEmpty() -> "No Compose root reported" to "Install a probe: installJetWhaleSemanticsProbe(application), or call JetWhaleSemanticsProbe() inside your composition."
+        snapshot.roots.isEmpty() -> "No root reported" to "Install a probe: installJetWhaleSemanticsProbe(application) on Android, installJetWhaleSemanticsProbe() on iOS, or JetWhaleSemanticsProbe() inside your composition."
         search.isNotBlank() || interactiveOnly -> "No node matches the current filter" to null
-        else -> "The app's Compose roots are empty" to null
+        else -> "The app's roots are empty" to null
     }
     JwEmptyState(title = title, description = description)
 }
@@ -338,10 +339,12 @@ private fun NodeRow(
         onClick = onSelect,
         onToggleExpanded = onToggleExpanded,
         trailingContent = {
-            // The two node types interleave in one tree, and which one a row is decides how to read
-            // it — so the Android View nodes are tagged rather than left to be inferred from the label.
-            if (row.node is ViewNode) {
-                JwTag(text = "View", tone = JwTone.Info)
+            // The node types interleave in one tree, and which one a row is decides how to read it —
+            // so the non-Compose nodes are tagged rather than left to be inferred from the label.
+            when (row.node) {
+                is ViewNode -> JwTag(text = "View", tone = JwTone.Info)
+                is AppleNode -> JwTag(text = "iOS", tone = JwTone.Info)
+                is ComposeNode -> Unit
             }
             if (row.node.isInteractive) {
                 JwTag(text = row.node.actionSummary(), tone = JwTone.Accent)
@@ -413,6 +416,13 @@ private fun NodeDetail(
                     node.role?.let { PropertyRow("role", it) }
                     node.testTag?.let { PropertyRow("testTag", it) }
                     node.stateDescription?.let { PropertyRow("stateDescription", it, wrap = true) }
+                }
+
+                is AppleNode -> {
+                    PropertyRow("className", node.className)
+                    node.accessibilityIdentifier?.let { PropertyRow("accessibilityIdentifier", it) }
+                    node.accessibilityValue?.let { PropertyRow("accessibilityValue", it, wrap = true) }
+                    if (node.traits.isNotEmpty()) PropertyRow("traits", node.traits.joinToString(", "), wrap = true)
                 }
             }
             node.text?.let { PropertyRow("text", it, wrap = true) }
@@ -516,9 +526,12 @@ private fun NodeDetail(
             }
         }
 
+        // The command-line tap for the node's platform: adb on Android, idb (iOS Development Bridge)
+        // on iOS, whose `ui tap` takes the same points the node reports.
+        val tapTool = if (node is AppleNode) "idb ui tap" else "adb shell input tap"
         JwButton(
-            text = "Copy `adb shell input tap` for these bounds",
-            onClick = { clipboard.setText(AnnotatedString(node.adbTapCommand())) },
+            text = "Copy `$tapTool` for these bounds",
+            onClick = { clipboard.setText(AnnotatedString("$tapTool ${node.boundsInScreen.centerX.roundToInt()} ${node.boundsInScreen.centerY.roundToInt()}")) },
             enabled = !node.boundsInScreen.isEmpty,
             style = JwButtonStyle.Text,
         )
@@ -533,8 +546,6 @@ private fun NodeDetail(
 }
 
 private const val SCROLL_STEP_PX = 400f
-
-private fun UiNode.adbTapCommand(): String = "adb shell input tap ${boundsInScreen.centerX.roundToInt()} ${boundsInScreen.centerY.roundToInt()}"
 
 @Composable
 private fun ActionButton(

@@ -28,6 +28,8 @@ import kotlin.time.TimeSource
  * ```kotlin
  * // Android, Application.onCreate()
  * installJetWhaleSemanticsProbe(this)
+ * // iOS, at startup on the main thread
+ * installJetWhaleSemanticsProbe()
  * startJetWhale {
  *     plugins { register(JetWhaleSemanticsAgentPlugin()) }
  * }
@@ -38,7 +40,7 @@ import kotlin.time.TimeSource
  */
 class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginId: String get() = PLUGIN_ID
-    override val pluginVersion: String get() = "1.0.0"
+    override val pluginVersion: String get() = "1.1.0"
 
     override fun JetWhaleMessageHandlers.configure() {
         onRequest { request: CaptureNodeTree ->
@@ -109,7 +111,7 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
         const val PLUGIN_ID: String = "com.kitakkun.jetwhale.semantics"
 
         internal const val NO_PROBE_WARNING: String =
-            "No Compose root is registered. Install a probe in the app: installJetWhaleSemanticsProbe(application) " +
-                "on Android, or call JetWhaleSemanticsProbe() inside your composition."
+            "No root is registered. Install a probe in the app: installJetWhaleSemanticsProbe(application) " +
+                "on Android, installJetWhaleSemanticsProbe() on iOS, or call JetWhaleSemanticsProbe() inside your composition."
     }
 }

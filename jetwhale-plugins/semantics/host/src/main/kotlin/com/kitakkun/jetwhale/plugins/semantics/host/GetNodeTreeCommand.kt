@@ -14,12 +14,14 @@ internal class GetNodeTreeCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.getNodeTree"
     override val description =
-        "Captures the Compose node tree of the running app right now and returns it as JSON: " +
+        "Captures the running app's UI node tree right now — Compose semantics, plus Android Views on Android, " +
+            "and on iOS everything the accessibility tree carries (UIKit, SwiftUI and Compose) — and returns it as JSON: " +
             "{\"capturedAtMs\", \"captureDurationMs\", \"merged\", \"roots\": [{\"rootId\", \"label\", \"density\", \"node\"}]}. " +
-            "Each node carries id, role, text, contentDescription, testTag, its semantics actions, " +
-            "screen-pixel \"bounds\", and a \"tap\" point (the centre, ready for `adb shell input tap`). " +
-            "A dialog or popup appears as its own root. Prefer findNodes when you are looking for a " +
-            "specific element, and performNodeAction over tapping coordinates."
+            "Each node carries id, text, contentDescription, its actions, screen \"bounds\" in the node's \"unit\" " +
+            "(px, or pt on iOS), a \"tap\" point (the centre of the bounds), and per kind a role and testTag (Compose), " +
+            "a viewClass and resourceId (Android View), or a className and accessibilityIdentifier (iOS). " +
+            "A root is a window: on Android a dialog or popup is a window of its own, on iOS it stays inside the app's. " +
+            "Prefer findNodes when you are looking for a specific element, and performNodeAction over tapping coordinates."
 
     private val merged by booleanOrNull(
         "true (default) returns the merged tree an accessibility service sees, where a Button's label is folded into the clickable node. false keeps every semantics node separate.",

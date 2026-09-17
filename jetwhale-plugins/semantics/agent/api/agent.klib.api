@@ -1,5 +1,6 @@
 // Klib ABI Dump
 // Targets: [iosArm64, iosSimulatorArm64, js, wasmJs]
+// Alias: ios => [iosArm64, iosSimulatorArm64]
 // Rendering settings:
 // - Signature version: 2
 // - Show manifest properties: true
@@ -99,3 +100,66 @@ final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_pl
 final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_TextActions_ImeAction$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_TextActions_ImeAction$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_TextActions_ImeAction$stableprop_getter(){}[0]
 final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_TextActions_InsertText$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_TextActions_InsertText$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_TextActions_InsertText$stableprop_getter(){}[0]
 final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_TextActions_SetText$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_TextActions_SetText$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_TextActions_SetText$stableprop_getter(){}[0]
+
+// Targets: [ios]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodePointerActions_Click$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodePointerActions_Click$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodePointerActions_Click$stableprop[0]
+
+// Targets: [ios]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_BringIntoView$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_BringIntoView$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_BringIntoView$stableprop[0]
+
+// Targets: [ios]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_ScrollBy$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_ScrollBy$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_ScrollBy$stableprop[0]
+
+// Targets: [ios]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_ScrollToIndex$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_ScrollToIndex$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_ScrollToIndex$stableprop[0]
+
+// Targets: [ios]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeStateActions_Dismiss$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeStateActions_Dismiss$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeStateActions_Dismiss$stableprop[0]
+
+// Targets: [ios]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeStateActions_RequestFocus$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeStateActions_RequestFocus$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeStateActions_RequestFocus$stableprop[0]
+
+// Targets: [ios]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_ImeAction$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_ImeAction$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_ImeAction$stableprop[0]
+
+// Targets: [ios]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_InsertText$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_InsertText$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_InsertText$stableprop[0]
+
+// Targets: [ios]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_SetText$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_SetText$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_SetText$stableprop[0]
+
+// Targets: [ios]
+final val com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_IosSemanticsProbe_Installation$stableprop // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_IosSemanticsProbe_Installation$stableprop|#static{}com_kitakkun_jetwhale_plugins_semantics_agent_IosSemanticsProbe_Installation$stableprop[0]
+
+// Targets: [ios]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodePointerActions_Click$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodePointerActions_Click$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodePointerActions_Click$stableprop_getter(){}[0]
+
+// Targets: [ios]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_BringIntoView$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_BringIntoView$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_BringIntoView$stableprop_getter(){}[0]
+
+// Targets: [ios]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_ScrollBy$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_ScrollBy$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_ScrollBy$stableprop_getter(){}[0]
+
+// Targets: [ios]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_ScrollToIndex$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_ScrollToIndex$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeScrollActions_ScrollToIndex$stableprop_getter(){}[0]
+
+// Targets: [ios]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeStateActions_Dismiss$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeStateActions_Dismiss$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeStateActions_Dismiss$stableprop_getter(){}[0]
+
+// Targets: [ios]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeStateActions_RequestFocus$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeStateActions_RequestFocus$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeStateActions_RequestFocus$stableprop_getter(){}[0]
+
+// Targets: [ios]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_ImeAction$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_ImeAction$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_ImeAction$stableprop_getter(){}[0]
+
+// Targets: [ios]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_InsertText$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_InsertText$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_InsertText$stableprop_getter(){}[0]
+
+// Targets: [ios]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_SetText$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_SetText$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_AppleNodeTextActions_SetText$stableprop_getter(){}[0]
+
+// Targets: [ios]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_IosSemanticsProbe_Installation$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.agent/com_kitakkun_jetwhale_plugins_semantics_agent_IosSemanticsProbe_Installation$stableprop_getter|com_kitakkun_jetwhale_plugins_semantics_agent_IosSemanticsProbe_Installation$stableprop_getter(){}[0]
+
+// Targets: [ios]
+final fun com.kitakkun.jetwhale.plugins.semantics.agent/installJetWhaleSemanticsProbe(): kotlin/AutoCloseable // com.kitakkun.jetwhale.plugins.semantics.agent/installJetWhaleSemanticsProbe|installJetWhaleSemanticsProbe(){}[0]

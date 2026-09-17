@@ -24,11 +24,11 @@ internal class PerformNodeActionCommand(
         "Invokes a semantics action on one node of the running app, addressed by the id findNodes or " +
             "getNodeTree reported. This runs the node's own action rather than synthesising a touch, so it " +
             "needs no coordinates and cannot land on something that moved in the meantime — prefer it over " +
-            "`adb shell input tap`. Returns {\"performed\", \"rootId\", \"nodeId\", \"action\", \"message\"}; " +
+            "tapping coordinates. Returns {\"performed\", \"rootId\", \"nodeId\", \"action\", \"message\"}; " +
             "performed=false with a message when the node does not expose the action or declined it. " +
-            "BringIntoView scrolls whatever surrounds the node — Compose scrollables and Android Views alike — " +
+            "BringIntoView scrolls whatever surrounds the node — Compose scrollables, Android Views and iOS scroll views alike — " +
             "by the least amount that shows it whole, and works on any node; ScrollToIndex scrolls a lazy " +
-            "list or RecyclerView to an item that may not be composed yet. Both land on the next frame: " +
+            "list, a RecyclerView or an iOS table/collection view to an item that may not exist yet. Both land on the next frame: " +
             "capture the tree again afterwards to see the result."
 
     private val nodeId by int("The node's id, as reported by findNodes or getNodeTree.")
@@ -40,8 +40,8 @@ internal class PerformNodeActionCommand(
         "The root the node belongs to. Optional: without it the node is looked up in the most recent capture, and the topmost root wins if the id appears in more than one.",
     )
     private val text by stringOrNull("The text for SetText or InsertText.")
-    private val scrollX by intOrNull("Horizontal scroll distance in pixels for ScrollBy. Defaults to 0.")
-    private val scrollY by intOrNull("Vertical scroll distance in pixels for ScrollBy. Defaults to 0.")
+    private val scrollX by intOrNull("Horizontal scroll distance in pixels (points on iOS) for ScrollBy. Defaults to 0.")
+    private val scrollY by intOrNull("Vertical scroll distance in pixels (points on iOS) for ScrollBy. Defaults to 0.")
     private val index by intOrNull("The item index for ScrollToIndex, counted from 0 over the container's items.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {

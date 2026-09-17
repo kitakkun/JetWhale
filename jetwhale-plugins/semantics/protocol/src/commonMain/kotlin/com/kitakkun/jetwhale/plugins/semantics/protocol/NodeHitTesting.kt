@@ -141,6 +141,7 @@ private fun UiNode.descendantWinnerAt(rootId: String, screenX: Float, screenY: F
 private fun UiNode.withHits(isHittable: Boolean, obscuredBy: NodeRef?, children: List<UiNode>): UiNode = when (this) {
     is ComposeNode -> copy(isHittable = isHittable, obscuredBy = obscuredBy, children = children)
     is ViewNode -> copy(isHittable = isHittable, obscuredBy = obscuredBy, children = children)
+    is AppleNode -> copy(isHittable = isHittable, obscuredBy = obscuredBy, children = children)
 }
 
 /**

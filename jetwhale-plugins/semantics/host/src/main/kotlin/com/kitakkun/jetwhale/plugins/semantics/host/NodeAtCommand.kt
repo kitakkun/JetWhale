@@ -28,8 +28,8 @@ internal class NodeAtCommand(
             "It cannot see a gesture consumed by an ancestor or an overlay that exposes no semantics, so it " +
             "errs towards reporting a node as reachable."
 
-    private val x by int("X coordinate in screen pixels — the space getNodeTree's \"bounds\" and \"tap\" are in.")
-    private val y by int("Y coordinate in screen pixels.")
+    private val x by int("X coordinate in screen pixels (points on iOS) — the space getNodeTree's \"bounds\" and \"tap\" are in.")
+    private val y by int("Y coordinate in screen pixels (points on iOS).")
     private val merged by booleanOrNull("Search the merged tree (default true). See getNodeTree.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {

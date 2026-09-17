@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.semantics.host
 
+import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
@@ -28,6 +29,7 @@ internal fun UiNode.filterTree(predicate: (UiNode) -> Boolean): UiNode? {
 private fun UiNode.withChildren(children: List<UiNode>): UiNode = when (this) {
     is ComposeNode -> copy(children = children)
     is ViewNode -> copy(children = children)
+    is AppleNode -> copy(children = children)
 }
 
 /** Depth-first walk, this node first. */
@@ -81,6 +83,14 @@ internal val UiNode.isOperable: Boolean
 internal fun UiNode.displayLabel(): String {
     val label = text ?: contentDescription ?: editableText ?: (this as? ComposeNode)?.testTag
     return when (this) {
+        // Named like a View, by class then identifier: the class is what says what the thing is,
+        // and a mangled Swift or a Compose-internal class still tells a reader which toolkit it is.
+        is AppleNode -> buildString {
+            append(className.substringAfterLast('.'))
+            accessibilityIdentifier?.let { append(" · $it") }
+            label?.let { append(" · $it") }
+        }
+
         // A View is named by its class the way a Compose node is named by its role: it is what says
         // what the thing is. The resource id comes next, because that is what the app calls it.
         is ViewNode -> buildString {
@@ -124,14 +134,16 @@ internal data class NodeQuery(
 /**
  * A criterion only one node type carries — `testTag` and `role` on a [ComposeNode], `resourceId` on
  * a [ViewNode] — rejects every node of the other type, the same way an absent value does: the caller
- * asked for something this node does not have.
+ * asked for something this node does not have. The exception is `testTag`, which an [AppleNode]
+ * answers with its `accessibilityIdentifier`: that is where a Compose `testTag` lands on iOS, so a
+ * caller looking for a tag finds the node whichever toolkit rendered it.
  */
 internal fun UiNode.matches(query: NodeQuery): Boolean {
     if (query.interactiveOnly && !isInteractive) return false
     if (query.operableOnly && !isOperable) return false
     if (!fieldMatches(query.text, listOfNotNull(text, editableText), query.exact)) return false
     if (!fieldMatches(query.contentDescription, listOfNotNull(contentDescription), query.exact)) return false
-    if (!fieldMatches(query.testTag, listOfNotNull((this as? ComposeNode)?.testTag), query.exact)) return false
+    if (!fieldMatches(query.testTag, listOfNotNull(tagLikeIdentifier), query.exact)) return false
     if (!fieldMatches(query.resourceId, listOfNotNull((this as? ViewNode)?.resourceId), exact = true)) return false
     if (!fieldMatches(query.role, listOfNotNull((this as? ComposeNode)?.role), query.exact)) return false
     return true
@@ -143,10 +155,19 @@ internal fun UiNode.matchesFreeText(term: String): Boolean {
     val identifiers = when (this) {
         is ComposeNode -> listOfNotNull(testTag, role)
         is ViewNode -> listOfNotNull(resourceId, viewClass)
+        is AppleNode -> listOfNotNull(accessibilityIdentifier, className)
     }
     val haystack = listOfNotNull(text, editableText, contentDescription, id.toString()) + identifiers
     return haystack.any { it.contains(term, ignoreCase = true) }
 }
+
+/** The identifier an author put on the node to find it again: `testTag`, or its landing spot on iOS. */
+private val UiNode.tagLikeIdentifier: String?
+    get() = when (this) {
+        is ComposeNode -> testTag
+        is AppleNode -> accessibilityIdentifier
+        is ViewNode -> null
+    }
 
 private fun fieldMatches(expected: String?, candidates: List<String>, exact: Boolean): Boolean {
     if (expected == null) return true

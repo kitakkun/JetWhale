@@ -30,6 +30,7 @@ class NodeMcpJsonTest {
         assertEquals("Send", json["text"]?.jsonPrimitive?.content)
         assertEquals("send-button", json["testTag"]?.jsonPrimitive?.content)
         assertEquals(listOf("OnClick"), json["actions"]?.jsonArray?.map { it.jsonPrimitive.content })
+        assertEquals("px", json["unit"]?.jsonPrimitive?.content)
         assertEquals(10, json["bounds"]?.jsonObject?.get("left")?.jsonPrimitive?.content?.toInt())
         assertEquals(60, json["tap"]?.jsonObject?.get("x")?.jsonPrimitive?.content?.toInt())
         assertEquals(40, json["tap"]?.jsonObject?.get("y")?.jsonPrimitive?.content?.toInt())
@@ -101,6 +102,27 @@ class NodeMcpJsonTest {
         assertEquals("android.widget.Button", json["viewClass"]?.jsonPrimitive?.content)
         assertEquals("submit", json["resourceId"]?.jsonPrimitive?.content)
         assertEquals(-1, json["id"]?.jsonPrimitive?.content?.toInt())
+    }
+
+    @Test
+    fun `spells out an iOS node by its class, identifier, value and traits`() {
+        val json = appleNode(
+            id = -2,
+            className = "SwiftUI.AccessibilityNode",
+            accessibilityIdentifier = "swiftui-toggle",
+            accessibilityValue = "1",
+            traits = listOf("Button", "ToggleButton"),
+            text = "Flag",
+        ).toMcpJson()
+
+        assertEquals("Apple", json["kind"]?.jsonPrimitive?.content)
+        assertEquals("pt", json["unit"]?.jsonPrimitive?.content)
+        assertEquals("SwiftUI.AccessibilityNode", json["className"]?.jsonPrimitive?.content)
+        assertEquals("swiftui-toggle", json["accessibilityIdentifier"]?.jsonPrimitive?.content)
+        assertEquals("1", json["accessibilityValue"]?.jsonPrimitive?.content)
+        assertEquals(listOf("Button", "ToggleButton"), json["traits"]?.jsonArray?.map { it.jsonPrimitive.content })
+        assertEquals("Flag", json["text"]?.jsonPrimitive?.content)
+        assertNull(json["viewClass"])
     }
 
     @Test
