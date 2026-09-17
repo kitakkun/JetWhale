@@ -40,6 +40,7 @@ dependencies {
     testImplementation(projects.jetwhaleHostSdk)
     testImplementation(projects.jetwhaleHostUi)
     testImplementation(libs.kotlinTest)
+    testImplementation(libs.kotlinxCoroutinesTest)
     testImplementation(libs.kotlinxSerializationJson)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.material3)

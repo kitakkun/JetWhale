@@ -11,8 +11,8 @@ import kotlinx.coroutines.CancellationException
 
 /** Reads every attribute of one node, or says why it has none. */
 internal suspend fun readViewAttributes(request: GetViewAttributes): ViewAttributeResponse {
-    val source = sourceOf(request.rootId)
-        ?: return ViewAttributeResponse(snapshot = null, message = unknownRoot(request.rootId))
+    val source = ComposeNodeSourceRegistry.sourceOf(request.rootId)
+        ?: return ViewAttributeResponse(snapshot = null, message = ComposeNodeSourceRegistry.unknownRootMessage(request.rootId))
     val attributeSource = source as? ViewAttributeSource
         ?: return ViewAttributeResponse(snapshot = null, message = ROOT_WITHOUT_ATTRIBUTES)
     return try {
@@ -28,8 +28,8 @@ internal suspend fun readViewAttributes(request: GetViewAttributes): ViewAttribu
 
 /** Writes one attribute of one node, reporting a refusal rather than failing the request. */
 internal suspend fun writeViewAttribute(request: SetViewAttribute): ViewAttributeResult {
-    val source = sourceOf(request.rootId)
-        ?: return ViewAttributeResult(applied = false, message = unknownRoot(request.rootId))
+    val source = ComposeNodeSourceRegistry.sourceOf(request.rootId)
+        ?: return ViewAttributeResult(applied = false, message = ComposeNodeSourceRegistry.unknownRootMessage(request.rootId))
     val attributeSource = source as? ViewAttributeSource
         ?: return ViewAttributeResult(applied = false, message = ROOT_WITHOUT_ATTRIBUTES)
     return try {
@@ -41,10 +41,6 @@ internal suspend fun writeViewAttribute(request: SetViewAttribute): ViewAttribut
     }
 }
 
-private fun sourceOf(rootId: String): ComposeNodeSource? = ComposeNodeSourceRegistry.sources.firstOrNull { it.sourceId == rootId }
+internal fun Throwable.describeFailure(): String = message?.takeIf { it.isNotBlank() } ?: (this::class.simpleName ?: "unknown error")
 
 private const val ROOT_WITHOUT_ATTRIBUTES: String = "this root has no View attributes (it is a composition read through its SemanticsOwner)"
-
-private fun unknownRoot(rootId: String): String = "unknown rootId: $rootId (the root may have been detached; capture the tree again)"
-
-private fun Throwable.describeFailure(): String = message?.takeIf { it.isNotBlank() } ?: (this::class.simpleName ?: "unknown error")

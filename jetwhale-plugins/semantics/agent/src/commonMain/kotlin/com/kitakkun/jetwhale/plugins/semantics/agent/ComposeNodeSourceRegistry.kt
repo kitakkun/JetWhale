@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.update
 
 /**
@@ -23,6 +24,12 @@ object ComposeNodeSourceRegistry {
     /** The registered roots, oldest registration first. */
     val sources: List<ComposeNodeSource> get() = entries.value.map { it.source }
 
+    /** The registered root a request names, or `null` when no such root is registered. */
+    internal fun sourceOf(rootId: String): ComposeNodeSource? = sources.firstOrNull { it.sourceId == rootId }
+
+    /** The answer every request gets for a root that is not registered. */
+    internal fun unknownRootMessage(rootId: String): String = "unknown rootId: $rootId (the root may have been detached; capture the tree again)"
+
     /**
      * Claims [source]'s root and returns a handle releasing that claim. When a source with the same
      * [ComposeNodeSource.sourceId] is already registered, the existing one keeps serving captures
@@ -42,7 +49,7 @@ object ComposeNodeSourceRegistry {
 
     /** Drops every registration. Intended for tests and for tearing down an install. */
     fun clear() {
-        entries.value = emptyList()
+        entries.getAndUpdate { emptyList() }.forEach { (it.source as? RegistryAwareNodeSource)?.onUnregistered() }
     }
 
     private data class Entry(val source: ComposeNodeSource, val claims: Int) {
@@ -56,14 +63,22 @@ object ComposeNodeSourceRegistry {
 
         override fun close() {
             if (!closed.compareAndSet(expect = false, update = true)) return
+            var unregistered: ComposeNodeSource? = null
             entries.update { current ->
+                unregistered = null
                 val index = current.indexOfFirst { it.source.sourceId == sourceId }
                 when {
                     index < 0 -> current
-                    current[index].claims <= 1 -> current.filterIndexed { i, _ -> i != index }
+
+                    current[index].claims <= 1 -> {
+                        unregistered = current[index].source
+                        current.filterIndexed { i, _ -> i != index }
+                    }
+
                     else -> current.toMutableList().apply { this[index] = this[index].copy(claims = this[index].claims - 1) }
                 }
             }
+            (unregistered as? RegistryAwareNodeSource)?.onUnregistered()
         }
     }
 }

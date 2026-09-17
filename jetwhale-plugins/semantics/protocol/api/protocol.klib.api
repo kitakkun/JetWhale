@@ -522,6 +522,70 @@ final class com.kitakkun.jetwhale.plugins.semantics.protocol/GetViewAttributes :
     }
 }
 
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult> { // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode|null[0]
+    constructor <init>(kotlin/String, kotlin/Int?, kotlin/Long) // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.<init>|<init>(kotlin.String;kotlin.Int?;kotlin.Long){}[0]
+
+    final val nodeId // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.nodeId|{}nodeId[0]
+        final fun <get-nodeId>(): kotlin/Int? // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.nodeId.<get-nodeId>|<get-nodeId>(){}[0]
+    final val rootId // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.rootId|{}rootId[0]
+        final fun <get-rootId>(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.rootId.<get-rootId>|<get-rootId>(){}[0]
+    final val ttlMs // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.ttlMs|{}ttlMs[0]
+        final fun <get-ttlMs>(): kotlin/Long // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.ttlMs.<get-ttlMs>|<get-ttlMs>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.component1|component1(){}[0]
+    final fun component2(): kotlin/Int? // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.component2|component2(){}[0]
+    final fun component3(): kotlin/Long // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.component3|component3(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Int? = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.copy|copy(kotlin.String;kotlin.Int?;kotlin.Long){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode> { // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode) // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightNode){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode> // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightNode.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult { // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult|null[0]
+    constructor <init>(kotlin/Boolean, kotlin/String? = ..., kotlin/Boolean = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.<init>|<init>(kotlin.Boolean;kotlin.String?;kotlin.Boolean){}[0]
+
+    final val message // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.message|{}message[0]
+        final fun <get-message>(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.message.<get-message>|<get-message>(){}[0]
+    final val retryLater // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.retryLater|{}retryLater[0]
+        final fun <get-retryLater>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.retryLater.<get-retryLater>|<get-retryLater>(){}[0]
+    final val shown // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.shown|{}shown[0]
+        final fun <get-shown>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.shown.<get-shown>|<get-shown>(){}[0]
+
+    final fun component1(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.component1|component1(){}[0]
+    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.component2|component2(){}[0]
+    final fun component3(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.component3|component3(){}[0]
+    final fun copy(kotlin/Boolean = ..., kotlin/String? = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.copy|copy(kotlin.Boolean;kotlin.String?;kotlin.Boolean){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult> { // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult) // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightResult){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult> // com.kitakkun.jetwhale.plugins.semantics.protocol/HighlightResult.Companion.serializer|serializer(){}[0]
+    }
+}
+
 final class com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult { // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult|null[0]
     constructor <init>(kotlin/Boolean, kotlin/String? = ...) // com.kitakkun.jetwhale.plugins.semantics.protocol/NodeActionResult.<init>|<init>(kotlin.Boolean;kotlin.String?){}[0]
 

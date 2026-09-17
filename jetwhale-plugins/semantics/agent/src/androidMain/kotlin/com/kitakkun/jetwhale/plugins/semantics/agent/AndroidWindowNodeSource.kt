@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.getAllSemanticsNodes
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeActionResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
@@ -21,6 +22,8 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 import java.lang.ref.WeakReference
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.roundToInt
+import kotlin.time.Duration
 
 /**
  * Reads one Android **window** — its `View` hierarchy and every composition inside it — as a single
@@ -37,11 +40,28 @@ import kotlin.math.floor
  * long as the process runs.
  */
 internal class AndroidWindowNodeSource(rootView: View) :
-    ComposeNodeSource,
-    ViewAttributeSource {
+    RegistryAwareNodeSource,
+    ViewAttributeSource,
+    NodeHighlightSource {
     override val sourceId: String = "android-window-${System.identityHashCode(rootView).toString(16)}"
 
     private val rootViewRef = WeakReference(rootView)
+
+    // At most one box per window, so pointing at another node moves this one.
+    private val highlightOverlay = NodeHighlightOverlay()
+
+    // Read on the main thread, where the overlay is touched: a highlight request that resolved this
+    // source before it was unregistered still reaches the UI thread afterwards, and must not put a
+    // box back that nothing will renew or clear.
+    @Volatile
+    private var unregistered = false
+
+    // The overlay otherwise comes down only with its window; a probe disposed while the window stays
+    // up would leave the box there until the TTL.
+    override fun onUnregistered() {
+        unregistered = true
+        highlightOverlay.clearFromAnyThread()
+    }
 
     // A detached window has nothing readable to report, and reading a composition inside it can
     // throw, so the attachment check gates every call rather than only the registration.
@@ -98,6 +118,49 @@ internal class AndroidWindowNodeSource(rootView: View) :
         view.writeAttribute(attributeId = attributeId, value = value)
     }
 
+    // -- NodeHighlightSource ---------------------------------------------------
+    //
+    // A window is the only root that can be pointed at: it has a decor view to hang an overlay on.
+    // The drawing lives in NodeHighlightOverlay.kt; this only resolves the node's bounds and hops to
+    // the UI thread, the same way the other two capabilities do.
+
+    override suspend fun highlight(nodeId: Int?, ttl: Duration): HighlightResult = AndroidComposeUiThread.await {
+        if (nodeId == null || unregistered) {
+            highlightOverlay.clear()
+            return@await HighlightResult(shown = false, message = "the window is no longer readable".takeIf { unregistered })
+        }
+        // A request that cannot be honored still replaces what was showing: the caller asked to point
+        // at something else, and a box left on the previous node would answer a question nobody is
+        // asking any more.
+        val rootView = attachedRootView()
+        if (rootView == null) {
+            highlightOverlay.clear()
+            return@await HighlightResult(shown = false, message = "the window is no longer readable")
+        }
+        // Passed as a lookup rather than as the bounds it currently reports: a scroll or a relayout
+        // moves the node, and the overlay follows it by asking again. Through the weak reference, so
+        // a box left up does not keep a destroyed window's view tree alive until its TTL.
+        val resolveBounds = { attachedRootView()?.highlightBoundsOf(nodeId) }
+        val bounds = resolveBounds()
+        if (bounds == null) {
+            highlightOverlay.clear()
+            return@await HighlightResult(
+                shown = false,
+                message = "unknown nodeId: $nodeId (the node may have left this window; capture the tree again)",
+            )
+        }
+        if (bounds.isEmpty) {
+            highlightOverlay.clear()
+            return@await HighlightResult(
+                shown = false,
+                message = "node $nodeId has no area in this window (it is invisible, unmeasured, or fully clipped)",
+                retryLater = true,
+            )
+        }
+        highlightOverlay.show(rootView = rootView, resolveBounds = resolveBounds, ttl = ttl)
+        HighlightResult(shown = true)
+    }
+
     private fun unknownNode(nodeId: Int): NodeActionResult = NodeActionResult(
         performed = false,
         message = "unknown nodeId: $nodeId (the node may have left this window; capture the tree again)",
@@ -119,6 +182,33 @@ private fun viewInWindow(nodeId: Int, rootView: View): View? = ViewNodeIds.viewO
  * `View`s have to scroll for the node.
  */
 private class SemanticsNodeInWindow(val node: SemanticsNode, val hostView: View)
+
+/**
+ * Where the node [nodeId] names can be seen in this window, in pixels, or `null` when the window has
+ * no such node. Empty when the node is there but has no visible area, or is not visible at all.
+ *
+ * Both halves of the tree already report their bounds in the window's space — a `View`'s
+ * `getGlobalVisibleRect` (whose "global" is the window's root), a semantics node's `boundsInWindow`
+ * — which is the same space the overlay on the window's root view draws in, so nothing has to be
+ * converted. The visible rect rather than the laid-out one: the overlay hangs on the window's root,
+ * above every `ScrollView` and clipping parent, so a box the size of the layout would be painted over
+ * content the view itself is clipped away from.
+ */
+private fun View.highlightBoundsOf(nodeId: Int): android.graphics.Rect? = if (nodeId < 0) {
+    viewInWindow(nodeId, this)?.let { view ->
+        // Visibility as the captured tree decides it: `getGlobalVisibleRect` still reports a rect for
+        // an INVISIBLE view, which occupies its space without drawing anything to point at.
+        val shown = view.visibility == View.VISIBLE && view.isShown
+        android.graphics.Rect().also { visible -> if (!shown || !view.getGlobalVisibleRect(visible)) visible.setEmpty() }
+    }
+} else {
+    findSemanticsNode(nodeId)?.node?.boundsInWindow?.let { bounds ->
+        // A node not yet placed reports unspecified bounds, which round to nothing rather than to an
+        // exception; empty is what "not on screen yet" means to the overlay.
+        val placed = bounds.left.isFinite() && bounds.top.isFinite() && bounds.right.isFinite() && bounds.bottom.isFinite()
+        if (placed) android.graphics.Rect(bounds.left.roundToInt(), bounds.top.roundToInt(), bounds.right.roundToInt(), bounds.bottom.roundToInt()) else android.graphics.Rect()
+    }
+}
 
 /**
  * Searches every composition in the window for a semantics node.

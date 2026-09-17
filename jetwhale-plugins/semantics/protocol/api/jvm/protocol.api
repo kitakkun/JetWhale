@@ -164,6 +164,69 @@ public final class com/kitakkun/jetwhale/plugins/semantics/protocol/GetViewAttri
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/HighlightNode : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightNode$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/Integer;J)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/Integer;
+	public final fun component3 ()J
+	public final fun copy (Ljava/lang/String;Ljava/lang/Integer;J)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightNode;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightNode;Ljava/lang/String;Ljava/lang/Integer;JILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightNode;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNodeId ()Ljava/lang/Integer;
+	public final fun getRootId ()Ljava/lang/String;
+	public final fun getTtlMs ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/HighlightNode$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightNode$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightNode;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightNode;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/HighlightNode$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/HighlightResult {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightResult$Companion;
+	public fun <init> (ZLjava/lang/String;Z)V
+	public synthetic fun <init> (ZLjava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun copy (ZLjava/lang/String;Z)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightResult;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightResult;ZLjava/lang/String;ZILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getRetryLater ()Z
+	public final fun getShown ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/semantics/protocol/HighlightResult$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightResult$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightResult;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/semantics/protocol/HighlightResult;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/semantics/protocol/HighlightResult$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction : java/lang/Enum {
 	public static final field BringIntoView Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
 	public static final field Click Lcom/kitakkun/jetwhale/plugins/semantics/protocol/NodeAction;
