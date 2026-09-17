@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.CoreGraphics.CGRectMake
+import platform.UIKit.UITextField
 import platform.UIKit.UIView
 import platform.UIKit.UIWindow
 import platform.UIKit.accessibilityFrame
@@ -11,6 +12,8 @@ import platform.UIKit.accessibilityViewIsModal
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalForeignApi::class)
 class AccessibilityTreeCaptureTest {
@@ -39,6 +42,27 @@ class AccessibilityTreeCaptureTest {
         val children = capture().children.map { it as AppleNode }
 
         assertEquals(listOf(false, true), children.map { it.isVisible })
+    }
+
+    @Test
+    fun `a secure text field keeps its text to itself`() {
+        val password = UITextField(frame = CGRectMake(0.0, 0.0, 200.0, 40.0)).apply {
+            accessibilityFrame = frame
+            text = "hunter2"
+            secureTextEntry = true
+        }
+        val plain = UITextField(frame = CGRectMake(0.0, 100.0, 200.0, 40.0)).apply {
+            accessibilityFrame = frame
+            text = "visible"
+        }
+        window.addSubview(password)
+        window.addSubview(plain)
+
+        val (secureNode, plainNode) = capture().children.map { it as AppleNode }
+
+        assertTrue(secureNode.isEditable)
+        assertNull(secureNode.editableText)
+        assertEquals("visible", plainNode.editableText)
     }
 
     @Test

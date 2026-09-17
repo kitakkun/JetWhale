@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.semantics.agent
 
 import android.content.res.Resources
 import android.graphics.Rect
+import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Checkable
@@ -63,7 +64,7 @@ internal fun View.toViewNode(
         viewClass = javaClass.name,
         resourceId = resourceEntryName(),
         text = label?.takeIf { editable == null }?.text?.toString()?.takeIf { it.isNotEmpty() },
-        editableText = editable?.text?.toString(),
+        editableText = editable?.takeUnless { it.isPasswordInput() }?.text?.toString(),
         contentDescription = contentDescription?.toString()?.takeIf { it.isNotEmpty() },
         toggleableState = (this as? Checkable)?.let { if (it.isChecked) "On" else "Off" },
         bounds = bounds,
@@ -202,3 +203,22 @@ private fun NodeBounds.translated(offsetX: Float, offsetY: Float): NodeBounds = 
     right = right + offsetX,
     bottom = bottom + offsetY,
 )
+
+/**
+ * Whether the field holds a password, in any of the input-type variations that mask it. Such a
+ * field stays editable in the tree but its text is never captured.
+ */
+private fun EditText.isPasswordInput(): Boolean {
+    val variation = inputType and InputType.TYPE_MASK_VARIATION
+    val klass = inputType and InputType.TYPE_MASK_CLASS
+    return when (klass) {
+        InputType.TYPE_CLASS_TEXT ->
+            variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+                variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+                variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
+
+        InputType.TYPE_CLASS_NUMBER -> variation == InputType.TYPE_NUMBER_VARIATION_PASSWORD
+
+        else -> false
+    }
+}

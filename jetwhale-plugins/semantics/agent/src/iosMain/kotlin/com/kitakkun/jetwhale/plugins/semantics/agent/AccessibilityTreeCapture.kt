@@ -231,11 +231,13 @@ private val SCROLLABLE_CONTAINER_PROTOCOL = objc_getProtocol("UIFocusItemScrolla
 
 /**
  * A field's `accessibilityValue` is its placeholder while it is empty, so the view's own `text` is
- * read where there is one. A bare element has only its value.
+ * read where there is one. A bare element has only its value. A secure field (a password) never
+ * gives up its text: the node stays editable, and its `accessibilityValue` carries what UIKit
+ * shows VoiceOver, which is masked.
  */
 private fun NSObject.editableText(): String? = when (this) {
-    is UITextField -> text ?: ""
-    is UITextView -> text
+    is UITextField -> if (secureTextEntry) null else text ?: ""
+    is UITextView -> if (secureTextEntry) null else text
     else -> accessibilityValue
 }
 
