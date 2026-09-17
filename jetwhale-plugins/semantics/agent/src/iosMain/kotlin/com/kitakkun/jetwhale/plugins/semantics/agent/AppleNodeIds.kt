@@ -64,13 +64,20 @@ internal object AppleNodeIds {
         return result
     }
 
-    /** The id for [obj], captured in [window], assigning one on first sight. */
+    /**
+     * The id for [obj], captured in [window], assigning one on first sight. An object seen again
+     * under another window — a view moved between windows — keeps its id and follows the window,
+     * so the tree that just reported it can address it.
+     */
     fun idOf(obj: NSObject, window: UIWindow): Int {
         val address = obj.address()
         seenInCapture?.add(address)
-        entriesByAddress[address]?.let { return it.id }
-        val entry = Entry(id = nextId, obj = obj, window = window)
-        nextId -= 1
+        val known = entriesByAddress[address]
+        val entry = when {
+            known == null -> Entry(id = nextId, obj = obj, window = window).also { nextId -= 1 }
+            known.windowAddress != window.address() -> Entry(id = known.id, obj = obj, window = window)
+            else -> return known.id
+        }
         entriesByAddress[address] = entry
         entriesById[entry.id] = entry
         return entry.id

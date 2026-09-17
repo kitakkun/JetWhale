@@ -56,6 +56,20 @@ class AppleNodeIdsTest {
     }
 
     @Test
+    fun `an object captured under another window keeps its id and follows that window`() {
+        val other = UIWindow()
+        val obj = NSObject()
+        val id = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(obj, window) }
+
+        val idUnderOther = AppleNodeIds.trackingCapture(other) { AppleNodeIds.idOf(obj, other) }
+
+        assertEquals(id, idUnderOther)
+        assertSame(obj, AppleNodeIds.objectOf(id, other))
+        assertNull(AppleNodeIds.objectOf(id, window))
+        assertSame(other, AppleNodeIds.windowOf(obj))
+    }
+
+    @Test
     fun `ids are negative and never reused`() {
         val first = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(NSObject(), window) }
         val second = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(NSObject(), window) }
