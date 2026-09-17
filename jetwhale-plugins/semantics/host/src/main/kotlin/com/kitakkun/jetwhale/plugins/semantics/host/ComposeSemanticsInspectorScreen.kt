@@ -275,9 +275,9 @@ private fun StatusLine(
 private fun EmptyTreeMessage(snapshot: NodeTreeSnapshot?, search: String, interactiveOnly: Boolean) {
     val (title, description) = when {
         snapshot == null -> "Not captured yet" to "Press Refresh to capture the app's node tree."
-        snapshot.roots.isEmpty() -> "No Compose root reported" to "Install a probe: installJetWhaleSemanticsProbe(application), or call JetWhaleSemanticsProbe() inside your composition."
+        snapshot.roots.isEmpty() -> "No root reported" to "Install a probe: installJetWhaleSemanticsProbe(application) on Android, installJetWhaleSemanticsProbe() on iOS, or JetWhaleSemanticsProbe() inside your composition."
         search.isNotBlank() || interactiveOnly -> "No node matches the current filter" to null
-        else -> "The app's Compose roots are empty" to null
+        else -> "The app's roots are empty" to null
     }
     JwEmptyState(title = title, description = description)
 }

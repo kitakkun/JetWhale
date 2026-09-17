@@ -21,9 +21,12 @@ browse it in the host and hand it to an AI agent over [MCP](/guide/mcp-server).
 
 ## What the tree contains
 
-The tree is the Compose **semantics** tree: the same tree an accessibility service sees, and the one
-that says what is actually clickable. A `Box` that only lays out pixels does not appear on its own;
-a `Button` does, carrying its label and its `OnClick` action.
+The tree is the **semantics** tree: the same tree an accessibility service sees, and the one that
+says what is actually clickable. A `Box` that only lays out pixels does not appear on its own; a
+`Button` does, carrying its label and its `OnClick` action. On Android and desktop it is read from
+Compose, and each root is a window in screen pixels with dialogs and popups as roots of their own;
+on iOS it is read through the accessibility protocol, each root is a `UIWindow` in points, and a
+dialog stays inside the window that showed it. Every node in the MCP JSON names its unit.
 
 Two views of it are available, switchable in the host and per MCP call:
 
@@ -194,8 +197,13 @@ node is a view that has one:
 | `BringIntoView` | every `UIScrollView` above the view | a bare node only reports whether it is already in view | same |
 | `RequestFocus` | `becomeFirstResponder()` | on the backing `UITextField` | not available |
 | `Dismiss` | `accessibilityPerformEscape()`, tried on any node | same | same |
-| `Expand` / `Collapse` | a custom action of that name | same | same |
+| `Expand` / `Collapse` | a custom action of that name, when it has a handler block; a target/selector custom action is not invoked | same | same |
 | `LongClick` | not available | | |
+
+Not covered on iOS: `LongClick`; `SetText` / `InsertText` / `ImeAction` / `RequestFocus` /
+`ScrollToIndex` on a Compose element; custom actions built with a target and selector rather than
+a handler block; and text entry into a secure field's contents, which are never captured either:
+a password field stays `isEditable` with no `editableText`, on Android as on iOS.
 
 ## Setup
 
@@ -412,8 +420,8 @@ plugin tool, JetWhale injects the `sessionId` parameter and routes the call to t
 ### `com.kitakkun.jetwhale.semantics.findNodes`
 
 The one to reach for first. Captures the tree and returns the matching nodes as a flat list, each
-carrying the `rootId`/`id` pair that addresses it, screen-pixel `bounds`, and a ready-made `tap`
-point.
+carrying the `rootId`/`id` pair that addresses it, its `bounds` on screen, and a ready-made `tap`
+point. Both are in the node's `unit`: pixels on Android and desktop, points on iOS.
 
 Criteria (`text`, `contentDescription`, `testTag`, `resourceId`, `role`) are combined with AND and
 match case-insensitively by substring unless `exact` is set — `resourceId` is the exception, always
@@ -561,8 +569,9 @@ directly.
 
 ### Are the coordinates right?
 
-`bounds` and `tap` are screen pixels, so they have to survive whatever the device does to the
-window. They were checked two ways at once — cross-checked against `android layout`'s reading of the
+`bounds` and `tap` are screen coordinates in the node's `unit` (pixels on Android and desktop,
+points on iOS, which is what `idb ui tap` takes), so they have to survive whatever the device does
+to the window. They were checked two ways at once — cross-checked against `android layout`'s reading of the
 same screen, and proved by tapping the reported point and watching the intended node react — across
 the conditions that move a window around:
 

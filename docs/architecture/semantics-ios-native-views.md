@@ -91,7 +91,7 @@ walk is Kotlin against `platform.UIKit`, the way `androidMain` is Kotlin against
 | `bounds` | `accessibilityFrame` translated into window coordinates |
 | `boundsInScreen` | `accessibilityFrame` clipped to the window |
 | `isEnabled` | not `NotEnabled` trait, and not a disabled `UIControl` |
-| `isClickable` | `Button` / `Link` / `ToggleButton` trait, or any `UIControl` |
+| `isClickable` | `Button` / `Link` / `ToggleButton` trait, or a `UIControl` with something registered for `touchUpInside`, which is where the click fallback sends it |
 | `isSelected` | `Selected` trait, or a selected `UIControl` |
 | `isEditable` | `UITextField`/`UITextView`, or the text-entry trait bit both SwiftUI and Compose set on a field (no public constant; bit 18) |
 | `isScrollable` | a `UIScrollView` with content beyond its bounds, or a `UIFocusItemScrollableContainer` with content beyond its visible size — Compose's element conforms to that protocol per instance, exactly when its node scrolls |
@@ -154,7 +154,7 @@ into handler objects grouped like the Android ones (`AppleNodePointerActions`,
 | `BringIntoView` | every `UIScrollView` ancestor, `scrollRectToVisible`, unless each already shows the whole view | a bare element reports whether it is already in view | same |
 | `RequestFocus` | `becomeFirstResponder()` | on the backing `UITextField` | not performed |
 | `Dismiss` | `accessibilityPerformEscape()`, tried on any node | same | same ✅ |
-| `Expand` / `Collapse` | a custom action of that name, through its handler block | same | same |
+| `Expand` / `Collapse` | a custom action of that name, through its handler block; a target/selector action is not invoked and is not advertised | same | same |
 
 ### Compose text entry on iOS is open
 
