@@ -172,7 +172,8 @@ a flat `findNodes` result needs no root to read them. `merged` has no effect: th
 is the merged one, and it is the only one there is.
 
 A view marked `accessibilityViewIsModal` — a presented sheet, an alert — hides its siblings the way
-it hides them from VoiceOver: what is behind the modal stays in the tree, marked invisible.
+it hides them from VoiceOver: what is behind the modal is invisible, so a default capture leaves it
+out and `includeInvisible` brings it back, marked as such.
 
 What the accessibility protocol does not carry, the capture cannot report: a Compose `role` and
 `stateDescription` are folded into label and traits, and a node scrolled out of its container

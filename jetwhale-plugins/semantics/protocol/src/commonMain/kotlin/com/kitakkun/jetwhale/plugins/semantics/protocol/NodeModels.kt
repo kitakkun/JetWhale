@@ -15,7 +15,8 @@ import kotlinx.serialization.Serializable
  * the tree is the window's accessibility tree, in which UIKit views, SwiftUI nodes and Compose
  * elements all appear as [AppleNode]s, and [merged] has no effect: the accessibility tree is the
  * merged one. These options apply to every type identically: depth counts every node, and a node
- * with empty bounds or hidden by its platform is invisible rather than absent.
+ * with empty bounds or hidden by its platform is invisible — left out by default, and kept with
+ * `isVisible = false` under [includeInvisible].
  */
 @Serializable
 data class NodeTreeCaptureOptions(

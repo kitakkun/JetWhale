@@ -26,9 +26,9 @@ internal class PerformNodeActionCommand(
             "needs no coordinates and cannot land on something that moved in the meantime — prefer it over " +
             "tapping coordinates. Returns {\"performed\", \"rootId\", \"nodeId\", \"action\", \"message\"}; " +
             "performed=false with a message when the node does not expose the action or declined it. " +
-            "BringIntoView scrolls whatever surrounds the node — Compose scrollables and Android Views alike — " +
+            "BringIntoView scrolls whatever surrounds the node — Compose scrollables, Android Views and iOS scroll views alike — " +
             "by the least amount that shows it whole, and works on any node; ScrollToIndex scrolls a lazy " +
-            "list or RecyclerView to an item that may not be composed yet. Both land on the next frame: " +
+            "list, a RecyclerView or an iOS table/collection view to an item that may not exist yet. Both land on the next frame: " +
             "capture the tree again afterwards to see the result."
 
     private val nodeId by int("The node's id, as reported by findNodes or getNodeTree.")
