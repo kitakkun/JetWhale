@@ -69,7 +69,7 @@ data class ComposeRoot(
     /** Device density (px per dp) of this root, for converting the pixel bounds below to dp; `1` on iOS, where bounds are points. */
     val density: Float,
     /**
-     * Where this root's window sits on screen, in pixels. Node bounds are reported in both root and
+     * Where this root's window sits on screen, in the root's unit (pixels, points on iOS). Node bounds are reported in both root and
      * screen coordinates, so this is only needed to reason about the window itself.
      */
     val windowOffsetX: Float,
@@ -119,13 +119,17 @@ sealed interface UiNode {
     /** `On`, `Off` or `Indeterminate` for a toggleable node, or for a `Checkable` `View`. */
     val toggleableState: String?
 
-    /** Bounds in this root's coordinate space, in pixels. */
+    /**
+     * Bounds in this root's coordinate space, in the platform's own unit: pixels on Android and
+     * desktop, points on iOS (where [ComposeRoot.density] is `1`).
+     */
     val bounds: NodeBounds
 
     /**
-     * Bounds in screen coordinates, in pixels — the ones to feed to `adb shell input tap`. Prefer
-     * [PerformNodeAction] where possible: it invokes the node's own action and does not depend on
-     * the window still being where it was when the snapshot was taken.
+     * Bounds in screen coordinates, in the same unit as [bounds] — what a coordinate-taking tool on
+     * that platform expects. Prefer [PerformNodeAction] where possible: it invokes the node's own
+     * action and does not depend on the window still being where it was when the snapshot was
+     * taken.
      */
     val boundsInScreen: NodeBounds
 

@@ -35,9 +35,9 @@ data class PerformNodeAction(
     val action: NodeAction,
     /** Text for [NodeAction.SetText] / [NodeAction.InsertText]; ignored otherwise. */
     val text: String? = null,
-    /** Horizontal scroll distance in pixels for [NodeAction.ScrollBy]; ignored otherwise. */
+    /** Horizontal scroll distance for [NodeAction.ScrollBy], in the root's unit (pixels, points on iOS); ignored otherwise. */
     val scrollX: Float = 0f,
-    /** Vertical scroll distance in pixels for [NodeAction.ScrollBy]; ignored otherwise. */
+    /** Vertical scroll distance for [NodeAction.ScrollBy], in the root's unit (pixels, points on iOS); ignored otherwise. */
     val scrollY: Float = 0f,
     /** Item index for [NodeAction.ScrollToIndex]; ignored otherwise. */
     val index: Int? = null,

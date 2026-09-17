@@ -34,8 +34,10 @@ internal object AppleNodeScrollActions {
     /**
      * A `UIScrollView` moves by the distance asked for, within the range its content and insets
      * allow; so does a focus-scrolling container, which is what a Compose scrollable is (see
-     * [scrollableContainer]). Anything else is sent `accessibilityScroll`, which takes a direction
-     * and moves a page, so the result says which direction was sent instead.
+     * [scrollableContainer]). Those two are what the action is advertised for. A caller may still
+     * name it on any other node — the protocol gives no side-effect-free way to tell that a bare
+     * element scrolls — and that node is sent `accessibilityScroll`, which takes a direction and
+     * moves a page, so the result says which direction was sent instead.
      */
     object ScrollBy : AppleNodeActionHandler {
         override val runsOnDisabledNode = true
