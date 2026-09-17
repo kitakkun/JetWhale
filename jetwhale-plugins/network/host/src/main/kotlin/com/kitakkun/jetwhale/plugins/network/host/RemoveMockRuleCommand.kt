@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.serialization.json.buildJsonObject
@@ -19,14 +20,16 @@ internal class RemoveMockRuleCommand(
 
     private val id by string("The rule id from getMockConfig or addMockRule.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val id = arguments[this.id]
         val current = mockRules()
         val remaining = current.filterNot { it.id == id }
         if (remaining.size == current.size) throw JetWhaleMcpArgumentException("no mock rule with id: $id")
-        return when (val failure = syncMockRules(remaining)) {
-            null -> buildJsonObject { put("removedId", id) }.toString()
-            else -> syncErrorJson(failure)
-        }
+        return JetWhaleMcpResult.text(
+            when (val failure = syncMockRules(remaining)) {
+                null -> buildJsonObject { put("removedId", id) }.toString()
+                else -> syncErrorJson(failure)
+            },
+        )
     }
 }

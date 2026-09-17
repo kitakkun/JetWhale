@@ -33,8 +33,8 @@ import kotlin.reflect.KProperty
  *     private val widgetId by string("The widget ID")
  *     private val verbose by booleanOrNull("Include layout details.")
  *
- *     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
- *         return widgets.describeAsJson(id = arguments[widgetId], verbose = arguments[verbose] ?: false)
+ *     override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
+ *         return JetWhaleMcpResult.text(widgets.describeAsJson(id = arguments[widgetId], verbose = arguments[verbose] ?: false))
  *     }
  * }
  * ```
@@ -77,9 +77,10 @@ public abstract class JetWhaleMcpCommand(
     /**
      * Executes the tool.
      *
-     * @return A result string (plain text or JSON).
+     * @return The tool's result: [JetWhaleMcpResult.text] for plain text or JSON,
+     *   [JetWhaleMcpResult.image] for a screenshot or other binary image the agent should see.
      */
-    public abstract suspend fun execute(arguments: JetWhaleMcpArguments): String
+    public abstract suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult
 
     public fun toDescriptor(): JetWhaleMcpToolDescriptor {
         parametersSealed = true

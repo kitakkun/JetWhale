@@ -45,7 +45,10 @@ class DefaultPluginComposeSceneService(
         val scene: PluginComposeScene,
     )
 
-    private val pluginScenes = mutableMapOf<String, CachedScene>()
+    /** Identifies a scene. [sessionId] is null for the single scene of a host-scoped plugin. */
+    private data class SceneKey(val pluginId: String, val sessionId: String?)
+
+    private val pluginScenes = mutableMapOf<SceneKey, CachedScene>()
 
     // Written from the host's composition and read when a scene is created; both happen on the main
     // thread. Falls back to the ComposeScene default until the window has reported its density.
@@ -57,16 +60,16 @@ class DefaultPluginComposeSceneService(
 
     override suspend fun getOrCreatePluginScene(
         pluginId: String,
-        sessionId: String,
+        sessionId: String?,
     ): PluginComposeScene {
-        val pluginInstance = pluginInstanceService.getPluginInstanceForSession(
-            pluginId = pluginId,
-            sessionId = sessionId,
-        ) ?: run {
+        val pluginInstance = when (sessionId) {
+            null -> pluginInstanceService.getHostScopedInstance(pluginId)
+            else -> pluginInstanceService.getPluginInstanceForSession(pluginId = pluginId, sessionId = sessionId)
+        } ?: run {
             error("Plugin instance not found for pluginId=$pluginId, sessionId=$sessionId")
         }
         return withContext(Dispatchers.Main) {
-            val sceneKey = "$pluginId:$sessionId"
+            val sceneKey = SceneKey(pluginId, sessionId)
             val cached = pluginScenes[sceneKey]
             if (cached != null && cached.pluginInstance === pluginInstance) return@withContext cached.scene
             // A reinstalled or reloaded plugin is served by a new instance from a new classloader; a
@@ -107,7 +110,7 @@ class DefaultPluginComposeSceneService(
     }
 
     override fun disposePluginSceneForSession(sessionId: String) {
-        val keysToRemove = pluginScenes.keys.filter { it.endsWith(":$sessionId") }
+        val keysToRemove = pluginScenes.keys.filter { it.sessionId == sessionId }
         for (key in keysToRemove) {
             pluginScenes[key]?.scene?.composeScene?.close()
             pluginScenes.remove(key)
@@ -115,7 +118,7 @@ class DefaultPluginComposeSceneService(
     }
 
     override fun disposePluginScenesForPlugin(pluginId: String) {
-        val keysToRemove = pluginScenes.keys.filter { it.startsWith("$pluginId:") }
+        val keysToRemove = pluginScenes.keys.filter { it.pluginId == pluginId }
         for (key in keysToRemove) {
             pluginScenes[key]?.scene?.composeScene?.close()
             pluginScenes.remove(key)

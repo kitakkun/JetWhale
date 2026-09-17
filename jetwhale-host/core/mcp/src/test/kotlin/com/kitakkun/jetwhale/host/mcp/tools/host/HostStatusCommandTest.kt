@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.mcp.tools.host
 
 import com.kitakkun.jetwhale.host.mcp.FakeMcpPermissionsRepository
 import com.kitakkun.jetwhale.host.mcp.McpServerStatusHolder
+import com.kitakkun.jetwhale.host.mcp.text
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
@@ -20,6 +21,7 @@ import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
 import com.kitakkun.jetwhale.host.model.PluginTrustService
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock
@@ -174,4 +176,4 @@ private fun session(id: String, isActive: Boolean) = DebugSession(
 
 private fun arguments() = JetWhaleMcpArguments(JsonObject(emptyMap()))
 
-private fun String.decode() = Json.decodeFromString<HostStatusResult>(this)
+private fun JetWhaleMcpResult.decode() = Json.decodeFromString<HostStatusResult>(text)

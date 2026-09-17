@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.network.host
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -16,11 +17,13 @@ internal class SetMockingEnabledCommand(
 
     private val enabled by boolean("true to enable mocking, false to disable.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val enabled = arguments[this.enabled]
-        return when (val failure = syncMockingEnabled(enabled)) {
-            null -> buildJsonObject { put("enabled", enabled) }.toString()
-            else -> syncErrorJson(failure)
-        }
+        return JetWhaleMcpResult.text(
+            when (val failure = syncMockingEnabled(enabled)) {
+                null -> buildJsonObject { put("enabled", enabled) }.toString()
+                else -> syncErrorJson(failure)
+            },
+        )
     }
 }

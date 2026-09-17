@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.network.host
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
@@ -40,7 +41,7 @@ internal class AddMockRuleCommand(
     )
     private val delayMs by longOrNull("Artificial delay before the mocked response is delivered, in milliseconds. Defaults to 0.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val rule = MockRule(
             id = UUID.randomUUID().toString(),
             name = arguments[ruleName] ?: "",
@@ -57,10 +58,12 @@ internal class AddMockRuleCommand(
                 delayMs = arguments[delayMs] ?: 0L,
             ),
         )
-        return when (val failure = syncMockRules(mockRules() + rule)) {
-            null -> Json.encodeToJsonElement(rule).toString()
-            else -> syncErrorJson(failure)
-        }
+        return JetWhaleMcpResult.text(
+            when (val failure = syncMockRules(mockRules() + rule)) {
+                null -> Json.encodeToJsonElement(rule).toString()
+                else -> syncErrorJson(failure)
+            },
+        )
     }
 
     // The explicit headers map wins; contentType only fills in a Content-Type when absent.

@@ -36,6 +36,11 @@
             "type": "boolean",
             "description": "Whether this plugin needs an agent counterpart. true (default): available only for sessions whose agent advertised this pluginId. false: host-only (no agent, no messaging), instantiated for every active session."
           },
+          "scope": {
+            "type": "string",
+            "enum": ["session", "host"],
+            "description": "How many instances of this plugin the host creates. \"session\" (default): one instance per active debug session; its MCP tools take a sessionId. \"host\": a single instance for the whole host, created as soon as the plugin is enabled — before any app connects — whose MCP tools take no sessionId. A host-scoped plugin must also declare \"requiresAgent\": false."
+          },
           "agentVersionRange": {
             "type": "object",
             "description": "Specifies the range of agent plugin versions this host plugin is compatible with. Omit to allow all agent versions.",

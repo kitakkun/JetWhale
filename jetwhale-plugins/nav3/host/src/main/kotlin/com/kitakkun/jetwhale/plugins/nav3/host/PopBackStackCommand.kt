@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.nav3.host
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -18,13 +19,13 @@ internal class PopBackStackCommand(
     private val inclusive by booleanOrNull("With toIndex: also pop the entry at that index. Defaults to false.")
     private val stackId by stringOrNull("Which back stack to pop. Defaults to the app's only one.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val target = resolveStackId(arguments[stackId], controller.stacks().map { it.stackId })
         val requestedIndex = arguments[toIndex]
         val operation = when (requestedIndex) {
             null -> NavBackStackOperation.Pop(count = arguments[count] ?: 1)
             else -> NavBackStackOperation.PopTo(index = requestedIndex, inclusive = arguments[inclusive] ?: false)
         }
-        return controller.mutate(stackId = target, operations = listOf(operation)).toMcpJson()
+        return JetWhaleMcpResult.text(controller.mutate(stackId = target, operations = listOf(operation)).toMcpJson())
     }
 }

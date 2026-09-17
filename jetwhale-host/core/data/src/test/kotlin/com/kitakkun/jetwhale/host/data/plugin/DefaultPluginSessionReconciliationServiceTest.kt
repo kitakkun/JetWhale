@@ -12,8 +12,10 @@ import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginScope
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAppMetadata
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
@@ -30,6 +32,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class DefaultPluginSessionReconciliationServiceTest {
     private val pluginId = "com.example.plugin"
@@ -43,15 +46,19 @@ class DefaultPluginSessionReconciliationServiceTest {
         installedPlugins = persistentListOf(JetWhalePluginInfo(pluginId, "1.0.0")),
     )
 
-    private val loadedPlugin = LoadedHostPlugin(
+    private val loadedPlugin = loadedPlugin(JetWhaleHostPluginScope.SESSION)
+
+    private fun loadedPlugin(scope: JetWhaleHostPluginScope) = LoadedHostPlugin(
         manifest = JetWhaleHostPluginManifest(
             pluginId = pluginId,
             pluginName = "Test",
             version = "1.0.0",
             factoryClass = "com.example.TestFactory",
+            requiresAgent = scope == JetWhaleHostPluginScope.SESSION,
+            scope = scope,
         ),
         factory = object : JetWhaleHostPluginFactory {
-            override fun createPlugin(): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}
+            override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}
         },
     )
 
@@ -79,6 +86,31 @@ class DefaultPluginSessionReconciliationServiceTest {
         factoryRepository.load(loadedPlugin)
 
         assertEquals(setOf(sessionId), withTimeout(TIMEOUT_MILLIS) { instanceService.calls.receive() })
+
+        collectJob.cancel()
+    }
+
+    /**
+     * A host-scoped plugin belongs to the host, not to a session, so nothing about its instance may
+     * wait for a session to connect.
+     */
+    @Test
+    fun `a host-scoped plugin is instantiated with no session connected`() = runBlocking {
+        val factoryRepository = FakePluginFactoryRepository()
+        factoryRepository.load(loadedPlugin(JetWhaleHostPluginScope.HOST))
+        val instanceService = FakePluginInstanceService(factoryRepository)
+        val service = DefaultPluginSessionReconciliationService(
+            sessionRepository = FakeDebugSessionRepository(MutableStateFlow(persistentListOf())),
+            enabledPluginsRepository = FakeEnabledPluginsRepository(setOf(pluginId)),
+            pluginFactoryRepository = factoryRepository,
+            pluginInstanceService = instanceService,
+        )
+
+        val collectJob = launch { service.reconciliationEvents().collect { } }
+
+        assertEquals(pluginId, withTimeout(TIMEOUT_MILLIS) { instanceService.hostScopedCalls.receive() })
+        assertTrue(service.isHostScoped(pluginId))
+        assertEquals(emptySet(), service.targetSessionIds(pluginId, listOf(activeSession)))
 
         collectJob.cancel()
     }
@@ -136,6 +168,9 @@ class DefaultPluginSessionReconciliationServiceTest {
         /** The session ids newly initialized by each reconciliation pass, in order. */
         val calls: Channel<Set<String>> = Channel(Channel.UNLIMITED)
 
+        /** The plugin ids whose host-scoped instance was asked for, in order. */
+        val hostScopedCalls: Channel<String> = Channel(Channel.UNLIMITED)
+
         private val initializedSessionIds = mutableSetOf<String>()
 
         override val pluginInstanceEventFlow: SharedFlow<PluginInstanceEvent> = MutableSharedFlow()
@@ -154,9 +189,15 @@ class DefaultPluginSessionReconciliationServiceTest {
             return newSessionIds
         }
 
+        override fun initializeHostScopedInstanceIfNeeded(pluginId: String): Boolean {
+            hostScopedCalls.trySend(pluginId)
+            return true
+        }
+
         override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = emptyList()
         override fun unloadPluginInstanceForSession(sessionId: String) = Unit
         override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = null
+        override fun getHostScopedInstance(pluginId: String): JetWhaleHostPlugin? = null
         override fun unloadPluginInstancesForPlugin(pluginId: String) = Unit
         override fun clearAllPluginInstances() = Unit
         override suspend fun routeFrame(sessionId: String, frame: PluginFrame) = Unit
