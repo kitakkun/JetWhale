@@ -44,6 +44,7 @@ internal object AppleNodeScrollActions {
 
         override fun perform(node: NSObject, request: PerformNodeAction): NodeActionResult {
             if (node is UIScrollView) {
+                if (!node.isScrollable()) return NodeActionResult.notSupported("the scroll view has nothing to scroll")
                 val (x, y) = node.contentOffset.useContents { x to y }
                 val (contentWidth, contentHeight) = node.contentSize.useContents { width to height }
                 val (width, height) = node.bounds.useContents { size.width to size.height }

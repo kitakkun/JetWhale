@@ -40,7 +40,7 @@ import kotlin.time.TimeSource
  */
 class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginId: String get() = PLUGIN_ID
-    override val pluginVersion: String get() = "1.0.0"
+    override val pluginVersion: String get() = "1.1.0"
 
     override fun JetWhaleMessageHandlers.configure() {
         onRequest { request: CaptureNodeTree ->

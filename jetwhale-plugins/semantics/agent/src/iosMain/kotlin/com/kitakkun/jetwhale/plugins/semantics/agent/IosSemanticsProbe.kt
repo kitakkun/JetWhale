@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.plugins.semantics.agent
 
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.objcPtr
 import platform.Foundation.NSNotification
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
@@ -36,8 +38,13 @@ private object IosSemanticsProbe {
         if (this.installation === installation) this.installation = null
     }
 
+    @OptIn(ExperimentalForeignApi::class)
     class Installation : AutoCloseable {
-        private val registrations = HashMap<UIWindow, ComposeNodeSourceRegistry.Registration>()
+        private class Tracked(val window: UIWindow, val registration: ComposeNodeSourceRegistry.Registration)
+
+        // Keyed by address rather than by the window object: a notification may hand over a
+        // different Kotlin wrapper for the same window, and the address is what identifies it.
+        private val tracked = HashMap<Long, Tracked>()
         private val observers: List<NSObjectProtocol>
 
         init {
@@ -63,19 +70,20 @@ private object IosSemanticsProbe {
         }
 
         private fun track(window: UIWindow) {
-            if (window.isSystemWindow() || window in registrations) return
-            registrations[window] = ComposeNodeSourceRegistry.register(IosWindowNodeSource(window))
+            val address = window.objcPtr().toLong()
+            if (window.isSystemWindow() || address in tracked) return
+            tracked[address] = Tracked(window, ComposeNodeSourceRegistry.register(IosWindowNodeSource(window)))
         }
 
         private fun untrack(window: UIWindow) {
-            registrations.remove(window)?.close()
+            tracked.remove(window.objcPtr().toLong())?.registration?.close()
             // No capture will run for this window again, so what the last one retained is released here.
             AppleNodeIds.release(window)
         }
 
         override fun close() {
             observers.forEach { NSNotificationCenter.defaultCenter.removeObserver(it) }
-            registrations.keys.toList().forEach(::untrack)
+            tracked.values.toList().forEach { untrack(it.window) }
             IosSemanticsProbe.uninstalled(this)
         }
 

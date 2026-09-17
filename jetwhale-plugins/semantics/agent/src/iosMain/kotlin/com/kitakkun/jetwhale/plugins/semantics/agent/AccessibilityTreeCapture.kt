@@ -46,6 +46,7 @@ import platform.UIKit.accessibilityHint
 import platform.UIKit.accessibilityLabel
 import platform.UIKit.accessibilityTraits
 import platform.UIKit.accessibilityValue
+import platform.UIKit.accessibilityViewIsModal
 import platform.darwin.NSObject
 
 /**
@@ -70,8 +71,9 @@ import platform.darwin.NSObject
  *
  * @param window the window this object is in, whose frame is the clip every node is tested
  *   against and whose origin is subtracted for root-relative bounds.
- * @param hiddenByAncestor `true` once a hidden view or an `accessibilityElementsHidden` container
- *   was passed on the way down: what it hides stays in the tree, marked invisible.
+ * @param hiddenByAncestor `true` once a hidden view, an `accessibilityElementsHidden` container, or
+ *   a sibling of an `accessibilityViewIsModal` view was passed on the way down: what it hides stays
+ *   in the tree, marked invisible.
  */
 @OptIn(ExperimentalForeignApi::class)
 internal fun NSObject.toAppleNode(
@@ -88,7 +90,14 @@ internal fun NSObject.toAppleNode(
     val children = if (maxDepth != null && depth >= maxDepth) {
         emptyList()
     } else {
-        accessibilityChildren().mapNotNull { it.toAppleNode(options, window, depth + 1, hiddenByAncestor = hidesElements) }
+        val candidates = accessibilityChildren()
+        // A modal child — a presented sheet, an alert — is the only one VoiceOver traverses; its
+        // siblings are behind it and must not read as reachable.
+        val modal = candidates.filter { it.accessibilityViewIsModal }
+        candidates.mapNotNull { child ->
+            val behindModal = modal.isNotEmpty() && modal.none { it === child }
+            child.toAppleNode(options, window, depth + 1, hiddenByAncestor = hidesElements || behindModal)
+        }
     }
 
     val frame = accessibilityFrame.toNodeBounds()

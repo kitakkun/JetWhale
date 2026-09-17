@@ -171,6 +171,9 @@ node in the MCP JSON says which unit its bounds are in — `"unit": "pt"` here, 
 a flat `findNodes` result needs no root to read them. `merged` has no effect: the accessibility tree
 is the merged one, and it is the only one there is.
 
+A view marked `accessibilityViewIsModal` — a presented sheet, an alert — hides its siblings the way
+it hides them from VoiceOver: what is behind the modal stays in the tree, marked invisible.
+
 What the accessibility protocol does not carry, the capture cannot report: a Compose `role` and
 `stateDescription` are folded into label and traits; whether a bare SwiftUI or Compose element
 scrolls is not known until it is asked to, so only a `UIScrollView` reads `scrollable`; and a node

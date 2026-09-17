@@ -11,9 +11,11 @@ import kotlinx.serialization.Serializable
  * only lay out pixels (a `Box` with no semantics of its own) do not appear on their own.
  *
  * On Android the tree also carries the Android `View`s around and inside the composition — the
- * layout hosting a `ComposeView` and the content of an `AndroidView { }` — as [ViewNode]s. These
- * options apply to them identically: depth counts every node whatever its type, and a `View` with
- * empty bounds or `visibility == GONE` is invisible rather than absent.
+ * layout hosting a `ComposeView` and the content of an `AndroidView { }` — as [ViewNode]s. On iOS
+ * the tree is the window's accessibility tree, in which UIKit views, SwiftUI nodes and Compose
+ * elements all appear as [AppleNode]s, and [merged] has no effect: the accessibility tree is the
+ * merged one. These options apply to every type identically: depth counts every node, and a node
+ * with empty bounds or hidden by its platform is invisible rather than absent.
  */
 @Serializable
 data class NodeTreeCaptureOptions(
@@ -29,7 +31,7 @@ data class NodeTreeCaptureOptions(
     val maxDepth: Int? = null,
 )
 
-/** One capture of every Compose root known to the agent. */
+/** One capture of every root known to the agent. */
 @Serializable
 data class NodeTreeSnapshot(
     /** When the capture was taken, in epoch milliseconds on the device. */
@@ -38,7 +40,7 @@ data class NodeTreeSnapshot(
     val captureDurationMs: Long,
     /** Echoes the options the capture ran with, so a consumer can tell merged from unmerged. */
     val options: NodeTreeCaptureOptions,
-    /** One entry per Compose root (window), in registration order — the newest window is last. */
+    /** One entry per root (window), in registration order — the newest window is last. */
     val roots: List<ComposeRoot>,
     /**
      * Roots that could not be captured, e.g. because their view was detached mid-capture. Reported
@@ -48,12 +50,14 @@ data class NodeTreeSnapshot(
 )
 
 /**
- * A single root — one platform window and everything the agent can read inside it. A dialog or a
- * popup gets its own root, so a snapshot normally has more than one entry while a dialog is open.
+ * A single root — one platform window and everything the agent can read inside it.
  *
  * On Android a root is the window as a whole: its node tree starts at the window's decor view and
- * descends through the Android `View` hierarchy into every composition it hosts. Elsewhere a root is
- * one composition, and its tree is the semantics tree alone.
+ * descends through the Android `View` hierarchy into every composition it hosts, and a dialog or a
+ * popup is a window of its own, so a snapshot has more than one entry while one is open. On iOS a
+ * root is a `UIWindow` read through its accessibility tree, and a dialog or a sheet stays inside
+ * the window that presented it. On desktop a root is one composition, and its tree is the
+ * semantics tree alone.
  */
 @Serializable
 data class ComposeRoot(
@@ -61,7 +65,7 @@ data class ComposeRoot(
     val rootId: String,
     /** Human-readable origin, e.g. `MainActivity` or `PopupWindow`. */
     val label: String,
-    /** Device density (px per dp) of this root, for converting the pixel bounds below to dp. */
+    /** Device density (px per dp) of this root, for converting the pixel bounds below to dp; `1` on iOS, where bounds are points. */
     val density: Float,
     /**
      * Where this root's window sits on screen, in pixels. Node bounds are reported in both root and
