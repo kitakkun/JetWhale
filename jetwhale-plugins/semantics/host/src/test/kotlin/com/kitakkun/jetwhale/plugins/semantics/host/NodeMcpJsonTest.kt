@@ -30,6 +30,7 @@ class NodeMcpJsonTest {
         assertEquals("Send", json["text"]?.jsonPrimitive?.content)
         assertEquals("send-button", json["testTag"]?.jsonPrimitive?.content)
         assertEquals(listOf("OnClick"), json["actions"]?.jsonArray?.map { it.jsonPrimitive.content })
+        assertEquals("px", json["unit"]?.jsonPrimitive?.content)
         assertEquals(10, json["bounds"]?.jsonObject?.get("left")?.jsonPrimitive?.content?.toInt())
         assertEquals(60, json["tap"]?.jsonObject?.get("x")?.jsonPrimitive?.content?.toInt())
         assertEquals(40, json["tap"]?.jsonObject?.get("y")?.jsonPrimitive?.content?.toInt())
@@ -115,6 +116,7 @@ class NodeMcpJsonTest {
         ).toMcpJson()
 
         assertEquals("Apple", json["kind"]?.jsonPrimitive?.content)
+        assertEquals("pt", json["unit"]?.jsonPrimitive?.content)
         assertEquals("SwiftUI.AccessibilityNode", json["className"]?.jsonPrimitive?.content)
         assertEquals("swiftui-toggle", json["accessibilityIdentifier"]?.jsonPrimitive?.content)
         assertEquals("1", json["accessibilityValue"]?.jsonPrimitive?.content)

@@ -165,8 +165,10 @@ it:
 | `accessibilityValue` | the value as the toolkit reports it: a switch's `"1"`, a slider's `"50%"` |
 | `traits` | the set `UIAccessibilityTraits`, by name: `Button`, `Selected`, `NotEnabled`, `ToggleButton`… |
 
-Coordinates are **points**, the unit every iOS tool takes, and the root's `density` is `1`.
-`merged` has no effect: the accessibility tree is the merged one, and it is the only one there is.
+Coordinates are **points**, the unit every iOS tool takes, and the root's `density` is `1`. Every
+node in the MCP JSON says which unit its bounds are in — `"unit": "pt"` here, `"px"` elsewhere — so
+a flat `findNodes` result needs no root to read them. `merged` has no effect: the accessibility tree
+is the merged one, and it is the only one there is.
 
 What the accessibility protocol does not carry, the capture cannot report: a Compose `role` and
 `stateDescription` are folded into label and traits; whether a bare SwiftUI or Compose element

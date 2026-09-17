@@ -29,7 +29,11 @@ import platform.darwin.NSObject
  */
 @OptIn(ExperimentalForeignApi::class)
 internal object AppleNodeIds {
-    private class Entry(val id: Int, val obj: NSObject, val window: UIWindow)
+    private class Entry(val id: Int, val obj: NSObject, val window: UIWindow) {
+        // A window arriving from a notification may be a different Kotlin wrapper for the same
+        // object, so windows are compared the way objects are keyed: by address.
+        val windowAddress: Long = window.address()
+    }
 
     private val entriesByAddress = HashMap<Long, Entry>()
     private val entriesById = HashMap<Int, Entry>()
@@ -47,7 +51,8 @@ internal object AppleNodeIds {
             return block()
         } finally {
             seenInCapture = null
-            val stale = entriesByAddress.filterValues { it.window === window && it.obj.address() !in seen }
+            val windowAddress = window.address()
+            val stale = entriesByAddress.filterValues { it.windowAddress == windowAddress && it.obj.address() !in seen }
             stale.forEach { (address, entry) ->
                 entriesByAddress.remove(address)
                 entriesById.remove(entry.id)
@@ -69,7 +74,8 @@ internal object AppleNodeIds {
 
     /** Drops everything captured in [window]; for a window that will not be captured again. */
     fun release(window: UIWindow) {
-        val gone = entriesByAddress.filterValues { it.window === window }
+        val windowAddress = window.address()
+        val gone = entriesByAddress.filterValues { it.windowAddress == windowAddress }
         gone.forEach { (address, entry) ->
             entriesByAddress.remove(address)
             entriesById.remove(entry.id)
@@ -77,7 +83,7 @@ internal object AppleNodeIds {
     }
 
     /** The object [id] names, or `null` once it has left its window's latest capture, or was captured in another window. */
-    fun objectOf(id: Int, window: UIWindow): NSObject? = entriesById[id]?.takeIf { it.window === window }?.obj
+    fun objectOf(id: Int, window: UIWindow): NSObject? = entriesById[id]?.takeIf { it.windowAddress == window.address() }?.obj
 
     /** The window [obj] was last captured in, or `null` for an object no capture has reported. */
     fun windowOf(obj: NSObject): UIWindow? = entriesByAddress[obj.address()]?.window

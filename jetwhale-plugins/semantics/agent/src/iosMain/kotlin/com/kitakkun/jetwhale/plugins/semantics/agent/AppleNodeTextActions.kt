@@ -10,6 +10,7 @@ import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSSelectorFromString
 import platform.UIKit.UIControlEventEditingChanged
 import platform.UIKit.UITextField
+import platform.UIKit.UITextFieldDelegateProtocol
 import platform.UIKit.UITextView
 import platform.UIKit.UITextViewTextDidChangeNotification
 import platform.UIKit.UIView
@@ -96,15 +97,14 @@ internal object AppleNodeTextActions {
             val field = node as? UITextField ?: return NodeActionResult.notSupported("the node is not a UITextField")
             val delegate = field.returnHandler()
                 ?: return NodeActionResult.notSupported("the field has no delegate handling return")
-            delegate.performSelector(RETURN_SELECTOR, withObject = field)
-            return NodeActionResult(performed = true)
+            return NodeActionResult.performedIf(delegate.textFieldShouldReturn(field), "the field's delegate declined the return")
         }
 
-        // Optional protocol methods are reached by selector: calling one the delegate does not
-        // implement would throw rather than answer.
+        // An optional protocol method is checked for before it is called: calling one the delegate
+        // does not implement would throw rather than answer.
         private val RETURN_SELECTOR = NSSelectorFromString("textFieldShouldReturn:")
 
-        private fun UITextField.returnHandler(): NSObject? = (delegate as? NSObject)?.takeIf { it.respondsToSelector(RETURN_SELECTOR) }
+        private fun UITextField.returnHandler(): UITextFieldDelegateProtocol? = delegate?.takeIf { (it as NSObject).respondsToSelector(RETURN_SELECTOR) }
     }
 
     private const val NOT_A_TEXT_VIEW = "the node is not a UITextField or UITextView; a SwiftUI TextField is one underneath, a Compose text field is not reachable through accessibility"

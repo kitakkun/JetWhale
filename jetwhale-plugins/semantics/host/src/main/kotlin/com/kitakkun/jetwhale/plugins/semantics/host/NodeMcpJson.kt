@@ -21,7 +21,8 @@ import kotlin.math.roundToInt
  * Deliberately not the transport model verbatim: absent and default-valued properties are dropped
  * so a large tree stays readable, and each node carries a ready-made `tap` point, because the whole
  * reason to read this instead of `adb shell uiautomator dump` is to act on it immediately.
- * Coordinates are screen pixels.
+ * Coordinates are screen pixels, or points on iOS — each node says which in `unit`, since a flat
+ * `findNodes` result does not carry its root's density.
  */
 internal fun NodeTreeSnapshot.toMcpJson(): JsonObject = buildJsonObject {
     put("capturedAtMs", capturedAtMs)
@@ -63,6 +64,7 @@ internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean =
 
         is AppleNode -> {
             put("kind", "Apple")
+            put("unit", "pt")
             put("className", className)
             accessibilityIdentifier?.let { put("accessibilityIdentifier", it) }
             accessibilityValue?.let { put("accessibilityValue", it) }
@@ -104,6 +106,7 @@ internal fun UiNode.toMcpJson(rootId: String? = null, includeChildren: Boolean =
 
     if (actions.isNotEmpty()) put("actions", JsonArray(actions.map { JsonPrimitive(it) }))
 
+    if (this@toMcpJson !is AppleNode) put("unit", "px")
     putJsonObject("bounds") {
         put("left", boundsInScreen.left.roundToInt())
         put("top", boundsInScreen.top.roundToInt())

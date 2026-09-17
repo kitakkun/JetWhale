@@ -40,8 +40,8 @@ internal class PerformNodeActionCommand(
         "The root the node belongs to. Optional: without it the node is looked up in the most recent capture, and the topmost root wins if the id appears in more than one.",
     )
     private val text by stringOrNull("The text for SetText or InsertText.")
-    private val scrollX by intOrNull("Horizontal scroll distance in pixels for ScrollBy. Defaults to 0.")
-    private val scrollY by intOrNull("Vertical scroll distance in pixels for ScrollBy. Defaults to 0.")
+    private val scrollX by intOrNull("Horizontal scroll distance in pixels (points on iOS) for ScrollBy. Defaults to 0.")
+    private val scrollY by intOrNull("Vertical scroll distance in pixels (points on iOS) for ScrollBy. Defaults to 0.")
     private val index by intOrNull("The item index for ScrollToIndex, counted from 0 over the container's items.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {

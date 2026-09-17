@@ -167,15 +167,17 @@ private fun NSObject.isTextInput(traits: UIAccessibilityTraits = accessibilityTr
 private val TEXT_ENTRY_TRAIT: UIAccessibilityTraits = 1uL shl 18
 
 /**
- * A `UIScrollView` with somewhere to scroll to. A bare element does not say whether it scrolls
- * until `accessibilityScroll` is sent to it, and a capture must not send it.
+ * A `UIScrollView` with somewhere to scroll to: content plus insets larger than the viewport, the
+ * same range `ScrollBy` moves within. A bare element does not say whether it scrolls until
+ * `accessibilityScroll` is sent to it, and a capture must not send it.
  */
 @OptIn(ExperimentalForeignApi::class)
 internal fun NSObject.isScrollable(): Boolean {
     val scrollView = this as? UIScrollView ?: return false
     val (contentWidth, contentHeight) = scrollView.contentSize.useContents { width to height }
     val (width, height) = scrollView.bounds.useContents { size.width to size.height }
-    return contentWidth > width || contentHeight > height
+    val (insetTop, insetLeft, insetBottom, insetRight) = scrollView.adjustedContentInset.useContents { listOf(top, left, bottom, right) }
+    return contentWidth + insetLeft + insetRight > width || contentHeight + insetTop + insetBottom > height
 }
 
 /**

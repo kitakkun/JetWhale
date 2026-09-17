@@ -43,7 +43,7 @@ internal object AppleNodeStateActions {
     private class CustomActionByName(private val action: NodeAction) : AppleNodeActionHandler {
         override val runsOnDisabledNode = false
 
-        override fun isOfferedBy(node: NSObject) = node.customAction() != null
+        override fun isOfferedBy(node: NSObject) = node.customAction()?.actionHandler != null
 
         override fun perform(node: NSObject, request: PerformNodeAction): NodeActionResult {
             val custom = node.customAction() ?: return NodeActionResult.notSupported("the node has no custom action named $action")

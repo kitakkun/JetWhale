@@ -17,7 +17,7 @@ internal class GetNodeTreeCommand(
         "Captures the Compose node tree of the running app right now and returns it as JSON: " +
             "{\"capturedAtMs\", \"captureDurationMs\", \"merged\", \"roots\": [{\"rootId\", \"label\", \"density\", \"node\"}]}. " +
             "Each node carries id, role, text, contentDescription, testTag, its semantics actions, " +
-            "screen-pixel \"bounds\", and a \"tap\" point (the centre, ready for `adb shell input tap`). " +
+            "screen \"bounds\" in the node's \"unit\" (px, or pt on iOS), and a \"tap\" point (the centre, ready for `adb shell input tap`). " +
             "A dialog or popup appears as its own root. Prefer findNodes when you are looking for a " +
             "specific element, and performNodeAction over tapping coordinates."
 
