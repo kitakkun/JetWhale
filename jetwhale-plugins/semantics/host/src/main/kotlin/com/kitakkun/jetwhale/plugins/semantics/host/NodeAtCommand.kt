@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeHitTesting
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
@@ -32,14 +33,14 @@ internal class NodeAtCommand(
     private val y by int("Y coordinate in screen pixels.")
     private val merged by booleanOrNull("Search the merged tree (default true). See getNodeTree.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val pointX = arguments[x].toFloat()
         val pointY = arguments[y].toFloat()
 
         val snapshot = try {
             capture(NodeTreeCaptureOptions(merged = arguments[merged] ?: true))
         } catch (e: JetWhaleMessagingException) {
-            return agentErrorJson(e)
+            return appDidNotAnswerResult(e)
         }
 
         val hit = NodeHitTesting.nodeAt(snapshot.roots, pointX, pointY)
@@ -47,8 +48,10 @@ internal class NodeAtCommand(
             snapshot.roots.firstOrNull { it.rootId == ref.rootId }?.findNode(ref.nodeId)
         }
 
-        return buildJsonObject {
-            put("node", node?.toMcpJson(rootId = hit?.rootId, includeChildren = false) ?: JsonNull)
-        }.toString()
+        return JetWhaleMcpResult.json(
+            buildJsonObject {
+                put("node", node?.toMcpJson(rootId = hit?.rootId, includeChildren = false) ?: JsonNull)
+            },
+        )
     }
 }
