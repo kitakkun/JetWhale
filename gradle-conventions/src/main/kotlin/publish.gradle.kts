@@ -31,6 +31,15 @@ afterEvaluate {
 
     logger.info("Configuring publishing for $artifactName ($artifactId)")
 
+    // -PjetwhalePublishOnly=<selectors> restricts a `publishToMavenCentral` run to some artifacts;
+    // the others keep their publications configured but their publish tasks disabled, so one
+    // invocation still covers the whole build and skips what was not asked for.
+    val selectors = findProperty("jetwhalePublishOnly")?.toString()?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
+    if (selectors != null && selectors.none { it.selects(artifactId) }) {
+        logger.lifecycle("Not publishing $artifactId: not selected by jetwhalePublishOnly=${selectors.joinToString(",")}")
+        tasks.matching { it.name.startsWith("publish") }.configureEach { enabled = false }
+    }
+
     configure<MavenPublishBaseExtension> {
         publishToMavenCentral()
         signAllPublications()
@@ -62,4 +71,20 @@ afterEvaluate {
             }
         }
     }
+}
+
+/**
+ * A selector is an artifactId, or one of the groups the snapshot workflow offers: `sdk` (the
+ * runtime, the SDKs and everything an app or a host plugin links against), one official plugin by
+ * name (`network`, `nav3`, `semantics`), `gradle-plugin` and `agent-plugin`.
+ */
+private fun String.selects(artifactId: String): Boolean = when (this) {
+    artifactId -> true
+    "network" -> artifactId.startsWith("jetwhale-network-inspector")
+    "nav3" -> artifactId.startsWith("jetwhale-nav3-")
+    "semantics" -> artifactId.startsWith("jetwhale-compose-semantics-inspector")
+    "gradle-plugin" -> artifactId == "jetwhale-host-gradle-plugin"
+    "agent-plugin" -> artifactId == "jetwhale-agent-compiler-plugin" || artifactId == "jetwhale-agent-gradle-plugin"
+    "sdk" -> listOf("network", "nav3", "semantics", "gradle-plugin", "agent-plugin").none { it.selects(artifactId) }
+    else -> false
 }
