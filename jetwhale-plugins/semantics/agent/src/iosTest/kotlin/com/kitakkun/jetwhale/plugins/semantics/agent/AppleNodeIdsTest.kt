@@ -31,6 +31,21 @@ class AppleNodeIdsTest {
     }
 
     @Test
+    fun `releasing a window drops its objects and leaves another window's in place`() {
+        val other = UIWindow()
+        val kept = NSObject()
+        val keptId = AppleNodeIds.trackingCapture(other) { AppleNodeIds.idOf(kept, other) }
+        val released = NSObject()
+        val releasedId = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(released, window) }
+
+        AppleNodeIds.release(window)
+
+        assertNull(AppleNodeIds.objectOf(releasedId, window))
+        assertNull(AppleNodeIds.windowOf(released))
+        assertSame(kept, AppleNodeIds.objectOf(keptId, other))
+    }
+
+    @Test
     fun `ids are negative and never reused`() {
         val first = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(NSObject(), window) }
         val second = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(NSObject(), window) }

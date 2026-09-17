@@ -29,7 +29,7 @@ internal class IosWindowNodeSource(private val window: UIWindow) : ComposeNodeSo
 
     // A window that has gone off screen has nothing readable to report, so the check gates every
     // call rather than only the registration.
-    private fun visibleWindow(): UIWindow? = window.takeIf { !it.hidden && it.windowScene != null }
+    private fun visibleWindow(): UIWindow? = window.takeIf { !it.hidden }
 
     override suspend fun capture(options: NodeTreeCaptureOptions): ComposeRoot? = IosUiThread.await {
         val window = visibleWindow() ?: return@await null

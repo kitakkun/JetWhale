@@ -526,12 +526,15 @@ private fun NodeDetail(
             }
         }
 
-        JwButton(
-            text = "Copy `adb shell input tap` for these bounds",
-            onClick = { clipboard.setText(AnnotatedString(node.adbTapCommand())) },
-            enabled = !node.boundsInScreen.isEmpty,
-            style = JwButtonStyle.Text,
-        )
+        // adb is Android's; an iOS node's bounds are points on a device adb cannot reach.
+        if (node !is AppleNode) {
+            JwButton(
+                text = "Copy `adb shell input tap` for these bounds",
+                onClick = { clipboard.setText(AnnotatedString(node.adbTapCommand())) },
+                enabled = !node.boundsInScreen.isEmpty,
+                style = JwButtonStyle.Text,
+            )
+        }
 
         // Only an Android View has platform attributes to show. A Compose node's semantics are a
         // projection of composition state, so there is nothing here that could be edited to last.

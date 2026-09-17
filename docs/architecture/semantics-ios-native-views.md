@@ -122,8 +122,9 @@ a recomposed lazy item has on Android.
 
 `installJetWhaleSemanticsProbe()` registers an `IosWindowNodeSource` per `UIWindow` and keeps that
 set current from `UIWindowDidBecomeVisibleNotification` / `UIWindowDidBecomeHiddenNotification`.
-Keyboard and text-effects windows are excluded by class name. The source holds its window strongly,
-for the reason above, and is unregistered when the window hides. Because dialogs and sheets stay in
+Scene-less apps are covered through `UIApplication.windows`. Keyboard and text-effects windows are
+excluded by class name. The source holds its window strongly, for the reason above, and is
+unregistered when the window hides, which also releases the objects its last capture retained. Because dialogs and sheets stay in
 the app's window, a normal app has one root.
 
 The in-composition `JetWhaleSemanticsProbe()` composable is not needed on iOS: it exists on Android
@@ -146,9 +147,9 @@ into handler objects grouped like the Android ones (`AppleNodePointerActions`,
 | `LongClick` | not exposed; reports not performed | same | same |
 | `SetText` / `InsertText` | `UITextField`/`UITextView` | same object ✅ | not performed, with the reason |
 | `ImeAction` | the delegate's `textFieldShouldReturn:` by selector | same | not performed |
-| `ScrollBy` | `UIScrollView.setContentOffset`, clamped | `accessibilityScroll` by direction, one page | same ✅ |
-| `ScrollToIndex` | `UITableView` / `UICollectionView` | a `List` is a `UICollectionView` | not performed |
-| `BringIntoView` | every `UIScrollView` ancestor, `scrollRectToVisible` | a bare element reports whether it is already in view | same |
+| `ScrollBy` | `UIScrollView.setContentOffset`, clamped within the adjusted insets | `accessibilityScroll` by direction, one page | same ✅ |
+| `ScrollToIndex` | `UITableView` / `UICollectionView`, the flat index translated across sections | a `List` is a `UICollectionView` | not performed |
+| `BringIntoView` | every `UIScrollView` ancestor, `scrollRectToVisible`, unless each already shows the whole view | a bare element reports whether it is already in view | same |
 | `RequestFocus` | `becomeFirstResponder()` | on the backing `UITextField` | not performed |
 | `Dismiss` | `accessibilityPerformEscape()`, tried on any node | same | same ✅ |
 | `Expand` / `Collapse` | a custom action of that name, through its handler block | same | same |

@@ -26,7 +26,7 @@ internal class FindNodesCommand(
 
     private val text by stringOrNull("Match the node's text (or a text field's current content).")
     private val contentDescription by stringOrNull("Match the node's contentDescription.")
-    private val testTag by stringOrNull("Match the node's Modifier.testTag — the most reliable identifier when the app sets one.")
+    private val testTag by stringOrNull("Match the node's Modifier.testTag — the most reliable identifier when the app sets one. On iOS this matches accessibilityIdentifier, where a Compose testTag and a SwiftUI .accessibilityIdentifier both land.")
     private val resourceId by stringOrNull(
         "Match an Android View node's resource id — the entry name of its android:id, e.g. \"submit\" for @id/submit. Compared whole, not by substring.",
     )

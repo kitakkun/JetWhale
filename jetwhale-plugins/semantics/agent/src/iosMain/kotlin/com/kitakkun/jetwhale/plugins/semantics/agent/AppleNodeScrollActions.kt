@@ -29,9 +29,10 @@ import kotlin.math.abs
 @OptIn(ExperimentalForeignApi::class)
 internal object AppleNodeScrollActions {
     /**
-     * A `UIScrollView` moves by the distance asked for. Anything else is sent `accessibilityScroll`,
-     * which takes a direction and moves a page: SwiftUI's and Compose's scrollables answer it, but
-     * neither honors a distance, so the result says which direction was sent instead.
+     * A `UIScrollView` moves by the distance asked for, within the range its content and insets
+     * allow. Anything else is sent `accessibilityScroll`, which takes a direction and moves a page:
+     * SwiftUI's and Compose's scrollables answer it, but neither honors a distance, so the result
+     * says which direction was sent instead.
      */
     object ScrollBy : AppleNodeActionHandler {
         override val runsOnDisabledNode = true
@@ -43,8 +44,12 @@ internal object AppleNodeScrollActions {
                 val (x, y) = node.contentOffset.useContents { x to y }
                 val (contentWidth, contentHeight) = node.contentSize.useContents { width to height }
                 val (width, height) = node.bounds.useContents { size.width to size.height }
-                val targetX = (x + request.scrollX).coerceIn(0.0, maxOf(0.0, contentWidth - width))
-                val targetY = (y + request.scrollY).coerceIn(0.0, maxOf(0.0, contentHeight - height))
+                // The insets extend the reachable range on both ends: a navigation bar's inset
+                // puts the top of the content at a negative offset, and a bottom inset lets the
+                // content scroll past its own end.
+                val (insetTop, insetLeft, insetBottom, insetRight) = node.adjustedContentInset.useContents { listOf(top, left, bottom, right) }
+                val targetX = (x + request.scrollX).coerceIn(-insetLeft, maxOf(-insetLeft, contentWidth - width + insetRight))
+                val targetY = (y + request.scrollY).coerceIn(-insetTop, maxOf(-insetTop, contentHeight - height + insetBottom))
                 node.setContentOffset(CGPointMake(targetX, targetY), animated = false)
                 return NodeActionResult(performed = true)
             }
@@ -73,7 +78,11 @@ internal object AppleNodeScrollActions {
         }
     }
 
-    /** The item-position scroll of the two list views UIKit offers; a SwiftUI `List` is a `UICollectionView` underneath. */
+    /**
+     * The item-position scroll of the two list views UIKit offers; a SwiftUI `List` is a
+     * `UICollectionView` underneath. The protocol's index counts items across the whole list, so it
+     * is translated into the section-and-row pair the view API takes.
+     */
     object ScrollToIndex : AppleNodeActionHandler {
         override val runsOnDisabledNode = true
 
@@ -83,27 +92,36 @@ internal object AppleNodeScrollActions {
             val index = request.index ?: return NodeActionResult.missingArgument(NodeAction.ScrollToIndex, "index")
             return when (node) {
                 is UITableView -> {
-                    val count = node.numberOfRowsInSection(0)
-                    if (index !in 0 until count) {
-                        NodeActionResult.notSupported("index $index is out of bounds [0, $count)")
-                    } else {
-                        node.scrollToRowAtIndexPath(NSIndexPath.indexPathForRow(index.toLong(), inSection = 0), atScrollPosition = UITableViewScrollPosition.UITableViewScrollPositionTop, animated = false)
-                        NodeActionResult(performed = true)
-                    }
+                    val sections = (0 until node.numberOfSections).map { node.numberOfRowsInSection(it) }
+                    val path = sectionedIndex(index, sections)
+                        ?: return NodeActionResult.notSupported("index $index is out of bounds [0, ${sections.sum()})")
+                    node.scrollToRowAtIndexPath(NSIndexPath.indexPathForRow(path.item, inSection = path.section), atScrollPosition = UITableViewScrollPosition.UITableViewScrollPositionTop, animated = false)
+                    NodeActionResult(performed = true)
                 }
 
                 is UICollectionView -> {
-                    val count = node.numberOfItemsInSection(0)
-                    if (index !in 0 until count) {
-                        NodeActionResult.notSupported("index $index is out of bounds [0, $count)")
-                    } else {
-                        node.scrollToItemAtIndexPath(NSIndexPath.indexPathForItem(index.toLong(), inSection = 0), atScrollPosition = UICollectionViewScrollPositionTop, animated = false)
-                        NodeActionResult(performed = true)
-                    }
+                    val sections = (0 until node.numberOfSections).map { node.numberOfItemsInSection(it) }
+                    val path = sectionedIndex(index, sections)
+                        ?: return NodeActionResult.notSupported("index $index is out of bounds [0, ${sections.sum()})")
+                    node.scrollToItemAtIndexPath(NSIndexPath.indexPathForItem(path.item, inSection = path.section), atScrollPosition = UICollectionViewScrollPositionTop, animated = false)
+                    NodeActionResult(performed = true)
                 }
 
                 else -> NodeActionResult.notSupported("the node is not a UITableView or a UICollectionView")
             }
+        }
+
+        private class SectionedIndex(val section: Long, val item: Long)
+
+        /** Where the [flat] index lands when the sections hold [sizes] items each, or `null` past the end. */
+        private fun sectionedIndex(flat: Int, sizes: List<Long>): SectionedIndex? {
+            if (flat < 0) return null
+            var remaining = flat.toLong()
+            sizes.forEachIndexed { section, size ->
+                if (remaining < size) return SectionedIndex(section.toLong(), remaining)
+                remaining -= size
+            }
+            return null
         }
     }
 
@@ -129,19 +147,26 @@ internal object AppleNodeScrollActions {
                 }
 
             val window = view.window ?: return NodeActionResult.notSupported("the view is not in a window")
-            if (frame.intersect(window.frame.toNodeBounds()) == frame) {
-                return NodeActionResult(performed = true, message = "the view is already in view")
-            }
-            var scrolled = false
-            var ancestor = view.superview
-            while (ancestor != null) {
-                if (ancestor is UIScrollView) {
-                    ancestor.scrollRectToVisible(view.convertRect(view.bounds, toView = ancestor), animated = false)
-                    scrolled = true
+            val scrollViews = view.scrollViewAncestors()
+            // Inside the window is not enough: a scroll view between the view and the window clips
+            // to its own bounds, so the view is in view only when every one of them shows all of it.
+            val wholeViewShown = frame.intersect(window.frame.toNodeBounds()) == frame &&
+                scrollViews.all { scrollView ->
+                    val inScrollView = view.convertRect(view.bounds, toView = scrollView).toNodeBounds()
+                    inScrollView.intersect(scrollView.bounds.toNodeBounds()) == inScrollView
                 }
+            if (wholeViewShown) return NodeActionResult(performed = true, message = "the view is already in view")
+            if (scrollViews.isEmpty()) return NodeActionResult.notSupported("no UIScrollView above the view to scroll it into view")
+            scrollViews.forEach { it.scrollRectToVisible(view.convertRect(view.bounds, toView = it), animated = false) }
+            return NodeActionResult(performed = true)
+        }
+
+        private fun UIView.scrollViewAncestors(): List<UIScrollView> = buildList {
+            var ancestor = superview
+            while (ancestor != null) {
+                if (ancestor is UIScrollView) add(ancestor)
                 ancestor = ancestor.superview
             }
-            return NodeActionResult.performedIf(scrolled, declined = "no UIScrollView above the view to scroll it into view")
         }
 
         private fun NSObject.isInsideItsWindow(): Boolean {

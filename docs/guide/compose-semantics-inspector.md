@@ -180,10 +180,10 @@ node is a view that has one:
 | Action | UIKit view | SwiftUI node | Compose element |
 |---|---|---|---|
 | `Click` | `accessibilityActivate()`, else the control's touch-up actions | `accessibilityActivate()` — runs the `Button`'s closure, flips a `Toggle` | `accessibilityActivate()` — runs `onClick`, toggles a `Checkbox` |
-| `SetText` / `InsertText` | on a `UITextField` / `UITextView` | same: the `TextField` is a `UITextField` underneath | not available — the element's value is read-only |
+| `SetText` / `InsertText` | on a `UITextField` / `UITextView`; `InsertText` focuses the field first, as a keystroke needs | same: the `TextField` is a `UITextField` underneath | not available — the element's value is read-only |
 | `ImeAction` | the field's delegate `textFieldShouldReturn:` | same — where `onSubmit` lives | not available |
 | `ScrollBy` | `UIScrollView.setContentOffset`, by the distance asked | `accessibilityScroll`, by **direction**: one page, distance ignored | same |
-| `ScrollToIndex` | `UITableView` / `UICollectionView` | a `List` is a `UICollectionView` | not available |
+| `ScrollToIndex` | `UITableView` / `UICollectionView`, the index counted across sections | a `List` is a `UICollectionView` | not available |
 | `BringIntoView` | every `UIScrollView` above the view | a bare node only reports whether it is already in view | same |
 | `RequestFocus` | `becomeFirstResponder()` | on the backing `UITextField` | not available |
 | `Dismiss` | `accessibilityPerformEscape()`, tried on any node | same | same |

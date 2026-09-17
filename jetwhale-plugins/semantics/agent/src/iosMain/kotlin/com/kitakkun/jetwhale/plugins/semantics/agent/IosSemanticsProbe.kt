@@ -18,7 +18,9 @@ import platform.darwin.NSObjectProtocol
  * `application(_:didFinishLaunchingWithOptions:)` — before or after `startJetWhale`. It scans the
  * windows that already exist and then follows `UIWindowDidBecomeVisible` /
  * `UIWindowDidBecomeHidden` for the rest, so a window that opens later is registered as it appears.
- * The keyboard's windows are left out: they belong to the system, not the app.
+ * An app without scenes — one still driven by `UIApplicationDelegate` alone — is covered through
+ * `UIApplication.windows`. The keyboard's windows are left out: they belong to the system, not the
+ * app.
  *
  * The install is process-wide and idempotent: calling it twice returns the same handle. Closing it
  * unregisters every window and stops following notifications.
@@ -48,9 +50,14 @@ private object IosSemanticsProbe {
                     notification?.window()?.let(::untrack)
                 },
             )
-            UIApplication.sharedApplication.connectedScenes
+            val application = UIApplication.sharedApplication
+            val sceneWindows = application.connectedScenes
                 .mapNotNull { it as? UIWindowScene }
                 .flatMap { scene -> scene.windows.map { it as UIWindow } }
+
+            @Suppress("DEPRECATION")
+            val legacyWindows = application.windows.map { it as UIWindow }
+            (sceneWindows + legacyWindows)
                 .filter { !it.hidden }
                 .forEach(::track)
         }
@@ -62,12 +69,13 @@ private object IosSemanticsProbe {
 
         private fun untrack(window: UIWindow) {
             registrations.remove(window)?.close()
+            // No capture will run for this window again, so what the last one retained is released here.
+            AppleNodeIds.release(window)
         }
 
         override fun close() {
             observers.forEach { NSNotificationCenter.defaultCenter.removeObserver(it) }
-            registrations.values.forEach { it.close() }
-            registrations.clear()
+            registrations.keys.toList().forEach(::untrack)
             IosSemanticsProbe.uninstalled(this)
         }
 

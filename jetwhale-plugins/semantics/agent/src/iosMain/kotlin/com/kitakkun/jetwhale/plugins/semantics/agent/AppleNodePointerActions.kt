@@ -25,6 +25,11 @@ internal object AppleNodePointerActions {
             if (node.accessibilityActivate()) return NodeActionResult(performed = true)
             val control = node as? UIControl
                 ?: return NodeActionResult.notSupported("accessibilityActivate() returned false")
+            // Sending the event answers nothing, so whether anyone was listening is checked first:
+            // a control with no target would otherwise report a click that reached nobody.
+            if (control.allTargets.isEmpty()) {
+                return NodeActionResult.notSupported("accessibilityActivate() returned false and the control has no targets for its events")
+            }
             control.sendActionsForControlEvents(UIControlEventTouchUpInside)
             return NodeActionResult(performed = true, message = "sent touchUpInside; accessibilityActivate() had returned false")
         }

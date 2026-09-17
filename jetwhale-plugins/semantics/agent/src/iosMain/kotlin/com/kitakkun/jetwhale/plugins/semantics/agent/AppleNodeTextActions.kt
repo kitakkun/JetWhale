@@ -12,6 +12,7 @@ import platform.UIKit.UIControlEventEditingChanged
 import platform.UIKit.UITextField
 import platform.UIKit.UITextView
 import platform.UIKit.UITextViewTextDidChangeNotification
+import platform.UIKit.UIView
 import platform.darwin.NSObject
 
 /**
@@ -49,6 +50,11 @@ internal object AppleNodeTextActions {
         }
     }
 
+    /**
+     * `insertText` is `UIKeyInput`, the route a keystroke takes, and a keystroke lands in the first
+     * responder — so the field is focused first, the same order a user goes through and the one
+     * the Android handler follows.
+     */
     object InsertText : AppleNodeActionHandler {
         override val runsOnDisabledNode = false
 
@@ -56,9 +62,11 @@ internal object AppleNodeTextActions {
 
         override fun perform(node: NSObject, request: PerformNodeAction): NodeActionResult {
             val text = request.text ?: return NodeActionResult.missingArgument(NodeAction.InsertText, "text")
+            val view = node as? UIView ?: return NodeActionResult.notSupported(NOT_A_TEXT_VIEW)
+            if (!view.isFirstResponder() && !view.becomeFirstResponder()) {
+                return NodeActionResult.notSupported("the field declined to become first responder, so it would not take a keystroke")
+            }
             return when (node) {
-                // `insertText` is `UIKeyInput`, the route a keystroke takes, so the editing events
-                // follow on their own.
                 is UITextField -> {
                     node.insertText(text)
                     NodeActionResult(performed = true)
@@ -82,21 +90,21 @@ internal object AppleNodeTextActions {
     object ImeAction : AppleNodeActionHandler {
         override val runsOnDisabledNode = false
 
-        override fun isOfferedBy(node: NSObject) = node is UITextField
+        override fun isOfferedBy(node: NSObject) = (node as? UITextField)?.returnHandler() != null
 
         override fun perform(node: NSObject, request: PerformNodeAction): NodeActionResult {
             val field = node as? UITextField ?: return NodeActionResult.notSupported("the node is not a UITextField")
-            val delegate = field.delegate as? NSObject
-                ?: return NodeActionResult.notSupported("the field has no delegate to handle return")
-            // Optional protocol methods are reached by selector: calling one the delegate does not
-            // implement would throw rather than answer.
-            val selector = NSSelectorFromString("textFieldShouldReturn:")
-            if (!delegate.respondsToSelector(selector)) {
-                return NodeActionResult.notSupported("the field's delegate does not handle return")
-            }
-            delegate.performSelector(selector, withObject = field)
+            val delegate = field.returnHandler()
+                ?: return NodeActionResult.notSupported("the field has no delegate handling return")
+            delegate.performSelector(RETURN_SELECTOR, withObject = field)
             return NodeActionResult(performed = true)
         }
+
+        // Optional protocol methods are reached by selector: calling one the delegate does not
+        // implement would throw rather than answer.
+        private val RETURN_SELECTOR = NSSelectorFromString("textFieldShouldReturn:")
+
+        private fun UITextField.returnHandler(): NSObject? = (delegate as? NSObject)?.takeIf { it.respondsToSelector(RETURN_SELECTOR) }
     }
 
     private const val NOT_A_TEXT_VIEW = "the node is not a UITextField or UITextView; a SwiftUI TextField is one underneath, a Compose text field is not reachable through accessibility"

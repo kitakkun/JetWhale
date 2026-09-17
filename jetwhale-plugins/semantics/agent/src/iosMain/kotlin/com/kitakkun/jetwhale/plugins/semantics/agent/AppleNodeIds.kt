@@ -67,6 +67,15 @@ internal object AppleNodeIds {
         return entry.id
     }
 
+    /** Drops everything captured in [window]; for a window that will not be captured again. */
+    fun release(window: UIWindow) {
+        val gone = entriesByAddress.filterValues { it.window === window }
+        gone.forEach { (address, entry) ->
+            entriesByAddress.remove(address)
+            entriesById.remove(entry.id)
+        }
+    }
+
     /** The object [id] names, or `null` once it has left its window's latest capture, or was captured in another window. */
     fun objectOf(id: Int, window: UIWindow): NSObject? = entriesById[id]?.takeIf { it.window === window }?.obj
 
