@@ -1,19 +1,23 @@
 # Compose Semantics Inspector
 
-The Compose Semantics Inspector is an official JetWhale plugin that reads the **Compose node tree of your
+The Compose Semantics Inspector is an official JetWhale plugin that reads the **semantics tree of your
 running app** — every node, its labels, its bounds, and the actions it exposes — and lets you both
-browse it in the host and hand it to an AI agent over [MCP](/guide/mcp-server).
+browse it in the host and hand it to an AI agent over [MCP](/guide/mcp-server). On Android and
+desktop that is the Compose tree, with the Android `View`s around it; on iOS it is the accessibility
+tree, which carries UIKit, SwiftUI and Compose content alike.
 
 - ⚡ **~14 ms** per capture end-to-end, against ~2.7 s for `android layout` — see
   [Why not the CLI?](#why-not-the-cli)
-- 🌲 Live tree of the app's Compose nodes, with search and an *interactive only* filter
+- 🌲 Live tree of the app's nodes, with search and an *interactive only* filter
 - 🎯 Per-node detail: role, text, `contentDescription`, `testTag`, state, bounds in root **and**
-  screen pixels
+  on screen — in pixels on Android and desktop, in points on iOS
 - 👆 Run a node's own semantics action — click, long click, set text, scroll, focus, dismiss —
   from the host or from an AI agent
-- 🪟 Dialogs and popups appear as their own roots, because that is what they are in Compose
+- 🪟 On Android and desktop, dialogs and popups appear as their own roots, because that is what
+  they are in Compose; on iOS a sheet or alert stays inside the window that showed it
 - 🤝 On Android, the Android `View`s around and inside the composition are in the same tree, and a
-  `View`'s attributes can be read and edited live — see [Android View support](#android-view-support)
+  `View`'s attributes can be read and edited live — see [Android View support](#android-view-support);
+  on iOS, UIKit and SwiftUI are read alongside Compose — see [iOS support](#ios-support)
 - 🖐 Whether the user could operate a node right now — enabled, and reached by a gesture it
   accepts — worked out from the capture rather than by tapping — see
   [Can the user operate it?](#can-the-user-operate-it)
