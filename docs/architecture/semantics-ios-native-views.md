@@ -92,7 +92,7 @@ walk is Kotlin against `platform.UIKit`, the way `androidMain` is Kotlin against
 | `isClickable` | `Button` / `Link` / `ToggleButton` trait, or any `UIControl` |
 | `isSelected` | `Selected` trait, or a selected `UIControl` |
 | `isEditable` | `UITextField`/`UITextView`, or the text-entry trait bit both SwiftUI and Compose set on a field (no public constant; bit 18) |
-| `isScrollable` | a `UIScrollView` with content beyond its bounds; a bare element cannot be asked without scrolling it |
+| `isScrollable` | a `UIScrollView` with content beyond its bounds, or a `UIFocusItemScrollableContainer` with content beyond its visible size — Compose's element conforms to that protocol per instance, exactly when its node scrolls |
 | `isFocused` | `isFirstResponder` for a `UIView`; `false` for a bare element |
 | `isVisible` | not hidden, and the clipped frame is not empty |
 | `isHittable` / `obscuredBy` | resolved by the common `NodeHitTesting` from the captured tree, as on every platform |
@@ -147,7 +147,7 @@ into handler objects grouped like the Android ones (`AppleNodePointerActions`,
 | `LongClick` | not exposed; reports not performed | same | same |
 | `SetText` / `InsertText` | `UITextField`/`UITextView` | same object ✅ | not performed, with the reason |
 | `ImeAction` | the delegate's `textFieldShouldReturn:` by selector | same | not performed |
-| `ScrollBy` | `UIScrollView.setContentOffset`, clamped within the adjusted insets | `accessibilityScroll` by direction, one page | same ✅ |
+| `ScrollBy` | `UIScrollView.setContentOffset`, clamped within the adjusted insets | `accessibilityScroll` by direction, one page | `UIFocusItemScrollableContainer.setContentOffset`, by distance |
 | `ScrollToIndex` | `UITableView` / `UICollectionView`, the flat index translated across sections | a `List` is a `UICollectionView` | not performed |
 | `BringIntoView` | every `UIScrollView` ancestor, `scrollRectToVisible`, unless each already shows the whole view | a bare element reports whether it is already in view | same |
 | `RequestFocus` | `becomeFirstResponder()` | on the backing `UITextField` | not performed |

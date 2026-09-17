@@ -33,9 +33,9 @@ import kotlin.math.abs
 internal object AppleNodeScrollActions {
     /**
      * A `UIScrollView` moves by the distance asked for, within the range its content and insets
-     * allow. Anything else is sent `accessibilityScroll`, which takes a direction and moves a page:
-     * SwiftUI's and Compose's scrollables answer it, but neither honors a distance, so the result
-     * says which direction was sent instead.
+     * allow; so does a focus-scrolling container, which is what a Compose scrollable is (see
+     * [scrollableContainer]). Anything else is sent `accessibilityScroll`, which takes a direction
+     * and moves a page, so the result says which direction was sent instead.
      */
     object ScrollBy : AppleNodeActionHandler {
         override val runsOnDisabledNode = true
@@ -57,11 +57,21 @@ internal object AppleNodeScrollActions {
                 node.setContentOffset(CGPointMake(targetX, targetY), animated = false)
                 return NodeActionResult(performed = true)
             }
+            node.scrollableContainer()?.let { container ->
+                if (!node.isScrollable()) return NodeActionResult.notSupported("the container has nothing to scroll")
+                val (x, y) = container.contentOffset.useContents { x to y }
+                val (contentWidth, contentHeight) = container.contentSize.useContents { width to height }
+                val (width, height) = container.visibleSize.useContents { width to height }
+                val targetX = (x + request.scrollX).coerceIn(0.0, maxOf(0.0, contentWidth - width))
+                val targetY = (y + request.scrollY).coerceIn(0.0, maxOf(0.0, contentHeight - height))
+                container.setContentOffset(CGPointMake(targetX, targetY))
+                return NodeActionResult(performed = true)
+            }
             val direction = scrollDirection(request.scrollX, request.scrollY)
                 ?: return NodeActionResult.notSupported("ScrollBy needs a non-zero scrollX or scrollY")
             return NodeActionResult.performedIf(
                 node.accessibilityScroll(direction),
-                declined = "the node did not accept accessibilityScroll; only a UIScrollView scrolls by a distance",
+                declined = "the node did not accept accessibilityScroll; only a scroll view or a scrollable container scrolls by a distance",
             ).let { result ->
                 if (result.performed) result.copy(message = "sent accessibilityScroll(${direction.name()}), which moves one page rather than the distance asked for") else result
             }

@@ -33,6 +33,7 @@ import platform.UIKit.UIAccessibilityTraitToggleButton
 import platform.UIKit.UIAccessibilityTraitUpdatesFrequently
 import platform.UIKit.UIAccessibilityTraits
 import platform.UIKit.UIControl
+import platform.UIKit.UIFocusItemScrollableContainerProtocol
 import platform.UIKit.UIScrollView
 import platform.UIKit.UISwitch
 import platform.UIKit.UITextField
@@ -48,6 +49,7 @@ import platform.UIKit.accessibilityTraits
 import platform.UIKit.accessibilityValue
 import platform.UIKit.accessibilityViewIsModal
 import platform.darwin.NSObject
+import platform.objc.objc_getProtocol
 
 /**
  * Converts one iOS window into the transport model by walking the `NSObject` accessibility protocol.
@@ -176,18 +178,42 @@ private fun NSObject.isTextInput(traits: UIAccessibilityTraits = accessibilityTr
 private val TEXT_ENTRY_TRAIT: UIAccessibilityTraits = 1uL shl 18
 
 /**
- * A `UIScrollView` with somewhere to scroll to: content plus insets larger than the viewport, the
- * same range `ScrollBy` moves within. A bare element does not say whether it scrolls until
- * `accessibilityScroll` is sent to it, and a capture must not send it.
+ * Something with somewhere to scroll to: a `UIScrollView` whose content plus insets exceed its
+ * viewport, or a focus-scrolling container (see [scrollableContainer]) whose content exceeds its
+ * visible size — the same ranges `ScrollBy` moves within.
  */
 @OptIn(ExperimentalForeignApi::class)
 internal fun NSObject.isScrollable(): Boolean {
-    val scrollView = this as? UIScrollView ?: return false
-    val (contentWidth, contentHeight) = scrollView.contentSize.useContents { width to height }
-    val (width, height) = scrollView.bounds.useContents { size.width to size.height }
-    val (insetTop, insetLeft, insetBottom, insetRight) = scrollView.adjustedContentInset.useContents { listOf(top, left, bottom, right) }
-    return contentWidth + insetLeft + insetRight > width || contentHeight + insetTop + insetBottom > height
+    if (this is UIScrollView) {
+        val (contentWidth, contentHeight) = contentSize.useContents { width to height }
+        val (width, height) = bounds.useContents { size.width to size.height }
+        val (insetTop, insetLeft, insetBottom, insetRight) = adjustedContentInset.useContents { listOf(top, left, bottom, right) }
+        return contentWidth + insetLeft + insetRight > width || contentHeight + insetTop + insetBottom > height
+    }
+    val container = scrollableContainer() ?: return false
+    val (contentWidth, contentHeight) = container.contentSize.useContents { width to height }
+    val (width, height) = container.visibleSize.useContents { width to height }
+    return contentWidth > width || contentHeight > height
 }
+
+/**
+ * The object as the `UIFocusItemScrollableContainer` it declares itself to be, or `null`.
+ *
+ * The protocol is UIKit's own description of a scrolling region for focus movement — offset,
+ * content size, visible size, and a setter for the offset — and Compose Multiplatform's
+ * accessibility element answers `conformsToProtocol` for it per instance, exactly when its node
+ * scrolls. So this is the one side-effect-free way to tell a Compose scrollable from any other
+ * element, and the way to move it by a distance rather than a page.
+ */
+@OptIn(ExperimentalForeignApi::class)
+internal fun NSObject.scrollableContainer(): UIFocusItemScrollableContainerProtocol? {
+    val protocol = SCROLLABLE_CONTAINER_PROTOCOL ?: return null
+    if (!conformsToProtocol(protocol)) return null
+    return this as? UIFocusItemScrollableContainerProtocol
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private val SCROLLABLE_CONTAINER_PROTOCOL = objc_getProtocol("UIFocusItemScrollableContainer")
 
 /**
  * A field's `accessibilityValue` is its placeholder while it is empty, so the view's own `text` is

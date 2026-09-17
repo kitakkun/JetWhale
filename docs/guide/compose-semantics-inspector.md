@@ -175,10 +175,10 @@ A view marked `accessibilityViewIsModal` — a presented sheet, an alert — hid
 it hides them from VoiceOver: what is behind the modal stays in the tree, marked invisible.
 
 What the accessibility protocol does not carry, the capture cannot report: a Compose `role` and
-`stateDescription` are folded into label and traits; whether a bare SwiftUI or Compose element
-scrolls is not known until it is asked to, so only a `UIScrollView` reads `scrollable`; and a node
-scrolled out of its container reports its laid-out frame, clipped to the window rather than to the
-container.
+`stateDescription` are folded into label and traits, and a node scrolled out of its container
+reports its laid-out frame, clipped to the window rather than to the container. A Compose
+scrollable does read `scrollable`: its element conforms to UIKit's `UIFocusItemScrollableContainer`
+exactly when the node scrolls, which also gives `ScrollBy` a real distance there.
 
 `performNodeAction` runs the accessibility protocol's counterpart, or the view's own API when the
 node is a view that has one:
@@ -188,7 +188,7 @@ node is a view that has one:
 | `Click` | `accessibilityActivate()`, else the control's touch-up actions | `accessibilityActivate()` — runs the `Button`'s closure, flips a `Toggle` | `accessibilityActivate()` — runs `onClick`, toggles a `Checkbox` |
 | `SetText` / `InsertText` | on a `UITextField` / `UITextView`; `InsertText` focuses the field first, as a keystroke needs | same: the `TextField` is a `UITextField` underneath | not available — the element's value is read-only |
 | `ImeAction` | the field's delegate `textFieldShouldReturn:` | same — where `onSubmit` lives | not available |
-| `ScrollBy` | `UIScrollView.setContentOffset`, by the distance asked | `accessibilityScroll`, by **direction**: one page, distance ignored | same |
+| `ScrollBy` | `UIScrollView.setContentOffset`, by the distance asked | a `ScrollView` is a `UIScrollView` underneath; a bare node gets `accessibilityScroll`, by **direction**: one page | by the distance asked, through the `UIFocusItemScrollableContainer` the element conforms to |
 | `ScrollToIndex` | `UITableView` / `UICollectionView`, the index counted across sections | a `List` is a `UICollectionView` | not available |
 | `BringIntoView` | every `UIScrollView` above the view | a bare node only reports whether it is already in view | same |
 | `RequestFocus` | `becomeFirstResponder()` | on the backing `UITextField` | not available |
