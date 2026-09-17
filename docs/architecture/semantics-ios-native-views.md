@@ -63,7 +63,9 @@ The walk, per window:
    order. This is the toolkit's own statement of its semantic tree: a SwiftUI hosting view lists its
    nodes and the interop `UIView`s it embeds; Compose's `OverlayInputView` lists its
    `AccessibilityRoot`.
-3. For a `UIView` with `nil` `accessibilityElements`, its children are its `subviews`.
+3. For a `UIView` with `nil` `accessibilityElements`, its children are its `subviews` — unless the
+   view is itself an accessibility element (`isAccessibilityElement`), in which case it is one
+   object to accessibility and the views inside it are its implementation, so it has no children.
 4. Never both. A hosting view's `accessibilityElements` repeats `UIView`s that are also reachable
    through `subviews` (the `UITextField`, the `ComposeContainerView`); taking both lists produced
    every such subtree twice.

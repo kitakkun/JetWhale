@@ -49,6 +49,7 @@ import platform.UIKit.accessibilityLabel
 import platform.UIKit.accessibilityTraits
 import platform.UIKit.accessibilityValue
 import platform.UIKit.accessibilityViewIsModal
+import platform.UIKit.isAccessibilityElement
 import platform.darwin.NSObject
 import platform.objc.objc_getProtocol
 
@@ -138,10 +139,17 @@ internal fun NSObject.toAppleNode(
     )
 }
 
-/** The objects under this one in the accessibility tree; see [toAppleNode] for why it is one list or the other. */
+/**
+ * The objects under this one in the accessibility tree; see [toAppleNode] for why it is one list
+ * or the other. A view that is itself an accessibility element (a `UIButton`, a `UISwitch`) is one
+ * object to accessibility, and the label and image views inside it are its implementation, so the
+ * walk stops there.
+ */
 internal fun NSObject.accessibilityChildren(): List<NSObject> {
     accessibilityElements?.let { elements -> return elements.map { it as NSObject } }
-    return (this as? UIView)?.subviews?.map { it as NSObject } ?: emptyList()
+    val view = this as? UIView ?: return emptyList()
+    if (view.isAccessibilityElement) return emptyList()
+    return view.subviews.map { it as NSObject }
 }
 
 internal fun NSObject.className(): String = `class`()?.let { NSStringFromClass(it) } ?: "NSObject"
