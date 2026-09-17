@@ -13,6 +13,9 @@ import platform.UIKit.UIAccessibilityScrollDirectionLeft
 import platform.UIKit.UIAccessibilityScrollDirectionRight
 import platform.UIKit.UIAccessibilityScrollDirectionUp
 import platform.UIKit.UICollectionView
+import platform.UIKit.UICollectionViewFlowLayout
+import platform.UIKit.UICollectionViewScrollDirection
+import platform.UIKit.UICollectionViewScrollPositionLeft
 import platform.UIKit.UICollectionViewScrollPositionTop
 import platform.UIKit.UIScrollView
 import platform.UIKit.UITableView
@@ -103,12 +106,33 @@ internal object AppleNodeScrollActions {
                     val sections = (0 until node.numberOfSections).map { node.numberOfItemsInSection(it) }
                     val path = sectionedIndex(index, sections)
                         ?: return NodeActionResult.notSupported("index $index is out of bounds [0, ${sections.sum()})")
-                    node.scrollToItemAtIndexPath(NSIndexPath.indexPathForItem(path.item, inSection = path.section), atScrollPosition = UICollectionViewScrollPositionTop, animated = false)
+                    node.scrollToItemAtIndexPath(NSIndexPath.indexPathForItem(path.item, inSection = path.section), atScrollPosition = node.startPosition(), animated = false)
                     NodeActionResult(performed = true)
                 }
 
                 else -> NodeActionResult.notSupported("the node is not a UITableView or a UICollectionView")
             }
+        }
+
+        /**
+         * "At its start" is the top for a vertical list and the leading edge for a horizontal one.
+         * A flow layout says which way it scrolls; any other layout is read from where its content
+         * overflows.
+         */
+        private fun UICollectionView.startPosition(): ULong {
+            val flowDirection = (collectionViewLayout as? UICollectionViewFlowLayout)?.scrollDirection
+            val horizontal = when (flowDirection) {
+                UICollectionViewScrollDirection.UICollectionViewScrollDirectionHorizontal -> true
+
+                UICollectionViewScrollDirection.UICollectionViewScrollDirectionVertical -> false
+
+                else -> {
+                    val (contentWidth, contentHeight) = contentSize.useContents { width to height }
+                    val (width, height) = bounds.useContents { size.width to size.height }
+                    contentWidth > width && contentHeight <= height
+                }
+            }
+            return if (horizontal) UICollectionViewScrollPositionLeft else UICollectionViewScrollPositionTop
         }
 
         private class SectionedIndex(val section: Long, val item: Long)
