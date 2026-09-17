@@ -24,7 +24,7 @@ internal class PerformNodeActionCommand(
         "Invokes a semantics action on one node of the running app, addressed by the id findNodes or " +
             "getNodeTree reported. This runs the node's own action rather than synthesising a touch, so it " +
             "needs no coordinates and cannot land on something that moved in the meantime — prefer it over " +
-            "`adb shell input tap`. Returns {\"performed\", \"rootId\", \"nodeId\", \"action\", \"message\"}; " +
+            "tapping coordinates. Returns {\"performed\", \"rootId\", \"nodeId\", \"action\", \"message\"}; " +
             "performed=false with a message when the node does not expose the action or declined it. " +
             "BringIntoView scrolls whatever surrounds the node — Compose scrollables and Android Views alike — " +
             "by the least amount that shows it whole, and works on any node; ScrollToIndex scrolls a lazy " +

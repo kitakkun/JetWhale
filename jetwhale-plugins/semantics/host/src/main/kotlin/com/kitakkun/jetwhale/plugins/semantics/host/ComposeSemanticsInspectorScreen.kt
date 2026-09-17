@@ -526,15 +526,15 @@ private fun NodeDetail(
             }
         }
 
-        // adb is Android's; an iOS node's bounds are points on a device adb cannot reach.
-        if (node !is AppleNode) {
-            JwButton(
-                text = "Copy `adb shell input tap` for these bounds",
-                onClick = { clipboard.setText(AnnotatedString(node.adbTapCommand())) },
-                enabled = !node.boundsInScreen.isEmpty,
-                style = JwButtonStyle.Text,
-            )
-        }
+        // The command-line tap for the node's platform: adb on Android, idb (iOS Development Bridge)
+        // on iOS, whose `ui tap` takes the same points the node reports.
+        val tapTool = if (node is AppleNode) "idb ui tap" else "adb shell input tap"
+        JwButton(
+            text = "Copy `$tapTool` for these bounds",
+            onClick = { clipboard.setText(AnnotatedString("$tapTool ${node.boundsInScreen.centerX.roundToInt()} ${node.boundsInScreen.centerY.roundToInt()}")) },
+            enabled = !node.boundsInScreen.isEmpty,
+            style = JwButtonStyle.Text,
+        )
 
         // Only an Android View has platform attributes to show. A Compose node's semantics are a
         // projection of composition state, so there is nothing here that could be edited to last.
@@ -546,8 +546,6 @@ private fun NodeDetail(
 }
 
 private const val SCROLL_STEP_PX = 400f
-
-private fun UiNode.adbTapCommand(): String = "adb shell input tap ${boundsInScreen.centerX.roundToInt()} ${boundsInScreen.centerY.roundToInt()}"
 
 @Composable
 private fun ActionButton(

@@ -165,7 +165,8 @@ it:
 | `accessibilityValue` | the value as the toolkit reports it: a switch's `"1"`, a slider's `"50%"` |
 | `traits` | the set `UIAccessibilityTraits`, by name: `Button`, `Selected`, `NotEnabled`, `ToggleButton`… |
 
-Coordinates are **points**, the unit every iOS tool takes, and the root's `density` is `1`. Every
+Coordinates are **points**, the unit every iOS tool takes — `idb ui tap X Y` from
+[idb](https://fbidb.io) takes them as they are — and the root's `density` is `1`. Every
 node in the MCP JSON says which unit its bounds are in — `"unit": "pt"` here, `"px"` elsewhere — so
 a flat `findNodes` result needs no root to read them. `merged` has no effect: the accessibility tree
 is the merged one, and it is the only one there is.
@@ -313,7 +314,8 @@ Open the **Compose Semantics Inspector** in the host, select your app's session,
 - The **search box** matches text, `contentDescription`, `testTag`, role and id.
 
 Select a node to see its full semantics on the right, along with a button for every action it
-actually exposes. There is also a **Copy `adb shell input tap`** button for the times you do want to
+actually exposes. There is also a **Copy `adb shell input tap`** button — **Copy `idb ui tap`** for an
+iOS node — for the times you do want to
 drive the app through the input system. Select an Android `View` node and its editable attributes
 appear below that — see [Editing View attributes](#editing-view-attributes).
 

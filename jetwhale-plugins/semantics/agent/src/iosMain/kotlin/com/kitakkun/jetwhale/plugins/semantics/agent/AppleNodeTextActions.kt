@@ -41,6 +41,7 @@ internal object AppleNodeTextActions {
                 }
 
                 is UITextView -> {
+                    if (!node.editable) return NodeActionResult.notSupported("the text view is read-only")
                     node.text = text
                     node.notifyTextDidChange()
                     NodeActionResult(performed = true)
@@ -74,6 +75,7 @@ internal object AppleNodeTextActions {
                 }
 
                 is UITextView -> {
+                    if (!node.editable) return NodeActionResult.notSupported("the text view is read-only")
                     node.insertText(text)
                     NodeActionResult(performed = true)
                 }
@@ -109,7 +111,7 @@ internal object AppleNodeTextActions {
 
     private const val NOT_A_TEXT_VIEW = "the node is not a UITextField or UITextView; a SwiftUI TextField is one underneath, a Compose text field is not reachable through accessibility"
 
-    private fun NSObject.isTextView(): Boolean = this is UITextField || this is UITextView
+    private fun NSObject.isTextView(): Boolean = this is UITextField || (this is UITextView && editable)
 
     private fun UITextView.notifyTextDidChange() {
         val delegate = delegate as? NSObject

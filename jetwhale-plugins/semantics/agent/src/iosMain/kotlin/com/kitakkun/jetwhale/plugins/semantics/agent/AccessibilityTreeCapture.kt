@@ -162,7 +162,7 @@ internal fun NSObject.isClickable(): Boolean {
  * both set on theirs. That trait has no public constant; it is the one bit both toolkits' fields
  * carry and no other element does.
  */
-private fun NSObject.isTextInput(traits: UIAccessibilityTraits = accessibilityTraits): Boolean = this is UITextField || this is UITextView || traits has TEXT_ENTRY_TRAIT
+private fun NSObject.isTextInput(traits: UIAccessibilityTraits = accessibilityTraits): Boolean = this is UITextField || (this is UITextView && editable) || traits has TEXT_ENTRY_TRAIT
 
 private val TEXT_ENTRY_TRAIT: UIAccessibilityTraits = 1uL shl 18
 

@@ -18,7 +18,7 @@ internal class FindNodesCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.findNodes"
     override val description =
-        "Captures the Compose node tree and returns the nodes matching the given criteria as a flat " +
+        "Captures the running app's UI node tree (see getNodeTree for what it holds per platform) and returns the nodes matching the given criteria as a flat " +
             "list: {\"nodes\": [...], \"totalMatches\", \"truncated\"}. Each entry carries its \"rootId\" and " +
             "\"id\", which together address the node in performNodeAction, plus screen \"bounds\" in the node's \"unit\" (px, or pt on iOS) and a " +
             "\"tap\" point. Criteria are combined with AND; matching is case-insensitive and by substring " +
