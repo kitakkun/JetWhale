@@ -2,13 +2,41 @@ name: Publish Snapshot
 # Manually publish a development SNAPSHOT: the SDK and Gradle plugin go to the Central snapshots
 # repository (overwritable), and the host uber jars are attached to a `<version>-SNAPSHOT` GitHub
 # pre-release so `runJetWhale` (hostVersion = "<version>-SNAPSHOT") can download them.
+#
+# Each part is opt-in from the dispatch form, so a change to one plugin does not rebuild three host
+# uber jars and republish twenty artifacts. The Maven selection is passed to Gradle as
+# -PjetwhalePublishOnly (see gradle-conventions/src/main/kotlin/publish.gradle.kts for the selectors);
+# the snapshots repository accepts partial publishes, but an artifact published on its own still
+# resolves its dependencies at the same -SNAPSHOT version, so those must already be there.
 on:
   workflow_dispatch:
+    inputs:
+      host:
+        description: "Host uber jars (3 OSes) and the <version>-SNAPSHOT pre-release"
+        type: boolean
+        default: true
+      sdk:
+        description: "SDK: protocol-core, annotations, agent-sdk, agent-runtime, host-sdk, host-ui, qa-agent"
+        type: boolean
+        default: true
+      plugins:
+        description: "Official plugins: all, none, or a comma-separated subset of network, nav3, semantics"
+        type: string
+        default: all
+      gradle-plugin:
+        description: "Host Gradle plugin (jetwhale-host-gradle-plugin)"
+        type: boolean
+        default: false
+      agent-plugin:
+        description: "Agent compiler plugin and agent Gradle plugin (always published together)"
+        type: boolean
+        default: false
 permissions:
   contents: write
 jobs:
   host-uberjar:
     name: Build host uber jar (${{ matrix.osArch }})
+    if: ${{ inputs.host }}
     strategy:
       fail-fast: false
       matrix:
@@ -44,6 +72,8 @@ jobs:
   publish:
     name: Publish snapshots
     needs: host-uberjar
+    # Runs whether the uber jars were built or skipped, but not after a failed build.
+    if: ${{ !cancelled() && needs.host-uberjar.result != 'failure' }}
     runs-on: macOS-latest
     environment: Publish
     steps:
@@ -53,8 +83,36 @@ jobs:
         run: |
           echo "version=$(grep -m1 '^jetwhale = ' gradle/libs.versions.toml | cut -d'"' -f2)-SNAPSHOT" >> "$GITHUB_OUTPUT"
           echo "built=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
-      - name: Publish SDK snapshot to Maven Central
-        run: ./gradlew publishToMavenCentral -PjetwhaleSnapshot --no-configuration-cache
+      - id: select
+        name: Turn the inputs into publish selectors
+        # The free-text input reaches the shell through the environment, never through the script
+        # source: interpolated into `run`, a value with shell metacharacters would run as commands
+        # in a job that holds the Maven Central credentials.
+        env:
+          SDK: ${{ inputs.sdk }}
+          PLUGINS: ${{ inputs.plugins }}
+        run: |
+          set -euo pipefail
+          selectors=()
+          if [ "$SDK" = "true" ]; then selectors+=(sdk); fi
+          case "$PLUGINS" in
+            all) selectors+=(network nav3 semantics) ;;
+            none|"") ;;
+            *)
+              IFS=',' read -ra picked <<< "$PLUGINS"
+              for plugin in "${picked[@]}"; do
+                plugin="$(echo "$plugin" | tr -d '[:space:]')"
+                case "$plugin" in
+                  network|nav3|semantics) selectors+=("$plugin") ;;
+                  *) echo "unknown plugin '$plugin'; use network, nav3 or semantics" >&2; exit 1 ;;
+                esac
+              done
+              ;;
+          esac
+          echo "maven=$(IFS=','; echo "${selectors[*]-}")" >> "$GITHUB_OUTPUT"
+      - name: Publish SDK and plugin snapshots to Maven Central
+        if: ${{ steps.select.outputs.maven != '' }}
+        run: ./gradlew publishToMavenCentral -PjetwhaleSnapshot -PjetwhalePublishOnly=${{ steps.select.outputs.maven }} --no-configuration-cache
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
@@ -62,6 +120,7 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
       - name: Publish Gradle plugin snapshot to Maven Central
+        if: ${{ inputs.gradle-plugin }}
         run: ./gradlew -p jetwhale-gradle-plugin publishToMavenCentral -PjetwhaleSnapshot --no-configuration-cache
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
@@ -69,10 +128,11 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_KEY_ID }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
-      # Same again for the agent-side plugins, which are a third included build. The Gradle plugin
-      # names the compiler plugin's coordinates in getPluginArtifact(), so publishing one without the
-      # other leaves consumers resolving an artifact that does not exist.
+      # The agent-side plugins are a third included build. The Gradle plugin names the compiler
+      # plugin's coordinates in getPluginArtifact(), so publishing one without the other leaves
+      # consumers resolving an artifact that does not exist — which is why they share one input.
       - name: Publish agent plugin snapshot to Maven Central
+        if: ${{ inputs.agent-plugin }}
         run: ./gradlew -p jetwhale-agent-plugin publishToMavenCentral -PjetwhaleSnapshot --no-configuration-cache
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
@@ -81,9 +141,11 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_KEY_CONTENTS }}
       - uses: actions/download-artifact@v4
+        if: ${{ inputs.host }}
         with:
           path: dist
       - name: Attach host uber jars to a pre-release
+        if: ${{ inputs.host }}
         uses: softprops/action-gh-release@v2
         with:
           # The tag stays `<version>-SNAPSHOT` so runJetWhale always resolves the latest
