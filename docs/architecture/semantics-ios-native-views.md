@@ -177,8 +177,8 @@ Swift-callable start API first; see the next section.
 Nothing in the walker depends on Compose being present, so the same `iosMain` code serves a plain
 SwiftUI or UIKit app. What such an app lacks is a way to *start* the agent and install the probe
 from Swift: `startJetWhale { … }` is a receiver-lambda DSL and the plugin is a Kotlin class, neither
-of which the Objective-C bridge carries usefully. The [Swift SDK design](swift-sdk-design.md)
-covers the start API; this section covers packaging.
+of which the Objective-C bridge carries usefully. The [Swift SDK design](https://github.com/kitakkun/JetWhale/blob/docs/swift-sdk-design/docs/architecture/swift-sdk-design.md)
+(proposed in #165, not merged yet) covers the start API; this section covers packaging.
 
 ### One framework, one package
 
