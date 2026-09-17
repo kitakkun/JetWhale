@@ -165,7 +165,8 @@ working.
 
 Only a tool call that names a plugin moves the window; host-level calls (navigation, settings,
 status) leave it alone, and so does a plugin already popped out into its own window — it is visible
-where it is. While the setting is on and an agent is connected, a banner above the plugin offers
+where it is. The move changes what the main window shows underneath: a dialog you have open —
+Settings, the MCP tools browser — stays open on top of it, as do the popout windows. While the setting is on and an agent is connected, a banner above the plugin offers
 **Stop following**, which turns the setting off without a trip back to this page; while a call is
 moving the window it also names the tool running. The banner stays up between calls on purpose, so
 the plugin under it keeps its place through a burst of operations instead of jumping at every one.
