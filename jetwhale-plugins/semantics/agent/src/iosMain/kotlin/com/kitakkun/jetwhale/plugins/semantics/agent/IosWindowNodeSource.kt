@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.PerformNodeAction
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.objcPtr
+import platform.UIKit.UIView
 import platform.UIKit.UIWindow
 import platform.darwin.NSObject
 
@@ -54,13 +55,27 @@ internal class IosWindowNodeSource(private val window: UIWindow) : ComposeNodeSo
     override suspend fun performAction(request: PerformNodeAction): NodeActionResult = IosUiThread.await {
         val window = visibleWindow()
             ?: return@await NodeActionResult(performed = false, message = "the window is no longer readable")
-        val node = AppleNodeIds.objectOf(request.nodeId, window)
+        val node = AppleNodeIds.objectOf(request.nodeId, window)?.takeIf { window.stillHolds(it) }
             ?: return@await NodeActionResult(
                 performed = false,
                 message = "unknown nodeId: ${request.nodeId} (the node may have left this window; capture the tree again)",
             )
         node.performAppleNodeAction(request)
     }
+}
+
+/**
+ * Whether [node] is in this window's tree right now, not only in its last capture. The registry
+ * keeps the last capture's objects alive, so a dismissed dialog's button still resolves by id; a
+ * view answers through its `window`, a bare element only by being found again under the window.
+ */
+private fun UIWindow.stillHolds(node: NSObject): Boolean {
+    if (node is UIView) return node.window === this
+    return anyDescendant { it === node }
+}
+
+private fun NSObject.anyDescendant(predicate: (NSObject) -> Boolean): Boolean = accessibilityChildren().any { child ->
+    predicate(child) || child.anyDescendant(predicate)
 }
 
 /** Names the window by what it shows — its root view controller — since a window has no name of its own. */

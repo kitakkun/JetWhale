@@ -270,5 +270,10 @@ first package, which ships the official plugins only.
   API, but which nodes SwiftUI chooses to expose is SwiftUI's business. The findings are from
   iOS 26.2; the demo should be run on the oldest deployment target it supports before the first
   release.
+- **Element order is traversal order.** `NodeHitTesting` reads children as paint order, last on
+  top, which holds for `subviews` but is only an assumption for `accessibilityElements`: a toolkit
+  may order those for VoiceOver rather than by stacking. Overlapping SwiftUI or Compose siblings
+  can therefore get an `obscuredBy` the wrong way round. Nothing in the protocol says which is
+  drawn on top, so this is documented rather than fixed.
 - **The text-entry trait bit.** Bit 18 has no public constant. If a future SwiftUI or Compose stops
   setting it, fields stop reading `editable`; the `UITextField` check still catches SwiftUI's.

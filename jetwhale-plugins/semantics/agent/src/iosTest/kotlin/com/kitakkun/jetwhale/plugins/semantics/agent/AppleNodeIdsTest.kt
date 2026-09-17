@@ -31,6 +31,16 @@ class AppleNodeIdsTest {
     }
 
     @Test
+    fun `a capture that throws keeps the previous capture's objects`() {
+        val obj = NSObject()
+        val id = AppleNodeIds.trackingCapture(window) { AppleNodeIds.idOf(obj, window) }
+
+        runCatching { AppleNodeIds.trackingCapture(window) { throw IllegalStateException("detached mid-capture") } }
+
+        assertSame(obj, AppleNodeIds.objectOf(id, window))
+    }
+
+    @Test
     fun `releasing a window drops its objects and leaves another window's in place`() {
         val other = UIWindow()
         val kept = NSObject()

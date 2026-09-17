@@ -43,21 +43,25 @@ internal object AppleNodeIds {
     /**
      * Runs one capture of [window]. Every object [idOf] sees inside [block] is retained; every
      * object the previous capture of this window reported and this one did not is released.
+     *
+     * A capture that throws releases nothing: the plugin keeps serving the previous snapshot in
+     * that case, and its ids must keep resolving.
      */
     fun <T> trackingCapture(window: UIWindow, block: () -> T): T {
         val seen = HashSet<Long>()
         seenInCapture = seen
-        try {
-            return block()
+        val result = try {
+            block()
         } finally {
             seenInCapture = null
-            val windowAddress = window.address()
-            val stale = entriesByAddress.filterValues { it.windowAddress == windowAddress && it.obj.address() !in seen }
-            stale.forEach { (address, entry) ->
-                entriesByAddress.remove(address)
-                entriesById.remove(entry.id)
-            }
         }
+        val windowAddress = window.address()
+        val stale = entriesByAddress.filterValues { it.windowAddress == windowAddress && it.obj.address() !in seen }
+        stale.forEach { (address, entry) ->
+            entriesByAddress.remove(address)
+            entriesById.remove(entry.id)
+        }
+        return result
     }
 
     /** The id for [obj], captured in [window], assigning one on first sight. */

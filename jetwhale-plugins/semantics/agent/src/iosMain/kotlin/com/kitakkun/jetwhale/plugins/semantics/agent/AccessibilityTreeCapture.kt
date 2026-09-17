@@ -33,6 +33,7 @@ import platform.UIKit.UIAccessibilityTraitToggleButton
 import platform.UIKit.UIAccessibilityTraitUpdatesFrequently
 import platform.UIKit.UIAccessibilityTraits
 import platform.UIKit.UIControl
+import platform.UIKit.UIControlEventTouchUpInside
 import platform.UIKit.UIFocusItemScrollableContainerProtocol
 import platform.UIKit.UIScrollView
 import platform.UIKit.UISwitch
@@ -138,7 +139,7 @@ internal fun NSObject.toAppleNode(
 }
 
 /** The objects under this one in the accessibility tree; see [toAppleNode] for why it is one list or the other. */
-private fun NSObject.accessibilityChildren(): List<NSObject> {
+internal fun NSObject.accessibilityChildren(): List<NSObject> {
     accessibilityElements?.let { elements -> return elements.map { it as NSObject } }
     return (this as? UIView)?.subviews?.map { it as NSObject } ?: emptyList()
 }
@@ -159,13 +160,18 @@ private fun NSObject.accessibilityIdentifierOrNull(): String? {
 internal fun NSObject.isEnabled(): Boolean = !(accessibilityTraits has UIAccessibilityTraitNotEnabled) && (this as? UIControl)?.enabled != false
 
 /**
- * A button or link by trait, or any `UIControl`: a control answers `accessibilityActivate()` with its
- * primary action whether or not it declares the button trait (a `UISwitch` declares toggle-button
- * instead, a `UITextField` nothing).
+ * A button, link or toggle by trait, or a `UIControl` with a target for its tap: a control that
+ * declares none of those traits (a custom one, a `UITextField`) only has a click to offer when
+ * something is registered for `touchUpInside`, which is where the click fallback sends it.
  */
 internal fun NSObject.isClickable(): Boolean {
     val traits = accessibilityTraits
-    return traits has UIAccessibilityTraitButton || traits has UIAccessibilityTraitLink || traits has UIAccessibilityTraitToggleButton || this is UIControl
+    return traits has UIAccessibilityTraitButton || traits has UIAccessibilityTraitLink || traits has UIAccessibilityTraitToggleButton ||
+        (this is UIControl && listensForTouchUp())
+}
+
+internal fun UIControl.listensForTouchUp(): Boolean = allTargets.any { target ->
+    !actionsForTarget(target, forControlEvent = UIControlEventTouchUpInside).isNullOrEmpty()
 }
 
 /**
