@@ -103,7 +103,13 @@ class DefaultPluginFactoryRepository(
             runtimeJar?.delete()
             return
         }
-        val classLoader = URLClassLoader((listOf(openedJar.toURI().toURL()) + dependencyJarUrls).toTypedArray())
+        // Parented to the host's own loader, not the system one: the SDK and Compose the plugin was
+        // compiled against are only guaranteed to be visible there. As a standalone app the two loaders
+        // are the same; inside an IDE plugin the system loader has none of them.
+        val classLoader = URLClassLoader(
+            (listOf(openedJar.toURI().toURL()) + dependencyJarUrls).toTypedArray(),
+            DefaultPluginFactoryRepository::class.java.classLoader,
+        )
 
         // Once the classloader is handed to `classLoaders`, the map owns it and the `finally` below
         // must not close it; until then it (and its temp copy) is ours to discard on any failure.
