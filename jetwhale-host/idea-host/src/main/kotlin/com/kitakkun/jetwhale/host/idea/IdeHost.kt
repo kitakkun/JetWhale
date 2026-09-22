@@ -16,7 +16,11 @@ import com.kitakkun.jetwhale.host.model.ServerPortOverrides
 import com.kitakkun.jetwhale.host.theme.LocalEmbeddedInIde
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import dev.zacsweers.metro.createGraphFactory
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.swing.JComponent
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * The whole JetWhale host, started inside an IDE process. The IDE plugin instantiates this class
@@ -69,7 +73,22 @@ class IdeHost : AutoCloseable {
         }
     }
 
+    /**
+     * Blocks until the servers and plugins have released everything, because the caller closes
+     * the classloader that all of it runs in as soon as this returns. Bounded so a hung shutdown
+     * cannot stall the IDE's own exit indefinitely.
+     */
     override fun close() {
-        appGraph.applicationLifecycleOwner.shutdown()
+        val lifecycleOwner = appGraph.applicationLifecycleOwner
+        lifecycleOwner.shutdown()
+        runBlocking {
+            withTimeoutOrNull(SHUTDOWN_TIMEOUT) {
+                lifecycleOwner.applicationStateFlow.first { it == ApplicationLifecycleOwner.ApplicationState.STOPPED }
+            }
+        }
+    }
+
+    private companion object {
+        val SHUTDOWN_TIMEOUT = 10.seconds
     }
 }
