@@ -5,7 +5,18 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     alias(libs.plugins.kotlinJvm)
-    id("org.jetbrains.intellij.platform")
+    alias(libs.plugins.intellijPlatform)
+}
+
+// Declared here, not through the IntelliJ Platform settings plugin: that plugin switches off the
+// Kotlin Gradle plugin's implicit stdlib dependency for every project in the build, which leaves
+// the multiplatform modules compiling against whatever stdlib their libraries pull in.
+repositories {
+    mavenCentral()
+    google()
+    intellijPlatform {
+        defaultRepositories()
+    }
 }
 
 kotlin {

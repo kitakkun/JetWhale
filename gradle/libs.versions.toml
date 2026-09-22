@@ -42,6 +42,7 @@ roborazzi = "1.73.0"
 conveyor = "2.0"
 conveyorControl = "1.1"
 intellijIdea = "2026.2.3"
+intellijPlatform = "2.19.0"
 
 bouncyCastle = "1.85"
 jmdns = "3.6.3"
@@ -178,6 +179,7 @@ kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinDsl = { id = "org.gradle.kotlin.kotlin-dsl", version.ref = "kotlinDsl" }
+intellijPlatform = { id = "org.jetbrains.intellij.platform", version.ref = "intellijPlatform" }
 kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
 # android
