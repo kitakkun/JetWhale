@@ -41,6 +41,7 @@ spotless = "8.9.0"
 roborazzi = "1.73.0"
 conveyor = "2.0"
 conveyorControl = "1.1"
+intellijIdea = "2026.2.3"
 
 bouncyCastle = "1.85"
 jmdns = "3.6.3"

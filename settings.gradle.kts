@@ -1,3 +1,4 @@
+import org.jetbrains.intellij.platform.gradle.extensions.intellijPlatform
 rootProject.name = "JetWhale"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
@@ -13,15 +14,19 @@ pluginManagement {
     }
 }
 
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+    id("org.jetbrains.intellij.platform.settings") version "2.19.0"
+}
+
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
         google()
+        intellijPlatform {
+            defaultRepositories()
+        }
     }
-}
-
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
 // Also at the top level, not only in pluginManagement: that block resolves the *plugin*, while the
@@ -41,6 +46,8 @@ include(":jetwhale-host-sdk")
 include(":jetwhale-host-ui")
 
 include(":jetwhale-host:app")
+include(":jetwhale-host:idea-plugin")
+include(":jetwhale-host:idea-host")
 include(":jetwhale-host:core:data")
 include(":jetwhale-host:core:mcp")
 include(":jetwhale-host:core:ui")
