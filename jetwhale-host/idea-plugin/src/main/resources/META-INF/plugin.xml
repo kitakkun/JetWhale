@@ -1,0 +1,19 @@
+<idea-plugin>
+    <id>com.kitakkun.jetwhale</id>
+    <name>JetWhale</name>
+    <vendor url="https://github.com/kitakkun/JetWhale">kitakkun</vendor>
+    <description><![CDATA[
+        JetWhale debugger as a tool window: the agent WebSocket server, the MCP server and every host
+        plugin run inside the IDE, so no separate desktop app is needed.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceImplementation="com.kitakkun.jetwhale.host.idea.JetWhaleHostService"/>
+        <toolWindow
+            id="JetWhale"
+            anchor="bottom"
+            factoryClass="com.kitakkun.jetwhale.host.idea.JetWhaleToolWindowFactory"/>
+    </extensions>
+</idea-plugin>

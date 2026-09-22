@@ -41,6 +41,8 @@ include(":jetwhale-host-sdk")
 include(":jetwhale-host-ui")
 
 include(":jetwhale-host:app")
+include(":jetwhale-host:idea-plugin")
+include(":jetwhale-host:idea-host")
 include(":jetwhale-host:core:data")
 include(":jetwhale-host:core:mcp")
 include(":jetwhale-host:core:ui")
