@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -55,6 +56,7 @@ import com.kitakkun.jetwhale.host.popout
 import com.kitakkun.jetwhale.host.puzzle_outlined
 import com.kitakkun.jetwhale.host.settings
 import com.kitakkun.jetwhale.host.sidebar_unfold
+import com.kitakkun.jetwhale.host.theme.LocalEmbeddedInIde
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
@@ -163,16 +165,20 @@ private fun SidebarHeader(onClickShrinkDrawer: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
-        Image(
-            painter = painterResource(Res.drawable.app_icon),
-            contentDescription = null,
-            modifier = Modifier.size(AppMarkSize),
-        )
-        JwText(
-            text = stringResource(Res.string.app_short_name),
-            style = JwTheme.textStyles.subtitle,
-            modifier = Modifier.weight(1f),
-        )
+        if (LocalEmbeddedInIde.current) {
+            Spacer(modifier = Modifier.weight(1f))
+        } else {
+            Image(
+                painter = painterResource(Res.drawable.app_icon),
+                contentDescription = null,
+                modifier = Modifier.size(AppMarkSize),
+            )
+            JwText(
+                text = stringResource(Res.string.app_short_name),
+                style = JwTheme.textStyles.subtitle,
+                modifier = Modifier.weight(1f),
+            )
+        }
         JwIconButton(
             onClick = onClickShrinkDrawer,
             tooltip = stringResource(Res.string.collapse_sidebar),
