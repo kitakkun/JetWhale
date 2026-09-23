@@ -6,16 +6,17 @@ import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.text.AnnotatedString
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
-import com.kitakkun.jetwhale.host.mcp.viewport.isValidForViewport
+import com.kitakkun.jetwhale.host.mcp.viewport.sceneViewportSize
 import com.kitakkun.jetwhale.host.mcp.viewport.withScopedViewport
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
@@ -83,10 +84,7 @@ class GetAccessibilityTreeMcpTool(
 @OptIn(InternalComposeUiApi::class)
 fun captureAccessibilityTree(scene: PluginComposeScene): String {
     // Render the scene to flush pending recompositions and sync the semantics tree.
-    val currentSize = runCatching { scene.composeScene.size }.getOrNull()
-    val size = currentSize?.takeIf { it.isValidForViewport() }
-        ?: scene.windowInfoUpdater.currentIntSize.takeIf { it.isValidForViewport() }
-        ?: IntSize(1280, 720)
+    val size = sceneViewportSize(scene)
     val viewport = McpViewport(size = size, density = scene.composeScene.density)
 
     val nodes = withScopedViewport(scene, viewport) {
@@ -102,7 +100,7 @@ fun captureAccessibilityTree(scene: PluginComposeScene): String {
             scene.render(Canvas(ImageBitmap(size.width, size.height)))
             // Read the semantics while the flag is still raised: lowering it first would leave the tree
             // one recomposition away from the values that were actually rendered.
-            scene.semanticsOwners.map { it.rootSemanticsNode }.flatMap { traverseSemanticsTree(it) }
+            scene.semanticsOwners.map(SemanticsOwner::rootSemanticsNode).flatMap(::traverseSemanticsTree)
         } finally {
             scene.isMcpCapture.value = false
             // Flush the restore so the next interactive render observes capture=false immediately rather
@@ -115,16 +113,15 @@ fun captureAccessibilityTree(scene: PluginComposeScene): String {
 
 private fun traverseSemanticsTree(node: SemanticsNode): List<NodeInfo> {
     val info = nodeToInfo(node)
-    val children = node.children.flatMap { traverseSemanticsTree(it) }
+    val children = node.children.flatMap(::traverseSemanticsTree)
     return listOf(info.copy(children = children))
 }
 
 private fun nodeToInfo(node: SemanticsNode): NodeInfo {
     val config = node.config
-    val bounds = node.boundsInRoot
 
     val text = config.getOrNull(SemanticsProperties.Text)
-        ?.joinToString(separator = " ") { it.text }
+        ?.joinToString(separator = " ", transform = AnnotatedString::text)
     val contentDescription = config.getOrNull(SemanticsProperties.ContentDescription)
         ?.joinToString(separator = " ")
     val role = config.getOrNull(SemanticsProperties.Role)?.toString()
@@ -136,6 +133,7 @@ private fun nodeToInfo(node: SemanticsNode): NodeInfo {
     val editableText = config.getOrNull(SemanticsProperties.EditableText)?.text
     val isEditable = editableText != null
 
+    val bounds = node.boundsInRoot
     return NodeInfo(
         id = node.id,
         role = role,

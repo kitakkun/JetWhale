@@ -11,17 +11,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class UpdateCheckServiceTest {
-    private fun serviceRespondingMetadata(metadata: String?, hostVersion: String): UpdateCheckService = UpdateCheckService(
-        MockEngine { request ->
-            if (request.url.toString().endsWith("/metadata.properties") && metadata != null) {
-                respond(metadata)
-            } else {
-                respondError(HttpStatusCode.NotFound)
-            }
-        },
-        HostVersionInfo(hostVersion),
-    )
-
     @Test
     fun `newer site version is reported as an available update`() = runBlocking {
         val service = serviceRespondingMetadata(
@@ -36,6 +25,17 @@ class UpdateCheckServiceTest {
         assertEquals("1.0.0.9", result.latestVersion)
         assertEquals(true, result.updateAvailable)
     }
+
+    private fun serviceRespondingMetadata(metadata: String?, hostVersion: String): UpdateCheckService = UpdateCheckService(
+        MockEngine { request ->
+            if (request.url.toString().endsWith("/metadata.properties") && metadata != null) {
+                respond(metadata)
+            } else {
+                respondError(HttpStatusCode.NotFound)
+            }
+        },
+        HostVersionInfo(hostVersion),
+    )
 
     @Test
     fun `same site version is reported as up to date`() = runBlocking {

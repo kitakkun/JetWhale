@@ -3,27 +3,14 @@ package com.kitakkun.jetwhale.agent.runtime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-private fun service(
-    hostName: String,
-    address: String,
-    wsPort: Int?,
-    wssPort: Int?,
-) = DiscoveredService(
-    instanceName = hostName,
-    advertisedHostName = hostName,
-    address = address,
-    wsPort = wsPort,
-    wssPort = wssPort,
-)
+/** What `discoverWss { allowAll() }` amounts to, which most of these are about. */
+private val anyHost = discovery(acceptsAnyHost = true)
 
 private fun discovery(
     hostNames: List<String> = emptyList(),
     addresses: List<String> = emptyList(),
     acceptsAnyHost: Boolean = false,
 ) = HostDiscoveryConfig(hostNames = hostNames, addresses = addresses, acceptsAnyHost = acceptsAnyHost)
-
-/** What `discoverWss { allowAll() }` amounts to, which most of these are about. */
-private val anyHost = discovery(acceptsAnyHost = true)
 
 class SelectHostTest {
     private val plainOnly = service("plain-host", "192.168.3.26", wsPort = 5080, wssPort = null)
@@ -133,3 +120,16 @@ class SelectHostTest {
         assertEquals("192.168.3.29", selectHosts(listOf(unnamed), discovery(hostNames = listOf("fallback-name"))).firstOrNull()?.service?.address)
     }
 }
+
+private fun service(
+    hostName: String,
+    address: String,
+    wsPort: Int?,
+    wssPort: Int?,
+) = DiscoveredService(
+    instanceName = hostName,
+    advertisedHostName = hostName,
+    address = address,
+    wsPort = wsPort,
+    wssPort = wssPort,
+)

@@ -48,7 +48,7 @@ internal class NodeAtCommand(
         }
 
         return buildJsonObject {
-            put("node", node?.toMcpJson(rootId = hit?.rootId, includeChildren = false) ?: JsonNull)
+            put("node", node?.toMcpJson(rootId = hit.rootId, includeChildren = false) ?: JsonNull)
         }.toString()
     }
 }

@@ -21,16 +21,15 @@ data class McpPermissionPlugin(
  *
  * Combined here rather than subscribed separately by the screen: the tree is one control, and three
  * independently-arriving sources would let it draw a plugin against another plugin's tools.
+ *
+ * @property isOverriddenForLaunch True while this launch was started with
+ * `--mcp-allow-all-permissions`. [permissions] then reports what the override grants rather than
+ * what is stored, and nothing the user picks can change it for this process — so the screen has to
+ * say so and refuse the edit, instead of taking a click that goes nowhere.
  */
 data class McpPermissionsSnapshot(
     val permissions: McpPermissions,
     val plugins: List<McpPermissionPlugin>,
-    /**
-     * True while this launch was started with `--mcp-allow-all-permissions`. [permissions] then
-     * reports what the override grants rather than what is stored, and nothing the user picks can
-     * change it for this process — so the screen has to say so and refuse the edit, instead of
-     * taking a click that goes nowhere.
-     */
     val isOverriddenForLaunch: Boolean,
 )
 

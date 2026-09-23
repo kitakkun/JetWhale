@@ -133,8 +133,6 @@ private class JetWhaleNetworkOkHttpInterceptor(
 
 private data class BodyCapture(val text: String?, val truncated: Boolean, val encoding: BodyEncoding = BodyEncoding.TEXT)
 
-private fun String.truncate(max: Int): BodyCapture = if (length <= max) BodyCapture(this, false) else BodyCapture(substring(0, max), true)
-
 /**
  * Reads the request body for capture without breaking the actual send: bodies that can't be
  * materialized up front (one-shot, duplex) are replaced with a placeholder, and reads are
@@ -151,7 +149,7 @@ private fun captureRequestBodySafely(body: RequestBody?, maxChars: Int, maxImage
         // (files, multipart) are streamed through instead of fully materialized in memory. An image
         // is kept whole up to its own cap instead, since a partial one cannot be decoded.
         val sink = TruncatingSink(maxBytes = if (isImage) maxImageBytes + 1L else maxChars * 4L)
-        sink.buffer().use { body.writeTo(it) }
+        sink.buffer().use(body::writeTo)
         if (isImage) return encodeImage(sink.captured.readByteArray(), mediaType, maxImageBytes)
         val charset = body.contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8
         val capture = sink.captured.readString(charset).truncate(maxChars)
@@ -160,6 +158,8 @@ private fun captureRequestBodySafely(body: RequestBody?, maxChars: Int, maxImage
         BodyCapture(null, false)
     }
 }
+
+private fun String.truncate(max: Int): BodyCapture = if (length <= max) BodyCapture(this, false) else BodyCapture(substring(0, max), true)
 
 /**
  * Base64-encodes an image body for transport, or replaces it with a marker when it exceeds

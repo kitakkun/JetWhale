@@ -23,7 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.HostOs
 import com.kitakkun.jetwhale.host.model.OfficialPlugin
 import com.kitakkun.jetwhale.host.model.PluginInstallProgress
@@ -33,6 +35,7 @@ import com.kitakkun.jetwhale.host.settings.SettingsScreenScaffoldPageContentPadd
 import com.kitakkun.jetwhale.host.settings.add_plugin_from_file
 import com.kitakkun.jetwhale.host.settings.approve_untrusted_plugin
 import com.kitakkun.jetwhale.host.settings.close
+import com.kitakkun.jetwhale.host.settings.component.PluginInfoUiState
 import com.kitakkun.jetwhale.host.settings.component.SettingOptionView
 import com.kitakkun.jetwhale.host.settings.component.SwitchSettingsItemView
 import com.kitakkun.jetwhale.host.settings.dialog_ok
@@ -65,6 +68,7 @@ import com.kitakkun.jetwhale.host.ui.JwProgressIndicator
 import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
+import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -81,40 +85,9 @@ fun PluginSettingsScreen(
     var showFailedJarsDialog by remember { mutableStateOf(false) }
 
     if (showFailedJarsDialog) {
-        JwDialog(
-            onDismissRequest = { showFailedJarsDialog = false },
-            closeLabel = stringResource(Res.string.close),
-            title = stringResource(Res.string.failed_to_load_plugins),
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    JwText(
-                        text = stringResource(Res.string.failed_jar_path_hint),
-                        style = JwTheme.textStyles.bodySmall,
-                        color = JwTheme.colors.textSecondary,
-                    )
-                    JwHorizontalDivider()
-                    uiState.failedJars.forEach { failedJar ->
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            JwText(
-                                text = failedJar.jarPath,
-                                style = JwTheme.textStyles.bodySmall,
-                            )
-                            JwText(
-                                text = failedJar.reason,
-                                style = JwTheme.textStyles.bodySmall,
-                                color = JwTheme.colors.error,
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                JwButton(
-                    text = stringResource(Res.string.dialog_ok),
-                    onClick = { showFailedJarsDialog = false },
-                    style = JwButtonStyle.Text,
-                )
-            },
+        FailedJarsDialog(
+            failedJars = uiState.failedJars,
+            onDismiss = { showFailedJarsDialog = false },
         )
     }
 
@@ -137,76 +110,23 @@ fun PluginSettingsScreen(
         // are two more ways in, and splitting them across pages hid that they are the same choice.
         if (page == SettingsScreenPage.AddPlugins) {
             item(key = "add_actions") {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    JwButton(
-                        text = stringResource(Res.string.add_plugin_from_file),
-                        onClick = onClickAddPlugin,
-                        enabled = !uiState.isInstalling,
-                        style = JwButtonStyle.Text,
-                    )
-                    JwButton(
-                        text = stringResource(Res.string.install_from_maven),
-                        onClick = onClickInstallFromMaven,
-                        enabled = !uiState.isInstalling,
-                        style = JwButtonStyle.Text,
-                    )
-                }
+                AddPluginActionsRow(
+                    installEnabled = !uiState.isInstalling,
+                    onClickAddPlugin = onClickAddPlugin,
+                    onClickInstallFromMaven = onClickInstallFromMaven,
+                )
             }
         }
         if (page == SettingsScreenPage.AddPlugins && uiState.isInstalling) {
             item(key = "install_progress") {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    JwProgressIndicator()
-                    uiState.installProgress?.let { progress ->
-                        JwText(
-                            text = when (progress) {
-                                is PluginInstallProgress.DownloadingPlugin ->
-                                    stringResource(Res.string.install_progress_downloading_plugin)
-
-                                is PluginInstallProgress.DownloadingDependencies ->
-                                    stringResource(
-                                        Res.string.install_progress_downloading_dependencies,
-                                        progress.completed + 1,
-                                        progress.total,
-                                    )
-
-                                is PluginInstallProgress.LoadingPlugin ->
-                                    stringResource(Res.string.install_progress_loading_plugin)
-                            },
-                            style = JwTheme.textStyles.bodySmall,
-                            color = JwTheme.colors.textSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
+                InstallProgressRow(progress = uiState.installProgress)
             }
         }
         // Beside the progress it replaces: an install only starts from this page, so its failure has
         // no business appearing over the installed list or the security settings.
         if (page == SettingsScreenPage.AddPlugins) {
             uiState.installError?.let { error ->
-                item(key = "install_error") {
-                    JwText(
-                        text = error,
-                        color = JwTheme.colors.onErrorContainer,
-                        style = JwTheme.textStyles.bodySmall,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = JwTheme.colors.errorContainer,
-                                shape = JwShapes.small,
-                            )
-                            .padding(12.dp),
-                    )
-                }
+                item(key = "install_error") { InstallErrorBanner(error = error) }
             }
         }
         if (page == SettingsScreenPage.InstalledPlugins) {
@@ -233,17 +153,9 @@ fun PluginSettingsScreen(
         }
         if (page == SettingsScreenPage.InstalledPlugins && uiState.failedJars.isNotEmpty()) {
             item(key = "failed_jars") {
-                JwButton(
-                    text = stringResource(Res.string.failed_to_load_plugins) + " (${uiState.failedJars.size})",
+                FailedJarsButton(
+                    failedJarCount = uiState.failedJars.size,
                     onClick = { showFailedJarsDialog = true },
-                    style = JwButtonStyle.Text,
-                    leadingIcon = {
-                        JwIcon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = JwTheme.colors.error,
-                        )
-                    },
                 )
             }
         }
@@ -276,27 +188,185 @@ fun PluginSettingsScreen(
         }
         if (page == SettingsScreenPage.PluginSecurity) {
             item(key = "trust_registry_signing") {
-                SettingOptionView(label = stringResource(Res.string.plugin_security)) {
-                    SwitchSettingsItemView(
-                        label = stringResource(Res.string.sign_plugin_trust_registry),
-                        isChecked = uiState.signPluginTrustRegistry,
-                        onCheckedChange = onChangeSignPluginTrustRegistry,
-                    )
-                    // Append only the current OS's credential-store behavior — the prompt story differs
-                    // per platform (macOS prompts, Windows DPAPI is silent, Linux depends on the keyring).
-                    val osHint = when (HostOs.current) {
-                        HostOs.MAC -> Res.string.sign_plugin_trust_registry_hint_macos
-                        HostOs.WINDOWS -> Res.string.sign_plugin_trust_registry_hint_windows
-                        else -> Res.string.sign_plugin_trust_registry_hint_linux
-                    }
+                TrustRegistrySigningSection(
+                    signPluginTrustRegistry = uiState.signPluginTrustRegistry,
+                    onChangeSignPluginTrustRegistry = onChangeSignPluginTrustRegistry,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FailedJarsDialog(
+    failedJars: List<FailedPluginJar>,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    JwDialog(
+        onDismissRequest = onDismiss,
+        closeLabel = stringResource(Res.string.close),
+        title = stringResource(Res.string.failed_to_load_plugins),
+        modifier = modifier,
+        confirmButton = {
+            JwButton(
+                text = stringResource(Res.string.dialog_ok),
+                onClick = onDismiss,
+                style = JwButtonStyle.Text,
+            )
+        },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            JwText(
+                text = stringResource(Res.string.failed_jar_path_hint),
+                style = JwTheme.textStyles.bodySmall,
+                color = JwTheme.colors.textSecondary,
+            )
+            JwHorizontalDivider()
+            failedJars.forEach { failedJar ->
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    JwText(text = failedJar.jarPath, style = JwTheme.textStyles.bodySmall)
                     JwText(
-                        text = "${stringResource(Res.string.sign_plugin_trust_registry_hint)} ${stringResource(osHint)}",
+                        text = failedJar.reason,
                         style = JwTheme.textStyles.bodySmall,
-                        color = JwTheme.colors.textSecondary,
+                        color = JwTheme.colors.error,
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FailedJarsButton(
+    failedJarCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    JwButton(
+        text = stringResource(Res.string.failed_to_load_plugins) + " ($failedJarCount)",
+        onClick = onClick,
+        style = JwButtonStyle.Text,
+        modifier = modifier,
+        leadingIcon = {
+            JwIcon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = JwTheme.colors.error,
+            )
+        },
+    )
+}
+
+@Composable
+private fun AddPluginActionsRow(
+    installEnabled: Boolean,
+    onClickAddPlugin: () -> Unit,
+    onClickInstallFromMaven: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        JwButton(
+            text = stringResource(Res.string.add_plugin_from_file),
+            onClick = onClickAddPlugin,
+            enabled = installEnabled,
+            style = JwButtonStyle.Text,
+        )
+        JwButton(
+            text = stringResource(Res.string.install_from_maven),
+            onClick = onClickInstallFromMaven,
+            enabled = installEnabled,
+            style = JwButtonStyle.Text,
+        )
+    }
+}
+
+@Composable
+private fun InstallProgressRow(
+    progress: PluginInstallProgress?,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier,
+    ) {
+        JwProgressIndicator()
+        if (progress != null) {
+            JwText(
+                text = installProgressText(progress),
+                style = JwTheme.textStyles.bodySmall,
+                color = JwTheme.colors.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun installProgressText(progress: PluginInstallProgress): String = when (progress) {
+    is PluginInstallProgress.DownloadingPlugin ->
+        stringResource(Res.string.install_progress_downloading_plugin)
+
+    is PluginInstallProgress.DownloadingDependencies ->
+        stringResource(
+            Res.string.install_progress_downloading_dependencies,
+            progress.completed + 1,
+            progress.total,
+        )
+
+    is PluginInstallProgress.LoadingPlugin ->
+        stringResource(Res.string.install_progress_loading_plugin)
+}
+
+@Composable
+private fun InstallErrorBanner(
+    error: String,
+    modifier: Modifier = Modifier,
+) {
+    JwText(
+        text = error,
+        color = JwTheme.colors.onErrorContainer,
+        style = JwTheme.textStyles.bodySmall,
+        modifier = modifier
+            .fillMaxWidth()
+            .background(color = JwTheme.colors.errorContainer, shape = JwShapes.small)
+            .padding(12.dp),
+    )
+}
+
+@Composable
+private fun TrustRegistrySigningSection(
+    signPluginTrustRegistry: Boolean,
+    onChangeSignPluginTrustRegistry: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingOptionView(
+        label = stringResource(Res.string.plugin_security),
+        modifier = modifier,
+    ) {
+        SwitchSettingsItemView(
+            label = stringResource(Res.string.sign_plugin_trust_registry),
+            isChecked = signPluginTrustRegistry,
+            onCheckedChange = onChangeSignPluginTrustRegistry,
+        )
+        // Append only the current OS's credential-store behavior — the prompt story differs
+        // per platform (macOS prompts, Windows DPAPI is silent, Linux depends on the keyring).
+        val osHint = when (HostOs.current) {
+            HostOs.MAC -> Res.string.sign_plugin_trust_registry_hint_macos
+            HostOs.WINDOWS -> Res.string.sign_plugin_trust_registry_hint_windows
+            else -> Res.string.sign_plugin_trust_registry_hint_linux
+        }
+        JwText(
+            text = "${stringResource(Res.string.sign_plugin_trust_registry_hint)} ${stringResource(osHint)}",
+            style = JwTheme.textStyles.bodySmall,
+            color = JwTheme.colors.textSecondary,
+        )
     }
 }
 
@@ -305,7 +375,7 @@ private val PluginRowPadding = PaddingValues(horizontal = 16.dp, vertical = 12.d
 
 @Composable
 private fun InstalledPluginRow(
-    plugin: com.kitakkun.jetwhale.host.settings.component.PluginInfoUiState,
+    plugin: PluginInfoUiState,
     modifier: Modifier = Modifier,
 ) {
     JwPanel(
@@ -462,5 +532,33 @@ private fun OfficialPluginRow(
                 )
             }
         }
+    }
+}
+
+@Preview
+@Composable
+private fun PluginSettingsScreenPreview() {
+    JwTheme(darkTheme = false) {
+        PluginSettingsScreen(
+            page = SettingsScreenPage.InstalledPlugins,
+            uiState = PluginSettingsScreenUiState(
+                plugins = persistentListOf(
+                    PluginInfoUiState(
+                        name = "Network Inspector",
+                        id = "com.kitakkun.jetwhale.network",
+                        version = "1.0.0",
+                    ),
+                ),
+                officialPlugins = persistentListOf(),
+                failedJars = persistentListOf(),
+                untrustedJarPaths = persistentListOf(),
+                signPluginTrustRegistry = false,
+            ),
+            onClickAddPlugin = {},
+            onApproveUntrustedJar = {},
+            onClickInstallFromMaven = {},
+            onClickInstallOfficialPlugin = {},
+            onChangeSignPluginTrustRegistry = {},
+        )
     }
 }

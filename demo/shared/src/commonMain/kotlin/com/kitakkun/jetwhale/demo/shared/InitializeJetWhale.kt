@@ -10,12 +10,10 @@ fun initializeJetWhale() {
     startJetWhale {
         connection {
             // Tried in order. Loopback first, because everything that can reach it — emulators,
-            // simulators, ADB-forwarded devices, the desktop app, the browser — is already there and
-            // need not wait out a network browse. In the clear, because it never leaves the machine
-            // and a browser cannot pin a locally-issued CA at all.
-            //
-            // A physical device on the network reaches neither, so it falls through to discovery and
-            // connects over wss.
+            // simulators, ADB-forwarded devices, the desktop app, the browser — is already there.
+            // In the clear, because it never leaves the machine and a browser cannot pin a
+            // locally-issued CA at all. A physical device on the network reaches neither, so it
+            // falls through to discovery and connects over wss.
             endpoints {
                 ws("localhost", 5080)
 

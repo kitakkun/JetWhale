@@ -22,8 +22,8 @@ class FakeMcpActivityRepository : McpActivityRepository {
     override val activityFlow: StateFlow<McpActivity>
         field = MutableStateFlow(McpActivity.Idle)
 
-    val recordedInvocations: List<McpToolInvocation> get() = _recordedInvocations.toList()
-    private val _recordedInvocations = mutableListOf<McpToolInvocation>()
+    val recordedInvocations: List<McpToolInvocation>
+        field = mutableListOf<McpToolInvocation>()
 
     override fun clientConnected() {
         activityFlow.update { it.copy(connectedClientCount = it.connectedClientCount + 1) }
@@ -50,7 +50,7 @@ class FakeMcpActivityRepository : McpActivityRepository {
                 .map { (name, value) -> McpCallArgument.truncating(name, value) }
                 .toImmutableList(),
         )
-        _recordedInvocations += invocation
+        recordedInvocations += invocation
         activityFlow.update {
             it.copy(
                 runningInvocations = (it.runningInvocations + invocation).toImmutableList(),

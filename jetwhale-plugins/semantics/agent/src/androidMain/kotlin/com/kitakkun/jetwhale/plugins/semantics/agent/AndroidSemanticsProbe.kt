@@ -56,7 +56,7 @@ fun JetWhaleSemanticsProbe() {
     val view = LocalView.current
     DisposableEffect(view) {
         val tracker = WindowTracker(view)
-        onDispose { tracker.dispose() }
+        onDispose(tracker::dispose)
     }
 }
 
@@ -82,7 +82,7 @@ private object AndroidSemanticsProbe {
     }
 
     fun untrackAll() = synchronized(lock) {
-        trackedViews.values.toList().forEach { it.dispose() }
+        trackedViews.values.toList().forEach(WindowTracker::dispose)
         trackedViews.clear()
     }
 

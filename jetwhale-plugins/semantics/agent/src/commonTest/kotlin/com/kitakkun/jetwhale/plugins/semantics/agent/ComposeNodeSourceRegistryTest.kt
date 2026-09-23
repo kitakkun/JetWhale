@@ -20,11 +20,11 @@ class ComposeNodeSourceRegistryTest {
     fun `registers a source and unregisters it when its registration is closed`() {
         val registration = ComposeNodeSourceRegistry.register(FakeSource("root-1"))
 
-        assertEquals(listOf("root-1"), ComposeNodeSourceRegistry.sources.map { it.sourceId })
+        assertEquals(listOf("root-1"), ComposeNodeSourceRegistry.sources.map(ComposeNodeSource::sourceId))
 
         registration.close()
 
-        assertEquals(emptyList(), ComposeNodeSourceRegistry.sources.map { it.sourceId })
+        assertEquals(emptyList(), ComposeNodeSourceRegistry.sources.map(ComposeNodeSource::sourceId))
     }
 
     @Test
@@ -32,7 +32,7 @@ class ComposeNodeSourceRegistryTest {
         ComposeNodeSourceRegistry.register(FakeSource("root-1"))
         ComposeNodeSourceRegistry.register(FakeSource("root-2"))
 
-        assertEquals(listOf("root-1", "root-2"), ComposeNodeSourceRegistry.sources.map { it.sourceId })
+        assertEquals(listOf("root-1", "root-2"), ComposeNodeSourceRegistry.sources.map(ComposeNodeSource::sourceId))
     }
 
     @Test

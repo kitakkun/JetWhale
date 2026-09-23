@@ -10,6 +10,7 @@ import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
+import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
@@ -27,7 +28,7 @@ import kotlinx.serialization.json.JsonPrimitive
  */
 suspend fun listSessions(debugSessionRepository: DebugSessionRepository): String {
     val sessions = debugSessionRepository.debugSessionsFlow.firstOrNull() ?: return "[]"
-    return Json.encodeToString(sessions.map { it.toSessionInfo() })
+    return Json.encodeToString(sessions.map(DebugSession::toSessionInfo))
 }
 
 /**
@@ -64,7 +65,7 @@ private fun DebugSession.toSessionInfo() = SessionInfo(
     sessionId = id,
     sessionName = name,
     isActive = isActive,
-    installedPlugins = installedPlugins.map { it.pluginId },
+    installedPlugins = installedPlugins.map(JetWhalePluginInfo::pluginId),
     appName = appName,
     deviceId = deviceId,
     deviceName = deviceName,

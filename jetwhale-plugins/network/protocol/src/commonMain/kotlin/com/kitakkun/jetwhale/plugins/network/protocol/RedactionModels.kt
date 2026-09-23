@@ -71,6 +71,13 @@ fun List<RedactionRule>.redact(response: CapturedHttpResponse): CapturedHttpResp
     )
 }
 
+private fun List<RedactionRule>.redactHeaders(headers: Map<String, List<String>>): Map<String, List<String>> = headers.mapValues { (name, values) ->
+    when (val strategy = strategyFor(RedactionTarget.HEADER, name)) {
+        null -> values
+        else -> values.map(strategy::render)
+    }
+}
+
 private fun List<RedactionRule>.strategyFor(target: RedactionTarget, name: String): RedactionStrategy? = lastOrNull { it.target == target && it.name.equals(name, ignoreCase = true) }?.strategy
 
 private fun RedactionStrategy.render(original: String): String = when (this) {
@@ -78,13 +85,6 @@ private fun RedactionStrategy.render(original: String): String = when (this) {
 
     // Count code points, not UTF-16 units, so surrogate-pair characters mask as one asterisk.
     RedactionStrategy.MASK -> "*".repeat(original.count { !it.isLowSurrogate() })
-}
-
-private fun List<RedactionRule>.redactHeaders(headers: Map<String, List<String>>): Map<String, List<String>> = headers.mapValues { (name, values) ->
-    when (val strategy = strategyFor(RedactionTarget.HEADER, name)) {
-        null -> values
-        else -> values.map { strategy.render(it) }
-    }
 }
 
 private fun List<RedactionRule>.redactUrl(url: String): String {
@@ -141,11 +141,6 @@ private fun List<RedactionRule>.redactFormBody(body: String): String = body
         }
     }
 
-// Only two hex digits are an escape: toIntOrNull would also accept a sign, decoding "%-1" as a byte.
-private fun String.hexByteOrNull(): Int? = if (all { it.isHexDigit() }) toInt(radix = 16) else null
-
-private fun Char.isHexDigit(): Boolean = this in '0'..'9' || this in 'a'..'f' || this in 'A'..'F'
-
 private fun String.formUrlDecode(): String {
     if ('%' !in this && '+' !in this) return this
     val decoded = StringBuilder(length)
@@ -172,6 +167,11 @@ private fun String.formUrlDecode(): String {
     flushBytes()
     return decoded.toString()
 }
+
+// Only two hex digits are an escape: toIntOrNull would also accept a sign, decoding "%-1" as a byte.
+private fun String.hexByteOrNull(): Int? = if (all(Char::isHexDigit)) toInt(radix = 16) else null
+
+private fun Char.isHexDigit(): Boolean = this in '0'..'9' || this in 'a'..'f' || this in 'A'..'F'
 
 private fun List<RedactionRule>.redactFields(element: JsonElement): JsonElement = when (element) {
     is JsonObject -> JsonObject(

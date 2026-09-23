@@ -14,6 +14,7 @@ import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import java.math.BigInteger
+import java.net.InetAddress
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.SecureRandom
@@ -135,7 +136,7 @@ class CACertificateGenerator {
     }
 
     private fun ipv6Subtree(address: String, prefixLength: Int): GeneralSubtree {
-        val addr = java.net.InetAddress.getByName(address).address
+        val addr = InetAddress.getByName(address).address
         return ipSubtree(addr, prefixLength)
     }
 

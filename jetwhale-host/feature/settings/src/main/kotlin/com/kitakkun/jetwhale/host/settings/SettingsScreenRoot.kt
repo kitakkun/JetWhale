@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.settings
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.kitakkun.jetwhale.host.settings.general.GeneralSettingsScreenRoot
 import com.kitakkun.jetwhale.host.settings.plugin.PluginSettingsScreenRoot
 import com.kitakkun.jetwhale.host.settings.server.ServerSettingsScreenRoot
@@ -9,12 +10,14 @@ import com.kitakkun.jetwhale.host.settings.server.ServerSettingsScreenRoot
 context(screenContext: SettingsScreenContext)
 fun SettingsScreenRoot(
     onClickClose: () -> Unit,
+    onOpenLogViewer: () -> Unit,
+    modifier: Modifier = Modifier,
     initialPage: SettingsScreenPage = SettingsScreenPage.Appearance,
-    onOpenLogViewer: () -> Unit = {},
 ) {
     SettingsScreenScaffoldRoot(
-        initialPage = initialPage,
         onClickClose = onClickClose,
+        modifier = modifier,
+        initialPage = initialPage,
     ) { page ->
         // Pages are routed to whichever Root already subscribes to their data, which is not always
         // the section they are filed under: the menu groups settings by what they are about, while a

@@ -44,16 +44,19 @@ private data class PluginInstanceKey(val pluginId: String, val sessionId: String
 /**
  * A plugin instance paired with the messaging peer that delivers its frames. The peer's outbound
  * frames are sent to this instance's session; inbound frames are routed to it by the server.
+ *
+ * @property factory The factory that produced [plugin]; identifies the classloader generation this
+ *   instance belongs to.
+ * @property peer Null for a pure (non-messaging) plugin: no peer is created for it.
+ * @property prepareJob The preparation job; joined before the peer is closed so its ready-gate open
+ *   cannot outrace disposal. Null for a pure plugin.
+ * @property instanceScope Backs the plugin's `pluginScope`; cancelled when the instance is disposed.
  */
 private class LoadedInstance(
-    /** The factory that produced [plugin]; identifies the classloader generation this instance belongs to. */
     val factory: JetWhaleHostPluginFactory,
     val plugin: JetWhaleHostPlugin,
-    // null for a pure (non-messaging) plugin: no peer is created for it.
     val peer: JetWhalePluginPeer?,
-    /** The preparation job; joined before the peer is closed so its ready-gate open cannot outrace disposal. null for a pure plugin. */
     val prepareJob: Job?,
-    /** Backs the plugin's `pluginScope`; cancelled when the instance is disposed. */
     val instanceScope: CoroutineScope,
 )
 
@@ -98,22 +101,7 @@ class DefaultPluginInstanceService(
 
         val newlyInitializedSessions = mutableSetOf<String>()
         for (sessionId in sessionIds) {
-            val key = PluginInstanceKey(pluginId, sessionId)
-            var created = false
-            try {
-                loadedPlugins.computeIfAbsent(key) {
-                    created = true
-                    createInstance(pluginId, sessionId, loaded)
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Throwable) {
-                // A factory (or plugin constructor) that throws must not abort the caller's
-                // reconciliation loop — every other plugin and session still needs its instance.
-                logger.log(Level.WARNING, "Creating an instance of plugin '$pluginId' for session '$sessionId' failed", e)
-                continue
-            }
-            if (created) newlyInitializedSessions += sessionId
+            if (createInstanceIfAbsent(pluginId, sessionId, loaded)) newlyInitializedSessions += sessionId
         }
 
         publishHeadlessPlugins()
@@ -121,6 +109,28 @@ class DefaultPluginInstanceService(
             emitEvent(PluginInstanceEvent.Ready(pluginId, sessionId))
         }
         return newlyInitializedSessions
+    }
+
+    /**
+     * Creates the session's instance unless one is already loaded, reporting whether it created one.
+     */
+    private fun createInstanceIfAbsent(pluginId: String, sessionId: String, loaded: LoadedHostPlugin): Boolean {
+        val key = PluginInstanceKey(pluginId, sessionId)
+        var created = false
+        try {
+            loadedPlugins.computeIfAbsent(key) {
+                created = true
+                createInstance(pluginId, sessionId, loaded)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            // A factory (or plugin constructor) that throws must not abort the caller's
+            // reconciliation loop — every other plugin and session still needs its instance.
+            logger.log(Level.WARNING, "Creating an instance of plugin '$pluginId' for session '$sessionId' failed", e)
+            return false
+        }
+        return created
     }
 
     private fun createInstance(pluginId: String, sessionId: String, loaded: LoadedHostPlugin): LoadedInstance {
@@ -141,49 +151,23 @@ class DefaultPluginInstanceService(
         // name or reach another plugin's data.
         plugin.bindStorage(pluginDataStoreRepository.storageFor(pluginId))
 
-        val descriptor = "plugin '$pluginId' in session '$sessionId'"
-
         // User code below (registerHandlers, onCreate) is guarded: this runs inside the map's
         // computeIfAbsent, and a throwing plugin must neither leak the just-created peer/scope nor
         // abort loading for the caller.
         // Only messaging plugins get a peer; a pure plugin pays none of the messaging cost.
+        val descriptor = "plugin '$pluginId' in session '$sessionId'"
         val peer = if (plugin is JetWhaleMessagingHostPlugin) {
-            val newPeer = JetWhalePluginPeer(
-                pluginId = pluginId,
-                parentScope = scope,
-                sendFrame = { frame -> frameSender.sendFrame(sessionId, frame) },
-                awaitReady = true,
-            )
-            val configured = configurePeerGuarded(
-                peer = newPeer,
-                descriptor = descriptor,
-                registerHandlers = { plugin.registerHandlers(this) },
-                warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
-            )
-            if (configured) {
-                plugin.bindMessenger(newPeer.messenger)
-                newPeer
-            } else {
-                // Registration failed: discard the half-configured peer (mirrors the agent's bail-out).
-                // The instance still loads, but without messaging — subsequent frames fast-fail via the
-                // no-peer path in routeFrame.
-                scope.launch { newPeer.close() }
-                null
-            }
+            createPeer(pluginId = pluginId, sessionId = sessionId, plugin = plugin, descriptor = descriptor)
         } else {
             null
         }
-        try {
-            plugin.dispatchCreate()
-        } catch (e: Throwable) {
-            logger.warning("onCreate for plugin '$pluginId' in session '$sessionId' failed: ${e.message}")
-        }
+        dispatchCreateGuarded(plugin, descriptor)
         val prepareJob = if (peer != null && plugin is JetWhaleMessagingHostPlugin) {
             instanceScope.launchPeerPreparation(
                 peer = peer,
                 descriptor = descriptor,
                 prepareTimeoutMillis = plugin.prepareTimeoutMillis(),
-                dispatchPrepare = { plugin.dispatchPrepare() },
+                dispatchPrepare = plugin::dispatchPrepare,
                 warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
                 onReady = {},
             )
@@ -191,6 +175,47 @@ class DefaultPluginInstanceService(
             null
         }
         return LoadedInstance(loaded.factory, plugin, peer, prepareJob, instanceScope)
+    }
+
+    /**
+     * Builds the messaging peer for one instance and registers the plugin's handlers on it. Null
+     * when registration failed: the instance still loads, but without messaging.
+     */
+    private fun createPeer(
+        pluginId: String,
+        sessionId: String,
+        plugin: JetWhaleMessagingHostPlugin,
+        descriptor: String,
+    ): JetWhalePluginPeer? {
+        val newPeer = JetWhalePluginPeer(
+            pluginId = pluginId,
+            parentScope = scope,
+            sendFrame = { frame -> frameSender.sendFrame(sessionId, frame) },
+            awaitReady = true,
+        )
+        val configured = configurePeerGuarded(
+            peer = newPeer,
+            descriptor = descriptor,
+            registerHandlers = { plugin.registerHandlers(this) },
+            warn = { message, throwable -> logger.log(Level.WARNING, message, throwable) },
+        )
+        if (configured) {
+            plugin.bindMessenger(newPeer.messenger)
+            return newPeer
+        }
+        // Registration failed: discard the half-configured peer (mirrors the agent's bail-out).
+        // Subsequent frames fast-fail via the no-peer path in routeFrame.
+        scope.launch { newPeer.close() }
+        return null
+    }
+
+    /** Runs the plugin's `onCreate`; a throwing plugin must not abort loading for the caller. */
+    private fun dispatchCreateGuarded(plugin: JetWhaleHostPlugin, descriptor: String) {
+        try {
+            plugin.dispatchCreate()
+        } catch (e: Throwable) {
+            logger.warning("onCreate for $descriptor failed: ${e.message}")
+        }
     }
 
     override suspend fun routeFrame(sessionId: String, frame: PluginFrame) {

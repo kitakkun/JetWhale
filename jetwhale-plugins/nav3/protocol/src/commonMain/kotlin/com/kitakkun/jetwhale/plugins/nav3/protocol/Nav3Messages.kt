@@ -27,12 +27,15 @@ data class BackStackUnregistered(val stackId: String) : JetWhaleEvent
 @Serializable
 data object GetNavState : JetWhaleRequest<NavState>
 
-/** Reply to [GetNavState]. */
+/**
+ * Reply to [GetNavState].
+ *
+ * @property keyTypes Key types derived from the app's serializers; empty when none could be derived.
+ */
 @SerialName("nav3/nav_state")
 @Serializable
 data class NavState(
     val stacks: List<NavBackStackSnapshot>,
-    /** Key types derived from the app's serializers; empty when none could be derived. */
     val keyTypes: List<NavKeyTypeDescriptor>,
 )
 

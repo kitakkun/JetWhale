@@ -5,5 +5,6 @@ sealed interface McpServerStatus {
     data object Starting : McpServerStatus
     data class Running(val host: String, val port: Int) : McpServerStatus
     data object Stopping : McpServerStatus
+
     data class Error(val message: String) : McpServerStatus
 }

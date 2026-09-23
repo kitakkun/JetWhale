@@ -20,6 +20,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwCodeBlock
 import com.kitakkun.jetwhale.host.ui.JwPanel
@@ -53,7 +54,7 @@ internal fun BodyBlock(label: String, body: String?, truncated: Boolean) {
                 options = BodyMode.entries,
                 selected = mode,
                 onSelect = { mode = it },
-                label = { it.name },
+                label = BodyMode::name,
             )
         }
         val colors = rememberJsonColors()
@@ -62,7 +63,7 @@ internal fun BodyBlock(label: String, body: String?, truncated: Boolean) {
                 Column { JsonTreeNode(json, label = label, colors = colors) }
             }
         } else {
-            val rendered = remember(json, body, colors) { json?.let { highlightedJson(it, colors) } }
+            val rendered = remember(key1 = json, key2 = body, key3 = colors) { json?.let { highlightedJson(it, colors) } }
             JwCodeBlock(
                 text = rendered ?: AnnotatedString(body + if (truncated) "\n… (truncated)" else ""),
                 wrap = true,
@@ -237,4 +238,16 @@ private fun rememberJsonColors(): JsonColors {
 private val lenientJson = Json {
     isLenient = true
     ignoreUnknownKeys = true
+}
+
+@Preview
+@Composable
+private fun BodyBlockPreview() {
+    JwTheme(darkTheme = false) {
+        BodyBlock(
+            label = "body",
+            body = """{"items":[{"id":1,"name":"first"}],"total":1}""",
+            truncated = false,
+        )
+    }
 }

@@ -18,7 +18,13 @@ public sealed interface JetWhaleDebuggeeEvent {
      */
     @SerialName(JetWhaleSerialNames.EVENT_AGENT_PLUGIN_FRAME)
     @Serializable
-    public data class PluginFrameMessage(
-        val frame: PluginFrame,
-    ) : JetWhaleDebuggeeEvent
+    public class PluginFrameMessage(
+        public val frame: PluginFrame,
+    ) : JetWhaleDebuggeeEvent {
+        override fun equals(other: Any?): Boolean = other is PluginFrameMessage && frame == other.frame
+
+        override fun hashCode(): Int = frame.hashCode()
+
+        override fun toString(): String = "PluginFrameMessage(frame=$frame)"
+    }
 }

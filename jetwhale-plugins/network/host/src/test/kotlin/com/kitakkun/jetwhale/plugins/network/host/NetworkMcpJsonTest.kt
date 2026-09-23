@@ -59,12 +59,12 @@ class NetworkMcpJsonTest {
             durationMs = 42,
         )
         val json = HttpTransaction(request = request, response = response).toDetailJson()
-        val requestJson = json["request"]!!.jsonObject
+        val requestJson = json.getValue("request").jsonObject
         assertEquals(
             "application/json",
-            requestJson["headers"]!!.jsonObject["Accept"]!!.jsonArray[0].jsonPrimitive.content,
+            requestJson.getValue("headers").jsonObject.getValue("Accept").jsonArray[0].jsonPrimitive.content,
         )
-        val responseJson = json["response"]!!.jsonObject
+        val responseJson = json.getValue("response").jsonObject
         assertEquals("""{"ok":true}""", responseJson["body"]?.jsonPrimitive?.content)
         assertNull(json["failure"])
     }

@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.bring_back_to_main_window
@@ -16,8 +17,10 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun PluginPoppedOutScreen(
     onBringbackToMainWindow: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     JwEmptyState(
+        modifier = modifier,
         title = stringResource(Res.string.plugin_popped_out_message),
         icon = { JwIcon(imageVector = Icons.Default.ArrowOutward, contentDescription = null) },
         action = {

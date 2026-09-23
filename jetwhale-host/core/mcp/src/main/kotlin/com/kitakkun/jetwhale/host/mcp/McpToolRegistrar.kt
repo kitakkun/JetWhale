@@ -142,17 +142,17 @@ private fun deniedResult(
     pluginId: String?,
 ): CallToolResult {
     val reason = when (permission) {
-        McpToolPermission.Unrestricted -> "is not permitted"
+        is McpToolPermission.Unrestricted -> "is not permitted"
 
         is McpToolPermission.HostGroup ->
             "is in the ${permission.group.displayName} group, which is not allowed for AI agents"
 
-        McpToolPermission.PluginInspect -> when (pluginId) {
+        is McpToolPermission.PluginInspect -> when (pluginId) {
             null -> "could not tell which plugin it targets, so it cannot be permission-checked"
             else -> "reads the UI of '$pluginId', which is not exposed to AI agents"
         }
 
-        McpToolPermission.PluginInteract -> when (pluginId) {
+        is McpToolPermission.PluginInteract -> when (pluginId) {
             null -> "could not tell which plugin it targets, so it cannot be permission-checked"
             else -> "sends input to '$pluginId', which is not exposed to AI agents"
         }

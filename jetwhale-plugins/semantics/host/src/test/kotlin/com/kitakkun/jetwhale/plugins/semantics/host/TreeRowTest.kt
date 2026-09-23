@@ -58,6 +58,6 @@ class TreeRowTest {
             predicate = { true },
         )
 
-        assertEquals(rows.size, rows.map { it.key }.distinct().size)
+        assertEquals(rows.size, rows.map(TreeRow::key).distinct().size)
     }
 }

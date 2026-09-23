@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.advertisedAs
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
@@ -95,11 +96,12 @@ internal fun NSObject.toAppleNode(
         emptyList()
     } else {
         val candidates = accessibilityChildren()
+
         // A modal child — a presented sheet, an alert — is the only one VoiceOver traverses; its
         // siblings are behind it and must not read as reachable.
         val modal = candidates.filter { it.accessibilityViewIsModal }
         candidates.mapNotNull { child ->
-            val behindModal = modal.isNotEmpty() && modal.none { it === child }
+            val behindModal = modal.isNotEmpty() && modal.none { it == child }
             child.toAppleNode(options, window, depth + 1, hiddenByAncestor = hidesElements || behindModal)
         }
     }
@@ -152,7 +154,8 @@ internal fun NSObject.accessibilityChildren(): List<NSObject> {
     return view.subviews.map { it as NSObject }
 }
 
-internal fun NSObject.className(): String = `class`()?.let { NSStringFromClass(it) } ?: "NSObject"
+@OptIn(BetaInteropApi::class)
+internal fun NSObject.className(): String = `class`()?.let(::NSStringFromClass) ?: "NSObject"
 
 /**
  * `accessibilityIdentifier` belongs to `UIAccessibilityIdentification`, which `UIView` adopts and
@@ -306,7 +309,11 @@ internal fun NodeBounds.intersect(other: NodeBounds): NodeBounds {
     val top = maxOf(top, other.top)
     val right = minOf(right, other.right)
     val bottom = minOf(bottom, other.bottom)
-    return if (right <= left || bottom <= top) NodeBounds(0f, 0f, 0f, 0f) else NodeBounds(left, top, right, bottom)
+    return if (right <= left || bottom <= top) {
+        NodeBounds(left = 0f, top = 0f, right = 0f, bottom = 0f)
+    } else {
+        NodeBounds(left = left, top = top, right = right, bottom = bottom)
+    }
 }
 
 private fun NodeBounds.translated(offsetX: Float, offsetY: Float): NodeBounds = NodeBounds(

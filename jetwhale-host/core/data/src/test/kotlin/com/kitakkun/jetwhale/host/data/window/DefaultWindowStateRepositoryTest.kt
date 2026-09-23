@@ -14,17 +14,17 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class DefaultWindowStateRepositoryTest {
+    @Test
+    fun `returns null when nothing is saved`() = runBlocking {
+        assertNull(newRepository().loadWindowState())
+    }
+
     private fun newRepository(): DefaultWindowStateRepository {
         val tempDir = Files.createTempDirectory("jetwhale-window-state-test")
         val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.createWithPath(
             scope = CoroutineScope(Dispatchers.IO),
         ) { tempDir.resolve("window_state.preferences_pb").toString().toPath() }
         return DefaultWindowStateRepository(dataStore)
-    }
-
-    @Test
-    fun `returns null when nothing is saved`() = runBlocking {
-        assertNull(newRepository().loadWindowState())
     }
 
     @Test

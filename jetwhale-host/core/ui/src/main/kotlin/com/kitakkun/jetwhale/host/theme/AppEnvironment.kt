@@ -1,9 +1,11 @@
 package com.kitakkun.jetwhale.host.theme
 
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidedValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.model.AppLanguage
 import java.util.Locale
 
@@ -18,11 +20,9 @@ object LocalAppLocale {
 
     @Composable
     infix fun provides(value: String?): ProvidedValue<*> {
-        if (default == null) {
-            default = Locale.getDefault()
-        }
+        val fallback = default ?: Locale.getDefault().also { default = it }
         val new = when (value) {
-            null -> default!!
+            null -> fallback
             else -> Locale(value)
         }
         Locale.setDefault(new)
@@ -45,4 +45,12 @@ fun AppEnvironment(
 private fun AppLanguage.toLocaleString(): String? = when (this) {
     AppLanguage.English -> "en"
     AppLanguage.Japanese -> "ja"
+}
+
+@Preview
+@Composable
+private fun AppEnvironmentPreview() {
+    AppEnvironment(appLanguage = AppLanguage.English) {
+        Text(text = LocalAppLocale.current)
+    }
 }

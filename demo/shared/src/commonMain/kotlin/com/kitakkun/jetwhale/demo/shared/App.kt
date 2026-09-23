@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,35 +34,7 @@ fun App() {
                 },
             ) { padding ->
                 Column(Modifier.padding(padding).fillMaxSize()) {
-                    SecondaryTabRow(selectedTabIndex = selectedTab) {
-                        Tab(
-                            selected = selectedTab == 0,
-                            onClick = { selectedTab = 0 },
-                            text = { Text("Example plugin") },
-                        )
-                        Tab(
-                            selected = selectedTab == 1,
-                            onClick = { selectedTab = 1 },
-                            text = { Text("Network plugin") },
-                        )
-                        Tab(
-                            selected = selectedTab == 2,
-                            onClick = { selectedTab = 2 },
-                            text = { Text("Nav3 plugin") },
-                        )
-                        Tab(
-                            selected = selectedTab == 3,
-                            onClick = { selectedTab = 3 },
-                            text = { Text("Compose nodes") },
-                        )
-                        platformExtraTabLabel?.let { label ->
-                            Tab(
-                                selected = selectedTab == 4,
-                                onClick = { selectedTab = 4 },
-                                text = { Text(label) },
-                            )
-                        }
-                    }
+                    DemoTabRow(selectedTab = selectedTab, onSelectTab = { selectedTab = it })
                     when (selectedTab) {
                         0 -> ExampleTestScreen()
                         1 -> NetworkTestScreen()
@@ -73,4 +46,43 @@ fun App() {
             }
         }
     }
+}
+
+@Composable
+private fun DemoTabRow(selectedTab: Int, onSelectTab: (Int) -> Unit, modifier: Modifier = Modifier) {
+    SecondaryTabRow(selectedTabIndex = selectedTab, modifier = modifier) {
+        Tab(
+            selected = selectedTab == 0,
+            onClick = { onSelectTab(0) },
+            text = { Text("Example plugin") },
+        )
+        Tab(
+            selected = selectedTab == 1,
+            onClick = { onSelectTab(1) },
+            text = { Text("Network plugin") },
+        )
+        Tab(
+            selected = selectedTab == 2,
+            onClick = { onSelectTab(2) },
+            text = { Text("Nav3 plugin") },
+        )
+        Tab(
+            selected = selectedTab == 3,
+            onClick = { onSelectTab(3) },
+            text = { Text("Compose nodes") },
+        )
+        platformExtraTabLabel?.let { label ->
+            Tab(
+                selected = selectedTab == 4,
+                onClick = { onSelectTab(4) },
+                text = { Text(label) },
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun AppPreview() {
+    App()
 }

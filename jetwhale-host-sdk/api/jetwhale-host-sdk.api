@@ -34,15 +34,6 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest {
 	public static final field Companion Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()Ljava/lang/String;
-	public final fun component4 ()Ljava/lang/String;
-	public final fun component5 ()Z
-	public final fun component6 ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
-	public final fun component7 ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAgentVersionRange ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
 	public final fun getFactoryClass ()Ljava/lang/String;
@@ -73,10 +64,6 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Age
 	public fun <init> ()V
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$AgentVersionRange;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getMax ()Ljava/lang/String;
 	public final fun getMin ()Ljava/lang/String;
@@ -110,10 +97,6 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Ico
 	public fun <init> ()V
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifest$Icon;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getActivePath ()Ljava/lang/String;
 	public final fun getInactivePath ()Ljava/lang/String;
@@ -141,9 +124,6 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifestFile
 	public static final field $stable I
 	public static final field Companion Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifestFile$Companion;
 	public fun <init> (Ljava/util/List;)V
-	public final fun component1 ()Ljava/util/List;
-	public final fun copy (Ljava/util/List;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifestFile;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifestFile;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginManifestFile;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getPlugins ()Ljava/util/List;
 	public fun hashCode ()I
@@ -255,11 +235,6 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor
 	public static final field $stable I
 	public fun <init> (Lkotlinx/serialization/json/JsonObject;Ljava/lang/String;Z)V
 	public synthetic fun <init> (Lkotlinx/serialization/json/JsonObject;Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Lkotlinx/serialization/json/JsonObject;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()Z
-	public final fun copy (Lkotlinx/serialization/json/JsonObject;Ljava/lang/String;Z)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor;Lkotlinx/serialization/json/JsonObject;Ljava/lang/String;ZILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpParameterDescriptor;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getDescription ()Ljava/lang/String;
 	public final fun getRequired ()Z
@@ -272,11 +247,6 @@ public final class com/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor {
 	public static final field $stable I
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()Ljava/util/Map;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/host/sdk/JetWhaleMcpToolDescriptor;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getDescription ()Ljava/lang/String;
 	public final fun getName ()Ljava/lang/String;

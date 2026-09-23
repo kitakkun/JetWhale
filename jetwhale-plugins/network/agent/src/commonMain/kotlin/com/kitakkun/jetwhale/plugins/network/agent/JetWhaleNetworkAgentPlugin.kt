@@ -34,9 +34,10 @@ import kotlin.uuid.Uuid
  *
  * [redaction] rules are applied here, at capture time, so redacted values never leave the
  * process regardless of which transport adapter produced the event.
+ *
+ * @param redaction Defaulted so existing integrations keep capturing verbatim; redaction is opt-in.
  */
 class JetWhaleNetworkAgentPlugin(
-    // Defaulted so existing integrations keep capturing verbatim; redaction is opt-in.
     private val redaction: NetworkRedactionRules = NetworkRedactionRules.None,
 ) : JetWhaleAgentPlugin() {
     override val pluginId: String get() = PLUGIN_ID

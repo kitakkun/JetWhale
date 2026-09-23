@@ -69,8 +69,8 @@ internal fun JetWhaleConnectionConfiguration.endpointResolver(): EndpointResolve
         @Suppress("DEPRECATION")
         listOf(EndpointCandidate.Static(host, port, useWss = sslConfiguration.isEnabled))
     }
-    declared.forEach { it.warnIfPlainOffMachine() }
-    return CandidateListResolver(declared.map { it.resolver() })
+    declared.forEach(EndpointCandidate::warnIfPlainOffMachine)
+    return CandidateListResolver(declared.map(EndpointCandidate::resolver))
 }
 
 private fun EndpointCandidate.resolver(): EndpointResolver = when (this) {

@@ -33,7 +33,7 @@ fun JetWhaleNetworkAgentPlugin.ktorClientPlugin(maxBodyChars: Int = 100_000, max
     val agent = this
     return createClientPlugin("JetWhaleNetworkMonitor") {
         on(Send) { request ->
-            agent.monitorSend(client, request, maxBodyChars, maxImageBytes) { proceed(it) }
+            agent.monitorSend(client, request, BodyCaptureLimits(maxBodyChars, maxImageBytes), ::proceed)
         }
     }
 }

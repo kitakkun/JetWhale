@@ -3,17 +3,18 @@ package com.kitakkun.jetwhale.host.cli
 import com.kitakkun.jetwhale.host.model.McpPermissionOverride
 import com.kitakkun.jetwhale.host.model.ServerPortOverrides
 
+/**
+ * @property logLevel Null when `--log-level` was not passed, which leaves whatever `logback.xml`
+ * configures in place. Applying a default here would quietly reduce what the host logs — and so
+ * what the log viewer can show — for every launch that never asked for it.
+ * @property headless Runs the servers with no window, for CI and agent-driven QA. See
+ * [com.kitakkun.jetwhale.host.headless.HeadlessHostRunner].
+ */
 data class JetWhaleCliOptions(
     val pluginDirs: List<String>,
-    /**
-     * Null when `--log-level` was not passed, which leaves whatever `logback.xml` configures in
-     * place. Applying a default here would quietly reduce what the host logs — and so what the log
-     * viewer can show — for every launch that never asked for it.
-     */
     val logLevel: JetWhaleLogLevel?,
     val serverPortOverrides: ServerPortOverrides,
     val mcpPermissionOverride: McpPermissionOverride,
-    /** Runs the servers with no window, for CI and agent-driven QA. See [com.kitakkun.jetwhale.host.headless.HeadlessHostRunner]. */
     val headless: Boolean,
 )
 

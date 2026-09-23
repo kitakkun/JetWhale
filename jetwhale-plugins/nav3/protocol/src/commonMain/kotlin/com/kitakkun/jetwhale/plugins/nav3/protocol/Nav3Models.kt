@@ -18,14 +18,15 @@ const val DEFAULT_NAV_STACK_ID: String = "main"
  * Deliberately not named after Navigation's own entry types: this is an observation of a key at a
  * point in time, not a live entry, and it must not be mistaken for `androidx.navigation`'s
  * `NavBackStackEntry`.
+ *
+ * @property typeName Serial name of the key's type (the `type` discriminator of [key]), or its class name.
+ * @property display `toString()` of the key, for display.
+ * @property key The key encoded with the app's serializers, or null when it is not encodable.
  */
 @Serializable
 data class NavKeySnapshot(
-    /** Serial name of the key's type (the `type` discriminator of [key]), or its class name. */
     val typeName: String,
-    /** `toString()` of the key, for display. */
     val display: String,
-    /** The key encoded with the app's serializers, or null when it is not encodable. */
     val key: JsonElement?,
 )
 
@@ -50,13 +51,16 @@ data class NavKeyTypeDescriptor(
     val template: JsonElement,
 )
 
-/** One field of a [NavKeyTypeDescriptor]. */
+/**
+ * One field of a [NavKeyTypeDescriptor].
+ *
+ * @property type Human-readable type, e.g. `String`, `Int`, `List<String>`, `enum(Grid|List)`.
+ * @property optional Whether the field has a default value and may be omitted.
+ */
 @Serializable
 data class NavKeyFieldDescriptor(
     val name: String,
-    /** Human-readable type, e.g. `String`, `Int`, `List<String>`, `enum(Grid|List)`. */
     val type: String,
-    /** Whether the field has a default value and may be omitted. */
     val optional: Boolean,
     val nullable: Boolean,
 )

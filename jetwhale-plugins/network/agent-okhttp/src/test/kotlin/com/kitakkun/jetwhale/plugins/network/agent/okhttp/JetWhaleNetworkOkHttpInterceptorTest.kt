@@ -24,6 +24,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okhttp3.mockwebserver.MockResponse
@@ -40,6 +41,7 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
@@ -65,11 +67,6 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         server.shutdown()
     }
 
-    private fun client() = OkHttpClient.Builder().addInterceptor(agent.okHttpInterceptor()).build()
-
-    /** Client whose interceptor captures at most [SMALL_BODY_CAP] chars, for truncation tests. */
-    private fun clientWithSmallBodyCap() = OkHttpClient.Builder().addInterceptor(agent.okHttpInterceptor(maxBodyChars = SMALL_BODY_CAP)).build()
-
     @Test
     fun `records request and response with a matching txId`() {
         server.enqueue(MockResponse().setResponseCode(200).setBody("hello"))
@@ -87,6 +84,8 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         assertEquals("hello", received.response.body)
         assertEquals(false, received.response.fromMock)
     }
+
+    private fun client() = OkHttpClient.Builder().addInterceptor(agent.okHttpInterceptor()).build()
 
     @Test
     fun `captures the request body and its content type`() {
@@ -156,13 +155,16 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         assertEquals(SMALL_BODY_CAP, received.response.body?.length)
     }
 
+    /** Client whose interceptor captures at most [SMALL_BODY_CAP] chars, for truncation tests. */
+    private fun clientWithSmallBodyCap() = OkHttpClient.Builder().addInterceptor(agent.okHttpInterceptor(maxBodyChars = SMALL_BODY_CAP)).build()
+
     @Test
     fun `records a WebSocket upgrade without corrupting the frame stream`() {
         val serverMessageSent = CountDownLatch(1)
         server.enqueue(
             MockResponse().withWebSocketUpgrade(
                 object : WebSocketListener() {
-                    override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
+                    override fun onOpen(webSocket: WebSocket, response: Response) {
                         webSocket.send("hello from server")
                         serverMessageSent.countDown()
                     }
@@ -220,7 +222,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         val received = events.last() as ResponseReceived
         assertEquals(BodyEncoding.BASE64, received.response.bodyEncoding)
         assertEquals(false, received.response.bodyTruncated)
-        assertContentEquals(IMAGE_BYTES, Base64.decode(received.response.body!!))
+        assertContentEquals(IMAGE_BYTES, Base64.decode(assertNotNull(received.response.body)))
     }
 
     @Test
@@ -247,7 +249,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
 
         val sent = events[0] as RequestSent
         assertEquals(BodyEncoding.BASE64, sent.request.bodyEncoding)
-        assertContentEquals(IMAGE_BYTES, Base64.decode(sent.request.body!!))
+        assertContentEquals(IMAGE_BYTES, Base64.decode(assertNotNull(sent.request.body)))
     }
 
     @Test
@@ -294,7 +296,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         val scope = CoroutineScope(SupervisorJob())
         lateinit var agentPeer: JetWhalePluginPeer
         val hostPeer = JetWhalePluginPeer(JetWhaleNetworkAgentPlugin.PLUGIN_ID, scope, sendFrame = { agentPeer.onFrame(it) })
-        agentPeer = JetWhalePluginPeer(JetWhaleNetworkAgentPlugin.PLUGIN_ID, scope, sendFrame = { hostPeer.onFrame(it) })
+        agentPeer = JetWhalePluginPeer(JetWhaleNetworkAgentPlugin.PLUGIN_ID, scope, sendFrame = hostPeer::onFrame)
         agentPeer.configure { agent.registerHandlers(this) }
         hostPeer.messenger.request(SetMockRules(rules))
         scope.cancel()

@@ -62,10 +62,6 @@ class DefaultSslCertificateManager(
     }
     override val certificatesFlow: StateFlow<List<SslCertificateEntry>> get() = mutableCertificatesFlow
 
-    private fun notifyCertificatesChanged() {
-        mutableCertificatesFlow.value = getAllCertificates()
-    }
-
     private val caCertificateGenerator = CACertificateGenerator()
     private val serverCertificateIssuer = ServerCertificateIssuer()
     private val keyPairFactory = KeyPairFactory()
@@ -77,9 +73,19 @@ class DefaultSslCertificateManager(
     private val metadataFile: File
         get() = File(sslDir, "certificates.json")
 
-    private fun keyStoreFile(id: String): File = File(sslDir, "keystore_$id.p12")
+    override fun getAllCertificates(): List<SslCertificateEntry> = loadMetadata().certificates.mapNotNull { metadata ->
+        val pemFile = caCertPemFile(metadata.id)
+        if (!pemFile.exists()) return@mapNotNull null
+        SslCertificateEntry(
+            id = metadata.id,
+            name = metadata.name,
+            createdAt = metadata.createdAt,
+            caCertificatePem = pemFile.readText(),
+            isActive = metadata.isActive,
+        )
+    }
+
     private fun caCertPemFile(id: String): File = File(sslDir, "ca_$id.pem")
-    private fun keyAlias(id: String): String = "jetwhale_$id"
 
     private fun loadMetadata(): CertificatesStore {
         if (!metadataFile.exists()) return CertificatesStore()
@@ -87,26 +93,7 @@ class DefaultSslCertificateManager(
             .getOrDefault(CertificatesStore())
     }
 
-    private fun saveMetadata(store: CertificatesStore) {
-        metadataFile.writeText(json.encodeToString(store))
-        FilePermissionsWriter.restrictToOwnerFile(metadataFile)
-    }
-
-    override fun getAllCertificates(): List<SslCertificateEntry> {
-        return loadMetadata().certificates.mapNotNull { metadata ->
-            val pemFile = caCertPemFile(metadata.id)
-            if (!pemFile.exists()) return@mapNotNull null
-            SslCertificateEntry(
-                id = metadata.id,
-                name = metadata.name,
-                createdAt = metadata.createdAt,
-                caCertificatePem = pemFile.readText(),
-                isActive = metadata.isActive,
-            )
-        }
-    }
-
-    override fun getActiveCertificate(): SslCertificateEntry? = getAllCertificates().find { it.isActive }
+    override fun getActiveCertificate(): SslCertificateEntry? = getAllCertificates().find(SslCertificateEntry::isActive)
 
     override fun hasCertificate(): Boolean = getAllCertificates().isNotEmpty()
 
@@ -173,6 +160,19 @@ class DefaultSslCertificateManager(
         )
     }
 
+    private fun notifyCertificatesChanged() {
+        mutableCertificatesFlow.value = getAllCertificates()
+    }
+
+    private fun keyStoreFile(id: String): File = File(sslDir, "keystore_$id.p12")
+
+    private fun keyAlias(id: String): String = "jetwhale_$id"
+
+    private fun saveMetadata(store: CertificatesStore) {
+        metadataFile.writeText(json.encodeToString(store))
+        FilePermissionsWriter.restrictToOwnerFile(metadataFile)
+    }
+
     override fun setActiveCertificate(id: String): Boolean {
         val store = loadMetadata()
         if (store.certificates.none { it.id == id }) return false
@@ -202,7 +202,7 @@ class DefaultSslCertificateManager(
     }
 
     override fun getActiveKeyStore(): KeyStore? {
-        val active = loadMetadata().certificates.find { it.isActive } ?: return null
+        val active = loadMetadata().certificates.find(CertificateMetadata::isActive) ?: return null
         val file = keyStoreFile(active.id)
         if (!file.exists()) return null
         return KeyStore.getInstance("PKCS12").apply {
@@ -213,7 +213,7 @@ class DefaultSslCertificateManager(
     override fun getKeyStorePassword(): CharArray = KEYSTORE_PASSWORD.toCharArray()
 
     override fun getActiveKeyAlias(): String? {
-        val active = loadMetadata().certificates.find { it.isActive } ?: return null
+        val active = loadMetadata().certificates.find(CertificateMetadata::isActive) ?: return null
         return keyAlias(active.id)
     }
 
@@ -227,7 +227,7 @@ class DefaultSslCertificateManager(
             .filter { it.isUp && !it.isLoopback }
             .flatMap { it.inetAddresses.asSequence() }
             .filterIsInstance<Inet4Address>()
-            .mapNotNull { it.hostAddress }
+            .mapNotNull(Inet4Address::getHostAddress)
             .distinct()
             .toList()
     }.getOrDefault(emptyList())

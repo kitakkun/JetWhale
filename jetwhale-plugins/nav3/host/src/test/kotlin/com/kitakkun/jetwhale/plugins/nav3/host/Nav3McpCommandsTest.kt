@@ -21,11 +21,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
-private fun JetWhaleMcpCommand.run(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
-    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
-}
-
-@OptIn(ExperimentalJetWhaleApi::class)
 class Nav3McpCommandsTest {
     @Test
     fun `getBackStack numbers the entries and marks the current one`() {
@@ -33,16 +28,16 @@ class Nav3McpCommandsTest {
 
         val result = GetBackStackCommand(controller).run()
 
-        val entries = result["stacks"]!!.jsonArray.single().jsonObject["entries"]!!.jsonArray
-        assertEquals(listOf(0, 1), entries.map { it.jsonObject["index"]!!.jsonPrimitive.content.toInt() })
-        assertEquals(listOf(false, true), entries.map { it.jsonObject["isCurrent"]!!.jsonPrimitive.content.toBoolean() })
+        val entries = result.getValue("stacks").jsonArray.single().jsonObject.getValue("entries").jsonArray
+        assertEquals(listOf(0, 1), entries.map { it.jsonObject.getValue("index").jsonPrimitive.content.toInt() })
+        assertEquals(listOf(false, true), entries.map { it.jsonObject.getValue("isCurrent").jsonPrimitive.content.toBoolean() })
     }
 
     @Test
     fun `getBackStack explains itself when the app registered nothing`() {
         val result = GetBackStackCommand(FakeNav3BackStackController(emptyList())).run()
 
-        assertTrue(result["stacks"]!!.jsonArray.isEmpty())
+        assertTrue(result.getValue("stacks").jsonArray.isEmpty())
         assertTrue(result.containsKey("note"))
     }
 
@@ -134,17 +129,22 @@ class Nav3McpCommandsTest {
 
         val result = RemoveNavKeyCommand(controller).run(buildJsonObject { put("index", 9) })
 
-        assertEquals(false, result["applied"]!!.jsonPrimitive.content.toBoolean())
-        assertEquals("removeAt index 9 is out of range (0..0)", result["error"]!!.jsonPrimitive.content)
+        assertEquals(false, result.getValue("applied").jsonPrimitive.content.toBoolean())
+        assertEquals("removeAt index 9 is out of range (0..0)", result.getValue("error").jsonPrimitive.content)
         // The caller still sees where the stack stands, so it can decide what to do next.
-        assertEquals(1, result["stack"]!!.jsonObject["size"]!!.jsonPrimitive.content.toInt())
+        assertEquals(1, result.getValue("stack").jsonObject.getValue("size").jsonPrimitive.content.toInt())
     }
 
     @Test
     fun `listNavKeyTypes says so when the app exposed no key types`() {
         val result = ListNavKeyTypesCommand(FakeNav3BackStackController(listOf(snapshot("main", "Home")))).run()
 
-        assertTrue(result["keyTypes"]!!.jsonArray.isEmpty())
+        assertTrue(result.getValue("keyTypes").jsonArray.isEmpty())
         assertTrue(result.containsKey("note"))
     }
+}
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private fun JetWhaleMcpCommand.run(arguments: JsonObject = buildJsonObject { }): JsonObject = runBlocking {
+    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
 }

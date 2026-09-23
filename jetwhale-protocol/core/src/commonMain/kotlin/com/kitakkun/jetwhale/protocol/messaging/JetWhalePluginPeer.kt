@@ -85,9 +85,8 @@ public class JetWhalePluginPeer(
             for (frame in outgoingQueue) {
                 try {
                     sendFrame(frame)
-                } catch (e: CancellationException) {
-                    throw e
                 } catch (e: Throwable) {
+                    if (e is CancellationException) throw e
                     // The transport is broken (e.g. a half-closed socket). Without this the pump would
                     // die silently and every later request would wait out its full timeout: close the
                     // outbound side and fail pending requests fast instead.
@@ -117,7 +116,12 @@ public class JetWhalePluginPeer(
         override val payloadFormat: StringFormat get() = this@JetWhalePluginPeer.payloadFormat
 
         override fun trySendRaw(messageType: String, payload: String): RawSendOutcome {
-            val result = outgoingQueue.trySend(PluginFrame.Notification(pluginId, messageType, payload))
+            val notification = PluginFrame.Notification(
+                pluginId = pluginId,
+                messageType = messageType,
+                payload = payload,
+            )
+            val result = outgoingQueue.trySend(notification)
             return when {
                 result.isSuccess -> RawSendOutcome.SENT
                 result.isClosed -> RawSendOutcome.CONNECTION_CLOSED
@@ -166,12 +170,17 @@ public class JetWhalePluginPeer(
     }
 
     private suspend fun requestRaw(messageType: String, payload: String, timeout: Duration?): String {
-        val effectiveTimeout = timeout ?: requestTimeout
         val correlationId = pendingRequestStore.newCorrelationId()
         val deferred = CompletableDeferred<PluginFrame.Reply>()
         pendingRequestStore.register(correlationId, deferred)
 
-        val sendResult = outgoingQueue.trySend(PluginFrame.Request(pluginId, correlationId, messageType, payload))
+        val request = PluginFrame.Request(
+            pluginId = pluginId,
+            correlationId = correlationId,
+            messageType = messageType,
+            payload = payload,
+        )
+        val sendResult = outgoingQueue.trySend(request)
         if (!sendResult.isSuccess) {
             pendingRequestStore.remove(correlationId)
             throw if (sendResult.isClosed) {
@@ -182,6 +191,7 @@ public class JetWhalePluginPeer(
         }
 
         try {
+            val effectiveTimeout = timeout ?: requestTimeout
             val reply = try {
                 withTimeout(effectiveTimeout) { deferred.await() }
             } catch (e: TimeoutCancellationException) {

@@ -14,11 +14,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.settings.Res
@@ -76,7 +80,12 @@ import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSurface
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import java.awt.datatransfer.StringSelection
+
+/** The tallest a certificate's PEM text grows inside its dialog before it scrolls. */
+private val CertificateTextMaxHeight = 320.dp
 
 @Composable
 fun ServerSettingsScreen(
@@ -102,202 +111,75 @@ fun ServerSettingsScreen(
     onDeleteCertificate: (String) -> Unit,
     onShowCertificateDetail: (String) -> Unit,
     onDismissCertificateDetailDialog: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     if (uiState.showDebugApplyConfirmDialog) {
-        JwDialog(
-            onDismissRequest = onDismissApplyDebugServerSettingsDialog,
-            closeLabel = stringResource(Res.string.close),
-            title = stringResource(Res.string.debug_server_port_apply_confirm_title),
-            text = {
-                JwText(
-                    if (uiState.editingWssEnabled) {
-                        stringResource(
-                            Res.string.debug_server_port_apply_confirm_message_with_wss,
-                            uiState.editingDebugPortText,
-                            uiState.editingWssPortText,
-                        )
-                    } else {
-                        stringResource(
-                            Res.string.debug_server_port_apply_confirm_message,
-                            uiState.editingDebugPortText,
-                        )
-                    },
-                )
-            },
-            confirmButton = {
-                JwButton(
-                    text = stringResource(Res.string.dialog_ok),
-                    onClick = onConfirmApplyDebugServerSettingsChange,
-                    style = JwButtonStyle.Primary,
-                )
-            },
-            dismissButton = {
-                JwButton(
-                    text = stringResource(Res.string.dialog_cancel),
-                    onClick = onDismissApplyDebugServerSettingsDialog,
-                    style = JwButtonStyle.Text,
-                )
-            },
+        DebugServerApplyConfirmDialog(
+            editingWssEnabled = uiState.editingWssEnabled,
+            editingDebugPortText = uiState.editingDebugPortText,
+            editingWssPortText = uiState.editingWssPortText,
+            onConfirm = onConfirmApplyDebugServerSettingsChange,
+            onDismiss = onDismissApplyDebugServerSettingsDialog,
         )
     }
 
     if (uiState.showMcpApplyConfirmDialog) {
-        JwDialog(
-            onDismissRequest = onDismissApplyMcpPortDialog,
-            closeLabel = stringResource(Res.string.close),
-            title = stringResource(Res.string.mcp_server_port_apply_confirm_title),
-            text = {
-                JwText(
-                    stringResource(
-                        Res.string.mcp_server_port_apply_confirm_message,
-                        uiState.editingMcpPortText,
-                    ),
-                )
-            },
-            confirmButton = {
-                JwButton(
-                    text = stringResource(Res.string.dialog_ok),
-                    onClick = onConfirmApplyMcpPortChange,
-                    style = JwButtonStyle.Primary,
-                )
-            },
-            dismissButton = {
-                JwButton(
-                    text = stringResource(Res.string.dialog_cancel),
-                    onClick = onDismissApplyMcpPortDialog,
-                    style = JwButtonStyle.Text,
-                )
-            },
+        McpPortApplyConfirmDialog(
+            editingMcpPortText = uiState.editingMcpPortText,
+            onConfirm = onConfirmApplyMcpPortChange,
+            onDismiss = onDismissApplyMcpPortDialog,
         )
     }
 
     uiState.certificateDetailDialogEntry?.let { entry ->
-        val clipboardManager = LocalClipboardManager.current
-        JwDialog(
-            onDismissRequest = onDismissCertificateDetailDialog,
-            closeLabel = stringResource(Res.string.close),
-            title = stringResource(Res.string.ssl_certificate_detail_title),
-            text = {
-                JwText(
-                    text = entry.caCertificatePem,
-                    style = JwTheme.textStyles.bodySmall,
-                    modifier = Modifier
-                        .heightIn(max = 320.dp)
-                        .verticalScroll(rememberScrollState())
-                        .horizontalScroll(rememberScrollState()),
-                )
-            },
-            confirmButton = {
-                JwButton(
-                    text = stringResource(Res.string.ssl_certificate_copy),
-                    onClick = { clipboardManager.setText(AnnotatedString(entry.caCertificatePem)) },
-                    style = JwButtonStyle.Primary,
-                )
-            },
-            dismissButton = {
-                JwButton(
-                    text = stringResource(Res.string.dialog_ok),
-                    onClick = onDismissCertificateDetailDialog,
-                    style = JwButtonStyle.Text,
-                )
-            },
+        CertificateDetailDialog(
+            caCertificatePem = entry.caCertificatePem,
+            onDismiss = onDismissCertificateDetailDialog,
         )
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = SettingsScreenScaffoldPageContentPadding,
     ) {
         if (page == SettingsScreenPage.DebugServer) {
             item {
-                SettingOptionView(
-                    label = stringResource(Res.string.debug_server_label),
-                ) {
-                    JwText(
-                        text = serverStateText(uiState.debugServerState),
-                    )
-                    TextFieldSettingsItemView(
-                        label = stringResource(Res.string.debug_server_port_label),
-                        text = uiState.editingDebugPortText,
-                        onTextChange = onDebugPortTextChange,
-                    )
-                    SwitchSettingsItemView(
-                        label = stringResource(Res.string.wss_enabled_label),
-                        isChecked = uiState.editingWssEnabled,
-                        onCheckedChange = onWssEnabledChange,
-                    )
-                    TextFieldSettingsItemView(
-                        label = stringResource(Res.string.wss_port_label),
-                        text = uiState.editingWssPortText,
-                        onTextChange = onWssPortTextChange,
-                    )
-                    uiState.debugServerSettingsError?.let { error ->
-                        JwText(
-                            text = debugServerSettingsErrorText(error),
-                            style = JwTheme.textStyles.bodySmall,
-                            color = JwTheme.colors.error,
-                        )
-                    }
-                    if (uiState.isDebugApplyVisible) {
-                        JwButton(
-                            text = applyButtonText(isRetry = uiState.isDebugRetry),
-                            onClick = onApplyDebugServerSettingsChange,
-                            enabled = uiState.isDebugApplyEnabled,
-                            style = JwButtonStyle.Primary,
-                        )
-                    }
-                }
+                DebugServerSection(
+                    serverState = uiState.debugServerState,
+                    editingDebugPortText = uiState.editingDebugPortText,
+                    editingWssPortText = uiState.editingWssPortText,
+                    editingWssEnabled = uiState.editingWssEnabled,
+                    settingsError = uiState.debugServerSettingsError,
+                    isApplyVisible = uiState.isDebugApplyVisible,
+                    isApplyEnabled = uiState.isDebugApplyEnabled,
+                    isRetry = uiState.isDebugRetry,
+                    onDebugPortTextChange = onDebugPortTextChange,
+                    onWssPortTextChange = onWssPortTextChange,
+                    onWssEnabledChange = onWssEnabledChange,
+                    onApplyDebugServerSettingsChange = onApplyDebugServerSettingsChange,
+                )
             }
         }
         if (page == SettingsScreenPage.McpServer) {
             item {
-                SettingOptionView(
-                    label = stringResource(Res.string.mcp_server_label),
-                ) {
-                    JwText(
-                        text = serverStateText(uiState.mcpServerState),
-                    )
-                    TextFieldSettingsItemView(
-                        label = stringResource(Res.string.mcp_server_port_label),
-                        text = uiState.editingMcpPortText,
-                        onTextChange = onMcpPortTextChange,
-                    )
-                    if (uiState.isMcpApplyVisible) {
-                        JwButton(
-                            text = applyButtonText(isRetry = uiState.isMcpRetry),
-                            onClick = onApplyMcpPortChange,
-                            enabled = uiState.isMcpApplyEnabled,
-                            style = JwButtonStyle.Primary,
-                        )
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    JwText(
-                        text = stringResource(Res.string.mcp_setup_note),
-                        style = JwTheme.textStyles.bodySmall,
-                        color = JwTheme.colors.textSecondary,
-                    )
-                    McpSnippetView(
-                        label = stringResource(Res.string.mcp_setup_claude_code_label),
-                        snippet = uiState.mcpClaudeCodeCommand,
-                    )
-                    McpSnippetView(
-                        label = stringResource(Res.string.mcp_setup_json_label),
-                        snippet = uiState.mcpJsonConfig,
-                    )
-                    JwButton(
-                        text = stringResource(Res.string.mcp_setup_open_guide),
-                        onClick = onClickOpenMcpGuide,
-                        style = JwButtonStyle.Secondary,
-                    )
-                }
+                McpServerSection(
+                    serverState = uiState.mcpServerState,
+                    editingMcpPortText = uiState.editingMcpPortText,
+                    claudeCodeCommand = uiState.mcpClaudeCodeCommand,
+                    jsonConfig = uiState.mcpJsonConfig,
+                    isApplyVisible = uiState.isMcpApplyVisible,
+                    isApplyEnabled = uiState.isMcpApplyEnabled,
+                    isRetry = uiState.isMcpRetry,
+                    onMcpPortTextChange = onMcpPortTextChange,
+                    onApplyMcpPortChange = onApplyMcpPortChange,
+                    onClickOpenMcpGuide = onClickOpenMcpGuide,
+                )
             }
         }
         if (page == SettingsScreenPage.McpPermissions) {
             item {
-                SettingOptionView(
-                    label = stringResource(Res.string.mcp_permission_title),
-                ) {
+                SettingOptionView(label = stringResource(Res.string.mcp_permission_title)) {
                     McpPermissionsTreeView(
                         uiState = uiState.mcpPermissions,
                         onSetHostGroupAllowed = onSetHostGroupAllowed,
@@ -310,61 +192,321 @@ fun ServerSettingsScreen(
         }
         if (page == SettingsScreenPage.SslCertificate) {
             item {
-                SettingOptionView(
-                    label = stringResource(Res.string.ssl_certificate),
-                ) {
-                    JwText(
-                        text = stringResource(Res.string.ssl_certificate_apply_note),
-                        style = JwTheme.textStyles.bodySmall,
-                        color = JwTheme.colors.textSecondary,
-                    )
-                    if (uiState.certificates.isEmpty()) {
-                        JwText(stringResource(Res.string.ssl_certificate_no_certificate))
-                    }
-                    uiState.certificates.forEach { certificate ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            JwText(
-                                text = buildString {
-                                    append(certificate.name)
-                                    if (certificate.isActive) append(" (${stringResource(Res.string.ssl_certificate_active)})")
-                                },
-                                style = JwTheme.textStyles.body,
-                                modifier = Modifier.weight(1f),
-                            )
-                            JwText(
-                                text = stringResource(Res.string.ssl_certificate_created_at, certificate.createdAt),
-                                style = JwTheme.textStyles.bodySmall,
-                            )
-                            if (!certificate.isActive) {
-                                JwButton(
-                                    text = stringResource(Res.string.ssl_certificate_set_active),
-                                    onClick = { onSetActiveCertificate(certificate.id) },
-                                    style = JwButtonStyle.Text,
-                                )
-                            }
-                            JwButton(
-                                text = stringResource(Res.string.ssl_certificate_show_detail),
-                                onClick = { onShowCertificateDetail(certificate.id) },
-                                style = JwButtonStyle.Text,
-                            )
-                            JwButton(
-                                text = stringResource(Res.string.ssl_certificate_delete),
-                                onClick = { onDeleteCertificate(certificate.id) },
-                                style = JwButtonStyle.Text,
-                            )
-                        }
-                    }
-                    JwButton(
-                        text = stringResource(Res.string.ssl_certificate_add),
-                        onClick = onAddCertificate,
-                        style = JwButtonStyle.Secondary,
-                    )
-                }
+                SslCertificateSection(
+                    certificates = uiState.certificates,
+                    onAddCertificate = onAddCertificate,
+                    onSetActiveCertificate = onSetActiveCertificate,
+                    onDeleteCertificate = onDeleteCertificate,
+                    onShowCertificateDetail = onShowCertificateDetail,
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun DebugServerApplyConfirmDialog(
+    editingWssEnabled: Boolean,
+    editingDebugPortText: String,
+    editingWssPortText: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    JwDialog(
+        onDismissRequest = onDismiss,
+        closeLabel = stringResource(Res.string.close),
+        title = stringResource(Res.string.debug_server_port_apply_confirm_title),
+        modifier = modifier,
+        confirmButton = {
+            JwButton(
+                text = stringResource(Res.string.dialog_ok),
+                onClick = onConfirm,
+                style = JwButtonStyle.Primary,
+            )
+        },
+        dismissButton = {
+            JwButton(
+                text = stringResource(Res.string.dialog_cancel),
+                onClick = onDismiss,
+                style = JwButtonStyle.Text,
+            )
+        },
+    ) {
+        JwText(
+            if (editingWssEnabled) {
+                stringResource(
+                    Res.string.debug_server_port_apply_confirm_message_with_wss,
+                    editingDebugPortText,
+                    editingWssPortText,
+                )
+            } else {
+                stringResource(
+                    Res.string.debug_server_port_apply_confirm_message,
+                    editingDebugPortText,
+                )
+            },
+        )
+    }
+}
+
+@Composable
+private fun McpPortApplyConfirmDialog(
+    editingMcpPortText: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    JwDialog(
+        onDismissRequest = onDismiss,
+        closeLabel = stringResource(Res.string.close),
+        title = stringResource(Res.string.mcp_server_port_apply_confirm_title),
+        modifier = modifier,
+        confirmButton = {
+            JwButton(
+                text = stringResource(Res.string.dialog_ok),
+                onClick = onConfirm,
+                style = JwButtonStyle.Primary,
+            )
+        },
+        dismissButton = {
+            JwButton(
+                text = stringResource(Res.string.dialog_cancel),
+                onClick = onDismiss,
+                style = JwButtonStyle.Text,
+            )
+        },
+    ) {
+        JwText(stringResource(Res.string.mcp_server_port_apply_confirm_message, editingMcpPortText))
+    }
+}
+
+@Composable
+private fun CertificateDetailDialog(
+    caCertificatePem: String,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    JwDialog(
+        onDismissRequest = onDismiss,
+        closeLabel = stringResource(Res.string.close),
+        title = stringResource(Res.string.ssl_certificate_detail_title),
+        modifier = modifier,
+        confirmButton = {
+            JwButton(
+                text = stringResource(Res.string.ssl_certificate_copy),
+                onClick = { scope.launch { clipboard.setPlainText(caCertificatePem) } },
+                style = JwButtonStyle.Primary,
+            )
+        },
+        dismissButton = {
+            JwButton(
+                text = stringResource(Res.string.dialog_ok),
+                onClick = onDismiss,
+                style = JwButtonStyle.Text,
+            )
+        },
+    ) {
+        JwText(
+            text = caCertificatePem,
+            style = JwTheme.textStyles.bodySmall,
+            modifier = Modifier
+                .heightIn(max = CertificateTextMaxHeight)
+                .verticalScroll(rememberScrollState())
+                .horizontalScroll(rememberScrollState()),
+        )
+    }
+}
+
+@Composable
+private fun DebugServerSection(
+    serverState: ServerState,
+    editingDebugPortText: String,
+    editingWssPortText: String,
+    editingWssEnabled: Boolean,
+    settingsError: DebugServerSettingsError?,
+    isApplyVisible: Boolean,
+    isApplyEnabled: Boolean,
+    isRetry: Boolean,
+    onDebugPortTextChange: (String) -> Unit,
+    onWssPortTextChange: (String) -> Unit,
+    onWssEnabledChange: (Boolean) -> Unit,
+    onApplyDebugServerSettingsChange: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingOptionView(
+        label = stringResource(Res.string.debug_server_label),
+        modifier = modifier,
+    ) {
+        JwText(text = serverStateText(serverState))
+        TextFieldSettingsItemView(
+            label = stringResource(Res.string.debug_server_port_label),
+            text = editingDebugPortText,
+            onTextChange = onDebugPortTextChange,
+        )
+        SwitchSettingsItemView(
+            label = stringResource(Res.string.wss_enabled_label),
+            isChecked = editingWssEnabled,
+            onCheckedChange = onWssEnabledChange,
+        )
+        TextFieldSettingsItemView(
+            label = stringResource(Res.string.wss_port_label),
+            text = editingWssPortText,
+            onTextChange = onWssPortTextChange,
+        )
+        settingsError?.let { error ->
+            JwText(
+                text = debugServerSettingsErrorText(error),
+                style = JwTheme.textStyles.bodySmall,
+                color = JwTheme.colors.error,
+            )
+        }
+        if (isApplyVisible) {
+            JwButton(
+                text = applyButtonText(isRetry = isRetry),
+                onClick = onApplyDebugServerSettingsChange,
+                enabled = isApplyEnabled,
+                style = JwButtonStyle.Primary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun McpServerSection(
+    serverState: ServerState,
+    editingMcpPortText: String,
+    claudeCodeCommand: String,
+    jsonConfig: String,
+    isApplyVisible: Boolean,
+    isApplyEnabled: Boolean,
+    isRetry: Boolean,
+    onMcpPortTextChange: (String) -> Unit,
+    onApplyMcpPortChange: () -> Unit,
+    onClickOpenMcpGuide: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingOptionView(
+        label = stringResource(Res.string.mcp_server_label),
+        modifier = modifier,
+    ) {
+        JwText(text = serverStateText(serverState))
+        TextFieldSettingsItemView(
+            label = stringResource(Res.string.mcp_server_port_label),
+            text = editingMcpPortText,
+            onTextChange = onMcpPortTextChange,
+        )
+        if (isApplyVisible) {
+            JwButton(
+                text = applyButtonText(isRetry = isRetry),
+                onClick = onApplyMcpPortChange,
+                enabled = isApplyEnabled,
+                style = JwButtonStyle.Primary,
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        JwText(
+            text = stringResource(Res.string.mcp_setup_note),
+            style = JwTheme.textStyles.bodySmall,
+            color = JwTheme.colors.textSecondary,
+        )
+        McpSnippetView(
+            label = stringResource(Res.string.mcp_setup_claude_code_label),
+            snippet = claudeCodeCommand,
+        )
+        McpSnippetView(
+            label = stringResource(Res.string.mcp_setup_json_label),
+            snippet = jsonConfig,
+        )
+        JwButton(
+            text = stringResource(Res.string.mcp_setup_open_guide),
+            onClick = onClickOpenMcpGuide,
+            style = JwButtonStyle.Secondary,
+        )
+    }
+}
+
+@Composable
+private fun SslCertificateSection(
+    certificates: List<CertificateUiEntry>,
+    onAddCertificate: () -> Unit,
+    onSetActiveCertificate: (String) -> Unit,
+    onDeleteCertificate: (String) -> Unit,
+    onShowCertificateDetail: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingOptionView(
+        label = stringResource(Res.string.ssl_certificate),
+        modifier = modifier,
+    ) {
+        JwText(
+            text = stringResource(Res.string.ssl_certificate_apply_note),
+            style = JwTheme.textStyles.bodySmall,
+            color = JwTheme.colors.textSecondary,
+        )
+        if (certificates.isEmpty()) {
+            JwText(stringResource(Res.string.ssl_certificate_no_certificate))
+        }
+        certificates.forEach { certificate ->
+            CertificateRow(
+                certificate = certificate,
+                onSetActiveCertificate = onSetActiveCertificate,
+                onDeleteCertificate = onDeleteCertificate,
+                onShowCertificateDetail = onShowCertificateDetail,
+            )
+        }
+        JwButton(
+            text = stringResource(Res.string.ssl_certificate_add),
+            onClick = onAddCertificate,
+            style = JwButtonStyle.Secondary,
+        )
+    }
+}
+
+@Composable
+private fun CertificateRow(
+    certificate: CertificateUiEntry,
+    onSetActiveCertificate: (String) -> Unit,
+    onDeleteCertificate: (String) -> Unit,
+    onShowCertificateDetail: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        JwText(
+            text = buildString {
+                append(certificate.name)
+                if (certificate.isActive) append(" (${stringResource(Res.string.ssl_certificate_active)})")
+            },
+            style = JwTheme.textStyles.body,
+            modifier = Modifier.weight(1f),
+        )
+        JwText(
+            text = stringResource(Res.string.ssl_certificate_created_at, certificate.createdAt),
+            style = JwTheme.textStyles.bodySmall,
+        )
+        if (!certificate.isActive) {
+            JwButton(
+                text = stringResource(Res.string.ssl_certificate_set_active),
+                onClick = { onSetActiveCertificate(certificate.id) },
+                style = JwButtonStyle.Text,
+            )
+        }
+        JwButton(
+            text = stringResource(Res.string.ssl_certificate_show_detail),
+            onClick = { onShowCertificateDetail(certificate.id) },
+            style = JwButtonStyle.Text,
+        )
+        JwButton(
+            text = stringResource(Res.string.ssl_certificate_delete),
+            onClick = { onDeleteCertificate(certificate.id) },
+            style = JwButtonStyle.Text,
+        )
     }
 }
 
@@ -372,10 +514,13 @@ fun ServerSettingsScreen(
 private fun McpSnippetView(
     label: String,
     snippet: String,
+    modifier: Modifier = Modifier,
 ) {
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     Spacer(Modifier.height(8.dp))
     Row(
+        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -406,10 +551,15 @@ private fun McpSnippetView(
         }
         JwButton(
             text = stringResource(Res.string.copy_to_clipboard),
-            onClick = { clipboardManager.setText(AnnotatedString(snippet)) },
+            onClick = { scope.launch { clipboard.setPlainText(snippet) } },
             style = JwButtonStyle.Text,
         )
     }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+private suspend fun Clipboard.setPlainText(text: String) {
+    setClipEntry(ClipEntry(StringSelection(text)))
 }
 
 @Composable
@@ -438,4 +588,60 @@ private fun serverStateText(state: ServerState): String = when (state) {
     is ServerState.Stopping -> stringResource(Res.string.server_status_stopping)
 
     is ServerState.Stopped -> stringResource(Res.string.server_status_stopped)
+}
+
+@Preview
+@Composable
+private fun ServerSettingsScreenPreview() {
+    JwTheme(darkTheme = false) {
+        ServerSettingsScreen(
+            page = SettingsScreenPage.DebugServer,
+            uiState = ServerSettingsScreenUiState(
+                debugServerState = ServerState.Running(host = "localhost", port = 5080, wssPort = 5443),
+                mcpServerState = ServerState.Stopped,
+                editingDebugPortText = "5080",
+                editingWssPortText = "5443",
+                editingWssEnabled = true,
+                debugServerSettingsError = null,
+                editingMcpPortText = "7080",
+                mcpClaudeCodeCommand = "claude mcp add --transport sse jetwhale http://localhost:7080/sse",
+                mcpJsonConfig = "{}",
+                mcpPermissions = McpPermissionsUiState(
+                    allowedHostGroups = setOf(McpHostToolGroup.OBSERVE),
+                    plugins = emptyList(),
+                    isOverriddenForLaunch = false,
+                ),
+                isDebugApplyVisible = true,
+                isMcpApplyVisible = false,
+                isDebugApplyEnabled = true,
+                isMcpApplyEnabled = false,
+                isDebugRetry = false,
+                isMcpRetry = false,
+                showDebugApplyConfirmDialog = false,
+                showMcpApplyConfirmDialog = false,
+                certificates = emptyList(),
+                certificateDetailDialogEntry = null,
+            ),
+            onDebugPortTextChange = {},
+            onWssPortTextChange = {},
+            onWssEnabledChange = {},
+            onApplyDebugServerSettingsChange = {},
+            onConfirmApplyDebugServerSettingsChange = {},
+            onDismissApplyDebugServerSettingsDialog = {},
+            onMcpPortTextChange = {},
+            onApplyMcpPortChange = {},
+            onConfirmApplyMcpPortChange = {},
+            onDismissApplyMcpPortDialog = {},
+            onClickOpenMcpGuide = {},
+            onSetHostGroupAllowed = { _, _ -> },
+            onSetPluginInspectAllowed = { _, _ -> },
+            onSetPluginInteractAllowed = { _, _ -> },
+            onSetPluginToolAllowed = { _, _ -> },
+            onAddCertificate = {},
+            onSetActiveCertificate = {},
+            onDeleteCertificate = {},
+            onShowCertificateDetail = {},
+            onDismissCertificateDetailDialog = {},
+        )
+    }
 }

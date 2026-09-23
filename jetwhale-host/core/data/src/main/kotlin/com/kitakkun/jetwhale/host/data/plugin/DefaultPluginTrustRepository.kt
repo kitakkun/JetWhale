@@ -73,17 +73,15 @@ class DefaultPluginTrustRepository(
         return try {
             val registry = json.decodeFromString<TrustRegistryFile>(file.readText())
             // Verify the HMAC over the exact re-encoding of the entries map — the same string
-            // persist() signed. The signer's answer depends only on whether a key exists:
-            //  - DISABLED   → no key, so signing is off: load the registry unverified (prompt-free).
-            //  - VALID      → the signature matches: load.
-            //  - INVALID    → a key exists but the signature is missing/forged (the file was rewritten
-            //                 by something that could not sign it): fail safe, trust nothing.
-            //  - UNAVAILABLE→ a key may exist but the store could not be read: load with a warning.
+            // persist() signed.
             when (trustRegistrySigner.verify(json.encodeToString(registry.entries), registry.signature)) {
+                // DISABLED means no signing key exists at all, so there is nothing to verify against.
                 TrustRegistrySigner.Verification.VALID,
                 TrustRegistrySigner.Verification.DISABLED,
                 -> Unit
 
+                // A key exists but the signature is missing or forged: something that could not sign
+                // rewrote the file.
                 TrustRegistrySigner.Verification.INVALID -> {
                     logger.warning("Plugin trust registry failed signature verification, treating all plugins as untrusted.")
                     return emptyMap()
@@ -131,7 +129,7 @@ class DefaultPluginTrustRepository(
         tempFile.writeText(json.encodeToString(registry))
         try {
             Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-        } catch (e: AtomicMoveNotSupportedException) {
+        } catch (_: AtomicMoveNotSupportedException) {
             Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
         }
     }

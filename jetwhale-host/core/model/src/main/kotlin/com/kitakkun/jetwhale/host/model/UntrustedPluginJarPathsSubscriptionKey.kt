@@ -8,7 +8,8 @@ import soil.query.SubscriptionKey
  * `ImmutableList<String>`) so this subscription key does not collide with
  * [FailedPluginJarPathsSubscriptionKey] in dependency injection.
  */
-data class UntrustedPluginJars(val paths: ImmutableList<String>)
+@JvmInline
+value class UntrustedPluginJars(val paths: ImmutableList<String>)
 
 /**
  * Jars present in the plugins directory that were not loaded because they are not trusted (never

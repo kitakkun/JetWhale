@@ -95,13 +95,13 @@ private class Nav3HostPlugin :
 
     @Composable
     override fun Content() {
-        Nav3NavigatorScreen(
+        Nav3NavigatorScreenRoot(
             stacks = stacks,
             keyTypes = navKeyTypes,
             selectedStackId = selectedStackId,
             status = status,
             onSelectStack = { selectedStackId = it },
-            onApplyOperation = { stackId, operation -> applyFromUi(stackId, operation) },
+            onApplyOperation = ::applyFromUi,
             onRefresh = {
                 pluginScope.launch {
                     status = try {

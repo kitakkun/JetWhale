@@ -46,16 +46,11 @@ import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.time.Duration.Companion.milliseconds
 
 /** Not valid UTF-8: decoding these as text would destroy them, which is the point of Base64. */
 private val IMAGE_BYTES = ByteArray(300) { (it * 7).toByte() }
-
-private fun MockRequestHandleScope.respondImage(bytes: ByteArray) = respond(
-    content = bytes,
-    status = HttpStatusCode.OK,
-    headers = headersOf(HttpHeaders.ContentType, ContentType.Image.PNG.toString()),
-)
 
 class JetWhaleNetworkKtorPluginTest {
 
@@ -69,7 +64,7 @@ class JetWhaleNetworkKtorPluginTest {
 
         val received = events.last() as ResponseReceived
         assertEquals(BodyEncoding.BASE64, received.response.bodyEncoding)
-        assertContentEquals(IMAGE_BYTES, Base64.decode(received.response.body!!))
+        assertContentEquals(IMAGE_BYTES, Base64.decode(assertNotNull(received.response.body)))
     }
 
     @Test
@@ -99,7 +94,7 @@ class JetWhaleNetworkKtorPluginTest {
 
         val sent = events.first() as RequestSent
         assertEquals(BodyEncoding.BASE64, sent.request.bodyEncoding)
-        assertContentEquals(IMAGE_BYTES, Base64.decode(sent.request.body!!))
+        assertContentEquals(IMAGE_BYTES, Base64.decode(assertNotNull(sent.request.body)))
     }
 
     @Test
@@ -405,6 +400,12 @@ class JetWhaleNetworkKtorPluginTest {
         assertEquals(1, events.filterIsInstance<ResponseReceived>().size)
     }
 }
+
+private fun MockRequestHandleScope.respondImage(bytes: ByteArray) = respond(
+    content = bytes,
+    status = HttpStatusCode.OK,
+    headers = headersOf(HttpHeaders.ContentType, ContentType.Image.PNG.toString()),
+)
 
 /** A body that carries its own header, spelled differently from the one the request sets. */
 private class TracedContent(private val text: String) : OutgoingContent.ByteArrayContent() {

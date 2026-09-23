@@ -27,9 +27,10 @@ import kotlinx.coroutines.sync.withLock
  *
  * Attributes are fetched per node rather than carried by the capture — a tree of two hundred nodes
  * would otherwise haul thirty attributes each — so a selection change is a read.
+ *
+ * @property scope Outlives the panel, so a write started there is still recorded after it closes.
  */
 internal class ViewAttributeStore(
-    /** Outlives the panel, so a write started there is still recorded after it closes. */
     private val scope: CoroutineScope,
     private val read: suspend (GetViewAttributes) -> ViewAttributeResponse,
     private val write: suspend (SetViewAttribute) -> ViewAttributeResult,

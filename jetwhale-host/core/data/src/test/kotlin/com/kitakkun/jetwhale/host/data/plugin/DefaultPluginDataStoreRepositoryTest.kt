@@ -26,13 +26,6 @@ class DefaultPluginDataStoreRepositoryTest {
         if (originalUserHome != null) System.setProperty("user.home", originalUserHome)
     }
 
-    // Points AppDataDirectoryProvider at a throwaway home so each test gets its own plugin-data tree.
-    private fun newRepository(): DefaultPluginDataStoreRepository {
-        val tempHome = Files.createTempDirectory("jetwhale-plugin-data-test").toString()
-        System.setProperty("user.home", tempHome)
-        return DefaultPluginDataStoreRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())))
-    }
-
     @Test
     fun `stores and reads back primitive and structured values`() = runBlocking {
         val storage = newRepository().storageFor("plugin.a")
@@ -46,6 +39,13 @@ class DefaultPluginDataStoreRepositoryTest {
         assertEquals("errors-only", storage.get<String>("filter"))
         assertEquals(listOf("a", "b", "c"), storage.get<List<String>>("pinned"))
         assertEquals(mapOf("x" to 1, "y" to 2), storage.get<Map<String, Int>>("counts"))
+    }
+
+    // Points AppDataDirectoryProvider at a throwaway home so each test gets its own plugin-data tree.
+    private fun newRepository(): DefaultPluginDataStoreRepository {
+        val tempHome = Files.createTempDirectory("jetwhale-plugin-data-test").toString()
+        System.setProperty("user.home", tempHome)
+        return DefaultPluginDataStoreRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())))
     }
 
     @Test

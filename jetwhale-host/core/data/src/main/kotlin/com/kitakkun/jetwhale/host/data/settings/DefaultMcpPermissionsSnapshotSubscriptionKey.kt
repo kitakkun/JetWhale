@@ -43,7 +43,7 @@ class DefaultMcpPermissionsSnapshotSubscriptionKey(
                             tools = capablePlugins.toolsForAnySession(plugin.manifest.pluginId),
                         )
                     }
-                    .sortedBy { it.displayName },
+                    .sortedBy(McpPermissionPlugin::displayName),
                 isOverriddenForLaunch = launchOverride.allowAll,
             )
         }

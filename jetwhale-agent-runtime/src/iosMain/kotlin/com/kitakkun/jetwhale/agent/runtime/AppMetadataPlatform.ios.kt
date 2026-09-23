@@ -55,7 +55,7 @@ private fun Map<*, *>.iconFileNames(): List<String> = (get("CFBundleIconFiles") 
 
 private fun UIImage.scaledToSquare(size: Double): UIImage? {
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(size, size), false, 1.0)
-    drawInRect(CGRectMake(0.0, 0.0, size, size))
+    drawInRect(CGRectMake(x = 0.0, y = 0.0, width = size, height = size))
     val scaled = UIGraphicsGetImageFromCurrentImageContext()
     UIGraphicsEndImageContext()
     return scaled

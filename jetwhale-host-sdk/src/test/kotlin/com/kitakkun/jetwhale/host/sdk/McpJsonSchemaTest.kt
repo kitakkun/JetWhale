@@ -66,18 +66,6 @@ private sealed interface Shape {
 private abstract class OpenBase
 
 class McpJsonSchemaTest {
-    private inline fun <reified T> schemaOf(json: Json = DefaultArgumentJson): JsonObject = serializer<T>().descriptor.toJsonSchema(json)
-
-    private fun JsonObject.obj(key: String): JsonObject = get(key) as JsonObject
-
-    private fun JsonObject.property(name: String): JsonObject = obj("properties").obj(name)
-
-    private fun JsonObject.string(key: String): String = (getValue(key) as JsonPrimitive).content
-
-    private fun JsonObject.strings(key: String): List<String> = (get(key) as JsonArray).map { (it as JsonPrimitive).content }
-
-    private fun JsonObject.variants(): List<JsonObject> = (getValue("oneOf") as JsonArray).map { it as JsonObject }
-
     @Test
     fun `primitive kinds map onto the JSON Schema types`() {
         val schema = schemaOf<Primitives>()
@@ -89,10 +77,20 @@ class McpJsonSchemaTest {
         assertEquals("boolean", schema.property("flag").string("type"))
     }
 
+    private inline fun <reified T> schemaOf(json: Json = DefaultArgumentJson): JsonObject = serializer<T>().descriptor.toJsonSchema(json)
+
+    private fun JsonObject.property(name: String): JsonObject = obj("properties").obj(name)
+
+    private fun JsonObject.obj(key: String): JsonObject = get(key) as JsonObject
+
+    private fun JsonObject.string(key: String): String = (getValue(key) as JsonPrimitive).content
+
     @Test
     fun `a nullable property without a default is still required`() {
         assertEquals(listOf("requiredHere"), schemaOf<Optionality>().strings("required"))
     }
+
+    private fun JsonObject.strings(key: String): List<String> = (get(key) as JsonArray).map { (it as JsonPrimitive).content }
 
     @Test
     fun `maps and nested lists keep their element schemas`() {
@@ -120,6 +118,8 @@ class McpJsonSchemaTest {
         assertEquals(listOf("circle", "nothing"), variants.map { it.property("kind").string("const") })
         variants.forEach { assertEquals("kind", it.strings("required").first()) }
     }
+
+    private fun JsonObject.variants(): List<JsonObject> = (getValue("oneOf") as JsonArray).map { it as JsonObject }
 
     @Test
     fun `a sealed variant with no properties still requires the discriminator`() {

@@ -41,7 +41,7 @@ class MavenPluginInstallService(
                     lastError = e
                 }
             }
-            throw lastError!!
+            throw checkNotNull(lastError) { "Every install candidate failed without reporting an error" }
         } finally {
             pluginInstallProgressRepository.update(null)
         }

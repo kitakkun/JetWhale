@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
@@ -47,11 +48,12 @@ internal fun MocksTab(
     mockingEnabled: Boolean,
     onToggleMocking: (Boolean) -> Unit,
     onChanged: (List<MockRule>) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var editing by remember { mutableStateOf<MockRule?>(null) }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(JwSpacing.large),
@@ -106,8 +108,9 @@ private fun MockRuleRow(
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    JwPanel {
+    JwPanel(modifier = modifier) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.large),
@@ -131,12 +134,18 @@ private fun MockRuleRow(
 }
 
 @Composable
-private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (MockRule) -> Unit) {
+private fun MockRuleDialog(
+    initial: MockRule,
+    onDismiss: () -> Unit,
+    onSave: (MockRule) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var draft by remember(initial.id) { mutableStateOf(initial) }
     JwDialog(
         onDismissRequest = onDismiss,
         closeLabel = "Close",
         title = "Mock rule",
+        modifier = modifier,
         confirmButton = {
             JwButton(
                 text = "Save",
@@ -146,112 +155,133 @@ private fun MockRuleDialog(initial: MockRule, onDismiss: () -> Unit, onSave: (Mo
             )
         },
         dismissButton = { JwButton(text = "Cancel", onClick = onDismiss, style = JwButtonStyle.Text) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
-            ) {
-                JwFormField(label = "Name") {
-                    JwTextField(
-                        value = draft.name,
-                        onValueChange = { draft = draft.copy(name = it) },
-                        modifier = Modifier.fillMaxWidth(),
+        text = { MockRuleForm(draft = draft, onDraftChange = { draft = it }) },
+    )
+}
+
+@Composable
+private fun MockRuleForm(
+    draft: MockRule,
+    onDraftChange: (MockRule) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
+    ) {
+        JwFormField(label = "Name") {
+            JwTextField(
+                value = draft.name,
+                onValueChange = { onDraftChange(draft.copy(name = it)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
+            JwFormField(label = "Method", modifier = Modifier.width(MethodFieldWidth)) {
+                MethodDropdown(
+                    method = draft.matcher.method,
+                    onSelect = { onDraftChange(draft.copy(matcher = draft.matcher.copy(method = it))) },
+                )
+            }
+            JwFormField(label = "URL pattern", modifier = Modifier.weight(1f)) {
+                JwTextField(
+                    value = draft.matcher.urlPattern,
+                    onValueChange = { onDraftChange(draft.copy(matcher = draft.matcher.copy(urlPattern = it))) },
+                    textStyle = JwTheme.textStyles.code,
+                )
+            }
+        }
+        JwFormField(label = "Match") {
+            Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
+                MockMatchType.entries.forEach { type ->
+                    val selected = draft.matcher.matchType == type
+                    JwTag(
+                        text = type.name,
+                        tone = if (selected) JwTone.Accent else JwTone.Neutral,
+                        style = if (selected) JwTagStyle.Filled else JwTagStyle.Outlined,
+                        onClick = { onDraftChange(draft.copy(matcher = draft.matcher.copy(matchType = type))) },
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-                    JwFormField(label = "Method", modifier = Modifier.width(MethodFieldWidth)) {
-                        MethodDropdown(
-                            method = draft.matcher.method,
-                            onSelect = { draft = draft.copy(matcher = draft.matcher.copy(method = it)) },
-                        )
-                    }
-                    JwFormField(label = "URL pattern", modifier = Modifier.weight(1f)) {
-                        JwTextField(
-                            value = draft.matcher.urlPattern,
-                            onValueChange = { draft = draft.copy(matcher = draft.matcher.copy(urlPattern = it)) },
-                            textStyle = JwTheme.textStyles.code,
-                        )
-                    }
-                }
-                JwFormField(label = "Match") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
-                        MockMatchType.entries.forEach { type ->
-                            val selected = draft.matcher.matchType == type
-                            JwTag(
-                                text = type.name,
-                                tone = if (selected) JwTone.Accent else JwTone.Neutral,
-                                style = if (selected) JwTagStyle.Filled else JwTagStyle.Outlined,
-                                onClick = { draft = draft.copy(matcher = draft.matcher.copy(matchType = type)) },
-                            )
-                        }
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-                    JwFormField(label = "Status", modifier = Modifier.width(StatusFieldWidth)) {
-                        JwTextField(
-                            value = draft.response.statusCode.toString(),
-                            onValueChange = { value ->
-                                draft = draft.copy(
-                                    response = draft.response.copy(
-                                        statusCode = value.toIntOrNull() ?: draft.response.statusCode,
-                                    ),
-                                )
-                            },
-                            textStyle = JwTheme.textStyles.code,
-                        )
-                    }
-                    JwFormField(label = "Delay ms", modifier = Modifier.width(DelayFieldWidth)) {
-                        JwTextField(
-                            value = draft.response.delayMs.toString(),
-                            onValueChange = { value ->
-                                draft = draft.copy(
-                                    response = draft.response.copy(
-                                        delayMs = value.toLongOrNull() ?: draft.response.delayMs,
-                                    ),
-                                )
-                            },
-                            textStyle = JwTheme.textStyles.code,
-                        )
-                    }
-                    JwFormField(label = "Content-Type", modifier = Modifier.weight(1f)) {
-                        JwTextField(
-                            value = draft.response.headers["Content-Type"].orEmpty(),
-                            onValueChange = { value ->
-                                val headers = if (value.isBlank()) {
-                                    draft.response.headers - "Content-Type"
-                                } else {
-                                    draft.response.headers + ("Content-Type" to value)
-                                }
-                                draft = draft.copy(response = draft.response.copy(headers = headers))
-                            },
-                            textStyle = JwTheme.textStyles.code,
-                        )
-                    }
-                }
-                JwFormField(label = "Response body") {
-                    if (draft.response.bodyEncoding == BodyEncoding.BASE64) {
-                        // Binary bodies come from "Mock this" on a captured image. They are served
-                        // verbatim; editing Base64 by hand in a text field would only corrupt them.
-                        JwText(
-                            text = "Binary body captured from the response • ${formatByteSize(base64DecodedSize(draft.response.body))}",
-                            style = JwTheme.textStyles.bodySmall,
-                            color = JwTheme.colors.textSecondary,
-                        )
-                    } else {
-                        JwTextField(
-                            value = draft.response.body,
-                            onValueChange = { draft = draft.copy(response = draft.response.copy(body = it)) },
-                            singleLine = false,
-                            textStyle = JwTheme.textStyles.code,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = BodyEditorMinHeight),
-                        )
-                    }
-                }
             }
-        },
-    )
+        }
+        MockResponseFields(draft = draft, onDraftChange = onDraftChange)
+        JwFormField(label = "Response body") {
+            if (draft.response.bodyEncoding == BodyEncoding.BASE64) {
+                // Binary bodies come from "Mock this" on a captured image. They are served
+                // verbatim; editing Base64 by hand in a text field would only corrupt them.
+                JwText(
+                    text = "Binary body captured from the response • ${formatByteSize(base64DecodedSize(draft.response.body))}",
+                    style = JwTheme.textStyles.bodySmall,
+                    color = JwTheme.colors.textSecondary,
+                )
+            } else {
+                JwTextField(
+                    value = draft.response.body,
+                    onValueChange = { onDraftChange(draft.copy(response = draft.response.copy(body = it))) },
+                    singleLine = false,
+                    textStyle = JwTheme.textStyles.code,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = BodyEditorMinHeight),
+                )
+            }
+        }
+    }
+}
+
+/** The one-line response settings: status, delay and content type. */
+@Composable
+private fun MockResponseFields(
+    draft: MockRule,
+    onDraftChange: (MockRule) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
+        JwFormField(label = "Status", modifier = Modifier.width(StatusFieldWidth)) {
+            JwTextField(
+                value = draft.response.statusCode.toString(),
+                onValueChange = { value ->
+                    onDraftChange(
+                        draft.copy(
+                            response = draft.response.copy(
+                                statusCode = value.toIntOrNull() ?: draft.response.statusCode,
+                            ),
+                        ),
+                    )
+                },
+                textStyle = JwTheme.textStyles.code,
+            )
+        }
+        JwFormField(label = "Delay ms", modifier = Modifier.width(DelayFieldWidth)) {
+            JwTextField(
+                value = draft.response.delayMs.toString(),
+                onValueChange = { value ->
+                    onDraftChange(
+                        draft.copy(
+                            response = draft.response.copy(
+                                delayMs = value.toLongOrNull() ?: draft.response.delayMs,
+                            ),
+                        ),
+                    )
+                },
+                textStyle = JwTheme.textStyles.code,
+            )
+        }
+        JwFormField(label = "Content-Type", modifier = Modifier.weight(1f)) {
+            JwTextField(
+                value = draft.response.headers["Content-Type"].orEmpty(),
+                onValueChange = { value ->
+                    val headers = if (value.isBlank()) {
+                        draft.response.headers - "Content-Type"
+                    } else {
+                        draft.response.headers + ("Content-Type" to value)
+                    }
+                    onDraftChange(draft.copy(response = draft.response.copy(headers = headers)))
+                },
+                textStyle = JwTheme.textStyles.code,
+            )
+        }
+    }
 }
 
 /** Fits "OPTIONS" plus the chevron. */
@@ -269,13 +299,14 @@ private val BodyEditorMinHeight = 100.dp
 private val httpMethods = listOf("ANY", "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS")
 
 @Composable
-private fun MethodDropdown(method: String?, onSelect: (String?) -> Unit) {
+private fun MethodDropdown(method: String?, onSelect: (String?) -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
-    val current = method?.takeIf { it.isNotBlank() } ?: "ANY"
+    val current = method?.takeIf(String::isNotBlank) ?: "ANY"
     JwDropdownButton(
         text = current,
         expanded = expanded,
         onExpandedChange = { expanded = it },
+        modifier = modifier,
     ) {
         httpMethods.forEach { item ->
             JwMenuItem(
@@ -302,4 +333,25 @@ private fun List<MockRule>.upsert(rule: MockRule): List<MockRule> = if (any { it
     map { if (it.id == rule.id) rule else it }
 } else {
     this + rule
+}
+
+@Preview
+@Composable
+private fun MocksTabPreview() {
+    JwTheme(darkTheme = false) {
+        MocksTab(
+            rules = listOf(
+                MockRule(
+                    id = "rule-1",
+                    name = "Items are unavailable",
+                    enabled = true,
+                    matcher = MockMatcher(method = "GET", urlPattern = "/api/items", matchType = MockMatchType.CONTAINS),
+                    response = MockResponseSpec(statusCode = 503),
+                ),
+            ),
+            mockingEnabled = true,
+            onToggleMocking = {},
+            onChanged = {},
+        )
+    }
 }

@@ -17,25 +17,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * The store is driven on [Dispatchers.Unconfined], so a coroutine it launches runs as far as its
- * first real suspension point before `launch` returns — a fake that answers straight away leaves
- * the store settled by the time the call under test is over, with no scheduler to pump.
- */
-private fun scope(): CoroutineScope = CoroutineScope(Dispatchers.Unconfined)
+private val alpha = attribute("alpha", ViewAttributeValue.FloatValue(1f))
 
 private fun attribute(id: String, value: ViewAttributeValue): ViewAttribute = ViewAttribute(id = id, label = id, group = "State", value = value, editable = true)
-
-private fun snapshotOf(rootId: String, nodeId: Int, vararg attributes: ViewAttribute): ViewAttributeResponse = ViewAttributeResponse(
-    snapshot = ViewAttributeSnapshot(
-        rootId = rootId,
-        nodeId = nodeId,
-        viewClass = "android.widget.TextView",
-        attributes = attributes.toList(),
-    ),
-)
-
-private val alpha = attribute("alpha", ViewAttributeValue.FloatValue(1f))
 
 class ViewAttributeStoreTest {
     @Test
@@ -236,3 +220,19 @@ class ViewAttributeStoreTest {
         assertNull(store.state.writeStatus)
     }
 }
+
+/**
+ * The store is driven on [Dispatchers.Unconfined], so a coroutine it launches runs as far as its
+ * first real suspension point before `launch` returns — a fake that answers straight away leaves
+ * the store settled by the time the call under test is over, with no scheduler to pump.
+ */
+private fun scope(): CoroutineScope = CoroutineScope(Dispatchers.Unconfined)
+
+private fun snapshotOf(rootId: String, nodeId: Int, vararg attributes: ViewAttribute): ViewAttributeResponse = ViewAttributeResponse(
+    snapshot = ViewAttributeSnapshot(
+        rootId = rootId,
+        nodeId = nodeId,
+        viewClass = "android.widget.TextView",
+        attributes = attributes.toList(),
+    ),
+)

@@ -7,14 +7,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.cancellation.CancellationException
 
-// Shared peer-lifecycle orchestration. Both runtimes create a [JetWhalePluginPeer] with
-// awaitReady = true, register the plugin's handlers, then run the plugin's preparation behind a
-// timeout before opening the ready gate. Hoisting that identical choreography here keeps the agent
-// runtime (one peer per plugin per connection) and the host (one peer per plugin instance per
-// session) from drifting.
-//
-// Each helper takes a `descriptor` that identifies the plugin in log messages (e.g. "plugin 'x'" on
-// the agent, "plugin 'x' in session 'y'" on the host).
+// Shared peer-lifecycle orchestration: both runtimes create a [JetWhalePluginPeer] with
+// awaitReady = true, register handlers, then run preparation behind a timeout before opening the
+// ready gate. Hoisting that choreography here keeps the agent runtime and the host from drifting.
+// Each helper's `descriptor` names the plugin in log messages ("plugin 'x'" on the agent,
+// "plugin 'x' in session 'y'" on the host).
 
 /**
  * Registers handlers on [peer] via [registerHandlers], isolating a throwing registration (e.g. a
@@ -29,9 +26,8 @@ public fun configurePeerGuarded(
 ): Boolean = try {
     peer.configure(registerHandlers)
     true
-} catch (e: CancellationException) {
-    throw e
 } catch (e: Throwable) {
+    if (e is CancellationException) throw e
     warn("JetWhale: handler registration for $descriptor failed; plugin stays offline this connection.", e)
     false
 }
@@ -58,9 +54,8 @@ public fun CoroutineScope.launchPeerPreparation(
         }
     } catch (e: TimeoutCancellationException) {
         warn("JetWhale: onPrepare for $descriptor did not complete in time; proceeding.", e)
-    } catch (e: CancellationException) {
-        throw e
     } catch (e: Throwable) {
+        if (e is CancellationException) throw e
         warn("JetWhale: onPrepare for $descriptor failed; proceeding.", e)
     } finally {
         peer.markReady()
@@ -94,9 +89,8 @@ public fun replyPeerUnavailable(
                     errorMessage = errorMessage,
                 ),
             )
-        } catch (e: CancellationException) {
-            throw e
         } catch (e: Throwable) {
+            if (e is CancellationException) throw e
             warn("JetWhale: failed to send fast-fail reply for plugin '${frame.pluginId}'.", e)
         }
     }

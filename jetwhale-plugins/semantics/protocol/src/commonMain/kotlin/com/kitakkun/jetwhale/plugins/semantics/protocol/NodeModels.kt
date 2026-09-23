@@ -17,36 +17,39 @@ import kotlinx.serialization.Serializable
  * merged one. These options apply to every type identically: depth counts every node, and a node
  * with empty bounds or hidden by its platform is invisible — left out by default, and kept with
  * `isVisible = false` under [includeInvisible].
+ *
+ * @property merged `true` captures the merged tree — the one accessibility services see, where a
+ *   `Button`'s label is folded into the clickable node. `false` captures the unmerged tree, which
+ *   keeps every semantics node separate (closer to how the UI is written).
+ * @property includeInvisible Include nodes whose bounds are empty (not laid out, or fully clipped
+ *   away).
+ * @property maxDepth Stop descending past this depth (the root is depth 0). `null` captures the
+ *   whole tree.
  */
 @Serializable
 data class NodeTreeCaptureOptions(
-    /**
-     * `true` captures the merged tree — the one accessibility services see, where a `Button`'s
-     * label is folded into the clickable node. `false` captures the unmerged tree, which keeps
-     * every semantics node separate (closer to how the UI is written).
-     */
     val merged: Boolean = true,
-    /** Include nodes whose bounds are empty (not laid out, or fully clipped away). */
     val includeInvisible: Boolean = false,
-    /** Stop descending past this depth (the root is depth 0). `null` captures the whole tree. */
     val maxDepth: Int? = null,
 )
 
-/** One capture of every root known to the agent. */
+/**
+ * One capture of every root known to the agent.
+ *
+ * @property capturedAtMs When the capture was taken, in epoch milliseconds on the device.
+ * @property captureDurationMs How long the capture itself took on the device, in milliseconds.
+ * @property options Echoes the options the capture ran with, so a consumer can tell merged from
+ *   unmerged.
+ * @property roots One entry per root (window), in registration order — the newest window is last.
+ * @property warnings Roots that could not be captured, e.g. because their view was detached
+ *   mid-capture. Reported rather than thrown: a partial tree is still useful.
+ */
 @Serializable
 data class NodeTreeSnapshot(
-    /** When the capture was taken, in epoch milliseconds on the device. */
     val capturedAtMs: Long,
-    /** How long the capture itself took on the device, in milliseconds. */
     val captureDurationMs: Long,
-    /** Echoes the options the capture ran with, so a consumer can tell merged from unmerged. */
     val options: NodeTreeCaptureOptions,
-    /** One entry per root (window), in registration order — the newest window is last. */
     val roots: List<ComposeRoot>,
-    /**
-     * Roots that could not be captured, e.g. because their view was detached mid-capture. Reported
-     * rather than thrown: a partial tree is still useful.
-     */
     val warnings: List<String> = emptyList(),
 )
 
@@ -59,28 +62,29 @@ data class NodeTreeSnapshot(
  * root is a `UIWindow` read through its accessibility tree, and a dialog or a sheet stays inside
  * the window that presented it. On desktop a root is one composition, and its tree is the
  * semantics tree alone.
+ *
+ * @property rootId Stable while the root stays attached; address nodes with it in
+ *   [PerformNodeAction].
+ * @property label Human-readable origin, e.g. `MainActivity` or `PopupWindow`.
+ * @property density Device density (px per dp) of this root, for converting the pixel bounds below
+ *   to dp; `1` on iOS, where bounds are points.
+ * @property windowOffsetX Where this root's window sits on screen, in the root's unit (pixels,
+ *   points on iOS). Node bounds are reported in both root and screen coordinates, so this is only
+ *   needed to reason about the window itself.
+ * @property windowOffsetY See [windowOffsetX].
+ * @property node The root node, or `null` when the root has no content yet.
+ * @property isTouchModal `true` when this window takes touches that land outside it, which is what
+ *   an Android window without `FLAG_NOT_TOUCH_MODAL` does — a normal dialog. Nothing in a window
+ *   below such a window can be touched, wherever it sits on screen.
  */
 @Serializable
 data class ComposeRoot(
-    /** Stable while the root stays attached; address nodes with it in [PerformNodeAction]. */
     val rootId: String,
-    /** Human-readable origin, e.g. `MainActivity` or `PopupWindow`. */
     val label: String,
-    /** Device density (px per dp) of this root, for converting the pixel bounds below to dp; `1` on iOS, where bounds are points. */
     val density: Float,
-    /**
-     * Where this root's window sits on screen, in the root's unit (pixels, points on iOS). Node bounds are reported in both root and
-     * screen coordinates, so this is only needed to reason about the window itself.
-     */
     val windowOffsetX: Float,
     val windowOffsetY: Float,
-    /** The root node, or `null` when the root has no content yet. */
     val node: UiNode?,
-    /**
-     * `true` when this window takes touches that land outside it, which is what an Android window
-     * without `FLAG_NOT_TOUCH_MODAL` does — a normal dialog. Nothing in a window below such a
-     * window can be touched, wherever it sits on screen.
-     */
     val isTouchModal: Boolean = false,
 )
 
@@ -188,17 +192,19 @@ sealed interface UiNode {
  *
  * The optional properties default to the unremarkable state — enabled, visible, unfocused, no label —
  * so a node only has to spell out what sets it apart.
+ *
+ * @property role Semantics role (`Button`, `Checkbox`, `Tab`, ...), when the node declares one.
+ * @property testTag `Modifier.testTag` value — the most reliable way to address a node from a test
+ *   or an agent.
  */
 @Serializable
 @SerialName("compose")
 data class ComposeNode(
     override val id: Int,
-    /** Semantics role (`Button`, `Checkbox`, `Tab`, ...), when the node declares one. */
     val role: String? = null,
     override val text: String? = null,
     override val editableText: String? = null,
     override val contentDescription: String? = null,
-    /** `Modifier.testTag` value — the most reliable way to address a node from a test or an agent. */
     val testTag: String? = null,
     val stateDescription: String? = null,
     override val toggleableState: String? = null,
@@ -221,18 +227,18 @@ data class ComposeNode(
  * An Android `View`, either around a composition or embedded in one by `AndroidView { }`.
  *
  * Optional properties default to the unremarkable state, as on [ComposeNode].
+ *
+ * @property id Assigned by the agent and negative, so it cannot collide with a [ComposeNode]'s id.
+ * @property viewClass Fully-qualified class name, e.g. `android.widget.TextView` — what says the
+ *   thing is.
+ * @property resourceId Entry name of the view's `android:id`, e.g. `submit` for `@id/submit`. A
+ *   `View` has no `testTag`, and this is what plays that role.
  */
 @Serializable
 @SerialName("view")
 data class ViewNode(
-    /** Assigned by the agent and negative, so it cannot collide with a [ComposeNode]'s id. */
     override val id: Int,
-    /** Fully-qualified class name, e.g. `android.widget.TextView` — what says the thing is. */
     val viewClass: String,
-    /**
-     * Entry name of the view's `android:id`, e.g. `submit` for `@id/submit`. A `View` has no
-     * `testTag`, and this is what plays that role.
-     */
     val resourceId: String? = null,
     override val text: String? = null,
     override val editableText: String? = null,
@@ -262,25 +268,25 @@ data class ViewNode(
  * Bounds are in **points**, the unit every iOS tool takes, and the root's `density` is `1`.
  *
  * Optional properties default to the unremarkable state, as on [ComposeNode].
+ *
+ * @property id Assigned by the agent and negative, so it cannot collide with a [ComposeNode]'s id.
+ * @property className The Objective-C class name: `UITextField`, `SwiftUI.AccessibilityNode`,
+ *   Compose's `AccessibilityElement`. A SwiftUI hosting view carries a mangled Swift name.
+ * @property accessibilityIdentifier `accessibilityIdentifier`, which is where SwiftUI's
+ *   `.accessibilityIdentifier(_:)` and a Compose `Modifier.testTag` both land — the test-tag
+ *   equivalent of this node type.
+ * @property accessibilityValue `accessibilityValue` as the toolkit reports it: a switch's `"1"`, a
+ *   slider's `"50%"`, a field's content.
+ * @property traits The names of the set `UIAccessibilityTraits` bits, e.g. `Button`, `Selected`,
+ *   `NotEnabled`.
  */
 @Serializable
 @SerialName("apple")
 data class AppleNode(
-    /** Assigned by the agent and negative, so it cannot collide with a [ComposeNode]'s id. */
     override val id: Int,
-    /**
-     * The Objective-C class name: `UITextField`, `SwiftUI.AccessibilityNode`, Compose's
-     * `AccessibilityElement`. A SwiftUI hosting view carries a mangled Swift name.
-     */
     val className: String,
-    /**
-     * `accessibilityIdentifier`, which is where SwiftUI's `.accessibilityIdentifier(_:)` and a Compose
-     * `Modifier.testTag` both land — the test-tag equivalent of this node type.
-     */
     val accessibilityIdentifier: String? = null,
-    /** `accessibilityValue` as the toolkit reports it: a switch's `"1"`, a slider's `"50%"`, a field's content. */
     val accessibilityValue: String? = null,
-    /** The names of the set `UIAccessibilityTraits` bits, e.g. `Button`, `Selected`, `NotEnabled`. */
     val traits: List<String> = emptyList(),
     override val text: String? = null,
     override val editableText: String? = null,
@@ -401,11 +407,14 @@ val NodeAction.advertisedAs: String?
         NodeAction.Collapse -> "Collapse"
     }
 
-/** Outcome of a [PerformNodeAction]. */
+/**
+ * Outcome of a [PerformNodeAction].
+ *
+ * @property performed `true` only when the node's action ran and reported success.
+ * @property message Why the action did not run, or a note about what did run.
+ */
 @Serializable
 data class NodeActionResult(
-    /** `true` only when the node's action ran and reported success. */
     val performed: Boolean,
-    /** Why the action did not run, or a note about what did run. */
     val message: String? = null,
 )

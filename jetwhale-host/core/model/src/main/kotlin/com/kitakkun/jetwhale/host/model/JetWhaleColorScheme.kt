@@ -16,6 +16,7 @@ sealed interface JetWhaleColorScheme {
     sealed interface Static : JetWhaleColorScheme {
         data object Light : Static
         data object Dark : Static
+
         data class Custom(val colors: Map<ThemeColorTokens, Int>) : Static
     }
 }

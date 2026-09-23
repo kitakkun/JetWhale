@@ -74,9 +74,8 @@ internal class DefaultJetWhaleMessagingService(
             // Resolved per round rather than once up front: an address that only becomes correct
             // later is reached without restarting the session.
             resolver.resolve()
-        } catch (e: CancellationException) {
-            throw e
         } catch (e: Throwable) {
+            if (e is CancellationException) throw e
             // Resolution is not supposed to throw — discovery reports its own failures and falls back
             // — but letting one escape would end the loop and the session with it.
             JetWhaleLogger.d("Working out where to connect failed", e)
@@ -88,9 +87,8 @@ internal class DefaultJetWhaleMessagingService(
         for (candidate in candidates) {
             try {
                 // The cap covers establishment only — never the session that follows, which is meant
-                // to last. Establishment is the CA fetch, the TLS handshake, the upgrade and the
-                // negotiation together, and that has been measured at 13s on a physical device over
-                // Wi-Fi, half of it spent in the CA fetch's plain-channel probe. The cap is therefore
+                // to last. CA fetch, TLS handshake, upgrade and negotiation together have been
+                // measured at 13s on a physical device over Wi-Fi, so the cap is deliberately
                 // generous: its job is to bound a candidate that swallows packets — a firewall that
                 // drops rather than refuses — not to be tight.
                 val connection = withTimeoutOrNull(CANDIDATE_TIMEOUT_MILLIS) {
@@ -116,9 +114,8 @@ internal class DefaultJetWhaleMessagingService(
                     failures += CandidateFailure(candidate, "closed after $lasted")
                     JetWhaleLogger.d("$candidate closed the session after $lasted")
                 }
-            } catch (e: CancellationException) {
-                throw e
             } catch (e: Throwable) {
+                if (e is CancellationException) throw e
                 failures += CandidateFailure(candidate, e.toString())
                 JetWhaleLogger.d("Could not connect to $candidate", e)
             }

@@ -48,7 +48,7 @@ private fun routedSourceAddress(): InetAddress? = try {
         socket.connect(InetAddress.getByName(ROUTE_PROBE_ADDRESS), 9)
         socket.localAddress
     }
-} catch (e: Exception) {
+} catch (_: Exception) {
     null
 }
 

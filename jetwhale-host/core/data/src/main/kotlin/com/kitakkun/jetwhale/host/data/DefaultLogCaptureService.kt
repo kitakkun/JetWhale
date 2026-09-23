@@ -30,14 +30,13 @@ class DefaultLogCaptureService : LogCaptureService {
     override fun startCapture() {
         if (isCapturing) return
 
-        originalOut = System.out
-        originalErr = System.err
+        val previousOut = System.out
+        val previousErr = System.err
+        originalOut = previousOut
+        originalErr = previousErr
 
-        val captureOut = CapturingPrintStream(originalOut!!, LogLevel.INFO)
-        val captureErr = CapturingPrintStream(originalErr!!, LogLevel.ERROR)
-
-        System.setOut(captureOut)
-        System.setErr(captureErr)
+        System.setOut(CapturingPrintStream(previousOut, LogLevel.INFO))
+        System.setErr(CapturingPrintStream(previousErr, LogLevel.ERROR))
 
         isCapturing = true
     }
@@ -45,26 +44,14 @@ class DefaultLogCaptureService : LogCaptureService {
     override fun stopCapture() {
         if (!isCapturing) return
 
-        originalOut?.let { System.setOut(it) }
-        originalErr?.let { System.setErr(it) }
+        originalOut?.let(System::setOut)
+        originalErr?.let(System::setErr)
 
         isCapturing = false
     }
 
     override fun clearLogs() {
         _logs.value = emptyList()
-    }
-
-    private fun addLogEntry(message: String, level: LogLevel) {
-        if (message.isBlank()) return
-
-        val entry = LogEntry(
-            timestamp = Clock.System.now(),
-            message = message.trim(),
-            level = level,
-        )
-
-        _logs.value = (_logs.value + entry).takeLast(maxLogEntries)
     }
 
     private inner class CapturingPrintStream(
@@ -110,5 +97,17 @@ class DefaultLogCaptureService : LogCaptureService {
         override fun print(x: Any?) {
             original.print(x)
         }
+    }
+
+    private fun addLogEntry(message: String, level: LogLevel) {
+        if (message.isBlank()) return
+
+        val entry = LogEntry(
+            timestamp = Clock.System.now(),
+            message = message.trim(),
+            level = level,
+        )
+
+        _logs.value = (_logs.value + entry).takeLast(maxLogEntries)
     }
 }

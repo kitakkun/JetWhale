@@ -5,6 +5,7 @@ package com.kitakkun.jetwhale.host.model
  * Snapshot builds carry a `-SNAPSHOT` suffix, which official-plugin installation uses to pick the
  * snapshots repository over Maven Central.
  */
-data class HostVersionInfo(val version: String) {
+@JvmInline
+value class HostVersionInfo(val version: String) {
     val isSnapshot: Boolean get() = version.endsWith("-SNAPSHOT")
 }

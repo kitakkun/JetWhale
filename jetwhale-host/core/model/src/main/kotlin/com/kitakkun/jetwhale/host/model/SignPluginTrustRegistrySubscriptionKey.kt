@@ -7,7 +7,8 @@ import soil.query.SubscriptionKey
  * credential store. A dedicated wrapper type (rather than a bare `Boolean`) so this subscription key
  * has a distinct type for dependency injection.
  */
-data class TrustRegistrySigningState(val enabled: Boolean)
+@JvmInline
+value class TrustRegistrySigningState(val enabled: Boolean)
 
 /**
  * Reflects [PluginTrustService.signingEnabledFlow] for the settings toggle. See [PluginTrustService].

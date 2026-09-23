@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwPanel
@@ -122,4 +123,21 @@ internal fun formatByteSize(bytes: Int): String = when {
     bytes < 1024 -> "$bytes B"
     bytes < 1024 * 1024 -> String.format(Locale.ROOT, "%.1f KB", bytes / 1024.0)
     else -> String.format(Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024.0))
+}
+
+/** A 1x1 PNG, so the preview shows the real decode-and-draw path rather than the text fallback. */
+private const val ONE_PIXEL_PNG =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+
+@Preview
+@Composable
+private fun ImageBodyBlockPreview() {
+    JwTheme(darkTheme = false) {
+        ImageBodyBlock(
+            body = ONE_PIXEL_PNG,
+            mediaType = "image/png",
+            url = "https://example.com/assets/logo.png",
+            truncated = false,
+        )
+    }
 }

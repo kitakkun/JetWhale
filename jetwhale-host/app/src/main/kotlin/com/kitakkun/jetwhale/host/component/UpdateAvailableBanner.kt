@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.host.component
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.close
 import com.kitakkun.jetwhale.host.ui.JwBanner
@@ -20,9 +22,11 @@ fun UpdateAvailableBanner(
     latestVersion: String,
     onClickOpenSettings: () -> Unit,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     JwBanner(
         text = stringResource(Res.string.update_banner_message, latestVersion),
+        modifier = modifier,
         tone = JwTone.Info,
         actions = {
             JwButton(
@@ -33,5 +37,15 @@ fun UpdateAvailableBanner(
         },
         onDismiss = onDismiss,
         dismissLabel = stringResource(Res.string.close),
+    )
+}
+
+@Preview
+@Composable
+private fun UpdateAvailableBannerPreview() {
+    UpdateAvailableBanner(
+        latestVersion = "1.2.3",
+        onClickOpenSettings = {},
+        onDismiss = {},
     )
 }

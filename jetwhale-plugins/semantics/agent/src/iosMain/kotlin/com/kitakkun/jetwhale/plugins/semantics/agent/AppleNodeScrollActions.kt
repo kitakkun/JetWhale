@@ -108,7 +108,7 @@ internal object AppleNodeScrollActions {
             val index = request.index ?: return NodeActionResult.missingArgument(NodeAction.ScrollToIndex, "index")
             return when (node) {
                 is UITableView -> {
-                    val sections = (0 until node.numberOfSections).map { node.numberOfRowsInSection(it) }
+                    val sections = (0 until node.numberOfSections).map(node::numberOfRowsInSection)
                     val path = sectionedIndex(index, sections)
                         ?: return NodeActionResult.notSupported("index $index is out of bounds [0, ${sections.sum()})")
                     node.scrollToRowAtIndexPath(NSIndexPath.indexPathForRow(path.item, inSection = path.section), atScrollPosition = UITableViewScrollPosition.UITableViewScrollPositionTop, animated = false)
@@ -116,7 +116,7 @@ internal object AppleNodeScrollActions {
                 }
 
                 is UICollectionView -> {
-                    val sections = (0 until node.numberOfSections).map { node.numberOfItemsInSection(it) }
+                    val sections = (0 until node.numberOfSections).map(node::numberOfItemsInSection)
                     val path = sectionedIndex(index, sections)
                         ?: return NodeActionResult.notSupported("index $index is out of bounds [0, ${sections.sum()})")
                     node.scrollToItemAtIndexPath(NSIndexPath.indexPathForItem(path.item, inSection = path.section), atScrollPosition = node.startPosition(), animated = false)

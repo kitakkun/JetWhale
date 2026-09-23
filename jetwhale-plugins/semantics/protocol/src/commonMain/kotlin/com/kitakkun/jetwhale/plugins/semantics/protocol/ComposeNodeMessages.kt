@@ -4,8 +4,6 @@ import com.kitakkun.jetwhale.protocol.messaging.JetWhaleRequest
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// -- Requests: host -> agent (debuggee) --------------------------------------
-
 /**
  * Captures the Compose semantics tree of every root the agent knows about.
  *
@@ -26,6 +24,13 @@ data class CaptureNodeTree(
  * This runs the node's own action, so it works regardless of where the window sits on screen and
  * without going through the input system — which is what makes it usable for driving an app from
  * an AI agent.
+ *
+ * @property text Text for [NodeAction.SetText] / [NodeAction.InsertText]; ignored otherwise.
+ * @property scrollX Horizontal scroll distance for [NodeAction.ScrollBy], in the root's unit
+ *   (pixels, points on iOS); ignored otherwise.
+ * @property scrollY Vertical scroll distance for [NodeAction.ScrollBy], in the root's unit (pixels,
+ *   points on iOS); ignored otherwise.
+ * @property index Item index for [NodeAction.ScrollToIndex]; ignored otherwise.
  */
 @SerialName("compose/perform_node_action")
 @Serializable
@@ -33,12 +38,8 @@ data class PerformNodeAction(
     val rootId: String,
     val nodeId: Int,
     val action: NodeAction,
-    /** Text for [NodeAction.SetText] / [NodeAction.InsertText]; ignored otherwise. */
     val text: String? = null,
-    /** Horizontal scroll distance for [NodeAction.ScrollBy], in the root's unit (pixels, points on iOS); ignored otherwise. */
     val scrollX: Float = 0f,
-    /** Vertical scroll distance for [NodeAction.ScrollBy], in the root's unit (pixels, points on iOS); ignored otherwise. */
     val scrollY: Float = 0f,
-    /** Item index for [NodeAction.ScrollToIndex]; ignored otherwise. */
     val index: Int? = null,
 ) : JetWhaleRequest<NodeActionResult>

@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.settings.Res
@@ -46,23 +47,27 @@ data class McpPluginToolUiState(
     val allowed: Boolean,
 )
 
+/**
+ * @property tools Empty when the plugin has no live instance — it only publishes its commands once
+ * instantiated.
+ */
 data class McpPluginPermissionUiState(
     val pluginId: String,
     val displayName: String,
     val inspectAllowed: Boolean,
     val interactAllowed: Boolean,
-    /** Empty when the plugin has no live instance — it only publishes its commands once instantiated. */
     val tools: List<McpPluginToolUiState>,
 )
 
+/**
+ * @property isOverriddenForLaunch True while a launch flag allows every tool. The tree then shows
+ * what the launch actually grants and takes no input: a stored choice cannot win against the
+ * override for this process, so an editable box here would swallow the click and change nothing on
+ * screen.
+ */
 data class McpPermissionsUiState(
     val allowedHostGroups: Set<McpHostToolGroup>,
     val plugins: List<McpPluginPermissionUiState>,
-    /**
-     * True while a launch flag allows every tool. The tree then shows what the launch actually
-     * grants and takes no input: a stored choice cannot win against the override for this process,
-     * so an editable box here would swallow the click and change nothing on screen.
-     */
     val isOverriddenForLaunch: Boolean,
 )
 
@@ -73,6 +78,7 @@ fun McpPermissionsTreeView(
     onSetPluginInspectAllowed: (pluginId: String, allowed: Boolean) -> Unit,
     onSetPluginInteractAllowed: (pluginId: String, allowed: Boolean) -> Unit,
     onSetPluginToolAllowed: (toolName: String, allowed: Boolean) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val tree = buildPermissionTree(
         uiState = uiState,
@@ -86,7 +92,10 @@ fun McpPermissionsTreeView(
     val expanded = remember { mutableStateMapOf<String, Boolean>() }
 
     // The heading comes from the SettingOptionView this sits in, like every other settings block.
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         JwText(
             text = stringResource(Res.string.mcp_permission_note),
             style = JwTheme.textStyles.bodySmall,
@@ -128,12 +137,12 @@ private sealed interface PermissionNode {
         val onSetAllowed: (Boolean) -> Unit,
     ) : PermissionNode
 
+    /** @property emptyHint Shown in place of the children when there are none. */
     data class Branch(
         override val id: String,
         override val label: String,
         val children: List<PermissionNode>,
         val startExpanded: Boolean,
-        /** Shown in place of the children when there are none. */
         val emptyHint: String? = null,
     ) : PermissionNode
 }
@@ -141,7 +150,7 @@ private sealed interface PermissionNode {
 private val PermissionNode.leaves: List<PermissionNode.Leaf>
     get() = when (this) {
         is PermissionNode.Leaf -> listOf(this)
-        is PermissionNode.Branch -> children.flatMap { it.leaves }
+        is PermissionNode.Branch -> children.flatMap(PermissionNode::leaves)
     }
 
 @Composable
@@ -269,19 +278,20 @@ private fun BranchRow(
     isExpanded: Boolean,
     enabled: Boolean,
     onToggleExpanded: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val leaves = node.leaves
-    val allowedCount = leaves.count { it.allowed }
+    val allowedCount = leaves.count(PermissionNode.Leaf::allowed)
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(start = INDENT_STEP * depth),
     ) {
         // The tri-state is a summary of the leaves rather than a switch of its own, so a half-ticked
         // parent is the honest rendering of a partial selection.
         JwTriStateCheckbox(
-            state = toggleStateOf(leaves.map { it.allowed }),
+            state = toggleStateOf(leaves.map(PermissionNode.Leaf::allowed)),
             label = null,
             enabled = enabled && leaves.isNotEmpty(),
             // A partially-ticked parent turns everything on: the alternative — clearing a mixed
@@ -346,4 +356,33 @@ private fun McpHostToolGroup.labelResource() = when (this) {
     McpHostToolGroup.NAVIGATE -> Res.string.mcp_permission_group_navigate
     McpHostToolGroup.MANAGE_PLUGINS -> Res.string.mcp_permission_group_manage_plugins
     McpHostToolGroup.SETTINGS_AND_SERVERS -> Res.string.mcp_permission_group_settings_and_servers
+}
+
+@Preview
+@Composable
+private fun McpPermissionsTreeViewPreview() {
+    JwTheme(darkTheme = false) {
+        McpPermissionsTreeView(
+            uiState = McpPermissionsUiState(
+                allowedHostGroups = setOf(McpHostToolGroup.OBSERVE, McpHostToolGroup.NAVIGATE),
+                plugins = listOf(
+                    McpPluginPermissionUiState(
+                        pluginId = "com.example.inspector",
+                        displayName = "Inspector",
+                        inspectAllowed = true,
+                        interactAllowed = false,
+                        tools = listOf(
+                            McpPluginToolUiState(toolName = "inspector.listNodes", allowed = true),
+                            McpPluginToolUiState(toolName = "inspector.clearNodes", allowed = false),
+                        ),
+                    ),
+                ),
+                isOverriddenForLaunch = false,
+            ),
+            onSetHostGroupAllowed = { _, _ -> },
+            onSetPluginInspectAllowed = { _, _ -> },
+            onSetPluginInteractAllowed = { _, _ -> },
+            onSetPluginToolAllowed = { _, _ -> },
+        )
+    }
 }

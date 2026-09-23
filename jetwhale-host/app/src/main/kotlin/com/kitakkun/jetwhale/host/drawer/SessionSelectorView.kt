@@ -14,8 +14,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.no_session_available
 import com.kitakkun.jetwhale.host.select_app
 import com.kitakkun.jetwhale.host.select_device
@@ -27,6 +29,7 @@ import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwStatusDot
 import com.kitakkun.jetwhale.host.ui.JwTone
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -40,17 +43,18 @@ fun SessionSelectorView(
     selectedSession: DebugSession?,
     sessions: ImmutableList<DebugSession>,
     onSelectSession: (DebugSession) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val activeSessions = remember(sessions) { sessions.filter { it.isActive } }
+    val activeSessions = remember(sessions) { sessions.filter(DebugSession::isActive) }
     val devices = remember(activeSessions) {
-        activeSessions.groupBy { it.groupingDeviceId }.entries.toList()
+        activeSessions.groupBy(DebugSession::groupingDeviceId).entries.toList()
     }
     val selectedDeviceId = selectedSession?.groupingDeviceId
     val appsForSelectedDevice = remember(devices, selectedDeviceId) {
         devices.firstOrNull { it.key == selectedDeviceId }?.value.orEmpty()
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
         DeviceSelector(
             devices = devices,
             selectedDeviceId = selectedDeviceId,
@@ -74,11 +78,13 @@ private fun DeviceSelector(
     devices: List<Map.Entry<String, List<DebugSession>>>,
     selectedDeviceId: String?,
     onSelectDevice: (List<DebugSession>) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedDevice = devices.firstOrNull { it.key == selectedDeviceId }?.value?.firstOrNull()
 
     JwDropdownButton(
+        modifier = modifier,
         text = when {
             selectedDevice != null -> selectedDevice.deviceDisplayName
             devices.isNotEmpty() -> stringResource(Res.string.select_device)
@@ -118,10 +124,12 @@ private fun AppSelector(
     apps: List<DebugSession>,
     selectedSession: DebugSession?,
     onSelectSession: (DebugSession) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     JwDropdownButton(
+        modifier = modifier,
         text = selectedSession?.appDisplayName ?: stringResource(Res.string.select_app),
         expanded = expanded,
         onExpandedChange = { expanded = it && apps.isNotEmpty() },
@@ -150,7 +158,7 @@ private fun AppSelector(
 @Composable
 internal fun AppIcon(session: DebugSession?) {
     val bitmap: ImageBitmap? = remember(session?.appIconPngBase64) {
-        session?.appIconPngBase64?.let { decodeIconOrNull(it) }
+        session?.appIconPngBase64?.let(::decodeIconOrNull)
     }
     if (bitmap != null) {
         Image(
@@ -161,4 +169,30 @@ internal fun AppIcon(session: DebugSession?) {
     } else {
         JwIcon(imageVector = Icons.Default.Android, contentDescription = null)
     }
+}
+
+@Preview
+@Composable
+private fun SessionSelectorViewPreview() {
+    val session = DebugSession(
+        id = "session-1",
+        name = "Sample app",
+        isActive = true,
+        transportSecurity = SessionTransportSecurity.TLS,
+        installedPlugins = persistentListOf(),
+        appName = "Sample app",
+        deviceId = "device-1",
+        deviceName = "Pixel 9",
+    )
+    SessionSelectorView(
+        selectedSession = session,
+        sessions = persistentListOf(session),
+        onSelectSession = {},
+    )
+}
+
+@Preview
+@Composable
+private fun AppIconPreview() {
+    AppIcon(session = null)
 }

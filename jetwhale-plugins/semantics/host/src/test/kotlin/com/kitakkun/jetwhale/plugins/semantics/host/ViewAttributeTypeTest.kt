@@ -18,6 +18,14 @@ import kotlin.test.assertEquals
  */
 class ViewAttributeTypeTest {
 
+    @Test
+    fun `every type's wire name is the serial name its value is encoded under`() {
+        for (type in ViewAttributeType.entries) {
+            val encoded = Json.encodeToJsonElement(ViewAttributeValue.serializer(), sampleOf(type))
+            assertEquals(type.wireName, encoded.jsonObject.getValue("type").jsonPrimitive.content, "for $type")
+        }
+    }
+
     /** One value of every type, so a new variant makes the `when` in `sampleOf` fail to compile. */
     private fun sampleOf(type: ViewAttributeType): ViewAttributeValue = when (type) {
         ViewAttributeType.Bool -> ViewAttributeValue.BooleanValue(value = true)
@@ -42,22 +50,6 @@ class ViewAttributeTypeTest {
         )
     }
 
-    private fun attributeOf(type: ViewAttributeType) = ViewAttribute(
-        id = "sample",
-        label = "sample",
-        group = "State",
-        value = sampleOf(type),
-        editable = true,
-    )
-
-    @Test
-    fun `every type's wire name is the serial name its value is encoded under`() {
-        for (type in ViewAttributeType.entries) {
-            val encoded = Json.encodeToJsonElement(ViewAttributeValue.serializer(), sampleOf(type))
-            assertEquals(type.wireName, encoded.jsonObject.getValue("type").jsonPrimitive.content, "for $type")
-        }
-    }
-
     @Test
     fun `every type declares the fields a read reports beside the value`() {
         val alwaysPresent = setOf("id", "label", "group", "type", "value")
@@ -66,6 +58,14 @@ class ViewAttributeTypeTest {
             assertEquals(type.extraFields.toSet(), reported, "for $type")
         }
     }
+
+    private fun attributeOf(type: ViewAttributeType) = ViewAttribute(
+        id = "sample",
+        label = "sample",
+        group = "State",
+        value = sampleOf(type),
+        editable = true,
+    )
 
     @Test
     fun `every type is named in the value a read reports it under`() {

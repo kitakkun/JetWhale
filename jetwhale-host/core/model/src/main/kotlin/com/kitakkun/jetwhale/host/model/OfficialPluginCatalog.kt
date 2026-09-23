@@ -5,9 +5,11 @@ package com.kitakkun.jetwhale.host.model
  * coordinates by hand. Official plugin artifacts are released in lockstep with the host under the
  * host's own version, so the concrete coordinates are derived from [HostVersionInfo] at install
  * time (snapshot hosts install the matching `-SNAPSHOT` artifact from the snapshots repository).
+ *
+ * @property pluginId The `pluginId` the plugin declares in its manifest; used to mark it as already
+ * installed.
  */
 data class OfficialPlugin(
-    /** The `pluginId` the plugin declares in its manifest; used to mark it as already installed. */
     val pluginId: String,
     val displayName: String,
     val description: String,

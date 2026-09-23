@@ -3,34 +3,46 @@ package com.kitakkun.jetwhale.plugins.network.host
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import com.kitakkun.jetwhale.host.sdk.rememberPersistent
+import com.kitakkun.jetwhale.host.ui.JwSplitPaneState
 import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
+import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import kotlinx.coroutines.launch
 import java.util.UUID
+
+/** Storage key for the Traffic tab's list/detail split position. */
 
 @Composable
 fun NetworkInspectorScreen(
     transactions: List<HttpTransaction>,
     mockRules: List<MockRule>,
     mockingEnabled: Boolean,
+    trafficSplitPaneState: JwSplitPaneState,
     onClearTransactions: () -> Unit,
     onToggleMocking: (Boolean) -> Unit,
     onMockRulesChanged: (List<MockRule>) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     // Hoisted out of TrafficTab so the selection survives a round trip through the Mocks tab, which
     // swaps the tab content composable out of the composition entirely.
     var selectedTxId by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         JwTabRow {
             JwTab(
                 text = "Traffic",
@@ -49,6 +61,7 @@ fun NetworkInspectorScreen(
             0 -> TrafficTab(
                 transactions = transactions,
                 selectedTxId = selectedTxId,
+                splitPaneState = trafficSplitPaneState,
                 onSelectTx = { selectedTxId = it },
                 onClear = onClearTransactions,
                 onCreateMock = { tx ->
@@ -91,4 +104,20 @@ private fun mockRuleFrom(tx: HttpTransaction, response: CapturedHttpResponse): M
             bodyEncoding = response.bodyEncoding,
         ),
     )
+}
+
+@Preview
+@Composable
+private fun NetworkInspectorScreenPreview() {
+    JwTheme(darkTheme = false) {
+        NetworkInspectorScreen(
+            transactions = previewTransactions(),
+            mockRules = emptyList(),
+            mockingEnabled = true,
+            trafficSplitPaneState = rememberJwSplitPaneState(0.42f),
+            onClearTransactions = {},
+            onToggleMocking = {},
+            onMockRulesChanged = {},
+        )
+    }
 }

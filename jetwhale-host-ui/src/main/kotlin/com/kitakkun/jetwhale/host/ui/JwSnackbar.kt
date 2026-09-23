@@ -203,7 +203,7 @@ private fun JwSnackbar(data: JwSnackbarData) {
             modifier = Modifier.weight(1f, fill = false),
         )
         data.actionLabel?.let { label ->
-            SnackbarAction(onClick = data::performAction, label = label)
+            SnackbarAction(label = label, onClick = data::performAction)
         }
     }
 }

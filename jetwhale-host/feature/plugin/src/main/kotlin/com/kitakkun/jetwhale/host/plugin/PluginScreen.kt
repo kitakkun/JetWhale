@@ -15,10 +15,12 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onPlaced
@@ -27,13 +29,16 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.DpSize
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
+import kotlinx.coroutines.CancellationException
 import soil.plant.compose.reacty.LocalCatchThrowHost
 import soil.query.core.uuid
 
+// This draws a live plugin's nested ComposeScene, which a @Preview has no way to build.
 @OptIn(InternalComposeUiApi::class, ExperimentalComposeUiApi::class)
+// Draws a live plugin scene; there is nothing a preview could show.
+@Suppress("KOTRAIL_COMPOSABLE_WITHOUT_PREVIEW")
 @Composable
 fun PluginScreen(pluginComposeScene: PluginComposeScene) {
-    val catchThrowHost = LocalCatchThrowHost.current
     var frameNanoTime by remember(pluginComposeScene) { mutableLongStateOf(0L) }
     val focusRequester = remember { FocusRequester() }
 
@@ -47,6 +52,7 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
 
     val density = LocalDensity.current
 
+    val catchThrowHost = LocalCatchThrowHost.current
     Canvas(
         modifier = Modifier.fillMaxSize()
             // The plugin's scene is nested and windowless, so its Modifier.pointerHoverIcon requests
@@ -92,7 +98,7 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                             event.changes.forEach { it.consume() }
                         }
                         try {
-                            val scrollDelta = event.changes.map { it.scrollDelta }.reduce { acc, offset -> acc + offset }
+                            val scrollDelta = event.changes.map(PointerInputChange::scrollDelta).reduce(Offset::plus)
 
                             pluginComposeScene.composeScene.sendPointerEvent(
                                 eventType = event.type,
@@ -103,6 +109,9 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                                 nativeEvent = event.nativeEvent,
                                 button = event.button,
                             )
+                        } catch (e: CancellationException) {
+                            // Caught ahead of IllegalStateException, which it extends on the JVM.
+                            throw e
                         } catch (e: IllegalStateException) {
                             // The plugin scene can be closed mid-dispatch (navigation, session
                             // switch, hot reload). A late event then hits the closed scene and
@@ -133,9 +142,7 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
         // tools on a different clock.
         @Suppress("UNUSED_EXPRESSION")
         frameNanoTime
-        this.drawIntoCanvas {
-            pluginComposeScene.render(it)
-        }
+        this.drawIntoCanvas(pluginComposeScene::render)
     }
 }
 

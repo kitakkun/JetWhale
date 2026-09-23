@@ -10,16 +10,19 @@ import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 
+/**
+ * @property isMcpCapture Backs LocalIsMcpCapture inside the scene's composition; the screenshot
+ * tool flips it around its off-screen render so plugins can hide sensitive values from captures.
+ * @property pointerIcon The cursor the plugin's composition currently asks for via
+ * Modifier.pointerHoverIcon. The nested scene owns no window, so whoever renders it must apply this
+ * to the real one.
+ */
 @OptIn(InternalComposeUiApi::class)
 data class PluginComposeScene(
     val composeScene: ComposeScene,
     val windowInfoUpdater: WindowInfoUpdater,
     val semanticsOwners: Set<SemanticsOwner>,
-    // Backs LocalIsMcpCapture inside the scene's composition; the screenshot tool flips
-    // it around its off-screen render so plugins can hide sensitive values from captures.
     val isMcpCapture: MutableState<Boolean>,
-    // The cursor the plugin's composition currently asks for via Modifier.pointerHoverIcon. The
-    // nested scene owns no window, so whoever renders it must apply this to the real one.
     val pointerIcon: State<PointerIcon>,
 ) {
     /**

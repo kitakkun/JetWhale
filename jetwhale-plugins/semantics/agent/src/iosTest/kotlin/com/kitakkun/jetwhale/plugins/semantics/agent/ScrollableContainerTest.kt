@@ -44,11 +44,6 @@ private class ScrollingElement(private val contentHeight: Double) :
 
 @OptIn(ExperimentalForeignApi::class)
 class ScrollableContainerTest {
-    private fun scrollBy(node: NSObject, dy: Float) = AppleNodeScrollActions.ScrollBy.perform(
-        node,
-        PerformNodeAction(rootId = "w", nodeId = -1, action = NodeAction.ScrollBy, scrollY = dy),
-    )
-
     @Test
     fun `a container with content beyond its visible size is scrollable and advertises ScrollBy`() {
         val element = ScrollingElement(contentHeight = 300.0)
@@ -81,4 +76,9 @@ class ScrollableContainerTest {
         assertTrue(scrollBy(element, -500f).performed)
         assertEquals(0.0, element.offsetY)
     }
+
+    private fun scrollBy(node: NSObject, dy: Float) = AppleNodeScrollActions.ScrollBy.perform(
+        node,
+        PerformNodeAction(rootId = "w", nodeId = -1, action = NodeAction.ScrollBy, scrollY = dy),
+    )
 }

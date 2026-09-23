@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 
 class CommandLineArgumentsResolverTest {
     @Test
-    fun testPluginDirs() {
+    fun `every plugin dir option is collected in order`() {
         val resolver = CommandLineArgumentsParser()
         val args = arrayOf(
             "--plugin-dir",
@@ -29,7 +29,7 @@ class CommandLineArgumentsResolverTest {
     }
 
     @Test
-    fun testNoPluginDirs() {
+    fun `no plugin dir options yield an empty list`() {
         val resolver = CommandLineArgumentsParser()
         val args = arrayOf<String>()
         val options = resolver.parse(args)
@@ -41,7 +41,7 @@ class CommandLineArgumentsResolverTest {
     }
 
     @Test
-    fun testUnknownArguments() {
+    fun `an unrecognized option and its value are skipped`() {
         val resolver = CommandLineArgumentsParser()
         val args = arrayOf(
             "--unknown-arg",
@@ -58,7 +58,7 @@ class CommandLineArgumentsResolverTest {
     }
 
     @Test
-    fun testMissingPluginDirValue() {
+    fun `a plugin dir option without a path is rejected`() {
         val resolver = CommandLineArgumentsParser()
         val args = arrayOf(
             "--plugin-dir",

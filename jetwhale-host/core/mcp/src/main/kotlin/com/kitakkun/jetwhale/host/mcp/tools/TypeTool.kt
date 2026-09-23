@@ -7,6 +7,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.text.AnnotatedString
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
@@ -99,8 +100,8 @@ class TypeMcpTool(
  * @return true if an editable node was found and the text was inserted, false otherwise.
  */
 fun dispatchTyping(scene: PluginComposeScene, text: String): Boolean {
-    val rootNodes = scene.semanticsOwners.map { it.rootSemanticsNode }
-    val target = rootNodes.firstNotNullOfOrNull { findInsertableNode(it) } ?: return false
+    val rootNodes = scene.semanticsOwners.map(SemanticsOwner::rootSemanticsNode)
+    val target = rootNodes.firstNotNullOfOrNull(::findInsertableNode) ?: return false
     target.config.getOrNull(SemanticsActions.InsertTextAtCursor)?.action?.invoke(AnnotatedString(text))
     return true
 }
@@ -134,10 +135,24 @@ fun dispatchSpecialKey(
     isShiftPressed: Boolean = false,
 ) {
     scene.composeScene.sendKeyEvent(
-        KeyEvent(key, KeyEventType.KeyDown, 0, isAltPressed, isCtrlPressed, isMetaPressed, isShiftPressed),
+        KeyEvent(
+            key = key,
+            type = KeyEventType.KeyDown,
+            isCtrlPressed = isCtrlPressed,
+            isMetaPressed = isMetaPressed,
+            isAltPressed = isAltPressed,
+            isShiftPressed = isShiftPressed,
+        ),
     )
     scene.composeScene.sendKeyEvent(
-        KeyEvent(key, KeyEventType.KeyUp, 0, isAltPressed, isCtrlPressed, isMetaPressed, isShiftPressed),
+        KeyEvent(
+            key = key,
+            type = KeyEventType.KeyUp,
+            isCtrlPressed = isCtrlPressed,
+            isMetaPressed = isMetaPressed,
+            isAltPressed = isAltPressed,
+            isShiftPressed = isShiftPressed,
+        ),
     )
 }
 

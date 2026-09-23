@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.model
 
-data class JetWhaleTheme(
+@JvmInline
+value class JetWhaleTheme(
     val colorScheme: JetWhaleColorScheme = JetWhaleColorScheme.Dynamic.BuiltIn,
 )

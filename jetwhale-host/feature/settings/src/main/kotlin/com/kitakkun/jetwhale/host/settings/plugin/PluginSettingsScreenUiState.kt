@@ -3,10 +3,11 @@ package com.kitakkun.jetwhale.host.settings.plugin
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.OfficialPlugin
 import com.kitakkun.jetwhale.host.model.PluginInstallProgress
+import com.kitakkun.jetwhale.host.settings.component.PluginInfoUiState
 import kotlinx.collections.immutable.ImmutableList
 
 data class PluginSettingsScreenUiState(
-    val plugins: ImmutableList<com.kitakkun.jetwhale.host.settings.component.PluginInfoUiState>,
+    val plugins: ImmutableList<PluginInfoUiState>,
     val officialPlugins: ImmutableList<OfficialPluginUiState>,
     val failedJars: ImmutableList<FailedPluginJar>,
     val untrustedJarPaths: ImmutableList<String>,

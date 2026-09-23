@@ -18,13 +18,6 @@ private class RecordingSession : JetWhaleSession {
 }
 
 class QaAppTest {
-    private fun qaApp(session: JetWhaleSession): QaApp = QaApp(
-        name = "checkout",
-        wirePluginsById = emptyMap(),
-        httpClient = HttpClient(),
-        session = session,
-    )
-
     @Test
     fun `disconnect gives up the app's own session`() {
         val session = RecordingSession()
@@ -35,6 +28,13 @@ class QaAppTest {
         assertEquals(1, session.stopCount)
         assertFalse(app.isConnected)
     }
+
+    private fun qaApp(session: JetWhaleSession): QaApp = QaApp(
+        name = "checkout",
+        wirePluginsById = emptyMap(),
+        httpClient = HttpClient(),
+        session = session,
+    )
 
     @Test
     fun `disconnecting twice reports the second call as a no-op`() {

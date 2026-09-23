@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.text.AnnotatedString
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
@@ -58,12 +59,12 @@ internal fun SemanticsNode.toComposeNode(
         id = id,
         role = config.getOrNull(SemanticsProperties.Role)?.toString(),
         text = config.getOrNull(SemanticsProperties.Text)
-            ?.joinToString(separator = " ") { it.text }
-            ?.takeIf { it.isNotEmpty() },
+            ?.joinToString(separator = " ", transform = AnnotatedString::text)
+            ?.takeIf(String::isNotEmpty),
         editableText = editableText,
         contentDescription = config.getOrNull(SemanticsProperties.ContentDescription)
             ?.joinToString(separator = " ")
-            ?.takeIf { it.isNotEmpty() },
+            ?.takeIf(String::isNotEmpty),
         testTag = config.getOrNull(SemanticsProperties.TestTag),
         stateDescription = config.getOrNull(SemanticsProperties.StateDescription),
         toggleableState = config.getOrNull(SemanticsProperties.ToggleableState)?.toString(),

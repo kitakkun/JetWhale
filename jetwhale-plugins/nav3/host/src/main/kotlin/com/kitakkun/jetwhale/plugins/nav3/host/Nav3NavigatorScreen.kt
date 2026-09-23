@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwBanner
@@ -46,12 +47,15 @@ import com.kitakkun.jetwhale.host.ui.JwToolbar
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
+import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyFieldDescriptor
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeySnapshot
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /** A one-line outcome of the last thing the user asked for. */
 internal data class Nav3Status(val message: String, val isError: Boolean)
@@ -70,16 +74,16 @@ internal fun Nav3NavigatorScreen(
     keyTypes: List<NavKeyTypeDescriptor>,
     selectedStackId: String?,
     status: Nav3Status?,
+    draft: String,
     onSelectStack: (String) -> Unit,
     onApplyOperation: (stackId: String, operation: NavBackStackOperation) -> Unit,
     onRefresh: () -> Unit,
+    onDraftChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val selected = stacks.firstOrNull { it.stackId == selectedStackId } ?: stacks.firstOrNull()
-    // The draft survives plugin reloads and host restarts, so a half-written key is not lost to a
-    // hot reload in the middle of composing one.
-    var draft by rememberPersistent("push-draft", default = "")
 
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         JwToolbar(
             title = "Navigation 3",
             actions = {
@@ -113,14 +117,14 @@ internal fun Nav3NavigatorScreen(
                     BackStackPane(
                         snapshot = selected,
                         onApplyOperation = { onApplyOperation(selected.stackId, it) },
-                        onCopyKeyToEditor = { draft = PrettyJson.encodeToString(JsonElement.serializer(), it) },
+                        onCopyKeyToEditor = { onDraftChange(PrettyJson.encodeToString(JsonElement.serializer(), it)) },
                     )
                 },
                 second = {
                     PushPane(
                         keyTypes = keyTypes,
                         draft = draft,
-                        onDraftChange = { draft = it },
+                        onDraftChange = onDraftChange,
                         onApplyOperation = { onApplyOperation(selected.stackId, it) },
                     )
                 },
@@ -142,8 +146,9 @@ private fun BackStackPane(
     snapshot: NavBackStackSnapshot,
     onApplyOperation: (NavBackStackOperation) -> Unit,
     onCopyKeyToEditor: (JsonElement) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.large, vertical = JwSpacing.medium),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -188,8 +193,9 @@ private fun BackStackEntryCard(
     canRemove: Boolean,
     onApplyOperation: (NavBackStackOperation) -> Unit,
     onCopyKeyToEditor: (JsonElement) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    JwPanel {
+    JwPanel(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
             JwText("#$index", style = JwTheme.textStyles.label, color = JwTheme.colors.textSecondary)
             JwText(entry.typeName, style = JwTheme.textStyles.subtitle)
@@ -235,6 +241,7 @@ private fun PushPane(
     draft: String,
     onDraftChange: (String) -> Unit,
     onApplyOperation: (NavBackStackOperation) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var editorError by remember { mutableStateOf<String?>(null) }
 
@@ -250,7 +257,7 @@ private fun PushPane(
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large),
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large),
         verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
     ) {
         JwFormField(
@@ -306,7 +313,7 @@ private fun PushPane(
 }
 
 @Composable
-private fun KeyTypeRow(type: NavKeyTypeDescriptor, onClick: () -> Unit) {
+private fun KeyTypeRow(type: NavKeyTypeDescriptor, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val fields = type.fields.joinToString { field ->
         buildString {
             append(field.name)
@@ -319,6 +326,7 @@ private fun KeyTypeRow(type: NavKeyTypeDescriptor, onClick: () -> Unit) {
         text = type.serialName,
         selected = false,
         onClick = onClick,
+        modifier = modifier,
         trailingContent = {
             if (fields.isNotEmpty()) {
                 JwText(
@@ -336,4 +344,46 @@ private fun parseNavKey(text: String): JsonObject? = try {
     Json.parseToJsonElement(text) as? JsonObject
 } catch (_: SerializationException) {
     null
+}
+
+@Preview
+@Composable
+private fun Nav3NavigatorScreenPreview() {
+    JwTheme(darkTheme = false) {
+        Nav3NavigatorScreen(
+            stacks = listOf(
+                NavBackStackSnapshot(
+                    stackId = "main",
+                    entries = listOf(
+                        NavKeySnapshot(typeName = "Home", display = "Home", key = buildJsonObject { put("type", "Home") }),
+                        NavKeySnapshot(
+                            typeName = "Detail",
+                            display = "Detail(id=42)",
+                            key = buildJsonObject {
+                                put("type", "Detail")
+                                put("id", "42")
+                            },
+                        ),
+                    ),
+                ),
+            ),
+            keyTypes = listOf(
+                NavKeyTypeDescriptor(
+                    serialName = "Detail",
+                    fields = listOf(NavKeyFieldDescriptor(name = "id", type = "String", optional = false, nullable = false)),
+                    template = buildJsonObject {
+                        put("type", "Detail")
+                        put("id", "")
+                    },
+                ),
+            ),
+            selectedStackId = "main",
+            status = Nav3Status(message = "Pushed Detail(id=42)", isError = false),
+            draft = """{"type": "Detail", "id": "42"}""",
+            onSelectStack = {},
+            onApplyOperation = { _, _ -> },
+            onRefresh = {},
+            onDraftChange = {},
+        )
+    }
 }

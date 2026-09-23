@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.settings.server
 
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithText
@@ -43,7 +44,7 @@ private const val OBSERVE_LABEL = "Observe"
 @OptIn(ExperimentalTestApi::class)
 private fun runTreeView(
     isOverriddenForLaunch: Boolean,
-    body: androidx.compose.ui.test.ComposeUiTest.(calls: List<Pair<McpHostToolGroup, Boolean>>) -> Unit,
+    body: ComposeUiTest.(calls: List<Pair<McpHostToolGroup, Boolean>>) -> Unit,
 ) = runComposeUiTest {
     val calls = mutableListOf<Pair<McpHostToolGroup, Boolean>>()
     setContent {

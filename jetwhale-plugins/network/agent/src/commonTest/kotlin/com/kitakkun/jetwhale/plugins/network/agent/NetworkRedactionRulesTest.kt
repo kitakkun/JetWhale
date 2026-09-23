@@ -12,6 +12,18 @@ import kotlin.test.assertEquals
 import kotlin.test.assertSame
 
 class NetworkRedactionRulesTest {
+    private val formHeaders = mapOf("Content-Type" to listOf("application/x-www-form-urlencoded"))
+
+    @Test
+    fun `header rule redacts values case-insensitively and keeps other headers`() {
+        val rules = NetworkRedactionRules { header("Authorization") }
+        val redacted = rules.redactAtCapture(
+            request(headers = mapOf("authorization" to listOf("Bearer secret"), "Accept" to listOf("application/json"))),
+        )
+        assertEquals(listOf(REDACTED_PLACEHOLDER), redacted.headers["authorization"])
+        assertEquals(listOf("application/json"), redacted.headers["Accept"])
+    }
+
     private fun request(
         url: String = "https://api.example.com/login",
         headers: Map<String, List<String>> = emptyMap(),
@@ -24,18 +36,6 @@ class NetworkRedactionRulesTest {
         body = body,
         timestampMs = 0L,
     )
-
-    private val formHeaders = mapOf("Content-Type" to listOf("application/x-www-form-urlencoded"))
-
-    @Test
-    fun `header rule redacts values case-insensitively and keeps other headers`() {
-        val rules = NetworkRedactionRules { header("Authorization") }
-        val redacted = rules.redactAtCapture(
-            request(headers = mapOf("authorization" to listOf("Bearer secret"), "Accept" to listOf("application/json"))),
-        )
-        assertEquals(listOf(REDACTED_PLACEHOLDER), redacted.headers["authorization"])
-        assertEquals(listOf("application/json"), redacted.headers["Accept"])
-    }
 
     @Test
     fun `mask strategy replaces each character with an asterisk`() {

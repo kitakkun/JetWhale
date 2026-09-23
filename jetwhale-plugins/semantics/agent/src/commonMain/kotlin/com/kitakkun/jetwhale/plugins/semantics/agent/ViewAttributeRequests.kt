@@ -19,9 +19,8 @@ internal suspend fun readViewAttributes(request: GetViewAttributes): ViewAttribu
         attributeSource.attributes(request.nodeId)
             ?.let { ViewAttributeResponse(snapshot = it) }
             ?: ViewAttributeResponse(snapshot = null, message = noViewAttributesMessage(request.nodeId))
-    } catch (e: CancellationException) {
-        throw e
     } catch (e: Throwable) {
+        if (e is CancellationException) throw e
         ViewAttributeResponse(snapshot = null, message = "reading the attributes failed: ${e.describeFailure()}")
     }
 }
@@ -34,13 +33,12 @@ internal suspend fun writeViewAttribute(request: SetViewAttribute): ViewAttribut
         ?: return ViewAttributeResult(applied = false, message = ROOT_WITHOUT_ATTRIBUTES)
     return try {
         attributeSource.setAttribute(nodeId = request.nodeId, attributeId = request.attributeId, value = request.value)
-    } catch (e: CancellationException) {
-        throw e
     } catch (e: Throwable) {
+        if (e is CancellationException) throw e
         ViewAttributeResult(applied = false, message = "writing the attribute failed: ${e.describeFailure()}")
     }
 }
 
-internal fun Throwable.describeFailure(): String = message?.takeIf { it.isNotBlank() } ?: (this::class.simpleName ?: "unknown error")
+internal fun Throwable.describeFailure(): String = message?.takeIf(String::isNotBlank) ?: (this::class.simpleName ?: "unknown error")
 
 private const val ROOT_WITHOUT_ATTRIBUTES: String = "this root has no View attributes (it is a composition read through its SemanticsOwner)"

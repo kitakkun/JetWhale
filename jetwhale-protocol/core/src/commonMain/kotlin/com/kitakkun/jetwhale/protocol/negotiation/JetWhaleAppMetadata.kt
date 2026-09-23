@@ -21,9 +21,26 @@ import kotlinx.serialization.Serializable
  */
 @SerialName(JetWhaleSerialNames.MODEL_APP_METADATA)
 @Serializable
-public data class JetWhaleAppMetadata(
-    val appName: String? = null,
-    val deviceId: String? = null,
-    val deviceName: String? = null,
-    val appIconPngBase64: String? = null,
-)
+public class JetWhaleAppMetadata(
+    public val appName: String? = null,
+    public val deviceId: String? = null,
+    public val deviceName: String? = null,
+    public val appIconPngBase64: String? = null,
+) {
+    override fun equals(other: Any?): Boolean = other is JetWhaleAppMetadata &&
+        appName == other.appName &&
+        deviceId == other.deviceId &&
+        deviceName == other.deviceName &&
+        appIconPngBase64 == other.appIconPngBase64
+
+    override fun hashCode(): Int {
+        var result = appName.hashCode()
+        result = 31 * result + deviceId.hashCode()
+        result = 31 * result + deviceName.hashCode()
+        result = 31 * result + appIconPngBase64.hashCode()
+        return result
+    }
+
+    override fun toString(): String = "JetWhaleAppMetadata(appName=$appName, deviceId=$deviceId, " +
+        "deviceName=$deviceName, appIconPngBase64=$appIconPngBase64)"
+}

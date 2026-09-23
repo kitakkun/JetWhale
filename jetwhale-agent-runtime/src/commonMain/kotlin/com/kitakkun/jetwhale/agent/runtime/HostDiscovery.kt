@@ -19,17 +19,20 @@ internal const val TXT_KEY_HOST_NAME: String = "hostName"
 /** How long host discovery browses before giving up and falling back to the configured host. */
 internal const val HOST_DISCOVERY_TIMEOUT_MILLIS: Long = 5_000L
 
-/** A JetWhale debug server instance discovered and resolved over mDNS/DNS-SD. */
+/**
+ * A JetWhale debug server instance discovered and resolved over mDNS/DNS-SD.
+ *
+ * @property instanceName The mDNS instance name (possibly uniquified by collision handling).
+ * @property advertisedHostName The host machine's hostname from the TXT records, or null when not advertised.
+ * @property address The resolved IP address.
+ * @property wsPort The advertised plain-ws port, or null.
+ * @property wssPort The advertised wss port, or null when the host has wss disabled.
+ */
 internal data class DiscoveredService(
-    /** The mDNS instance name (possibly uniquified by collision handling). */
     val instanceName: String,
-    /** The host machine's hostname from the TXT records, or null when not advertised. */
     val advertisedHostName: String?,
-    /** The resolved IP address. */
     val address: String,
-    /** The advertised plain-ws port, or null. */
     val wsPort: Int?,
-    /** The advertised wss port, or null when the host has wss disabled. */
     val wssPort: Int?,
 )
 
@@ -135,7 +138,7 @@ internal class MdnsEndpointResolver(val discovery: HostDiscoveryConfig) : Endpoi
         }
         // Matched but unusable is worth spelling out: the agent would otherwise look like it simply
         // found nothing, when in fact the host is there and only its wss connector is missing.
-        val listed = matched.joinToString { it.displayName() }
+        val listed = matched.joinToString(transform = DiscoveredService::displayName)
         return "mDNS host discovery matched ${matched.size} host(s) ($listed) but none advertised a wss port. " +
             "A host advertises its wss port only while wss is enabled in its settings."
     }

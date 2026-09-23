@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.net.ServerSocket
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -99,7 +100,7 @@ class HostMcpCommandTest {
             mcpPermissionsRepository = FakeMcpPermissionsRepository(),
             statusHolder = McpServerStatusHolder(),
         )
-        val port = java.net.ServerSocket(0).use { it.localPort }
+        val port = ServerSocket(0).use(ServerSocket::getLocalPort)
         service.start("localhost", port)
         try {
             block(port)

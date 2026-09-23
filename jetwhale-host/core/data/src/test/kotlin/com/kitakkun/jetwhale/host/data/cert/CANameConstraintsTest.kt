@@ -14,20 +14,6 @@ class CANameConstraintsTest {
     private val issuer = ServerCertificateIssuer()
     private val keyPairFactory = KeyPairFactory()
 
-    private fun validateChain(server: X509Certificate, ca: CaMaterial) {
-        val certFactory = CertificateFactory.getInstance("X.509")
-        // Include the CA certificate in the path (rather than as the trust anchor) and anchor on the
-        // CA's name/key. Java's PKIX applies name constraints carried by CA certificates in the path
-        // but not those embedded in a trust-anchor certificate, so this exercises the real extension.
-        val certPath = certFactory.generateCertPath(listOf(server, ca.cert))
-        val anchor = TrustAnchor(ca.cert.subjectX500Principal, ca.keyPair.public, null)
-        val params = PKIXParameters(setOf(anchor)).apply {
-            // Local PKI has no CRL/OCSP infrastructure; disable revocation checks.
-            isRevocationEnabled = false
-        }
-        CertPathValidator.getInstance("PKIX").validate(certPath, params)
-    }
-
     @Test
     fun `server certificate with private-range SAN validates under the name-constrained CA`() {
         val ca = caGenerator.createRootCA(commonName = "JetWhale Local CA")
@@ -40,6 +26,20 @@ class CANameConstraintsTest {
         )
 
         validateChain(server, ca)
+    }
+
+    private fun validateChain(server: X509Certificate, ca: CaMaterial) {
+        val certFactory = CertificateFactory.getInstance("X.509")
+        // Include the CA certificate in the path (rather than as the trust anchor) and anchor on the
+        // CA's name/key. Java's PKIX applies name constraints carried by CA certificates in the path
+        // but not those embedded in a trust-anchor certificate, so this exercises the real extension.
+        val certPath = certFactory.generateCertPath(listOf(server, ca.cert))
+        val anchor = TrustAnchor(ca.cert.subjectX500Principal, ca.keyPair.public, null)
+        val params = PKIXParameters(setOf(anchor)).apply {
+            // Local PKI has no CRL/OCSP infrastructure; disable revocation checks.
+            isRevocationEnabled = false
+        }
+        CertPathValidator.getInstance("PKIX").validate(certPath, params)
     }
 
     @Test

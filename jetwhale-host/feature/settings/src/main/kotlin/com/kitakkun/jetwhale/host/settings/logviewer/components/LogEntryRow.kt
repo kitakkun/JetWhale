@@ -10,23 +10,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.LogEntry
 import com.kitakkun.jetwhale.host.model.LogLevel
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
+import kotlin.time.Clock
 
 @Composable
 fun LogEntryRow(
     logEntry: LogEntry,
     modifier: Modifier = Modifier,
 ) {
-    val backgroundColor = logEntry.level.backgroundColor
-    val textColor = logEntry.level.textColor
-
     // Per-item SelectionContainer: the log list is a LazyColumn, so selection is scoped to a
     // single line. Wrapping the whole LazyColumn in one SelectionContainer is avoided because it
     // forces composition of off-screen items and has known perf/UX issues.
+    val backgroundColor = logEntry.level.backgroundColor
+    val textColor = logEntry.level.textColor
     SelectionContainer {
         Row(
             modifier = modifier
@@ -107,3 +108,17 @@ private val LogLevel.textColor: Color
         LogLevel.ERROR -> JwTheme.colors.error
         LogLevel.INFO -> JwTheme.colors.onSurface
     }
+
+@Preview
+@Composable
+private fun LogEntryRowPreview() {
+    JwTheme(darkTheme = false) {
+        LogEntryRow(
+            logEntry = LogEntry(
+                timestamp = Clock.System.now(),
+                message = "Error connecting to server",
+                level = LogLevel.ERROR,
+            ),
+        )
+    }
+}

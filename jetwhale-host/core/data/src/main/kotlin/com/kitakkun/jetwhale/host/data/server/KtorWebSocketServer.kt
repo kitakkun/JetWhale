@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.data.server.negotiation.ServerSessionNegotiati
 import com.kitakkun.jetwhale.host.model.DebugServerStatusProvider
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
+import com.kitakkun.jetwhale.host.model.SslCertificateEntry
 import com.kitakkun.jetwhale.host.model.SslCertificateManager
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
@@ -177,29 +178,6 @@ class KtorWebSocketServer(
     )
 
     /**
-     * Builds the TLS (wss) server backed by [keyStore]/[keyAlias]. Unlike the plain ws connector
-     * (kept on localhost, reachable only via ADB forwarding), the TLS connector listens on all
-     * interfaces so physical devices on the same network (e.g. iPhones) can connect. The channel is
-     * encrypted and clients pin the local CA, so LAN exposure is limited to the encrypted endpoint.
-     */
-    private fun buildTlsServer(wssPort: Int, keyStore: KeyStore, keyAlias: String): EmbeddedServer<*, *> = embeddedServer(
-        factory = Netty,
-        environment = applicationEnvironment {},
-        configure = {
-            sslConnector(
-                keyStore = keyStore,
-                keyAlias = keyAlias,
-                keyStorePassword = { sslCertificateManager.getKeyStorePassword() },
-                privateKeyPassword = { sslCertificateManager.getKeyStorePassword() },
-            ) {
-                this.host = "0.0.0.0"
-                this.port = wssPort
-            }
-        },
-        module = { configureWebSocket() },
-    )
-
-    /**
      * Starts the TLS server on [wssPort] backed by the currently active certificate, generating one
      * on demand when none exists. Returns true when the connector started; returns false (leaving
      * the plain server untouched) when the active certificate cannot be loaded, so ADB-forwarded
@@ -230,6 +208,29 @@ class KtorWebSocketServer(
     }
 
     /**
+     * Builds the TLS (wss) server backed by [keyStore]/[keyAlias]. Unlike the plain ws connector
+     * (kept on localhost, reachable only via ADB forwarding), the TLS connector listens on all
+     * interfaces so physical devices on the same network (e.g. iPhones) can connect. The channel is
+     * encrypted and clients pin the local CA, so LAN exposure is limited to the encrypted endpoint.
+     */
+    private fun buildTlsServer(wssPort: Int, keyStore: KeyStore, keyAlias: String): EmbeddedServer<*, *> = embeddedServer(
+        factory = Netty,
+        environment = applicationEnvironment {},
+        configure = {
+            sslConnector(
+                keyStore = keyStore,
+                keyAlias = keyAlias,
+                keyStorePassword = sslCertificateManager::getKeyStorePassword,
+                privateKeyPassword = sslCertificateManager::getKeyStorePassword,
+            ) {
+                this.host = "0.0.0.0"
+                this.port = wssPort
+            }
+        },
+        module = { configureWebSocket() },
+    )
+
+    /**
      * Observes the active certificate and hot-swaps the TLS server whenever it changes while the
      * server is running. The current active certificate the TLS server already started with is
      * dropped so only subsequent changes trigger a restart.
@@ -238,7 +239,7 @@ class KtorWebSocketServer(
         certificateObserverJob?.cancel()
         certificateObserverJob = coroutineScope.launch {
             sslCertificateManager.certificatesFlow
-                .map { certificates -> certificates.find { it.isActive }?.id }
+                .map { certificates -> certificates.find(SslCertificateEntry::isActive)?.id }
                 .distinctUntilChanged()
                 .drop(1)
                 .collect { restartTlsServer() }

@@ -31,8 +31,8 @@ class DefaultFollowAiOperationService(
         // follows each new call exactly once while leaving the completion updates alone.
         mcpActivityRepository.activityFlow
             .mapNotNull { it.lastStartedInvocation }
-            .distinctUntilChangedBy { it.id }
-            .collect { invocation -> follow(invocation) }
+            .distinctUntilChangedBy(McpToolInvocation::id)
+            .collect(::follow)
     }
 
     private suspend fun follow(invocation: McpToolInvocation) {

@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.agent.runtime
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
+import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import com.kitakkun.test.annotations.IgnoreNative
 import com.kitakkun.test.annotations.IgnoreWeb
@@ -53,7 +54,7 @@ class KtorWebSocketClientTest {
 
         webSocketClient.sendDebuggeeEvent(
             event = JetWhaleDebuggeeEvent.PluginFrameMessage(
-                frame = com.kitakkun.jetwhale.protocol.messaging.PluginFrame.Notification(
+                frame = PluginFrame.Notification(
                     pluginId = "pluginId",
                     messageType = "test/message",
                     payload = "message",

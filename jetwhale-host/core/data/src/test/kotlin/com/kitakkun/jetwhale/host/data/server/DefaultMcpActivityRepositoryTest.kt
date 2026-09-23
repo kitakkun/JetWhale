@@ -53,7 +53,7 @@ class DefaultMcpActivityRepositoryTest {
 
         assertEquals(
             listOf("third", "second", "first"),
-            repository.activityFlow.value.recentCalls.map { it.toolName },
+            repository.activityFlow.value.recentCalls.map(McpCallRecord::toolName),
         )
     }
 

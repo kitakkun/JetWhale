@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -24,7 +25,7 @@ class NodeTreeTest {
 
         // The ancestors 1 and 2 do not match themselves, but dropping them would reparent the
         // match and lose where it sits in the tree.
-        assertEquals(listOf(1, 2, 3), filtered?.asSequence()?.map { it.id }?.toList())
+        assertEquals(listOf(1, 2, 3), filtered?.asSequence()?.map(UiNode::id)?.toList())
     }
 
     @Test
@@ -38,7 +39,7 @@ class NodeTreeTest {
     fun `filterTree drops the children of a node kept only on its own merit`() {
         val tree = node(id = 1, testTag = "target", children = listOf(node(id = 2)))
 
-        assertEquals(listOf(1), tree.filterTree { it is ComposeNode && it.testTag == "target" }?.asSequence()?.map { it.id }?.toList())
+        assertEquals(listOf(1), tree.filterTree { it is ComposeNode && it.testTag == "target" }?.asSequence()?.map(UiNode::id)?.toList())
     }
 
     @Test
@@ -51,7 +52,7 @@ class NodeTreeTest {
             ),
         )
 
-        assertEquals(listOf(1, 2, 3, 4), tree.asSequence().map { it.id }.toList())
+        assertEquals(listOf(1, 2, 3, 4), tree.asSequence().map(UiNode::id).toList())
     }
 
     @Test
@@ -152,7 +153,7 @@ class NodeTreeTest {
 
         val filtered = tree.filterTree { it is ViewNode && it.resourceId == "submit" }
 
-        assertEquals(listOf(1, 2, -3), filtered?.asSequence()?.map { it.id }?.toList())
+        assertEquals(listOf(1, 2, -3), filtered?.asSequence()?.map(UiNode::id)?.toList())
     }
 
     @Test

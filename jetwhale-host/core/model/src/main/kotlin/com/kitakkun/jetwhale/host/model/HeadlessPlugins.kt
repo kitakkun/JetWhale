@@ -9,7 +9,8 @@ package com.kitakkun.jetwhale.host.model
  * session. A plugin with no instance yet is absent from the map and is therefore not reported as
  * headless.
  */
-data class HeadlessPlugins(val pluginIdsBySession: Map<String, Set<String>>) {
+@JvmInline
+value class HeadlessPlugins(val pluginIdsBySession: Map<String, Set<String>>) {
     fun isHeadless(sessionId: String?, pluginId: String): Boolean = sessionId != null && pluginIdsBySession[sessionId]?.contains(pluginId) == true
 
     companion object {

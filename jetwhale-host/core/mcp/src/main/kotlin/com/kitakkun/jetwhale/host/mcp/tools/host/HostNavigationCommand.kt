@@ -114,11 +114,11 @@ class HostNavigationCommand(
 }
 
 private fun HostNavigationRequest.matches(destination: HostDestination): Boolean = when (this) {
-    HostNavigationRequest.Home -> destination.kind == HostDestinationKind.HOME
+    is HostNavigationRequest.Home -> destination.kind == HostDestinationKind.HOME
 
-    HostNavigationRequest.Info -> destination.kind == HostDestinationKind.INFO
+    is HostNavigationRequest.Info -> destination.kind == HostDestinationKind.INFO
 
-    HostNavigationRequest.LogViewer -> destination.kind == HostDestinationKind.LOG_VIEWER
+    is HostNavigationRequest.LogViewer -> destination.kind == HostDestinationKind.LOG_VIEWER
 
     is HostNavigationRequest.Settings -> destination.kind == HostDestinationKind.SETTINGS && destination.settingsSection == section
 

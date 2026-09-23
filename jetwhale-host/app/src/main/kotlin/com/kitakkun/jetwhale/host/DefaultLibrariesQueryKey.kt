@@ -14,9 +14,9 @@ class DefaultLibrariesQueryKey :
     LibrariesQueryKey by buildQueryKey(
         id = QueryId("DefaultLibrariesQueryKey"),
         fetch = {
-            Libs.Builder()
-                .withJson(
-                    object {}.javaClass.getResource("/licenses.json")!!.readText(),
-                ).build()
+            val licenses = checkNotNull(object {}.javaClass.getResource("/licenses.json")) {
+                "licenses.json is missing from the host's resources"
+            }
+            Libs.Builder().withJson(licenses.readText()).build()
         },
     )

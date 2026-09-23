@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.mcp
 
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.McpServerStatus
+import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
@@ -21,21 +22,21 @@ import io.modelcontextprotocol.kotlin.sdk.client.mcpSse
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.ImageContent
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import io.modelcontextprotocol.kotlin.sdk.types.Tool
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.net.InetAddress
+import java.net.ServerSocket
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 class DefaultMcpServerServiceTest {
@@ -56,15 +57,7 @@ class DefaultMcpServerServiceTest {
     )
 
     private val host = "localhost"
-    private val port = java.net.ServerSocket(0).use { it.localPort }
-
-    /**
-     * Holds [port] (0 picks a free one) on the loopback address specifically. A wildcard-bound
-     * `ServerSocket(0)` would not do: BSD-derived systems let a SO_REUSEADDR socket bind
-     * 127.0.0.1:p over an existing 0.0.0.0:p, so the server would start just fine and the test
-     * would silently stop testing the failure path.
-     */
-    private fun occupyPort(port: Int = 0): java.net.ServerSocket = java.net.ServerSocket(port, 50, java.net.InetAddress.getByName(host))
+    private val port = ServerSocket(0).use(ServerSocket::getLocalPort)
 
     @Test
     fun `listTools returns all registered built-in tools`() = runBlocking {
@@ -79,12 +72,12 @@ class DefaultMcpServerServiceTest {
             ),
             statusHolder = McpServerStatusHolder(),
         )
-        val toolsPort = java.net.ServerSocket(0).use { it.localPort }
+        val toolsPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTools.start(host, toolsPort)
         try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$toolsPort/sse")
             try {
-                assertEquals(setOf("fake.toolA", "fake.toolB", "fake.toolC"), client.listTools().tools.map { it.name }.toSet())
+                assertEquals(setOf("fake.toolA", "fake.toolB", "fake.toolC"), client.listTools().tools.map(Tool::name).toSet())
             } finally {
                 client.close()
             }
@@ -102,7 +95,7 @@ class DefaultMcpServerServiceTest {
             builtInTools = setOf(FakeMcpTool("fake.echo", response = "pong")),
             statusHolder = McpServerStatusHolder(),
         )
-        val echoPort = java.net.ServerSocket(0).use { it.localPort }
+        val echoPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, echoPort)
         try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$echoPort/sse")
@@ -135,9 +128,17 @@ class DefaultMcpServerServiceTest {
         }
     }
 
+    /**
+     * Holds [port] (0 picks a free one) on the loopback address specifically. A wildcard-bound
+     * `ServerSocket(0)` would not do: BSD-derived systems let a SO_REUSEADDR socket bind
+     * 127.0.0.1:p over an existing 0.0.0.0:p, so the server would start just fine and the test
+     * would silently stop testing the failure path.
+     */
+    private fun occupyPort(port: Int = 0): ServerSocket = ServerSocket(port, 50, InetAddress.getByName(host))
+
     @Test
     fun `a failed start can be retried on the same port once it frees up`() = runBlocking {
-        val contestedPort = occupyPort().use { it.localPort }
+        val contestedPort = occupyPort().use(ServerSocket::getLocalPort)
 
         occupyPort(contestedPort).use {
             service.start(host, contestedPort)
@@ -175,7 +176,7 @@ class DefaultMcpServerServiceTest {
         try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
             try {
-                val toolNames = client.listTools().tools.map { it.name }
+                val toolNames = client.listTools().tools.map(Tool::name)
                 assertFalse("com.example.test.greet" in toolNames, "Stale tool survived in $toolNames")
             } finally {
                 client.close()
@@ -204,7 +205,7 @@ class DefaultMcpServerServiceTest {
 
                 val listResult = client.listTools()
                 assertNotNull(listResult)
-                val toolNames = listResult.tools.map { it.name }
+                val toolNames = listResult.tools.map(Tool::name)
                 assertTrue(expectedToolName in toolNames, "Expected $expectedToolName in $toolNames")
 
                 val callResult = client.callTool(
@@ -223,6 +224,7 @@ class DefaultMcpServerServiceTest {
     }
 
     @Test
+    @Suppress("KOTRAIL_LOCAL_DECLARED_TOO_EARLY")
     fun `plugin tools are registered via pluginInstanceEventFlow after server start`() = runBlocking {
         val testPluginId = "com.example.test"
         val testSessionId = "test-session-xyz789"
@@ -236,15 +238,16 @@ class DefaultMcpServerServiceTest {
         try {
             eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId))
 
-            // The event is handled asynchronously by the service's collector, so the registration
-            // may not be visible the instant emit() returns. Poll until the tool appears.
-            awaitToolListed("com.example.test.greet")
+            awaitCapableFor(testSessionId) { testPluginId in it }
+
+            assertTrue("com.example.test.greet" in servedToolNames())
         } finally {
             service.stop()
         }
     }
 
     @Test
+    @Suppress("KOTRAIL_LOCAL_DECLARED_TOO_EARLY")
     fun `plugin tools are unregistered when Disposed event is received`() = runBlocking {
         val testPluginId = "com.example.test"
         val testSessionId = "test-session-def456"
@@ -258,51 +261,41 @@ class DefaultMcpServerServiceTest {
         try {
             eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId))
 
-            // Both events are handled asynchronously, so poll for each transition rather than
-            // reading the tool list the instant emit() returns.
-            awaitToolListed("com.example.test.greet")
+            awaitCapableFor(testSessionId) { testPluginId in it }
+            assertTrue("com.example.test.greet" in servedToolNames())
 
             eventFlow.emit(PluginInstanceEvent.Disposed(testPluginId, testSessionId))
 
-            awaitToolAbsent("com.example.test.greet")
+            awaitCapableFor(testSessionId) { testPluginId !in it }
+            assertFalse("com.example.test.greet" in servedToolNames())
         } finally {
             service.stop()
         }
     }
 
     /**
-     * The service registers and unregisters plugin tools asynchronously in response to lifecycle
-     * events, so a tool list read immediately after emitting an event can observe the state from
-     * before the event was handled. These helpers reconnect and re-read until the tool list reaches
-     * the expected state, so the tests assert on the eventual result instead of racing the handler.
-     *
-     * A fresh connection is opened each poll because the tool list is computed at connection time.
+     * Waits for the service to have handled a plugin lifecycle event: the registry publishes the
+     * capable plugins as its last step in both registering and unregistering a plugin's tools, so
+     * once the flow reports [condition] the tool list a new connection is served is settled too.
      */
-    private suspend fun awaitToolListed(toolName: String, timeout: Duration = 5.seconds) = awaitTools(timeout, "$toolName to be listed") { toolName in it }
+    private suspend fun awaitCapableFor(sessionId: String, condition: (Set<String>) -> Boolean) {
+        withTimeout(5.seconds) {
+            service.mcpCapablePluginsFlow.first { condition(it.pluginIdsFor(sessionId)) }
+        }
+    }
 
-    private suspend fun awaitToolAbsent(toolName: String, timeout: Duration = 5.seconds) = awaitTools(timeout, "$toolName to be absent") { toolName !in it }
-
-    private suspend fun awaitTools(timeout: Duration, description: String, predicate: (List<String>) -> Boolean) {
-        var lastSeen: List<String> = emptyList()
-        try {
-            withTimeout(timeout) {
-                while (true) {
-                    val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
-                    lastSeen = try {
-                        client.listTools().tools.map { it.name }
-                    } finally {
-                        client.close()
-                    }
-                    if (predicate(lastSeen)) return@withTimeout
-                    delay(POLL_INTERVAL_MILLIS)
-                }
-            }
-        } catch (e: TimeoutCancellationException) {
-            throw AssertionError("Timed out waiting for $description; last saw $lastSeen", e)
+    /** The tool list a freshly connected MCP client is served; it is computed at connection time. */
+    private suspend fun servedToolNames(): List<String> {
+        val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$port/sse")
+        return try {
+            client.listTools().tools.map(Tool::name)
+        } finally {
+            client.close()
         }
     }
 
     @Test
+    @Suppress("KOTRAIL_LOCAL_DECLARED_TOO_EARLY")
     fun `every MCP-capable plugin in a session is reported as capable`() = runBlocking {
         // Regression guard: the drawer's "exposes MCP tools" badge reads mcpCapablePluginsFlow, and
         // every plugin that registers tools must appear there — not just the first one. This mirrors
@@ -342,12 +335,12 @@ class DefaultMcpServerServiceTest {
             mcpPermissionsRepository = FakeMcpPermissionsRepository(),
             builtInTools = setOf(
                 FakeMcpTool("fake.observed") {
-                    runningDuringCall = mcpActivityRepository.activityFlow.value.runningInvocations.map { it.toolName }
+                    runningDuringCall = mcpActivityRepository.activityFlow.value.runningInvocations.map(McpToolInvocation::toolName)
                 },
             ),
             statusHolder = McpServerStatusHolder(),
         )
-        val observedPort = java.net.ServerSocket(0).use { it.localPort }
+        val observedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, observedPort)
         try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$observedPort/sse")
@@ -373,7 +366,7 @@ class DefaultMcpServerServiceTest {
             builtInTools = setOf(FakeMcpTool("fake.targeted")),
             statusHolder = McpServerStatusHolder(),
         )
-        val targetedPort = java.net.ServerSocket(0).use { it.localPort }
+        val targetedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, targetedPort)
         try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$targetedPort/sse")
@@ -404,7 +397,7 @@ class DefaultMcpServerServiceTest {
             builtInTools = setOf(FailingMcpTool("fake.failing")),
             statusHolder = McpServerStatusHolder(),
         )
-        val failingPort = java.net.ServerSocket(0).use { it.localPort }
+        val failingPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, failingPort)
         try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://$host:$failingPort/sse")
@@ -429,7 +422,7 @@ class DefaultMcpServerServiceTest {
             builtInTools = setOf(FakeMcpTool("fake.recorded")),
             statusHolder = McpServerStatusHolder(),
         )
-        val recordedPort = java.net.ServerSocket(0).use { it.localPort }
+        val recordedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, recordedPort)
         // Stopping the server clears recorded activity, so the history has to be read while it runs.
         val record = try {
@@ -463,7 +456,7 @@ class DefaultMcpServerServiceTest {
             builtInTools = setOf(MediaMcpTool("fake.captured")),
             statusHolder = McpServerStatusHolder(),
         )
-        val capturedPort = java.net.ServerSocket(0).use { it.localPort }
+        val capturedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, capturedPort)
         // Stopping the server clears recorded activity, so the history has to be read while it runs.
         val record = try {
@@ -490,7 +483,7 @@ class DefaultMcpServerServiceTest {
             builtInTools = setOf(ErrorResultMcpTool("fake.rejected")),
             statusHolder = McpServerStatusHolder(),
         )
-        val rejectedPort = java.net.ServerSocket(0).use { it.localPort }
+        val rejectedPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, rejectedPort)
         // Stopping the server clears recorded activity, so the history has to be read while it runs.
         val record = try {
@@ -521,7 +514,7 @@ class DefaultMcpServerServiceTest {
             builtInTools = setOf(StructuredMcpTool("fake.structured")),
             statusHolder = McpServerStatusHolder(),
         )
-        val structuredPort = java.net.ServerSocket(0).use { it.localPort }
+        val structuredPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, structuredPort)
         // Stopping the server clears recorded activity, so the history has to be read while it runs.
         val record = try {
@@ -550,7 +543,7 @@ class DefaultMcpServerServiceTest {
             builtInTools = setOf(FailingMcpTool("fake.failing")),
             statusHolder = McpServerStatusHolder(),
         )
-        val failingPort = java.net.ServerSocket(0).use { it.localPort }
+        val failingPort = ServerSocket(0).use(ServerSocket::getLocalPort)
         serviceWithTool.start(host, failingPort)
         // Stopping the server clears recorded activity, so the history has to be read while it runs.
         val record = try {
@@ -627,8 +620,6 @@ class DefaultMcpServerServiceTest {
         }
     }
 }
-
-private const val POLL_INTERVAL_MILLIS = 50L
 
 private class FakeMcpTool(
     private val name: String,

@@ -4,8 +4,10 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeRoot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
+import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -56,12 +58,12 @@ internal class GetNodeTreeCommand(
         val roots = snapshot.roots.filter { requestedRootId == null || it.rootId == requestedRootId }
         if (requestedRootId != null && roots.isEmpty()) {
             throw JetWhaleMcpArgumentException(
-                "unknown rootId: $requestedRootId (known roots: ${snapshot.roots.joinToString { it.rootId }})",
+                "unknown rootId: $requestedRootId (known roots: ${snapshot.roots.joinToString(transform = ComposeRoot::rootId)})",
             )
         }
 
         val pruned = if (arguments[interactiveOnly] == true) {
-            roots.map { root -> root.copy(node = root.node?.filterTree { it.isInteractive }) }
+            roots.map { root -> root.copy(node = root.node?.filterTree(UiNode::isInteractive)) }
         } else {
             roots
         }

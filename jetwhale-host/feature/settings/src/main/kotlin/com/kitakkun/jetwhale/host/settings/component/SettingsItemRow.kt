@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwText
@@ -50,5 +51,18 @@ fun SettingsItemRow(
             }
         }
         controlComponent()
+    }
+}
+
+@Preview
+@Composable
+private fun SettingsItemRowPreview() {
+    JwTheme(darkTheme = false) {
+        SettingsItemRow(
+            label = "Persist data",
+            description = "Keep recorded sessions after the host restarts.",
+        ) {
+            JwText(text = "On", style = JwTheme.textStyles.body)
+        }
     }
 }

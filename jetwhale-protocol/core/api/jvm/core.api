@@ -9,9 +9,6 @@ public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$Com
 public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage : com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage$Companion;
 	public fun <init> (Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;)V
-	public final fun component1 ()Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;
-	public final fun copy (Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage;Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggeeEvent$PluginFrameMessage;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getFrame ()Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;
 	public fun hashCode ()I
@@ -44,9 +41,6 @@ public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$Com
 public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginActivated : com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginActivated$Companion;
 	public fun <init> (Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginActivated;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginActivated;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginActivated;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getPluginId ()Ljava/lang/String;
 	public fun hashCode ()I
@@ -71,9 +65,6 @@ public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$Plu
 public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginDeactivated : com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginDeactivated$Companion;
 	public fun <init> (Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginDeactivated;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginDeactivated;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginDeactivated;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getPluginId ()Ljava/lang/String;
 	public fun hashCode ()I
@@ -98,9 +89,6 @@ public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$Plu
 public final class com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage : com/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage$Companion;
 	public fun <init> (Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;)V
-	public final fun component1 ()Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;
-	public final fun copy (Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage;Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/core/JetWhaleDebuggerEvent$PluginFrameMessage;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getFrame ()Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame;
 	public fun hashCode ()I
@@ -196,11 +184,6 @@ public final class com/kitakkun/jetwhale/protocol/messaging/PluginFrame$Companio
 public final class com/kitakkun/jetwhale/protocol/messaging/PluginFrame$Notification : com/kitakkun/jetwhale/protocol/messaging/PluginFrame {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Notification$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Notification;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Notification;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Notification;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getMessageType ()Ljava/lang/String;
 	public final fun getPayload ()Ljava/lang/String;
@@ -236,11 +219,6 @@ public final class com/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply$Co
 public final class com/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply$Failure : com/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply$Failure$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply$Failure;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply$Failure;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply$Failure;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getErrorMessage ()Ljava/lang/String;
 	public fun getInReplyTo ()Ljava/lang/String;
@@ -267,11 +245,6 @@ public final class com/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply$Fa
 public final class com/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply$Success : com/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply$Success$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply$Success;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply$Success;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply$Success;
 	public fun equals (Ljava/lang/Object;)Z
 	public fun getInReplyTo ()Ljava/lang/String;
 	public final fun getPayload ()Ljava/lang/String;
@@ -298,12 +271,6 @@ public final class com/kitakkun/jetwhale/protocol/messaging/PluginFrame$Reply$Su
 public final class com/kitakkun/jetwhale/protocol/messaging/PluginFrame$Request : com/kitakkun/jetwhale/protocol/messaging/PluginFrame {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Request$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()Ljava/lang/String;
-	public final fun component4 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Request;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Request;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/messaging/PluginFrame$Request;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getCorrelationId ()Ljava/lang/String;
 	public final fun getMessageType ()Ljava/lang/String;
@@ -353,9 +320,6 @@ public abstract interface class com/kitakkun/jetwhale/protocol/negotiation/JetWh
 public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$AvailablePlugins : com/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$AvailablePlugins$Companion;
 	public fun <init> (Ljava/util/List;)V
-	public final fun component1 ()Ljava/util/List;
-	public final fun copy (Ljava/util/List;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$AvailablePlugins;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$AvailablePlugins;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$AvailablePlugins;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getPlugins ()Ljava/util/List;
 	public fun hashCode ()I
@@ -380,9 +344,6 @@ public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegot
 public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$Capabilities : com/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$Capabilities$Companion;
 	public fun <init> (Ljava/util/Map;)V
-	public final fun component1 ()Ljava/util/Map;
-	public final fun copy (Ljava/util/Map;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$Capabilities;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$Capabilities;Ljava/util/Map;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$Capabilities;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getCapabilities ()Ljava/util/Map;
 	public fun hashCode ()I
@@ -411,9 +372,6 @@ public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegot
 public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$ProtocolVersion : com/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$ProtocolVersion$Companion;
 	public synthetic fun <init> (ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1-tc6Yq1E ()I
-	public final fun copy-tlh62lw (I)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$ProtocolVersion;
-	public static synthetic fun copy-tlh62lw$default (Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$ProtocolVersion;IILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$ProtocolVersion;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getVersion-tc6Yq1E ()I
 	public fun hashCode ()I
@@ -439,11 +397,6 @@ public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegot
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$Session$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAppMetadata;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAppMetadata;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAppMetadata;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAppMetadata;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$Session;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$Session;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAppMetadata;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAgentNegotiationRequest$Session;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAppMetadata ()Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAppMetadata;
 	public final fun getSessionId ()Ljava/lang/String;
@@ -472,12 +425,6 @@ public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleAppMetadat
 	public fun <init> ()V
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun component3 ()Ljava/lang/String;
-	public final fun component4 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAppMetadata;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAppMetadata;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleAppMetadata;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAppIconPngBase64 ()Ljava/lang/String;
 	public final fun getAppName ()Ljava/lang/String;
@@ -509,9 +456,6 @@ public abstract interface class com/kitakkun/jetwhale/protocol/negotiation/JetWh
 public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$AcceptSession : com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$AcceptSession$Companion;
 	public fun <init> (Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$AcceptSession;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$AcceptSession;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$AcceptSession;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getSessionId ()Ljava/lang/String;
 	public fun hashCode ()I
@@ -536,10 +480,6 @@ public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegoti
 public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$AvailablePluginsResponse : com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$AvailablePluginsResponse$Companion;
 	public fun <init> (Ljava/util/List;Ljava/util/List;)V
-	public final fun component1 ()Ljava/util/List;
-	public final fun component2 ()Ljava/util/List;
-	public final fun copy (Ljava/util/List;Ljava/util/List;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$AvailablePluginsResponse;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$AvailablePluginsResponse;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$AvailablePluginsResponse;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAvailablePlugins ()Ljava/util/List;
 	public final fun getIncompatiblePlugins ()Ljava/util/List;
@@ -565,9 +505,6 @@ public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegoti
 public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$CapabilitiesResponse : com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$CapabilitiesResponse$Companion;
 	public fun <init> (Ljava/util/Map;)V
-	public final fun component1 ()Ljava/util/Map;
-	public final fun copy (Ljava/util/Map;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$CapabilitiesResponse;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$CapabilitiesResponse;Ljava/util/Map;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$CapabilitiesResponse;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getCapabilities ()Ljava/util/Map;
 	public fun hashCode ()I
@@ -600,9 +537,6 @@ public abstract interface class com/kitakkun/jetwhale/protocol/negotiation/JetWh
 public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$ProtocolVersionResponse$Accept : com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$ProtocolVersionResponse {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$ProtocolVersionResponse$Accept$Companion;
 	public synthetic fun <init> (ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1-tc6Yq1E ()I
-	public final fun copy-tlh62lw (I)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$ProtocolVersionResponse$Accept;
-	public static synthetic fun copy-tlh62lw$default (Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$ProtocolVersionResponse$Accept;IILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$ProtocolVersionResponse$Accept;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getVersion-tc6Yq1E ()I
 	public fun hashCode ()I
@@ -631,10 +565,6 @@ public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegoti
 public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$ProtocolVersionResponse$Reject : com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$ProtocolVersionResponse {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$ProtocolVersionResponse$Reject$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/util/List;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/util/List;
-	public final fun copy (Ljava/lang/String;Ljava/util/List;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$ProtocolVersionResponse$Reject;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$ProtocolVersionResponse$Reject;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegotiationResponse$ProtocolVersionResponse$Reject;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getReason ()Ljava/lang/String;
 	public final fun getSupportedVersions ()Ljava/util/List;
@@ -660,10 +590,6 @@ public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhaleHostNegoti
 public final class com/kitakkun/jetwhale/protocol/negotiation/JetWhalePluginInfo {
 	public static final field Companion Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhalePluginInfo$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
-	public final fun component1 ()Ljava/lang/String;
-	public final fun component2 ()Ljava/lang/String;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhalePluginInfo;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhalePluginInfo;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/protocol/negotiation/JetWhalePluginInfo;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getPluginId ()Ljava/lang/String;
 	public final fun getPluginVersion ()Ljava/lang/String;

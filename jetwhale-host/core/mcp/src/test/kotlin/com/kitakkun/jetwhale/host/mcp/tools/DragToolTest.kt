@@ -85,6 +85,7 @@ class DragToolTest {
     }
 
     @Test
+    @Suppress("KOTRAIL_LOCAL_DECLARED_TOO_EARLY")
     fun `dispatchDrag move events interpolate positions correctly`() = runBlocking {
         val dragPositions = mutableListOf<Offset>()
         var dragEnded = false
@@ -122,7 +123,7 @@ class DragToolTest {
             assertTrue(dragPositions[i].y >= dragPositions[i - 1].y, "Drag Y should be non-decreasing at step $i")
         }
 
-        assertEquals(400f, dragPositions.last().x, 0.01f, "Last drag position X should be at endX")
-        assertEquals(400f, dragPositions.last().y, 0.01f, "Last drag position Y should be at endY")
+        assertEquals(expected = 400f, actual = dragPositions.last().x, absoluteTolerance = 0.01f, message = "Last drag position X should be at endX")
+        assertEquals(expected = 400f, actual = dragPositions.last().y, absoluteTolerance = 0.01f, message = "Last drag position Y should be at endY")
     }
 }

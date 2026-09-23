@@ -15,6 +15,7 @@ dependencies {
     compileOnly(projects.jetwhaleHostUi)
     compileOnly(compose.desktop.currentOs)
     compileOnly(libs.material3)
+    compileOnly(libs.jetbrainsComposePreview)
     compileOnly(libs.kotlinxSerializationJson)
     api(projects.jetwhalePlugins.example.protocol)
 }

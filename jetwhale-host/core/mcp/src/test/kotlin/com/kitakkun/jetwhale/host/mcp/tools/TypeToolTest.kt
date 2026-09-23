@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
@@ -143,8 +144,8 @@ class TypeToolTest {
             return if (node.config.getOrNull(SemanticsActions.RequestFocus) != null) node else null
         }
 
-        val rootNodes = scene.semanticsOwners.map { it.rootSemanticsNode }
-        val target = rootNodes.firstNotNullOfOrNull { findFocusableNode(it) }
+        val rootNodes = scene.semanticsOwners.map(SemanticsOwner::rootSemanticsNode)
+        val target = rootNodes.firstNotNullOfOrNull(::findFocusableNode)
         checkNotNull(target) { "No focusable node found" }
         target.config.getOrNull(SemanticsActions.RequestFocus)?.action?.invoke()
 

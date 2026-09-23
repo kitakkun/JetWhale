@@ -8,18 +8,18 @@ import kotlinx.collections.immutable.ImmutableList
  *
  * [operatingToolName] is the MCP tool currently being executed. It lingers briefly past the actual
  * call, because most calls finish too quickly to be seen otherwise.
+ *
+ * @property isFollowModeOn Whether the window is set to move to whatever plugin an agent operates.
+ * @property isFollowingOperation Whether what is on the main window's screen is there under the
+ * agent's direction right now — the mode is on and the call in flight names a plugin that this
+ * window shows or has just moved to. The follow banner turns to its warning state and names the
+ * tool for as long as this holds. A plugin popped out into its own window is watched there, so a
+ * call to it does not count.
  */
 data class AiActivityUiState(
     val isAgentConnected: Boolean,
     val operatingToolName: String?,
-    /** Whether the window is set to move to whatever plugin an agent operates. */
     val isFollowModeOn: Boolean,
-    /**
-     * Whether what is on the main window's screen is there under the agent's direction right now —
-     * the mode is on and the call in flight names a plugin that this window shows or has just moved
-     * to. The follow banner turns to its warning state and names the tool for as long as this holds.
-     * A plugin popped out into its own window is watched there, so a call to it does not count.
-     */
     val isFollowingOperation: Boolean,
 ) {
     val isOperating: Boolean get() = operatingToolName != null

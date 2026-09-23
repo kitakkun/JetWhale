@@ -6,6 +6,8 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import com.kitakkun.jetwhale.host.ui.JwText
 
 @Composable
 fun AnimatedSwappableContent(
@@ -32,4 +34,14 @@ fun AnimatedSwappableContent(
             content2()
         }
     }
+}
+
+@Preview
+@Composable
+private fun AnimatedSwappableContentPreview() {
+    AnimatedSwappableContent(
+        showContent1 = true,
+        content1 = { JwText(text = "First") },
+        content2 = { JwText(text = "Second") },
+    )
 }

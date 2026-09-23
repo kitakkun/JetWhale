@@ -32,10 +32,10 @@ class DefaultPluginSessionReconciliationService(
     override fun targetSessionIds(pluginId: String, sessions: List<DebugSession>): Set<String> = if (requiresAgent(pluginId)) {
         sessions
             .filter { session -> session.installedPlugins.any { it.pluginId == pluginId } }
-            .map { it.id }
+            .map(DebugSession::id)
             .toSet()
     } else {
-        sessions.map { it.id }.toSet()
+        sessions.map(DebugSession::id).toSet()
     }
 
     override fun reconciliationEvents(): Flow<PluginReconciliationEvent> = channelFlow {
@@ -45,7 +45,7 @@ class DefaultPluginSessionReconciliationService(
         launch {
             combine(
                 enabledPluginsRepository.enabledPluginIdsFlow,
-                sessionRepository.debugSessionsFlow.map { sessions -> sessions.filter { it.isActive } },
+                sessionRepository.debugSessionsFlow.map { sessions -> sessions.filter(DebugSession::isActive) },
                 // Loading a plugin is a reconciliation trigger in its own right. The enabled set only
                 // ever grows (nothing removes an id when a jar is deleted or its trust revoked), so
                 // installing a jar whose pluginId is already enabled changes neither of the flows

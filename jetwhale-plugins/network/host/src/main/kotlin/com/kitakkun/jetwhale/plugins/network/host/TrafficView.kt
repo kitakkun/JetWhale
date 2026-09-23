@@ -16,13 +16,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
@@ -30,8 +28,8 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwColumnOverflow
 import com.kitakkun.jetwhale.host.ui.JwColumnWidth
@@ -42,6 +40,7 @@ import com.kitakkun.jetwhale.host.ui.JwSearchField
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwSplitPane
+import com.kitakkun.jetwhale.host.ui.JwSplitPaneState
 import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
 import com.kitakkun.jetwhale.host.ui.JwTable
@@ -57,9 +56,6 @@ import com.kitakkun.jetwhale.plugins.network.protocol.mediaType
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
 
-/** Storage key for the Traffic tab's list/detail split position. */
-private const val SPLIT_POSITION_KEY = "traffic.splitPosition"
-private const val DEFAULT_SPLIT_POSITION = 0.42f
 private val ListMinWidth = 240.dp
 private val DetailMinWidth = 280.dp
 
@@ -79,9 +75,11 @@ private val DurationColumnWidth = 52.dp
 internal fun TrafficTab(
     transactions: List<HttpTransaction>,
     selectedTxId: String?,
+    splitPaneState: JwSplitPaneState,
     onSelectTx: (String) -> Unit,
     onClear: () -> Unit,
     onCreateMock: (HttpTransaction) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var query by remember { mutableStateOf("") }
     val visible = remember(transactions, query) {
@@ -96,64 +94,8 @@ internal fun TrafficTab(
         }
         matched.asReversed()
     }
-    val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
 
-    fun moveSelection(delta: Int) {
-        if (visible.isEmpty()) return
-        val current = visible.indexOfFirst { it.txId == selectedTxId }
-        val next = (if (current < 0) 0 else current + delta).coerceIn(0, visible.lastIndex)
-        onSelectTx(visible[next].txId)
-        scope.launch { listState.animateScrollToItem(next) }
-    }
-
-    var storedSplitPosition by rememberPersistent(SPLIT_POSITION_KEY, DEFAULT_SPLIT_POSITION)
-    val splitPaneState = rememberJwSplitPaneState(DEFAULT_SPLIT_POSITION)
-    // rememberPersistent hydrates from disk asynchronously, i.e. after the split state has already
-    // been constructed, so the two are mirrored in both directions rather than seeded once. Both are
-    // backed by snapshot state with structural equality, so echoing an unchanged value back does not
-    // re-emit and the mirroring settles immediately.
-    LaunchedEffect(splitPaneState) {
-        launch {
-            snapshotFlow { storedSplitPosition }
-                .collect { splitPaneState.fraction = it }
-        }
-        snapshotFlow { splitPaneState.fraction }
-            .collect { storedSplitPosition = it }
-    }
-
-    // Read outside remember: the column list is built once, and a theme read is a composable call.
-    val urlStyle = JwTheme.textStyles.bodySmall
-    val columns = remember(urlStyle) {
-        listOf(
-            JwTableColumn<HttpTransaction>(header = "Status", width = JwColumnWidth.Fixed(StatusTagWidth)) { StatusBadge(it) },
-            JwTableColumn(header = "Method", width = JwColumnWidth.Fixed(MethodColumnWidth)) {
-                JwText(text = it.request.method, style = JwTheme.textStyles.label)
-            },
-            // The list pane is narrow, so long URLs are read by scrolling the text sideways rather
-            // than by selecting the row.
-            JwTableColumn.text(
-                header = "URL",
-                width = JwColumnWidth.Weight(1f),
-                overflow = JwColumnOverflow.Scroll,
-                style = urlStyle,
-            ) { it.request.url },
-            JwTableColumn(header = "", width = JwColumnWidth.Fixed(MockColumnWidth)) {
-                if (it.response?.fromMock == true) MockChip()
-            },
-            JwTableColumn(header = "Time", width = JwColumnWidth.Fixed(DurationColumnWidth), alignment = Alignment.End) {
-                it.response?.let { response ->
-                    JwText(
-                        text = "${response.durationMs}ms",
-                        style = JwTheme.textStyles.labelSmall,
-                        color = JwTheme.colors.textSecondary,
-                    )
-                }
-            },
-        )
-    }
-
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -182,57 +124,127 @@ internal fun TrafficTab(
             firstMinSize = ListMinWidth,
             secondMinSize = DetailMinWidth,
             first = {
-                JwTable(
-                    items = visible,
-                    columns = columns,
-                    key = { it.txId },
-                    isSelected = { it.txId == selectedTxId },
-                    onClick = { onSelectTx(it.txId) },
-                    state = listState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .focusable()
-                        .onPreviewKeyEvent { event ->
-                            if (event.type != KeyEventType.KeyDown) {
-                                false
-                            } else {
-                                when (event.key) {
-                                    Key.DirectionDown -> {
-                                        moveSelection(1)
-                                        true
-                                    }
-
-                                    Key.DirectionUp -> {
-                                        moveSelection(-1)
-                                        true
-                                    }
-
-                                    else -> false
-                                }
-                            }
-                        },
+                TrafficList(
+                    transactions = visible,
+                    selectedTxId = selectedTxId,
+                    onSelectTx = onSelectTx,
                 )
             },
             second = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(JwSpacing.large),
-                ) {
-                    val tx = transactions.firstOrNull { it.txId == selectedTxId }
-                    if (tx == null) {
-                        JwEmptyState(title = "Select a request to see details")
-                    } else {
-                        // Detail pane values (URL, headers, bodies) are read-only reference data
-                        // developers frequently copy, so make the whole pane text-selectable.
-                        SelectionContainer {
-                            TransactionDetail(tx = tx, onCreateMock = { onCreateMock(tx) })
+                TrafficDetailPane(
+                    transaction = transactions.firstOrNull { it.txId == selectedTxId },
+                    onCreateMock = onCreateMock,
+                )
+            },
+        )
+    }
+}
+
+@Composable
+private fun TrafficList(
+    transactions: List<HttpTransaction>,
+    selectedTxId: String?,
+    onSelectTx: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
+    fun moveSelection(delta: Int) {
+        if (transactions.isEmpty()) return
+        val current = transactions.indexOfFirst { it.txId == selectedTxId }
+        val next = (if (current < 0) 0 else current + delta).coerceIn(0, transactions.lastIndex)
+        onSelectTx(transactions[next].txId)
+        scope.launch { listState.animateScrollToItem(next) }
+    }
+
+    JwTable(
+        items = transactions,
+        columns = rememberTrafficColumns(),
+        key = HttpTransaction::txId,
+        isSelected = { it.txId == selectedTxId },
+        onClick = { onSelectTx(it.txId) },
+        state = listState,
+        modifier = modifier
+            .fillMaxSize()
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) {
+                    false
+                } else {
+                    when (event.key) {
+                        Key.DirectionDown -> {
+                            moveSelection(1)
+                            true
                         }
+
+                        Key.DirectionUp -> {
+                            moveSelection(-1)
+                            true
+                        }
+
+                        else -> false
                     }
                 }
             },
+    )
+}
+
+@Composable
+private fun rememberTrafficColumns(): List<JwTableColumn<HttpTransaction>> {
+    // Read outside remember: the column list is built once, and a theme read is a composable call.
+    val urlStyle = JwTheme.textStyles.bodySmall
+    return remember(urlStyle) {
+        listOf(
+            JwTableColumn<HttpTransaction>(header = "Status", width = JwColumnWidth.Fixed(StatusTagWidth)) { StatusBadge(it) },
+            JwTableColumn(header = "Method", width = JwColumnWidth.Fixed(MethodColumnWidth)) {
+                JwText(text = it.request.method, style = JwTheme.textStyles.label)
+            },
+            // The list pane is narrow, so long URLs are read by scrolling the text sideways rather
+            // than by selecting the row.
+            JwTableColumn.text(
+                header = "URL",
+                width = JwColumnWidth.Weight(1f),
+                overflow = JwColumnOverflow.Scroll,
+                style = urlStyle,
+            ) { it.request.url },
+            JwTableColumn(header = "", width = JwColumnWidth.Fixed(MockColumnWidth)) {
+                if (it.response?.fromMock == true) MockChip()
+            },
+            JwTableColumn(header = "Time", width = JwColumnWidth.Fixed(DurationColumnWidth), alignment = Alignment.End) {
+                it.response?.let { response ->
+                    JwText(
+                        text = "${response.durationMs}ms",
+                        style = JwTheme.textStyles.labelSmall,
+                        color = JwTheme.colors.textSecondary,
+                    )
+                }
+            },
         )
+    }
+}
+
+@Composable
+private fun TrafficDetailPane(
+    transaction: HttpTransaction?,
+    onCreateMock: (HttpTransaction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(JwSpacing.large),
+    ) {
+        if (transaction == null) {
+            JwEmptyState(title = "Select a request to see details")
+        } else {
+            // Detail pane values (URL, headers, bodies) are read-only reference data developers
+            // frequently copy, so make the whole pane text-selectable.
+            SelectionContainer {
+                TransactionDetail(tx = transaction, onCreateMock = { onCreateMock(transaction) })
+            }
+        }
     }
 }
 
@@ -261,7 +273,7 @@ private enum class DetailTab(val title: String) {
 }
 
 @Composable
-private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
+private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit, modifier: Modifier = Modifier) {
     val queryParams = remember(tx.request.url) { parseQueryParams(tx.request.url) }
     val hasResponseBody = !tx.response?.body.isNullOrEmpty()
     // Key on hasResponseBody too: the body often arrives after the row is first selected (same
@@ -270,7 +282,7 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit) {
         mutableStateOf(if (hasResponseBody) DetailTab.Body else DetailTab.Headers)
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
@@ -445,7 +457,7 @@ private fun HeaderBlock(headers: Map<String, List<String>>) {
 private fun parseQueryParams(url: String): List<Pair<String, String>> {
     val query = url.substringAfter('?', "")
     if (query.isBlank()) return emptyList()
-    return query.split('&').filter { it.isNotBlank() }.map { part ->
+    return query.split('&').filter(String::isNotBlank).map { part ->
         val index = part.indexOf('=')
         if (index < 0) {
             urlDecode(part) to ""
@@ -456,3 +468,21 @@ private fun parseQueryParams(url: String): List<Pair<String, String>> {
 }
 
 private fun urlDecode(value: String): String = runCatching { URLDecoder.decode(value, "UTF-8") }.getOrDefault(value)
+
+@Preview
+@Composable
+private fun TrafficTabPreview() {
+    JwTheme(darkTheme = false) {
+        val transactions = previewTransactions()
+        TrafficTab(
+            transactions = transactions,
+            selectedTxId = transactions.first().txId,
+            splitPaneState = rememberJwSplitPaneState(PREVIEW_SPLIT_POSITION),
+            onSelectTx = {},
+            onClear = {},
+            onCreateMock = {},
+        )
+    }
+}
+
+private const val PREVIEW_SPLIT_POSITION = 0.42f

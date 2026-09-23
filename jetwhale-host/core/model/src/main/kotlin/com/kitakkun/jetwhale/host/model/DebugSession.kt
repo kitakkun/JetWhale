@@ -3,11 +3,13 @@ package com.kitakkun.jetwhale.host.model
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import kotlinx.collections.immutable.ImmutableList
 
+/**
+ * @property transportSecurity Security of the transport carrying this session.
+ */
 data class DebugSession(
     val id: String,
     val name: String?,
     val isActive: Boolean,
-    /** Security of the transport carrying this session. */
     val transportSecurity: SessionTransportSecurity,
     val installedPlugins: ImmutableList<JetWhalePluginInfo>,
     val appName: String? = null,

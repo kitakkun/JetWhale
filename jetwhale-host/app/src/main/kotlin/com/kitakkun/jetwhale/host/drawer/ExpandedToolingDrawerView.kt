@@ -36,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.app_icon
@@ -72,6 +73,7 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.unavailable_plugins
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -106,9 +108,10 @@ fun ExpandedToolingDrawerView(
     isPoppedOut: (pluginId: String) -> Boolean,
     onClickBringBack: (DrawerPluginItemUiState) -> Unit,
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxHeight()
             .width(JwMetrics.sidebarWidth)
             .background(JwTheme.colors.sidebarBackground),
@@ -156,9 +159,9 @@ fun ExpandedToolingDrawerView(
 }
 
 @Composable
-private fun SidebarHeader(onClickShrinkDrawer: () -> Unit) {
+private fun SidebarHeader(onClickShrinkDrawer: () -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(JwMetrics.toolbarHeight)
             .padding(start = JwSpacing.large, end = JwSpacing.extraSmall),
@@ -199,9 +202,10 @@ private fun SidebarFooter(
     onOpenAllMcpTools: () -> Unit,
     onClickSettings: () -> Unit,
     onClickInfo: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(JwMetrics.toolbarHeight)
             .padding(horizontal = JwSpacing.extraSmall),
@@ -287,104 +291,172 @@ private fun PluginList(
         modifier = modifier,
         contentPadding = PaddingValues(JwSpacing.extraSmall),
     ) {
-        pluginSection(
+        enabledPluginSection(
             title = enabledTitle,
             plugins = enabledPlugins,
             expanded = enabledPluginsExpanded,
+            selectedPluginId = selectedPluginId,
             onToggleExpanded = { enabledPluginsExpanded = !enabledPluginsExpanded },
-        ) { plugin ->
-            PluginDrawerItemView(
-                enabled = true,
-                name = plugin.name,
-                activeIconResource = plugin.activeIconResource,
-                inactiveIconResource = plugin.inactiveIconResource,
-                selected = plugin.id == selectedPluginId,
-                underAiControl = plugin.underAiControl,
-                exposesMcpTools = plugin.exposesMcpTools,
-                onClickMcpBadge = { onOpenMcpTools(plugin.id) },
-                onClick = { onClickPlugin(plugin) },
-                popupMenuContent = { dismiss ->
-                    JwMenuItem(
-                        text = stringResource(Res.string.disable),
-                        leadingIcon = { JwIcon(imageVector = Icons.Default.RemoveCircle, contentDescription = null) },
-                        onClick = {
-                            onSetPluginEnabled(plugin.id, false)
-                            dismiss()
-                        },
-                    )
-                    if (isPoppedOut(plugin.id)) {
-                        JwMenuItem(
-                            text = stringResource(Res.string.bring_back_from_popout),
-                            leadingIcon = { JwIcon(imageVector = Icons.Default.SouthWest, contentDescription = null) },
-                            onClick = {
-                                onClickBringBack(plugin)
-                                dismiss()
-                            },
-                        )
-                    } else if (!plugin.isHeadless) {
-                        // A window of its own would only carry the "no UI" notice, so a headless
-                        // plugin is not offered one.
-                        JwMenuItem(
-                            text = stringResource(Res.string.popout),
-                            leadingIcon = { JwIcon(imageVector = Icons.Default.ArrowOutward, contentDescription = null) },
-                            onClick = {
-                                onClickPopout(plugin)
-                                dismiss()
-                            },
-                        )
-                    }
-                },
-                modifier = Modifier.animateItem(),
-            )
-        }
-        pluginSection(
+            onOpenMcpTools = onOpenMcpTools,
+            onClickPlugin = onClickPlugin,
+            onClickPopout = onClickPopout,
+            isPoppedOut = isPoppedOut,
+            onClickBringBack = onClickBringBack,
+            onSetPluginEnabled = onSetPluginEnabled,
+        )
+        disabledPluginSection(
             title = disabledTitle,
             plugins = disabledPlugins,
             expanded = disabledPluginsExpanded,
             onToggleExpanded = { disabledPluginsExpanded = !disabledPluginsExpanded },
-        ) { plugin ->
-            PluginDrawerItemView(
-                enabled = false,
-                name = plugin.name,
-                activeIconResource = plugin.activeIconResource,
-                inactiveIconResource = plugin.inactiveIconResource,
-                selected = false,
-                underAiControl = plugin.underAiControl,
-                exposesMcpTools = plugin.exposesMcpTools,
-                onClickMcpBadge = { onOpenMcpTools(plugin.id) },
-                onClick = {},
-                popupMenuContent = { dismiss ->
-                    JwMenuItem(
-                        text = stringResource(Res.string.enable),
-                        leadingIcon = { JwIcon(imageVector = Icons.Default.AddCircle, contentDescription = null) },
-                        onClick = {
-                            onSetPluginEnabled(plugin.id, true)
-                            dismiss()
-                        },
-                    )
-                },
-                modifier = Modifier.animateItem(),
-            )
-        }
-        pluginSection(
+            onOpenMcpTools = onOpenMcpTools,
+            onSetPluginEnabled = onSetPluginEnabled,
+        )
+        unavailablePluginSection(
             title = unavailableTitle,
             plugins = unavailablePlugins,
             expanded = unavailablePluginsExpanded,
             onToggleExpanded = { unavailablePluginsExpanded = !unavailablePluginsExpanded },
-        ) { plugin ->
-            PluginDrawerItemView(
-                enabled = false,
-                name = plugin.name,
-                activeIconResource = plugin.activeIconResource,
-                inactiveIconResource = plugin.inactiveIconResource,
-                selected = false,
-                underAiControl = plugin.underAiControl,
-                exposesMcpTools = plugin.exposesMcpTools,
-                onClickMcpBadge = { onOpenMcpTools(plugin.id) },
-                onClick = {},
-                modifier = Modifier.animateItem(),
-            )
-        }
+            onOpenMcpTools = onOpenMcpTools,
+        )
+    }
+}
+
+/** The plugins that are on: selectable, and each offering the actions that apply to a live plugin. */
+private fun LazyListScope.enabledPluginSection(
+    title: String,
+    plugins: List<DrawerPluginItemUiState>,
+    expanded: Boolean,
+    selectedPluginId: String,
+    onToggleExpanded: () -> Unit,
+    onOpenMcpTools: (pluginId: String) -> Unit,
+    onClickPlugin: (DrawerPluginItemUiState) -> Unit,
+    onClickPopout: (DrawerPluginItemUiState) -> Unit,
+    isPoppedOut: (pluginId: String) -> Boolean,
+    onClickBringBack: (DrawerPluginItemUiState) -> Unit,
+    onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
+) {
+    pluginSection(
+        title = title,
+        plugins = plugins,
+        expanded = expanded,
+        onToggleExpanded = onToggleExpanded,
+    ) { plugin ->
+        PluginDrawerItemView(
+            enabled = true,
+            name = plugin.name,
+            activeIconResource = plugin.activeIconResource,
+            inactiveIconResource = plugin.inactiveIconResource,
+            selected = plugin.id == selectedPluginId,
+            underAiControl = plugin.underAiControl,
+            exposesMcpTools = plugin.exposesMcpTools,
+            onClickMcpBadge = { onOpenMcpTools(plugin.id) },
+            onClick = { onClickPlugin(plugin) },
+            popupMenuContent = { dismiss ->
+                JwMenuItem(
+                    text = stringResource(Res.string.disable),
+                    leadingIcon = { JwIcon(imageVector = Icons.Default.RemoveCircle, contentDescription = null) },
+                    onClick = {
+                        onSetPluginEnabled(plugin.id, false)
+                        dismiss()
+                    },
+                )
+                if (isPoppedOut(plugin.id)) {
+                    JwMenuItem(
+                        text = stringResource(Res.string.bring_back_from_popout),
+                        leadingIcon = { JwIcon(imageVector = Icons.Default.SouthWest, contentDescription = null) },
+                        onClick = {
+                            onClickBringBack(plugin)
+                            dismiss()
+                        },
+                    )
+                } else if (!plugin.isHeadless) {
+                    // A window of its own would only carry the "no UI" notice, so a headless
+                    // plugin is not offered one.
+                    JwMenuItem(
+                        text = stringResource(Res.string.popout),
+                        leadingIcon = { JwIcon(imageVector = Icons.Default.ArrowOutward, contentDescription = null) },
+                        onClick = {
+                            onClickPopout(plugin)
+                            dismiss()
+                        },
+                    )
+                }
+            },
+            modifier = Modifier.animateItem(),
+        )
+    }
+}
+
+/** The plugins that are installed but switched off: not selectable, and offering only "enable". */
+private fun LazyListScope.disabledPluginSection(
+    title: String,
+    plugins: List<DrawerPluginItemUiState>,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
+    onOpenMcpTools: (pluginId: String) -> Unit,
+    onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
+) {
+    pluginSection(
+        title = title,
+        plugins = plugins,
+        expanded = expanded,
+        onToggleExpanded = onToggleExpanded,
+    ) { plugin ->
+        PluginDrawerItemView(
+            enabled = false,
+            name = plugin.name,
+            activeIconResource = plugin.activeIconResource,
+            inactiveIconResource = plugin.inactiveIconResource,
+            selected = false,
+            underAiControl = plugin.underAiControl,
+            exposesMcpTools = plugin.exposesMcpTools,
+            onClickMcpBadge = { onOpenMcpTools(plugin.id) },
+            onClick = {},
+            popupMenuContent = { dismiss ->
+                JwMenuItem(
+                    text = stringResource(Res.string.enable),
+                    leadingIcon = { JwIcon(imageVector = Icons.Default.AddCircle, contentDescription = null) },
+                    onClick = {
+                        onSetPluginEnabled(plugin.id, true)
+                        dismiss()
+                    },
+                )
+            },
+            modifier = Modifier.animateItem(),
+        )
+    }
+}
+
+/**
+ * The plugins the selected session cannot run. They are listed so the user can see they exist, with
+ * no actions: switching one on would change nothing until a session that has it connects.
+ */
+private fun LazyListScope.unavailablePluginSection(
+    title: String,
+    plugins: List<DrawerPluginItemUiState>,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
+    onOpenMcpTools: (pluginId: String) -> Unit,
+) {
+    pluginSection(
+        title = title,
+        plugins = plugins,
+        expanded = expanded,
+        onToggleExpanded = onToggleExpanded,
+    ) { plugin ->
+        PluginDrawerItemView(
+            enabled = false,
+            name = plugin.name,
+            activeIconResource = plugin.activeIconResource,
+            inactiveIconResource = plugin.inactiveIconResource,
+            selected = false,
+            underAiControl = plugin.underAiControl,
+            exposesMcpTools = plugin.exposesMcpTools,
+            onClickMcpBadge = { onOpenMcpTools(plugin.id) },
+            onClick = {},
+            modifier = Modifier.animateItem(),
+        )
     }
 }
 
@@ -409,7 +481,53 @@ private fun LazyListScope.pluginSection(
         )
     }
     if (!expanded) return
-    items(items = plugins, key = { it.id }) { plugin ->
+    items(items = plugins, key = DrawerPluginItemUiState::id) { plugin ->
         itemContent(plugin)
     }
+}
+
+@Preview
+@Composable
+private fun ExpandedToolingDrawerViewPreview() {
+    ExpandedToolingDrawerView(
+        selectedPluginId = "com.example.inspector",
+        plugins = persistentListOf(
+            DrawerPluginItemUiState(
+                name = "Inspector",
+                id = "com.example.inspector",
+                activeIconResource = null,
+                inactiveIconResource = null,
+                pluginAvailability = PluginAvailability.Enabled,
+                underAiControl = false,
+                exposesMcpTools = true,
+                isHeadless = false,
+            ),
+            DrawerPluginItemUiState(
+                name = "Recorder",
+                id = "com.example.recorder",
+                activeIconResource = null,
+                inactiveIconResource = null,
+                pluginAvailability = PluginAvailability.Disabled,
+                underAiControl = false,
+                exposesMcpTools = false,
+                isHeadless = false,
+            ),
+        ),
+        hasFailedJars = false,
+        selectedSession = null,
+        sessions = persistentListOf(),
+        aiActivity = AiActivityUiState.Idle,
+        onClickShrinkDrawer = {},
+        onClickSettings = {},
+        onClickPluginSettings = {},
+        onClickInfo = {},
+        onOpenMcpTools = {},
+        onOpenAllMcpTools = {},
+        onClickPlugin = {},
+        onSelectSession = {},
+        onClickPopout = {},
+        isPoppedOut = { false },
+        onClickBringBack = {},
+        onSetPluginEnabled = { _, _ -> },
+    )
 }

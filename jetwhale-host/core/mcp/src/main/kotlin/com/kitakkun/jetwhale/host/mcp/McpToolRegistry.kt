@@ -129,7 +129,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
         }
         mcpCapablePluginsFlow.value = McpCapablePlugins(
             toolsBySessionAndPlugin.mapValues { (_, byPlugin) ->
-                byPlugin.mapValues { (_, tools) -> tools.sortedBy { it.name } }
+                byPlugin.mapValues { (_, tools) -> tools.sortedBy(McpToolSummary::name) }
             },
         )
     }

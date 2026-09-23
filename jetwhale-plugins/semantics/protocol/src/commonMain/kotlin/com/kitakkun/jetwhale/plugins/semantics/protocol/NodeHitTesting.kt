@@ -94,7 +94,7 @@ private fun UiNode.topmostAt(screenX: Float, screenY: Float): UiNode? {
     for (index in children.indices.reversed()) {
         children[index].topmostAt(screenX, screenY)?.let { return it }
     }
-    return takeIf { it.acceptsTouch }
+    return takeIf(UiNode::acceptsTouch)
 }
 
 private fun UiNode.resolveHits(rootId: String, winnerAt: (x: Float, y: Float) -> NodeHitTesting.TouchTarget): UiNode {
@@ -122,7 +122,7 @@ private fun UiNode.resolveHits(rootId: String, winnerAt: (x: Float, y: Float) ->
         // Named rather than left blank: the window is what a caller looks at next.
         is NodeHitTesting.TouchTarget.Window -> withHits(isHittable = false, obscuredBy = winner.rootNode, children = resolvedChildren)
 
-        NodeHitTesting.TouchTarget.Nothing -> withHits(isHittable = false, obscuredBy = null, children = resolvedChildren)
+        is NodeHitTesting.TouchTarget.Nothing -> withHits(isHittable = false, obscuredBy = null, children = resolvedChildren)
     }
 }
 

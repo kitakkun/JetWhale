@@ -27,52 +27,85 @@ public sealed interface JetWhaleHostNegotiationResponse {
     public sealed interface ProtocolVersionResponse : JetWhaleHostNegotiationResponse {
         @SerialName(JetWhaleSerialNames.NEGOTIATION_HOST_PROTOCOL_VERSION_RESPONSE_ACCEPT)
         @Serializable
-        public data class Accept(val version: JetWhaleProtocolVersion) : ProtocolVersionResponse
+        public class Accept(public val version: JetWhaleProtocolVersion) : ProtocolVersionResponse {
+            override fun equals(other: Any?): Boolean = other is Accept && version == other.version
+
+            override fun hashCode(): Int = version.hashCode()
+
+            override fun toString(): String = "Accept(version=$version)"
+        }
 
         @SerialName(JetWhaleSerialNames.NEGOTIATION_HOST_PROTOCOL_VERSION_RESPONSE_REJECT)
         @Serializable
-        public data class Reject(
-            val reason: String,
-            val supportedVersions: List<JetWhaleProtocolVersion>,
-        ) : ProtocolVersionResponse
+        public class Reject(
+            public val reason: String,
+            public val supportedVersions: List<JetWhaleProtocolVersion>,
+        ) : ProtocolVersionResponse {
+            override fun equals(other: Any?): Boolean = other is Reject && reason == other.reason && supportedVersions == other.supportedVersions
+
+            override fun hashCode(): Int = 31 * reason.hashCode() + supportedVersions.hashCode()
+
+            override fun toString(): String = "Reject(reason=$reason, supportedVersions=$supportedVersions)"
+        }
     }
 
     /**
      * Response to session negotiation.
      * This response is sent after protocol version is accepted.
      *
-     * @param sessionId the accepted session ID. This session ID should be remembered by the agent to resume the session.
+     * @property sessionId the accepted session ID. This session ID should be remembered by the agent to resume the session.
      * @see [JetWhaleAgentNegotiationRequest.Session] for request
      */
     @SerialName(JetWhaleSerialNames.NEGOTIATION_HOST_ACCEPT_SESSION)
     @Serializable
-    public data class AcceptSession(val sessionId: String) : JetWhaleHostNegotiationResponse
+    public class AcceptSession(public val sessionId: String) : JetWhaleHostNegotiationResponse {
+        override fun equals(other: Any?): Boolean = other is AcceptSession && sessionId == other.sessionId
+
+        override fun hashCode(): Int = sessionId.hashCode()
+
+        override fun toString(): String = "AcceptSession(sessionId=$sessionId)"
+    }
 
     /**
      * Response to capabilities information.
      * This response is sent after session is accepted.
      *
-     * @param capabilities the map of capability names and their values.
+     * @property capabilities the map of capability names and their values.
      * @see [JetWhaleAgentNegotiationRequest.Capabilities] for request
      */
     @SerialName(JetWhaleSerialNames.NEGOTIATION_HOST_CAPABILITIES_RESPONSE)
     @Serializable
-    public data class CapabilitiesResponse(
-        val capabilities: Map<String, String>,
-    ) : JetWhaleHostNegotiationResponse
+    public class CapabilitiesResponse(
+        public val capabilities: Map<String, String>,
+    ) : JetWhaleHostNegotiationResponse {
+        override fun equals(other: Any?): Boolean = other is CapabilitiesResponse && capabilities == other.capabilities
+
+        override fun hashCode(): Int = capabilities.hashCode()
+
+        override fun toString(): String = "CapabilitiesResponse(capabilities=$capabilities)"
+    }
 
     /**
      * Response to available plugins information.
      * This response is sent after capabilities are exchanged.
      *
-     * @param availablePlugins the list of available plugins in the host.
-     * @param incompatiblePlugins the list of plugins that are incompatible with the host.
+     * @property availablePlugins the list of available plugins in the host.
+     * @property incompatiblePlugins the list of plugins that are incompatible with the host.
      * @see [JetWhaleAgentNegotiationRequest.AvailablePlugins] for request
      */
     @SerialName(JetWhaleSerialNames.NEGOTIATION_HOST_AVAILABLE_PLUGINS_RESPONSE)
     @Serializable
-    public data class AvailablePluginsResponse(
-        val availablePlugins: List<JetWhalePluginInfo>,
-        val incompatiblePlugins: List<JetWhalePluginInfo>,
-    ) : JetWhaleHostNegotiationResponse
+    public class AvailablePluginsResponse(
+        public val availablePlugins: List<JetWhalePluginInfo>,
+        public val incompatiblePlugins: List<JetWhalePluginInfo>,
+    ) : JetWhaleHostNegotiationResponse {
+        override fun equals(other: Any?): Boolean = other is AvailablePluginsResponse &&
+            availablePlugins == other.availablePlugins &&
+            incompatiblePlugins == other.incompatiblePlugins
+
+        override fun hashCode(): Int = 31 * availablePlugins.hashCode() + incompatiblePlugins.hashCode()
+
+        override fun toString(): String = "AvailablePluginsResponse(availablePlugins=$availablePlugins, " +
+            "incompatiblePlugins=$incompatiblePlugins)"
+    }
 }

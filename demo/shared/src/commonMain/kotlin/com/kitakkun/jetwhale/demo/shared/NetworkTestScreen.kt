@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +20,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
@@ -49,10 +51,9 @@ internal fun NetworkTestScreen() {
         scope.launch {
             val line = try {
                 "$label → ${block(target)}"
-            } catch (e: CancellationException) {
-                // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
-                throw e
             } catch (e: Throwable) {
+                // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
+                if (e is CancellationException) throw e
                 "$label → error: ${e.message}"
             }
             log.add(0, line)
@@ -76,69 +77,7 @@ internal fun NetworkTestScreen() {
         item {
             Text("Requests go through the monitored Ktor client; watch them in the Network Inspector.")
         }
-        item {
-            Button(
-                onClick = {
-                    fire("GET /todos/1") { base ->
-                        val response = DIModule.httpClient.get("$base/todos/1")
-                        "${response.status.value} ${response.bodyAsText()}"
-                    }
-                },
-            ) {
-                Text("GET /todos/1")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    fire("POST /todos") { base ->
-                        val response = DIModule.httpClient.post("$base/todos") {
-                            contentType(ContentType.Application.Json)
-                            setBody("""{"title":"New todo"}""")
-                        }
-                        "${response.status.value} ${response.bodyAsText()}"
-                    }
-                },
-            ) {
-                Text("POST /todos")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    fire("DELETE /todos/1") { base ->
-                        val response = DIModule.httpClient.delete("$base/todos/1")
-                        "${response.status.value} ${response.bodyAsText()}"
-                    }
-                },
-            ) {
-                Text("DELETE /todos/1")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    fire("GET image") {
-                        val response = DIModule.httpClient.get(SAMPLE_IMAGE_URL)
-                        "${response.status.value} ${response.readRawBytes().size} bytes"
-                    }
-                },
-            ) {
-                Text("GET an image")
-            }
-        }
-        item {
-            Button(
-                onClick = {
-                    fire("GET /nonexistent-path") { base ->
-                        val response = DIModule.httpClient.get("$base/nonexistent-path")
-                        "${response.status.value} ${response.bodyAsText()}"
-                    }
-                },
-            ) {
-                Text("GET /nonexistent-path (404)")
-            }
-        }
+        sampleRequestButtons(fire = ::fire)
         items(log) { line ->
             Text(
                 text = line,
@@ -154,3 +93,78 @@ internal fun NetworkTestScreen() {
  * image preview can be exercised against any backend.
  */
 private const val SAMPLE_IMAGE_URL = "https://picsum.photos/240/160.jpg"
+
+/** The sample requests the tab fires, each handed to [fire] with the label the log line carries. */
+private fun LazyListScope.sampleRequestButtons(fire: (String, suspend (baseUrl: String) -> String) -> Unit) {
+    item {
+        Button(
+            onClick = {
+                fire("GET /todos/1") { base ->
+                    val response = DIModule.httpClient.get("$base/todos/1")
+                    "${response.status.value} ${response.bodyAsText()}"
+                }
+            },
+        ) {
+            Text("GET /todos/1")
+        }
+    }
+    item {
+        Button(
+            onClick = {
+                fire("POST /todos") { base ->
+                    val response = DIModule.httpClient.post("$base/todos") {
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"title":"New todo"}""")
+                    }
+                    "${response.status.value} ${response.bodyAsText()}"
+                }
+            },
+        ) {
+            Text("POST /todos")
+        }
+    }
+    item {
+        Button(
+            onClick = {
+                fire("DELETE /todos/1") { base ->
+                    val response = DIModule.httpClient.delete("$base/todos/1")
+                    "${response.status.value} ${response.bodyAsText()}"
+                }
+            },
+        ) {
+            Text("DELETE /todos/1")
+        }
+    }
+    item {
+        Button(
+            onClick = {
+                fire("GET image") {
+                    val response = DIModule.httpClient.get(SAMPLE_IMAGE_URL)
+                    "${response.status.value} ${response.readRawBytes().size} bytes"
+                }
+            },
+        ) {
+            Text("GET an image")
+        }
+    }
+    item {
+        Button(
+            onClick = {
+                fire("GET /nonexistent-path") { base ->
+                    val response = DIModule.httpClient.get("$base/nonexistent-path")
+                    "${response.status.value} ${response.bodyAsText()}"
+                }
+            },
+        ) {
+            Text("GET /nonexistent-path (404)")
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun NetworkTestScreenPreview() {
+    MaterialTheme {
+        NetworkTestScreen()
+    }
+}

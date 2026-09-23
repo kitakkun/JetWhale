@@ -81,6 +81,7 @@ class HeadlessHostRunner(
 
     private sealed interface ListenerStartup {
         data object Ready : ListenerStartup
+
         data class Failed(val reason: String) : ListenerStartup
     }
 

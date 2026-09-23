@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.model.PluginIconResource
@@ -48,8 +49,8 @@ fun PluginDrawerItemView(
     inactiveIconResource: PluginIconResource?,
     onClick: () -> Unit,
     onClickMcpBadge: () -> Unit,
-    popupMenuContent: (@Composable ColumnScope.(dismiss: () -> Unit) -> Unit)? = null,
     modifier: Modifier = Modifier,
+    popupMenuContent: (@Composable ColumnScope.(dismiss: () -> Unit) -> Unit)? = null,
 ) {
     Box(modifier = modifier) {
         JwListItem(
@@ -117,9 +118,11 @@ fun PluginDrawerItemView(
 private fun McpBadge(
     operating: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     JwTag(
         text = "MCP",
+        modifier = modifier,
         tone = if (operating) JwTone.Warning else JwTone.Neutral,
         style = if (operating) JwTagStyle.Filled else JwTagStyle.Outlined,
         onClick = onClick,
@@ -131,5 +134,21 @@ private fun McpBadge(
                 modifier = Modifier.padding(BadgeIconInset),
             )
         },
+    )
+}
+
+@Preview
+@Composable
+private fun PluginDrawerItemViewPreview() {
+    PluginDrawerItemView(
+        enabled = true,
+        name = "Inspector",
+        selected = true,
+        underAiControl = true,
+        exposesMcpTools = true,
+        activeIconResource = null,
+        inactiveIconResource = null,
+        onClick = {},
+        onClickMcpBadge = {},
     )
 }

@@ -50,20 +50,25 @@ class KeyringTrustRegistrySigner : TrustRegistrySigner {
     @Volatile
     private var cachedState: KeyState? = null
 
+    override fun hasKey(): Boolean = when (keyState()) {
+        is KeyState.Present, is KeyState.Corrupt -> true
+        is KeyState.Absent, is KeyState.Unavailable -> false
+    }
+
     private fun keyState(): KeyState = cachedState ?: readKeyState().also { cachedState = it }
 
     private fun readKeyState(): KeyState = try {
         Keyring.create().use { keyring ->
             val stored = try {
                 keyring.getPassword(KEYRING_SERVICE, KEYRING_ACCOUNT)
-            } catch (e: PasswordAccessException) {
+            } catch (_: PasswordAccessException) {
                 // No key stored: java-keyring reports the missing item as not-found WITHOUT prompting,
                 // which is what keeps the prompt-free-by-default property.
                 return KeyState.Absent
             }
             val decoded = try {
                 Base64.getDecoder().decode(stored).takeIf { it.size == KEY_LENGTH_BYTES }
-            } catch (e: IllegalArgumentException) {
+            } catch (_: IllegalArgumentException) {
                 null
             }
             if (decoded == null) {
@@ -81,22 +86,17 @@ class KeyringTrustRegistrySigner : TrustRegistrySigner {
         KeyState.Unavailable
     }
 
-    override fun hasKey(): Boolean = when (keyState()) {
-        is KeyState.Present, KeyState.Corrupt -> true
-        KeyState.Absent, KeyState.Unavailable -> false
-    }
-
     override fun sign(payload: String): String? {
         val key = (keyState() as? KeyState.Present)?.key ?: return null
         return Base64.getEncoder().encodeToString(hmac(key, payload))
     }
 
     override fun verify(payload: String, signature: String?): TrustRegistrySigner.Verification = when (val state = keyState()) {
-        KeyState.Absent -> TrustRegistrySigner.Verification.DISABLED
+        is KeyState.Absent -> TrustRegistrySigner.Verification.DISABLED
 
-        KeyState.Unavailable -> TrustRegistrySigner.Verification.UNAVAILABLE
+        is KeyState.Unavailable -> TrustRegistrySigner.Verification.UNAVAILABLE
 
-        KeyState.Corrupt -> TrustRegistrySigner.Verification.INVALID
+        is KeyState.Corrupt -> TrustRegistrySigner.Verification.INVALID
 
         is KeyState.Present -> {
             if (signature == null) {
@@ -107,7 +107,7 @@ class KeyringTrustRegistrySigner : TrustRegistrySigner {
                 val expected = hmac(state.key, payload)
                 val actual = try {
                     Base64.getDecoder().decode(signature)
-                } catch (e: IllegalArgumentException) {
+                } catch (_: IllegalArgumentException) {
                     return TrustRegistrySigner.Verification.INVALID
                 }
                 if (MessageDigest.isEqual(expected, actual)) {
@@ -134,7 +134,7 @@ class KeyringTrustRegistrySigner : TrustRegistrySigner {
         Keyring.create().use { keyring ->
             try {
                 keyring.deletePassword(KEYRING_SERVICE, KEYRING_ACCOUNT)
-            } catch (e: PasswordAccessException) {
+            } catch (_: PasswordAccessException) {
                 // Already absent: nothing to delete.
             }
         }

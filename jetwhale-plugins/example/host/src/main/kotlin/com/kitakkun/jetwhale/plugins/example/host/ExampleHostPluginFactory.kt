@@ -42,7 +42,7 @@ private class ExampleHostPlugin :
 
     @Composable
     override fun Content() {
-        ExamplePluginContent(
+        ExamplePluginViewRoot(
             eventLogs = eventLogs,
             onClickSendPing = {
                 pluginScope.launch {
@@ -70,7 +70,7 @@ private class ExampleHostPlugin :
                 val pongReceived = try {
                     messenger.request(Ping)
                     true
-                } catch (e: JetWhaleMessagingException) {
+                } catch (_: JetWhaleMessagingException) {
                     false
                 }
                 return buildJsonObject {

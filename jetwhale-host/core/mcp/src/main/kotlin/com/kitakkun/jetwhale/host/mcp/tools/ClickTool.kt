@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.mcp.tools
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.getOrNull
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
@@ -80,7 +81,7 @@ class ClickMcpTool(
  */
 fun dispatchClick(scene: PluginComposeScene, x: Float, y: Float): Boolean {
     val point = Offset(x, y)
-    val rootNodes = scene.semanticsOwners.map { it.rootSemanticsNode }
+    val rootNodes = scene.semanticsOwners.map(SemanticsOwner::rootSemanticsNode)
     val target = rootNodes.firstNotNullOfOrNull { findClickableNodeAt(it, point) }
         ?: return false
     target.config.getOrNull(SemanticsActions.OnClick)?.action?.invoke()

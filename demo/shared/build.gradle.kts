@@ -47,6 +47,7 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.material3)
             implementation(libs.jetbrainsComposeRuntime)
+            implementation(libs.jetbrainsComposePreview)
             implementation(projects.jetwhaleAgentRuntime)
             implementation(projects.jetwhaleAgentSdk)
             implementation(projects.jetwhalePlugins.example.agent)

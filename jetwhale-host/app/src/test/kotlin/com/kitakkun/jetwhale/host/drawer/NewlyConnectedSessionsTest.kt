@@ -12,7 +12,7 @@ class NewlyConnectedSessionsTest {
     fun `a session that appeared active is reported as connected`() {
         val connected = newlyConnectedSessions(previouslyConnected = listOf(session("a")), current = listOf(session("a"), session("b")))
 
-        assertEquals(listOf("b"), connected.map { it.id })
+        assertEquals(listOf("b"), connected.map(DebugSession::id))
     }
 
     @Test
@@ -27,7 +27,7 @@ class NewlyConnectedSessionsTest {
         // The disconnected entry stays in the list, so the diff is on "connected", not on "present".
         val connected = newlyConnectedSessions(previouslyConnected = emptyList(), current = listOf(session("a")))
 
-        assertEquals(listOf("a"), connected.map { it.id })
+        assertEquals(listOf("a"), connected.map(DebugSession::id))
     }
 
     @Test
@@ -44,7 +44,7 @@ class NewlyConnectedSessionsTest {
             current = listOf(session("a"), session("b"), session("c")),
         )
 
-        assertEquals(listOf("b", "c"), connected.map { it.id })
+        assertEquals(listOf("b", "c"), connected.map(DebugSession::id))
     }
 
     @Test

@@ -23,19 +23,21 @@ import soil.query.compose.MutationObject
  * `mutateAsync` so failures flow through the mutation state instead of being swallowed by a
  * fire-and-forget `mutate`.
  *
+ * An effect, not a UI element: it emits nothing a `@Preview` could render.
+ *
  * @param T Type of the return value from the mutation.
  * @param U Type of the key to identify whether the failure has already been handled.
  * @param mutation The MutationObject whose error will be observed.
  * @param keySelector Calculates a key to identify whether the failure has already been handled.
- * @param keySaver A Saver to persist and restore the last consumed key.
  * @param block A callback to handle the error. Called only when the key differs from the previous one.
+ * @param keySaver A Saver to persist and restore the last consumed key.
  */
 @Composable
 fun <T, U : Any> MutationErrorEffect(
     mutation: MutationObject<T, *>,
     keySelector: (MutationErrorObject<T, *>) -> U,
-    keySaver: Saver<U?, out Any> = autoSaver(),
     block: suspend (error: Throwable) -> Unit,
+    keySaver: Saver<U?, out Any> = autoSaver(),
 ) {
     val mutationState by rememberUpdatedState(mutation)
     var lastConsumedKey by rememberSaveable(stateSaver = keySaver) { mutableStateOf(null) }
@@ -55,10 +57,17 @@ fun <T, U : Any> MutationErrorEffect(
 /**
  * A [MutationErrorEffect] keyed by `errorUpdatedAt`, so [block] is invoked once per new failure.
  *
+ * An effect, not a UI element: it emits nothing a `@Preview` could render, and [block] is its only
+ * parameter, so there is no non-trailing position to move it to.
+ *
  * @param T Type of the return value from the mutation.
  * @param mutation The MutationObject whose error will be observed.
  */
-@Suppress("NOTHING_TO_INLINE", "KotlinRedundantDiagnosticSuppress")
+@Suppress(
+    "NOTHING_TO_INLINE",
+    "KotlinRedundantDiagnosticSuppress",
+    "KOTRAIL_COMPOSABLE_TRAILING_CALLBACK",
+)
 @Composable
 inline fun <T> MutationErrorEffect(
     mutation: MutationObject<T, *>,

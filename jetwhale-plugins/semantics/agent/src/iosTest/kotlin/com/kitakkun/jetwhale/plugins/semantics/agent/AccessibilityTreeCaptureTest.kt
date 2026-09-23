@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.semantics.agent
 
 import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
+import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.CoreGraphics.CGRectMake
 import platform.UIKit.UITextField
@@ -19,18 +20,10 @@ import kotlin.test.assertTrue
 class AccessibilityTreeCaptureTest {
     // A window that is not on a screen is hidden and answers accessibilityFrame with an empty
     // rectangle, so both are set outright — the walk's visibility rule is what is under test.
-    private val window = UIWindow(frame = CGRectMake(0.0, 0.0, 400.0, 800.0)).apply {
+    private val window = UIWindow(frame = CGRectMake(x = 0.0, y = 0.0, width = 400.0, height = 800.0)).apply {
         hidden = false
         accessibilityFrame = frame
     }
-
-    private fun view(x: Double, y: Double): UIView = UIView(frame = CGRectMake(x, y, 100.0, 100.0)).apply {
-        accessibilityFrame = frame
-    }
-
-    private fun capture(): AppleNode = assertNotNull(
-        AppleNodeIds.trackingCapture(window) { window.toAppleNode(NodeTreeCaptureOptions(includeInvisible = true), window, depth = 0) },
-    )
 
     @Test
     fun `a view behind a modal sibling reads as invisible`() {
@@ -41,17 +34,25 @@ class AccessibilityTreeCaptureTest {
 
         val children = capture().children.map { it as AppleNode }
 
-        assertEquals(listOf(false, true), children.map { it.isVisible })
+        assertEquals(listOf(false, true), children.map(AppleNode::isVisible))
     }
+
+    private fun view(x: Double, y: Double): UIView = UIView(frame = CGRectMake(x = x, y = y, width = 100.0, height = 100.0)).apply {
+        accessibilityFrame = frame
+    }
+
+    private fun capture(): AppleNode = assertNotNull(
+        AppleNodeIds.trackingCapture(window) { window.toAppleNode(NodeTreeCaptureOptions(includeInvisible = true), window, depth = 0) },
+    )
 
     @Test
     fun `a secure text field keeps its text to itself`() {
-        val password = UITextField(frame = CGRectMake(0.0, 0.0, 200.0, 40.0)).apply {
+        val password = UITextField(frame = CGRectMake(x = 0.0, y = 0.0, width = 200.0, height = 40.0)).apply {
             accessibilityFrame = frame
             text = "hunter2"
             secureTextEntry = true
         }
-        val plain = UITextField(frame = CGRectMake(0.0, 100.0, 200.0, 40.0)).apply {
+        val plain = UITextField(frame = CGRectMake(x = 0.0, y = 100.0, width = 200.0, height = 40.0)).apply {
             accessibilityFrame = frame
             text = "visible"
         }
@@ -72,7 +73,7 @@ class AccessibilityTreeCaptureTest {
 
         val children = capture().children
 
-        assertEquals(listOf(true, true), children.map { it.isVisible })
+        assertEquals(listOf(true, true), children.map(UiNode::isVisible))
     }
 
     @Test

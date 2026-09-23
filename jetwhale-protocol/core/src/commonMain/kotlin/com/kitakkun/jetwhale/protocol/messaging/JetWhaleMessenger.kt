@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.protocol.messaging
 
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.StringFormat
 import kotlinx.serialization.serializer
 import kotlin.time.Duration
@@ -87,7 +88,7 @@ public suspend inline fun <reified REQ : JetWhaleRequest<R>, reified R : Any> Je
     )
     return try {
         payloadFormat.decodeFromString(serializer<R>(), replyPayload)
-    } catch (e: kotlinx.serialization.SerializationException) {
+    } catch (e: SerializationException) {
         throw JetWhaleRequestException(
             "Reply to '${requestSerializer.descriptor.serialName}' could not be decoded as the declared reply type: ${e.message}",
             e,

@@ -28,7 +28,7 @@ class AccessibilityTreeToolTest {
 
         val result = Json.decodeFromString<AccessibilityTreeResult>(captureAccessibilityTree(scene))
 
-        val allNodes = result.nodes.flatMap { collectAllNodes(it) }
+        val allNodes = result.nodes.flatMap(::collectAllNodes)
         assertTrue(allNodes.none { it.contentDescription != null || it.text != null || it.isClickable })
     }
 
@@ -46,7 +46,7 @@ class AccessibilityTreeToolTest {
 
         val result = Json.decodeFromString<AccessibilityTreeResult>(captureAccessibilityTree(scene))
 
-        val allNodes = result.nodes.flatMap { collectAllNodes(it) }
+        val allNodes = result.nodes.flatMap(::collectAllNodes)
         val button = allNodes.find { it.contentDescription == "test-button" }
         assertNotNull(button, "Expected a node with contentDescription 'test-button'")
         assertTrue(button.isClickable, "Expected the node to be clickable")
@@ -61,7 +61,7 @@ class AccessibilityTreeToolTest {
 
         val result = Json.decodeFromString<AccessibilityTreeResult>(captureAccessibilityTree(scene))
 
-        val allNodes = result.nodes.flatMap { collectAllNodes(it) }
+        val allNodes = result.nodes.flatMap(::collectAllNodes)
         val target = allNodes.find { it.contentDescription == "bounded" }
         assertNotNull(target, "Expected a node with contentDescription 'bounded'")
         assertEquals(0f, target.bounds.left)
@@ -99,10 +99,10 @@ class AccessibilityTreeToolTest {
 
     private fun boundsOf(scene: PluginComposeScene, contentDescription: String): BoundsInfo {
         val result = Json.decodeFromString<AccessibilityTreeResult>(captureAccessibilityTree(scene))
-        val node = result.nodes.flatMap { collectAllNodes(it) }.find { it.contentDescription == contentDescription }
+        val node = result.nodes.flatMap(::collectAllNodes).find { it.contentDescription == contentDescription }
         assertNotNull(node, "Expected a node with contentDescription '$contentDescription'")
         return node.bounds
     }
 
-    private fun collectAllNodes(node: NodeInfo): List<NodeInfo> = listOf(node) + node.children.flatMap { collectAllNodes(it) }
+    private fun collectAllNodes(node: NodeInfo): List<NodeInfo> = listOf(node) + node.children.flatMap(::collectAllNodes)
 }

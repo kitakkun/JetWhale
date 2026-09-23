@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.plugins.nav3.agent
 
 import androidx.navigation3.runtime.NavKey
+import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyFieldDescriptor
+import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -12,6 +14,7 @@ import kotlinx.serialization.modules.subclass
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 private val openModule = SerializersModule {
@@ -39,7 +42,7 @@ class Nav3KeyCodecTest {
             },
             encoded,
         )
-        assertEquals(key, codec.decode(encoded!!))
+        assertEquals(key, codec.decode(assertNotNull(encoded)))
     }
 
     @Test
@@ -59,7 +62,7 @@ class Nav3KeyCodecTest {
 
         // Sorted by name, because a SerializersModule enumerates its registrations in no defined
         // order — the host would otherwise show the types shuffled differently every session.
-        assertEquals(listOf("Catalog", "Detail", "Home"), codec.keyTypes.map { it.serialName })
+        assertEquals(listOf("Catalog", "Detail", "Home"), codec.keyTypes.map(NavKeyTypeDescriptor::serialName))
     }
 
     @Test
@@ -68,10 +71,10 @@ class Nav3KeyCodecTest {
 
         val detail = codec.keyTypes.single { it.serialName == "Detail" }
 
-        assertContentEquals(listOf("id", "page", "note"), detail.fields.map { it.name })
-        assertContentEquals(listOf("String", "Int", "String?"), detail.fields.map { it.type })
-        assertContentEquals(listOf(false, true, false), detail.fields.map { it.optional })
-        assertContentEquals(listOf(false, false, true), detail.fields.map { it.nullable })
+        assertContentEquals(listOf("id", "page", "note"), detail.fields.map(NavKeyFieldDescriptor::name))
+        assertContentEquals(listOf("String", "Int", "String?"), detail.fields.map(NavKeyFieldDescriptor::type))
+        assertContentEquals(listOf(false, true, false), detail.fields.map(NavKeyFieldDescriptor::optional))
+        assertContentEquals(listOf(false, false, true), detail.fields.map(NavKeyFieldDescriptor::nullable))
     }
 
     @Test
@@ -100,8 +103,8 @@ class Nav3KeyCodecTest {
     fun `catalog reads a sealed hierarchy without any module`() {
         val codec = Nav3KeyCodec.closedPolymorphic(Screen.serializer())
 
-        assertEquals(listOf("screen.detail", "screen.home"), codec.keyTypes.map { it.serialName })
-        assertEquals(Screen.Detail("7"), codec.decode(codec.encode(Screen.Detail("7"))!!))
+        assertEquals(listOf("screen.detail", "screen.home"), codec.keyTypes.map(NavKeyTypeDescriptor::serialName))
+        assertEquals(Screen.Detail("7"), codec.decode(assertNotNull(codec.encode(Screen.Detail("7")))))
     }
 
     @Test
@@ -110,6 +113,6 @@ class Nav3KeyCodecTest {
 
         val catalog = codec.keyTypes.single { it.serialName == "Catalog" }
 
-        assertContentEquals(listOf("enum(Grid|List)", "List<String>"), catalog.fields.map { it.type })
+        assertContentEquals(listOf("enum(Grid|List)", "List<String>"), catalog.fields.map(NavKeyFieldDescriptor::type))
     }
 }

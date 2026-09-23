@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
+import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
@@ -12,6 +13,7 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -101,27 +103,15 @@ class DefaultPluginHotReloadService(
             while (isActive) {
                 val key: WatchKey = try {
                     service.take()
-                } catch (e: InterruptedException) {
-                    break
                 } catch (e: Throwable) {
-                    // The watch service was closed while we were blocked in take().
+                    if (e is CancellationException) throw e
+                    // The watch service was closed, or this thread interrupted, while blocked in take().
                     break
                 }
 
-                val changedJarNames = key.pollEvents()
-                    .mapNotNull { (it.context() as? Path)?.takeIf { path -> path.extension == "jar" }?.name }
-                    .toSet()
-
-                // A single build can fire several events (write + close); coalesce and let the file
-                // settle before reloading to avoid reading a half-written jar.
+                val changedJarNames = key.changedJarNames()
                 if (changedJarNames.isNotEmpty()) {
-                    delay(DEBOUNCE_MILLIS)
-                    // Drain events queued during the debounce window, keeping any *additional*
-                    // changed jars so a second jar modified in the window is not dropped.
-                    val allChangedJarNames = changedJarNames + drainPendingJarNames(service)
-                    allChangedJarNames.forEach { jarName ->
-                        reloadJar(devDirPath.resolve(jarName).toAbsolutePath().toString())
-                    }
+                    reloadChangedJars(devDirPath, service, changedJarNames)
                 }
 
                 if (!key.reset()) {
@@ -132,13 +122,29 @@ class DefaultPluginHotReloadService(
         }
     }
 
+    /** The jars named by this key's pending events; non-jar entries are ignored. */
+    private fun WatchKey.changedJarNames(): Set<String> = pollEvents()
+        .mapNotNull { (it.context() as? Path)?.takeIf { path -> path.extension == "jar" }?.name }
+        .toSet()
+
+    /**
+     * A single build can fire several events (write + close), so let the files settle before
+     * reloading to avoid reading a half-written jar. Jars that changed during that window are
+     * reloaded too, so a second jar modified in it is not dropped.
+     */
+    private suspend fun reloadChangedJars(devDirPath: Path, service: WatchService, changedJarNames: Set<String>) {
+        delay(DEBOUNCE_MILLIS)
+        (changedJarNames + drainPendingJarNames(service)).forEach { jarName ->
+            reloadJar(devDirPath.resolve(jarName).toAbsolutePath().toString())
+        }
+    }
+
     /** Drains events queued during the debounce window, returning the names of any changed jars. */
     private fun drainPendingJarNames(service: WatchService): Set<String> {
         val names = mutableSetOf<String>()
         var pending: WatchKey? = service.poll()
         while (pending != null) {
-            pending.pollEvents()
-                .mapNotNullTo(names) { (it.context() as? Path)?.takeIf { path -> path.extension == "jar" }?.name }
+            names += pending.changedJarNames()
             pending.reset()
             pending = service.poll()
         }
@@ -148,16 +154,15 @@ class DefaultPluginHotReloadService(
     private suspend fun reloadJar(jarPath: String) {
         if (!File(jarPath).exists()) return
 
-        // Try an in-place class redefinition first. On success the plugins' classloader and instances
-        // are kept (so plugin instance state survives), and we recreate only their compose scenes so
-        // the redefined Content runs against that preserved state. Composable-local `remember` is
-        // reset (the scene is rebuilt); state that must survive a reload should live in the plugin
-        // instance. Reaches the plugins' child-classloader classes, which Compose Hot Reload cannot.
-        // One jar may provide several plugins, so this works on the full set the jar redefined.
+        // Try an in-place class redefinition first: it keeps the plugins' classloader and instances
+        // (so instance state survives) and recreates only their compose scenes, so the redefined
+        // Content runs against that state. Composable-local `remember` is reset with the scene, so
+        // state that must survive a reload belongs in the plugin instance. Unlike Compose Hot
+        // Reload, this reaches the classes in the plugins' child classloader.
         val redefinedPluginIds = pluginFactoryRepository.tryRedefinePlugin(jarPath)
         if (redefinedPluginIds.isNotEmpty()) {
             withContext(Dispatchers.Main) {
-                redefinedPluginIds.forEach { pluginComposeSceneService.disposePluginScenesForPlugin(it) }
+                redefinedPluginIds.forEach(pluginComposeSceneService::disposePluginScenesForPlugin)
             }
             logger.info("Hot reloaded plugin(s) in place (instance state preserved): ${redefinedPluginIds.joinToString()}")
             redefinedPluginIds.forEach { mutablePluginReloadedFlow.emit(it) }
@@ -168,7 +173,7 @@ class DefaultPluginHotReloadService(
         // Capture the plugin ids currently served by this jar so that we can dispose their running
         // instances and scenes before swapping in the new code.
         val previousPluginIds = pluginFactoryRepository.findPluginIdsByJarPath(jarPath)
-        previousPluginIds.forEach { disposePlugin(it) }
+        previousPluginIds.forEach(::disposePlugin)
 
         val reloadedPluginIds = pluginFactoryRepository.reloadPlugin(jarPath)
         if (reloadedPluginIds.isEmpty()) {
@@ -185,7 +190,7 @@ class DefaultPluginHotReloadService(
 
         // Some plugin ids may have disappeared if the jar's manifest changed across the rebuild
         // (a plugin removed/renamed); make sure their previously loaded instances are gone too.
-        (previousPluginIds - reloadedPluginIds.toSet()).forEach { disposePlugin(it) }
+        (previousPluginIds - reloadedPluginIds.toSet()).forEach(::disposePlugin)
 
         reloadedPluginIds.forEach { reinitializeInstances(it) }
 
@@ -206,7 +211,7 @@ class DefaultPluginHotReloadService(
         if (!enabledPluginsRepository.isPluginEnabled(pluginId)) return
 
         // The target-session rule (host-only vs agent-backed) lives in the reconciliation service.
-        val activeSessions = debugSessionRepository.debugSessionsFlow.first().filter { it.isActive }
+        val activeSessions = debugSessionRepository.debugSessionsFlow.first().filter(DebugSession::isActive)
         val activeSessionIds = reconciliationService.targetSessionIds(pluginId, activeSessions)
 
         if (activeSessionIds.isEmpty()) return

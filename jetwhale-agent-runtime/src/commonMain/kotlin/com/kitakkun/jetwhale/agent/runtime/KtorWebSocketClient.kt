@@ -138,8 +138,8 @@ internal class KtorWebSocketClient(
         }
 
         return JetWhaleSslConfiguration().apply {
-            sslConfiguration.trustedCertificates.forEach { trustCertificate(it) }
-            fetchedCaPem?.let { trustCertificate(it) }
+            sslConfiguration.trustedCertificates.forEach(::trustCertificate)
+            fetchedCaPem?.let(::trustCertificate)
         }
     }
 
@@ -179,9 +179,8 @@ internal class KtorWebSocketClient(
                 JetWhaleLogger.w("Host returned ${response.status} for the CA certificate at $url")
                 null
             }
-        } catch (e: CancellationException) {
-            throw e
         } catch (e: Throwable) {
+            if (e is CancellationException) throw e
             JetWhaleLogger.w("Failed to fetch CA certificate from $url", e)
             null
         } finally {

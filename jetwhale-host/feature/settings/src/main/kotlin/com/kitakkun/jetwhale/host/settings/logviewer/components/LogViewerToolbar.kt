@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.log_viewer_auto_scroll
 import com.kitakkun.jetwhale.host.settings.log_viewer_clear_filter
@@ -81,10 +82,26 @@ private fun FilterTextField(
 private fun AutoScrollCheckbox(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     JwCheckbox(
         checked = checked,
         onCheckedChange = onCheckedChange,
         label = stringResource(Res.string.log_viewer_auto_scroll),
+        modifier = modifier,
     )
+}
+
+@Preview
+@Composable
+private fun LogViewerToolbarPreview() {
+    JwTheme(darkTheme = false) {
+        LogViewerToolbar(
+            filterText = "connect",
+            autoScroll = true,
+            onFilterTextChange = {},
+            onAutoScrollChange = {},
+            onClearLogs = {},
+        )
+    }
 }
