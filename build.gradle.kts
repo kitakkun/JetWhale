@@ -1,3 +1,6 @@
+import com.kitakkun.kotrail.gradle.KotrailExtension
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+
 plugins {
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
@@ -17,6 +20,7 @@ plugins {
     alias(libs.plugins.mavenPublish) apply false
     alias(libs.plugins.publish) apply false
     alias(libs.plugins.spotless)
+    alias(libs.plugins.kotrail) apply false
 }
 
 spotless {
@@ -41,4 +45,38 @@ allprojects {
     // Central snapshots repo) instead of a release.
     version = rootProject.libs.versions.jetwhale.get() +
         if (rootProject.hasProperty("jetwhaleSnapshot")) "-SNAPSHOT" else ""
+}
+
+subprojects {
+    val kotlinPluginIds = listOf("org.jetbrains.kotlin.jvm", "org.jetbrains.kotlin.multiplatform")
+    kotlinPluginIds.forEach { kotlinPluginId ->
+        pluginManager.withPlugin(kotlinPluginId) {
+            pluginManager.apply("com.kitakkun.kotrail")
+            configure<KotrailExtension> {
+                configFile = rootProject.layout.projectDirectory.file("kotrail.yaml")
+                // The annotations artifact would otherwise land in `implementation`, and so in the
+                // POM of every published JVM module.
+                annotations = false
+            }
+        }
+    }
+
+    // The agent compiler plugin warns on purpose whenever it bakes the build machine's address into
+    // a buildMachineWss call, which the demo does on every iOS build.
+    if (path != ":demo:shared") {
+        tasks.withType<KotlinCompilationTask<*>>().configureEach {
+            compilerOptions.allWarningsAsErrors = true
+        }
+    }
+
+    // Explicit backing fields are experimental, so published modules keep them out of the code
+    // their consumers compile against.
+    pluginManager.withPlugin("publish") {
+        tasks.withType<KotlinCompilationTask<*>>().configureEach {
+            compilerOptions.freeCompilerArgs.addAll(
+                "-P",
+                "plugin:com.kitakkun.kotrail:rules.preferExplicitBackingField=off",
+            )
+        }
+    }
 }

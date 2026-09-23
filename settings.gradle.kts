@@ -10,6 +10,10 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
         google()
+        maven("https://central.sonatype.com/repository/maven-snapshots/") {
+            mavenContent { snapshotsOnly() }
+            content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
+        }
     }
 }
 
@@ -17,6 +21,10 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
         google()
+        maven("https://central.sonatype.com/repository/maven-snapshots/") {
+            mavenContent { snapshotsOnly() }
+            content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
+        }
     }
 }
 
