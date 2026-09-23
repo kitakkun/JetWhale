@@ -43,6 +43,7 @@ import com.kitakkun.jetwhale.host.navigation.toHostDestination
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.theme.AppEnvironment
 import com.kitakkun.jetwhale.host.theme.HostTheme
+import com.kitakkun.jetwhale.host.theme.clearFocusOnBlankPress
 import com.kitakkun.jetwhale.host.ui.JwSurface
 import kotlinx.serialization.modules.SerializersModule
 import soil.query.compose.SwrClientProvider
@@ -142,7 +143,7 @@ fun JetWhaleApp() {
             ) { theme, settings ->
                 HostTheme(theme.colorScheme) {
                     AppEnvironment(settings.appLanguage) {
-                        JwSurface(modifier = Modifier.fillMaxSize()) {
+                        JwSurface(modifier = Modifier.fillMaxSize().clearFocusOnBlankPress()) {
                             context(retain { appGraph.toolingScaffoldScreenContext }) {
                                 ToolingScaffoldRoot(
                                     onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },

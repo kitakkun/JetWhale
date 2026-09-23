@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.model.DynamicPluginBridgeProvider
 import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
 import com.kitakkun.jetwhale.host.theme.AppEnvironment
 import com.kitakkun.jetwhale.host.theme.HostTheme
+import com.kitakkun.jetwhale.host.theme.clearFocusOnBlankPress
 import com.kitakkun.jetwhale.host.ui.JwSurface
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -43,7 +44,7 @@ class DefaultDynamicPluginBridgeProvider(
                         // paints one behind it, but an off-screen MCP capture has nothing behind
                         // it, so a plugin that draws no background of its own would be captured
                         // transparent and read as white.
-                        JwSurface(modifier = Modifier.fillMaxSize()) {
+                        JwSurface(modifier = Modifier.fillMaxSize().clearFocusOnBlankPress()) {
                             AppEnvironment(appearanceSettings.appLanguage) {
                                 content()
                             }
