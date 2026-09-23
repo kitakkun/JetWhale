@@ -297,12 +297,14 @@ private fun PluginList(
             expanded = enabledPluginsExpanded,
             selectedPluginId = selectedPluginId,
             onToggleExpanded = { enabledPluginsExpanded = !enabledPluginsExpanded },
-            onOpenMcpTools = onOpenMcpTools,
-            onClickPlugin = onClickPlugin,
-            onClickPopout = onClickPopout,
-            isPoppedOut = isPoppedOut,
-            onClickBringBack = onClickBringBack,
-            onSetPluginEnabled = onSetPluginEnabled,
+            actions = EnabledPluginActions(
+                onOpenMcpTools = onOpenMcpTools,
+                onClickPlugin = onClickPlugin,
+                onClickPopout = onClickPopout,
+                isPoppedOut = isPoppedOut,
+                onClickBringBack = onClickBringBack,
+                onSetPluginEnabled = onSetPluginEnabled,
+            ),
         )
         disabledPluginSection(
             title = disabledTitle,
@@ -322,6 +324,22 @@ private fun PluginList(
     }
 }
 
+/**
+ * Everything the drawer offers on a live plugin, as one value.
+ *
+ * The section and the row it draws for each plugin carry the same set, and the row is the only place
+ * any of them is called: passing them one by one made the section's signature longer than the body
+ * that forwards them.
+ */
+private data class EnabledPluginActions(
+    val onOpenMcpTools: (pluginId: String) -> Unit,
+    val onClickPlugin: (DrawerPluginItemUiState) -> Unit,
+    val onClickPopout: (DrawerPluginItemUiState) -> Unit,
+    val isPoppedOut: (pluginId: String) -> Boolean,
+    val onClickBringBack: (DrawerPluginItemUiState) -> Unit,
+    val onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
+)
+
 /** The plugins that are on: selectable, and each offering the actions that apply to a live plugin. */
 private fun LazyListScope.enabledPluginSection(
     title: String,
@@ -329,12 +347,7 @@ private fun LazyListScope.enabledPluginSection(
     expanded: Boolean,
     selectedPluginId: String,
     onToggleExpanded: () -> Unit,
-    onOpenMcpTools: (pluginId: String) -> Unit,
-    onClickPlugin: (DrawerPluginItemUiState) -> Unit,
-    onClickPopout: (DrawerPluginItemUiState) -> Unit,
-    isPoppedOut: (pluginId: String) -> Boolean,
-    onClickBringBack: (DrawerPluginItemUiState) -> Unit,
-    onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
+    actions: EnabledPluginActions,
 ) {
     pluginSection(
         title = title,
@@ -350,23 +363,23 @@ private fun LazyListScope.enabledPluginSection(
             selected = plugin.id == selectedPluginId,
             underAiControl = plugin.underAiControl,
             exposesMcpTools = plugin.exposesMcpTools,
-            onClickMcpBadge = { onOpenMcpTools(plugin.id) },
-            onClick = { onClickPlugin(plugin) },
+            onClickMcpBadge = { actions.onOpenMcpTools(plugin.id) },
+            onClick = { actions.onClickPlugin(plugin) },
             popupMenuContent = { dismiss ->
                 JwMenuItem(
                     text = stringResource(Res.string.disable),
                     leadingIcon = { JwIcon(imageVector = Icons.Default.RemoveCircle, contentDescription = null) },
                     onClick = {
-                        onSetPluginEnabled(plugin.id, false)
+                        actions.onSetPluginEnabled(plugin.id, false)
                         dismiss()
                     },
                 )
-                if (isPoppedOut(plugin.id)) {
+                if (actions.isPoppedOut(plugin.id)) {
                     JwMenuItem(
                         text = stringResource(Res.string.bring_back_from_popout),
                         leadingIcon = { JwIcon(imageVector = Icons.Default.SouthWest, contentDescription = null) },
                         onClick = {
-                            onClickBringBack(plugin)
+                            actions.onClickBringBack(plugin)
                             dismiss()
                         },
                     )
@@ -377,7 +390,7 @@ private fun LazyListScope.enabledPluginSection(
                         text = stringResource(Res.string.popout),
                         leadingIcon = { JwIcon(imageVector = Icons.Default.ArrowOutward, contentDescription = null) },
                         onClick = {
-                            onClickPopout(plugin)
+                            actions.onClickPopout(plugin)
                             dismiss()
                         },
                     )

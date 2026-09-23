@@ -95,7 +95,7 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                             // the plugin's keys arrive through this node, which a host control may
                             // have taken focus from.
                             focusRequester.requestFocus()
-                            event.changes.forEach { it.consume() }
+                            event.changes.forEach(PointerInputChange::consume)
                         }
                         try {
                             val scrollDelta = event.changes.map(PointerInputChange::scrollDelta).reduce(Offset::plus)

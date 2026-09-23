@@ -47,7 +47,7 @@ internal class NodeHighlightOverlay {
     // was when the host asked for it.
     private var resolveBounds: (() -> Rect?)? = null
 
-    private val expire = Runnable { clear() }
+    private val expire = Runnable(::clear)
 
     private var reResolvePosted = false
     private val reResolve = Runnable {
@@ -101,7 +101,7 @@ internal class NodeHighlightOverlay {
 
     /** [clear], from whichever thread the caller is on. */
     fun clearFromAnyThread() {
-        if (Looper.myLooper() == Looper.getMainLooper()) clear() else mainHandler.post { clear() }
+        if (Looper.myLooper() == Looper.getMainLooper()) clear() else mainHandler.post(::clear)
     }
 
     /** Takes the box down and stops watching the window. Doing this with nothing showing is a no-op. */
@@ -116,7 +116,7 @@ internal class NodeHighlightOverlay {
             rootView.removeOnAttachStateChangeListener(detachListener)
             // A dead observer belongs to a window that is gone; there is nothing left to unregister
             // from, and asking it to remove would throw.
-            rootView.viewTreeObserver.takeIf { it.isAlive }?.removeOnPreDrawListener(preDrawListener)
+            rootView.viewTreeObserver.takeIf(ViewTreeObserver::isAlive)?.removeOnPreDrawListener(preDrawListener)
             rootView.invalidate()
         }
         attachedRootRef = null

@@ -56,6 +56,7 @@ internal fun View.toViewNode(
     val visible = visibility == View.VISIBLE && isShown && !visibleBounds.isEmpty
     if (!visible && !options.includeInvisible && children.isEmpty()) return null
 
+    val boundsInScreen = visibleBounds.translated(windowOffsetX, windowOffsetY)
     val editable = this as? EditText
     val label = this as? TextView
 
@@ -68,7 +69,7 @@ internal fun View.toViewNode(
         contentDescription = contentDescription?.toString()?.takeIf(String::isNotEmpty),
         toggleableState = (this as? Checkable)?.let { if (it.isChecked) "On" else "Off" },
         bounds = bounds,
-        boundsInScreen = visibleBounds.translated(windowOffsetX, windowOffsetY),
+        boundsInScreen = boundsInScreen,
         actions = viewActionNames(),
         isEnabled = isEnabled,
         isClickable = isClickable,

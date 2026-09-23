@@ -33,12 +33,15 @@ class JetWhaleHostService : Disposable {
     }
 
     override fun dispose() {
-        inHostLoader { host.close() }
+        inHostLoader(host::close)
         hostClassLoader.close()
     }
 
     // Libraries that discover services through the thread's context loader (SLF4J, Ktor engines)
     // must find the host's copies, not the IDE's.
+    // narrowLocalScope would move `previous` into the finally block, after the loader it records
+    // has been replaced.
+    @Suppress("KOTRAIL_NARROW_LOCAL_SCOPE")
     private inline fun <T> inHostLoader(block: () -> T): T {
         val thread = Thread.currentThread()
         val previous = thread.contextClassLoader

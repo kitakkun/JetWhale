@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.kitakkun.jetwhale.plugins.semantics.host
 
 import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightNode
@@ -6,6 +8,7 @@ import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.advanceTimeBy
@@ -63,7 +66,7 @@ class NodeHighlightControllerTest {
         controller.show(firstRoot)
         controller.show(firstRoot.copy(nodeId = -9))
 
-        assertEquals(listOf(-4, -9), recorder.sent.map { it.nodeId })
+        assertEquals(listOf(-4, -9), recorder.sent.map(HighlightNode::nodeId))
     }
 
     @Test
@@ -103,7 +106,7 @@ class NodeHighlightControllerTest {
         controller.show(firstRoot)
         controller.show(secondRoot)
 
-        assertEquals(listOf("window-1", "window-2"), recorder.sent.map { it.rootId })
+        assertEquals(listOf("window-1", "window-2"), recorder.sent.map(HighlightNode::rootId))
     }
 
     @Test
@@ -128,7 +131,7 @@ class NodeHighlightControllerTest {
         advanceTimeBy(HIGHLIGHT_HOVER_DEBOUNCE_MILLIS)
         runCurrent()
 
-        assertEquals(listOf(secondRoot.nodeId), recorder.sent.map { it.nodeId })
+        assertEquals(listOf(secondRoot.nodeId), recorder.sent.map(HighlightNode::nodeId))
     }
 
     @Test
@@ -143,7 +146,7 @@ class NodeHighlightControllerTest {
 
         advanceTimeBy(HIGHLIGHT_RENEWAL_MILLIS)
         runCurrent()
-        assertEquals(listOf(firstRoot.nodeId, firstRoot.nodeId), recorder.sent.map { it.nodeId })
+        assertEquals(listOf(firstRoot.nodeId, firstRoot.nodeId), recorder.sent.map(HighlightNode::nodeId))
     }
 
     @Test

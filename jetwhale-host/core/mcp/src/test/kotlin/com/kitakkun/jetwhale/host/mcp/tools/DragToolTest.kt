@@ -85,7 +85,6 @@ class DragToolTest {
     }
 
     @Test
-    @Suppress("KOTRAIL_LOCAL_DECLARED_TOO_EARLY")
     fun `dispatchDrag move events interpolate positions correctly`() = runBlocking {
         val dragPositions = mutableListOf<Offset>()
         var dragEnded = false

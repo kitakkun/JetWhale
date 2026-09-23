@@ -119,38 +119,28 @@ private fun traverseSemanticsTree(node: SemanticsNode): List<NodeInfo> {
 
 private fun nodeToInfo(node: SemanticsNode): NodeInfo {
     val config = node.config
-
-    val text = config.getOrNull(SemanticsProperties.Text)
-        ?.joinToString(separator = " ", transform = AnnotatedString::text)
-    val contentDescription = config.getOrNull(SemanticsProperties.ContentDescription)
-        ?.joinToString(separator = " ")
-    val role = config.getOrNull(SemanticsProperties.Role)?.toString()
-    val isEnabled = config.getOrNull(SemanticsProperties.Disabled) == null
-    val isClickable = config.getOrNull(SemanticsActions.OnClick) != null
-    val isFocused = config.getOrNull(SemanticsProperties.Focused) == true
-    val isSelected = config.getOrNull(SemanticsProperties.Selected) == true
-    val isChecked = config.getOrNull(SemanticsProperties.ToggleableState)?.toString()
     val editableText = config.getOrNull(SemanticsProperties.EditableText)?.text
-    val isEditable = editableText != null
-
     val bounds = node.boundsInRoot
     return NodeInfo(
         id = node.id,
-        role = role,
-        text = text ?: editableText,
-        contentDescription = contentDescription,
+        role = config.getOrNull(SemanticsProperties.Role)?.toString(),
+        text = config.getOrNull(SemanticsProperties.Text)
+            ?.joinToString(separator = " ", transform = AnnotatedString::text)
+            ?: editableText,
+        contentDescription = config.getOrNull(SemanticsProperties.ContentDescription)
+            ?.joinToString(separator = " "),
         bounds = BoundsInfo(
             left = bounds.left,
             top = bounds.top,
             right = bounds.right,
             bottom = bounds.bottom,
         ),
-        isClickable = isClickable,
-        isEnabled = isEnabled,
-        isFocused = isFocused,
-        isSelected = isSelected,
-        isChecked = isChecked,
-        isEditable = isEditable,
+        isClickable = config.getOrNull(SemanticsActions.OnClick) != null,
+        isEnabled = config.getOrNull(SemanticsProperties.Disabled) == null,
+        isFocused = config.getOrNull(SemanticsProperties.Focused) == true,
+        isSelected = config.getOrNull(SemanticsProperties.Selected) == true,
+        isChecked = config.getOrNull(SemanticsProperties.ToggleableState)?.toString(),
+        isEditable = editableText != null,
         children = emptyList(),
     )
 }

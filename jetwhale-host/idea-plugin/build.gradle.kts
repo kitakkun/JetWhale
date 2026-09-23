@@ -17,6 +17,11 @@ repositories {
     intellijPlatform {
         defaultRepositories()
     }
+    // Declaring repositories here replaces the ones in settings.gradle.kts, Kotrail's included.
+    maven("https://central.sonatype.com/repository/maven-snapshots/") {
+        mavenContent { snapshotsOnly() }
+        content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
+    }
 }
 
 kotlin {

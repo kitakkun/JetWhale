@@ -224,14 +224,12 @@ class DefaultMcpServerServiceTest {
     }
 
     @Test
-    @Suppress("KOTRAIL_LOCAL_DECLARED_TOO_EARLY")
     fun `plugin tools are registered via pluginInstanceEventFlow after server start`() = runBlocking {
+        val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 1)
+        every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
         val testPluginId = "com.example.test"
         val testSessionId = "test-session-xyz789"
         val fakePlugin = FakeMcpCapablePlugin()
-        val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 1)
-
-        every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
         every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns fakePlugin
 
         service.start(host, port)
@@ -247,14 +245,12 @@ class DefaultMcpServerServiceTest {
     }
 
     @Test
-    @Suppress("KOTRAIL_LOCAL_DECLARED_TOO_EARLY")
     fun `plugin tools are unregistered when Disposed event is received`() = runBlocking {
+        val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 2)
+        every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
         val testPluginId = "com.example.test"
         val testSessionId = "test-session-def456"
         val fakePlugin = FakeMcpCapablePlugin()
-        val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 2)
-
-        every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
         every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns fakePlugin
 
         service.start(host, port)
@@ -295,19 +291,17 @@ class DefaultMcpServerServiceTest {
     }
 
     @Test
-    @Suppress("KOTRAIL_LOCAL_DECLARED_TOO_EARLY")
     fun `every MCP-capable plugin in a session is reported as capable`() = runBlocking {
         // Regression guard: the drawer's "exposes MCP tools" badge reads mcpCapablePluginsFlow, and
         // every plugin that registers tools must appear there — not just the first one. This mirrors
         // a session that has two MCP-capable plugins installed at once.
+        val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 2)
+        every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
         val sessionId = "test-session-multi"
         val pluginA = "com.example.a"
-        val pluginB = "com.example.b"
-        val eventFlow = MutableSharedFlow<PluginInstanceEvent>(extraBufferCapacity = 2)
-
-        every { pluginInstanceService.pluginInstanceEventFlow } returns eventFlow
         every { pluginInstanceService.getPluginInstanceForSession(pluginA, sessionId) } returns
             FakeMcpCapablePlugin(toolName = "com.example.a.greet")
+        val pluginB = "com.example.b"
         every { pluginInstanceService.getPluginInstanceForSession(pluginB, sessionId) } returns
             FakeMcpCapablePlugin(toolName = "com.example.b.greet")
 

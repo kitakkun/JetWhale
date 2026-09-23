@@ -81,27 +81,27 @@ suspend fun dispatchDrag(
     endY: Float,
     steps: Int,
 ) {
+    val start = Offset(startX, startY)
+    val end = Offset(endX, endY)
+
     scene.composeScene.sendPointerEvent(
         eventType = PointerEventType.Press,
-        position = Offset(startX, startY),
+        position = start,
     )
     yield()
 
     val stepCount = steps.coerceAtLeast(1)
     for (i in 1..stepCount) {
-        val fraction = i.toFloat() / stepCount
-        val x = startX + (endX - startX) * fraction
-        val y = startY + (endY - startY) * fraction
         scene.composeScene.sendPointerEvent(
             eventType = PointerEventType.Move,
-            position = Offset(x, y),
+            position = start + (end - start) * (i.toFloat() / stepCount),
         )
         yield()
     }
 
     scene.composeScene.sendPointerEvent(
         eventType = PointerEventType.Release,
-        position = Offset(endX, endY),
+        position = end,
     )
     yield()
 }

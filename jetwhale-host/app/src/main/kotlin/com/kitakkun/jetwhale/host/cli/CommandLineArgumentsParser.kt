@@ -27,13 +27,13 @@ enum class JetWhaleLogLevel {
 
 class CommandLineArgumentsParser {
     fun parse(args: Array<String>): JetWhaleCliOptions {
-        val pluginDirs = mutableListOf<String>()
-        var logLevel: JetWhaleLogLevel? = null
-        var serverPort: Int? = null
-        var wssPort: Int? = null
-        var mcpServerPort: Int? = null
-        var mcpAllowAllPermissions = false
-        var headless = false
+        var options = JetWhaleCliOptions(
+            pluginDirs = emptyList(),
+            logLevel = null,
+            serverPortOverrides = ServerPortOverrides(serverPort = null, wssPort = null, mcpServerPort = null),
+            mcpPermissionOverride = McpPermissionOverride.None,
+            headless = false,
+        )
 
         val iterator = args.iterator()
 
@@ -41,7 +41,7 @@ class CommandLineArgumentsParser {
             when (val argument = iterator.next()) {
                 "--plugin-dir" -> {
                     if (iterator.hasNext()) {
-                        pluginDirs.add(iterator.next())
+                        options = options.copy(pluginDirs = options.pluginDirs + iterator.next())
                     } else {
                         error("Expected a directory path after --plugin-dir")
                     }
@@ -49,43 +49,40 @@ class CommandLineArgumentsParser {
 
                 "--log-level" -> {
                     if (iterator.hasNext()) {
-                        logLevel = when (iterator.next()) {
+                        val logLevel = when (iterator.next()) {
                             "DEBUG" -> JetWhaleLogLevel.DEBUG
                             "INFO" -> JetWhaleLogLevel.INFO
                             "WARN" -> JetWhaleLogLevel.WARN
                             "ERROR" -> JetWhaleLogLevel.ERROR
                             else -> error("Unknown log level specified after --log-level")
                         }
+                        options = options.copy(logLevel = logLevel)
                     } else {
                         error("Expected a log level after --log-level")
                     }
                 }
 
-                "--server-port" -> serverPort = iterator.nextPort(argument)
+                "--server-port" -> options = options.copy(
+                    serverPortOverrides = options.serverPortOverrides.copy(serverPort = iterator.nextPort(argument)),
+                )
 
-                "--wss-port" -> wssPort = iterator.nextPort(argument)
+                "--wss-port" -> options = options.copy(
+                    serverPortOverrides = options.serverPortOverrides.copy(wssPort = iterator.nextPort(argument)),
+                )
 
-                "--mcp-server-port" -> mcpServerPort = iterator.nextPort(argument)
+                "--mcp-server-port" -> options = options.copy(
+                    serverPortOverrides = options.serverPortOverrides.copy(mcpServerPort = iterator.nextPort(argument)),
+                )
 
-                "--mcp-allow-all-permissions" -> mcpAllowAllPermissions = true
+                "--mcp-allow-all-permissions" -> options = options.copy(mcpPermissionOverride = McpPermissionOverride(allowAll = true))
 
-                "--headless" -> headless = true
+                "--headless" -> options = options.copy(headless = true)
 
                 else -> Unit
             }
         }
 
-        return JetWhaleCliOptions(
-            pluginDirs = pluginDirs,
-            logLevel = logLevel,
-            serverPortOverrides = ServerPortOverrides(
-                serverPort = serverPort,
-                wssPort = wssPort,
-                mcpServerPort = mcpServerPort,
-            ),
-            mcpPermissionOverride = McpPermissionOverride(allowAll = mcpAllowAllPermissions),
-            headless = headless,
-        )
+        return options
     }
 
     private fun Iterator<String>.nextPort(option: String): Int {

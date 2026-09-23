@@ -328,7 +328,7 @@ private fun NodeRow(
     val label = row.node.displayLabel()
     // JwTreeRow tracks hover for its own tint through an interaction source it keeps to itself, so
     // the row is made hoverable a second time here rather than the component growing a callback.
-    val hoverInteractionSource = remember { MutableInteractionSource() }
+    val hoverInteractionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by hoverInteractionSource.collectIsHoveredAsState()
     LaunchedEffect(hovered) { onHoverChange(hovered) }
     // A row filtered or collapsed away under a resting pointer never reports leaving on its own, and

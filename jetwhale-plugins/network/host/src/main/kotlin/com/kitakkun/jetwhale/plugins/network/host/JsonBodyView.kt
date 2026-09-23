@@ -160,46 +160,49 @@ private fun JsonLeaf(label: String?, primitive: JsonPrimitive, colors: JsonColor
 private fun highlightedJson(element: JsonElement, colors: JsonColors): AnnotatedString = buildAnnotatedString { appendJson(element, 0, colors) }
 
 private fun AnnotatedString.Builder.appendJson(element: JsonElement, indent: Int, colors: JsonColors) {
-    val pad = "  ".repeat(indent)
-    val pad1 = "  ".repeat(indent + 1)
-    fun punct(text: String) = withStyle(SpanStyle(color = colors.punctuation)) { append(text) }
     when (element) {
-        is JsonObject -> {
-            if (element.isEmpty()) {
-                punct("{}")
-                return
-            }
-            punct("{\n")
-            element.entries.forEachIndexed { index, (key, value) ->
-                append(pad1)
-                withStyle(SpanStyle(color = colors.key)) { append("\"$key\"") }
-                punct(": ")
-                appendJson(value, indent + 1, colors)
-                if (index < element.size - 1) punct(",")
-                append("\n")
-            }
-            append(pad)
-            punct("}")
-        }
-
-        is JsonArray -> {
-            if (element.isEmpty()) {
-                punct("[]")
-                return
-            }
-            punct("[\n")
-            element.forEachIndexed { index, value ->
-                append(pad1)
-                appendJson(value, indent + 1, colors)
-                if (index < element.size - 1) punct(",")
-                append("\n")
-            }
-            append(pad)
-            punct("]")
-        }
-
+        is JsonObject -> appendJsonObject(element, indent, colors)
+        is JsonArray -> appendJsonArray(element, indent, colors)
         else -> append(primitiveAnnotated(element as JsonPrimitive, colors))
     }
+}
+
+private fun AnnotatedString.Builder.appendJsonObject(jsonObject: JsonObject, indent: Int, colors: JsonColors) {
+    fun punct(text: String) = withStyle(SpanStyle(color = colors.punctuation)) { append(text) }
+    if (jsonObject.isEmpty()) {
+        punct("{}")
+        return
+    }
+    punct("{\n")
+    val pad1 = "  ".repeat(indent + 1)
+    jsonObject.entries.forEachIndexed { index, (key, value) ->
+        append(pad1)
+        withStyle(SpanStyle(color = colors.key)) { append("\"$key\"") }
+        punct(": ")
+        appendJson(value, indent + 1, colors)
+        if (index < jsonObject.size - 1) punct(",")
+        append("\n")
+    }
+    append("  ".repeat(indent))
+    punct("}")
+}
+
+private fun AnnotatedString.Builder.appendJsonArray(jsonArray: JsonArray, indent: Int, colors: JsonColors) {
+    fun punct(text: String) = withStyle(SpanStyle(color = colors.punctuation)) { append(text) }
+    if (jsonArray.isEmpty()) {
+        punct("[]")
+        return
+    }
+    punct("[\n")
+    val pad1 = "  ".repeat(indent + 1)
+    jsonArray.forEachIndexed { index, value ->
+        append(pad1)
+        appendJson(value, indent + 1, colors)
+        if (index < jsonArray.size - 1) punct(",")
+        append("\n")
+    }
+    append("  ".repeat(indent))
+    punct("]")
 }
 
 private fun primitiveAnnotated(primitive: JsonPrimitive, colors: JsonColors): AnnotatedString = buildAnnotatedString {
