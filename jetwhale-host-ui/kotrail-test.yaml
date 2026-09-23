@@ -1,0 +1,3 @@
+# The gallery the screenshot tests render is not a component, and its previews would be dead code.
+rules:
+  compose.previewRequired: off

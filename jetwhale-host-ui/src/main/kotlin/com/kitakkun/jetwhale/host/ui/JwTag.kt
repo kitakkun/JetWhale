@@ -62,8 +62,7 @@ public fun JwTag(
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
 ) {
-    val shape = JwShapes.extraSmall
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     val background = when (style) {
         JwTagStyle.Outlined -> if (hovered && onClick != null) JwTheme.colors.hover else null
@@ -75,6 +74,7 @@ public fun JwTag(
         JwTagStyle.Tinted -> tone.onContainerColor
         JwTagStyle.Filled -> tone.onColor
     }
+    val shape = JwShapes.extraSmall
     Row(
         modifier = modifier
             .height(JwTagDefaults.height)

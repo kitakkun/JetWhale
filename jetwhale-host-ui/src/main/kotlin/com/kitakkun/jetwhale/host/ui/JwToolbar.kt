@@ -24,8 +24,8 @@ import androidx.compose.ui.text.style.TextOverflow
  */
 @Composable
 public fun JwToolbar(
-    title: String? = null,
     modifier: Modifier = Modifier,
+    title: String? = null,
     navigationIcon: (@Composable RowScope.() -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {

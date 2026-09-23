@@ -13,22 +13,23 @@ import androidx.compose.ui.unit.sp
  *
  * None of the styles carries a color: text takes the content color of what it sits in, or the
  * `color` passed to [JwText].
+ *
+ * @property title The name of a pane or a dialog: the toolbar title, a dialog title.
+ * @property subtitle A heading inside a pane: a panel's header, a detail view's subject.
+ * @property body Running text and row labels.
+ * @property bodySmall Secondary lines: descriptions, timestamps, status.
+ * @property label Control labels: buttons, tabs, menu items.
+ * @property labelSmall Small labels: tags, counts, section headers, form-field names.
+ * @property code Monospace: identifiers, URLs, JSON and anything else read character by character.
  */
 @Immutable
 public class JwTextStyles internal constructor(
-    /** The name of a pane or a dialog: the toolbar title, a dialog title. */
     public val title: TextStyle,
-    /** A heading inside a pane: a panel's header, a detail view's subject. */
     public val subtitle: TextStyle,
-    /** Running text and row labels. */
     public val body: TextStyle,
-    /** Secondary lines: descriptions, timestamps, status. */
     public val bodySmall: TextStyle,
-    /** Control labels: buttons, tabs, menu items. */
     public val label: TextStyle,
-    /** Small labels: tags, counts, section headers, form-field names. */
     public val labelSmall: TextStyle,
-    /** Monospace: identifiers, URLs, JSON and anything else read character by character. */
     public val code: TextStyle,
 ) {
     /** A copy with the given styles replaced. Every parameter defaults to this instance's value. */
@@ -40,7 +41,15 @@ public class JwTextStyles internal constructor(
         label: TextStyle = this.label,
         labelSmall: TextStyle = this.labelSmall,
         code: TextStyle = this.code,
-    ): JwTextStyles = JwTextStyles(title, subtitle, body, bodySmall, label, labelSmall, code)
+    ): JwTextStyles = JwTextStyles(
+        title = title,
+        subtitle = subtitle,
+        body = body,
+        bodySmall = bodySmall,
+        label = label,
+        labelSmall = labelSmall,
+        code = code,
+    )
 
     override fun equals(other: Any?): Boolean = other is JwTextStyles &&
         title == other.title &&

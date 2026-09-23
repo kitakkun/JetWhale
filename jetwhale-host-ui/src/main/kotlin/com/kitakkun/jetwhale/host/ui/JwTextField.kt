@@ -70,7 +70,7 @@ public fun JwTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val focused by interactionSource.collectIsFocusedAsState()
     val singleLine = singleLine && minLines <= 1
     val maxLines = if (singleLine) 1 else maxLines.coerceAtLeast(minLines)

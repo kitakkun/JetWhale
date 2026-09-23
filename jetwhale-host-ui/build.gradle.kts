@@ -1,5 +1,6 @@
 @file:OptIn(ExperimentalAbiValidation::class)
 
+import com.kitakkun.kotrail.gradle.KotrailExtension
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 plugins {
@@ -16,6 +17,13 @@ kotlin {
 
     abiValidation {
     }
+
+    // A compilation of its own for the previews, so that they are compiled and rule-checked on
+    // every build without reaching the JAR, the sources JAR, the publication or the ABI dump.
+    // Associating it with `main` also lets a preview call an internal declaration.
+    target.compilations.create("preview") {
+        associateWith(target.compilations.getByName("main"))
+    }
 }
 
 dependencies {
@@ -27,6 +35,10 @@ dependencies {
     api(compose.foundation)
     api(compose.ui)
     api(projects.jetwhaleHostSdk)
+    "previewImplementation"(compose.runtime)
+    "previewImplementation"(compose.foundation)
+    "previewImplementation"(compose.ui)
+    "previewImplementation"(libs.jetbrainsComposePreview)
     testImplementation(libs.kotlinTest)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.jetbrainsComposeUiTestJUnit4)
@@ -38,6 +50,16 @@ dependencies {
 // Locally, `recordRoborazziJvm` writes them here to look at.
 roborazzi {
     outputDir.set(file("screenshots"))
+}
+
+tasks.named("check") {
+    dependsOn("compilePreviewKotlin")
+}
+
+configure<KotrailExtension> {
+    compilation("main") { configFile = file("kotrail-main.yaml") }
+    compilation("preview") { configFile = file("kotrail-preview.yaml") }
+    test { configFile = file("kotrail-test.yaml") }
 }
 
 jetwhalePublish {

@@ -203,7 +203,7 @@ private fun JwSnackbar(data: JwSnackbarData) {
             modifier = Modifier.weight(1f, fill = false),
         )
         data.actionLabel?.let { label ->
-            SnackbarAction(label = label, onClick = data::performAction)
+            SnackbarAction(onClick = data::performAction, label = label)
         }
     }
 }
@@ -213,8 +213,8 @@ private fun JwSnackbar(data: JwSnackbarData) {
  * would fight the dark background.
  */
 @Composable
-private fun SnackbarAction(label: String, onClick: () -> Unit) {
-    val interactionSource = remember { MutableInteractionSource() }
+private fun SnackbarAction(onClick: () -> Unit, label: String) {
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     Box(
         modifier = Modifier

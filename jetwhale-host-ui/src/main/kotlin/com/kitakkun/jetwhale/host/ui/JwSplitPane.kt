@@ -75,13 +75,15 @@ public fun JwSplitPane(
     firstMinSize: Dp = JwSplitPaneDefaults.minPaneSize,
     secondMinSize: Dp = JwSplitPaneDefaults.minPaneSize,
 ) {
-    val density = LocalDensity.current
     val horizontal = orientation == Orientation.Horizontal
     var length by remember { mutableFloatStateOf(0f) }
-    val dragState = rememberDraggableState { delta ->
-        if (length > 0f) state.fraction = (state.fraction + delta / length).coerceIn(0f, 1f)
-    }
+    val dragState = rememberDraggableState(
+        onDelta = { delta ->
+            if (length > 0f) state.fraction = (state.fraction + delta / length).coerceIn(0f, 1f)
+        },
+    )
     val cursor = if (horizontal) Cursor.E_RESIZE_CURSOR else Cursor.N_RESIZE_CURSOR
+    val density = LocalDensity.current
     Layout(
         modifier = modifier,
         content = {

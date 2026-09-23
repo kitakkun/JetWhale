@@ -82,7 +82,7 @@ public fun JwTab(
     modifier: Modifier = Modifier,
     count: Int? = null,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     val textColor = when {
         selected -> JwTheme.colors.onSurface

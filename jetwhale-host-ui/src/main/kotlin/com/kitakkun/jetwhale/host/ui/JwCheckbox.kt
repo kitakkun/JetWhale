@@ -56,7 +56,7 @@ public fun JwCheckbox(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     CheckboxRow(
         state = ToggleableState(checked),
         label = label,
@@ -93,7 +93,7 @@ public fun JwTriStateCheckbox(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     CheckboxRow(
         state = state,
         label = label,

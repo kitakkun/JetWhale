@@ -548,7 +548,7 @@ public final class com/kitakkun/jetwhale/host/ui/JwTone : java/lang/Enum {
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwToolbarKt {
-	public static final fun JwToolbar (Ljava/lang/String;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun JwToolbar (Landroidx/compose/ui/Modifier;Ljava/lang/String;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/host/ui/JwTooltipDefaults {

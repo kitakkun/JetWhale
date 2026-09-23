@@ -56,7 +56,7 @@ public fun JwSwitch(
         targetValue = if (checked) TrackWidth - ThumbSize - ThumbInset else ThumbInset,
         label = "switch-thumb",
     )
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     Box(
         modifier = modifier
             .size(width = TrackWidth, height = TrackHeight)

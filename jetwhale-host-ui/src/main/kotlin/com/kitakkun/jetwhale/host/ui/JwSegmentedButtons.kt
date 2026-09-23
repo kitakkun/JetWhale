@@ -40,19 +40,18 @@ public fun <T> JwSegmentedButtons(
     enabled: Boolean = true,
 ) {
     val shape = JwShapes.small
-    val scheme = JwTheme.colors
     val colors = JwTheme.colors
     Row(
         modifier = modifier
             .height(JwMetrics.controlHeight)
             .clip(shape)
-            .border(JwMetrics.borderWidth, if (enabled) scheme.controlBorder else colors.border.copy(alpha = 0.5f), shape),
+            .border(JwMetrics.borderWidth, if (enabled) colors.controlBorder else colors.border.copy(alpha = 0.5f), shape),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         options.forEachIndexed { index, option ->
             if (index > 0) JwVerticalDivider()
             val isSelected = option == selected
-            val interactionSource = remember { MutableInteractionSource() }
+            val interactionSource = remember(calculation = ::MutableInteractionSource)
             val hovered by interactionSource.collectIsHoveredAsState()
             val background = when {
                 isSelected -> colors.selection
@@ -80,7 +79,7 @@ public fun <T> JwSegmentedButtons(
                     style = JwTheme.textStyles.label,
                     color = when {
                         !enabled -> colors.textDisabled
-                        isSelected -> scheme.onSurface
+                        isSelected -> colors.onSurface
                         else -> colors.textSecondary
                     },
                     maxLines = 1,
