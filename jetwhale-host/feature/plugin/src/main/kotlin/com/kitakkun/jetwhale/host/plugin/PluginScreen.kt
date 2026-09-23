@@ -18,6 +18,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onPlaced
@@ -82,6 +83,14 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
                 awaitPointerEventScope {
                     do {
                         val event = awaitPointerEvent()
+                        if (event.type == PointerEventType.Press) {
+                            // Whether the plugin handled the press is known only inside its scene,
+                            // so the host's clearFocusOnBlankPress must not see it as unhandled; and
+                            // the plugin's keys arrive through this node, which a host control may
+                            // have taken focus from.
+                            focusRequester.requestFocus()
+                            event.changes.forEach { it.consume() }
+                        }
                         try {
                             val scrollDelta = event.changes.map { it.scrollDelta }.reduce { acc, offset -> acc + offset }
 
