@@ -70,11 +70,25 @@ import kotlin.math.roundToInt
  * default for the same reason.
  *
  * Purely a view: everything it draws arrives in [uiState] and everything it wants done leaves
- * through the callbacks [uiState] carries. Which node is selected, what the tree is filtered by and
- * what a capture asks for are all decided in [composeSemanticsInspectorPresenter].
+ * through the callbacks. Which node is selected, what the tree is filtered by and what a capture
+ * asks for are all decided in [composeSemanticsInspectorPresenter].
  */
 @Composable
-internal fun ComposeSemanticsInspectorScreen(uiState: ComposeSemanticsInspectorUiState) {
+internal fun ComposeSemanticsInspectorScreen(
+    uiState: ComposeSemanticsInspectorUiState,
+    onRefresh: () -> Unit,
+    onMergedChange: (Boolean) -> Unit,
+    onInteractiveOnlyChange: (Boolean) -> Unit,
+    onIncludeInvisibleChange: (Boolean) -> Unit,
+    onAutoRefreshChange: (Boolean) -> Unit,
+    onHighlightOnDeviceChange: (Boolean) -> Unit,
+    onSearchChange: (String) -> Unit,
+    onSelect: (NodeKey) -> Unit,
+    onHoverChange: (NodeKey, Boolean) -> Unit,
+    onToggleExpanded: (NodeKey) -> Unit,
+    onPerformAction: (PerformNodeAction) -> Unit,
+    onCommitViewAttribute: (ViewAttribute, String) -> Unit,
+) {
     // The host hands the plugin an unpainted scene, so the screen paints its own background;
     // without it the areas no child covers fall back to white and fight a dark theme.
     Column(Modifier.fillMaxSize().background(JwTheme.colors.surface)) {
@@ -86,13 +100,13 @@ internal fun ComposeSemanticsInspectorScreen(uiState: ComposeSemanticsInspectorU
             autoRefresh = uiState.autoRefresh,
             highlightOnDevice = uiState.highlightOnDevice,
             search = uiState.search,
-            onRefresh = uiState.onRefresh,
-            onMergedChange = uiState.onMergedChange,
-            onInteractiveOnlyChange = uiState.onInteractiveOnlyChange,
-            onIncludeInvisibleChange = uiState.onIncludeInvisibleChange,
-            onAutoRefreshChange = uiState.onAutoRefreshChange,
-            onHighlightOnDeviceChange = uiState.onHighlightOnDeviceChange,
-            onSearchChange = uiState.onSearchChange,
+            onRefresh = onRefresh,
+            onMergedChange = onMergedChange,
+            onInteractiveOnlyChange = onInteractiveOnlyChange,
+            onIncludeInvisibleChange = onIncludeInvisibleChange,
+            onAutoRefreshChange = onAutoRefreshChange,
+            onHighlightOnDeviceChange = onHighlightOnDeviceChange,
+            onSearchChange = onSearchChange,
         )
         StatusLine(
             summary = uiState.statusSummary,
@@ -112,9 +126,9 @@ internal fun ComposeSemanticsInspectorScreen(uiState: ComposeSemanticsInspectorU
                     TreeList(
                         rows = uiState.rows,
                         selectedKey = uiState.selectedKey,
-                        onSelect = uiState.onSelect,
-                        onHoverChange = uiState.onHoverChange,
-                        onToggleExpanded = uiState.onToggleExpanded,
+                        onSelect = onSelect,
+                        onHoverChange = onHoverChange,
+                        onToggleExpanded = onToggleExpanded,
                     )
                 }
             },
@@ -123,8 +137,8 @@ internal fun ComposeSemanticsInspectorScreen(uiState: ComposeSemanticsInspectorU
                     rootId = uiState.selectedKey?.rootId,
                     node = uiState.selectedNode,
                     viewAttributes = uiState.viewAttributes,
-                    onPerformAction = uiState.onPerformAction,
-                    onCommitViewAttribute = uiState.onCommitViewAttribute,
+                    onPerformAction = onPerformAction,
+                    onCommitViewAttribute = onCommitViewAttribute,
                 )
             },
         )

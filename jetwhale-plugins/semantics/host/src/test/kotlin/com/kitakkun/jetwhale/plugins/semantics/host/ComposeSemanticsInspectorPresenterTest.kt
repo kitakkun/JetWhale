@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
 import com.kitakkun.jetwhale.host.sdk.LocalJetWhalePluginStorage
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -31,29 +32,29 @@ class ComposeSemanticsInspectorPresenterTest {
     // -- the tree ---------------------------------------------------------------
 
     @Test
-    fun `collapsing a node hides its children, and expanding it brings them back`() = runPresenter(snapshot = twoLevelTree) { state ->
+    fun `collapsing a node hides its children, and expanding it brings them back`() = runPresenter(snapshot = twoLevelTree) { state, send ->
         assertEquals(listOf(1, 2, 3), state().nodeIds())
 
-        state().onToggleExpanded(NodeKey(ROOT_ID, 1))
+        send(ComposeSemanticsInspectorAction.ToggleExpanded(NodeKey(ROOT_ID, 1)))
         waitForIdle()
         assertEquals(listOf(1), state().nodeIds())
 
-        state().onToggleExpanded(NodeKey(ROOT_ID, 1))
+        send(ComposeSemanticsInspectorAction.ToggleExpanded(NodeKey(ROOT_ID, 1)))
         waitForIdle()
         assertEquals(listOf(1, 2, 3), state().nodeIds())
     }
 
     @Test
-    fun `the search box keeps the matching nodes and the ancestors that hold them`() = runPresenter(snapshot = twoLevelTree) { state ->
-        state().onSearchChange("Cancel")
+    fun `the search box keeps the matching nodes and the ancestors that hold them`() = runPresenter(snapshot = twoLevelTree) { state, send ->
+        send(ComposeSemanticsInspectorAction.ChangeSearch("Cancel"))
         waitForIdle()
 
         assertEquals(listOf(1, 3), state().nodeIds())
     }
 
     @Test
-    fun `showing only the interactive nodes drops the rest`() = runPresenter(snapshot = twoLevelTree) { state ->
-        state().onInteractiveOnlyChange(true)
+    fun `showing only the interactive nodes drops the rest`() = runPresenter(snapshot = twoLevelTree) { state, send ->
+        send(ComposeSemanticsInspectorAction.ChangeInteractiveOnly(true))
         waitForIdle()
 
         // Node 1 is kept although it is not interactive itself: dropping an ancestor would reparent
@@ -67,8 +68,8 @@ class ComposeSemanticsInspectorPresenterTest {
     @Test
     fun `selecting a node reports it upward and resolves it against the snapshot`() {
         val selected = mutableListOf<NodeKey?>()
-        runPresenter(snapshot = twoLevelTree, onSelectedNodeChange = { selected += it }) { state ->
-            state().onSelect(NodeKey(ROOT_ID, 3))
+        runPresenter(snapshot = twoLevelTree, onSelectedNodeChange = { selected += it }) { state, send ->
+            send(ComposeSemanticsInspectorAction.Select(NodeKey(ROOT_ID, 3)))
             waitForIdle()
 
             assertEquals(NodeKey(ROOT_ID, 3), state().selectedKey)
@@ -78,7 +79,7 @@ class ComposeSemanticsInspectorPresenterTest {
     }
 
     @Test
-    fun `nothing is selected to begin with`() = runPresenter(snapshot = twoLevelTree) { state ->
+    fun `nothing is selected to begin with`() = runPresenter(snapshot = twoLevelTree) { state, send ->
         assertNull(state().selectedKey)
         assertNull(state().selectedNode)
     }
@@ -88,7 +89,7 @@ class ComposeSemanticsInspectorPresenterTest {
     @Test
     fun `the screen captures once when it opens`() {
         val captures = mutableListOf<NodeTreeCaptureOptions>()
-        runPresenter(onCapture = { captures += it }) { _ ->
+        runPresenter(onCapture = { captures += it }) { _, _ ->
             waitForIdle()
             assertEquals(listOf(NodeTreeCaptureOptions(merged = true, includeInvisible = false, maxDepth = null)), captures)
         }
@@ -97,10 +98,10 @@ class ComposeSemanticsInspectorPresenterTest {
     @Test
     fun `a toggle that changes what would be captured captures again`() {
         val captures = mutableListOf<NodeTreeCaptureOptions>()
-        runPresenter(onCapture = { captures += it }) { state ->
+        runPresenter(onCapture = { captures += it }) { state, send ->
             waitForIdle()
 
-            state().onIncludeInvisibleChange(true)
+            send(ComposeSemanticsInspectorAction.ChangeIncludeInvisible(true))
             waitUntil { captures.size == 2 }
 
             assertEquals(NodeTreeCaptureOptions(merged = true, includeInvisible = true, maxDepth = null), captures.last())
@@ -110,11 +111,11 @@ class ComposeSemanticsInspectorPresenterTest {
     @Test
     fun `a toggle that only filters the tree captures nothing`() {
         val captures = mutableListOf<NodeTreeCaptureOptions>()
-        runPresenter(snapshot = twoLevelTree, onCapture = { captures += it }) { state ->
+        runPresenter(snapshot = twoLevelTree, onCapture = { captures += it }) { state, send ->
             waitForIdle()
 
-            state().onInteractiveOnlyChange(true)
-            state().onSearchChange("Cancel")
+            send(ComposeSemanticsInspectorAction.ChangeInteractiveOnly(true))
+            send(ComposeSemanticsInspectorAction.ChangeSearch("Cancel"))
             waitForIdle()
 
             assertEquals(1, captures.size)
@@ -126,12 +127,12 @@ class ComposeSemanticsInspectorPresenterTest {
     @Test
     fun `the toggles are stored under the keys they have always used`() {
         val storage = InMemoryPluginStorage()
-        runPresenter(storage = storage) { state ->
-            state().onMergedChange(false)
-            state().onInteractiveOnlyChange(true)
-            state().onIncludeInvisibleChange(true)
-            state().onAutoRefreshChange(true)
-            state().onHighlightOnDeviceChange(true)
+        runPresenter(storage = storage) { state, send ->
+            send(ComposeSemanticsInspectorAction.ChangeMerged(false))
+            send(ComposeSemanticsInspectorAction.ChangeInteractiveOnly(true))
+            send(ComposeSemanticsInspectorAction.ChangeIncludeInvisible(true))
+            send(ComposeSemanticsInspectorAction.ChangeAutoRefresh(true))
+            send(ComposeSemanticsInspectorAction.ChangeHighlightOnDevice(true))
 
             waitUntil { storage.peek("highlight-on-device") == true }
             assertEquals(false, storage.peek("merged-tree"))
@@ -150,7 +151,7 @@ class ComposeSemanticsInspectorPresenterTest {
             "auto-refresh" to true,
             "highlight-on-device" to true,
         )
-        runPresenter(storage = storage) { state ->
+        runPresenter(storage = storage) { state, send ->
             waitUntil { !state().merged }
 
             assertTrue(state().interactiveOnly)
@@ -161,7 +162,7 @@ class ComposeSemanticsInspectorPresenterTest {
     }
 
     @Test
-    fun `an inspector opened for the first time starts on the defaults`() = runPresenter { state ->
+    fun `an inspector opened for the first time starts on the defaults`() = runPresenter { state, send ->
         assertTrue(state().merged)
         assertEquals(false, state().interactiveOnly)
         assertEquals(false, state().includeInvisible)
@@ -176,12 +177,12 @@ class ComposeSemanticsInspectorPresenterTest {
     @Test
     fun `the device is pointed at the hovered row, and at nothing once the toggle is off`() {
         val targets = mutableListOf<NodeKey?>()
-        runPresenter(snapshot = twoLevelTree, onHighlightTargetChange = { targets += it }) { state ->
-            state().onHighlightOnDeviceChange(true)
-            state().onHoverChange(NodeKey(ROOT_ID, 2), true)
+        runPresenter(snapshot = twoLevelTree, onHighlightTargetChange = { targets += it }) { state, send ->
+            send(ComposeSemanticsInspectorAction.ChangeHighlightOnDevice(true))
+            send(ComposeSemanticsInspectorAction.ChangeHover(NodeKey(ROOT_ID, 2), true))
             waitUntil { targets.lastOrNull() == NodeKey(ROOT_ID, 2) }
 
-            state().onHighlightOnDeviceChange(false)
+            send(ComposeSemanticsInspectorAction.ChangeHighlightOnDevice(false))
             waitUntil { targets.lastOrNull() == null }
         }
     }
@@ -189,14 +190,14 @@ class ComposeSemanticsInspectorPresenterTest {
     @Test
     fun `a row that reports leaving does not clear a hover another row has taken over`() {
         val targets = mutableListOf<NodeKey?>()
-        runPresenter(snapshot = twoLevelTree, onHighlightTargetChange = { targets += it }) { state ->
-            state().onHighlightOnDeviceChange(true)
-            state().onHoverChange(NodeKey(ROOT_ID, 2), true)
+        runPresenter(snapshot = twoLevelTree, onHighlightTargetChange = { targets += it }) { state, send ->
+            send(ComposeSemanticsInspectorAction.ChangeHighlightOnDevice(true))
+            send(ComposeSemanticsInspectorAction.ChangeHover(NodeKey(ROOT_ID, 2), true))
             waitUntil { targets.lastOrNull() == NodeKey(ROOT_ID, 2) }
 
             // The pointer arrives on the next row before the one it left reports leaving.
-            state().onHoverChange(NodeKey(ROOT_ID, 3), true)
-            state().onHoverChange(NodeKey(ROOT_ID, 2), false)
+            send(ComposeSemanticsInspectorAction.ChangeHover(NodeKey(ROOT_ID, 3), true))
+            send(ComposeSemanticsInspectorAction.ChangeHover(NodeKey(ROOT_ID, 2), false))
             waitForIdle()
 
             assertEquals(NodeKey(ROOT_ID, 3), targets.last())
@@ -280,9 +281,10 @@ private val twoLevelTree: NodeTreeSnapshot = snapshot(
 private fun ComposeSemanticsInspectorUiState.nodeIds(): List<Int> = rows.filterIsInstance<TreeRow.NodeRow>().map { it.node.id }
 
 /**
- * Composes the presenter and runs [block] against the state it returns.
+ * Composes the presenter and runs [block] against the state it returns, with the actions it sends
+ * delivered the way the screen delivers them.
  *
- * The state is handed over as a getter rather than a value: every intent the test fires produces a
+ * The state is handed over as a getter rather than a value: every action the test sends produces a
  * new one, and a captured value would go stale the moment the test used it.
  */
 @OptIn(ExperimentalTestApi::class)
@@ -292,12 +294,14 @@ private fun runPresenter(
     onCapture: (NodeTreeCaptureOptions) -> Unit = {},
     onSelectedNodeChange: (NodeKey?) -> Unit = {},
     onHighlightTargetChange: (NodeKey?) -> Unit = {},
-    block: suspend ComposeUiTest.(state: () -> ComposeSemanticsInspectorUiState) -> Unit,
+    block: suspend ComposeUiTest.(state: () -> ComposeSemanticsInspectorUiState, send: (ComposeSemanticsInspectorAction) -> Unit) -> Unit,
 ) = runComposeUiTest {
+    val actions = Channel<ComposeSemanticsInspectorAction>(Channel.UNLIMITED)
     lateinit var uiState: ComposeSemanticsInspectorUiState
     setContent {
         CompositionLocalProvider(LocalJetWhalePluginStorage provides storage) {
             uiState = composeSemanticsInspectorPresenter(
+                actions = actions,
                 snapshot = snapshot,
                 capturing = false,
                 roundTripMs = null,
@@ -313,7 +317,7 @@ private fun runPresenter(
             )
         }
     }
-    block { uiState }
+    block({ uiState }, { actions.trySend(it) })
 }
 
 /** Minimal in-memory [JetWhalePluginStorage] so `rememberPersistent` has something to bind to. */

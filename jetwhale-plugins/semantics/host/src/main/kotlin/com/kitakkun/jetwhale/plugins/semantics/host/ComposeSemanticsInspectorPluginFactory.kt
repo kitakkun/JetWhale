@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
@@ -22,6 +23,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResponse
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import com.kitakkun.jetwhale.protocol.messaging.request
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -108,7 +110,10 @@ private class ComposeNodeInspectorHostPlugin :
     // to outlive the composition — the attribute store, the highlight controller — is the plugin's.
     @Composable
     override fun Content() {
+        // Unlimited, so a burst of hover changes is never dropped on the way to the presenter.
+        val actions = remember { Channel<ComposeSemanticsInspectorAction>(Channel.UNLIMITED) }
         val uiState = composeSemanticsInspectorPresenter(
+            actions = actions,
             snapshot = snapshot,
             capturing = capturing,
             roundTripMs = roundTripMs,
@@ -153,7 +158,21 @@ private class ComposeNodeInspectorHostPlugin :
             highlightStatus = highlightController.statusMessage,
             onHighlightTargetChange = highlightController::setTarget,
         )
-        ComposeSemanticsInspectorScreen(uiState = uiState)
+        ComposeSemanticsInspectorScreen(
+            uiState = uiState,
+            onRefresh = { actions.trySend(ComposeSemanticsInspectorAction.Refresh) },
+            onMergedChange = { actions.trySend(ComposeSemanticsInspectorAction.ChangeMerged(it)) },
+            onInteractiveOnlyChange = { actions.trySend(ComposeSemanticsInspectorAction.ChangeInteractiveOnly(it)) },
+            onIncludeInvisibleChange = { actions.trySend(ComposeSemanticsInspectorAction.ChangeIncludeInvisible(it)) },
+            onAutoRefreshChange = { actions.trySend(ComposeSemanticsInspectorAction.ChangeAutoRefresh(it)) },
+            onHighlightOnDeviceChange = { actions.trySend(ComposeSemanticsInspectorAction.ChangeHighlightOnDevice(it)) },
+            onSearchChange = { actions.trySend(ComposeSemanticsInspectorAction.ChangeSearch(it)) },
+            onSelect = { actions.trySend(ComposeSemanticsInspectorAction.Select(it)) },
+            onHoverChange = { key, hovered -> actions.trySend(ComposeSemanticsInspectorAction.ChangeHover(key, hovered)) },
+            onToggleExpanded = { actions.trySend(ComposeSemanticsInspectorAction.ToggleExpanded(it)) },
+            onPerformAction = { actions.trySend(ComposeSemanticsInspectorAction.PerformAction(it)) },
+            onCommitViewAttribute = { attribute, value -> actions.trySend(ComposeSemanticsInspectorAction.CommitViewAttribute(attribute, value)) },
+        )
     }
 
     // Lazy for the same reason the store is: reading this list builds the store, and the store needs
