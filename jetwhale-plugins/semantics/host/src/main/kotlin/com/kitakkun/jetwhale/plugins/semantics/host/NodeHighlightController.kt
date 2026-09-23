@@ -36,9 +36,11 @@ internal class NodeHighlightController(
     private var holding: Job? = null
 
     /**
-     * One request on the wire at a time, in the order the targets were set. Cancelling [holding]
-     * stops it only at its next suspension, so without this a replaced target could still enqueue
-     * its request after the replacement's and be the one the app paints last.
+     * One [show] at a time, in the order the targets were set — the bookkeeping included, not just
+     * the request. Cancelling [holding] stops it only at its next suspension, so without this a
+     * replaced target could still enqueue its request after the replacement's and be the one the app
+     * paints last; and a call resuming after its answer arrived could write [shownIn] over what a
+     * newer, already-finished one recorded, since `pluginScope` runs on more than one thread.
      */
     private val sending = Mutex()
 
@@ -74,17 +76,33 @@ internal class NodeHighlightController(
      *   start working from one the app expects to lift. A clear and a failed send both answer
      *   `shown = false`.
      */
-    suspend fun show(target: NodeKey?): HighlightResult {
+    suspend fun show(target: NodeKey?): HighlightResult = sending.withLock {
+        // Taking the lock does not check for cancellation on its fast path; a target replaced while
+        // waiting here has nothing left to say.
+        currentCoroutineContext().ensureActive()
+        sendAndRecord(target)
+    }
+
+    /**
+     * The body of [show], with [sending] held for the whole of it — the requests and the bookkeeping
+     * they justify. Holding the lock across both is the point: a call that let go of it between its
+     * answer and its writes could record that answer after a newer target had already recorded its
+     * own, and the box the newer one put up would then be the one nothing knows how to clear.
+     */
+    private suspend fun sendAndRecord(target: NodeKey?): HighlightResult {
         val leaving = shownIn
         if (leaving != null && leaving != target?.rootId) {
-            shownIn = null
             try {
-                sendInOrder(HighlightNode(rootId = leaving, nodeId = null, ttlMs = HIGHLIGHT_TTL_MILLIS))
+                send(HighlightNode(rootId = leaving, nodeId = null, ttlMs = HIGHLIGHT_TTL_MILLIS))
             } catch (e: JetWhaleMessagingException) {
                 // The window that was showing the box is unreachable, which is also how it stops
                 // showing one: the overlay went away with it, and the agent's own TTL covers the rest.
                 statusMessage = "Clearing the highlight failed: ${e.message}"
             }
+            // Forgotten only once the clear has been sent, never before. A call cancelled while it
+            // was still waiting its turn leaves the root recorded, so the target that replaced it
+            // clears that box rather than reading "nothing to clear" and stranding it until the TTL.
+            shownIn = null
         }
         if (target == null) {
             statusMessage = null
@@ -95,7 +113,7 @@ internal class NodeHighlightController(
         // that root has nothing to clear — stranding a box there until its own TTL runs out.
         shownIn = target.rootId
         val result = try {
-            sendInOrder(HighlightNode(rootId = target.rootId, nodeId = target.nodeId, ttlMs = HIGHLIGHT_TTL_MILLIS))
+            send(HighlightNode(rootId = target.rootId, nodeId = target.nodeId, ttlMs = HIGHLIGHT_TTL_MILLIS))
         } catch (e: JetWhaleMessagingException) {
             // shownIn stays: a timeout is a failure too, and the app may have drawn the box before
             // the reply was lost. An extra clear costs nothing; a box left up costs the user.
@@ -122,13 +140,6 @@ internal class NodeHighlightController(
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             withContext(NonCancellable) { show(null) }
         }
-    }
-
-    private suspend fun sendInOrder(request: HighlightNode): HighlightResult = sending.withLock {
-        // Taking the lock does not check for cancellation on its fast path; a target replaced while
-        // waiting here has nothing left to say.
-        currentCoroutineContext().ensureActive()
-        send(request)
     }
 }
 

@@ -3,8 +3,10 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.HighlightResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -186,7 +188,44 @@ class NodeHighlightControllerTest {
         assertEquals(1, recorder.sent.size)
     }
 
-    private class Recorder(private val answer: (HighlightNode) -> HighlightResult = { HighlightResult(shown = true) }) {
+    @Test
+    fun `a clear cancelled before its turn leaves its root to be cleared`() = runTest {
+        // The clear waits for the request ahead of it to answer. Being replaced while it sits in that
+        // queue must not make the controller forget the root it was going to clear, or the box on it
+        // would stand until the app's own TTL — nothing else ever names that root again.
+        val answering = CompletableDeferred<Unit>()
+        val recorder = Recorder(answer = { request ->
+            if (request.nodeId == -9) answering.await()
+            HighlightResult(shown = true)
+        })
+        val controller = recorder.controller(backgroundScope)
+
+        controller.show(firstRoot)
+        // Same root, so it sends no clear of its own; it is only here to hold the queue open. It is
+        // cancelled rather than answered so that it never records an answer, leaving what the clear
+        // did to the bookkeeping as the only thing this test can be reading.
+        val occupying = backgroundScope.launch { controller.show(firstRoot.copy(nodeId = -9)) }
+        runCurrent()
+        val clearing = backgroundScope.launch { controller.show(null) }
+        runCurrent()
+        clearing.cancel()
+        occupying.cancel()
+        runCurrent()
+
+        controller.show(secondRoot)
+
+        assertEquals(
+            listOf(
+                HighlightNode(rootId = "window-1", nodeId = -4, ttlMs = HIGHLIGHT_TTL_MILLIS),
+                HighlightNode(rootId = "window-1", nodeId = -9, ttlMs = HIGHLIGHT_TTL_MILLIS),
+                HighlightNode(rootId = "window-1", nodeId = null, ttlMs = HIGHLIGHT_TTL_MILLIS),
+                HighlightNode(rootId = "window-2", nodeId = 12, ttlMs = HIGHLIGHT_TTL_MILLIS),
+            ),
+            recorder.sent,
+        )
+    }
+
+    private class Recorder(private val answer: suspend (HighlightNode) -> HighlightResult = { HighlightResult(shown = true) }) {
         val sent = mutableListOf<HighlightNode>()
 
         fun controller(scope: CoroutineScope = CoroutineScope(Dispatchers.Unconfined)): NodeHighlightController = NodeHighlightController(

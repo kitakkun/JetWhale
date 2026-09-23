@@ -146,7 +146,12 @@ internal class AndroidWindowNodeSource(rootView: View) :
             highlightOverlay.clear()
             return@await HighlightResult(
                 shown = false,
-                message = "unknown nodeId: $nodeId (the node may have left this window; capture the tree again)",
+                message = "node $nodeId is not in this window right now (a list may have recycled it, or it may be gone for good)",
+                // A row a `LazyColumn` disposed on its way off screen and a node that has left for
+                // good resolve to the same nothing from here, so this cannot tell them apart. Asking
+                // again is the recoverable guess: the box comes back by itself when the row scrolls
+                // back, and the host stops asking the moment the selection moves off it either way.
+                retryLater = true,
             )
         }
         if (bounds.isEmpty) {
