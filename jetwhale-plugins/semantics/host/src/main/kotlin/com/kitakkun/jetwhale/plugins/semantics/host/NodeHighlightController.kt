@@ -30,7 +30,8 @@ internal class NodeHighlightController(
     private val scope: CoroutineScope,
     private val send: suspend (HighlightNode) -> HighlightResult,
 ) {
-    private var shownIn: String? = null
+    /** The root the app is drawing a box in, as far as this controller knows; `null` when none is. */
+    private var rootShowingBox: String? = null
 
     /** Keeps the current target alive; a new target replaces it. */
     private var holding: Job? = null
@@ -39,8 +40,8 @@ internal class NodeHighlightController(
      * One [show] at a time, in the order the targets were set — the bookkeeping included, not just
      * the request. Cancelling [holding] stops it only at its next suspension, so without this a
      * replaced target could still enqueue its request after the replacement's and be the one the app
-     * paints last; and a call resuming after its answer arrived could write [shownIn] over what a
-     * newer, already-finished one recorded, since `pluginScope` runs on more than one thread.
+     * paints last; and a call resuming after its answer arrived could write [rootShowingBox] over
+     * what a newer, already-finished one recorded, since `pluginScope` runs on more than one thread.
      */
     private val sending = Mutex()
 
@@ -90,7 +91,7 @@ internal class NodeHighlightController(
      * own, and the box the newer one put up would then be the one nothing knows how to clear.
      */
     private suspend fun sendAndRecord(target: NodeKey?): HighlightResult {
-        val leaving = shownIn
+        val leaving = rootShowingBox
         if (leaving != null && leaving != target?.rootId) {
             try {
                 send(HighlightNode(rootId = leaving, nodeId = null, ttlMs = HIGHLIGHT_TTL_MILLIS))
@@ -102,7 +103,7 @@ internal class NodeHighlightController(
             // Forgotten only once the clear has been sent, never before. A call cancelled while it
             // was still waiting its turn leaves the root recorded, so the target that replaced it
             // clears that box rather than reading "nothing to clear" and stranding it until the TTL.
-            shownIn = null
+            rootShowingBox = null
         }
         if (target == null) {
             statusMessage = null
@@ -111,17 +112,17 @@ internal class NodeHighlightController(
         // Recorded before the answer comes back, not after: a new target cancels this call, and a
         // request cancelled after the app drew the box would otherwise leave the controller thinking
         // that root has nothing to clear — stranding a box there until its own TTL runs out.
-        shownIn = target.rootId
+        rootShowingBox = target.rootId
         val result = try {
             send(HighlightNode(rootId = target.rootId, nodeId = target.nodeId, ttlMs = HIGHLIGHT_TTL_MILLIS))
         } catch (e: JetWhaleMessagingException) {
-            // shownIn stays: a timeout is a failure too, and the app may have drawn the box before
-            // the reply was lost. An extra clear costs nothing; a box left up costs the user.
+            // rootShowingBox stays: a timeout is a failure too, and the app may have drawn the box
+            // before the reply was lost. An extra clear costs nothing; a box left up costs the user.
             val failure = "Highlight failed: ${e.message}"
             statusMessage = failure
             return HighlightResult(shown = false, message = failure)
         }
-        shownIn = if (result.shown) target.rootId else null
+        rootShowingBox = if (result.shown) target.rootId else null
         statusMessage = if (result.shown) null else result.message
         return result
     }
