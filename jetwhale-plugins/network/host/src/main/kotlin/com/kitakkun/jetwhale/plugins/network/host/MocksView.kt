@@ -18,7 +18,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
@@ -333,25 +332,4 @@ private fun List<MockRule>.upsert(rule: MockRule): List<MockRule> = if (any { it
     map { if (it.id == rule.id) rule else it }
 } else {
     this + rule
-}
-
-@Preview
-@Composable
-private fun MocksTabPreview() {
-    JwTheme(darkTheme = false) {
-        MocksTab(
-            rules = listOf(
-                MockRule(
-                    id = "rule-1",
-                    name = "Items are unavailable",
-                    enabled = true,
-                    matcher = MockMatcher(method = "GET", urlPattern = "/api/items", matchType = MockMatchType.CONTAINS),
-                    response = MockResponseSpec(statusCode = 503),
-                ),
-            ),
-            mockingEnabled = true,
-            onToggleMocking = {},
-            onChanged = {},
-        )
-    }
 }

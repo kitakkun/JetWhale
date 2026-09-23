@@ -21,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwBanner
@@ -47,15 +46,12 @@ import com.kitakkun.jetwhale.host.ui.JwToolbar
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
-import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyFieldDescriptor
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeySnapshot
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavKeyTypeDescriptor
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 
 /** A one-line outcome of the last thing the user asked for. */
 internal data class Nav3Status(val message: String, val isError: Boolean)
@@ -344,46 +340,4 @@ private fun parseNavKey(text: String): JsonObject? = try {
     Json.parseToJsonElement(text) as? JsonObject
 } catch (_: SerializationException) {
     null
-}
-
-@Preview
-@Composable
-private fun Nav3NavigatorScreenPreview() {
-    JwTheme(darkTheme = false) {
-        Nav3NavigatorScreen(
-            stacks = listOf(
-                NavBackStackSnapshot(
-                    stackId = "main",
-                    entries = listOf(
-                        NavKeySnapshot(typeName = "Home", display = "Home", key = buildJsonObject { put("type", "Home") }),
-                        NavKeySnapshot(
-                            typeName = "Detail",
-                            display = "Detail(id=42)",
-                            key = buildJsonObject {
-                                put("type", "Detail")
-                                put("id", "42")
-                            },
-                        ),
-                    ),
-                ),
-            ),
-            keyTypes = listOf(
-                NavKeyTypeDescriptor(
-                    serialName = "Detail",
-                    fields = listOf(NavKeyFieldDescriptor(name = "id", type = "String", optional = false, nullable = false)),
-                    template = buildJsonObject {
-                        put("type", "Detail")
-                        put("id", "")
-                    },
-                ),
-            ),
-            selectedStackId = "main",
-            status = Nav3Status(message = "Pushed Detail(id=42)", isError = false),
-            draft = """{"type": "Detail", "id": "42"}""",
-            onSelectStack = {},
-            onApplyOperation = { _, _ -> },
-            onRefresh = {},
-            onDraftChange = {},
-        )
-    }
 }

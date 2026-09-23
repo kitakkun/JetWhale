@@ -1,9 +1,7 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,7 +26,6 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwColumnOverflow
@@ -50,7 +47,6 @@ import com.kitakkun.jetwhale.host.ui.JwTagStyle
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
-import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.mediaType
 import kotlinx.coroutines.launch
@@ -468,21 +464,3 @@ private fun parseQueryParams(url: String): List<Pair<String, String>> {
 }
 
 private fun urlDecode(value: String): String = runCatching { URLDecoder.decode(value, "UTF-8") }.getOrDefault(value)
-
-@Preview
-@Composable
-private fun TrafficTabPreview() {
-    JwTheme(darkTheme = false) {
-        val transactions = previewTransactions()
-        TrafficTab(
-            transactions = transactions,
-            selectedTxId = transactions.first().txId,
-            splitPaneState = rememberJwSplitPaneState(PREVIEW_SPLIT_POSITION),
-            onSelectTx = {},
-            onClear = {},
-            onCreateMock = {},
-        )
-    }
-}
-
-private const val PREVIEW_SPLIT_POSITION = 0.42f
