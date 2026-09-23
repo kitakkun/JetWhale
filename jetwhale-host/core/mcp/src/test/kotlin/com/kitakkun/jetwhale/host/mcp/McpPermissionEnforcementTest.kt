@@ -232,7 +232,7 @@ private class ObserveCommand : HostMcpCommand() {
     override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String = "Observes."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = "observed"
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String = "observed"
 }
 
 private class RestartCommand : HostMcpCommand() {
@@ -240,7 +240,7 @@ private class RestartCommand : HostMcpCommand() {
     override val group: McpHostToolGroup = McpHostToolGroup.SETTINGS_AND_SERVERS
     override val description: String = "Restarts."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = "restarted"
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String = "restarted"
 }
 
 /** Stands in for the built-in UI tools: takes a `pluginId`, so the check resolves per call. */

@@ -36,7 +36,7 @@ class HostLogCommandsTest {
 
     @Test
     fun `getLogs returns the newest entries last`() = runBlocking {
-        val result = GetLogsCommand(logCaptureService).execute(arguments()).decodeLogs()
+        val result = GetLogsCommand(logCaptureService).executeForText(arguments()).decodeLogs()
 
         assertEquals(listOf("first info", "second boom", "third info"), result.logs.map { it.message })
         assertEquals(3, result.returned)
@@ -45,7 +45,7 @@ class HostLogCommandsTest {
 
     @Test
     fun `getLogs keeps only the most recent entries when a limit is given`() = runBlocking {
-        val result = GetLogsCommand(logCaptureService).execute(arguments("limit" to JsonPrimitive(2))).decodeLogs()
+        val result = GetLogsCommand(logCaptureService).executeForText(arguments("limit" to JsonPrimitive(2))).decodeLogs()
 
         assertEquals(listOf("second boom", "third info"), result.logs.map { it.message })
         assertEquals(2, result.returned)
@@ -54,7 +54,7 @@ class HostLogCommandsTest {
 
     @Test
     fun `getLogs filters by level`() = runBlocking {
-        val result = GetLogsCommand(logCaptureService).execute(arguments("level" to JsonPrimitive("ERROR"))).decodeLogs()
+        val result = GetLogsCommand(logCaptureService).executeForText(arguments("level" to JsonPrimitive("ERROR"))).decodeLogs()
 
         assertEquals(listOf("second boom"), result.logs.map { it.message })
         assertEquals(1, result.total)
@@ -62,7 +62,7 @@ class HostLogCommandsTest {
 
     @Test
     fun `getLogs filters by substring case-insensitively`() = runBlocking {
-        val result = GetLogsCommand(logCaptureService).execute(arguments("contains" to JsonPrimitive("BOOM"))).decodeLogs()
+        val result = GetLogsCommand(logCaptureService).executeForText(arguments("contains" to JsonPrimitive("BOOM"))).decodeLogs()
 
         assertEquals(listOf("second boom"), result.logs.map { it.message })
     }
@@ -70,7 +70,7 @@ class HostLogCommandsTest {
     @Test
     fun `getLogs rejects a limit above the hard cap`(): Unit = runBlocking {
         assertFailsWith<JetWhaleMcpArgumentException> {
-            GetLogsCommand(logCaptureService).execute(arguments("limit" to JsonPrimitive(1001)))
+            GetLogsCommand(logCaptureService).executeForText(arguments("limit" to JsonPrimitive(1001)))
         }
     }
 
@@ -78,7 +78,7 @@ class HostLogCommandsTest {
     fun `getLogs truncates an oversized message`() = runBlocking {
         logs.value = listOf(logEntry("x".repeat(3000), LogLevel.INFO))
 
-        val message = GetLogsCommand(logCaptureService).execute(arguments()).decodeLogs().logs.single().message
+        val message = GetLogsCommand(logCaptureService).executeForText(arguments()).decodeLogs().logs.single().message
 
         assertEquals(2000 + "…(truncated)".length, message.length)
         assertTrue(message.endsWith("…(truncated)"))
@@ -86,7 +86,7 @@ class HostLogCommandsTest {
 
     @Test
     fun `clearLogs reports how many entries were dropped`() = runBlocking {
-        val json = ClearLogsCommand(logCaptureService).execute(arguments())
+        val json = ClearLogsCommand(logCaptureService).executeForText(arguments())
 
         assertEquals(3, Json.decodeFromString<ClearLogsResult>(json).cleared)
         verify { logCaptureService.clearLogs() }

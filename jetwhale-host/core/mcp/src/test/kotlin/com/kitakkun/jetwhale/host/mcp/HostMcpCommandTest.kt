@@ -123,7 +123,7 @@ private class EchoHostCommand : HostMcpCommand() {
     private val text by string("Text to echo back.")
     private val times by intOrNull("How many times to repeat it.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = arguments[text].repeat(arguments[times] ?: 1)
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String = arguments[text].repeat(arguments[times] ?: 1)
 }
 
 private class ExplodingHostCommand : HostMcpCommand() {
@@ -131,5 +131,5 @@ private class ExplodingHostCommand : HostMcpCommand() {
     override val group: McpHostToolGroup = McpHostToolGroup.OBSERVE
     override val description: String = "Always fails."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String = throw IllegalStateException("boom")
+    override suspend fun executeText(arguments: JetWhaleMcpArguments): String = throw IllegalStateException("boom")
 }

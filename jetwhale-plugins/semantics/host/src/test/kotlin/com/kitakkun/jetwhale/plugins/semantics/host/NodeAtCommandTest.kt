@@ -4,7 +4,6 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -68,5 +67,5 @@ private fun nodeAt(x: Int, y: Int, withDialog: Boolean = false): JsonObject {
             ),
         )
     }
-    return Json.parseToJsonElement(result).jsonObject
+    return checkNotNull(result.structuredContent)
 }

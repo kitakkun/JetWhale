@@ -12,7 +12,6 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeResult
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
@@ -27,7 +26,7 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
 private fun JetWhaleMcpCommand.run(arguments: JsonObject): JsonObject = runBlocking {
-    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
+    checkNotNull(execute(JetWhaleMcpArguments(arguments)).structuredContent)
 }
 
 private fun attribute(
