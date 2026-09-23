@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 
 @OptIn(ExperimentalJetWhaleApi::class)
 internal class GetTransactionCommand(
@@ -15,10 +16,10 @@ internal class GetTransactionCommand(
 
     private val txId by string("The transaction id from listTransactions.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val txId = arguments[this.txId]
         val transaction = transactions().firstOrNull { it.txId == txId }
             ?: throw JetWhaleMcpArgumentException("no transaction with txId: $txId")
-        return redactForMcp(transaction).toDetailJson().toString()
+        return JetWhaleMcpResult.text(redactForMcp(transaction).toDetailJson().toString())
     }
 }

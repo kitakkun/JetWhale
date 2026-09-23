@@ -20,6 +20,7 @@ import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
 import com.kitakkun.jetwhale.host.model.PluginTrustService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.Inject
@@ -49,40 +50,42 @@ class HostStatusCommand(
     override val description: String =
         "Host-wide: one snapshot of the debug tool — its version, both servers, how many sessions and plugins are live, and the current settings. Call this first to orient yourself before any other jetwhale tool."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+    override suspend fun execute(arguments: JetWhaleMcpArguments): JetWhaleMcpResult {
         val sessions = debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty()
 
-        return Json.encodeToString(
-            HostStatusResult(
-                host = HostInfoJson(
-                    version = hostVersionInfo.version,
-                    isSnapshot = hostVersionInfo.isSnapshot,
-                    os = HostOs.current.name,
+        return JetWhaleMcpResult.text(
+            Json.encodeToString(
+                HostStatusResult(
+                    host = HostInfoJson(
+                        version = hostVersionInfo.version,
+                        isSnapshot = hostVersionInfo.isSnapshot,
+                        os = HostOs.current.name,
+                    ),
+                    debugServer = debugWebSocketServer.statusFlow.value.toJson(),
+                    mcpServer = mcpServerStatusHolder.statusFlow.value.toJson(),
+                    sessions = SessionCountsJson(
+                        total = sessions.size,
+                        active = sessions.count { it.isActive },
+                    ),
+                    plugins = PluginCountsJson(
+                        loaded = pluginFactoryRepository.loadedPlugins.size,
+                        enabled = enabledPluginsRepository.enabledPluginIdsFlow.first().size,
+                        failedJars = pluginFactoryRepository.failedJarsFlow.first().size,
+                        untrustedJars = pluginTrustService.untrustedJarPathsFlow.first().size,
+                        installInProgress = pluginInstallProgressRepository.progressFlow.first() != null,
+                    ),
+                    settings = SettingsJson(
+                        serverPort = settingsRepository.serverPortFlow.value,
+                        wssPort = settingsRepository.wssPortFlow.value,
+                        wssEnabled = settingsRepository.wssEnabledFlow.value,
+                        mcpServerPort = settingsRepository.mcpServerPortFlow.value,
+                        adbAutoPortMappingEnabled = settingsRepository.adbAutoPortMappingEnabledFlow.value,
+                        checkForUpdatesOnStartup = settingsRepository.checkForUpdatesOnStartupFlow.value,
+                        persistData = settingsRepository.persistDataFlow.value,
+                    ),
+                    permissions = mcpPermissionsRepository.permissionsFlow.value.toJson(),
+                    ui = hostNavigationService.currentView.value?.toJson(),
                 ),
-                debugServer = debugWebSocketServer.statusFlow.value.toJson(),
-                mcpServer = mcpServerStatusHolder.statusFlow.value.toJson(),
-                sessions = SessionCountsJson(
-                    total = sessions.size,
-                    active = sessions.count { it.isActive },
-                ),
-                plugins = PluginCountsJson(
-                    loaded = pluginFactoryRepository.loadedPlugins.size,
-                    enabled = enabledPluginsRepository.enabledPluginIdsFlow.first().size,
-                    failedJars = pluginFactoryRepository.failedJarsFlow.first().size,
-                    untrustedJars = pluginTrustService.untrustedJarPathsFlow.first().size,
-                    installInProgress = pluginInstallProgressRepository.progressFlow.first() != null,
-                ),
-                settings = SettingsJson(
-                    serverPort = settingsRepository.serverPortFlow.value,
-                    wssPort = settingsRepository.wssPortFlow.value,
-                    wssEnabled = settingsRepository.wssEnabledFlow.value,
-                    mcpServerPort = settingsRepository.mcpServerPortFlow.value,
-                    adbAutoPortMappingEnabled = settingsRepository.adbAutoPortMappingEnabledFlow.value,
-                    checkForUpdatesOnStartup = settingsRepository.checkForUpdatesOnStartupFlow.value,
-                    persistData = settingsRepository.persistDataFlow.value,
-                ),
-                permissions = mcpPermissionsRepository.permissionsFlow.value.toJson(),
-                ui = hostNavigationService.currentView.value?.toJson(),
             ),
         )
     }

@@ -21,9 +21,16 @@ interface PluginSessionReconciliationService {
     /**
      * The ids of the sessions that should hold an instance of [pluginId] given [sessions]. An
      * agent-backed plugin targets only sessions whose agent advertised it; a host-only plugin
-     * targets every session.
+     * targets every session; a host-scoped plugin targets none, because its single instance belongs
+     * to the host rather than to a session.
      */
     fun targetSessionIds(pluginId: String, sessions: List<DebugSession>): Set<String>
+
+    /**
+     * Whether [pluginId] holds a single host-scoped instance instead of one per session. Unknown or
+     * unloaded plugins default to `false`.
+     */
+    fun isHostScoped(pluginId: String): Boolean
 
     /**
      * A cold flow that reconciles enabled plugins against active sessions for as long as it is

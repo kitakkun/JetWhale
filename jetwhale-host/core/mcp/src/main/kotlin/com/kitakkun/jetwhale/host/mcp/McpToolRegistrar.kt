@@ -70,6 +70,29 @@ class McpToolRegistrar(
         )
     }
 
+    /**
+     * Registers a tool contributed by a host-scoped plugin.
+     *
+     * Such a tool takes no `sessionId` — its plugin has a single instance that belongs to no session
+     * — so attribution is fixed to [pluginId] rather than resolved from the arguments.
+     */
+    fun addHostScopedPluginTool(
+        name: String,
+        description: String,
+        inputSchema: ToolSchema,
+        pluginId: String,
+        handler: suspend ClientConnection.(CallToolRequest) -> CallToolResult,
+    ) {
+        addTrackedTool(
+            name = name,
+            description = description,
+            inputSchema = inputSchema,
+            permission = McpToolPermission.PluginTool(name),
+            resolvePluginId = { pluginId },
+            handler = handler,
+        )
+    }
+
     private fun addTrackedTool(
         name: String,
         description: String,

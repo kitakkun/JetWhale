@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools.host
 
+import com.kitakkun.jetwhale.host.mcp.text
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
@@ -12,10 +13,12 @@ import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
@@ -126,7 +129,7 @@ class HostPluginCommandsTest {
     fun `setPluginEnabled disables a plugin without waiting for instantiation`() = runBlocking {
         val result = setPluginEnabled
             .execute(arguments("pluginId" to JsonPrimitive("com.example.local"), "enabled" to JsonPrimitive(false)))
-            .let { Json.decodeFromString<SetPluginEnabledResult>(it) }
+            .let { Json.decodeFromString<SetPluginEnabledResult>(it.text) }
 
         assertFalse(result.enabled)
         assertFalse(result.reconnectRequiredForNewTools)
@@ -156,7 +159,7 @@ class HostPluginCommandsTest {
     fun `installOfficialPlugin installs the catalog entry and points at the next step`() = runBlocking {
         val result = installOfficialPlugin
             .execute(arguments("pluginId" to JsonPrimitive(officialPluginId)))
-            .let { Json.decodeFromString<InstallOfficialPluginResult>(it) }
+            .let { Json.decodeFromString<InstallOfficialPluginResult>(it.text) }
 
         assertTrue(result.installed)
         assertFalse(result.alreadyInstalled)
@@ -172,7 +175,7 @@ class HostPluginCommandsTest {
 
         val result = installOfficialPlugin
             .execute(arguments("pluginId" to JsonPrimitive(officialPluginId)))
-            .let { Json.decodeFromString<InstallOfficialPluginResult>(it) }
+            .let { Json.decodeFromString<InstallOfficialPluginResult>(it.text) }
 
         assertTrue(result.alreadyInstalled)
     }
@@ -187,10 +190,10 @@ private fun loadedPlugin(pluginId: String, name: String, requiresAgent: Boolean)
         requiresAgent = requiresAgent,
     ),
     factory = object : JetWhaleHostPluginFactory {
-        override fun createPlugin(): JetWhaleHostPlugin = throw UnsupportedOperationException()
+        override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = throw UnsupportedOperationException()
     },
 )
 
 private fun arguments(vararg entries: Pair<String, JsonPrimitive>) = JetWhaleMcpArguments(JsonObject(entries.toMap()))
 
-private fun String.decodeList() = Json.decodeFromString<ListInstalledPluginsResult>(this)
+private fun JetWhaleMcpResult.decodeList() = Json.decodeFromString<ListInstalledPluginsResult>(text)

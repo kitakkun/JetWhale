@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools.host
 
+import com.kitakkun.jetwhale.host.mcp.text
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
@@ -14,10 +15,12 @@ import com.kitakkun.jetwhale.host.model.PluginSessionReconciliationService
 import com.kitakkun.jetwhale.host.model.PoppedOutPlugin
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginContext
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpResult
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
@@ -207,10 +210,10 @@ private fun loadedPlugin(pluginId: String) = LoadedHostPlugin(
         factoryClass = "$pluginId.Factory",
     ),
     factory = object : JetWhaleHostPluginFactory {
-        override fun createPlugin(): JetWhaleHostPlugin = throw UnsupportedOperationException()
+        override fun createPlugin(context: JetWhaleHostPluginContext): JetWhaleHostPlugin = throw UnsupportedOperationException()
     },
 )
 
 private fun arguments(vararg entries: Pair<String, JsonPrimitive>) = JetWhaleMcpArguments(JsonObject(entries.toMap()))
 
-private fun String.decode() = Json.decodeFromString<NavigateResult>(this)
+private fun JetWhaleMcpResult.decode() = Json.decodeFromString<NavigateResult>(text)
