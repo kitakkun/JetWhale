@@ -31,6 +31,7 @@ import com.kitakkun.jetwhale.host.navigation.InfoNavKey
 import com.kitakkun.jetwhale.host.navigation.JetWhaleNavDisplay
 import com.kitakkun.jetwhale.host.navigation.LicensesNavKey
 import com.kitakkun.jetwhale.host.navigation.LogViewerNavKey
+import com.kitakkun.jetwhale.host.navigation.OverlayNavKey
 import com.kitakkun.jetwhale.host.navigation.PluginNavKey
 import com.kitakkun.jetwhale.host.navigation.PluginPopoutNavKey
 import com.kitakkun.jetwhale.host.navigation.SettingsNavKey
@@ -39,6 +40,7 @@ import com.kitakkun.jetwhale.host.navigation.bringPluginBackToMainWindow
 import com.kitakkun.jetwhale.host.navigation.followPluginToSession
 import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
+import com.kitakkun.jetwhale.host.navigation.showBelowOverlays
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.theme.AppEnvironment
@@ -153,7 +155,7 @@ fun JetWhaleApp() {
                                     },
                                     onClickInfo = { backStack.addSingleTop(InfoNavKey) },
                                     onClickPlugin = { pluginId, sessionId ->
-                                        backStack.addSingleTop(PluginNavKey(pluginId, sessionId))
+                                        backStack.showBelowOverlays(PluginNavKey(pluginId, sessionId))
                                     },
                                     onOpenMcpTools = { pluginId, sessionId ->
                                         backStack.openMcpTools(pluginId = pluginId, sessionId = sessionId)
@@ -170,9 +172,9 @@ fun JetWhaleApp() {
                                     isPoppedOut = backStack::isPluginPoppedOut,
                                     onClickBringBack = backStack::bringPluginBackToMainWindow,
                                     onNavigateHome = {
-                                        // Popouts live in their own windows; going home in the main
-                                        // window must not close them.
-                                        backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey }
+                                        // Home is what the main window shows underneath; a dialog the
+                                        // user has open and the popout windows are not its to close.
+                                        backStack.removeAll { it !is EmptyPluginNavKey && it !is OverlayNavKey }
                                     },
                                     onNavigateSettings = { page ->
                                         backStack.addSingleTop(SettingsNavKey(initialPage = page))
