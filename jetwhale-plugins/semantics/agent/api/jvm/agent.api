@@ -43,6 +43,14 @@ public final class com/kitakkun/jetwhale/plugins/semantics/agent/MainDispatcherC
 	public fun await (Lkotlin/jvm/functions/Function0;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
+public abstract interface class com/kitakkun/jetwhale/plugins/semantics/agent/NodeHighlightSource {
+	public abstract fun highlight-8Mi8wO0 (Ljava/lang/Integer;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class com/kitakkun/jetwhale/plugins/semantics/agent/RegistryAwareNodeSource : com/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSource {
+	public abstract fun onUnregistered ()V
+}
+
 public final class com/kitakkun/jetwhale/plugins/semantics/agent/SemanticsOwnerNodeSource : com/kitakkun/jetwhale/plugins/semantics/agent/ComposeNodeSource {
 	public static final field $stable I
 	public fun <init> (Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lcom/kitakkun/jetwhale/plugins/semantics/agent/ComposeUiThread;)V
