@@ -7,6 +7,7 @@ import java.io.IOException
 import java.nio.file.Files
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -130,5 +131,65 @@ class PlatformFileSystemTest {
         File(directory, "notes.txt").writeText("hello")
 
         assertFailsWith<IOException> { listDirectoryEntries("${directory.path}/notes.txt") }
+    }
+
+    @Test
+    fun `an upload in chunks leaves the target untouched until the last chunk and then holds every byte`() {
+        val target = File(directory, "settings.bin").apply { writeText("old") }
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1")
+
+        receiveUploadChunk(staging.path, target.path, offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
+        receiveUploadChunk(staging.path, target.path, offset = 3, bytes = byteArrayOf(4, 5), isLast = false)
+        assertEquals("old", target.readText())
+
+        receiveUploadChunk(staging.path, target.path, offset = 5, bytes = byteArrayOf(6), isLast = true)
+
+        assertContentEquals(byteArrayOf(1, 2, 3, 4, 5, 6), target.readBytes())
+        assertFalse(staging.exists())
+    }
+
+    @Test
+    fun `a chunk at the wrong offset discards the upload and keeps the target`() {
+        val target = File(directory, "settings.bin").apply { writeText("old") }
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1")
+        receiveUploadChunk(staging.path, target.path, offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
+
+        assertFailsWith<IllegalArgumentException> {
+            receiveUploadChunk(staging.path, target.path, offset = 7, bytes = byteArrayOf(4), isLast = true)
+        }
+
+        assertEquals("old", target.readText())
+        assertFalse(staging.exists())
+    }
+
+    @Test
+    fun `an upload into a missing directory fails without creating it`() {
+        val missing = File(directory, "missing")
+
+        assertFailsWith<IOException> {
+            receiveUploadChunk("${missing.path}/.a.jetwhale-upload-1", "${missing.path}/a", offset = 0, bytes = byteArrayOf(1), isLast = true)
+        }
+        assertFalse(missing.exists())
+    }
+
+    @Test
+    fun `an upload never replaces a directory`() {
+        File(directory, "cache").mkdir()
+
+        assertFailsWith<IOException> {
+            receiveUploadChunk("${directory.path}/.cache.jetwhale-upload-1", "${directory.path}/cache", offset = 0, bytes = byteArrayOf(1), isLast = true)
+        }
+        assertEquals(true, File(directory, "cache").isDirectory)
+    }
+
+    @Test
+    fun `an upload through a symbolic link that leads outside the root is refused`() {
+        val root = File(directory, "root").apply { mkdir() }
+        val outside = File(directory, "outside").apply { mkdir() }
+        Files.createSymbolicLink(File(root, "escape").toPath(), outside.toPath())
+
+        assertFailsWith<IllegalArgumentException> {
+            FileRoot(name = "Root", path = root.path).uploadPaths(listOf("escape", "planted.txt"), uploadId = "1")
+        }
     }
 }

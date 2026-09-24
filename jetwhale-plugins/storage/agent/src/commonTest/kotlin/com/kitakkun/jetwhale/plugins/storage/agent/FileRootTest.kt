@@ -31,4 +31,24 @@ class FileRootTest {
             assertFailsWith<IllegalArgumentException>(segment) { root.resolve(listOf("datastore", segment)) }
         }
     }
+
+    @Test
+    fun `an upload is staged beside the file it replaces`() {
+        val paths = root.uploadPaths(listOf("datastore", "settings.preferences_pb"), uploadId = "a1-b2")
+
+        assertEquals("/data/user/0/app/files/datastore/settings.preferences_pb", paths.target)
+        assertEquals("/data/user/0/app/files/datastore/.settings.preferences_pb.jetwhale-upload-a1-b2", paths.staging)
+    }
+
+    @Test
+    fun `an upload cannot replace the root itself`() {
+        assertFailsWith<IllegalArgumentException> { root.uploadPaths(emptyList(), uploadId = "a1") }
+    }
+
+    @Test
+    fun `an upload id that could name another path is refused`() {
+        listOf("", "../x", "a/b", "a.b").forEach { uploadId ->
+            assertFailsWith<IllegalArgumentException>(uploadId) { root.uploadPaths(listOf("notes.txt"), uploadId = uploadId) }
+        }
+    }
 }

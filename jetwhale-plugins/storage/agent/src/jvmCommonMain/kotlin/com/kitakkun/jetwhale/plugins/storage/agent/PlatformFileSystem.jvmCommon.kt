@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.storage.agent
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
 import java.io.File
 import java.io.FileNotFoundException
+import java.io.FileOutputStream
 import java.io.IOException
 import java.io.RandomAccessFile
 
@@ -45,6 +46,18 @@ internal actual fun readFileBytes(path: String, offset: Long, maxBytes: Int): By
 }
 
 internal actual fun fileSize(path: String): Long = File(path).length()
+
+internal actual fun writeFileBytes(path: String, bytes: ByteArray, append: Boolean) {
+    FileOutputStream(path, append).use { it.write(bytes) }
+}
+
+internal actual fun moveReplacing(source: String, target: String) {
+    val targetFile = File(target)
+    if (targetFile.isDirectory) throw IOException("'$target' is a directory, not a file to replace")
+    if (File(source).renameTo(targetFile)) return
+    // POSIX systems replace the target atomically above; Windows refuses to rename over a file.
+    if (!targetFile.delete() || !File(source).renameTo(targetFile)) throw IOException("'$target' could not be replaced")
+}
 
 internal actual fun deleteRecursively(path: String) {
     val file = File(path)
