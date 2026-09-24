@@ -130,6 +130,14 @@ class WorkManagerSourceTest {
     }
 
     @Test
+    fun `array values in output data are shown element by element`() {
+        val request = OneTimeWorkRequest.Builder(ArrayOutputWorker::class.java).build()
+        workManager.enqueue(request).result.get()
+
+        assertEquals(mapOf("counts" to "1, 2, 3"), items().single { it.id == request.id.toString() }.output)
+    }
+
+    @Test
     fun `an id that is not a work id is refused`() {
         assertFailsWith<IllegalArgumentException> { runBlocking { source.cancel(CancelTarget.ById("not-a-uuid")) } }
     }
@@ -176,4 +184,8 @@ class SucceedingWorker(context: Context, parameters: WorkerParameters) : Worker(
 
 class FailingWorker(context: Context, parameters: WorkerParameters) : Worker(context, parameters) {
     override fun doWork(): Result = Result.failure(Data.Builder().putString("reason", "demo failure").build())
+}
+
+class ArrayOutputWorker(context: Context, parameters: WorkerParameters) : Worker(context, parameters) {
+    override fun doWork(): Result = Result.success(Data.Builder().putIntArray("counts", intArrayOf(1, 2, 3)).build())
 }
