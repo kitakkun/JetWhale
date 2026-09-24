@@ -16,11 +16,11 @@ import kotlin.coroutines.cancellation.CancellationException
 private const val MAX_RECENT_VALUES = 20
 private const val MAX_VALUE_TEXT = 200
 
-/** The window the emission rate is measured over. */
-private const val RATE_WINDOW_MILLIS = 10_000L
-
-/** Upper bound on the timestamps kept for the rate, so a flow emitting very fast costs bounded memory. */
-private const val MAX_RATE_SAMPLES = 2_000
+/**
+ * The window the emission rate is measured over, in one-second buckets: memory stays bounded however
+ * fast a flow emits, and the rate is never capped.
+ */
+private const val RATE_WINDOW_SECONDS = 10
 
 internal fun <T> trackedFlow(upstream: Flow<T>, recorder: FlowRecorder): Flow<T> = flow {
     recorder.onCollectionStarted()
@@ -49,7 +49,7 @@ internal class FlowRecorder(val name: String) {
     private val failures = AtomicLong(0)
     private val emissions = AtomicLong(0)
     private val recentValues = AtomicReference(emptyList<FlowValue>())
-    private val emissionTimes = AtomicReference(emptyList<Long>())
+    private val rateBuckets = AtomicReference(emptyList<RateBucket>())
 
     fun onCollectionStarted() {
         activeCollectors.incrementAndFetch()
@@ -61,7 +61,12 @@ internal class FlowRecorder(val name: String) {
         emissions.incrementAndFetch()
         val value = FlowValue(atEpochMillis = now, text = text.take(MAX_VALUE_TEXT))
         recentValues.updateAndGet { (listOf(value) + it).take(MAX_RECENT_VALUES) }
-        emissionTimes.updateAndGet { times -> (times.filter { it > now - RATE_WINDOW_MILLIS } + now).takeLast(MAX_RATE_SAMPLES) }
+        val second = now / 1000
+        rateBuckets.updateAndGet { buckets ->
+            val last = buckets.lastOrNull()
+            val counted = if (last?.second == second) buckets.dropLast(1) + last.copy(count = last.count + 1) else buckets + RateBucket(second, 1)
+            counted.filter { it.second > second - RATE_WINDOW_SECONDS }
+        }
     }
 
     fun onCompleted() {
@@ -89,8 +94,10 @@ internal class FlowRecorder(val name: String) {
             cancellations = cancellations.load(),
             failures = failures.load(),
             emissions = emissions.load(),
-            emissionsPerSecond = emissionTimes.load().count { it > now - RATE_WINDOW_MILLIS } * 1000.0 / RATE_WINDOW_MILLIS,
+            emissionsPerSecond = rateBuckets.load().filter { it.second > now / 1000 - RATE_WINDOW_SECONDS }.sumOf(RateBucket::count).toDouble() / RATE_WINDOW_SECONDS,
             recentValues = recentValues.load(),
         )
     }
 }
+
+private data class RateBucket(val second: Long, val count: Long)

@@ -38,24 +38,31 @@ internal fun filterCoroutineTree(roots: List<CoroutineNode>, filter: CoroutineFi
     return roots.map { root -> root.copy(children = root.children.mapNotNull(::prune)) }
 }
 
-/** One visible line of the coroutine tree. */
+/**
+ * One visible line of the coroutine tree.
+ *
+ * @property rowId The ids from the root down to this node. A coroutine below two overlapping
+ *   registered scopes appears twice with the same id; the path tells the two rows apart.
+ */
 internal data class CoroutineRow(
     val node: CoroutineNode,
+    val rowId: String,
     val depth: Int,
     val expanded: Boolean,
 )
 
 /**
- * The rows the tree shows: every root, and below each node not in [collapsed], its children.
- * Nodes start expanded, so a newly appearing coroutine is visible without a click.
+ * The rows the tree shows: every root, and below each row whose id is not in [collapsed], its
+ * children. Rows start expanded, so a newly appearing coroutine is visible without a click.
  */
 internal fun flattenCoroutineTree(roots: List<CoroutineNode>, collapsed: Set<String>): List<CoroutineRow> = buildList {
-    fun add(node: CoroutineNode, depth: Int) {
-        val expanded = node.id !in collapsed
-        add(CoroutineRow(node = node, depth = depth, expanded = expanded))
-        if (expanded) node.children.forEach { add(it, depth + 1) }
+    fun add(node: CoroutineNode, parentRowId: String?, depth: Int) {
+        val rowId = if (parentRowId == null) node.id else "$parentRowId/${node.id}"
+        val expanded = rowId !in collapsed
+        add(CoroutineRow(node = node, rowId = rowId, depth = depth, expanded = expanded))
+        if (expanded) node.children.forEach { add(it, rowId, depth + 1) }
     }
-    roots.forEach { add(it, depth = 0) }
+    roots.forEach { add(it, parentRowId = null, depth = 0) }
 }
 
 /** "3.2 s", "4 min 10 s": how long a coroutine has been around, at the precision a person reads it. */

@@ -10,6 +10,7 @@ import com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStatsReport
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.TrackedFlowReport
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 internal enum class InspectorTab(val label: String) {
@@ -26,7 +27,8 @@ internal interface CoroutineInspectorActions {
     /** Reads what [tab] shows from the app again. */
     fun refresh(tab: InspectorTab)
 
-    fun toggleCollapsed(nodeId: String)
+    /** Collapses or expands the row with [rowId], a [CoroutineRow.rowId]. */
+    fun toggleCollapsed(rowId: String)
 
     fun clearLongRuns()
 }
@@ -58,7 +60,16 @@ internal class CoroutineInspectorState(
     var status: InspectorStatus? by mutableStateOf(null)
         private set
 
-    override fun refresh(tab: InspectorTab) = launchReporting {
+    private val refreshes = mutableMapOf<InspectorTab, Job>()
+
+    override fun refresh(tab: InspectorTab) {
+        // A read slower than the refresh timer is left to finish rather than joined by another;
+        // queued reads could only land out of order.
+        if (refreshes[tab]?.isActive == true) return
+        refreshes[tab] = launchReporting { read(tab) }
+    }
+
+    private suspend fun read(tab: InspectorTab) {
         when (tab) {
             InspectorTab.Coroutines -> tree = client.coroutineTree()
             InspectorTab.Dispatchers -> dispatchers = client.dispatcherStats()
@@ -69,23 +80,23 @@ internal class CoroutineInspectorState(
         if (status?.isError == true) status = null
     }
 
-    override fun toggleCollapsed(nodeId: String) {
-        collapsed = if (nodeId in collapsed) collapsed - nodeId else collapsed + nodeId
+    override fun toggleCollapsed(rowId: String) {
+        collapsed = if (rowId in collapsed) collapsed - rowId else collapsed + rowId
     }
 
-    override fun clearLongRuns() = launchReporting {
-        val cleared = client.clearLongRuns().cleared
-        dispatchers = client.dispatcherStats()
-        status = InspectorStatus(message = "Cleared $cleared long runs.", isError = false)
+    override fun clearLongRuns() {
+        launchReporting {
+            val cleared = client.clearLongRuns().cleared
+            dispatchers = client.dispatcherStats()
+            status = InspectorStatus(message = "Cleared $cleared long runs.", isError = false)
+        }
     }
 
-    private fun launchReporting(block: suspend () -> Unit) {
-        scope.launch {
-            try {
-                block()
-            } catch (e: JetWhaleMessagingException) {
-                status = InspectorStatus(message = "Failed to reach the app: ${e.message}", isError = true)
-            }
+    private fun launchReporting(block: suspend () -> Unit): Job = scope.launch {
+        try {
+            block()
+        } catch (e: JetWhaleMessagingException) {
+            status = InspectorStatus(message = "Failed to reach the app: ${e.message}", isError = true)
         }
     }
 }

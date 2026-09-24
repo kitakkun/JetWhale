@@ -86,6 +86,7 @@ The visible tab refreshes once a second while it is shown; **Pause** freezes it.
   the first time the inspector saw the coroutine.
 - **"Completing" reads as Active.** `Job`'s public API cannot tell a coroutine still running its
   body from one waiting for its children.
-- **A tracked dispatcher is a plain dispatcher.** `Dispatchers.Main.immediate`'s immediate
-  execution and a dispatcher's own timer for `delay` are not carried over.
+- **A tracked dispatcher dispatches every task**, so each one is timed: `Dispatchers.Main.immediate`
+  loses its immediate execution, and a dispatcher's own timer for `delay` is not carried over.
+  `Dispatchers.Unconfined` cannot be tracked, and each dispatcher needs its own name.
 - **A tracked `StateFlow` or `SharedFlow` is a plain `Flow`**, so track it where it is collected.
