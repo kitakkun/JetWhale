@@ -117,5 +117,14 @@ object OfficialPluginCatalog {
             agentRegistration = null,
             guidePath = "device-mirror",
         ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.coroutines",
+            displayName = "Coroutine Inspector",
+            description = "Watch the coroutines, dispatchers and flows of connected debug sessions.",
+            artifactId = "jetwhale-coroutine-inspector",
+            agentArtifactId = "jetwhale-coroutine-inspector-agent",
+            agentRegistration = null,
+            guidePath = "coroutine-inspector",
+        ),
     )
 }
