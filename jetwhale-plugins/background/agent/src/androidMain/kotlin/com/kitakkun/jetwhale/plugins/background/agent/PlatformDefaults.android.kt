@@ -85,8 +85,7 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
         return "Cancelled job $id."
     }
 
-    override suspend fun runNow(id: String): String =
-        throw UnsupportedOperationException("an app cannot force its own job to run; use: adb shell cmd jobscheduler run -f ${context.packageName} $id")
+    override suspend fun runNow(id: String): String = throw UnsupportedOperationException("an app cannot force its own job to run; use: adb shell cmd jobscheduler run -f ${context.packageName} $id")
 }
 
 private fun jobConstraints(job: JobInfo): List<String> = buildList {
@@ -145,8 +144,7 @@ private class AlarmClockSource(private val context: Context) : BackgroundWorkSou
         }
     }
 
-    override suspend fun cancel(target: CancelTarget): String =
-        throw UnsupportedOperationException("an alarm can only be cancelled with the PendingIntent that set it, which the app holds")
+    override suspend fun cancel(target: CancelTarget): String = throw UnsupportedOperationException("an alarm can only be cancelled with the PendingIntent that set it, which the app holds")
 
     override suspend fun runNow(id: String): String = throw UnsupportedOperationException("alarms cannot be triggered early from inside the app")
 }
@@ -192,8 +190,7 @@ private class RunningServicesSource(private val context: Context) : BackgroundWo
     // getRunningServices is deprecated for reading other apps' services, but it is still the way to
     // list the caller's own, which is all it returns since API 26.
     @Suppress("DEPRECATION")
-    private fun runningServices(): List<ActivityManager.RunningServiceInfo> =
-        activityManager?.getRunningServices(Int.MAX_VALUE).orEmpty().filter { it.uid == Process.myUid() }
+    private fun runningServices(): List<ActivityManager.RunningServiceInfo> = activityManager?.getRunningServices(Int.MAX_VALUE).orEmpty().filter { it.uid == Process.myUid() }
 
     override suspend fun cancel(target: CancelTarget): String {
         val id = (target as? CancelTarget.ById)?.id ?: throw IllegalArgumentException("services are stopped by their id")

@@ -18,8 +18,7 @@ import java.util.concurrent.TimeUnit
 
 private var demoWorkManager: WorkManager? = null
 
-actual fun demoBackgroundWorkSources(): List<BackgroundWorkSource> =
-    BackgroundWorkSource.platformDefaults() + listOfNotNull(demoWorkManager?.let(BackgroundWorkSource::workManager))
+actual fun demoBackgroundWorkSources(): List<BackgroundWorkSource> = BackgroundWorkSource.platformDefaults() + listOfNotNull(demoWorkManager?.let(BackgroundWorkSource::workManager))
 
 /**
  * Enqueues the work the Background Work plugin shows in the demo: a periodic sync, a one-time

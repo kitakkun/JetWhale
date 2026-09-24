@@ -1,8 +1,8 @@
 package com.kitakkun.jetwhale.demo.shared
 
 import androidx.navigation3.runtime.NavKey
-import com.kitakkun.jetwhale.plugins.example.agent.ExampleAgentPlugin
 import com.kitakkun.jetwhale.plugins.background.agent.JetWhaleBackgroundWorkAgentPlugin
+import com.kitakkun.jetwhale.plugins.example.agent.ExampleAgentPlugin
 import com.kitakkun.jetwhale.plugins.nav3.agent.JetWhaleNav3AgentPlugin
 import com.kitakkun.jetwhale.plugins.nav3.agent.Nav3KeyCodec
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin

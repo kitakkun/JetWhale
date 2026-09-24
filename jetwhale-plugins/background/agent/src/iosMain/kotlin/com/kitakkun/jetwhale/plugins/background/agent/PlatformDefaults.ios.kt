@@ -74,6 +74,5 @@ private object BackgroundTaskSource : BackgroundWorkSource {
         return "Cancelled the task request $identifier."
     }
 
-    override suspend fun runNow(id: String): String =
-        throw UnsupportedOperationException("iOS launches a task only from the debugger; pause in Xcode and run the lldb command shown for it")
+    override suspend fun runNow(id: String): String = throw UnsupportedOperationException("iOS launches a task only from the debugger; pause in Xcode and run the lldb command shown for it")
 }
