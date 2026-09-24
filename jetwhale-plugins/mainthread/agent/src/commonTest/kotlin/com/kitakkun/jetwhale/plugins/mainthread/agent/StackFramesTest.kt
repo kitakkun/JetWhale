@@ -47,6 +47,16 @@ class StackFramesTest {
     }
 
     @Test
+    fun `JetWhale's agent frames are skipped but an app in the same namespace is not`() {
+        val stack = listOf(
+            "com.kitakkun.jetwhale.plugins.mainthread.agent.StackSampler.run(StackSampler.kt:1)",
+            "com.kitakkun.jetwhale.demo.shared.Blockers.sleep(Blockers.kt:2)",
+        )
+
+        assertEquals("com.kitakkun.jetwhale.demo.shared.Blockers.sleep(Blockers.kt:2)", callSiteOf(stack))
+    }
+
+    @Test
     fun `a stack with only platform frames is named by its innermost frames`() {
         val stack = listOf("android.os.MessageQueue.nativePollOnce(Native Method)", "android.os.Looper.loop(Looper.java:3)")
 
