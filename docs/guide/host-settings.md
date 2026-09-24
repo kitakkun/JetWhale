@@ -180,8 +180,8 @@ Installed plugins live in `~/.jetwhale/plugins/`. There are three ways to instal
 - **Official Plugins** — one-click install from the official catalog, no coordinates needed. The
   catalog currently holds the [Network Inspector](/guide/network-inspector), the
   [Nav3 Navigator](/guide/nav3-navigator), the
-  [Compose Semantics Inspector](/guide/compose-semantics-inspector) and the
-  [Storage Inspector](/guide/storage-inspector). The artifact version matching
+  [Compose Semantics Inspector](/guide/compose-semantics-inspector), the
+  [Storage Inspector](/guide/storage-inspector) and [Deep Links](/guide/deep-links). The artifact version matching
   the running host is fetched from Maven Central, falling back to the matching snapshot build when
   the release is not published yet (snapshot hosts fetch their matching snapshot directly).
 - **Install from Maven** — enter the plugin's `group:artifact:version` and pick a repository

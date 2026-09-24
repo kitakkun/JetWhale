@@ -99,5 +99,11 @@ object OfficialPluginCatalog {
             agentRegistration = "JetWhaleStorageAgentPlugin.platformDefaults()",
             guidePath = "storage-inspector",
         ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.deeplinks",
+            displayName = "Deep Links",
+            description = "List and open the deep links of connected debug sessions.",
+            artifactId = "jetwhale-deep-links",
+        ),
     )
 }

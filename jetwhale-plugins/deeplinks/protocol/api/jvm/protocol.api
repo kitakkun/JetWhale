@@ -1,0 +1,247 @@
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeclaredDeepLink {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeclaredDeepLink$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ZZ)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Z
+	public final fun component6 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ZZ)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeclaredDeepLink;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeclaredDeepLink;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ZZILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeclaredDeepLink;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAutoVerify ()Z
+	public final fun getBrowsable ()Z
+	public final fun getHandler ()Ljava/lang/String;
+	public final fun getHosts ()Ljava/util/List;
+	public final fun getPaths ()Ljava/util/List;
+	public final fun getSchemes ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeclaredDeepLink$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeclaredDeepLink$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeclaredDeepLink;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeclaredDeepLink;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeclaredDeepLink$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkCatalog {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkCatalog$Companion;
+	public fun <init> (Ljava/util/List;Ljava/util/List;ZLjava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Z
+	public final fun component4 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;Ljava/util/List;ZLjava/util/List;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkCatalog;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkCatalog;Ljava/util/List;Ljava/util/List;ZLjava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkCatalog;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCanOpen ()Z
+	public final fun getDeclared ()Ljava/util/List;
+	public final fun getNotes ()Ljava/util/List;
+	public final fun getTemplates ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkCatalog$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkCatalog$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkCatalog;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkCatalog;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkCatalog$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkHost {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkHost$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkHost;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkHost;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkHost;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getHost ()Ljava/lang/String;
+	public final fun getPort ()Ljava/lang/String;
+	public final fun getVerification ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkHost$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkHost$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkHost;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkHost;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkHost$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkMessagesKt {
+	public static final field DEEP_LINKS_PLUGIN_ID Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkOpenResult {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkOpenResult$Companion;
+	public fun <init> (ZLjava/util/List;Ljava/lang/String;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (ZLjava/util/List;Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkOpenResult;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkOpenResult;ZLjava/util/List;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkOpenResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Ljava/lang/String;
+	public final fun getHandledBy ()Ljava/util/List;
+	public final fun getOpened ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkOpenResult$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkOpenResult$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkOpenResult;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkOpenResult;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkOpenResult$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkTemplate {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkTemplate$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkTemplate;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkTemplate;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkTemplate;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getTemplate ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkTemplate$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkTemplate$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkTemplate;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkTemplate;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/DeepLinkTemplate$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/GetDeepLinkCatalog : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/GetDeepLinkCatalog;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/OpenDeepLink : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/OpenDeepLink$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/OpenDeepLink;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/OpenDeepLink;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/OpenDeepLink;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getUrl ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/deeplinks/protocol/OpenDeepLink$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/OpenDeepLink$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/OpenDeepLink;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/OpenDeepLink;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/OpenDeepLink$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind : java/lang/Enum {
+	public static final field AdvancedPattern Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind;
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind$Companion;
+	public static final field Exact Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind;
+	public static final field Pattern Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind;
+	public static final field Prefix Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind;
+	public static final field Suffix Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind;
+	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatcher {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatcher$Companion;
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind;Ljava/lang/String;)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind;Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatcher;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatcher;Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatcher;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getKind ()Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatchKind;
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatcher$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatcher$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatcher;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatcher;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/deeplinks/protocol/PathMatcher$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
