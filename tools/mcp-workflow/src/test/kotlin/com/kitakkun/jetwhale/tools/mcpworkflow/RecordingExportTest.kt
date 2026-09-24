@@ -69,6 +69,19 @@ class RecordingExportTest {
     }
 
     @Test
+    fun `a small number is not taken for a value an earlier result returned`() {
+        val workflow = exportWorkflow(
+            listOf(
+                call(tool = "getBackStack", arguments = "{}", result = """{"size":1}""", readOnly = true),
+                call(tool = "popBackStack", arguments = """{"count":1}""", result = "{}", readOnly = false),
+            ),
+            options(dropReads = true, parameters = emptyMap()),
+        )
+
+        assertEquals(JsonPrimitive(1), workflow.steps.single().args["count"])
+    }
+
+    @Test
     fun `a read with an attached check is kept as a check`() {
         val checked = calls[1].copy(expectations = listOf(Expectation(path = "$.ready", equals = JsonPrimitive(true))))
 
