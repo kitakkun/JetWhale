@@ -90,7 +90,7 @@ internal class StorageBrowser(
         }
         val storeNames = loaded.keyValueStores.map(KeyValueStoreInfo::name)
         selectedStore = selectedStore?.takeIf(storeNames::contains) ?: storeNames.firstOrNull()
-        storeContent = selectedStore?.let { client.readKeyValueStore(it) }
+        selectedStore?.let { loadStore(it) }
     }
 
     override fun refresh() = launchReporting {
@@ -134,16 +134,22 @@ internal class StorageBrowser(
     override fun selectStore(storeName: String) {
         selectedStore = storeName
         storeContent = null
-        launchReporting { storeContent = client.readKeyValueStore(storeName) }
+        launchReporting { loadStore(storeName) }
     }
 
     override fun removeKey(storeName: String, key: String) = launchReporting {
         val error = client.removeKeyValue(storeName, key).error
-        storeContent = client.readKeyValueStore(storeName)
+        loadStore(storeName)
         status = when (error) {
             null -> StorageStatus(message = "Removed $key from $storeName.", isError = false)
             else -> StorageStatus(message = error, isError = true)
         }
+    }
+
+    private suspend fun loadStore(storeName: String) {
+        val content = client.readKeyValueStore(storeName)
+        // The user may have picked another store while this one was in flight.
+        if (selectedStore == storeName) storeContent = content
     }
 
     private suspend fun loadDirectory(location: FileLocation) {

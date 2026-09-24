@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
+import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -30,6 +32,24 @@ class StorageBrowserTest {
 
         assertEquals("first", browser.selectedStore)
         assertEquals(1, browser.storeContent?.entries?.size)
+    }
+
+    @Test
+    fun `a store read that finishes after another store was picked is dropped`() {
+        val firstStoreGate = CompletableDeferred<Unit>()
+        val slowFirstStore = object : StorageClient by client {
+            override suspend fun readKeyValueStore(storeName: String): KeyValueStoreContent {
+                if (storeName == "first") firstStoreGate.await()
+                return client.readKeyValueStore(storeName)
+            }
+        }
+        val browser = StorageBrowser(slowFirstStore, CoroutineScope(Dispatchers.Unconfined))
+
+        browser.selectStore("first")
+        browser.selectStore("second")
+        firstStoreGate.complete(Unit)
+
+        assertEquals(emptyList(), browser.storeContent?.entries)
     }
 
     @Test
