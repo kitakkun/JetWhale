@@ -40,15 +40,26 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
     )
 
     override fun observe(): Flow<List<BackgroundWorkItem>> = pollWork(POLL_INTERVAL_MILLIS) {
-        scheduler?.allPendingJobs.orEmpty().map(::toItem)
+        pendingJobs().map { (namespace, job) -> toItem(namespace, job) }
     }
 
-    private fun toItem(job: JobInfo): BackgroundWorkItem {
+    /**
+     * Every pending job with the namespace it was scheduled in. Since API 34 WorkManager schedules
+     * into a namespace of its own, which [JobScheduler.getAllPendingJobs] does not include.
+     */
+    private fun pendingJobs(): List<Pair<String?, JobInfo>> {
+        val scheduler = scheduler ?: return emptyList()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return scheduler.allPendingJobs.map { null to it }
+        return scheduler.pendingJobsInAllNamespaces.flatMap { (namespace, jobs) -> jobs.map { namespace to it } }
+    }
+
+    private fun toItem(namespace: String?, job: JobInfo): BackgroundWorkItem {
         val managedByWorkManager = job.service.className == WORK_MANAGER_JOB_SERVICE
         val workSpecId = job.extras.getString(WORK_MANAGER_JOB_EXTRA)
+        val namespaceOption = namespace?.let { "-n $it " }.orEmpty()
         return BackgroundWorkItem(
             source = info.name,
-            id = job.id.toString(),
+            id = namespace?.let { "$it$NAMESPACE_SEPARATOR${job.id}" } ?: job.id.toString(),
             name = job.service.className,
             state = WorkState.Scheduled,
             tags = emptyList(),
@@ -65,6 +76,7 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
                 put("Persisted across reboots", job.isPersisted.toString())
                 if (job.minLatencyMillis > 0) put("Minimum latency", "${job.minLatencyMillis} ms")
                 if (job.maxExecutionDelayMillis > 0) put("Deadline", "${job.maxExecutionDelayMillis} ms")
+                namespace?.let { put("Namespace", it) }
                 if (managedByWorkManager) put("Managed by", "WorkManager")
                 workSpecId?.let { put("WorkManager work id", it) }
             },
@@ -72,21 +84,26 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
             // scheduled; it has to be cancelled through WorkManager.
             canCancel = !managedByWorkManager,
             canRunNow = false,
-            runNowHint = "adb shell cmd jobscheduler run -f ${context.packageName} ${job.id}",
+            runNowHint = "adb shell cmd jobscheduler run -f $namespaceOption${context.packageName} ${job.id}",
         )
     }
 
     override suspend fun cancel(target: CancelTarget): String {
-        val id = (target as? CancelTarget.ById)?.id?.toIntOrNull()
-            ?: throw IllegalArgumentException("JobScheduler jobs are cancelled by their numeric id")
-        val job = scheduler?.getPendingJob(id) ?: throw IllegalArgumentException("no pending job has id $id")
-        require(job.service.className != WORK_MANAGER_JOB_SERVICE) { "job $id belongs to WorkManager; cancel the WorkManager work instead" }
-        scheduler.cancel(id)
-        return "Cancelled job $id."
+        val itemId = (target as? CancelTarget.ById)?.id ?: throw IllegalArgumentException("JobScheduler jobs are cancelled by their id")
+        val namespace = itemId.substringBeforeLast(NAMESPACE_SEPARATOR, missingDelimiterValue = "").ifEmpty { null }
+        val jobId = itemId.substringAfterLast(NAMESPACE_SEPARATOR).toIntOrNull() ?: throw IllegalArgumentException("'$itemId' is not a job id")
+        val scoped = scheduler?.let { if (namespace != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) it.forNamespace(namespace) else it }
+        val job = scoped?.getPendingJob(jobId) ?: throw IllegalArgumentException("no pending job has id $itemId")
+        require(job.service.className != WORK_MANAGER_JOB_SERVICE) { "job $itemId belongs to WorkManager; cancel the WorkManager work instead" }
+        scoped.cancel(jobId)
+        return "Cancelled job $itemId."
     }
 
-    override suspend fun runNow(id: String): String = throw UnsupportedOperationException("an app cannot force its own job to run; use: adb shell cmd jobscheduler run -f ${context.packageName} $id")
+    override suspend fun runNow(id: String): String = throw UnsupportedOperationException("an app cannot force its own job to run; use the adb command shown for it")
 }
+
+/** Joins a job's namespace and numeric id into one item id; namespaces cannot contain it. */
+private const val NAMESPACE_SEPARATOR = "/"
 
 private fun jobConstraints(job: JobInfo): List<String> = buildList {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && job.requiredNetwork != null) add("network required")
