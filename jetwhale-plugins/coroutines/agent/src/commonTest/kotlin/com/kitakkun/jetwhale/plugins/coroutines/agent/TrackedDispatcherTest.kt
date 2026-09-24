@@ -3,11 +3,14 @@ package com.kitakkun.jetwhale.plugins.coroutines.agent
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.LongRun
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Runnable
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 
@@ -44,6 +47,28 @@ class TrackedDispatcherTest {
         assertEquals(0, stats.running)
         assertEquals(2, stats.completedTasks)
         assertEquals(emptyList(), stats.longRuns)
+    }
+
+    @Test
+    fun `every task is dispatched so that none runs in place untimed`() {
+        val tracked = TrackedDispatcher(ManualDispatcher(), DispatcherRecorder(name = "Main", longRunThreshold = 1.hours))
+
+        assertTrue(tracked.isDispatchNeeded(EmptyCoroutineContext))
+    }
+
+    @Test
+    fun `a dispatcher name can be tracked only once`() {
+        val inspector = JetWhaleCoroutineInspectorAgentPlugin()
+        inspector.track(ManualDispatcher(), name = "IO", longRunThreshold = 1.hours)
+
+        assertFailsWith<IllegalArgumentException> { inspector.track(ManualDispatcher(), name = "IO", longRunThreshold = 1.hours) }
+    }
+
+    @Test
+    fun `the unconfined dispatcher cannot be tracked`() {
+        assertFailsWith<IllegalArgumentException> {
+            JetWhaleCoroutineInspectorAgentPlugin().track(Dispatchers.Unconfined, name = "Unconfined", longRunThreshold = 1.hours)
+        }
     }
 
     @Test

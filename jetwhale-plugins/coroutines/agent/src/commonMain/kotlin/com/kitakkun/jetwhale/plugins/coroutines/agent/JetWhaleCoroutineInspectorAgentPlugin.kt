@@ -15,6 +15,7 @@ import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.reply
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
@@ -79,13 +80,21 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
      * listed with the name of its coroutine. Use the returned dispatcher where the app used
      * [dispatcher].
      *
-     * The wrapper is a plain `CoroutineDispatcher`: `Dispatchers.Main.immediate` behavior and the
-     * dispatcher's own timer for `delay` are not carried over, so delays are timed by the
-     * coroutines library's default timer and then dispatched here.
+     * The wrapper is a plain `CoroutineDispatcher` that dispatches every task so that every task is
+     * timed: `Dispatchers.Main.immediate` loses its immediate execution, and the dispatcher's own
+     * timer for `delay` is not carried over, so delays are timed by the coroutines library's
+     * default timer and then dispatched here.
+     *
+     * @throws IllegalArgumentException when [name] is already tracked, or [dispatcher] is
+     *   `Dispatchers.Unconfined`, which runs tasks in place and has nothing to time.
      */
     fun track(dispatcher: CoroutineDispatcher, name: String, longRunThreshold: Duration): CoroutineDispatcher {
+        require(dispatcher !== Dispatchers.Unconfined) { "Dispatchers.Unconfined runs tasks in place; there is no dispatch to time" }
         val recorder = DispatcherRecorder(name = name, longRunThreshold = longRunThreshold)
-        dispatchers.updateAndGet { it + recorder }
+        dispatchers.updateAndGet { current ->
+            require(current.none { it.name == name }) { "a dispatcher is already tracked as '$name'" }
+            current + recorder
+        }
         return TrackedDispatcher(dispatcher, recorder)
     }
 

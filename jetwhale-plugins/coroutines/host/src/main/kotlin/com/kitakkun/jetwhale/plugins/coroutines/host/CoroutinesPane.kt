@@ -73,7 +73,7 @@ internal fun CoroutinesPane(
                 )
                 val rows = flattenCoroutineTree(filterCoroutineTree(tree.roots, filter), collapsed)
                 LazyColumn(Modifier.fillMaxSize()) {
-                    items(rows, key = { it.node.id }) { row -> CoroutineTreeRow(row = row, onToggle = { actions.toggleCollapsed(row.node.id) }) }
+                    items(rows, key = CoroutineRow::rowId) { row -> CoroutineTreeRow(row = row, onToggle = { actions.toggleCollapsed(row.rowId) }) }
                 }
             }
         }

@@ -21,7 +21,14 @@ internal class JobTreeWalker(private val nodeLimit: Int) {
 
     fun walk(roots: Map<String, Job>, capturedAtEpochMillis: Long): CoroutineTree {
         val walk = Walk()
-        val nodes = roots.map { (name, job) -> walk.node(job, rootName = name) }
+        val nodes = mutableListOf<CoroutineNode>()
+        for ((name, job) in roots) {
+            if (walk.count >= nodeLimit) {
+                walk.truncated = true
+                break
+            }
+            nodes += walk.node(job, rootName = name)
+        }
         seen = walk.sightings
         return CoroutineTree(roots = nodes, coroutineCount = walk.count, truncated = walk.truncated, capturedAtEpochMillis = capturedAtEpochMillis)
     }

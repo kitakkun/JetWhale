@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineTree
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStatsReport
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.TrackedFlowReport
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlin.test.Test
@@ -66,6 +67,24 @@ class CoroutineInspectorStateTest {
 
         assertNull(state.status)
         assertNotNull(state.tree)
+    }
+
+    @Test
+    fun `a refresh while the same tab is still being read starts no second read`() {
+        val gate = CompletableDeferred<Unit>()
+        val slow = object : CoroutineInspectorClient by client {
+            override suspend fun trackedFlows(): TrackedFlowReport {
+                gate.await()
+                return client.trackedFlows()
+            }
+        }
+        val slowState = CoroutineInspectorState(slow, CoroutineScope(Dispatchers.Unconfined))
+
+        slowState.refresh(InspectorTab.Flows)
+        slowState.refresh(InspectorTab.Flows)
+        gate.complete(Unit)
+
+        assertEquals(listOf("flows"), client.calls)
     }
 
     @Test
