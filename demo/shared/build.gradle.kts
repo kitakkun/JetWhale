@@ -56,12 +56,16 @@ kotlin {
             implementation(projects.jetwhalePlugins.semantics.agent)
             implementation(projects.jetwhalePlugins.storage.agent)
             implementation(projects.jetwhalePlugins.actions.agentCompose)
+            implementation(projects.jetwhalePlugins.background.agent)
             implementation(libs.ktorClientCio)
         }
 
         androidMain.dependencies {
             implementation(projects.jetwhalePlugins.network.agentOkhttp)
             implementation(libs.okhttp)
+            // Background Work demo: WorkManager is Android-only.
+            implementation(projects.jetwhalePlugins.background.agentWorkmanager)
+            implementation(libs.androidxWorkRuntime)
         }
     }
 
