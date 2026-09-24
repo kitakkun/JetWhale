@@ -7,11 +7,15 @@ import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
+import com.kitakkun.jetwhale.plugins.network.protocol.InjectedFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.plugins.network.protocol.NetworkCondition
+import com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockRules
+import com.kitakkun.jetwhale.plugins.network.protocol.SetNetworkConditions
 import com.kitakkun.jetwhale.protocol.messaging.DefaultJetWhaleMessagingFormat
 import com.kitakkun.jetwhale.protocol.messaging.JetWhalePluginPeer
 import com.kitakkun.jetwhale.protocol.messaging.request
@@ -31,6 +35,8 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okio.Buffer
 import java.io.IOException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -42,6 +48,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
@@ -290,6 +297,100 @@ class JetWhaleNetworkOkHttpInterceptorTest {
         assertEquals("y".repeat(SMALL_BODY_CAP), sent.request.body)
     }
 
+    @Test
+    fun `an offline condition fails at once with the exception OkHttp throws for no network`() {
+        applyNetworkConditions(listOf(conditionRule(NetworkCondition(offline = true))))
+        val request = Request.Builder().url(server.url("/items")).build()
+
+        assertFailsWith<UnknownHostException> { client().newCall(request).execute() }
+
+        assertEquals(0, server.requestCount)
+        val failed = events.filterIsInstance<RequestFailed>().single()
+        assertEquals(true, failed.failure.condition?.offline)
+    }
+
+    @Test
+    fun `an injected timeout surfaces as a socket timeout without reaching the server`() {
+        applyNetworkConditions(listOf(conditionRule(NetworkCondition(failureRate = 1.0, failure = InjectedFailure.TIMEOUT))))
+        val request = Request.Builder().url(server.url("/items")).build()
+
+        assertFailsWith<SocketTimeoutException> { client().newCall(request).execute() }
+
+        assertEquals(0, server.requestCount)
+        assertEquals(InjectedFailure.TIMEOUT, events.filterIsInstance<RequestFailed>().single().failure.condition?.injectedFailure)
+    }
+
+    @Test
+    fun `a download cap paces the body the caller reads`() {
+        server.enqueue(MockResponse().setBody(Buffer().write(ByteArray(PACED_BODY_BYTES))))
+        applyNetworkConditions(listOf(conditionRule(NetworkCondition(downloadBytesPerSecond = PACED_RATE))))
+        val request = Request.Builder().url(server.url("/large")).build()
+
+        val started = System.nanoTime()
+        val bytes = client().newCall(request).execute().use { it.body.bytes() }
+        val elapsedMs = (System.nanoTime() - started) / 1_000_000
+
+        assertEquals(PACED_BODY_BYTES, bytes.size)
+        assertTrue(elapsedMs >= PACED_MIN_MS, "read took ${elapsedMs}ms")
+        assertEquals(PACED_RATE, events.filterIsInstance<ResponseReceived>().single().response.condition?.downloadBytesPerSecond)
+    }
+
+    @Test
+    fun `an upload cap paces the request body`() {
+        server.enqueue(MockResponse().setResponseCode(200))
+        applyNetworkConditions(listOf(conditionRule(NetworkCondition(uploadBytesPerSecond = PACED_RATE))))
+        val body = ByteArray(PACED_BODY_BYTES).toRequestBody("application/octet-stream".toMediaType())
+        val request = Request.Builder().url(server.url("/upload")).post(body).build()
+
+        val started = System.nanoTime()
+        client().newCall(request).execute().close()
+        val elapsedMs = (System.nanoTime() - started) / 1_000_000
+
+        assertEquals(PACED_BODY_BYTES.toLong(), server.takeRequest().bodySize)
+        assertTrue(elapsedMs >= PACED_MIN_MS, "upload took ${elapsedMs}ms")
+    }
+
+    @Test
+    fun `a mocked response still travels through the simulated latency`() {
+        applyMockRules(listOf(MockRule(id = "m", matcher = MockMatcher(urlPattern = "/mocked"), response = MockResponseSpec(body = "canned"))))
+        applyNetworkConditions(listOf(conditionRule(NetworkCondition(latencyMs = LATENCY_MS))))
+        val request = Request.Builder().url(server.url("/mocked")).build()
+
+        val body = client().newCall(request).execute().use { it.body.string() }
+
+        val received = events.filterIsInstance<ResponseReceived>().single().response
+        assertEquals("canned", body)
+        assertEquals(true, received.fromMock)
+        assertEquals(LATENCY_MS, received.condition?.addedLatencyMs)
+        assertTrue(received.durationMs >= LATENCY_MS)
+    }
+
+    @OptIn(InternalJetWhaleApi::class)
+    @Test
+    fun `conditions are dropped when the host disconnects`() {
+        server.enqueue(MockResponse().setResponseCode(200))
+        applyNetworkConditions(listOf(conditionRule(NetworkCondition(offline = true))))
+
+        runBlocking { agent.dispatchDisconnected() }
+        client().newCall(Request.Builder().url(server.url("/items")).build()).execute().close()
+
+        assertNull(events.filterIsInstance<ResponseReceived>().single().response.condition)
+    }
+
+    private fun conditionRule(condition: NetworkCondition) = NetworkConditionRule(id = "rule", name = "Test network", enabled = true, matcher = null, condition = condition)
+
+    /** Delivers a SetNetworkConditions request to the agent's handlers through a real peer pair. */
+    @OptIn(InternalJetWhaleApi::class)
+    private fun applyNetworkConditions(rules: List<NetworkConditionRule>) = runBlocking {
+        val scope = CoroutineScope(SupervisorJob())
+        lateinit var agentPeer: JetWhalePluginPeer
+        val hostPeer = JetWhalePluginPeer(JetWhaleNetworkAgentPlugin.PLUGIN_ID, scope, sendFrame = { agentPeer.onFrame(it) })
+        agentPeer = JetWhalePluginPeer(JetWhaleNetworkAgentPlugin.PLUGIN_ID, scope, sendFrame = hostPeer::onFrame)
+        agentPeer.configure { agent.registerHandlers(this) }
+        hostPeer.messenger.request(SetNetworkConditions(rules))
+        scope.cancel()
+    }
+
     /** Delivers a SetMockRules request to the agent's handlers through a real peer pair. */
     @OptIn(InternalJetWhaleApi::class)
     private fun applyMockRules(rules: List<MockRule>) = runBlocking {
@@ -304,6 +405,13 @@ class JetWhaleNetworkOkHttpInterceptorTest {
 
     companion object {
         private const val SMALL_BODY_CAP = 100
+
+        /** Paced at [PACED_RATE], this body takes 600 ms; the assertions allow for timer slack. */
+        private const val PACED_BODY_BYTES = 60_000
+        private const val PACED_RATE = 100_000L
+        private const val PACED_MIN_MS = 500L
+
+        private const val LATENCY_MS = 300L
 
         /** Not valid UTF-8: decoding these as text would destroy them, which is the point of Base64. */
         private val IMAGE_BYTES = ByteArray(300) { (it * 7).toByte() }
