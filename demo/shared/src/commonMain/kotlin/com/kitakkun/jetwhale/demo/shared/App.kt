@@ -12,6 +12,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,6 +25,12 @@ import androidx.compose.ui.tooling.preview.Preview
 fun App() {
     var selectedTab by remember { mutableStateOf(0) }
     val nav3BackStack = rememberTrackedDemoNavBackStack()
+    val pendingDeepLink = DemoDeepLinks.pending
+    LaunchedEffect(pendingDeepLink) {
+        val key = DemoDeepLinks.consume()?.let(::navKeyForDeepLink) ?: return@LaunchedEffect
+        nav3BackStack.add(key)
+        selectedTab = NAV3_TAB
+    }
     MaterialTheme {
         Surface {
             Scaffold(
@@ -38,7 +45,7 @@ fun App() {
                     when (selectedTab) {
                         0 -> ExampleTestScreen()
                         1 -> NetworkTestScreen()
-                        2 -> Nav3TestScreen(nav3BackStack)
+                        NAV3_TAB -> Nav3TestScreen(nav3BackStack)
                         3 -> ComposeNodeTestScreen()
                         else -> PlatformExtraTabScreen()
                     }
@@ -86,3 +93,5 @@ private fun DemoTabRow(selectedTab: Int, onSelectTab: (Int) -> Unit, modifier: M
 private fun AppPreview() {
     App()
 }
+
+private const val NAV3_TAB = 2
