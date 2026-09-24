@@ -351,6 +351,38 @@ class JetWhaleNetworkOkHttpInterceptorTest {
     }
 
     @Test
+    fun `a WebSocket upgrade is not paced by a download cap`() {
+        // One byte a second would starve the frame stream if the upgrade's body were paced.
+        applyNetworkConditions(listOf(conditionRule(NetworkCondition(downloadBytesPerSecond = 1))))
+        server.enqueue(
+            MockResponse().withWebSocketUpgrade(
+                object : WebSocketListener() {
+                    override fun onOpen(webSocket: WebSocket, response: Response) {
+                        webSocket.send("hello under a cap")
+                    }
+                },
+            ),
+        )
+        val received = CountDownLatch(1)
+        var receivedText: String? = null
+        val webSocket = client().newWebSocket(
+            Request.Builder().url(server.url("/ws")).build(),
+            object : WebSocketListener() {
+                override fun onMessage(webSocket: WebSocket, text: String) {
+                    receivedText = text
+                    received.countDown()
+                }
+            },
+        )
+        try {
+            assertTrue(received.await(5, TimeUnit.SECONDS), "the client never received the WebSocket message")
+            assertEquals("hello under a cap", receivedText)
+        } finally {
+            webSocket.close(1000, null)
+        }
+    }
+
+    @Test
     fun `a mocked response still travels through the simulated latency`() {
         applyMockRules(listOf(MockRule(id = "m", matcher = MockMatcher(urlPattern = "/mocked"), response = MockResponseSpec(body = "canned"))))
         applyNetworkConditions(listOf(conditionRule(NetworkCondition(latencyMs = LATENCY_MS))))

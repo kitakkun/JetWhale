@@ -1,10 +1,12 @@
 package com.kitakkun.jetwhale.plugins.network.agent
 
 import com.kitakkun.jetwhale.plugins.network.protocol.InjectedFailure
+import com.kitakkun.jetwhale.plugins.network.protocol.MAX_SIMULATED_DELAY_MS
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.NetworkCondition
 import com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule
 import com.kitakkun.jetwhale.plugins.network.protocol.findMatchingCondition
+import com.kitakkun.jetwhale.plugins.network.protocol.problems
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -57,6 +59,22 @@ class NetworkConditionPlanTest {
         assertTrue(plan.offline)
         assertEquals(Duration.ZERO, plan.latency)
         assertNull(plan.failure)
+    }
+
+    @Test
+    fun `a jitter too large to add to is clamped rather than thrown on`() {
+        val plan = rule("huge", matcher = null, enabled = true, condition = NetworkCondition(latencyMs = Long.MAX_VALUE, jitterMs = Long.MAX_VALUE)).plan(Random(0))
+
+        assertTrue(plan.latency <= (2 * MAX_SIMULATED_DELAY_MS).milliseconds)
+    }
+
+    @Test
+    fun `out of range numbers are reported per field`() {
+        val problems = NetworkCondition(jitterMs = Long.MAX_VALUE, downloadBytesPerSecond = 0, failureRate = 1.5).problems()
+
+        assertEquals(3, problems.size)
+        assertTrue(problems.any { "jitterMs" in it })
+        assertTrue(NetworkCondition(latencyMs = 300, jitterMs = 100, downloadBytesPerSecond = 50_000).problems().isEmpty())
     }
 
     @Test
