@@ -99,5 +99,11 @@ object OfficialPluginCatalog {
             agentRegistration = "JetWhaleStorageAgentPlugin.platformDefaults()",
             guidePath = "storage-inspector",
         ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.actions",
+            displayName = "Debug Actions",
+            description = "Run the debug actions connected apps register, from the host or an AI agent.",
+            artifactId = "jetwhale-debug-actions",
+        ),
     )
 }

@@ -1,0 +1,55 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, macosArm64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.actions:agent>
+open annotation class com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsDsl : kotlin/Annotation { // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsDsl|null[0]
+    constructor <init>() // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsDsl.<init>|<init>(){}[0]
+}
+
+abstract fun interface com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsRegistration { // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsRegistration|null[0]
+    abstract fun unregister() // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsRegistration.unregister|unregister(){}[0]
+}
+
+final class <#A: kotlin/Any?> com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder { // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder|null[0]
+    final var description // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.description|{}description[0]
+        final fun <get-description>(): kotlin/String? // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.description.<get-description>|<get-description>(){}[0]
+        final fun <set-description>(kotlin/String?) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.description.<set-description>|<set-description>(kotlin.String?){}[0]
+    final var destructive // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.destructive|{}destructive[0]
+        final fun <get-destructive>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.destructive.<get-destructive>|<get-destructive>(){}[0]
+        final fun <set-destructive>(kotlin/Boolean) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.destructive.<set-destructive>|<set-destructive>(kotlin.Boolean){}[0]
+    final var runsOnMainThread // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.runsOnMainThread|{}runsOnMainThread[0]
+        final fun <get-runsOnMainThread>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.runsOnMainThread.<get-runsOnMainThread>|<get-runsOnMainThread>(){}[0]
+        final fun <set-runsOnMainThread>(kotlin/Boolean) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.runsOnMainThread.<set-runsOnMainThread>|<set-runsOnMainThread>(kotlin.Boolean){}[0]
+    final var timeout // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.timeout|{}timeout[0]
+        final fun <get-timeout>(): kotlin.time/Duration // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.timeout.<get-timeout>|<get-timeout>(){}[0]
+        final fun <set-timeout>(kotlin.time/Duration) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.timeout.<set-timeout>|<set-timeout>(kotlin.time.Duration){}[0]
+
+    final fun options(kotlin/String, kotlin.coroutines/SuspendFunction0<kotlin.collections/List<kotlin/String>>) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.options|options(kotlin.String;kotlin.coroutines.SuspendFunction0<kotlin.collections.List<kotlin.String>>){}[0]
+    final fun run(kotlin.coroutines/SuspendFunction1<#A, kotlin/Any?>) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder.run|run(kotlin.coroutines.SuspendFunction1<1:0,kotlin.Any?>){}[0]
+}
+
+final class com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder { // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder|null[0]
+    final fun <#A1: kotlin/Any?> action(kotlin/String, kotlinx.serialization/KSerializer<#A1>, kotlin/Function1<com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder<#A1>, kotlin/Unit>) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder.action|action(kotlin.String;kotlinx.serialization.KSerializer<0:0>;kotlin.Function1<com.kitakkun.jetwhale.plugins.actions.agent.DebugActionBuilder<0:0>,kotlin.Unit>){0§<kotlin.Any?>}[0]
+    final fun action(kotlin/String, kotlin/Function1<com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder<kotlin/Unit>, kotlin/Unit>) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder.action|action(kotlin.String;kotlin.Function1<com.kitakkun.jetwhale.plugins.actions.agent.DebugActionBuilder<kotlin.Unit>,kotlin.Unit>){}[0]
+    final fun group(kotlin/String, kotlin/Function1<com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder, kotlin/Unit>) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder.group|group(kotlin.String;kotlin.Function1<com.kitakkun.jetwhale.plugins.actions.agent.DebugActionsBuilder,kotlin.Unit>){}[0]
+    final inline fun <#A1: reified kotlin/Any?> action(kotlin/String, noinline kotlin/Function1<com.kitakkun.jetwhale.plugins.actions.agent/DebugActionBuilder<#A1>, kotlin/Unit>) // com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder.action|action(kotlin.String;kotlin.Function1<com.kitakkun.jetwhale.plugins.actions.agent.DebugActionBuilder<0:0>,kotlin.Unit>){0§<kotlin.Any?>}[0]
+}
+
+final class com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgentPlugin|null[0]
+    constructor <init>() // com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgentPlugin.<init>|<init>(){}[0]
+
+    final val pluginId // com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgentPlugin.pluginId|{}pluginId[0]
+        final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    final val pluginVersion // com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgentPlugin.pluginVersion|{}pluginVersion[0]
+        final fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+
+    final fun catalog(): com.kitakkun.jetwhale.plugins.actions.protocol/ActionCatalog // com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgentPlugin.catalog|catalog(){}[0]
+    final fun register(kotlin/Function1<com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder, kotlin/Unit>): com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsRegistration // com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgentPlugin.register|register(kotlin.Function1<com.kitakkun.jetwhale.plugins.actions.agent.DebugActionsBuilder,kotlin.Unit>){}[0]
+    final fun registerScoped(kotlin/Function1<com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder, kotlin/Unit>): com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsRegistration // com.kitakkun.jetwhale.plugins.actions.agent/JetWhaleDebugActionsAgentPlugin.registerScoped|registerScoped(kotlin.Function1<com.kitakkun.jetwhale.plugins.actions.agent.DebugActionsBuilder,kotlin.Unit>){}[0]
+}
+
+final fun (com.kitakkun.jetwhale.plugins.actions.agent/DebugActionsBuilder).com.kitakkun.jetwhale.plugins.actions.agent/platformBuiltInActions() // com.kitakkun.jetwhale.plugins.actions.agent/platformBuiltInActions|platformBuiltInActions@com.kitakkun.jetwhale.plugins.actions.agent.DebugActionsBuilder(){}[0]

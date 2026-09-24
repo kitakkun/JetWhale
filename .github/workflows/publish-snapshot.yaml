@@ -20,7 +20,7 @@ on:
         type: boolean
         default: true
       plugins:
-        description: "Official plugins: all, none, or a comma-separated subset of network, nav3, semantics, storage"
+        description: "Official plugins: all, none, or a comma-separated subset of network, nav3, semantics, storage, actions"
         type: string
         default: all
       gradle-plugin:
@@ -96,15 +96,15 @@ jobs:
           selectors=()
           if [ "$SDK" = "true" ]; then selectors+=(sdk); fi
           case "$PLUGINS" in
-            all) selectors+=(network nav3 semantics storage) ;;
+            all) selectors+=(network nav3 semantics storage actions) ;;
             none|"") ;;
             *)
               IFS=',' read -ra picked <<< "$PLUGINS"
               for plugin in "${picked[@]}"; do
                 plugin="$(echo "$plugin" | tr -d '[:space:]')"
                 case "$plugin" in
-                  network|nav3|semantics|storage) selectors+=("$plugin") ;;
-                  *) echo "unknown plugin '$plugin'; use network, nav3, semantics or storage" >&2; exit 1 ;;
+                  network|nav3|semantics|storage|actions) selectors+=("$plugin") ;;
+                  *) echo "unknown plugin '$plugin'; use network, nav3, semantics, storage or actions" >&2; exit 1 ;;
                 esac
               done
               ;;

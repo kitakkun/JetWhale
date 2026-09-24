@@ -82,6 +82,7 @@ export default defineConfig({
           { text: 'Nav3 Navigator', link: '/guide/nav3-navigator' },
           { text: 'Compose Semantics Inspector', link: '/guide/compose-semantics-inspector' },
           { text: 'Storage Inspector', link: '/guide/storage-inspector' },
+          { text: 'Debug Actions', link: '/guide/debug-actions' },
           { text: 'MCP Server', link: '/guide/mcp-server' },
           { text: 'Host Settings', link: '/guide/host-settings' },
           { text: 'ADB Auto Port Mapping', link: '/guide/adb-auto-port-mapping' },
