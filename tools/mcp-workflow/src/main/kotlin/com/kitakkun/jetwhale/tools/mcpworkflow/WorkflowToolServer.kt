@@ -59,7 +59,7 @@ internal fun toolNameFor(file: File, taken: MutableSet<String>): String {
 private fun describe(workflow: Workflow, file: File): String = buildString {
     append(workflow.description ?: workflow.name)
     append("\n\nRuns the workflow in ${file.name}: ")
-    append(workflow.steps.mapIndexed(::stepLabel).joinToString(" → "))
+    append(workflow.steps.map(::stepLabel).joinToString(" → "))
     append(". The result reports each step as passed, failed or skipped, and isError is set when any step failed.")
 }
 

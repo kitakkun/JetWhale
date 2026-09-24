@@ -12,7 +12,7 @@ internal fun consoleLine(step: StepOutcome): String {
     }
     val attempts = if (step.attempts > 1) " after ${step.attempts} attempts" else ""
     val detail = step.message?.let { "\n    $it" }.orEmpty()
-    return "$mark ${step.label} (${step.duration.inWholeMilliseconds} ms$attempts)$detail"
+    return "$mark ${step.index + 1}. ${step.label} (${step.duration.inWholeMilliseconds} ms$attempts)$detail"
 }
 
 internal fun consoleSummary(run: RunOutcome): String {

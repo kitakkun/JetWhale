@@ -103,7 +103,7 @@ class WorkflowRunner(
         if (last.failure == null) variables.putAll(last.saved)
         return StepOutcome(
             index = index,
-            label = stepLabel(index, step),
+            label = stepLabel(step),
             server = server,
             tool = step.call,
             status = if (last.failure == null) StepStatus.PASSED else StepStatus.FAILED,
@@ -225,7 +225,7 @@ class WorkflowRunner(
 
     private fun skipped(index: Int, step: Step) = StepOutcome(
         index = index,
-        label = stepLabel(index, step),
+        label = stepLabel(step),
         server = step.server ?: servers.singleOrNull().orEmpty(),
         tool = step.call,
         status = StepStatus.SKIPPED,
@@ -238,6 +238,6 @@ class WorkflowRunner(
     )
 }
 
-internal fun stepLabel(index: Int, step: Step): String = step.name ?: step.id ?: "${index + 1}. ${step.call}"
+internal fun stepLabel(step: Step): String = step.name ?: step.id ?: step.call
 
 private fun stepSlug(step: Step): String = (step.id ?: step.call.substringAfterLast('.')).replace(Regex("[^A-Za-z0-9_-]"), "_")
