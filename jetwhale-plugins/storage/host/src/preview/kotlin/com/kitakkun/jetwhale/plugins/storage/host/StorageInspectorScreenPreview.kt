@@ -95,6 +95,19 @@ private fun KeyValuePanePreview() {
 @Composable
 private fun KeyValueTablePreview() {
     JwTheme(darkTheme = false) {
-        KeyValueTable(entries = previewEntries, onRemove = null)
+        KeyValueTable(entries = previewEntries, selectedKey = "userName", onSelect = {})
+    }
+}
+
+@Preview
+@Composable
+private fun ConfirmDeleteDialogPreview() {
+    JwTheme(darkTheme = false) {
+        ConfirmDeleteDialog(
+            title = "Delete onboarded?",
+            message = "The entry is removed from settings. This cannot be undone.",
+            onConfirm = {},
+            onDismiss = {},
+        )
     }
 }

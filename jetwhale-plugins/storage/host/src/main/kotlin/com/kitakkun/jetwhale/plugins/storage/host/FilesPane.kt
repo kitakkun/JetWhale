@@ -25,9 +25,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import com.kitakkun.jetwhale.host.ui.JwButton
-import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwCodeBlock
-import com.kitakkun.jetwhale.host.ui.JwDialog
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwKeyValueRow
 import com.kitakkun.jetwhale.host.ui.JwSegmentedButtons
@@ -155,31 +153,19 @@ private fun EntryDetail(
         if (!row.isDirectory && loadedFile != null) FilePreview(loadedFile, Modifier.weight(1f))
     }
     if (confirmingDelete) {
-        JwDialog(
+        ConfirmDeleteDialog(
             title = "Delete ${row.location.name}?",
-            closeLabel = "Cancel",
-            onDismissRequest = { confirmingDelete = false },
-            confirmButton = {
-                JwButton(
-                    text = "Delete",
-                    style = JwButtonStyle.Primary,
-                    tone = JwTone.Error,
-                    onClick = {
-                        confirmingDelete = false
-                        onDelete()
-                    },
-                )
+            message = if (row.isDirectory) {
+                "The directory and everything in it is removed from the app's storage. This cannot be undone."
+            } else {
+                "The file is removed from the app's storage. This cannot be undone."
             },
-            dismissButton = { JwButton(text = "Cancel", onClick = { confirmingDelete = false }) },
-        ) {
-            JwText(
-                text = if (row.isDirectory) {
-                    "The directory and everything in it is removed from the app's storage. This cannot be undone."
-                } else {
-                    "The file is removed from the app's storage. This cannot be undone."
-                },
-            )
-        }
+            onConfirm = {
+                confirmingDelete = false
+                onDelete()
+            },
+            onDismiss = { confirmingDelete = false },
+        )
     }
 }
 
@@ -223,7 +209,7 @@ private fun PreferencesPreview(bytes: ByteArray) {
         }
     }
     decoded.fold(
-        onSuccess = { KeyValueTable(entries = it, onRemove = null) },
+        onSuccess = { KeyValueTable(entries = it, selectedKey = null, onSelect = null) },
         onFailure = { JwEmptyState(title = "Not a Preferences DataStore file", description = it.message) },
     )
 }

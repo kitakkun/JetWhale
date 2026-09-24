@@ -182,7 +182,7 @@ internal class StorageBrowser(
         val error = client.removeKeyValue(storeName, key).error
         loadStore(storeName)
         status = when (error) {
-            null -> StorageStatus(message = "Removed $key from $storeName.", isError = false)
+            null -> StorageStatus(message = "Deleted $key from $storeName.", isError = false)
             else -> StorageStatus(message = error, isError = true)
         }
     }
