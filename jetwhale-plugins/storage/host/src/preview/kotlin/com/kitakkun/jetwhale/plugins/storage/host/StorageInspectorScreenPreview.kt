@@ -3,6 +3,8 @@ package com.kitakkun.jetwhale.plugins.storage.host
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileRootInfo
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
@@ -66,6 +68,12 @@ private object NoActions : StorageInspectorActions {
 
     override fun measureDirectory(location: FileLocation) = Unit
 
+    override fun requestZipDownload(location: FileLocation, target: File) = Unit
+
+    override fun confirmZipDownload() = Unit
+
+    override fun cancelZipDownload() = Unit
+
     override fun computeSha256(location: FileLocation) = Unit
 
     override fun selectStore(storeName: String) = Unit
@@ -89,6 +97,7 @@ private fun StorageInspectorScreenPreview() {
             storeContent = KeyValueStoreContent(entries = previewEntries, error = null),
             status = StorageStatus(message = "Reloaded from the app.", isError = false),
             pendingUpload = null,
+            pendingZipDownload = null,
             actions = NoActions,
             onSelectTab = {},
         )
@@ -140,8 +149,36 @@ private fun ConfirmDialogPreview() {
             title = "Delete onboarded?",
             message = "The entry is removed from settings. This cannot be undone.",
             confirmLabel = "Delete",
+            confirmTone = JwTone.Error,
             onConfirm = {},
             onDismiss = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun StorageInspectorScreenLargeZipPreview() {
+    JwTheme(darkTheme = true) {
+        StorageInspectorScreen(
+            tab = StorageTab.Files,
+            locations = StorageLocations(fileRoots = previewRoots, keyValueStores = emptyList()),
+            treeRows = previewRows,
+            selectedRow = previewRows[0],
+            loadedFile = null,
+            directoryMeasurement = null,
+            fileSha256 = null,
+            selectedStore = null,
+            storeContent = null,
+            status = null,
+            pendingUpload = null,
+            pendingZipDownload = PendingZipDownload(
+                location = previewRows[0].location,
+                target = File("Files.zip"),
+                measurement = DirectoryMeasurement(totalSizeBytes = 420L * 1024 * 1024, fileCount = 18_204, directoryCount = 311, truncated = false, error = null),
+            ),
+            actions = NoActions,
+            onSelectTab = {},
         )
     }
 }
