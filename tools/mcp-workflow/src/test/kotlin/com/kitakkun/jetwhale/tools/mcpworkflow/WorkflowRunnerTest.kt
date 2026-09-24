@@ -147,6 +147,15 @@ class WorkflowRunnerTest {
     }
 
     @Test
+    fun `reconnect opens a new connection before the step`() = runTest {
+        val caller = FakeToolCaller { _, _, _ -> textResult("{}", isError = false) }
+
+        runner(caller, setOf("app")).run(workflow(Step(call = "enable"), Step(call = "useNewTool", reconnect = true)), inputs = emptyMap())
+
+        assertEquals(listOf("enable", RECONNECT, "useNewTool"), caller.calls.map { it.second })
+    }
+
+    @Test
     fun `a step goes to the server it names`() = runTest {
         val caller = FakeToolCaller { _, _, _ -> textResult("{}", isError = false) }
 

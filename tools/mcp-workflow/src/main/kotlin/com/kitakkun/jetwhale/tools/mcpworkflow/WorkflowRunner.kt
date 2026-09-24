@@ -98,6 +98,7 @@ class WorkflowRunner(
     private suspend fun runStep(index: Int, step: Step, variables: MutableMap<String, JsonElement>): StepOutcome {
         val started = timeSource.markNow()
         val server = step.server ?: servers.singleOrNull() ?: ""
+        if (step.reconnect && server.isNotEmpty()) caller.reconnect(server)
         val (last, attempts) = attemptUntilSettled(step, server, variables, started)
         if (last.failure == null) variables.putAll(last.saved)
         return StepOutcome(

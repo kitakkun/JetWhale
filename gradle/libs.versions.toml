@@ -33,6 +33,7 @@ ktor = "3.5.2"
 okhttp = "5.4.0"
 mcpKotlinSdk = "0.15.0"
 kaml = "0.104.0"
+slf4j = "2.0.17"
 
 logback = "1.6.1"
 kermit = "2.1.0"
@@ -132,6 +133,7 @@ okhttpMockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.r
 
 mcpKotlinSdk = { module = "io.modelcontextprotocol:kotlin-sdk", version.ref = "mcpKotlinSdk" }
 kaml = { module = "com.charleskorn.kaml:kaml", version.ref = "kaml" }
+slf4jNop = { module = "org.slf4j:slf4j-nop", version.ref = "slf4j" }
 
 # Conveyor update control API (in-app update install trigger)
 conveyorControl = { module = "dev.hydraulic.conveyor:conveyor-control", version.ref = "conveyorControl" }

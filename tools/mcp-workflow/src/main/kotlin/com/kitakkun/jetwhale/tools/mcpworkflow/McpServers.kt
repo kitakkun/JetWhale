@@ -25,6 +25,9 @@ interface ToolCaller {
 
     suspend fun callTool(server: String, tool: String, arguments: JsonObject): CallToolResult
 
+    /** Drops the connection to [server]; the next call opens a new one. */
+    suspend fun reconnect(server: String)
+
     suspend fun close()
 }
 
@@ -42,6 +45,10 @@ class McpServers(private val configs: Map<String, ServerConfig>) : ToolCaller {
     override suspend fun listTools(server: String): List<Tool> = client(server).listTools().tools
 
     override suspend fun callTool(server: String, tool: String, arguments: JsonObject): CallToolResult = client(server).callTool(CallToolRequest(CallToolRequestParams(name = tool, arguments = arguments)))
+
+    override suspend fun reconnect(server: String) {
+        lock.withLock { clients.remove(server) }?.let { runCatching { it.close() } }
+    }
 
     override suspend fun close() {
         lock.withLock {

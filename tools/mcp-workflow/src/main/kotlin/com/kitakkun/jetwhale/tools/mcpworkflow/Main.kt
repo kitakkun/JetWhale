@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.tools.mcpworkflow
 
+import io.modelcontextprotocol.kotlin.sdk.types.Tool
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -22,6 +23,8 @@ private const val USAGE = """mcp-workflow — run, record and serve workflows of
       --out FILE           --name NAME   --port PORT (SSE instead of stdio)
   serve <workflow|dir...>  Serve each workflow as one MCP tool
       --mcp-config FILE    --report-dir DIR   --port PORT (SSE instead of stdio)
+  tools                    List the tools of the configured servers with their arguments
+      --mcp-config FILE    --server NAME (repeatable; default: every server)
   demo-server              A small in-memory accounts server over stdio, for trying things out
 """
 
@@ -40,6 +43,7 @@ fun main(arguments: Array<String>) {
             "record" -> record(options)
 
             "serve" -> serve(options)
+            "tools" -> listToolsCommand(options)
 
             "demo-server" -> runBlocking { serveStdio(demoServer()) }.let { 0 }
 
@@ -146,6 +150,29 @@ private fun serve(options: CommandLine): Int {
         serveSse(port, wait = true) { toolServer.createServer() }
     } else {
         runBlocking { serveStdio(toolServer.createServer()) }
+    }
+    return 0
+}
+
+private fun listToolsCommand(options: CommandLine): Int {
+    val configs = options.single("mcp-config")?.let { readMcpConfig(File(it)) }
+        ?: throw WorkflowFormatException("tools needs --mcp-config")
+    val selected = options.all("server").ifEmpty { configs.keys.toList() }
+    val caller = McpServers(configs.filterKeys(selected::contains))
+    runBlocking {
+        try {
+            selected.forEach { server ->
+                println("# $server")
+                caller.listTools(server).sortedBy(Tool::name).forEach { tool ->
+                    val required = tool.inputSchema.required.orEmpty()
+                    val arguments = tool.inputSchema.properties?.keys.orEmpty().joinToString { if (it in required) it else "$it?" }
+                    println("${tool.name}($arguments)")
+                    tool.description?.let { println("    ${it.lineSequence().first()}") }
+                }
+            }
+        } finally {
+            caller.close()
+        }
     }
     return 0
 }

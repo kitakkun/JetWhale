@@ -18,7 +18,14 @@ class FakeToolCaller(private val handler: suspend (server: String, tool: String,
         return handler(server, tool, arguments)
     }
 
+    override suspend fun reconnect(server: String) {
+        recorded += Triple(server, RECONNECT, JsonObject(emptyMap()))
+    }
+
     override suspend fun close() = Unit
 }
 
 fun textResult(text: String, isError: Boolean): CallToolResult = CallToolResult(content = listOf(TextContent(text)), isError = isError)
+
+/** Stands for a reconnection in [FakeToolCaller.calls]. */
+const val RECONNECT = "<reconnect>"
