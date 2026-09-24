@@ -5,9 +5,9 @@ import com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy
 import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
+import com.kitakkun.jetwhale.plugins.network.protocol.InjectedFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
-import com.kitakkun.jetwhale.plugins.network.protocol.InjectedFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
 import com.kitakkun.jetwhale.plugins.network.protocol.NetworkCondition
 import com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule

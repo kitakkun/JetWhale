@@ -228,7 +228,7 @@ private fun NetworkCondition.summary(): String = if (offline) {
     "offline"
 } else {
     listOfNotNull(
-        "+${latencyMs}ms".takeIf { latencyMs > 0 } ?.let { if (jitterMs > 0) "$it ±${jitterMs}ms" else it },
+        "+${latencyMs}ms".takeIf { latencyMs > 0 }?.let { if (jitterMs > 0) "$it ±${jitterMs}ms" else it },
         downloadBytesPerSecond?.let { "↓ ${formatRate(it)}" },
         uploadBytesPerSecond?.let { "↑ ${formatRate(it)}" },
         "${(failureRate * PERCENT).toInt()}% $failure".takeIf { failureRate > 0.0 },
