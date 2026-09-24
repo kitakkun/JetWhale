@@ -60,6 +60,35 @@ class PlatformFileSystemAppleTest {
     }
 
     @Test
+    fun `a listing marks a symbolic link and names its target`() {
+        writeText("$directory/target.txt", "hello")
+        fileManager.createSymbolicLinkAtPath("$directory/link", withDestinationPath = "$directory/target.txt", error = null)
+
+        val entries = listDirectoryEntries(directory).associateBy(FileEntry::name)
+
+        assertEquals(true, entries.getValue("link").isSymbolicLink)
+        assertEquals("$directory/target.txt", entries.getValue("link").linkTarget)
+        assertEquals(false, entries.getValue("target.txt").isSymbolicLink)
+        assertEquals(true, entries.getValue("target.txt").writable)
+    }
+
+    @Test
+    fun `measuring counts everything below and does not follow links`() {
+        fileManager.createDirectoryAtPath("$directory/outside", withIntermediateDirectories = true, attributes = null, error = null)
+        writeText("$directory/outside/big.txt", "x".repeat(1000))
+        fileManager.createDirectoryAtPath("$directory/cache/images", withIntermediateDirectories = true, attributes = null, error = null)
+        writeText("$directory/cache/a.txt", "hello")
+        writeText("$directory/cache/images/b.txt", "0123456789")
+        fileManager.createSymbolicLinkAtPath("$directory/cache/link", withDestinationPath = "$directory/outside", error = null)
+
+        val measurement = measureDirectoryTree("$directory/cache", entryLimit = 100)
+
+        assertEquals(15, measurement.totalSizeBytes)
+        assertEquals(3, measurement.fileCount)
+        assertEquals(1, measurement.directoryCount)
+    }
+
+    @Test
     fun `listing a missing directory is an error`() {
         assertFailsWith<IllegalStateException> { listDirectoryEntries("$directory/missing") }
     }

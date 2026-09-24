@@ -68,6 +68,44 @@ final class com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing { //
     }
 }
 
+final class com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement { // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement|null[0]
+    constructor <init>(kotlin/Long, kotlin/Int, kotlin/Int, kotlin/Boolean, kotlin/String?) // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.<init>|<init>(kotlin.Long;kotlin.Int;kotlin.Int;kotlin.Boolean;kotlin.String?){}[0]
+
+    final val directoryCount // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.directoryCount|{}directoryCount[0]
+        final fun <get-directoryCount>(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.directoryCount.<get-directoryCount>|<get-directoryCount>(){}[0]
+    final val error // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.error|{}error[0]
+        final fun <get-error>(): kotlin/String? // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.error.<get-error>|<get-error>(){}[0]
+    final val fileCount // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.fileCount|{}fileCount[0]
+        final fun <get-fileCount>(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.fileCount.<get-fileCount>|<get-fileCount>(){}[0]
+    final val totalSizeBytes // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.totalSizeBytes|{}totalSizeBytes[0]
+        final fun <get-totalSizeBytes>(): kotlin/Long // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.totalSizeBytes.<get-totalSizeBytes>|<get-totalSizeBytes>(){}[0]
+    final val truncated // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.truncated|{}truncated[0]
+        final fun <get-truncated>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.truncated.<get-truncated>|<get-truncated>(){}[0]
+
+    final fun component1(): kotlin/Long // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.component1|component1(){}[0]
+    final fun component2(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.component2|component2(){}[0]
+    final fun component3(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.component3|component3(){}[0]
+    final fun component4(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.component4|component4(){}[0]
+    final fun component5(): kotlin/String? // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.component5|component5(){}[0]
+    final fun copy(kotlin/Long = ..., kotlin/Int = ..., kotlin/Int = ..., kotlin/Boolean = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.copy|copy(kotlin.Long;kotlin.Int;kotlin.Int;kotlin.Boolean;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement> { // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement) // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement> // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement.Companion.serializer|serializer(){}[0]
+    }
+}
+
 final class com.kitakkun.jetwhale.plugins.storage.protocol/FileContent { // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent|null[0]
     constructor <init>(kotlin/String, kotlin/Long, kotlin/String?) // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.<init>|<init>(kotlin.String;kotlin.Long;kotlin.String?){}[0]
 
@@ -101,22 +139,37 @@ final class com.kitakkun.jetwhale.plugins.storage.protocol/FileContent { // com.
 }
 
 final class com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry { // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry|null[0]
-    constructor <init>(kotlin/String, kotlin/Boolean, kotlin/Long, kotlin/Long?) // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.<init>|<init>(kotlin.String;kotlin.Boolean;kotlin.Long;kotlin.Long?){}[0]
+    constructor <init>(kotlin/String, kotlin/Boolean, kotlin/Long, kotlin/Long?, kotlin/Boolean, kotlin/String?, kotlin/Long?, kotlin/Boolean, kotlin/Boolean) // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.<init>|<init>(kotlin.String;kotlin.Boolean;kotlin.Long;kotlin.Long?;kotlin.Boolean;kotlin.String?;kotlin.Long?;kotlin.Boolean;kotlin.Boolean){}[0]
 
+    final val createdEpochMillis // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.createdEpochMillis|{}createdEpochMillis[0]
+        final fun <get-createdEpochMillis>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.createdEpochMillis.<get-createdEpochMillis>|<get-createdEpochMillis>(){}[0]
     final val isDirectory // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.isDirectory|{}isDirectory[0]
         final fun <get-isDirectory>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.isDirectory.<get-isDirectory>|<get-isDirectory>(){}[0]
+    final val isSymbolicLink // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.isSymbolicLink|{}isSymbolicLink[0]
+        final fun <get-isSymbolicLink>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.isSymbolicLink.<get-isSymbolicLink>|<get-isSymbolicLink>(){}[0]
     final val lastModifiedEpochMillis // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.lastModifiedEpochMillis|{}lastModifiedEpochMillis[0]
         final fun <get-lastModifiedEpochMillis>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.lastModifiedEpochMillis.<get-lastModifiedEpochMillis>|<get-lastModifiedEpochMillis>(){}[0]
+    final val linkTarget // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.linkTarget|{}linkTarget[0]
+        final fun <get-linkTarget>(): kotlin/String? // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.linkTarget.<get-linkTarget>|<get-linkTarget>(){}[0]
     final val name // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.name|{}name[0]
         final fun <get-name>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.name.<get-name>|<get-name>(){}[0]
+    final val readable // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.readable|{}readable[0]
+        final fun <get-readable>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.readable.<get-readable>|<get-readable>(){}[0]
     final val sizeBytes // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.sizeBytes|{}sizeBytes[0]
         final fun <get-sizeBytes>(): kotlin/Long // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.sizeBytes.<get-sizeBytes>|<get-sizeBytes>(){}[0]
+    final val writable // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.writable|{}writable[0]
+        final fun <get-writable>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.writable.<get-writable>|<get-writable>(){}[0]
 
     final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.component1|component1(){}[0]
     final fun component2(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.component2|component2(){}[0]
     final fun component3(): kotlin/Long // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.component3|component3(){}[0]
     final fun component4(): kotlin/Long? // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.component4|component4(){}[0]
-    final fun copy(kotlin/String = ..., kotlin/Boolean = ..., kotlin/Long = ..., kotlin/Long? = ...): com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.copy|copy(kotlin.String;kotlin.Boolean;kotlin.Long;kotlin.Long?){}[0]
+    final fun component5(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.component5|component5(){}[0]
+    final fun component6(): kotlin/String? // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.component6|component6(){}[0]
+    final fun component7(): kotlin/Long? // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.component7|component7(){}[0]
+    final fun component8(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.component8|component8(){}[0]
+    final fun component9(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.component9|component9(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Boolean = ..., kotlin/Long = ..., kotlin/Long? = ..., kotlin/Boolean = ..., kotlin/String? = ..., kotlin/Long? = ..., kotlin/Boolean = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.copy|copy(kotlin.String;kotlin.Boolean;kotlin.Long;kotlin.Long?;kotlin.Boolean;kotlin.String?;kotlin.Long?;kotlin.Boolean;kotlin.Boolean){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.toString|toString(){}[0]
@@ -281,6 +334,37 @@ final class com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory : com.k
         final val $childSerializers // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.Companion.$childSerializers|{}$childSerializers[0]
 
         final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory> // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryMeasurement> { // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory|null[0]
+    constructor <init>(kotlin/String, kotlin.collections/List<kotlin/String>) // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.<init>|<init>(kotlin.String;kotlin.collections.List<kotlin.String>){}[0]
+
+    final val path // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.path|{}path[0]
+        final fun <get-path>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.path.<get-path>|<get-path>(){}[0]
+    final val rootName // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.rootName|{}rootName[0]
+        final fun <get-rootName>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.rootName.<get-rootName>|<get-rootName>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., kotlin.collections/List<kotlin/String> = ...): com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.copy|copy(kotlin.String;kotlin.collections.List<kotlin.String>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory> { // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory) // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.MeasureDirectory){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory> // com.kitakkun.jetwhale.plugins.storage.protocol/MeasureDirectory.Companion.serializer|serializer(){}[0]
     }
 }
 

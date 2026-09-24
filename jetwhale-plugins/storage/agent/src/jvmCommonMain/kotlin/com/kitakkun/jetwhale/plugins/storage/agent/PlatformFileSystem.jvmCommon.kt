@@ -13,14 +13,24 @@ internal actual fun listDirectoryEntries(path: String): List<FileEntry> {
         if (directory.isDirectory) "'$path' cannot be read" else "'$path' is not a directory",
     )
     return children.map { child ->
+        val isLink = child.isSymbolicLink()
         FileEntry(
             name = child.name,
             isDirectory = child.isDirectory,
             sizeBytes = if (child.isDirectory) 0 else child.length(),
             lastModifiedEpochMillis = child.lastModified().takeIf { it > 0 },
+            isSymbolicLink = isLink,
+            // The resolved target rather than the link's own text, which java.io cannot read.
+            linkTarget = if (isLink) child.canonicalPath else null,
+            createdEpochMillis = createdEpochMillis(child),
+            readable = child.canRead(),
+            writable = child.canWrite(),
         )
     }
 }
+
+/** When [file] was created, or null where the platform cannot say. */
+internal expect fun createdEpochMillis(file: File): Long?
 
 internal actual fun readFileBytes(path: String, offset: Long, maxBytes: Int): ByteArray {
     val file = File(path)

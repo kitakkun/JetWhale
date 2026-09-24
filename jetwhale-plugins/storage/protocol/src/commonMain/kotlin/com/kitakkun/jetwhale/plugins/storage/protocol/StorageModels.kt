@@ -20,8 +20,14 @@ data class FileRootInfo(
 /**
  * One file or directory of a [DirectoryListing].
  *
+ * @property isDirectory Whether the entry is a directory; for a symbolic link, whether its target is
+ *   one, where the platform follows links to say.
  * @property sizeBytes The file's size; 0 for a directory.
  * @property lastModifiedEpochMillis When the entry last changed, or null when the platform does not say.
+ * @property linkTarget Where a symbolic link points, or null for anything else.
+ * @property createdEpochMillis When the entry was created, or null when the platform does not say.
+ * @property readable Whether the app can read the entry.
+ * @property writable Whether the app can change or delete the entry.
  */
 @Serializable
 data class FileEntry(
@@ -29,6 +35,11 @@ data class FileEntry(
     val isDirectory: Boolean,
     val sizeBytes: Long,
     val lastModifiedEpochMillis: Long?,
+    val isSymbolicLink: Boolean,
+    val linkTarget: String?,
+    val createdEpochMillis: Long?,
+    val readable: Boolean,
+    val writable: Boolean,
 )
 
 /** A key-value store the app lets the host read: a SharedPreferences file, `NSUserDefaults`, `localStorage`. */
