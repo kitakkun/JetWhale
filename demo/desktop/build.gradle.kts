@@ -22,6 +22,8 @@ dependencies {
     implementation(projects.jetwhalePlugins.semantics.agent)
     // Lets the Coroutine Inspector's Dump tab show suspension stacks; only the JVM can install the probes.
     implementation(libs.kotlinxCoroutinesDebug)
+    // Dispatchers.Main on the desktop, which the Coroutines tab's main-thread demo runs on.
+    implementation(libs.kotlinxCoroutinesSwing)
 
     // Self-contained local API the demo client calls, so the demo never depends on a public endpoint.
     implementation(libs.ktorServerNetty)
