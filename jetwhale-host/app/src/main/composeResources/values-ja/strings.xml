@@ -7,6 +7,8 @@
     <string name="unclean_exit_banner_message_with_plugin">前回 JetWhale が予期せず終了しました（%1$s が原因の可能性があります）</string>
     <string name="unclean_exit_banner_open_crash_log">crash log を開く</string>
     <string name="unclean_exit_banner_open_logs">ログフォルダを開く</string>
+    <string name="unclean_exit_banner_copy_crash_log_path">crash log のパスをコピー</string>
+    <string name="unclean_exit_banner_copy_logs_path">ログフォルダのパスをコピー</string>
     <string name="unclean_exit_banner_disable_plugin">%1$s を無効化</string>
     <string name="safe_mode_banner_requested">Safe mode: プラグインを読み込んでいません (--safe-mode)</string>
     <string name="safe_mode_banner_startup_crashes">Safe mode: 起動中に 2 回続けて終了したため、プラグインを読み込んでいません</string>

@@ -17,6 +17,8 @@ import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.unclean_exit_banner_copy_crash_log_path
+import com.kitakkun.jetwhale.host.unclean_exit_banner_copy_logs_path
 import com.kitakkun.jetwhale.host.unclean_exit_banner_disable_plugin
 import com.kitakkun.jetwhale.host.unclean_exit_banner_message
 import com.kitakkun.jetwhale.host.unclean_exit_banner_message_with_plugin
@@ -27,12 +29,15 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * Shown once after a run that ended without shutting down: a native crash, a kill, a power loss.
  * Names the plugin whose code was on the crashing thread when the JVM left a crash log that says so.
+ *
+ * @param canOpenFiles Whether the platform can open a file; without it the actions copy the paths.
  */
 @Composable
 fun UncleanExitBanner(
     report: UncleanExitReport,
-    onClickOpenCrashLog: (path: String) -> Unit,
-    onClickOpenLogs: (directory: String) -> Unit,
+    canOpenFiles: Boolean,
+    onClickCrashLog: (path: String) -> Unit,
+    onClickLogs: (directory: String) -> Unit,
     onClickDisablePlugin: (pluginId: String) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -49,14 +54,14 @@ fun UncleanExitBanner(
         actions = {
             report.crashLog?.let { crashLog ->
                 JwButton(
-                    text = stringResource(Res.string.unclean_exit_banner_open_crash_log),
-                    onClick = { onClickOpenCrashLog(crashLog.path) },
+                    text = stringResource(if (canOpenFiles) Res.string.unclean_exit_banner_open_crash_log else Res.string.unclean_exit_banner_copy_crash_log_path),
+                    onClick = { onClickCrashLog(crashLog.path) },
                     style = JwButtonStyle.Text,
                 )
             }
             JwButton(
-                text = stringResource(Res.string.unclean_exit_banner_open_logs),
-                onClick = { onClickOpenLogs(report.logsDirectory) },
+                text = stringResource(if (canOpenFiles) Res.string.unclean_exit_banner_open_logs else Res.string.unclean_exit_banner_copy_logs_path),
+                onClick = { onClickLogs(report.logsDirectory) },
                 style = JwButtonStyle.Text,
             )
             suspect?.let {
@@ -117,8 +122,9 @@ private fun UncleanExitBannerPreview() {
             suspectedPlugin = SuspectedPlugin(pluginId = "com.example.mirror", pluginName = "Device Mirror"),
             logsDirectory = "/Users/me/.jetwhale/logs",
         ),
-        onClickOpenCrashLog = {},
-        onClickOpenLogs = {},
+        canOpenFiles = true,
+        onClickCrashLog = {},
+        onClickLogs = {},
         onClickDisablePlugin = {},
         onDismiss = {},
     )

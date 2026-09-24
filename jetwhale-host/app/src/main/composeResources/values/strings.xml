@@ -7,6 +7,8 @@
     <string name="unclean_exit_banner_message_with_plugin">JetWhale quit unexpectedly last time, likely in %1$s</string>
     <string name="unclean_exit_banner_open_crash_log">Open crash log</string>
     <string name="unclean_exit_banner_open_logs">Open logs folder</string>
+    <string name="unclean_exit_banner_copy_crash_log_path">Copy crash log path</string>
+    <string name="unclean_exit_banner_copy_logs_path">Copy logs folder path</string>
     <string name="unclean_exit_banner_disable_plugin">Disable %1$s</string>
     <string name="safe_mode_banner_requested">Safe mode: plugins are not loaded (--safe-mode)</string>
     <string name="safe_mode_banner_startup_crashes">Safe mode: JetWhale quit twice while starting, so plugins are not loaded</string>

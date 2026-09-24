@@ -68,8 +68,8 @@ class AppDataDirectoryProvider(
      */
     fun getTrustRegistryFile(): File = File(appDataDir, "trusted-plugins.json")
 
-    /** The marker a running host keeps, whose presence at the next start means this run did not end cleanly. */
-    fun getRunMarkerFile(): File = File(appDataDir, "run-marker.properties")
+    /** Where each running host keeps its marker; one left behind by a dead process means that run did not end cleanly. */
+    fun getRunMarkerDirectory(): File = File(appDataDir, "run-markers")
 
     /**
      * Where the host's own logs go, and where the launch tasks point the JVM's fatal error log

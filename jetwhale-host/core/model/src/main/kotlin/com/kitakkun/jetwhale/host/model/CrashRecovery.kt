@@ -48,8 +48,11 @@ interface CrashRecoveryService {
     /** Consecutive runs that died during startup, this one excluded. */
     val consecutiveStartupCrashes: Int
 
-    /** Checks for the previous run's marker and leaves one for this run; call once, first thing. */
+    /** Checks for markers left by runs that died and leaves one for this run; call once, first thing. */
     fun onStartup()
+
+    /** Removes this run's marker for good; runs from a JVM shutdown hook that [onStartup] registers. */
+    fun onCleanShutdown()
 
     fun dismissUncleanExitReport()
 }

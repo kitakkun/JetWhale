@@ -12,6 +12,7 @@ import com.kitakkun.jetwhale.host.component.ShuttingDownDialog
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import com.kitakkun.jetwhale.host.model.McpPermissionOverride
+import com.kitakkun.jetwhale.host.model.SafeModeRequest
 import com.kitakkun.jetwhale.host.model.ServerPortOverrides
 import com.kitakkun.jetwhale.host.theme.LocalEmbeddedInIde
 import com.kitakkun.jetwhale.host.ui.JwTheme
@@ -39,6 +40,9 @@ class IdeHost : AutoCloseable {
             serverPortOverrides = ServerPortOverrides(serverPort = null, wssPort = null, mcpServerPort = null),
             mcpPermissionOverride = McpPermissionOverride.None,
             additionalPluginDirectories = AdditionalPluginDirectories(emptyList()),
+            // The IDE owns this process's lifetime, so the host keeps no run marker here and never
+            // learns of a crash that would put it in safe mode.
+            safeModeRequest = SafeModeRequest(requested = false),
         )
 
     init {

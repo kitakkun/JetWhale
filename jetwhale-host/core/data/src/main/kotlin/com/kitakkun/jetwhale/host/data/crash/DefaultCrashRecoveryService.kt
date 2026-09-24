@@ -5,32 +5,43 @@ import com.kitakkun.jetwhale.host.model.CrashRecoveryService
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.RunMarker
 import com.kitakkun.jetwhale.host.model.RunMarkerRepository
+import com.kitakkun.jetwhale.host.model.StartupGrace
 import com.kitakkun.jetwhale.host.model.SuspectedPlugin
 import com.kitakkun.jetwhale.host.model.UncleanExitReport
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.ContributesTo
 import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.Provides
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.IOException
+import java.util.UUID
 import java.util.logging.Level
 import java.util.logging.Logger
 import kotlin.time.Duration.Companion.seconds
 
-/**
- * How long a run has to stay up before a crash no longer counts as a startup crash: long enough to
- * load every plugin and bring the servers up, short enough that a crash on first use of a screen is
- * not blamed on startup.
- */
-private val STARTUP_GRACE = 30.seconds
+@ContributesTo(AppScope::class)
+interface StartupGraceProvider {
+    /**
+     * Long enough to load every plugin and bring the servers up, short enough that a crash on first
+     * use of a screen is not blamed on startup.
+     */
+    @Provides
+    fun provideStartupGrace(): StartupGrace = StartupGrace(30.seconds)
+}
 
 @Inject
 @SingleIn(AppScope::class)
@@ -39,9 +50,17 @@ class DefaultCrashRecoveryService(
     private val runMarkerRepository: RunMarkerRepository,
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
     private val pluginFactoryRepository: PluginFactoryRepository,
+    private val startupGrace: StartupGrace,
 ) : CrashRecoveryService {
     private val logger = Logger.getLogger(DefaultCrashRecoveryService::class.java.name)
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    // Read by the shutdown hook, which runs on a thread of its own.
+    @Volatile
+    private var runMarker: RunMarker? = null
+
+    @Volatile
+    private var startupGraceJob: Job? = null
 
     override val uncleanExitReportFlow: StateFlow<UncleanExitReport?>
         field = MutableStateFlow(null)
@@ -50,33 +69,38 @@ class DefaultCrashRecoveryService(
         private set
 
     override fun onStartup() {
-        val pid = ProcessHandle.current().pid()
-        val previous = runMarkerRepository.read()
-        // A marker whose process is still alive belongs to another host sharing this data directory,
-        // not to a crashed one.
-        if (previous != null && previous.pid != pid && !ProcessHandle.of(previous.pid).map(ProcessHandle::isAlive).orElse(false)) {
-            reportUncleanExit(previous)
-        }
+        val current = ProcessHandle.current()
+        // A marker whose process is still running belongs to another host sharing this data
+        // directory; it is that host's to remove.
+        val abandoned = runMarkerRepository.readAll().filter { it.pid != current.pid() && !isStillRunning(it) }
+        abandoned.maxByOrNull(RunMarker::startedAtMillis)?.let(::reportUncleanExit)
+        abandoned.forEach { runMarkerRepository.delete(it.runId) }
 
         val marker = RunMarker(
-            pid = pid,
+            runId = UUID.randomUUID().toString(),
+            pid = current.pid(),
             startedAtMillis = System.currentTimeMillis(),
             workingDirectory = System.getProperty("user.dir").orEmpty(),
             startupCompleted = false,
             consecutiveStartupCrashes = consecutiveStartupCrashes,
         )
+        runMarker = marker
         runMarkerRepository.write(marker)
         // Runs on every exit the JVM gets to finish — a closed window, Cmd+Q, SIGTERM — and on none
         // of the ones this is here to notice: a native crash or a kill leaves the marker behind.
         Runtime.getRuntime().addShutdownHook(Thread(::onCleanShutdown, "jetwhale-run-marker"))
-        scope.launch {
-            delay(STARTUP_GRACE)
+        startupGraceJob = scope.launch {
+            delay(startupGrace.duration)
             runMarkerRepository.write(marker.copy(startupCompleted = true, consecutiveStartupCrashes = 0))
         }
     }
 
-    private fun onCleanShutdown() {
-        runMarkerRepository.delete()
+    override fun onCleanShutdown() {
+        // A grace-period write already under way would otherwise land after the delete and bring
+        // the marker back; the write does not suspend, so cancelling alone cannot stop it.
+        startupGraceJob?.let { job -> runBlocking { job.cancelAndJoin() } }
+        runMarker?.let { runMarkerRepository.delete(it.runId) }
+        scope.cancel()
     }
 
     override fun dismissUncleanExitReport() {
@@ -104,13 +128,13 @@ class DefaultCrashRecoveryService(
             logsDirectory = appDataDirectoryProvider.getLogsDirectory().path,
         )
         if (crashLog == null) return
-        // Plugins load after this runs, so the crash is attributed once their packages are known.
+        // Plugins load after this runs, so the crash is attributed once their packages are known,
+        // and again whenever the set changes: a plugin loaded later may share the suspect's package.
         scope.launch {
             pluginFactoryRepository.loadedPluginsFlow.collect { plugins ->
-                val suspectId = crashLog.suspectPlugin(
+                val suspect = crashLog.suspectPlugin(
                     plugins.mapValues { (_, plugin) -> plugin.manifest.factoryClass.substringBeforeLast('.', "") },
-                ) ?: return@collect
-                val suspect = SuspectedPlugin(pluginId = suspectId, pluginName = plugins.getValue(suspectId).manifest.pluginName)
+                )?.let { pluginId -> SuspectedPlugin(pluginId = pluginId, pluginName = plugins.getValue(pluginId).manifest.pluginName) }
                 uncleanExitReportFlow.update { report -> report?.copy(suspectedPlugin = suspect) }
             }
         }
@@ -124,3 +148,12 @@ class DefaultCrashRecoveryService(
         System.getProperty("user.home")?.let(::File),
     )
 }
+
+/**
+ * A process that started after the marker was written only reuses the pid; the run that wrote the
+ * marker is gone.
+ */
+private fun isStillRunning(marker: RunMarker): Boolean = ProcessHandle.of(marker.pid)
+    .filter(ProcessHandle::isAlive)
+    .map { process -> process.info().startInstant().map { it.toEpochMilli() <= marker.startedAtMillis }.orElse(true) }
+    .orElse(false)

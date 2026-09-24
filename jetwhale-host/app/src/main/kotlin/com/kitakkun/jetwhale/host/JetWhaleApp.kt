@@ -17,7 +17,10 @@ import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -61,6 +64,7 @@ import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberMutation
 import soil.query.compose.rememberSubscription
 import java.awt.Desktop
+import java.awt.datatransfer.StringSelection
 import java.io.File
 import java.io.IOException
 import java.util.logging.Level
@@ -294,6 +298,7 @@ private fun HostWindowContent(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 context(appGraph: JetWhaleAppGraph)
 private fun CrashRecoveryBanners() {
@@ -301,6 +306,16 @@ private fun CrashRecoveryBanners() {
     val leaveSafeModeMutation = rememberMutation(appGraph.leaveSafeModeMutationKey)
     val setPluginEnabledMutation = rememberMutation(appGraph.setPluginEnabledMutationKey)
     val coroutineScope = rememberCoroutineScope()
+    val clipboard = LocalClipboard.current
+    // Linux without desktop integration has no way to open a file; the path is copied instead.
+    val canOpenFiles = remember { Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN) }
+    val showFile: (path: String) -> Unit = { path ->
+        if (canOpenFiles) {
+            openInDesktop(File(path))
+        } else {
+            coroutineScope.launch { clipboard.setClipEntry(ClipEntry(StringSelection(path))) }
+        }
+    }
 
     SoilDataBoundary(
         state1 = rememberSubscription(appGraph.uncleanExitReportSubscriptionKey),
@@ -311,8 +326,9 @@ private fun CrashRecoveryBanners() {
             uncleanExitReport?.let { report ->
                 UncleanExitBanner(
                     report = report,
-                    onClickOpenCrashLog = { path -> openInDesktop(File(path)) },
-                    onClickOpenLogs = { directory -> openInDesktop(File(directory)) },
+                    canOpenFiles = canOpenFiles,
+                    onClickCrashLog = showFile,
+                    onClickLogs = showFile,
                     onClickDisablePlugin = { pluginId ->
                         coroutineScope.launch {
                             setPluginEnabledMutation.mutateAsync(SetPluginEnabledParams(pluginId = pluginId, enabled = false))
@@ -333,12 +349,16 @@ private fun CrashRecoveryBanners() {
 }
 
 private fun openInDesktop(file: File) {
-    try {
+    val failure = try {
         Desktop.getDesktop().open(file)
+        null
     } catch (e: IOException) {
-        Logger.getLogger("com.kitakkun.jetwhale.host.CrashRecoveryBanners").log(Level.WARNING, "Could not open ${file.path}", e)
+        e
     } catch (e: IllegalArgumentException) {
         // Desktop.open rejects a file that no longer exists, such as a crash log deleted since startup.
-        Logger.getLogger("com.kitakkun.jetwhale.host.CrashRecoveryBanners").log(Level.WARNING, "Could not open ${file.path}", e)
+        e
+    } catch (e: SecurityException) {
+        e
     }
+    failure?.let { Logger.getLogger("com.kitakkun.jetwhale.host.CrashRecoveryBanners").log(Level.WARNING, "Could not open ${file.path}", it) }
 }
