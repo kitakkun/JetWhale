@@ -87,7 +87,7 @@ class JetWhaleDebugActionsAgentPlugin : JetWhaleAgentPlugin() {
     override fun JetWhaleMessageHandlers.configure() {
         onRequest { _: ListActions -> reply(catalog()) }
         onRequest { request: GetActionOptions -> reply(options(request)) }
-        onRequest { request: RunAction -> reply(run(request)) }
+        onRequest { request: RunAction -> reply(runAction(request)) }
         onRequest { request: CancelActionRun ->
             val run = runs.value[request.runId]
             run?.cancel()
@@ -125,9 +125,14 @@ class JetWhaleDebugActionsAgentPlugin : JetWhaleAgentPlugin() {
         }
     }
 
-    private suspend fun run(request: RunAction): ActionResult {
+    /** Runs the action [request] names, as it is registered now. */
+    @InternalJetWhaleApi
+    suspend fun runAction(request: RunAction): ActionResult {
         val action = registered.value.firstOrNull { it.id == request.actionId }
             ?: return ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "no action has the id '${request.actionId}'; list the actions again", stackTrace = null, durationMillis = 0)
+        if (action.definition.destructive && !request.confirmedDestructive) {
+            return ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "'${action.definition.title}' is destructive and the run was not confirmed; list the actions again and confirm", stackTrace = null, durationMillis = 0)
+        }
         val scope = activeScope
             ?: return ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "the plugin is not active", stackTrace = null, durationMillis = 0)
         val deferred = scope.async { action.definition.runWith(request.arguments, json) }

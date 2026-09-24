@@ -325,15 +325,17 @@ public final class com/kitakkun/jetwhale/plugins/actions/protocol/ParameterType$
 
 public final class com/kitakkun/jetwhale/plugins/actions/protocol/RunAction : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/actions/protocol/RunAction$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;Z)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()Lkotlinx/serialization/json/JsonObject;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;)Lcom/kitakkun/jetwhale/plugins/actions/protocol/RunAction;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/actions/protocol/RunAction;Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/actions/protocol/RunAction;
+	public final fun component4 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;Z)Lcom/kitakkun/jetwhale/plugins/actions/protocol/RunAction;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/actions/protocol/RunAction;Ljava/lang/String;Ljava/lang/String;Lkotlinx/serialization/json/JsonObject;ZILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/actions/protocol/RunAction;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getActionId ()Ljava/lang/String;
 	public final fun getArguments ()Lkotlinx/serialization/json/JsonObject;
+	public final fun getConfirmedDestructive ()Z
 	public final fun getRunId ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;

@@ -15,7 +15,7 @@ internal interface ActionsClient {
 
     suspend fun options(actionId: String, parameter: String): ActionOptions
 
-    suspend fun run(runId: String, actionId: String, arguments: JsonObject): ActionResult
+    suspend fun run(runId: String, actionId: String, arguments: JsonObject, confirmedDestructive: Boolean): ActionResult
 
     suspend fun cancel(runId: String): CancelResult
 }

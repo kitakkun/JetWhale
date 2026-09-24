@@ -346,19 +346,22 @@ final class com.kitakkun.jetwhale.plugins.actions.protocol/GetActionOptions : co
 }
 
 final class com.kitakkun.jetwhale.plugins.actions.protocol/RunAction : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.actions.protocol/ActionResult> { // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction|null[0]
-    constructor <init>(kotlin/String, kotlin/String, kotlinx.serialization.json/JsonObject) // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.<init>|<init>(kotlin.String;kotlin.String;kotlinx.serialization.json.JsonObject){}[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlinx.serialization.json/JsonObject, kotlin/Boolean) // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.<init>|<init>(kotlin.String;kotlin.String;kotlinx.serialization.json.JsonObject;kotlin.Boolean){}[0]
 
     final val actionId // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.actionId|{}actionId[0]
         final fun <get-actionId>(): kotlin/String // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.actionId.<get-actionId>|<get-actionId>(){}[0]
     final val arguments // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.arguments|{}arguments[0]
         final fun <get-arguments>(): kotlinx.serialization.json/JsonObject // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.arguments.<get-arguments>|<get-arguments>(){}[0]
+    final val confirmedDestructive // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.confirmedDestructive|{}confirmedDestructive[0]
+        final fun <get-confirmedDestructive>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.confirmedDestructive.<get-confirmedDestructive>|<get-confirmedDestructive>(){}[0]
     final val runId // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.runId|{}runId[0]
         final fun <get-runId>(): kotlin/String // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.runId.<get-runId>|<get-runId>(){}[0]
 
     final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.component1|component1(){}[0]
     final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.component2|component2(){}[0]
     final fun component3(): kotlinx.serialization.json/JsonObject // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.component3|component3(){}[0]
-    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlinx.serialization.json/JsonObject = ...): com.kitakkun.jetwhale.plugins.actions.protocol/RunAction // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.copy|copy(kotlin.String;kotlin.String;kotlinx.serialization.json.JsonObject){}[0]
+    final fun component4(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.component4|component4(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlinx.serialization.json/JsonObject = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.actions.protocol/RunAction // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.copy|copy(kotlin.String;kotlin.String;kotlinx.serialization.json.JsonObject;kotlin.Boolean){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.actions.protocol/RunAction.toString|toString(){}[0]

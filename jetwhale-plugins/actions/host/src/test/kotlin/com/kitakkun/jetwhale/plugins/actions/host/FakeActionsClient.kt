@@ -17,13 +17,15 @@ internal class FakeActionsClient(
     private val result: ActionResult,
 ) : ActionsClient {
     val runs = mutableListOf<Pair<String, JsonObject>>()
+    val confirmations = mutableListOf<Boolean>()
 
     override suspend fun listActions(): ActionCatalog = ActionCatalog(actions)
 
     override suspend fun options(actionId: String, parameter: String): ActionOptions = ActionOptions(values = options[actionId to parameter].orEmpty(), error = null)
 
-    override suspend fun run(runId: String, actionId: String, arguments: JsonObject): ActionResult {
+    override suspend fun run(runId: String, actionId: String, arguments: JsonObject, confirmedDestructive: Boolean): ActionResult {
         runs += actionId to arguments
+        confirmations += confirmedDestructive
         return result
     }
 

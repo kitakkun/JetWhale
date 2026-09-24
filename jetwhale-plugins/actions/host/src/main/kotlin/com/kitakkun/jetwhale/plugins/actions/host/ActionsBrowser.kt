@@ -45,7 +45,8 @@ internal interface ActionsScreenActions {
 
     fun select(actionId: String)
 
-    fun run(actionId: String, arguments: JsonObject)
+    /** Runs the action; [confirmedDestructive] says the user agreed to run a destructive one. */
+    fun run(actionId: String, arguments: JsonObject, confirmedDestructive: Boolean)
 
     fun cancel(runId: String)
 }
@@ -89,7 +90,11 @@ internal class ActionsBrowser(
     /** Takes a catalog the app pushed or returned, keeping the selection when the action survives. */
     fun adopt(latest: ActionCatalog) {
         catalog = latest
-        if (latest.actions.none { it.id == selectedId }) selectedId = latest.actions.firstOrNull()?.id
+        // A replaced descriptor may offer different options, or none; never show the old ones.
+        loadedOptions.clear()
+        val selected = latest.actions.firstOrNull { it.id == selectedId } ?: latest.actions.firstOrNull()
+        selectedId = selected?.id
+        selected?.let { launchReporting { loadOptions(it) } }
     }
 
     override fun refresh() = launchReporting {
@@ -103,8 +108,8 @@ internal class ActionsBrowser(
         launchReporting { loadOptions(action) }
     }
 
-    override fun run(actionId: String, arguments: JsonObject) = launchReporting {
-        val result = runNow(actionId, arguments, RunOrigin.USER)
+    override fun run(actionId: String, arguments: JsonObject, confirmedDestructive: Boolean) = launchReporting {
+        val result = runNow(actionId, arguments, RunOrigin.USER, confirmedDestructive)
         val title = catalog?.actions?.firstOrNull { it.id == actionId }?.title ?: actionId
         status = when (result.outcome) {
             ActionOutcome.SUCCESS -> ActionsStatus(message = "$title finished in ${result.durationMillis} ms.", isError = false)
@@ -117,13 +122,13 @@ internal class ActionsBrowser(
     }
 
     /** Runs the action and records the run in [history]; the MCP command waits on it directly. */
-    suspend fun runNow(actionId: String, arguments: JsonObject, origin: RunOrigin): ActionResult {
+    suspend fun runNow(actionId: String, arguments: JsonObject, origin: RunOrigin, confirmedDestructive: Boolean): ActionResult {
         val runId = UUID.randomUUID().toString()
         val title = catalog?.actions?.firstOrNull { it.id == actionId }?.title ?: actionId
         runs.add(0, RunRecord(runId = runId, actionId = actionId, title = title, arguments = arguments, origin = origin, result = null))
         if (runs.size > HISTORY_LIMIT) runs.removeRange(HISTORY_LIMIT, runs.size)
         val result = try {
-            client.run(runId = runId, actionId = actionId, arguments = arguments)
+            client.run(runId = runId, actionId = actionId, arguments = arguments, confirmedDestructive = confirmedDestructive)
         } catch (e: JetWhaleMessagingException) {
             ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "failed to reach the app: ${e.message}", stackTrace = null, durationMillis = 0)
         }

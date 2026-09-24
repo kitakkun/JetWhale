@@ -57,9 +57,9 @@ internal fun ActionsScreenRoot(browser: ActionsBrowser, modifier: Modifier = Mod
         actions = browser,
         onQueryChange = { query = it },
         onTogglePin = { id -> pinned = if (id in pinned) pinned - id else pinned + id },
-        onRun = { id, arguments ->
+        onRun = { id, arguments, confirmedDestructive ->
             lastArguments = lastArguments + (id to arguments.toString())
-            browser.run(id, arguments)
+            browser.run(id, arguments, confirmedDestructive)
         },
         modifier = modifier,
     )
@@ -78,7 +78,7 @@ internal fun ActionsScreen(
     actions: ActionsScreenActions,
     onQueryChange: (String) -> Unit,
     onTogglePin: (String) -> Unit,
-    onRun: (actionId: String, arguments: JsonObject) -> Unit,
+    onRun: (actionId: String, arguments: JsonObject, confirmedDestructive: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val searchFocus = remember { FocusRequester() }
@@ -125,7 +125,7 @@ internal fun ActionsScreen(
                             options = options[selectedAction.id].orEmpty(),
                             rememberedArguments = rememberedArguments[selectedAction.id],
                             runs = history.filter { it.actionId == selectedAction.id },
-                            onRun = { onRun(selectedAction.id, it) },
+                            onRun = { arguments, confirmedDestructive -> onRun(selectedAction.id, arguments, confirmedDestructive) },
                             onCancel = actions::cancel,
                         )
                     }

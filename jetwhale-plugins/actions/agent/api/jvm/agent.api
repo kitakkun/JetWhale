@@ -35,5 +35,6 @@ public final class com/kitakkun/jetwhale/plugins/actions/agent/JetWhaleDebugActi
 	public fun getPluginVersion ()Ljava/lang/String;
 	public final fun register (Lkotlin/jvm/functions/Function1;)Lcom/kitakkun/jetwhale/plugins/actions/agent/DebugActionsRegistration;
 	public final fun registerScoped (Lkotlin/jvm/functions/Function1;)Lcom/kitakkun/jetwhale/plugins/actions/agent/DebugActionsRegistration;
+	public final fun runAction (Lcom/kitakkun/jetwhale/plugins/actions/protocol/RunAction;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 

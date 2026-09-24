@@ -28,7 +28,8 @@ internal class RunActionCommand(
         if (action.destructive && arguments[confirmDestructive] != true) {
             throw JetWhaleMcpArgumentException("'${action.title}' is destructive; call again with confirmDestructive: true if running it is intended")
         }
-        val result = browser.runNow(action.id, arguments[actionArguments] ?: JsonObject(emptyMap()), RunOrigin.AI_AGENT)
+        // The agent checks destructiveness again against the action as it is registered now.
+        val result = browser.runNow(action.id, arguments[actionArguments] ?: JsonObject(emptyMap()), RunOrigin.AI_AGENT, confirmedDestructive = arguments[confirmDestructive] == true)
         return buildJsonObject {
             put("outcome", result.outcome.name)
             result.text?.let { put("text", it) }

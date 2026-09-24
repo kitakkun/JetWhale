@@ -49,6 +49,9 @@ data class ActionOptions(
  * Runs the action [actionId] with [arguments], which must decode as the action's argument type.
  *
  * @property runId Chosen by the caller; [CancelActionRun] names the run by it.
+ * @property confirmedDestructive The caller confirmed running a destructive action. The agent checks
+ *   the action as it is registered now, so a caller whose catalog is out of date cannot run a
+ *   destructive action it took for a harmless one.
  */
 @SerialName("actions/run_action")
 @Serializable
@@ -56,6 +59,7 @@ data class RunAction(
     val runId: String,
     val actionId: String,
     val arguments: JsonObject,
+    val confirmedDestructive: Boolean,
 ) : JetWhaleRequest<ActionResult>
 
 /** Cancels the run [runId] if it is still going; its [RunAction] then replies [ActionOutcome.CANCELLED]. */

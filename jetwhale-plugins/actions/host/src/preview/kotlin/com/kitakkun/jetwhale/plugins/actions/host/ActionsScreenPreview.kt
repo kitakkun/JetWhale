@@ -62,7 +62,7 @@ private object NoActions : ActionsScreenActions {
 
     override fun select(actionId: String) = Unit
 
-    override fun run(actionId: String, arguments: JsonObject) = Unit
+    override fun run(actionId: String, arguments: JsonObject, confirmedDestructive: Boolean) = Unit
 
     override fun cancel(runId: String) = Unit
 }
@@ -83,7 +83,7 @@ private fun ActionsScreenPreview() {
             actions = NoActions,
             onQueryChange = {},
             onTogglePin = {},
-            onRun = { _, _ -> },
+            onRun = { _, _, _ -> },
         )
     }
 }
@@ -104,7 +104,7 @@ private fun ActionsScreenEmptyPreview() {
             actions = NoActions,
             onQueryChange = {},
             onTogglePin = {},
-            onRun = { _, _ -> },
+            onRun = { _, _, _ -> },
         )
     }
 }
@@ -135,7 +135,7 @@ private fun ActionDetailPanePreview() {
             options = mapOf("email" to listOf("qa@example.com")),
             rememberedArguments = null,
             runs = listOf(finishedRun),
-            onRun = {},
+            onRun = { _, _ -> },
             onCancel = {},
         )
     }

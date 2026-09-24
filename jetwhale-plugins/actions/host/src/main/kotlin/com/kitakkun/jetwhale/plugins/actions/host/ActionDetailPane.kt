@@ -43,11 +43,13 @@ internal fun ActionDetailPane(
     options: Map<String, List<String>>,
     rememberedArguments: JsonObject?,
     runs: List<RunRecord>,
-    onRun: (JsonObject) -> Unit,
+    onRun: (arguments: JsonObject, confirmedDestructive: Boolean) -> Unit,
     onCancel: (runId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var values by remember(action.id) { mutableStateOf(initialFormValues(action.parameters, rememberedArguments)) }
+    // rememberPersistent loads the stored arguments after the first frame; keying on them lets the
+    // form pick them up when they arrive instead of keeping the blank start.
+    var values by remember(action.id, rememberedArguments) { mutableStateOf(initialFormValues(action.parameters, rememberedArguments)) }
     var errors by remember(action.id) { mutableStateOf(emptyMap<String, String>()) }
     var confirming by remember(action.id) { mutableStateOf<JsonObject?>(null) }
     val running = runs.firstOrNull { it.result == null }
@@ -78,7 +80,7 @@ internal fun ActionDetailPane(
 
                         is FormArguments.Valid -> {
                             errors = emptyMap()
-                            if (action.destructive) confirming = built.arguments else onRun(built.arguments)
+                            if (action.destructive) confirming = built.arguments else onRun(built.arguments, false)
                         }
                     }
                 },
@@ -100,7 +102,7 @@ internal fun ActionDetailPane(
                     tone = JwTone.Error,
                     onClick = {
                         confirming = null
-                        onRun(arguments)
+                        onRun(arguments, true)
                     },
                 )
             },
