@@ -52,6 +52,16 @@ class NetworkConditionCommandsTest {
     }
 
     @Test
+    fun `out of range numbers are rejected before anything is sent`() {
+        val rules = listOf(NetworkConditionRule(id = "r", name = "Broken", enabled = true, matcher = null, condition = NetworkCondition(jitterMs = Long.MAX_VALUE)))
+
+        val failure = assertFailsWith<JetWhaleMcpArgumentException> { execute(SetNetworkConditionsCommand(sync), "rules" to Json.encodeToJsonElement(rules)) }
+
+        assertTrue("jitterMs" in failure.message.orEmpty())
+        assertEquals(emptyList(), applied)
+    }
+
+    @Test
     fun `setNetworkConditions needs a preset or rules`() {
         assertFailsWith<JetWhaleMcpArgumentException> { execute(SetNetworkConditionsCommand(sync)) }
     }

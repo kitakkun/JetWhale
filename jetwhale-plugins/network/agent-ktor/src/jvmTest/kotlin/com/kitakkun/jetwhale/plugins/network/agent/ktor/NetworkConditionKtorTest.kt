@@ -13,6 +13,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.toByteArray
 import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.request.get
+import io.ktor.client.request.prepareGet
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.readRawBytes
@@ -60,15 +61,18 @@ class NetworkConditionKtorTest {
     }
 
     @Test
-    fun `a download cap paces the body the caller reads`() = runBlocking {
+    fun `a download cap paces the body as the app reads it`() = runBlocking {
         agent.applyNetworkConditions(listOf(conditionRule(NetworkCondition(downloadBytesPerSecond = PACED_RATE), matcher = null)))
 
-        val started = TimeSource.Monotonic.markNow()
-        val bytes = client.get("https://example.com/large").readRawBytes()
-        val elapsed = started.elapsedNow().inWholeMilliseconds
+        // Timed from the moment the app holds the response, so a body buffered during the send and
+        // then handed over at once would read in no time and fail this.
+        val (bytes, readMs) = client.prepareGet("https://example.com/large").execute { response ->
+            val reading = TimeSource.Monotonic.markNow()
+            response.readRawBytes() to reading.elapsedNow().inWholeMilliseconds
+        }
 
         assertEquals(PACED_BODY_BYTES, bytes.size)
-        assertTrue(elapsed >= PACED_MIN_MS, "read took ${elapsed}ms")
+        assertTrue(readMs >= PACED_MIN_MS, "the app read the body in ${readMs}ms")
         assertEquals(PACED_RATE, events.filterIsInstance<ResponseReceived>().single().response.condition?.downloadBytesPerSecond)
     }
 
