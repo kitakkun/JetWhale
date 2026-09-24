@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.actions.protocol.ActionDescriptor
 import com.kitakkun.jetwhale.plugins.actions.protocol.ActionParameter
 import com.kitakkun.jetwhale.plugins.actions.protocol.ParameterType
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
@@ -76,6 +77,12 @@ private fun ActionParameter.schema(): JsonObject = buildJsonObject {
 
         jsonType != null -> put("type", jsonType)
     }
-    if (type == ParameterType.ENUM) putJsonArray("enum") { enumValues.forEach(::add) }
+    if (type == ParameterType.ENUM) {
+        // enum constrains on top of type, so a nullable enum has to list null among its values.
+        putJsonArray("enum") {
+            enumValues.forEach(::add)
+            if (nullable) add(JsonNull)
+        }
+    }
     description?.let { put("description", it) }
 }
