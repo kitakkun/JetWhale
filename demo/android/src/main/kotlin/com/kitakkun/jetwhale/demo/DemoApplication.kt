@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.demo
 
 import android.app.Application
 import com.kitakkun.jetwhale.demo.shared.initializeJetWhale
+import com.kitakkun.jetwhale.demo.shared.startDemoBackgroundWork
 import com.kitakkun.jetwhale.plugins.semantics.agent.installJetWhaleSemanticsProbe
 
 class DemoApplication : Application() {
@@ -12,6 +13,7 @@ class DemoApplication : Application() {
         // opens one). The alternative is JetWhaleSemanticsProbe() inside a composition, which
         // registers only that composition's own root.
         installJetWhaleSemanticsProbe(this)
+        startDemoBackgroundWork(this)
         initializeJetWhale()
     }
 }
