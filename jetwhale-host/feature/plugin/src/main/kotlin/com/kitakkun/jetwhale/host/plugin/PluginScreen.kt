@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.DpSize
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
+import com.kitakkun.jetwhale.host.model.isComposeSceneClosed
 import kotlinx.coroutines.CancellationException
 import soil.plant.compose.reacty.LocalCatchThrowHost
 import soil.query.core.uuid
@@ -50,9 +51,15 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
         }
     }
 
-    val density = LocalDensity.current
-
     val catchThrowHost = LocalCatchThrowHost.current
+    // A plugin UI that threw while composing, laying out or drawing hands its exception to the
+    // error boundary, which replaces this screen with the crash fallback and its Reload button.
+    val failure = pluginComposeScene.failure.value
+    LaunchedEffect(failure) {
+        if (failure != null) catchThrowHost[uuid()] = failure
+    }
+
+    val density = LocalDensity.current
     Canvas(
         modifier = Modifier.fillMaxSize()
             // The plugin's scene is nested and windowless, so its Modifier.pointerHoverIcon requests
@@ -142,7 +149,17 @@ fun PluginScreen(pluginComposeScene: PluginComposeScene) {
         // tools on a different clock.
         @Suppress("UNUSED_EXPRESSION")
         frameNanoTime
-        this.drawIntoCanvas(pluginComposeScene::render)
+        if (pluginComposeScene.failure.value != null) return@Canvas
+        this.drawIntoCanvas { canvas ->
+            try {
+                pluginComposeScene.render(canvas)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Throwable) {
+                // Rethrowing would take the host window down with the plugin. render() has recorded
+                // the exception in the scene's failure, which the effect above reports.
+            }
+        }
     }
 }
 
@@ -157,10 +174,3 @@ private fun PointerEvent.toComposeScenePointers(): List<ComposeScenePointer> = t
         historical = pointerInputChange.historical,
     )
 }
-
-/**
- * True when this exception is the benign "input/render after the scene was closed" race that Compose
- * throws if we dispatch to a [androidx.compose.ui.scene.ComposeScene] that has already been disposed
- * (e.g. during navigation, session switch, or hot reload).
- */
-private fun IllegalStateException.isComposeSceneClosed(): Boolean = message?.contains("ComposeScene is closed") == true
