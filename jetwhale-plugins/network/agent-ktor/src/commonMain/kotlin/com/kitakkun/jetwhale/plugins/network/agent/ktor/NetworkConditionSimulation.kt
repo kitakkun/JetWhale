@@ -7,6 +7,7 @@ import io.ktor.client.call.HttpClientCall
 import io.ktor.client.call.replaceResponse
 import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.setBody
 import io.ktor.http.content.OutgoingContent
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.ByteWriteChannel
@@ -14,7 +15,6 @@ import io.ktor.utils.io.InternalAPI
 import io.ktor.utils.io.readAvailable
 import io.ktor.utils.io.writeFully
 import io.ktor.utils.io.writer
-import io.ktor.client.request.setBody
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
