@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mainthread.agent
 
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.Hotspot
+import com.kitakkun.jetwhale.plugins.mainthread.protocol.LongTask
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorCapabilities
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorSettings
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.ViolationKind
@@ -100,6 +101,40 @@ class MainThreadRecorderTest {
         val hotspot = recorder.report(capabilities).hotspots.single()
         assertEquals(2, hotspot.sampleCount)
         assertEquals(2, hotspot.taskCount)
+    }
+
+    @Test
+    fun `work outside any task is recorded from when it began`() {
+        clock.advance(10)
+        recorder.stallDetected("outside", busyForMillis = 120)
+        clock.advance(30)
+        recorder.sampleIfDue { appStack }
+        recorder.stallEnded()
+
+        val task = recorder.report(capabilities).longTasks.single()
+        assertEquals(150, task.durationMillis)
+        assertEquals("outside", task.label)
+        assertEquals(1, task.sampleCount)
+    }
+
+    @Test
+    fun `the next task ends a stall`() {
+        recorder.stallDetected("outside", busyForMillis = 200)
+        recorder.taskStarted("next", extraLabel = null)
+        recorder.taskFinished()
+
+        assertEquals(listOf("outside"), recorder.report(capabilities).longTasks.map(LongTask::label))
+    }
+
+    @Test
+    fun `a stall seen while a task runs is that task`() {
+        recorder.taskStarted("message", extraLabel = null)
+        clock.advance(150)
+        recorder.stallDetected("outside", busyForMillis = 150)
+        recorder.stallEnded()
+        recorder.taskFinished()
+
+        assertEquals(listOf("message"), recorder.report(capabilities).longTasks.map(LongTask::label))
     }
 
     @Test

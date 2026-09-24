@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.StrictMode
+import android.os.SystemClock
 import android.util.Printer
 import android.view.FrameMetrics
 import android.view.Window
@@ -15,6 +16,8 @@ import com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorCapabilities
 import java.util.concurrent.Executors
 
 internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, labels: () -> String?): MainThreadProbe = AndroidMainThreadProbe(recorder, labels)
+
+private const val OUTSIDE_MESSAGE_LABEL = "Outside a Looper message (input dispatch or a native callback)"
 
 private const val LOOPER_DISPATCHING = ">>>>>"
 private const val LOOPER_FINISHED = "<<<<<"
@@ -31,7 +34,10 @@ private class AndroidMainThreadProbe(
 ) : MainThreadProbe {
     private val mainLooper = Looper.getMainLooper()
     private val mainHandler = Handler(mainLooper)
-    private val sampler = StackSampler(recorder) { mainLooper.thread }
+    private val sampler = StackSampler(recorder, mainThread = { mainLooper.thread }, onTick = ::checkHeartbeat)
+
+    // Uptime at which the pending heartbeat was posted, or null when none is waiting to run.
+    @Volatile private var heartbeatPostedAt: Long? = null
 
     private var started = false
     private var previousPrinter: Printer? = null
@@ -73,6 +79,7 @@ private class AndroidMainThreadProbe(
         started = false
         mainLooper.setMessageLogging(previousPrinter)
         sampler.stop()
+        heartbeatPostedAt = null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) mainHandler.post(::restoreStrictMode)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) stopFrameTiming()
     }
@@ -83,6 +90,28 @@ private class AndroidMainThreadProbe(
         when {
             line.startsWith(LOOPER_DISPATCHING) -> recorder.taskStarted(line, labels())
             line.startsWith(LOOPER_FINISHED) -> recorder.taskFinished()
+        }
+    }
+
+    /**
+     * Android dispatches input — and so a Compose click handler — from inside the Looper's native
+     * poll, not as a message, so the printer never brackets it. A heartbeat posted at the front of
+     * the main queue runs as soon as the thread gets back to its queue; when it has waited past the
+     * threshold with no message running, the main thread is busy outside a message.
+     */
+    private fun checkHeartbeat() {
+        val postedAt = heartbeatPostedAt
+        if (postedAt == null) {
+            heartbeatPostedAt = SystemClock.uptimeMillis()
+            mainHandler.postAtFrontOfQueue {
+                heartbeatPostedAt = null
+                recorder.stallEnded()
+            }
+            return
+        }
+        val waited = SystemClock.uptimeMillis() - postedAt
+        if (waited >= recorder.currentSettings.longTaskThresholdMillis) {
+            recorder.stallDetected(OUTSIDE_MESSAGE_LABEL, busyForMillis = waited)
         }
     }
 

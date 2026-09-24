@@ -10,10 +10,13 @@ private const val MIN_TICK_MILLIS = 5L
  * A daemon thread that ticks at half the sample interval and asks [recorder] whether the main
  * thread's current task has run long enough to be sampled. While no task is long, a tick costs a
  * lock and a comparison; the stack of [mainThread] is only read when a sample is due.
+ *
+ * @param onTick Runs first on every tick, for a probe that watches the main thread from here too.
  */
 internal class StackSampler(
     private val recorder: MainThreadRecorder,
     private val mainThread: () -> Thread?,
+    private val onTick: () -> Unit,
 ) {
     @Volatile private var thread: Thread? = null
 
@@ -33,6 +36,7 @@ internal class StackSampler(
     private fun run() {
         val self = Thread.currentThread()
         while (thread === self) {
+            onTick()
             val target = mainThread()
             if (target != null) {
                 recorder.sampleIfDue { target.stackTrace.take(MAX_SAMPLED_FRAMES).map(::frameText) }
