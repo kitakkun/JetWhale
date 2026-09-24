@@ -9,22 +9,31 @@ import com.kitakkun.jetwhale.host.model.RunMarker
 import com.kitakkun.jetwhale.host.model.RunMarkerRepository
 import com.kitakkun.jetwhale.host.model.SafeModeReason
 import com.kitakkun.jetwhale.host.model.SafeModeRequest
+import com.kitakkun.jetwhale.host.model.StartupGrace
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.io.File
 import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 
 class DefaultCrashRecoveryServiceTest {
     private val appDataDir: File = Files.createTempDirectory("jetwhale-app-data").toFile()
@@ -50,13 +59,14 @@ class DefaultCrashRecoveryServiceTest {
         service.onStartup()
 
         assertNull(service.uncleanExitReportFlow.value)
-        assertEquals(ProcessHandle.current().pid(), markers.marker?.pid)
-        assertEquals(false, markers.marker?.startupCompleted)
+        val marker = markers.markers.values.single()
+        assertEquals(ProcessHandle.current().pid(), marker.pid)
+        assertEquals(false, marker.startupCompleted)
     }
 
     @Test
-    fun `a marker left by a dead process is reported as an unclean exit`() {
-        markers.marker = deadRunMarker(startupCompleted = true, consecutiveStartupCrashes = 0)
+    fun `a marker left by a dead process is reported as an unclean exit and then removed`() {
+        markers.add(deadRunMarker(startupCompleted = true, consecutiveStartupCrashes = 0))
         val service = newService()
 
         service.onStartup()
@@ -65,33 +75,85 @@ class DefaultCrashRecoveryServiceTest {
         assertEquals(DEAD_PID, report.pid)
         assertEquals(false, report.duringStartup)
         assertEquals(0, service.consecutiveStartupCrashes)
+        assertFalse(markers.markers.containsKey(DEAD_RUN_ID))
     }
 
     @Test
-    fun `a marker whose process is still alive belongs to another host and is not a crash`() {
-        markers.marker = deadRunMarker(startupCompleted = true, consecutiveStartupCrashes = 0).copy(pid = ProcessHandle.current().parent().get().pid())
+    fun `a marker of another host that is still running is neither reported nor touched`() {
+        val otherHost = liveOtherHostMarker()
+        markers.add(otherHost)
+        val service = newService()
+
+        service.onStartup()
+        service.onCleanShutdown()
+
+        assertNull(service.uncleanExitReportFlow.value)
+        assertEquals(listOf(otherHost), markers.markers.values.toList())
+    }
+
+    @Test
+    fun `a running process that started after the marker only reuses its pid`() {
+        markers.add(liveOtherHostMarker().copy(startedAtMillis = 1_000))
         val service = newService()
 
         service.onStartup()
 
-        assertNull(service.uncleanExitReportFlow.value)
+        assertNotNull(service.uncleanExitReportFlow.value)
+    }
+
+    @Test
+    fun `a clean shutdown waits for a grace-period write under way and then removes the marker`() = runBlocking {
+        val writeStarted = CompletableDeferred<Unit>()
+        val releaseWrite = CountDownLatch(1)
+        val writeFinished = CountDownLatch(1)
+        markers.beforeWrite = { marker ->
+            if (marker.startupCompleted) {
+                writeStarted.complete(Unit)
+                releaseWrite.await()
+            }
+        }
+        markers.afterWrite = { marker -> if (marker.startupCompleted) writeFinished.countDown() }
+        val service = newService(startupGrace = Duration.ZERO)
+        service.onStartup()
+        withTimeout(TIMEOUT_MILLIS) { writeStarted.await() }
+
+        val shutdown = Thread(service::onCleanShutdown).apply { start() }
+        // Let the write finish only once the shutdown is committed: parked waiting for it, or past
+        // the delete it must not run ahead of.
+        while (shutdown.state !in setOf(Thread.State.WAITING, Thread.State.TIMED_WAITING) && markers.markers.size == 1) Thread.onSpinWait()
+        releaseWrite.countDown()
+        shutdown.join(TIMEOUT_MILLIS)
+        writeFinished.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+
+        assertEquals(emptyMap(), markers.markers)
+    }
+
+    @Test
+    fun `a run that outlives the grace period is no longer a startup crash`() = runBlocking {
+        markers.add(deadRunMarker(startupCompleted = false, consecutiveStartupCrashes = 0))
+        val service = newService(startupGrace = Duration.ZERO)
+        service.onStartup()
+
+        val marker = withTimeout(TIMEOUT_MILLIS) { markers.state.map { it.values.singleOrNull() }.first { it?.startupCompleted == true } }
+
+        assertEquals(0, marker?.consecutiveStartupCrashes)
     }
 
     @Test
     fun `startup crashes are counted until the count reaches safe mode`() {
-        markers.marker = deadRunMarker(startupCompleted = false, consecutiveStartupCrashes = 1)
+        markers.add(deadRunMarker(startupCompleted = false, consecutiveStartupCrashes = 1))
         val service = newService()
 
         service.onStartup()
 
         assertEquals(2, service.consecutiveStartupCrashes)
-        assertEquals(2, markers.marker?.consecutiveStartupCrashes)
+        assertEquals(2, markers.markers.values.single().consecutiveStartupCrashes)
         assertEquals(SafeModeReason.RepeatedStartupCrashes, DefaultSafeModeService(SafeModeRequest(requested = false), service).safeModeFlow.value?.reason)
     }
 
     @Test
     fun `one startup crash does not start in safe mode`() {
-        markers.marker = deadRunMarker(startupCompleted = false, consecutiveStartupCrashes = 0)
+        markers.add(deadRunMarker(startupCompleted = false, consecutiveStartupCrashes = 0))
         val service = newService()
 
         service.onStartup()
@@ -116,7 +178,7 @@ class DefaultCrashRecoveryServiceTest {
         File(appDataDir, "logs").mkdirs()
         val fixture = checkNotNull(javaClass.classLoader.getResource("crash/hs_err_skiko.log")).readText()
         File(appDataDir, "logs/hs_err_pid$DEAD_PID.log").writeText(fixture)
-        markers.marker = deadRunMarker(startupCompleted = true, consecutiveStartupCrashes = 0)
+        markers.add(deadRunMarker(startupCompleted = true, consecutiveStartupCrashes = 0))
         val service = newService()
 
         service.onStartup()
@@ -126,11 +188,16 @@ class DefaultCrashRecoveryServiceTest {
 
         val suspect = withTimeout(TIMEOUT_MILLIS) { service.uncleanExitReportFlow.filterNotNull().first { it.suspectedPlugin != null } }
         assertEquals("com.kitakkun.jetwhale.mirror", suspect.suspectedPlugin?.pluginId)
+
+        plugins.load("com.kitakkun.jetwhale.mirror.headless", "com.kitakkun.jetwhale.plugins.mirror.host.MirrorHeadlessPluginFactory")
+
+        val ambiguous = withTimeout(TIMEOUT_MILLIS) { service.uncleanExitReportFlow.filterNotNull().first { it.suspectedPlugin == null } }
+        assertNull(ambiguous.suspectedPlugin)
     }
 
     @Test
     fun `dismissing clears the report`() {
-        markers.marker = deadRunMarker(startupCompleted = true, consecutiveStartupCrashes = 0)
+        markers.add(deadRunMarker(startupCompleted = true, consecutiveStartupCrashes = 0))
         val service = newService()
         service.onStartup()
 
@@ -139,13 +206,24 @@ class DefaultCrashRecoveryServiceTest {
         assertNull(service.uncleanExitReportFlow.value)
     }
 
-    private fun newService() = DefaultCrashRecoveryService(
+    private fun newService(startupGrace: Duration = 1.hours) = DefaultCrashRecoveryService(
         runMarkerRepository = markers,
         appDataDirectoryProvider = AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())),
         pluginFactoryRepository = plugins,
+        startupGrace = StartupGrace(startupGrace),
+    )
+
+    private fun liveOtherHostMarker() = RunMarker(
+        runId = "other-host",
+        pid = ProcessHandle.current().parent().get().pid(),
+        startedAtMillis = System.currentTimeMillis(),
+        workingDirectory = appDataDir.path,
+        startupCompleted = true,
+        consecutiveStartupCrashes = 0,
     )
 
     private fun deadRunMarker(startupCompleted: Boolean, consecutiveStartupCrashes: Int) = RunMarker(
+        runId = DEAD_RUN_ID,
         pid = DEAD_PID,
         startedAtMillis = 1_000,
         workingDirectory = appDataDir.path,
@@ -154,16 +232,25 @@ class DefaultCrashRecoveryServiceTest {
     )
 
     private class FakeRunMarkerRepository : RunMarkerRepository {
-        var marker: RunMarker? = null
+        val state = MutableStateFlow<Map<String, RunMarker>>(emptyMap())
+        val markers: Map<String, RunMarker> get() = state.value
+        var beforeWrite: (RunMarker) -> Unit = {}
+        var afterWrite: (RunMarker) -> Unit = {}
 
-        override fun read(): RunMarker? = marker
-
-        override fun write(marker: RunMarker) {
-            this.marker = marker
+        fun add(marker: RunMarker) {
+            state.update { it + (marker.runId to marker) }
         }
 
-        override fun delete() {
-            marker = null
+        override fun readAll(): List<RunMarker> = markers.values.toList()
+
+        override fun write(marker: RunMarker) {
+            beforeWrite(marker)
+            add(marker)
+            afterWrite(marker)
+        }
+
+        override fun delete(runId: String) {
+            state.update { it - runId }
         }
     }
 
@@ -193,6 +280,7 @@ class DefaultCrashRecoveryServiceTest {
     private companion object {
         // Far above any pid the OS hands out here, so no live process has it.
         const val DEAD_PID = 999_999_999L
+        const val DEAD_RUN_ID = "dead-run"
         const val TIMEOUT_MILLIS = 5_000L
     }
 }
