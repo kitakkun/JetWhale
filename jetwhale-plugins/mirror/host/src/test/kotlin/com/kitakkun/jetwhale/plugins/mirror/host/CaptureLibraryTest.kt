@@ -7,6 +7,9 @@ import java.io.File
 import java.nio.file.Files
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.CountDownLatch
+import kotlin.concurrent.thread
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -55,6 +58,23 @@ class CaptureLibraryTest {
         val second = library.newFile(pixel, CaptureKind.Screenshot, noon)
 
         assertNotEquals(first, second)
+    }
+
+    @Test
+    fun `captures requested at once in the same second each get their own file`() {
+        val start = CountDownLatch(1)
+        val files = ConcurrentLinkedQueue<File>()
+        val requests = List(SIMULTANEOUS_CAPTURES) {
+            thread {
+                start.await()
+                files += library.newFile(pixel, CaptureKind.Screenshot, noon)
+            }
+        }
+
+        start.countDown()
+        requests.forEach(Thread::join)
+
+        assertEquals(SIMULTANEOUS_CAPTURES, files.toSet().size)
     }
 
     @Test
@@ -117,6 +137,8 @@ class CaptureLibraryTest {
         return library.record(file, infoOf(device, kind, at, durationMillis = null))
     }
 }
+
+private const val SIMULTANEOUS_CAPTURES = 8
 
 private fun infoOf(device: DeviceListing, kind: CaptureKind, at: Instant, durationMillis: Long?) = CaptureInfo(
     deviceId = device.id,
