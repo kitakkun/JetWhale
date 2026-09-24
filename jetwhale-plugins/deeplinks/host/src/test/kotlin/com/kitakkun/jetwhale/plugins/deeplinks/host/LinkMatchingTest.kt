@@ -36,6 +36,35 @@ class LinkMatchingTest {
 
         assertEquals(listOf(wildcard), declarationsMatching("https://shop.example.com/", listOf(wildcard)))
         assertEquals(emptyList(), declarationsMatching("https://example.org/", listOf(wildcard)))
+        assertEquals(emptyList(), declarationsMatching("https://example.com/", listOf(wildcard)))
+    }
+
+    @Test
+    fun `a declared port has to match`() {
+        val onPort = DeclaredDeepLink(
+            handler = "com.example.app.MainActivity",
+            schemes = listOf("https"),
+            hosts = listOf(DeepLinkHost(host = "example.com", port = "8443", verification = null)),
+            paths = emptyList(),
+            browsable = true,
+            autoVerify = false,
+        )
+
+        assertEquals(listOf(onPort), declarationsMatching("https://example.com:8443/", listOf(onPort)))
+        assertEquals(emptyList(), declarationsMatching("https://example.com/", listOf(onPort)))
+    }
+
+    @Test
+    fun `paths are matched after decoding`() {
+        assertEquals(listOf(itemLink), declarationsMatching("https://example.com/%69tem/42", listOf(itemLink)))
+    }
+
+    @Test
+    fun `a sample link from an advanced pattern is a valid link`() {
+        val advanced = declared(schemes = listOf("https"), hosts = listOf("example.com"), paths = listOf(PathMatcher(PathMatchKind.AdvancedPattern, "/item/[0-9]+")))
+
+        assertEquals("https://example.com/item/", sampleUrlOf(advanced))
+        declarationsMatching(sampleUrlOf(advanced), listOf(advanced))
     }
 
     @Test

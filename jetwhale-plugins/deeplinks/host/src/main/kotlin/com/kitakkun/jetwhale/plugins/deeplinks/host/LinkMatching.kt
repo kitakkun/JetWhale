@@ -8,8 +8,9 @@ import java.net.URISyntaxException
 
 /**
  * The declarations [url] matches, following Android's rules: the scheme must be declared; when the
- * declaration names hosts the host must be one of them (a leading `*.` matches subdomains); when it
- * names paths, one of them must match.
+ * declaration names hosts the host must be one of them (a leading `*` matches subdomains, not the
+ * domain itself) on its port when one is declared; when it names paths, one of them must match the
+ * decoded path.
  *
  * @throws IllegalArgumentException when [url] is not a URL with a scheme.
  */
@@ -22,17 +23,22 @@ internal fun declarationsMatching(url: String, declared: List<DeclaredDeepLink>)
     val scheme = requireNotNull(uri.scheme) { "'$url' has no scheme" }.lowercase()
     val host = uri.host?.lowercase()
     // A custom scheme URL like myapp://item/42 parses its first segment as the host, as Android does.
-    val path = uri.rawPath.orEmpty()
+    // Android matches paths after decoding, so /item/%66oo is /item/foo.
+    val path = uri.path.orEmpty()
     return declared.filter { link ->
         scheme in link.schemes.map(String::lowercase) &&
-            (link.hosts.isEmpty() || (host != null && link.hosts.any { hostMatches(it.host.lowercase(), host) })) &&
+            (link.hosts.isEmpty() || (host != null && link.hosts.any { hostMatches(it.host.lowercase(), host) && (it.port == null || it.port == uri.port.toString()) })) &&
             (link.paths.isEmpty() || link.paths.any { pathMatches(it, path) })
     }
 }
 
 private fun hostMatches(declared: String, host: String): Boolean = when {
     declared == "*" -> true
-    declared.startsWith("*.") -> host.endsWith(declared.removePrefix("*")) || host == declared.removePrefix("*.")
+
+    // As Android's AuthorityEntry: the text after `*` must end the host, so `*.example.com` does not
+    // match example.com itself.
+    declared.startsWith("*") -> host.endsWith(declared.removePrefix("*"))
+
     else -> declared == host
 }
 
@@ -92,8 +98,11 @@ internal fun sampleUrlOf(link: DeclaredDeepLink): String {
         when (matcher.kind) {
             PathMatchKind.Exact, PathMatchKind.Prefix -> matcher.value
             PathMatchKind.Suffix -> "/" + matcher.value.removePrefix("/")
-            PathMatchKind.Pattern, PathMatchKind.AdvancedPattern -> matcher.value.substringBefore('.').substringBefore('*').ifEmpty { "/" }
+            PathMatchKind.Pattern, PathMatchKind.AdvancedPattern -> matcher.value.takeWhile { it !in PATTERN_SYNTAX }.ifEmpty { "/" }
         }
     }.orEmpty()
     return "$scheme://$host$path"
 }
+
+/** Characters with a meaning in a path pattern; a sample link keeps only the literal text before them. */
+private const val PATTERN_SYNTAX = ".*+?\\[](){}|^$"
