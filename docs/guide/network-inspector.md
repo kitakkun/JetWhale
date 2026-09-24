@@ -214,10 +214,50 @@ restart, and the host fetches them back when it reconnects. That is also why a r
 immediately without restarting the app.
 :::
 
+## Simulating network conditions
+
+The **Conditions** tab makes the app see a slow, flaky or missing network, without a proxy or a
+device setting. A condition applies to every request, or only to the ones a URL pattern selects —
+the same matcher mock rules use.
+
+| Field | Default | Meaning |
+|-------|---------|---------|
+| **Latency ms** | `0` | Added before the request is sent. |
+| **Jitter ms** | `0` | A random extra of up to this much, rolled per request. |
+| **Download KB/s** | unlimited | Caps how fast the response body arrives. The body is paced in small chunks, so a large download is slow throughout rather than stalled and then instant. |
+| **Upload KB/s** | unlimited | Caps how fast the request body is sent. |
+| **Failure %** | `0` | Chance that a request fails instead of completing, with the chosen **injected failure**: `TIMEOUT`, `CONNECTION_RESET` or `UNREACHABLE`. **Fail after ms** delays it, since a real timeout takes a while. |
+| **Offline** | off | Every matching request fails at once, as with no network. Overrides everything else. |
+
+Presets cover the usual cases: **Slow 3G**, **Fast 3G**, **EDGE**, **Flaky** (jittery latency and
+one request in five reset) and **Offline**. Choosing one replaces the current conditions.
+
+A failure surfaces as the exception the HTTP client throws for the real situation — OkHttp's
+`UnknownHostException`, `SocketTimeoutException`, `SocketException` or `ConnectException`, Ktor's
+`SocketTimeoutException` or an `IOException` — so the app's own error handling is what gets tested.
+An HTTP error status is a server's answer, not a network condition: use a mock rule for a `503`.
+
+Transactions a condition shaped carry a **NET** tag, and their detail says what was done: the
+latency added, the rates capped, the failure injected.
+
+**Conditions and mocks.** The two stack in a fixed order. The condition models the network, the
+mock stands in for the server, so a request first goes through the condition — latency, failure,
+offline — and is then answered by a matching mock or by the real server. A mocked response behind a
+**Slow 3G** condition arrives late, and an **Offline** condition fails a request even when a mock
+matches it. A mock's own **Delay ms** comes on top of the condition's latency. Download pacing
+applies to mocked bodies too; upload pacing does not, since a mocked request is never sent.
+
+::: warning Conditions do not outlive the host
+Unlike mock rules, conditions are owned by the **host**. The app drops them as soon as the host
+disconnects or the plugin is disabled, so a forgotten **Offline** cannot keep the app offline after
+you close JetWhale; when the host reconnects it sends its conditions again.
+:::
+
 ## MCP tools
 
 The Network Inspector contributes its own tools to the host's [MCP server](/guide/mcp-server), so
-an AI agent can read captured traffic and manage mock rules for a session:
+an AI agent can read captured traffic, manage mock rules and simulate network conditions for a
+session:
 
 | Tool | What it does |
 |------|--------------|
@@ -229,12 +269,19 @@ an AI agent can read captured traffic and manage mock rules for a session:
 | `com.kitakkun.jetwhale.network.removeMockRule` | Removes the rule with a given `id` |
 | `com.kitakkun.jetwhale.network.setMockRules` | Replaces the **whole** rule list in one call |
 | `com.kitakkun.jetwhale.network.setMockingEnabled` | Turns mocking on or off |
+| `com.kitakkun.jetwhale.network.setNetworkConditions` | Applies a `preset` to every request, or replaces the condition rules with `rules` |
+| `com.kitakkun.jetwhale.network.getNetworkConditions` | Returns the condition rules in the order they are matched |
+| `com.kitakkun.jetwhale.network.clearNetworkConditions` | Removes every condition |
 
 Like every MCP tool, they take a required `sessionId` (from `jetwhale.listSessions`).
 
 `listTransactions` narrows a busy capture rather than dumping it: `limit`, `afterTxId` (everything
 recorded after a transaction you already have — the cheap way to poll), `sinceTimestampMs` /
 `untilTimestampMs`, `urlContains` and `method`.
+
+Both transaction tools include a `networkCondition` object for a request a condition shaped — the
+rule, the latency added, the rates capped, and any failure injected — so an agent can tell a
+simulated failure from a real one.
 
 `addMockRule` takes the rule's fields flat (`urlPattern`, `matchType`, `method`, `name`,
 `statusCode`, `body`, `headers`, `contentType`, `delayMs`), appends one enabled rule with a generated
