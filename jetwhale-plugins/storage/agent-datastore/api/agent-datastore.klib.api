@@ -1,0 +1,9 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, macosArm64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.storage:agent-datastore>
+final fun (com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.Companion).com.kitakkun.jetwhale.plugins.storage.agent.datastore/dataStore(kotlin/String, androidx.datastore.core/DataStore<androidx.datastore.preferences.core/Preferences>): com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore // com.kitakkun.jetwhale.plugins.storage.agent.datastore/dataStore|dataStore@com.kitakkun.jetwhale.plugins.storage.agent.KeyValueStore.Companion(kotlin.String;androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences>){}[0]

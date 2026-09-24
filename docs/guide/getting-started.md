@@ -570,7 +570,7 @@ version as the host release they belong to.
 | `jetwhale-network-inspector`, `-agent`, `-agent-ktor`, `-agent-okhttp`, `-protocol` | [Network Inspector](/guide/network-inspector). |
 | `jetwhale-nav3-navigator`, `jetwhale-nav3-agent`, `jetwhale-nav3-protocol` | [Nav3 Navigator](/guide/nav3-navigator). |
 | `jetwhale-compose-semantics-inspector`, `-agent`, `-protocol` | [Compose Semantics Inspector](/guide/compose-semantics-inspector). |
-| `jetwhale-storage-inspector`, `-agent`, `-protocol` | [Storage Inspector](/guide/storage-inspector). |
+| `jetwhale-storage-inspector`, `-agent`, `-agent-datastore`, `-protocol` | [Storage Inspector](/guide/storage-inspector). |
 
 The `-navigator` / `-inspector` artifacts (no suffix) are the **host** plugin jars — you install
 those into the host rather than into your app; see [Host Settings → Plugins](/guide/host-settings#plugins).

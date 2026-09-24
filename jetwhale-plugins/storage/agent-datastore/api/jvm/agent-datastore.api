@@ -1,0 +1,4 @@
+public final class com/kitakkun/jetwhale/plugins/storage/agent/datastore/DataStoreKeyValueStoreKt {
+	public static final fun dataStore (Lcom/kitakkun/jetwhale/plugins/storage/agent/KeyValueStore$Companion;Ljava/lang/String;Landroidx/datastore/core/DataStore;)Lcom/kitakkun/jetwhale/plugins/storage/agent/KeyValueStore;
+}
+
