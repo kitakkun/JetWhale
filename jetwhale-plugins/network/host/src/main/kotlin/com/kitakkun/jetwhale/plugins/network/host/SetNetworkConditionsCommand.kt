@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule
+import com.kitakkun.jetwhale.plugins.network.protocol.problems
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -29,6 +30,8 @@ internal class SetNetworkConditionsCommand(
         val newRules = arguments[rules]
             ?: arguments[preset]?.let { listOf(it.toRule()) }
             ?: throw JetWhaleMcpArgumentException("pass either preset or rules")
+        val problems = newRules.flatMap { rule -> rule.condition.problems().map { "rule '${rule.name.ifBlank { rule.id }}': $it" } }
+        if (problems.isNotEmpty()) throw JetWhaleMcpArgumentException(problems.joinToString("; "))
         return when (val failure = syncConditionRules(newRules)) {
             null -> buildJsonObject { put("rules", Json.encodeToJsonElement(newRules)) }.toString()
             else -> syncErrorJson(failure)

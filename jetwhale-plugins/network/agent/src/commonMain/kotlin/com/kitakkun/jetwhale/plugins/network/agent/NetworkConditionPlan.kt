@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.network.agent
 
 import com.kitakkun.jetwhale.plugins.network.protocol.AppliedNetworkCondition
 import com.kitakkun.jetwhale.plugins.network.protocol.InjectedFailure
+import com.kitakkun.jetwhale.plugins.network.protocol.MAX_SIMULATED_DELAY_MS
 import com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule
 import kotlin.random.Random
 import kotlin.time.Duration
@@ -53,14 +54,17 @@ internal fun NetworkConditionRule.plan(random: Random): NetworkConditionPlan {
             uploadBytesPerSecond = null,
         )
     }
-    val jitterMs = if (condition.jitterMs > 0) random.nextLong(condition.jitterMs + 1) else 0L
+    // The host rejects out-of-range numbers, but a rule is still clamped here: an unchecked value
+    // would otherwise overflow or throw while planning, before any transaction records the failure.
+    val maxJitterMs = condition.jitterMs.coerceIn(0, MAX_SIMULATED_DELAY_MS)
+    val jitterMs = if (maxJitterMs > 0) random.nextLong(maxJitterMs + 1) else 0L
     val fails = condition.failureRate > 0.0 && random.nextDouble() < condition.failureRate
     return NetworkConditionPlan(
         ruleId = id,
         ruleName = name,
-        latency = (condition.latencyMs.coerceAtLeast(0) + jitterMs).milliseconds,
+        latency = (condition.latencyMs.coerceIn(0, MAX_SIMULATED_DELAY_MS) + jitterMs).milliseconds,
         failure = if (fails) condition.failure else null,
-        failureAfter = condition.failureAfterMs.coerceAtLeast(0).milliseconds,
+        failureAfter = condition.failureAfterMs.coerceIn(0, MAX_SIMULATED_DELAY_MS).milliseconds,
         offline = false,
         downloadBytesPerSecond = condition.downloadBytesPerSecond?.takeIf { it > 0 },
         uploadBytesPerSecond = condition.uploadBytesPerSecond?.takeIf { it > 0 },
