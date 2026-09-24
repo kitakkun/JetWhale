@@ -261,6 +261,17 @@ class StorageBrowserTest {
     }
 
     @Test
+    fun `an upload into a directory that cannot be listed is not started`() {
+        val source = File.createTempFile("storage-upload", ".txt").apply { deleteOnExit() }
+        runBlocking { browser.load() }
+
+        browser.requestUpload(location("Files", "missing", "a.txt"), source)
+
+        assertEquals(true, browser.status?.isError)
+        assertTrue(client.chunkWrites.isEmpty())
+    }
+
+    @Test
     fun `a cancelled replacement sends nothing`() {
         val source = File.createTempFile("storage-upload", ".txt").apply { deleteOnExit() }
         runBlocking { browser.load() }

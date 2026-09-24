@@ -149,6 +149,19 @@ class PlatformFileSystemTest {
     }
 
     @Test
+    fun `a symbolic link planted at the staging path is refused and its target kept`() {
+        val other = File(directory, "other.bin").apply { writeText("keep") }
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1")
+        Files.createSymbolicLink(staging.toPath(), other.toPath())
+
+        assertFailsWith<IllegalArgumentException> {
+            receiveUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
+        }
+
+        assertEquals("keep", other.readText())
+    }
+
+    @Test
     fun `a chunk at the wrong offset discards the upload and keeps the target`() {
         val target = File(directory, "settings.bin").apply { writeText("old") }
         val staging = File(directory, ".settings.bin.jetwhale-upload-1")

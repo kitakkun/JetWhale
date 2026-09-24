@@ -231,7 +231,13 @@ internal class StorageBrowser(
 
     override fun requestUpload(target: FileLocation, source: File) = launchReporting {
         val parent = FileLocation(target.rootName, target.path.dropLast(1))
-        val exists = client.listDirectory(parent).entries.any { it.name == target.name }
+        val listing = client.listDirectory(parent)
+        // Without a listing there is no telling whether the upload would replace a file unasked.
+        listing.error?.let { error ->
+            status = StorageStatus(message = error, isError = true)
+            return@launchReporting
+        }
+        val exists = listing.entries.any { it.name == target.name }
         if (exists) pendingUpload = PendingUpload(target, source) else upload(target, source)
     }
 

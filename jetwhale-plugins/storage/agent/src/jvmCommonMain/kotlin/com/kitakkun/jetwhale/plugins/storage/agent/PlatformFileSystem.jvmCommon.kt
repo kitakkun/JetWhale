@@ -55,8 +55,15 @@ internal actual fun moveReplacing(source: String, target: String) {
     val targetFile = File(target)
     if (targetFile.isDirectory) throw IOException("'$target' is a directory, not a file to replace")
     if (File(source).renameTo(targetFile)) return
-    // POSIX systems replace the target atomically above; Windows refuses to rename over a file.
-    if (!targetFile.delete() || !File(source).renameTo(targetFile)) throw IOException("'$target' could not be replaced")
+    // POSIX systems replace the target atomically above; Windows refuses to rename over a file, so
+    // the target is moved aside first and put back if the replacement still fails.
+    val backup = File("$source.replaced")
+    if (!targetFile.renameTo(backup)) throw IOException("'$target' could not be replaced")
+    if (!File(source).renameTo(targetFile)) {
+        backup.renameTo(targetFile)
+        throw IOException("'$target' could not be replaced")
+    }
+    backup.delete()
 }
 
 internal actual fun deleteRecursively(path: String) {
