@@ -137,14 +137,21 @@ internal class ActionsBrowser(
         return result
     }
 
-    /** Asks the app for the current choices of every parameter of [action] that has some. */
+    /**
+     * Asks the app for the current choices of every parameter of [action] that has some. Requests
+     * overlap — a reselection, a catalog change — so only the latest one per action is kept.
+     */
     suspend fun loadOptions(action: ActionDescriptor): Map<String, List<String>> {
+        val request = Any()
+        latestOptionsRequest[action.id] = request
         val choices = action.parameters.filter(ActionParameter::hasOptions).associate { parameter ->
             parameter.name to client.options(action.id, parameter.name).values
         }
-        if (choices.isNotEmpty()) loadedOptions[action.id] = choices
+        if (choices.isNotEmpty() && latestOptionsRequest[action.id] === request) loadedOptions[action.id] = choices
         return choices
     }
+
+    private val latestOptionsRequest = mutableMapOf<String, Any>()
 
     private fun launchReporting(block: suspend () -> Unit) {
         scope.launch {
