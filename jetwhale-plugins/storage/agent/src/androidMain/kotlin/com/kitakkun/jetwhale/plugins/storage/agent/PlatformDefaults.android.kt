@@ -29,7 +29,7 @@ private class SharedPreferencesStore(
     private val context: Context,
     override val name: String,
 ) : KeyValueStore {
-    override fun entries(): List<KeyValueEntry> = context.getSharedPreferences(name, Context.MODE_PRIVATE).all.map { (key, value) ->
+    override suspend fun entries(): List<KeyValueEntry> = context.getSharedPreferences(name, Context.MODE_PRIVATE).all.map { (key, value) ->
         KeyValueEntry(
             key = key,
             value = if (value is Set<*>) value.joinToString() else value.toString(),
@@ -41,7 +41,7 @@ private class SharedPreferencesStore(
         )
     }
 
-    override fun remove(key: String) {
+    override suspend fun remove(key: String) {
         // commit() rather than apply(): the host re-reads the store right after, and apply() may
         // not have reached the file by then.
         check(context.getSharedPreferences(name, Context.MODE_PRIVATE).edit().remove(key).commit()) {

@@ -11,10 +11,10 @@ interface KeyValueStore {
     val name: String
 
     /** Every entry the store holds right now. */
-    fun entries(): List<KeyValueEntry>
+    suspend fun entries(): List<KeyValueEntry>
 
     /** Removes [key]; removing a key the store does not have is not an error. */
-    fun remove(key: String)
+    suspend fun remove(key: String)
 
     companion object
 }

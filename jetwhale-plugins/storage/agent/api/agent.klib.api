@@ -10,8 +10,8 @@ abstract interface com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore { /
     abstract val name // com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.name|{}name[0]
         abstract fun <get-name>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.name.<get-name>|<get-name>(){}[0]
 
-    abstract fun entries(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry> // com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.entries|entries(){}[0]
-    abstract fun remove(kotlin/String) // com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.remove|remove(kotlin.String){}[0]
+    abstract suspend fun entries(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry> // com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.entries|entries(){}[0]
+    abstract suspend fun remove(kotlin/String) // com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.remove|remove(kotlin.String){}[0]
 
     final object Companion // com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.Companion|null[0]
 }

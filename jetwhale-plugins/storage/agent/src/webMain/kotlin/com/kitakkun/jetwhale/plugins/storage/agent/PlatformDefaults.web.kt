@@ -13,12 +13,12 @@ actual fun KeyValueStore.Companion.platformDefaults(): List<KeyValueStore> =
     listOf("localStorage", "sessionStorage").filter(::isWebStorageDefined).map(::WebStorageStore)
 
 private class WebStorageStore(override val name: String) : KeyValueStore {
-    override fun entries(): List<KeyValueEntry> = (0 until webStorageLength(name)).mapNotNull { index ->
+    override suspend fun entries(): List<KeyValueEntry> = (0 until webStorageLength(name)).mapNotNull { index ->
         val key = webStorageKey(name, index) ?: return@mapNotNull null
         KeyValueEntry(key = key, value = webStorageGetItem(name, key) ?: "", type = "String")
     }
 
-    override fun remove(key: String) {
+    override suspend fun remove(key: String) {
         webStorageRemoveItem(name, key)
     }
 }

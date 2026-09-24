@@ -21,9 +21,9 @@ public final class com/kitakkun/jetwhale/plugins/storage/agent/JetWhaleStorageAg
 
 public abstract interface class com/kitakkun/jetwhale/plugins/storage/agent/KeyValueStore {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/storage/agent/KeyValueStore$Companion;
-	public abstract fun entries ()Ljava/util/List;
+	public abstract fun entries (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun getName ()Ljava/lang/String;
-	public abstract fun remove (Ljava/lang/String;)V
+	public abstract fun remove (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class com/kitakkun/jetwhale/plugins/storage/agent/KeyValueStore$Companion {

@@ -20,6 +20,7 @@ import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageOperationResult
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.reply
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.encoding.Base64
 
 /**
@@ -91,15 +92,19 @@ class JetWhaleStorageAgentPlugin(
         StorageOperationResult(error = e.describe())
     }
 
-    private fun readKeyValueStore(request: ReadKeyValueStore): KeyValueStoreContent = try {
+    private suspend fun readKeyValueStore(request: ReadKeyValueStore): KeyValueStoreContent = try {
         KeyValueStoreContent(entries = keyValueStore(request.storeName).entries().sortedBy(KeyValueEntry::key), error = null)
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         KeyValueStoreContent(entries = emptyList(), error = e.describe())
     }
 
-    private fun removeKeyValue(request: RemoveKeyValue): StorageOperationResult = try {
+    private suspend fun removeKeyValue(request: RemoveKeyValue): StorageOperationResult = try {
         keyValueStore(request.storeName).remove(request.key)
         StorageOperationResult(error = null)
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         StorageOperationResult(error = e.describe())
     }

@@ -30,7 +30,7 @@ actual fun KeyValueStore.Companion.platformDefaults(): List<KeyValueStore> =
 private class UserDefaultsStore(private val domain: String) : KeyValueStore {
     override val name: String get() = "NSUserDefaults"
 
-    override fun entries(): List<KeyValueEntry> {
+    override suspend fun entries(): List<KeyValueEntry> {
         // The persistent domain holds what the app itself wrote; dictionaryRepresentation() would
         // mix in every global and registration default as well.
         val values = NSUserDefaults.standardUserDefaults.persistentDomainForName(domain).orEmpty()
@@ -55,7 +55,7 @@ private class UserDefaultsStore(private val domain: String) : KeyValueStore {
         }
     }
 
-    override fun remove(key: String) {
+    override suspend fun remove(key: String) {
         NSUserDefaults.standardUserDefaults.removeObjectForKey(key)
     }
 }
