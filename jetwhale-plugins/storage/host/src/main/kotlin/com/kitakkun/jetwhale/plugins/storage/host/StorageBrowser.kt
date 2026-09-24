@@ -216,21 +216,21 @@ internal class StorageBrowser(
 
     override fun measureDirectory(location: FileLocation) = launchReporting {
         val measurement = client.measureDirectory(location)
-        val error = measurement.error
-        when {
-            error != null -> status = StorageStatus(message = error, isError = true)
-
-            // The user may have picked another entry while the walk was running.
-            selectedLocation == location -> directoryMeasurement = measurement
+        // The user may have picked another entry while the walk was running; its outcome, failure
+        // included, no longer belongs on screen.
+        if (selectedLocation != location) return@launchReporting
+        when (val error = measurement.error) {
+            null -> directoryMeasurement = measurement
+            else -> status = StorageStatus(message = error, isError = true)
         }
     }
 
     override fun computeSha256(location: FileLocation) = launchReporting {
         val digest = client.sha256Of(location)
-        val error = digest.error
-        when {
-            error != null -> status = StorageStatus(message = error, isError = true)
-            selectedLocation == location -> fileSha256 = digest.sha256Hex
+        if (selectedLocation != location) return@launchReporting
+        when (val error = digest.error) {
+            null -> fileSha256 = digest.sha256Hex
+            else -> status = StorageStatus(message = error, isError = true)
         }
     }
 

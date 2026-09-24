@@ -12,6 +12,7 @@ class FileKindTest {
         assertEquals(FileKind.Jpeg, fileKindOf("a", byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xE0.toByte())))
         assertEquals(FileKind.Pdf, fileKindOf("a", "%PDF-1.7".encodeToByteArray()))
         assertEquals(FileKind.Zip, fileKindOf("base.apk", byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0x14)))
+        assertEquals(FileKind.Zip, fileKindOf("empty.zip", byteArrayOf(0x50, 0x4B, 0x05, 0x06) + ByteArray(18)))
         assertEquals(FileKind.Gzip, fileKindOf("a.gz", byteArrayOf(0x1F, 0x8B.toByte(), 0x08)))
     }
 

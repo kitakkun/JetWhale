@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
+import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
@@ -158,6 +159,27 @@ class StorageBrowserTest {
 
         browser.select(browser.treeRows.first { it.location.name == "notes.txt" })
         assertNull(browser.directoryMeasurement)
+    }
+
+    @Test
+    fun `a failed measurement arriving after another entry was selected is dropped`() {
+        val walkGate = CompletableDeferred<Unit>()
+        val failingWalk = object : StorageClient by client {
+            override suspend fun measureDirectory(location: FileLocation): DirectoryMeasurement {
+                walkGate.await()
+                return DirectoryMeasurement(totalSizeBytes = 0, fileCount = 0, directoryCount = 0, truncated = false, error = "walk failed")
+            }
+        }
+        val slowBrowser = StorageBrowser(failingWalk, CoroutineScope(Dispatchers.Unconfined))
+        runBlocking { slowBrowser.load() }
+        slowBrowser.toggleDirectory(location("Files"))
+        slowBrowser.select(slowBrowser.treeRows.first { it.location.name == "datastore" })
+
+        slowBrowser.measureDirectory(location("Files", "datastore"))
+        slowBrowser.select(slowBrowser.treeRows.first { it.location.name == "notes.txt" })
+        walkGate.complete(Unit)
+
+        assertNull(slowBrowser.status)
     }
 
     @Test

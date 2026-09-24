@@ -35,7 +35,8 @@ internal fun fileKindOf(name: String, bytes: ByteArray): FileKind? = when {
 
     bytes.startsWith("%PDF-".encodeToByteArray()) -> FileKind.Pdf
 
-    bytes.startsWith(byteArrayOf(0x50, 0x4B, 0x03, 0x04)) -> FileKind.Zip
+    // A local file header, the end record an empty archive consists of, or a spanned archive's marker.
+    ZIP_SIGNATURES.any(bytes::startsWith) -> FileKind.Zip
 
     bytes.startsWith(byteArrayOf(0x1F, 0x8B.toByte())) -> FileKind.Gzip
 
@@ -54,3 +55,9 @@ private fun textKindOf(bytes: ByteArray): FileKind? {
 }
 
 private fun ByteArray.startsWith(prefix: ByteArray): Boolean = size >= prefix.size && prefix.indices.all { this[it] == prefix[it] }
+
+private val ZIP_SIGNATURES: List<ByteArray> = listOf(
+    byteArrayOf(0x50, 0x4B, 0x03, 0x04),
+    byteArrayOf(0x50, 0x4B, 0x05, 0x06),
+    byteArrayOf(0x50, 0x4B, 0x07, 0x08),
+)

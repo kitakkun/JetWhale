@@ -53,6 +53,8 @@ internal actual fun deleteRecursively(path: String) {
     deleteWithoutFollowingLinks(file)
 }
 
+internal actual fun isSymbolicLink(path: String): Boolean = File(path).isSymbolicLink()
+
 internal actual fun resolvesInside(path: String, root: String): Boolean {
     val canonicalRoot = File(root).canonicalFile
     return generateSequence(File(path).canonicalFile, File::getParentFile).any { it == canonicalRoot }

@@ -15,6 +15,9 @@ internal expect fun deleteRecursively(path: String)
 /** True when [path] is [root] or lies below it once every symbolic link in both is resolved. */
 internal expect fun resolvesInside(path: String, root: String): Boolean
 
+/** True when [path] itself is a symbolic link, looked at without following it. */
+internal expect fun isSymbolicLink(path: String): Boolean
+
 /**
  * Adds up [path] and everything below it, breadth first. A symbolic link counts as one file of no
  * size and is never followed. The walk stops after [entryLimit] entries and reports what it has
@@ -24,6 +27,7 @@ internal fun measureDirectoryTree(path: String, entryLimit: Int): DirectoryMeasu
     var totalSizeBytes = 0L
     var fileCount = 0
     var directoryCount = 0
+    if (isSymbolicLink(path)) return DirectoryMeasurement(totalSizeBytes = 0, fileCount = 1, directoryCount = 0, truncated = false, error = null)
     val pending = ArrayDeque(listOf(path))
     while (pending.isNotEmpty()) {
         val directory = pending.removeFirst()

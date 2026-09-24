@@ -105,6 +105,17 @@ class PlatformFileSystemTest {
     }
 
     @Test
+    fun `measuring a link to a directory counts the link and does not follow it`() {
+        val target = File(directory, "target").apply { mkdir() }
+        File(target, "big.bin").writeBytes(ByteArray(1000))
+        Files.createSymbolicLink(File(directory, "link").toPath(), target.toPath())
+
+        val measurement = measureDirectoryTree("${directory.path}/link", entryLimit = 100)
+
+        assertEquals(DirectoryMeasurement(totalSizeBytes = 0, fileCount = 1, directoryCount = 0, truncated = false, error = null), measurement)
+    }
+
+    @Test
     fun `measuring stops at the entry limit`() {
         repeat(10) { File(directory, "f$it").writeText("x") }
 
