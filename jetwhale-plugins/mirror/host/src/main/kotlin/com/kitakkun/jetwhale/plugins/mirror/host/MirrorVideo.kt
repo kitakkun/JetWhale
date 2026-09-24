@@ -61,27 +61,28 @@ internal fun MirrorVideo(
     Canvas(modifier.then(input).onSizeChanged { surface.viewSize = it }) {
         surface.frameCounter
         val started = System.nanoTime()
-        val bitmap = surface.frameForDraw() ?: return@Canvas
-        val fitted = FittedFrame(bitmap.width, bitmap.height, size.width, size.height)
-        drawn.fitted = fitted
-        drawn.frameSize = IntSize(bitmap.width, bitmap.height)
-        val bounds = fitted.bounds
-        Image.makeFromBitmap(bitmap).use { image ->
-            drawIntoCanvas { canvas ->
-                canvas.skiaCanvas.drawImageRect(
-                    image,
-                    Rect.makeWH(bitmap.width.toFloat(), bitmap.height.toFloat()),
-                    Rect.makeLTRB(l = bounds.left, t = bounds.top, r = bounds.right, b = bounds.bottom),
-                    // Shrinking a phone screen by half or more with plain bilinear sampling skips
-                    // source pixels and leaves text jagged; mipmaps average them. Enlarging has
-                    // nothing to average, so bilinear does there.
-                    if (bounds.width < bitmap.width) SHRINKING else SamplingMode.LINEAR,
-                    null,
-                    true,
-                )
+        surface.drawFrame { bitmap ->
+            val fitted = FittedFrame(bitmap.width, bitmap.height, size.width, size.height)
+            drawn.fitted = fitted
+            drawn.frameSize = IntSize(bitmap.width, bitmap.height)
+            val bounds = fitted.bounds
+            Image.makeFromBitmap(bitmap).use { image ->
+                drawIntoCanvas { canvas ->
+                    canvas.skiaCanvas.drawImageRect(
+                        image,
+                        Rect.makeWH(bitmap.width.toFloat(), bitmap.height.toFloat()),
+                        Rect.makeLTRB(l = bounds.left, t = bounds.top, r = bounds.right, b = bounds.bottom),
+                        // Shrinking a phone screen by half or more with plain bilinear sampling skips
+                        // source pixels and leaves text jagged; mipmaps average them. Enlarging has
+                        // nothing to average, so bilinear does there.
+                        if (bounds.width < bitmap.width) SHRINKING else SamplingMode.LINEAR,
+                        null,
+                        true,
+                    )
+                }
             }
+            surface.recordDraw(System.nanoTime() - started)
         }
-        surface.recordDraw(System.nanoTime() - started)
     }
 }
 

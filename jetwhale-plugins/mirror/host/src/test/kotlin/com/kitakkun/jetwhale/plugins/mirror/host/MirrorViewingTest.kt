@@ -80,7 +80,7 @@ class MirrorViewingTest {
         surface.writeFrame(width = 4, height = 4, write = fill(Color.RED))
         surface.writeFrame(width = 4, height = 4, write = fill(Color.BLUE))
 
-        val drawn = surface.frameForDraw()
+        val drawn = surface.drawnFrame()
 
         assertEquals(Color.BLUE, drawn?.getColor(0, 0))
     }
@@ -90,9 +90,9 @@ class MirrorViewingTest {
         val surface = MirrorSurface()
         surface.writeFrame(width = 4, height = 4, write = fill(Color.RED))
 
-        val first = surface.frameForDraw()
+        val first = surface.drawnFrame()
 
-        assertSame(first, surface.frameForDraw())
+        assertSame(first, surface.drawnFrame())
     }
 
     @Test
@@ -143,14 +143,56 @@ class MirrorViewingTest {
 
         surface.writeFrame(width = 4, height = 4, write = fill(Color.BLUE))
 
-        assertNull(surface.frameForDraw())
+        assertNull(surface.drawnFrame())
+    }
+
+    @Test
+    fun `closing during a draw leaves the drawn frame open until the draw ends`() {
+        val surface = MirrorSurface()
+        surface.writeFrame(width = 4, height = 4, write = fill(Color.RED))
+        var openAfterClose = false
+        var drawn: Bitmap? = null
+
+        surface.drawFrame { bitmap ->
+            drawn = bitmap
+            thread(block = surface::close).join()
+            openAfterClose = !bitmap.isClosed
+        }
+
+        assertTrue(openAfterClose)
+        assertTrue(drawn?.isClosed ?: false)
+    }
+
+    @Test
+    fun `every bitmap a decoder writes is freed however its last frame races the close`() {
+        repeat(CLOSE_RACE_ROUNDS) {
+            val surface = MirrorSurface()
+            val written = mutableListOf<Bitmap>()
+            val started = CountDownLatch(1)
+            val decoder = thread {
+                repeat(FRAMES_PER_ROUND) { frame ->
+                    // Alternating sizes allocates a new bitmap on most frames.
+                    val side = if (frame % 2 == 0) 4 else 8
+                    surface.writeFrame(width = side, height = side) { bitmap ->
+                        written += bitmap
+                        started.countDown()
+                        true
+                    }
+                }
+            }
+            started.await()
+            surface.close()
+            decoder.join()
+
+            assertTrue(written.all(Bitmap::isClosed))
+        }
     }
 
     @Test
     fun `the decoder never writes into the bitmap being drawn`() {
         val surface = MirrorSurface()
         surface.writeFrame(width = 4, height = 4, write = fill(Color.RED))
-        val onScreen = surface.frameForDraw()
+        val onScreen = surface.drawnFrame()
         val written = mutableListOf<Any>()
 
         repeat(3) {
@@ -165,10 +207,20 @@ class MirrorViewingTest {
     }
 }
 
+// The bitmap a draw was given; it stays open after the draw as long as the surface does.
+private fun MirrorSurface.drawnFrame(): Bitmap? {
+    var drawn: Bitmap? = null
+    drawFrame { drawn = it }
+    return drawn
+}
+
 private fun fill(color: Int): (Bitmap) -> Boolean = { bitmap ->
     bitmap.erase(color)
     true
 }
+
+private const val CLOSE_RACE_ROUNDS = 200
+private const val FRAMES_PER_ROUND = 50
 
 /** Long enough for an unguarded clear to finish while the write is still running. */
 private const val CLEAR_GRACE_MILLIS = 200L
