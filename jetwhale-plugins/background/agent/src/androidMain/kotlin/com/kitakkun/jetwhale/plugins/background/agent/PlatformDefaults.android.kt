@@ -68,7 +68,8 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
             constraints = jobConstraints(job),
             nextRunEpochMillis = null,
             periodMillis = job.intervalMillis.takeIf { job.isPeriodic },
-            flexMillis = job.flexMillis.takeIf { job.isPeriodic },
+            // getFlexMillis arrived in API 24, a year after the rest of these accessors.
+            flexMillis = job.flexMillis.takeIf { job.isPeriodic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N },
             progress = emptyMap(),
             output = emptyMap(),
             stopReason = null,
