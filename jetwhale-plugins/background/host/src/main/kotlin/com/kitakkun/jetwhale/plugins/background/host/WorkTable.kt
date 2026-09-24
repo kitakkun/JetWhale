@@ -18,12 +18,6 @@ import java.time.format.DateTimeFormatter
 /** Fits "Scheduled", the longest state name, as a tag. */
 private val StateColumnWidth = 104.dp
 
-/** Fits "JobScheduler", the longest built-in source name. */
-private val SourceColumnWidth = 112.dp
-
-/** Fits the "Earliest run" header and a same-day time with seconds. */
-private val NextRunColumnWidth = 104.dp
-
 internal val TimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault())
 
 internal val DateTimeFormatterLong: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
@@ -41,10 +35,12 @@ internal fun WorkTable(
             JwTableColumn.text(header = "Name", width = JwColumnWidth.Weight(2f)) { shortName(it.name) },
             JwTableColumn(header = "State", width = JwColumnWidth.Fixed(StateColumnWidth)) { item -> StateTag(item.state) },
             JwTableColumn.text(header = "Tags", width = JwColumnWidth.Weight(1f)) { it.tags.joinToString() },
-            JwTableColumn.text(header = "Earliest run", width = JwColumnWidth.Fixed(NextRunColumnWidth)) { item ->
+            // Only the state is fixed: the list pane can be narrow, and fixed columns alone would
+            // leave the name no room at all.
+            JwTableColumn.text(header = "Earliest run", width = JwColumnWidth.Weight(0.8f)) { item ->
                 item.nextRunEpochMillis?.let { TimeFormatter.format(Instant.ofEpochMilli(it)) }.orEmpty()
             },
-            JwTableColumn.text(header = "Source", width = JwColumnWidth.Fixed(SourceColumnWidth), text = BackgroundWorkItem::source),
+            JwTableColumn.text(header = "Source", width = JwColumnWidth.Weight(0.8f), text = BackgroundWorkItem::source),
         ),
         key = BackgroundWorkItem::key,
         isSelected = { it.key == selectedKey },
