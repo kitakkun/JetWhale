@@ -412,7 +412,9 @@ public final class com/kitakkun/jetwhale/plugins/network/protocol/NetworkConditi
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/protocol/NetworkConditionModelsKt {
+	public static final field MAX_SIMULATED_DELAY_MS J
 	public static final fun findMatchingCondition (Ljava/util/List;Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/network/protocol/NetworkConditionRule;
+	public static final fun problems (Lcom/kitakkun/jetwhale/plugins/network/protocol/NetworkCondition;)Ljava/util/List;
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/protocol/NetworkConditionRule {
