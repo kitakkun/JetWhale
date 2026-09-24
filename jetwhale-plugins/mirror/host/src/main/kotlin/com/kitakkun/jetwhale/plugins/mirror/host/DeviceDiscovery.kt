@@ -1,5 +1,8 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
 /** What one look for devices found, and what kept it from finding more. */
 internal class Discovery(
     val devices: List<MirrorDevice>,
@@ -17,12 +20,16 @@ internal class DeviceDiscovery(
 ) {
     private val known = mutableMapOf<String, MirrorDevice>()
 
-    suspend fun discover(): Discovery {
+    // The mirror's refresh loop and the listDevices tool look at the same time; one look at a time
+    // keeps a device from getting two controllers.
+    private val looking = Mutex()
+
+    suspend fun discover(): Discovery = looking.withLock {
         val listings = listAndroid() + listSimulators() + listIosDevices()
         val devices = listings.map { listing -> known[listing.id]?.takeIf { it.listing == listing } ?: MirrorDevice(listing, controllerFor(listing)) }
         known.keys.retainAll(devices.map(MirrorDevice::id).toSet())
         devices.forEach { known[it.id] = it }
-        return Discovery(devices = devices, missingTools = missingTools())
+        Discovery(devices = devices, missingTools = missingTools())
     }
 
     private suspend fun listAndroid(): List<DeviceListing> {
