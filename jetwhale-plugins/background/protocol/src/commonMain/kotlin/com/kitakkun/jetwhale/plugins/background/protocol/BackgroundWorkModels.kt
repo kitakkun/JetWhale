@@ -29,7 +29,8 @@ enum class WorkState {
  * @property uniqueName The unique work name, when the source can tell.
  * @property runAttemptCount How many times it has been attempted, when the source counts.
  * @property constraints Human-readable conditions it waits for, such as "network: UNMETERED".
- * @property nextRunEpochMillis The earliest time it may run next, when the source knows.
+ * @property nextRunEpochMillis The earliest time it may run next, when the source knows. Work still
+ *   waiting for its constraints may already be past it.
  * @property periodMillis The repeat interval of periodic work; null for one-off work.
  * @property flexMillis The flex window of periodic work.
  * @property progress The progress data a running worker has published.
