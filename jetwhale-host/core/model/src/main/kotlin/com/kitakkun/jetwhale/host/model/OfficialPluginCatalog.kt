@@ -99,5 +99,11 @@ object OfficialPluginCatalog {
             agentRegistration = "JetWhaleStorageAgentPlugin.platformDefaults()",
             guidePath = "storage-inspector",
         ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.coroutines",
+            displayName = "Coroutine Inspector",
+            description = "Watch the coroutines, dispatchers and flows of connected debug sessions.",
+            artifactId = "jetwhale-coroutine-inspector",
+        ),
     )
 }
