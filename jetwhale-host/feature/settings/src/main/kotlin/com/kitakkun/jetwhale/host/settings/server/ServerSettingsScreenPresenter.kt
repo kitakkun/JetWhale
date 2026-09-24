@@ -2,17 +2,15 @@ package com.kitakkun.jetwhale.host.settings.server
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugServerSettings
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
-import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
 import com.kitakkun.jetwhale.host.model.McpHostGroupPermissionParams
 import com.kitakkun.jetwhale.host.model.McpPermissionsSnapshot
 import com.kitakkun.jetwhale.host.model.McpPluginPermissionParams
@@ -20,10 +18,13 @@ import com.kitakkun.jetwhale.host.model.McpPluginToolPermissionParams
 import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.SslCertificateEntry
 import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
+import soil.query.compose.MutationObject
 import soil.query.compose.rememberMutation
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private val BINDABLE_PORTS = 1..65535
 
 @Composable
 context(presenterContext: SettingsPresenterContext)
@@ -32,13 +33,74 @@ fun serverSettingsScreenPresenter(
     serverStatus: DebugWebSocketServerStatus,
     mcpPermissionsSnapshot: McpPermissionsSnapshot,
     mcpServerStatus: McpServerStatus,
-    debuggerSettings: DebuggerBehaviorSettings,
+    debugServerSettings: DebugServerSettings,
+    mcpServerPort: Int,
     sslCertificates: List<SslCertificateEntry>,
 ): ServerSettingsScreenUiState {
-    val certificates by remember(sslCertificates) {
-        derivedStateOf {
+    val editing = remember { ServerSettingsEditingState(debugServerSettings, mcpServerPort) }
+    editing.savedDebugServerSettings = debugServerSettings
+    editing.savedMcpServerPort = mcpServerPort
+    editing.serverStatus = serverStatus
+    editing.mcpServerStatus = mcpServerStatus
+    editing.sslCertificates = sslCertificates
+
+    val mutations = rememberServerSettingsMutations()
+
+    LaunchedEffect(serverStatus) {
+        if (serverStatus is DebugWebSocketServerStatus.Started) {
+            editing.debugPortText = serverStatus.port.toString()
+        }
+    }
+
+    // A Started status carries a null wss port both when the connector is switched off and when it
+    // was asked for but could not bind, so reading the switch back off the status would silently
+    // turn wss off in the second case and the next Apply would persist that. The store is the whole
+    // truth here; launch overrides reach these values through the repository too.
+    LaunchedEffect(debugServerSettings.wssEnabled, debugServerSettings.wssPort) {
+        editing.wssEnabled = debugServerSettings.wssEnabled
+        editing.wssPortText = debugServerSettings.wssPort.toString()
+    }
+
+    LaunchedEffect(mcpServerStatus) {
+        if (mcpServerStatus is McpServerStatus.Running) {
+            editing.mcpPortText = mcpServerStatus.port.toString()
+        }
+    }
+
+    ActionEffect(screenChannel) { action -> editing.applyAction(action, mutations) }
+
+    return editing.toUiState(mcpPermissionsSnapshot)
+}
+
+/**
+ * What the Debug Server page is showing and what the user has typed into it but not applied yet.
+ *
+ * Every field the action handler and the rendered state read lives here, because the handler is
+ * installed once per screen channel and would otherwise keep reading the first composition's values.
+ */
+@Stable
+private class ServerSettingsEditingState(
+    savedDebugServerSettings: DebugServerSettings,
+    savedMcpServerPort: Int,
+) {
+    var savedDebugServerSettings: DebugServerSettings by mutableStateOf(savedDebugServerSettings)
+    var savedMcpServerPort: Int by mutableStateOf(savedMcpServerPort)
+    var serverStatus: DebugWebSocketServerStatus by mutableStateOf(DebugWebSocketServerStatus.Stopped)
+    var mcpServerStatus: McpServerStatus by mutableStateOf(McpServerStatus.Stopped)
+    var sslCertificates: List<SslCertificateEntry> by mutableStateOf(emptyList())
+
+    var debugPortText: String by mutableStateOf(savedDebugServerSettings.serverPort.toString())
+    var wssPortText: String by mutableStateOf(savedDebugServerSettings.wssPort.toString())
+    var wssEnabled: Boolean by mutableStateOf(savedDebugServerSettings.wssEnabled)
+    var mcpPortText: String by mutableStateOf(savedMcpServerPort.toString())
+    var showDebugApplyConfirmDialog: Boolean by mutableStateOf(false)
+    var showMcpApplyConfirmDialog: Boolean by mutableStateOf(false)
+    var certificateDetailDialogEntry: CertificateUiEntry? by mutableStateOf(null)
+
+    val certificates: List<CertificateUiEntry>
+        get() {
             val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-            sslCertificates.map { entry ->
+            return sslCertificates.map { entry ->
                 CertificateUiEntry(
                     id = entry.id,
                     name = entry.name,
@@ -48,285 +110,228 @@ fun serverSettingsScreenPresenter(
                 )
             }
         }
-    }
 
-    var editingDebugPortText by remember { mutableStateOf(debuggerSettings.serverPort.toString()) }
-    var editingWssPortText by remember { mutableStateOf(debuggerSettings.wssPort.toString()) }
-    var editingWssEnabled by remember { mutableStateOf(debuggerSettings.wssEnabled) }
-    var certificateDetailDialogEntry by remember { mutableStateOf<CertificateUiEntry?>(null) }
-    var editingMcpPortText by remember { mutableStateOf(debuggerSettings.mcpServerPort.toString()) }
-    var showDebugApplyConfirmDialog by remember { mutableStateOf(false) }
-    var showMcpApplyConfirmDialog by remember { mutableStateOf(false) }
+    private val isDebugDirty: Boolean
+        get() = debugPortText != savedDebugServerSettings.serverPort.toString() ||
+            wssPortText != savedDebugServerSettings.wssPort.toString() ||
+            wssEnabled != savedDebugServerSettings.wssEnabled
 
-    val debugServerSettingsMutation = rememberMutation(presenterContext.debugServerSettingsMutationKey)
-    val mcpPortMutation = rememberMutation(presenterContext.mcpServerPortMutationKey)
-    val generateCertificateMutation = rememberMutation(presenterContext.generateSslCertificateMutationKey)
-    val activateCertificateMutation = rememberMutation(presenterContext.activateSslCertificateMutationKey)
-    val deleteCertificateMutation = rememberMutation(presenterContext.deleteSslCertificateMutationKey)
-    val hostGroupPermissionMutation = rememberMutation(presenterContext.mcpHostGroupPermissionMutationKey)
-    val pluginInspectPermissionMutation = rememberMutation(presenterContext.mcpPluginInspectPermissionMutationKey)
-    val pluginInteractPermissionMutation = rememberMutation(presenterContext.mcpPluginInteractPermissionMutationKey)
-    val pluginToolPermissionMutation = rememberMutation(presenterContext.mcpPluginToolPermissionMutationKey)
+    private val isMcpDirty: Boolean get() = mcpPortText != savedMcpServerPort.toString()
 
-    val savedDebugPortText by rememberUpdatedState(debuggerSettings.serverPort.toString())
-    val savedWssPortText by rememberUpdatedState(debuggerSettings.wssPort.toString())
-    val savedWssEnabled by rememberUpdatedState(debuggerSettings.wssEnabled)
-    val savedMcpPortText by rememberUpdatedState(debuggerSettings.mcpServerPort.toString())
+    private val parsedDebugPort: Int? get() = debugPortText.toIntOrNull()?.takeIf(BINDABLE_PORTS::contains)
 
-    val isDebugDirty by remember {
-        derivedStateOf {
-            editingDebugPortText != savedDebugPortText ||
-                editingWssPortText != savedWssPortText ||
-                editingWssEnabled != savedWssEnabled
-        }
-    }
-    val isMcpDirty by remember { derivedStateOf { editingMcpPortText != savedMcpPortText } }
-
-    val parsedDebugPort by remember { derivedStateOf { editingDebugPortText.toIntOrNull()?.takeIf { it in 1..65535 } } }
     // Validated even while the connector is switched off: the port is stored either way, and a
     // rejected value would otherwise only surface on the restart that switches wss back on.
-    val parsedWssPort by remember { derivedStateOf { editingWssPortText.toIntOrNull()?.takeIf { it in 1..65535 } } }
-    val parsedMcpPort by remember { derivedStateOf { editingMcpPortText.toIntOrNull() } }
+    private val parsedWssPort: Int? get() = wssPortText.toIntOrNull()?.takeIf(BINDABLE_PORTS::contains)
 
-    val debugServerSettingsError by remember {
-        derivedStateOf {
-            when {
-                parsedDebugPort == null || parsedWssPort == null -> DebugServerSettingsError.InvalidPort
-                editingWssEnabled && parsedDebugPort == parsedWssPort -> DebugServerSettingsError.PortConflict
-                else -> null
-            }
+    private val parsedMcpPort: Int? get() = mcpPortText.toIntOrNull()
+
+    private val isMcpPortValid: Boolean get() = parsedMcpPort in BINDABLE_PORTS
+
+    private val debugServerSettingsError: DebugServerSettingsError?
+        get() = when {
+            parsedDebugPort == null || parsedWssPort == null -> DebugServerSettingsError.InvalidPort
+            wssEnabled && parsedDebugPort == parsedWssPort -> DebugServerSettingsError.PortConflict
+            else -> null
         }
-    }
 
     /** The edited debug server configuration, or null while it is not one the server could bind. */
-    val editedDebugServerSettings by remember {
-        derivedStateOf {
-            if (debugServerSettingsError != null) return@derivedStateOf null
-            DebugServerSettings(
-                serverPort = parsedDebugPort ?: return@derivedStateOf null,
-                wssPort = parsedWssPort ?: return@derivedStateOf null,
-                wssEnabled = editingWssEnabled,
-            )
+    private val editedDebugServerSettings: DebugServerSettings?
+        get() {
+            if (debugServerSettingsError != null) return null
+            val serverPort = parsedDebugPort ?: return null
+            val wssPort = parsedWssPort ?: return null
+            return DebugServerSettings(serverPort = serverPort, wssPort = wssPort, wssEnabled = wssEnabled)
         }
-    }
-    val isMcpPortValid by remember { derivedStateOf { parsedMcpPort != null && parsedMcpPort in 1..65535 } }
 
-    // A failed start leaves the port setting untouched, so gating the button on dirtiness alone
-    // would make retrying the same port impossible without editing it away and back again.
-    val isDebugStartFailed by rememberUpdatedState(serverStatus is DebugWebSocketServerStatus.Error)
-    val isMcpStartFailed by rememberUpdatedState(mcpServerStatus is McpServerStatus.Error)
+    // A failed start leaves the port setting untouched, so gating Apply on dirtiness alone would
+    // make retrying the same port impossible without editing it away and back again.
+    private val isDebugStartFailed: Boolean get() = serverStatus is DebugWebSocketServerStatus.Error
 
-    // The snippets must describe the endpoint an agent can actually reach right now, so they follow
-    // the running server rather than the (possibly unapplied) port text field.
-    val runningMcpStatus by rememberUpdatedState(mcpServerStatus as? McpServerStatus.Running)
-    val savedMcpPort by rememberUpdatedState(debuggerSettings.mcpServerPort)
-    val mcpEndpointUrl by remember {
-        derivedStateOf {
-            val host = runningMcpStatus?.host ?: "localhost"
-            val port = runningMcpStatus?.port ?: savedMcpPort
-            "http://$host:$port/sse"
-        }
-    }
+    private val isMcpStartFailed: Boolean get() = mcpServerStatus is McpServerStatus.Error
 
-    LaunchedEffect(serverStatus) {
-        if (serverStatus is DebugWebSocketServerStatus.Started) {
-            editingDebugPortText = serverStatus.port.toString()
-        }
-    }
-
-    // The wss fields follow the stored settings rather than the running server, because a Started
-    // status carries a null wss port in two different situations: the connector is switched off, and
-    // the connector was asked for but could not bind (an unloadable certificate leaves plain ws
-    // running on its own). Reading the switch back off the status would silently turn wss off in the
-    // second case, and the next Apply would persist that. Launch overrides already reach these
-    // values through the repository, so the store is the whole truth here.
-    LaunchedEffect(debuggerSettings.wssEnabled, debuggerSettings.wssPort) {
-        editingWssEnabled = debuggerSettings.wssEnabled
-        editingWssPortText = debuggerSettings.wssPort.toString()
-    }
-
-    LaunchedEffect(mcpServerStatus) {
-        if (mcpServerStatus is McpServerStatus.Running) {
-            editingMcpPortText = mcpServerStatus.port.toString()
-        }
-    }
-
-    ActionEffect(screenChannel) { action ->
+    suspend fun applyAction(action: ServerSettingsScreenAction, mutations: ServerSettingsMutations) {
         when (action) {
-            is ServerSettingsScreenAction.ChangeDebugPortText -> {
-                editingDebugPortText = action.text.filter { it.isDigit() }
-            }
+            is ServerSettingsScreenAction.ChangeDebugPortText -> debugPortText = action.text.filter(Char::isDigit)
 
-            is ServerSettingsScreenAction.ChangeWssPortText -> {
-                editingWssPortText = action.text.filter { it.isDigit() }
-            }
+            is ServerSettingsScreenAction.ChangeWssPortText -> wssPortText = action.text.filter(Char::isDigit)
 
-            is ServerSettingsScreenAction.ChangeWssEnabled -> {
-                editingWssEnabled = action.enabled
-            }
+            is ServerSettingsScreenAction.ChangeWssEnabled -> wssEnabled = action.enabled
 
-            ServerSettingsScreenAction.ApplyDebugServerSettingsChange -> {
-                val settings = editedDebugServerSettings ?: return@ActionEffect
+            is ServerSettingsScreenAction.ApplyDebugServerSettingsChange -> {
+                val settings = editedDebugServerSettings ?: return
                 when {
                     isDebugDirty -> showDebugApplyConfirmDialog = true
 
                     // Nothing is listening after a failed start, so there are no connected clients
                     // a restart could disrupt — retry without asking.
-                    isDebugStartFailed -> debugServerSettingsMutation.mutateAsync(settings)
+                    isDebugStartFailed -> mutations.debugServerSettings.mutateAsync(settings)
                 }
             }
 
-            ServerSettingsScreenAction.ConfirmApplyDebugServerSettingsChange -> {
-                val settings = editedDebugServerSettings ?: return@ActionEffect
+            is ServerSettingsScreenAction.ConfirmApplyDebugServerSettingsChange -> {
+                val settings = editedDebugServerSettings ?: return
                 showDebugApplyConfirmDialog = false
-                debugServerSettingsMutation.mutateAsync(settings)
+                mutations.debugServerSettings.mutateAsync(settings)
             }
 
-            ServerSettingsScreenAction.DismissApplyDebugServerSettingsDialog -> {
-                showDebugApplyConfirmDialog = false
-            }
+            is ServerSettingsScreenAction.DismissApplyDebugServerSettingsDialog -> showDebugApplyConfirmDialog = false
 
-            is ServerSettingsScreenAction.ChangeMcpPortText -> {
-                editingMcpPortText = action.text.filter { it.isDigit() }
-            }
+            is ServerSettingsScreenAction.ChangeMcpPortText -> mcpPortText = action.text.filter(Char::isDigit)
 
-            ServerSettingsScreenAction.ApplyMcpPortChange -> {
-                if (!isMcpPortValid) return@ActionEffect
+            is ServerSettingsScreenAction.ApplyMcpPortChange -> {
+                if (!isMcpPortValid) return
                 when {
                     isMcpDirty -> showMcpApplyConfirmDialog = true
-                    isMcpStartFailed -> mcpPortMutation.mutateAsync(parsedMcpPort ?: return@ActionEffect)
+                    isMcpStartFailed -> mutations.mcpPort.mutateAsync(parsedMcpPort ?: return)
                 }
             }
 
-            ServerSettingsScreenAction.ConfirmApplyMcpPortChange -> {
-                val port = parsedMcpPort ?: return@ActionEffect
-                if (!isMcpPortValid) return@ActionEffect
+            is ServerSettingsScreenAction.ConfirmApplyMcpPortChange -> {
+                val port = parsedMcpPort ?: return
+                if (!isMcpPortValid) return
                 showMcpApplyConfirmDialog = false
-                mcpPortMutation.mutateAsync(port)
+                mutations.mcpPort.mutateAsync(port)
             }
 
-            ServerSettingsScreenAction.DismissApplyMcpPortDialog -> {
-                showMcpApplyConfirmDialog = false
-            }
+            is ServerSettingsScreenAction.DismissApplyMcpPortDialog -> showMcpApplyConfirmDialog = false
 
-            is ServerSettingsScreenAction.SetHostGroupAllowed -> {
-                hostGroupPermissionMutation.mutateAsync(McpHostGroupPermissionParams(action.group, action.allowed))
-            }
+            is ServerSettingsScreenAction.SetHostGroupAllowed ->
+                mutations.hostGroupPermission.mutateAsync(McpHostGroupPermissionParams(action.group, action.allowed))
 
-            is ServerSettingsScreenAction.SetPluginInspectAllowed -> {
-                pluginInspectPermissionMutation.mutateAsync(McpPluginPermissionParams(action.pluginId, action.allowed))
-            }
+            is ServerSettingsScreenAction.SetPluginInspectAllowed ->
+                mutations.pluginInspectPermission.mutateAsync(McpPluginPermissionParams(action.pluginId, action.allowed))
 
-            is ServerSettingsScreenAction.SetPluginInteractAllowed -> {
-                pluginInteractPermissionMutation.mutateAsync(McpPluginPermissionParams(action.pluginId, action.allowed))
-            }
+            is ServerSettingsScreenAction.SetPluginInteractAllowed ->
+                mutations.pluginInteractPermission.mutateAsync(McpPluginPermissionParams(action.pluginId, action.allowed))
 
-            is ServerSettingsScreenAction.SetPluginToolAllowed -> {
-                pluginToolPermissionMutation.mutateAsync(McpPluginToolPermissionParams(action.toolName, action.allowed))
-            }
+            is ServerSettingsScreenAction.SetPluginToolAllowed ->
+                mutations.pluginToolPermission.mutateAsync(McpPluginToolPermissionParams(action.toolName, action.allowed))
 
-            ServerSettingsScreenAction.AddCertificate -> {
+            is ServerSettingsScreenAction.AddCertificate -> {
                 // A newly generated certificate becomes the active one; the running TLS server
                 // hot-swaps to it automatically.
-                generateCertificateMutation.mutateAsync(null)
+                mutations.generateCertificate.mutateAsync(null)
             }
 
-            is ServerSettingsScreenAction.SetActiveCertificate -> {
-                activateCertificateMutation.mutateAsync(action.id)
-            }
+            is ServerSettingsScreenAction.SetActiveCertificate -> mutations.activateCertificate.mutateAsync(action.id)
 
             is ServerSettingsScreenAction.DeleteCertificate -> {
-                deleteCertificateMutation.mutateAsync(action.id)
+                mutations.deleteCertificate.mutateAsync(action.id)
                 if (certificateDetailDialogEntry?.id == action.id) {
                     certificateDetailDialogEntry = null
                 }
             }
 
-            is ServerSettingsScreenAction.ShowCertificateDetail -> {
+            is ServerSettingsScreenAction.ShowCertificateDetail ->
                 certificateDetailDialogEntry = certificates.find { it.id == action.id }
-            }
 
-            ServerSettingsScreenAction.DismissCertificateDetailDialog -> {
-                certificateDetailDialogEntry = null
-            }
+            is ServerSettingsScreenAction.DismissCertificateDetailDialog -> certificateDetailDialogEntry = null
         }
     }
 
-    return ServerSettingsScreenUiState(
-        debugServerState = when (serverStatus) {
-            is DebugWebSocketServerStatus.Stopped -> ServerState.Stopped
+    fun toUiState(mcpPermissionsSnapshot: McpPermissionsSnapshot): ServerSettingsScreenUiState {
+        // The snippets must describe the endpoint an agent can actually reach right now, so they
+        // follow the running server rather than the (possibly unapplied) port text field.
+        val runningMcpStatus = mcpServerStatus as? McpServerStatus.Running
+        val mcpEndpointUrl = "http://${runningMcpStatus?.host ?: "localhost"}:${runningMcpStatus?.port ?: savedMcpServerPort}/sse"
+        return ServerSettingsScreenUiState(
+            debugServerState = serverStatus.toServerState(),
+            mcpServerState = mcpServerStatus.toServerState(),
+            editingDebugPortText = debugPortText,
+            editingWssPortText = wssPortText,
+            editingWssEnabled = wssEnabled,
+            // Reporting an error against values the user has not touched yet would flag a stored
+            // configuration they cannot be in the middle of mistyping.
+            debugServerSettingsError = debugServerSettingsError.takeIf { isDebugDirty },
+            editingMcpPortText = mcpPortText,
+            mcpClaudeCodeCommand = "claude mcp add --transport sse jetwhale $mcpEndpointUrl",
+            mcpJsonConfig = mcpJsonConfig(mcpEndpointUrl),
+            mcpPermissions = mcpPermissionsSnapshot.toMcpPermissionsUiState(),
+            isDebugApplyVisible = isDebugDirty || isDebugStartFailed,
+            isMcpApplyVisible = isMcpDirty || isMcpStartFailed,
+            isDebugApplyEnabled = editedDebugServerSettings != null && (isDebugDirty || isDebugStartFailed),
+            isMcpApplyEnabled = isMcpPortValid && (isMcpDirty || isMcpStartFailed),
+            isDebugRetry = isDebugStartFailed && !isDebugDirty,
+            isMcpRetry = isMcpStartFailed && !isMcpDirty,
+            showDebugApplyConfirmDialog = showDebugApplyConfirmDialog,
+            showMcpApplyConfirmDialog = showMcpApplyConfirmDialog,
+            certificates = certificates,
+            certificateDetailDialogEntry = certificateDetailDialogEntry,
+        )
+    }
+}
 
-            is DebugWebSocketServerStatus.Starting -> ServerState.Starting
+/** The mutations the Debug Server page drives, held together so the action handler takes one object. */
+@Stable
+private class ServerSettingsMutations(
+    val debugServerSettings: MutationObject<Unit, DebugServerSettings>,
+    val mcpPort: MutationObject<Unit, Int>,
+    val generateCertificate: MutationObject<SslCertificateEntry, String?>,
+    val activateCertificate: MutationObject<Boolean, String>,
+    val deleteCertificate: MutationObject<Boolean, String>,
+    val hostGroupPermission: MutationObject<Unit, McpHostGroupPermissionParams>,
+    val pluginInspectPermission: MutationObject<Unit, McpPluginPermissionParams>,
+    val pluginInteractPermission: MutationObject<Unit, McpPluginPermissionParams>,
+    val pluginToolPermission: MutationObject<Unit, McpPluginToolPermissionParams>,
+)
 
-            is DebugWebSocketServerStatus.Started -> ServerState.Running(
-                host = serverStatus.host,
-                port = serverStatus.port,
-                wssPort = serverStatus.wssPort,
-            )
+@Composable
+context(presenterContext: SettingsPresenterContext)
+private fun rememberServerSettingsMutations(): ServerSettingsMutations = ServerSettingsMutations(
+    debugServerSettings = rememberMutation(presenterContext.debugServerSettingsMutationKey),
+    mcpPort = rememberMutation(presenterContext.mcpServerPortMutationKey),
+    generateCertificate = rememberMutation(presenterContext.generateSslCertificateMutationKey),
+    activateCertificate = rememberMutation(presenterContext.activateSslCertificateMutationKey),
+    deleteCertificate = rememberMutation(presenterContext.deleteSslCertificateMutationKey),
+    hostGroupPermission = rememberMutation(presenterContext.mcpHostGroupPermissionMutationKey),
+    pluginInspectPermission = rememberMutation(presenterContext.mcpPluginInspectPermissionMutationKey),
+    pluginInteractPermission = rememberMutation(presenterContext.mcpPluginInteractPermissionMutationKey),
+    pluginToolPermission = rememberMutation(presenterContext.mcpPluginToolPermissionMutationKey),
+)
 
-            is DebugWebSocketServerStatus.Error -> ServerState.Error(reason = serverStatus.message)
+private fun DebugWebSocketServerStatus.toServerState(): ServerState = when (this) {
+    is DebugWebSocketServerStatus.Stopped -> ServerState.Stopped
+    is DebugWebSocketServerStatus.Starting -> ServerState.Starting
+    is DebugWebSocketServerStatus.Started -> ServerState.Running(host = host, port = port, wssPort = wssPort)
+    is DebugWebSocketServerStatus.Error -> ServerState.Error(reason = message)
+    is DebugWebSocketServerStatus.Stopping -> ServerState.Stopping
+}
 
-            is DebugWebSocketServerStatus.Stopping -> ServerState.Stopping
-        },
-        mcpServerState = when (mcpServerStatus) {
-            is McpServerStatus.Stopped -> ServerState.Stopped
+private fun McpServerStatus.toServerState(): ServerState = when (this) {
+    is McpServerStatus.Stopped -> ServerState.Stopped
+    is McpServerStatus.Starting -> ServerState.Starting
+    is McpServerStatus.Running -> ServerState.Running(host = host, port = port)
+    is McpServerStatus.Error -> ServerState.Error(reason = message)
+    is McpServerStatus.Stopping -> ServerState.Stopping
+}
 
-            is McpServerStatus.Starting -> ServerState.Starting
-
-            is McpServerStatus.Running -> ServerState.Running(
-                host = mcpServerStatus.host,
-                port = mcpServerStatus.port,
-            )
-
-            is McpServerStatus.Error -> ServerState.Error(reason = mcpServerStatus.message)
-
-            is McpServerStatus.Stopping -> ServerState.Stopping
-        },
-        editingDebugPortText = editingDebugPortText,
-        editingWssPortText = editingWssPortText,
-        editingWssEnabled = editingWssEnabled,
-        // Reporting an error against values the user has not touched yet would flag a stored
-        // configuration they cannot be in the middle of mistyping.
-        debugServerSettingsError = debugServerSettingsError.takeIf { isDebugDirty },
-        editingMcpPortText = editingMcpPortText,
-        mcpClaudeCodeCommand = "claude mcp add --transport sse jetwhale $mcpEndpointUrl",
-        mcpJsonConfig = """
-            {
-              "mcpServers": {
-                "jetwhale": {
-                  "type": "sse",
-                  "url": "$mcpEndpointUrl"
-                }
-              }
-            }
-        """.trimIndent(),
-        mcpPermissions = McpPermissionsUiState(
-            allowedHostGroups = mcpPermissionsSnapshot.permissions.allowedHostGroups,
-            plugins = mcpPermissionsSnapshot.plugins.map { plugin ->
-                McpPluginPermissionUiState(
-                    pluginId = plugin.pluginId,
-                    displayName = plugin.displayName,
-                    inspectAllowed = plugin.pluginId !in mcpPermissionsSnapshot.permissions.pluginsDeniedInspect,
-                    interactAllowed = plugin.pluginId !in mcpPermissionsSnapshot.permissions.pluginsDeniedInteract,
-                    tools = plugin.tools.map { tool ->
-                        McpPluginToolUiState(
-                            toolName = tool.name,
-                            allowed = tool.name !in mcpPermissionsSnapshot.permissions.deniedPluginTools,
-                        )
-                    },
+private fun McpPermissionsSnapshot.toMcpPermissionsUiState(): McpPermissionsUiState = McpPermissionsUiState(
+    allowedHostGroups = permissions.allowedHostGroups,
+    plugins = plugins.map { plugin ->
+        McpPluginPermissionUiState(
+            pluginId = plugin.pluginId,
+            displayName = plugin.displayName,
+            inspectAllowed = plugin.pluginId !in permissions.pluginsDeniedInspect,
+            interactAllowed = plugin.pluginId !in permissions.pluginsDeniedInteract,
+            tools = plugin.tools.map { tool ->
+                McpPluginToolUiState(
+                    toolName = tool.name,
+                    allowed = tool.name !in permissions.deniedPluginTools,
                 )
             },
-            isOverriddenForLaunch = mcpPermissionsSnapshot.isOverriddenForLaunch,
-        ),
-        isDebugApplyVisible = isDebugDirty || isDebugStartFailed,
-        isMcpApplyVisible = isMcpDirty || isMcpStartFailed,
-        isDebugApplyEnabled = editedDebugServerSettings != null && (isDebugDirty || isDebugStartFailed),
-        isMcpApplyEnabled = isMcpPortValid && (isMcpDirty || isMcpStartFailed),
-        isDebugRetry = isDebugStartFailed && !isDebugDirty,
-        isMcpRetry = isMcpStartFailed && !isMcpDirty,
-        showDebugApplyConfirmDialog = showDebugApplyConfirmDialog,
-        showMcpApplyConfirmDialog = showMcpApplyConfirmDialog,
-        certificates = certificates,
-        certificateDetailDialogEntry = certificateDetailDialogEntry,
-    )
-}
+        )
+    },
+    isOverriddenForLaunch = isOverriddenForLaunch,
+)
+
+private fun mcpJsonConfig(endpointUrl: String): String = """
+    {
+      "mcpServers": {
+        "jetwhale": {
+          "type": "sse",
+          "url": "$endpointUrl"
+        }
+      }
+    }
+""".trimIndent()

@@ -33,7 +33,7 @@ class JetWhaleHostService : Disposable {
     }
 
     override fun dispose() {
-        inHostLoader { host.close() }
+        inHostLoader(host::close)
         hostClassLoader.close()
     }
 

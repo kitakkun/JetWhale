@@ -8,6 +8,7 @@ import org.bouncycastle.asn1.x509.GeneralName
 import org.bouncycastle.asn1.x509.GeneralNames
 import org.bouncycastle.asn1.x509.KeyPurposeId
 import org.bouncycastle.asn1.x509.KeyUsage
+import org.bouncycastle.cert.X509v3CertificateBuilder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
@@ -27,24 +28,44 @@ class ServerCertificateIssuer {
         ipSans: List<String> = listOf("127.0.0.1"),
         daysValid: Int = 365,
     ): X509Certificate {
-        val now = Date()
-        val expiredAt = Date(now.time + daysValid * 24L * 60L * 60L * 1000L)
-        val serial = BigInteger(160, SecureRandom()).abs()
-
-        val subject = X500Name("CN=$commonName")
-        val issuer = X500Name(ca.cert.subjectX500Principal.name)
-
         val sanNames = dnsSans.map { GeneralName(GeneralName.dNSName, it) } + ipSans.map { GeneralName(GeneralName.iPAddress, it) }
-        val subjectAllNames = GeneralNames(sanNames.toTypedArray())
+        val builder = certificateBuilder(
+            ca = ca,
+            serverKeyPair = serverKeyPair,
+            commonName = commonName,
+            daysValid = daysValid,
+            subjectAllNames = GeneralNames(sanNames.toTypedArray()),
+        )
 
+        val signer = JcaContentSignerBuilder(CertificateSpec.SIGNATURE_ALGORITHM)
+            .setProvider(CertificateSpec.PROVIDER)
+            .build(ca.keyPair.private)
+
+        val certHolder = builder.build(signer)
+        val cert = JcaX509CertificateConverter()
+            .setProvider(CertificateSpec.PROVIDER)
+            .getCertificate(certHolder)
+
+        cert.verify(ca.cert.publicKey)
+
+        return cert
+    }
+
+    private fun certificateBuilder(
+        ca: CaMaterial,
+        serverKeyPair: KeyPair,
+        commonName: String,
+        daysValid: Int,
+        subjectAllNames: GeneralNames,
+    ): X509v3CertificateBuilder {
         val extUtils = JcaX509ExtensionUtils()
-
-        val builder = JcaX509v3CertificateBuilder(
-            issuer,
-            serial,
+        val now = Date()
+        return JcaX509v3CertificateBuilder(
+            X500Name(ca.cert.subjectX500Principal.name),
+            BigInteger(160, SecureRandom()).abs(),
             now,
-            expiredAt,
-            subject,
+            Date(now.time + daysValid * 24L * 60L * 60L * 1000L),
+            X500Name("CN=$commonName"),
             serverKeyPair.public,
         ).addExtension(
             // mark this certificate is not a CA
@@ -78,18 +99,5 @@ class ServerCertificateIssuer {
             false,
             extUtils.createAuthorityKeyIdentifier(ca.cert),
         )
-
-        val signer = JcaContentSignerBuilder(CertificateSpec.SIGNATURE_ALGORITHM)
-            .setProvider(CertificateSpec.PROVIDER)
-            .build(ca.keyPair.private)
-
-        val certHolder = builder.build(signer)
-        val cert = JcaX509CertificateConverter()
-            .setProvider(CertificateSpec.PROVIDER)
-            .getCertificate(certHolder)
-
-        cert.verify(ca.cert.publicKey)
-
-        return cert
     }
 }

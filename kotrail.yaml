@@ -1,0 +1,19 @@
+# Every rule runs at its default: on, at error severity. Entries here are the exceptions.
+# Published modules also switch preferExplicitBackingField off; see the root build.gradle.kts.
+
+# Compose resource accessors, generated into build/ on every build.
+exclude: file(String?.*.kt) || file(Drawable?.*.kt) || file(ActualResourceCollectors.kt)
+
+rules:
+  # Asks for this@Owner on every member used inside runBlocking, launch, buildJsonObject, apply and
+  # the like, which is how most of this codebase, and nearly every test, is written.
+  implicitReceivers: off
+  compose.previewRequired:
+    # A Root only wires host-bound state (DI, rememberPersistent, effects) to the stateless
+    # composable below it, which is the one that gets the preview.
+    exclude: name(*Root)
+  liveVariableBudget:
+    # A composable's parameters are its UI state and callbacks; counting them as live variables
+    # reports every component with more than a handful of inputs. Lazy list sections take the
+    # same inputs without the annotation.
+    exclude: composable || extension(androidx.compose.foundation.lazy.LazyListScope)

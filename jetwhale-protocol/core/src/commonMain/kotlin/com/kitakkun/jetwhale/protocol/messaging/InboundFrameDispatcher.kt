@@ -152,9 +152,8 @@ internal class InboundFrameDispatcher(
                     inReplyTo = frame.correlationId,
                     payload = payloadFormat.encodeToString(entry.replySerializer.castToAny(), result),
                 )
-            } catch (e: CancellationException) {
-                throw e
             } catch (e: Throwable) {
+                if (e is CancellationException) throw e
                 PluginFrame.Reply.Failure(
                     pluginId = pluginId,
                     inReplyTo = frame.correlationId,
@@ -178,11 +177,10 @@ internal class InboundFrameDispatcher(
         try {
             val event = payloadFormat.decodeFromString(entry.serializer.castToAny(), frame.payload)
             entry.handler(event)
-        } catch (e: CancellationException) {
-            throw e
         } catch (e: SerializationException) {
             logger("JetWhale: failed to decode event '${frame.messageType}' (plugin '$pluginId'): ${e.message}")
         } catch (e: Throwable) {
+            if (e is CancellationException) throw e
             logger("JetWhale: event handler for '${frame.messageType}' (plugin '$pluginId') failed: ${e.message}")
         }
     }

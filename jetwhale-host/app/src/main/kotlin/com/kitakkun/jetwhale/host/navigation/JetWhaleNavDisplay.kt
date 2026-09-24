@@ -18,6 +18,9 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 
+// This builds its entries from the whole dependency graph it takes as a context parameter, which a
+// @Preview has no way to build.
+@Suppress("KOTRAIL_COMPOSABLE_WITHOUT_PREVIEW")
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 context(appGraph: JetWhaleAppGraph)

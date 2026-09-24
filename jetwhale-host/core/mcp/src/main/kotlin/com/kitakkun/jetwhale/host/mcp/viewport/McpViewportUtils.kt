@@ -16,6 +16,18 @@ data class McpViewport(
 
 internal fun IntSize.isValidForViewport(): Boolean = width > 0 && height > 0
 
+/** Used when neither the scene nor the host window has been laid out yet. */
+private val DEFAULT_VIEWPORT_SIZE = IntSize(1280, 720)
+
+/** The size a scene renders at when the caller asks for none: the scene's own, else the host window's. */
+@OptIn(InternalComposeUiApi::class)
+internal fun sceneViewportSize(scene: PluginComposeScene): IntSize {
+    val sceneSize = runCatching { scene.composeScene.size }.getOrNull()
+    return sceneSize?.takeIf(IntSize::isValidForViewport)
+        ?: scene.windowInfoUpdater.currentIntSize.takeIf(IntSize::isValidForViewport)
+        ?: DEFAULT_VIEWPORT_SIZE
+}
+
 /**
  * Resolves the viewport for a scene using the current size, falling back to WindowInfoUpdater
  * or a 1280×720 default, then applies the viewport and renders to flush pending recompositions.
@@ -25,10 +37,7 @@ internal fun IntSize.isValidForViewport(): Boolean = width > 0 && height > 0
  */
 @OptIn(InternalComposeUiApi::class)
 internal fun ensureSceneRendered(scene: PluginComposeScene) {
-    val currentSize = runCatching { scene.composeScene.size }.getOrNull()
-    val size = currentSize?.takeIf { it.isValidForViewport() }
-        ?: scene.windowInfoUpdater.currentIntSize.takeIf { it.isValidForViewport() }
-        ?: IntSize(1280, 720)
+    val size = sceneViewportSize(scene)
     val viewport = McpViewport(size = size, density = scene.composeScene.density)
     applyViewport(scene, viewport)
     scene.render(Canvas(ImageBitmap(size.width, size.height)))

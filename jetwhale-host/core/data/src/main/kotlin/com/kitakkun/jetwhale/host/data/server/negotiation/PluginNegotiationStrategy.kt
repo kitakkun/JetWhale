@@ -22,12 +22,12 @@ class PluginNegotiationStrategy(
     override suspend fun DefaultWebSocketServerSession.negotiate(): PluginNegotiationResult {
         val request = receiveDeserialized<JetWhaleAgentNegotiationRequest.AvailablePlugins>()
 
-        val loadedPlugins = pluginFactoryRepository.loadedPlugins
         val enabledPluginIds = enabledPluginsRepository.enabledPluginIdsFlow.first()
 
         val availablePlugins = mutableListOf<JetWhalePluginInfo>()
         val incompatiblePlugins = mutableListOf<JetWhalePluginInfo>()
 
+        val loadedPlugins = pluginFactoryRepository.loadedPlugins
         request.plugins.forEach { requestedPlugin ->
             val loaded = loadedPlugins[requestedPlugin.pluginId] ?: return@forEach
             val isEnabled = requestedPlugin.pluginId in enabledPluginIds

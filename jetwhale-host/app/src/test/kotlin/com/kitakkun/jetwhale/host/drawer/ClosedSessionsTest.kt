@@ -14,7 +14,7 @@ class ClosedSessionsTest {
 
         val closed = closedSessions(previouslyConnected = previous, current = listOf(session("a"), session("b", isActive = false)))
 
-        assertEquals(listOf("b"), closed.map { it.id })
+        assertEquals(listOf("b"), closed.map(DebugSession::id))
     }
 
     @Test
@@ -32,7 +32,7 @@ class ClosedSessionsTest {
     fun `a session that vanished from the list is reported as closed`() {
         val closed = closedSessions(previouslyConnected = listOf(session("a"), session("b")), current = listOf(session("a")))
 
-        assertEquals(listOf("b"), closed.map { it.id })
+        assertEquals(listOf("b"), closed.map(DebugSession::id))
     }
 
     @Test
@@ -44,7 +44,7 @@ class ClosedSessionsTest {
             current = listOf(session("a", isActive = false), session("b", isActive = false), session("c")),
         )
 
-        assertEquals(listOf("a", "b"), closed.map { it.id })
+        assertEquals(listOf("a", "b"), closed.map(DebugSession::id))
     }
 
     @Test

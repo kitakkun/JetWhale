@@ -6,10 +6,28 @@ pluginManagement {
     includeBuild("gradle-conventions")
     includeBuild("jetwhale-gradle-plugin")
     includeBuild("jetwhale-agent-plugin")
+    // Kotrail is pinned to one timestamped snapshot build so that CI and every machine run the
+    // same rule set. The plugin marker only names 0.1.0-SNAPSHOT, so the module is resolved here;
+    // the compiler plugin's build is kotrail.compilerPluginVersion in gradle.properties.
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "com.kitakkun.kotrail") {
+                useModule("com.kitakkun.kotrail:kotrail-gradle-plugin:${requested.version}")
+            }
+        }
+    }
     repositories {
         mavenCentral()
         gradlePluginPortal()
         google()
+        // A locally published Kotrail (publishToMavenLocal) wins over the Central snapshot when
+        // present; CI and other machines fall through to Central.
+        mavenLocal {
+            content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
+        }
+        maven("https://central.sonatype.com/repository/maven-snapshots/") {
+            content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
+        }
     }
 }
 
@@ -17,6 +35,14 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
         google()
+        // A locally published Kotrail (publishToMavenLocal) wins over the Central snapshot when
+        // present; CI and other machines fall through to Central.
+        mavenLocal {
+            content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
+        }
+        maven("https://central.sonatype.com/repository/maven-snapshots/") {
+            content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
+        }
     }
 }
 

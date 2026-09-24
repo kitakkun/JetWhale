@@ -18,6 +18,17 @@ import kotlin.test.assertEquals
 class DefaultDebuggerSettingsRepositoryTest {
     private val noOverrides = ServerPortOverrides(serverPort = null, wssPort = null, mcpServerPort = null)
 
+    @Test
+    fun `adb auto port mapping is on until it is turned off`() = runBlocking {
+        val dataStore = newDataStore()
+
+        assertEmits(true, DefaultDebuggerSettingsRepository(dataStore, noOverrides).adbAutoPortMappingEnabledFlow)
+
+        DefaultDebuggerSettingsRepository(dataStore, noOverrides).updateAdbAutoPortMappingEnabled(false)
+
+        assertEmits(false, DefaultDebuggerSettingsRepository(dataStore, noOverrides).adbAutoPortMappingEnabledFlow)
+    }
+
     // Each repository gets its own store file, so stored ports never leak between tests.
     private fun newDataStore(): DataStore<Preferences> {
         val directory = Files.createTempDirectory("jetwhale-debugger-settings-test")
@@ -29,17 +40,6 @@ class DefaultDebuggerSettingsRepositoryTest {
     /** Awaits [expected] rather than sampling, since the store's first emission is asynchronous. */
     private suspend fun <T> assertEmits(expected: T, flow: Flow<T>) {
         withTimeout(5_000) { flow.first { it == expected } }
-    }
-
-    @Test
-    fun `adb auto port mapping is on until it is turned off`() = runBlocking {
-        val dataStore = newDataStore()
-
-        assertEmits(true, DefaultDebuggerSettingsRepository(dataStore, noOverrides).adbAutoPortMappingEnabledFlow)
-
-        DefaultDebuggerSettingsRepository(dataStore, noOverrides).updateAdbAutoPortMappingEnabled(false)
-
-        assertEmits(false, DefaultDebuggerSettingsRepository(dataStore, noOverrides).adbAutoPortMappingEnabledFlow)
     }
 
     @Test

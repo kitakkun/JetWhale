@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.BuildConfig
 import com.kitakkun.jetwhale.host.Res
@@ -42,8 +43,9 @@ private val ChevronInset = 3.dp
 @Composable
 fun InfoScreen(
     onClickOSSLicenses: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    JwPanel(modifier = Modifier.width(PanelWidth)) {
+    JwPanel(modifier = modifier.width(PanelWidth)) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -93,4 +95,10 @@ fun InfoScreen(
             },
         )
     }
+}
+
+@Preview
+@Composable
+private fun InfoScreenPreview() {
+    InfoScreen(onClickOSSLicenses = {})
 }

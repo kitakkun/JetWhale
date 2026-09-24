@@ -40,9 +40,7 @@ class DefaultAppAppearanceRepository(
         } ?: JetWhaleColorSchemeId.BuiltInDynamic
     }
 
-    override val preferredColorSchemeFlow: Flow<JetWhaleColorScheme> = preferredColorSchemeIdFlow.map { id ->
-        resolveColorScheme(id)
-    }
+    override val preferredColorSchemeFlow: Flow<JetWhaleColorScheme> = preferredColorSchemeIdFlow.map(::resolveColorScheme)
 
     internal val customColorSchemesFlow: Flow<CustomThemes> = dataStore.data.map {
         it[customThemesPreferencesKey]?.let {
@@ -111,39 +109,31 @@ class DefaultAppAppearanceRepository(
         }
     }
 
-    private suspend fun resolveColorScheme(id: JetWhaleColorSchemeId): JetWhaleColorScheme {
-        return when (id) {
-            JetWhaleColorSchemeId.BuiltInLight -> {
-                return JetWhaleColorScheme.Static.Light
-            }
+    private suspend fun resolveColorScheme(id: JetWhaleColorSchemeId): JetWhaleColorScheme = when (id) {
+        JetWhaleColorSchemeId.BuiltInLight -> JetWhaleColorScheme.Static.Light
 
-            JetWhaleColorSchemeId.BuiltInDark -> {
-                return JetWhaleColorScheme.Static.Dark
-            }
+        JetWhaleColorSchemeId.BuiltInDark -> JetWhaleColorScheme.Static.Dark
 
-            JetWhaleColorSchemeId.BuiltInDynamic -> {
-                return JetWhaleColorScheme.Dynamic.BuiltIn
-            }
+        JetWhaleColorSchemeId.BuiltInDynamic -> JetWhaleColorScheme.Dynamic.BuiltIn
 
-            else -> {
-                dynamicColorSchemesFlow.first().colorSchemes.firstOrNull { it.id == id }?.let {
-                    val lightTheme = resolveColorScheme(it.lightThemeKey)
-                    val darkTheme = resolveColorScheme(it.darkThemeKey)
+        else -> {
+            dynamicColorSchemesFlow.first().colorSchemes.firstOrNull { it.id == id }?.let {
+                val lightTheme = resolveColorScheme(it.lightThemeKey)
+                val darkTheme = resolveColorScheme(it.darkThemeKey)
 
-                    check(lightTheme is JetWhaleColorScheme.Static && darkTheme is JetWhaleColorScheme.Static) {
-                        "Dynamic themes can only reference static themes"
-                    }
+                check(lightTheme is JetWhaleColorScheme.Static && darkTheme is JetWhaleColorScheme.Static) {
+                    "Dynamic themes can only reference static themes"
+                }
 
-                    JetWhaleColorScheme.Dynamic(
-                        lightColorScheme = lightTheme,
-                        darkColorScheme = darkTheme,
-                    )
-                } ?: customColorSchemesFlow.first().colorSchemes.firstOrNull { it.id == id }?.let {
-                    JetWhaleColorScheme.Static.Custom(
-                        colors = it.colors.mapKeys { (key, _) -> ThemeColorTokens.valueOf(key) },
-                    )
-                } ?: JetWhaleColorScheme.Dynamic.BuiltIn
-            }
+                JetWhaleColorScheme.Dynamic(
+                    lightColorScheme = lightTheme,
+                    darkColorScheme = darkTheme,
+                )
+            } ?: customColorSchemesFlow.first().colorSchemes.firstOrNull { it.id == id }?.let {
+                JetWhaleColorScheme.Static.Custom(
+                    colors = it.colors.mapKeys { (key, _) -> ThemeColorTokens.valueOf(key) },
+                )
+            } ?: JetWhaleColorScheme.Dynamic.BuiltIn
         }
     }
 

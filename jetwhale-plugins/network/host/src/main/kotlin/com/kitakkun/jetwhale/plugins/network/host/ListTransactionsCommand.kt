@@ -37,9 +37,27 @@ internal class ListTransactionsCommand(
     )
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+        val limit = arguments[this.limit]
+        val afterTxId = arguments[this.afterTxId]
+        val filtered = matchingTransactions(arguments)
+
+        // Without a cursor, limit keeps its "latest N" meaning; with one, it pages forward.
+        val page = when {
+            limit == null -> filtered
+            afterTxId == null -> filtered.takeLast(limit)
+            else -> filtered.take(limit)
+        }
+        val nextCursor = page.lastOrNull()?.txId?.takeIf { afterTxId != null && page.size < filtered.size }
+        return buildJsonObject {
+            put("transactions", JsonArray(page.map { redactForMcp(it).toSummaryJson() }))
+            nextCursor?.let { put("nextCursor", it) }
+        }.toString()
+    }
+
+    /** The captured transactions past the cursor that match every filter the call gave, oldest first. */
+    private fun matchingTransactions(arguments: JetWhaleMcpArguments): List<HttpTransaction> {
         val urlContains = arguments[this.urlContains]
         val method = arguments[this.method]
-        val limit = arguments[this.limit]
         val sinceTimestampMs = arguments[this.sinceTimestampMs]
         val untilTimestampMs = arguments[this.untilTimestampMs]
         val afterTxId = arguments[this.afterTxId]
@@ -59,22 +77,10 @@ internal class ListTransactionsCommand(
             -1
         }
 
-        val filtered = all.drop(afterIndex + 1)
+        return all.drop(afterIndex + 1)
             .filter { urlContains == null || it.request.url.contains(urlContains) }
             .filter { method == null || it.request.method.equals(method, ignoreCase = true) }
             .filter { sinceTimestampMs == null || it.request.timestampMs >= sinceTimestampMs }
             .filter { untilTimestampMs == null || it.request.timestampMs <= untilTimestampMs }
-
-        // Without a cursor, limit keeps its "latest N" meaning; with one, it pages forward.
-        val page = when {
-            limit == null -> filtered
-            afterTxId == null -> filtered.takeLast(limit)
-            else -> filtered.take(limit)
-        }
-        val nextCursor = page.lastOrNull()?.txId?.takeIf { afterTxId != null && page.size < filtered.size }
-        return buildJsonObject {
-            put("transactions", JsonArray(page.map { redactForMcp(it).toSummaryJson() }))
-            nextCursor?.let { put("nextCursor", it) }
-        }.toString()
     }
 }

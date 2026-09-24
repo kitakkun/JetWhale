@@ -65,7 +65,7 @@ class ScrollMcpTool(
             } ?: 0f
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
-            withContext(Dispatchers.Main) { dispatchScroll(scene, x, y, deltaX, deltaY) }
+            withContext(Dispatchers.Main) { dispatchScroll(scene = scene, x = x, y = y, deltaX = deltaX, deltaY = deltaY) }
             successResult()
         }
     }

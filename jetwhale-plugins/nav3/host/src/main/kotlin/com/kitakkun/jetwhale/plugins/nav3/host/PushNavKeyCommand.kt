@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
+import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
 
 @OptIn(ExperimentalJetWhaleApi::class)
 internal class PushNavKeyCommand(
@@ -18,7 +19,7 @@ internal class PushNavKeyCommand(
     private val stackId by stringOrNull("Which back stack to push onto. Defaults to the app's only one.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val target = resolveStackId(arguments[stackId], controller.stacks().map { it.stackId })
+        val target = resolveStackId(arguments[stackId], controller.stacks().map(NavBackStackSnapshot::stackId))
         val result = controller.mutate(
             stackId = target,
             operations = listOf(NavBackStackOperation.Push(key = arguments[key], index = arguments[index])),

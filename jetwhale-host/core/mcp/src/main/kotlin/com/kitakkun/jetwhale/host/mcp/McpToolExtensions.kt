@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp
 
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpParameterDescriptor
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpToolDescriptor
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
@@ -25,7 +26,7 @@ fun JetWhaleMcpToolDescriptor.toToolSchema(
             JsonObject(parameter.schema + ("description" to JsonPrimitive(parameter.description)))
         },
     ),
-    required = leadingProperties.keys.toList() + parameters.filterValues { it.required }.keys,
+    required = leadingProperties.keys.toList() + parameters.filterValues(JetWhaleMcpParameterDescriptor::required).keys,
 )
 
 fun errorResult(message: String): CallToolResult = CallToolResult(

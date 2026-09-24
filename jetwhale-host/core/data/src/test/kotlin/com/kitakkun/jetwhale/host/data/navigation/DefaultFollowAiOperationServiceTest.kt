@@ -37,6 +37,16 @@ class DefaultFollowAiOperationServiceTest {
         hostNavigationService = navigationService,
     )
 
+    @Test
+    fun `a plugin tool call points the window at that plugin`() = runBlocking {
+        val following = startFollowing()
+
+        startCall("jetwhale.click", pluginId = "plugin-1", sessionId = "session-1")
+
+        assertEquals(HostNavigationRequest.Plugin("plugin-1", "session-1"), awaitRequest())
+        following.cancel()
+    }
+
     private fun CoroutineScope.startFollowing(): Job = launch { service.followAiOperations() }
 
     /** Starts a tool call the way `McpToolRegistrar` does when it wraps a handler. */
@@ -51,22 +61,6 @@ class DefaultFollowAiOperationServiceTest {
 
     private suspend fun awaitRequest(): HostNavigationRequest? = withTimeout(5_000) { navigationService.requests.first() }
 
-    /**
-     * A navigation that never comes can only be observed by waiting for one, so this waits long
-     * enough that a request the service was going to send would have arrived by now.
-     */
-    private suspend fun awaitNoRequest(): HostNavigationRequest? = withTimeoutOrNull(300) { navigationService.requests.first() }
-
-    @Test
-    fun `a plugin tool call points the window at that plugin`() = runBlocking {
-        val following = startFollowing()
-
-        startCall("jetwhale.click", pluginId = "plugin-1", sessionId = "session-1")
-
-        assertEquals(HostNavigationRequest.Plugin("plugin-1", "session-1"), awaitRequest())
-        following.cancel()
-    }
-
     @Test
     fun `nothing is followed while the mode is off`() = runBlocking {
         followEnabled.value = false
@@ -77,6 +71,12 @@ class DefaultFollowAiOperationServiceTest {
         assertNull(awaitNoRequest())
         following.cancel()
     }
+
+    /**
+     * A navigation that never comes can only be observed by waiting for one, so this waits long
+     * enough that a request the service was going to send would have arrived by now.
+     */
+    private suspend fun awaitNoRequest(): HostNavigationRequest? = withTimeoutOrNull(300) { navigationService.requests.first() }
 
     @Test
     fun `turning the mode back on follows the next call`() = runBlocking {

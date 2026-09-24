@@ -7,6 +7,7 @@ import dev.zacsweers.metro.SingleIn
 import okio.Path
 import okio.Path.Companion.toPath
 import java.io.File
+import java.io.IOException
 
 @SingleIn(AppScope::class)
 @Inject
@@ -20,7 +21,7 @@ class AppDataDirectoryProvider(
     // `runJetWhaleHot`, `runJetWhaleLocal`) set it to a disposable per-project sandbox under the plugin module's `build/`
     // directory, so trying a plugin never reads or mutates the developer's real installed plugins,
     // settings, plugin-data or trust registry. Every path below is derived from this single root.
-    private val appDataDir = System.getProperty(APP_DATA_DIR_PROPERTY)?.takeIf { it.isNotBlank() }
+    private val appDataDir = System.getProperty(APP_DATA_DIR_PROPERTY)?.takeIf(String::isNotBlank)
         ?: "$homeDir/.jetwhale"
     private val isAppDataDirOverridden = System.getProperty(APP_DATA_DIR_PROPERTY)?.isNotBlank() == true
     private val pluginDir = "$appDataDir/plugins"
@@ -91,7 +92,7 @@ class AppDataDirectoryProvider(
         if (file.extension != "jar") return false
         return try {
             file.canonicalFile.parentFile == File(pluginDir).canonicalFile
-        } catch (e: java.io.IOException) {
+        } catch (_: IOException) {
             false
         }
     }
@@ -122,7 +123,7 @@ class AppDataDirectoryProvider(
 
     fun getAllPluginJarFilePaths(): List<String> {
         val pluginDirectory = File(pluginDir)
-        return pluginDirectory.listFiles { file -> file.extension == "jar" }?.map { it.absolutePath } ?: emptyList()
+        return pluginDirectory.listFiles { file -> file.extension == "jar" }?.map(File::getAbsolutePath) ?: emptyList()
     }
 
     fun getPluginDirectory(): File = File(pluginDir)
@@ -143,7 +144,7 @@ class AppDataDirectoryProvider(
      * plugins directory ([getPluginDirectory], which is `~/.jetwhale/plugins` — or, under the dev
      * sandbox, the sandbox root's `plugins` subdirectory).
      */
-    fun getDevPluginsDir(): String? = System.getProperty(DEV_PLUGINS_DIR_PROPERTY)?.takeIf { it.isNotBlank() }
+    fun getDevPluginsDir(): String? = System.getProperty(DEV_PLUGINS_DIR_PROPERTY)?.takeIf(String::isNotBlank)
 
     /**
      * Absolute paths of every jar in the directories named with `--plugin-dir`, if any.
@@ -160,13 +161,13 @@ class AppDataDirectoryProvider(
                 .getOrNull()
                 .orEmpty()
         }
-        .map { it.absolutePath }
+        .map(File::getAbsolutePath)
 
     /** Returns the absolute paths of every jar currently in the dev plugins directory, if configured. */
     fun getDevPluginJarFilePaths(): List<String> {
         val devDir = getDevPluginsDir() ?: return emptyList()
         val devDirectory = File(devDir)
-        return devDirectory.listFiles { file -> file.extension == "jar" }?.map { it.absolutePath } ?: emptyList()
+        return devDirectory.listFiles { file -> file.extension == "jar" }?.map(File::getAbsolutePath) ?: emptyList()
     }
 
     companion object {

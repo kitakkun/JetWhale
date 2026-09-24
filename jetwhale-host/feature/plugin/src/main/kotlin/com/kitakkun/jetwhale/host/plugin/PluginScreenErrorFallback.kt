@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.awtClipboard
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
@@ -26,8 +27,8 @@ import java.awt.datatransfer.StringSelection
 @Composable
 fun PluginScreenErrorFallback(
     pluginId: String,
-    onClickReset: () -> Unit,
     errorBoundaryContext: ErrorBoundaryContext,
+    onClickReset: () -> Unit,
 ) {
     val clipboard = LocalClipboard.current
 
@@ -71,4 +72,17 @@ fun PluginScreenErrorFallback(
             )
         }
     }
+}
+
+@Preview
+@Composable
+private fun PluginScreenErrorFallbackPreview() {
+    PluginScreenErrorFallback(
+        pluginId = "com.example.sample-plugin",
+        onClickReset = {},
+        errorBoundaryContext = ErrorBoundaryContext(
+            err = IllegalStateException("The plugin UI threw while composing"),
+            reset = null,
+        ),
+    )
 }

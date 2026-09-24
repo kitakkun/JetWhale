@@ -2,9 +2,11 @@ package com.kitakkun.jetwhale.host.mcp.tools.host
 
 import com.kitakkun.jetwhale.host.mcp.HostMcpCommand
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
+import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
+import com.kitakkun.jetwhale.host.model.OfficialPlugin
 import com.kitakkun.jetwhale.host.model.OfficialPluginCatalog
 import com.kitakkun.jetwhale.host.model.OfficialPluginInstallService
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -54,7 +56,7 @@ class ListInstalledPluginsCommand(
                 requiresAgent = plugin.manifest.requiresAgent,
                 enabled = plugin.manifest.pluginId in enabledPluginIds,
             )
-        }.sortedBy { it.pluginId }
+        }.sortedBy(InstalledPluginJson::pluginId)
 
         return Json.encodeToString(
             ListInstalledPluginsResult(
@@ -103,7 +105,7 @@ class SetPluginEnabledCommand(
         // Reconciliation runs asynchronously, so collect the Ready events before flipping the flag —
         // otherwise "ok" would be reported before any instance actually exists. With nothing
         // connected there is nothing to instantiate, so skip the wait entirely.
-        val hasActiveSession = debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().any { it.isActive }
+        val hasActiveSession = debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().any(DebugSession::isActive)
         val instantiatedSessions = mutableSetOf<String>()
         coroutineScope {
             val collector = launch {
@@ -148,7 +150,7 @@ class InstallOfficialPluginCommand(
         val targetPluginId = arguments[pluginId]
         val plugin = OfficialPluginCatalog.plugins.find { it.pluginId == targetPluginId }
             ?: throw JetWhaleMcpArgumentException(
-                "invalid pluginId: '$targetPluginId' is not an official plugin. Only ${OfficialPluginCatalog.plugins.joinToString { it.pluginId }} can be installed over MCP.",
+                "invalid pluginId: '$targetPluginId' is not an official plugin. Only ${OfficialPluginCatalog.plugins.joinToString(transform = OfficialPlugin::pluginId)} can be installed over MCP.",
             )
         if (targetPluginId in pluginFactoryRepository.loadedPlugins) {
             return Json.encodeToString(

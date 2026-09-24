@@ -7,6 +7,7 @@ import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class ImageBodyViewTest {
@@ -14,7 +15,7 @@ class ImageBodyViewTest {
     @Test
     fun `decodes a Base64 image body into a bitmap and its original bytes`() {
         val png = pngBytes(width = 4, height = 3)
-        val decoded = decodeImageBody(Base64.encode(png))!!
+        val decoded = assertNotNull(decodeImageBody(Base64.encode(png)))
 
         assertEquals(4, decoded.bitmap.width)
         assertEquals(3, decoded.bitmap.height)

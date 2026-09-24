@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeBounds
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeCaptureOptions
 import com.kitakkun.jetwhale.plugins.semantics.protocol.advertisedAs
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.useContents
@@ -86,27 +87,18 @@ internal fun NSObject.toAppleNode(
     depth: Int,
     hiddenByAncestor: Boolean = false,
 ): AppleNode? {
-    val view = this as? UIView
-    val hidden = hiddenByAncestor || (view != null && (view.hidden || view.alpha <= 0.0))
-    val hidesElements = hidden || accessibilityElementsHidden
-
-    val maxDepth = options.maxDepth
-    val children = if (maxDepth != null && depth >= maxDepth) {
-        emptyList()
-    } else {
-        val candidates = accessibilityChildren()
-        // A modal child — a presented sheet, an alert — is the only one VoiceOver traverses; its
-        // siblings are behind it and must not read as reachable.
-        val modal = candidates.filter { it.accessibilityViewIsModal }
-        candidates.mapNotNull { child ->
-            val behindModal = modal.isNotEmpty() && modal.none { it === child }
-            child.toAppleNode(options, window, depth + 1, hiddenByAncestor = hidesElements || behindModal)
-        }
-    }
+    val hidden = hiddenByAncestor || (this as? UIView)?.let { it.hidden || it.alpha <= 0.0 } == true
+    val children = childAppleNodes(
+        options = options,
+        window = window,
+        depth = depth,
+        hiddenByAncestor = hidden || accessibilityElementsHidden,
+    )
 
     val frame = accessibilityFrame.toNodeBounds()
     val windowFrame = window.frame.toNodeBounds()
     val visibleBounds = frame.intersect(windowFrame)
+    val bounds = frame.translated(-windowFrame.left, -windowFrame.top)
     // The window is the only clip a bare element can be tested against: a SwiftUI or Compose node
     // scrolled out of its container still reports its laid-out frame, and which container clips it
     // is not part of the protocol. A view is no better off, so the two are treated alike.
@@ -125,18 +117,42 @@ internal fun NSObject.toAppleNode(
         editableText = if (editable) editableText() else null,
         contentDescription = accessibilityHint,
         toggleableState = toggleableState(traits),
-        bounds = frame.translated(-windowFrame.left, -windowFrame.top),
+        bounds = bounds,
         boundsInScreen = visibleBounds,
         actions = NodeAction.entries.mapNotNull { action -> action.advertisedAs?.takeIf { action.appleNodeHandler.isOfferedBy(this) } },
         isEnabled = isEnabled(),
         isClickable = isClickable(),
-        isFocused = view?.isFirstResponder() ?: false,
+        isFocused = (this as? UIView)?.isFirstResponder() ?: false,
         isSelected = traits has UIAccessibilityTraitSelected || (this as? UIControl)?.selected ?: false,
         isEditable = editable,
         isScrollable = isScrollable(),
         isVisible = visible,
         children = children,
     )
+}
+
+/**
+ * The nodes for this object's accessibility children, or none once [NodeTreeCaptureOptions.maxDepth]
+ * is reached.
+ */
+@OptIn(ExperimentalForeignApi::class)
+private fun NSObject.childAppleNodes(
+    options: NodeTreeCaptureOptions,
+    window: UIWindow,
+    depth: Int,
+    hiddenByAncestor: Boolean,
+): List<AppleNode> {
+    val maxDepth = options.maxDepth
+    if (maxDepth != null && depth >= maxDepth) return emptyList()
+
+    val candidates = accessibilityChildren()
+    // A modal child — a presented sheet, an alert — is the only one VoiceOver traverses; its
+    // siblings are behind it and must not read as reachable.
+    val modal = candidates.filter { it.accessibilityViewIsModal }
+    return candidates.mapNotNull { child ->
+        val behindModal = modal.isNotEmpty() && modal.none { it == child }
+        child.toAppleNode(options, window, depth + 1, hiddenByAncestor = hiddenByAncestor || behindModal)
+    }
 }
 
 /**
@@ -152,7 +168,8 @@ internal fun NSObject.accessibilityChildren(): List<NSObject> {
     return view.subviews.map { it as NSObject }
 }
 
-internal fun NSObject.className(): String = `class`()?.let { NSStringFromClass(it) } ?: "NSObject"
+@OptIn(BetaInteropApi::class)
+internal fun NSObject.className(): String = `class`()?.let(::NSStringFromClass) ?: "NSObject"
 
 /**
  * `accessibilityIdentifier` belongs to `UIAccessibilityIdentification`, which `UIView` adopts and
@@ -200,9 +217,11 @@ private val TEXT_ENTRY_TRAIT: UIAccessibilityTraits = 1uL shl 18
 internal fun NSObject.isScrollable(): Boolean {
     if (this is UIScrollView) {
         val (contentWidth, contentHeight) = contentSize.useContents { width to height }
+        val (paddedWidth, paddedHeight) = adjustedContentInset.useContents {
+            contentWidth + left + right to contentHeight + top + bottom
+        }
         val (width, height) = bounds.useContents { size.width to size.height }
-        val (insetTop, insetLeft, insetBottom, insetRight) = adjustedContentInset.useContents { listOf(top, left, bottom, right) }
-        return contentWidth + insetLeft + insetRight > width || contentHeight + insetTop + insetBottom > height
+        return paddedWidth > width || paddedHeight > height
     }
     val container = scrollableContainer() ?: return false
     val (contentWidth, contentHeight) = container.contentSize.useContents { width to height }
@@ -306,7 +325,11 @@ internal fun NodeBounds.intersect(other: NodeBounds): NodeBounds {
     val top = maxOf(top, other.top)
     val right = minOf(right, other.right)
     val bottom = minOf(bottom, other.bottom)
-    return if (right <= left || bottom <= top) NodeBounds(0f, 0f, 0f, 0f) else NodeBounds(left, top, right, bottom)
+    return if (right <= left || bottom <= top) {
+        NodeBounds(left = 0f, top = 0f, right = 0f, bottom = 0f)
+    } else {
+        NodeBounds(left = left, top = top, right = right, bottom = bottom)
+    }
 }
 
 private fun NodeBounds.translated(offsetX: Float, offsetY: Float): NodeBounds = NodeBounds(

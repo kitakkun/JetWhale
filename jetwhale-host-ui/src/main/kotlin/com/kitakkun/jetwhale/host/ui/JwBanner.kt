@@ -44,15 +44,15 @@ public fun JwBanner(
     icon: (@Composable () -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    BannerStrip(text = text, modifier = modifier, tone = tone, icon = icon, actions = actions, dismiss = null)
+    BannerStrip(text = text, modifier = modifier, tone = tone, dismissLabel = null, onDismiss = null, icon = icon, actions = actions)
 }
 
 /**
  * A dismissible [JwBanner]: the same strip with a close button after the actions.
  *
  * @param text the message, kept to one line and ellipsized.
- * @param onDismiss what the close button does — usually hides the banner.
  * @param dismissLabel the close button's tooltip and accessibility name, in the UI's language.
+ * @param onDismiss what the close button does — usually hides the banner.
  * @param tone picks the strip's background.
  * @param icon an optional glyph before the text, drawn in the tone's content color.
  * @param actions [JwButton]s in the [JwButtonStyle.Text] style, placed between the text and the
@@ -61,14 +61,14 @@ public fun JwBanner(
 @Composable
 public fun JwBanner(
     text: String,
-    onDismiss: () -> Unit,
     dismissLabel: String,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     tone: JwTone = JwTone.Info,
     icon: (@Composable () -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    BannerStrip(text = text, modifier = modifier, tone = tone, icon = icon, actions = actions, dismiss = onDismiss to dismissLabel)
+    BannerStrip(text = text, modifier = modifier, tone = tone, dismissLabel = dismissLabel, onDismiss = onDismiss, icon = icon, actions = actions)
 }
 
 @Composable
@@ -76,9 +76,10 @@ private fun BannerStrip(
     text: String,
     modifier: Modifier,
     tone: JwTone,
+    dismissLabel: String?,
+    onDismiss: (() -> Unit)?,
     icon: (@Composable () -> Unit)?,
     actions: (@Composable RowScope.() -> Unit)?,
-    dismiss: Pair<() -> Unit, String>?,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -100,8 +101,7 @@ private fun BannerStrip(
                     modifier = Modifier.weight(1f),
                 )
                 actions?.invoke(this)
-                if (dismiss != null) {
-                    val (onDismiss, dismissLabel) = dismiss
+                if (onDismiss != null && dismissLabel != null) {
                     JwIconButton(onClick = onDismiss, tooltip = dismissLabel, size = DismissButtonSize) {
                         JwIcon(imageVector = JwIcons.Close, contentDescription = null)
                     }

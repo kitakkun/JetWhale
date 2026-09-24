@@ -16,9 +16,11 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -81,14 +83,16 @@ private data class FireResponse(
     val bodyPreview: String,
 )
 
-/** @param app which app's session to send from. Optional while only one app is running. */
+/**
+ * @property app which app's session to send from. Optional while only one app is running.
+ * @property policy Offline behaviour: DROP (default), QUEUE or FAIL.
+ */
 @Serializable
 private data class SendRequest(
     val app: String? = null,
     val pluginId: String,
     val messageType: String,
     val payload: JsonElement,
-    /** Offline behaviour: DROP (default), QUEUE or FAIL. */
     val policy: OfflineSendPolicy = OfflineSendPolicy.DROP,
 )
 
@@ -169,165 +173,10 @@ fun main(args: Array<String>) {
     val server = embeddedServer(Netty, host = "127.0.0.1", port = options.controlPort) {
         install(ContentNegotiation) { json() }
         routing {
-            get("/health") {
-                // `ready` is what a caller must poll before sending: the control API answers long
-                // before the debug sessions are up, and a send in that window is silently dropped.
-                val connected = apps.values.filter { it.isConnected }
-                call.respond(
-                    HealthResponse(
-                        status = "ok",
-                        ready = connected.isNotEmpty() && connected.all { it.isReady },
-                        apps = apps.mapValues { (_, app) -> AppHealth(connected = app.isConnected, ready = app.isReady) },
-                    ),
-                )
-            }
-
-            get("/plugins") {
-                call.respond(
-                    // Every app registers the same plugin ids, so the plugin stays the top-level key
-                    // and a single-app run reads exactly as it did before there were several.
-                    options.plugins.mapValues { (pluginId, version) ->
-                        val perApp = apps.mapValues { (_, app) -> app.pluginStatus(pluginId) }
-                        val connected = perApp.filterKeys { apps.getValue(it).isConnected }.values
-                        PluginStatus(
-                            version = version,
-                            activated = connected.isNotEmpty() && connected.all { it.activated },
-                            ready = connected.isNotEmpty() && connected.all { it.ready },
-                            apps = perApp,
-                        )
-                    },
-                )
-            }
-
-            post("/send") {
-                val spec = try {
-                    call.receive<SendRequest>()
-                } catch (e: Exception) {
-                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("Malformed request: ${e.message}"))
-                    return@post
-                }
-                val app = call.resolveApp(apps, spec.app) ?: return@post
-                val plugin = app.wirePluginsById[spec.pluginId] ?: run {
-                    call.respond(HttpStatusCode.BadRequest, unknownPluginError(spec.pluginId, app.wirePluginsById.keys))
-                    return@post
-                }
-                // Refuse before touching the messenger: stop() returns once teardown is scheduled, so
-                // a send here can still succeed for a moment and report an app as reachable after it
-                // was given up. Timing-dependent answers are the last thing a QA run needs.
-                if (!app.isConnected) {
-                    call.respond(SendResponse(sent = false, hint = disconnectedAppHint(app.name)))
-                    return@post
-                }
-                try {
-                    val sent = plugin.send(spec.messageType, spec.payload.toString(), spec.policy)
-                    val hint = if (sent) {
-                        null
-                    } else {
-                        sendDropHint(
-                            pluginId = plugin.pluginId,
-                            appName = app.name,
-                            appConnected = app.isConnected,
-                            activated = plugin.isActivated,
-                            ready = plugin.isReady,
-                        )
-                    }
-                    call.respond(SendResponse(sent = sent, hint = hint))
-                } catch (e: Exception) {
-                    // FAIL policy while offline lands here; that is an answer about the connection,
-                    // not a malformed call.
-                    call.respond(HttpStatusCode.OK, ErrorResponse("${e::class.simpleName}: ${e.message}"))
-                }
-            }
-
-            post("/request") {
-                val spec = try {
-                    call.receive<RequestMessage>()
-                } catch (e: Exception) {
-                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("Malformed request: ${e.message}"))
-                    return@post
-                }
-                val app = call.resolveApp(apps, spec.app) ?: return@post
-                val plugin = app.wirePluginsById[spec.pluginId] ?: run {
-                    call.respond(HttpStatusCode.BadRequest, unknownPluginError(spec.pluginId, app.wirePluginsById.keys))
-                    return@post
-                }
-                if (!app.isConnected) {
-                    call.respond(HttpStatusCode.OK, ErrorResponse(disconnectedAppHint(app.name)))
-                    return@post
-                }
-                try {
-                    lateinit var reply: String
-                    val elapsed = measureTimeMillis {
-                        reply = plugin.request(
-                            messageType = spec.messageType,
-                            payload = spec.payload.toString(),
-                            timeout = spec.timeoutMs?.milliseconds,
-                        )
-                    }
-                    call.respond(RequestResponse(elapsed, reply.asJsonOrString()))
-                } catch (e: Exception) {
-                    // A host handler that fails, times out or is not registered is a legitimate QA
-                    // finding, so report it as data rather than a control-API error.
-                    call.respond(HttpStatusCode.OK, ErrorResponse("${e::class.simpleName}: ${e.message}"))
-                }
-            }
-
-            post("/fire") {
-                val spec = try {
-                    call.receive<FireRequest>()
-                } catch (e: Exception) {
-                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("Malformed request: ${e.message}"))
-                    return@post
-                }
-                val app = call.resolveApp(apps, spec.app) ?: return@post
-                if (!app.isConnected) {
-                    // The client is instrumented per app, so traffic fired here would be captured for
-                    // a session that no longer exists — silently invisible in the inspector.
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        ErrorResponse("App '${app.name}' was disconnected, so its traffic is no longer recorded."),
-                    )
-                    return@post
-                }
-                try {
-                    lateinit var status: HttpStatusCode
-                    lateinit var preview: String
-                    val elapsed = measureTimeMillis {
-                        val response = app.httpClient.request(spec.url) {
-                            method = HttpMethod.parse(spec.method.uppercase())
-                            spec.contentType?.let { contentType(ContentType.parse(it)) }
-                            spec.headers.forEach { (name, value) -> headers.append(name, value) }
-                            spec.body?.let { setBody(it) }
-                        }
-                        status = response.status
-                        preview = response.bodyAsText().take(BODY_PREVIEW_LIMIT)
-                    }
-                    call.respond(FireResponse(status.value, elapsed, preview))
-                } catch (e: Exception) {
-                    // A failed request is a legitimate QA scenario (the inspector should show it as
-                    // a failure), so report it as data rather than a control-API error.
-                    call.respond(HttpStatusCode.OK, ErrorResponse("${e::class.simpleName}: ${e.message}"))
-                }
-            }
-
-            post("/disconnect") {
-                val spec = try {
-                    call.receive<DisconnectRequest>()
-                } catch (e: Exception) {
-                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("Malformed request: ${e.message}"))
-                    return@post
-                }
-                val app = call.resolveApp(apps, spec.app) ?: return@post
-                call.respond(DisconnectResponse(app = app.name, disconnected = app.disconnect()))
-            }
-
-            post("/shutdown") {
-                call.respond(mapOf("status" to "stopping"))
-                thread {
-                    Thread.sleep(200)
-                    exitProcess(0)
-                }
-            }
+            statusRoutes(apps = apps, plugins = options.plugins)
+            messagingRoutes(apps)
+            trafficRoutes(apps)
+            sessionRoutes(apps)
         }
     }
 
@@ -341,6 +190,178 @@ fun main(args: Array<String>) {
         },
     )
     runBlocking { server.start(wait = true) }
+}
+
+/** What a caller polls before it trusts a send: is a session held, and is the plugin up on it. */
+private fun Route.statusRoutes(apps: Map<String, QaApp>, plugins: Map<String, String>) {
+    get("/health") {
+        // `ready` is what a caller must poll before sending: the control API answers long
+        // before the debug sessions are up, and a send in that window is silently dropped.
+        val connected = apps.values.filter(QaApp::isConnected)
+        call.respond(
+            HealthResponse(
+                status = "ok",
+                ready = connected.isNotEmpty() && connected.all(QaApp::isReady),
+                apps = apps.mapValues { (_, app) -> AppHealth(connected = app.isConnected, ready = app.isReady) },
+            ),
+        )
+    }
+
+    get("/plugins") {
+        call.respond(
+            // Every app registers the same plugin ids, so the plugin stays the top-level key
+            // and a single-app run reads exactly as it did before there were several.
+            plugins.mapValues { (pluginId, version) ->
+                val perApp = apps.mapValues { (_, app) -> app.pluginStatus(pluginId) }
+                val connected = perApp.filterKeys { apps.getValue(it).isConnected }.values
+                PluginStatus(
+                    version = version,
+                    activated = connected.isNotEmpty() && connected.all(AppPluginStatus::activated),
+                    ready = connected.isNotEmpty() && connected.all(AppPluginStatus::ready),
+                    apps = perApp,
+                )
+            },
+        )
+    }
+}
+
+/** Arbitrary plugin messages carried to their host counterparts over the messenger's raw layer. */
+private fun Route.messagingRoutes(apps: Map<String, QaApp>) {
+    post("/send") {
+        val spec = call.receiveOrBadRequest<SendRequest>() ?: return@post
+        val app = call.resolveApp(apps, spec.app) ?: return@post
+        val plugin = app.wirePluginsById[spec.pluginId] ?: run {
+            call.respond(HttpStatusCode.BadRequest, unknownPluginError(spec.pluginId, app.wirePluginsById.keys))
+            return@post
+        }
+        // Refuse before touching the messenger: stop() returns once teardown is scheduled, so
+        // a send here can still succeed for a moment and report an app as reachable after it
+        // was given up. Timing-dependent answers are the last thing a QA run needs.
+        if (!app.isConnected) {
+            call.respond(SendResponse(sent = false, hint = disconnectedAppHint(app.name)))
+            return@post
+        }
+        try {
+            val sent = plugin.send(spec.messageType, spec.payload.toString(), spec.policy)
+            val hint = if (sent) {
+                null
+            } else {
+                sendDropHint(
+                    pluginId = plugin.pluginId,
+                    appName = app.name,
+                    appConnected = app.isConnected,
+                    activated = plugin.isActivated,
+                    ready = plugin.isReady,
+                )
+            }
+            call.respond(SendResponse(sent = sent, hint = hint))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // FAIL policy while offline lands here; that is an answer about the connection,
+            // not a malformed call.
+            call.respond(HttpStatusCode.OK, ErrorResponse("${e::class.simpleName}: ${e.message}"))
+        }
+    }
+
+    post("/request") {
+        val spec = call.receiveOrBadRequest<RequestMessage>() ?: return@post
+        val app = call.resolveApp(apps, spec.app) ?: return@post
+        val plugin = app.wirePluginsById[spec.pluginId] ?: run {
+            call.respond(HttpStatusCode.BadRequest, unknownPluginError(spec.pluginId, app.wirePluginsById.keys))
+            return@post
+        }
+        if (!app.isConnected) {
+            call.respond(HttpStatusCode.OK, ErrorResponse(disconnectedAppHint(app.name)))
+            return@post
+        }
+        try {
+            lateinit var reply: String
+            val elapsed = measureTimeMillis {
+                reply = plugin.request(
+                    messageType = spec.messageType,
+                    payload = spec.payload.toString(),
+                    timeout = spec.timeoutMs?.milliseconds,
+                )
+            }
+            call.respond(RequestResponse(elapsed, reply.asJsonOrString()))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // A host handler that fails, times out or is not registered is a legitimate QA
+            // finding, so report it as data rather than a control-API error.
+            call.respond(HttpStatusCode.OK, ErrorResponse("${e::class.simpleName}: ${e.message}"))
+        }
+    }
+}
+
+/** HTTP traffic injected through an app's instrumented client, for the bundled Network Inspector. */
+private fun Route.trafficRoutes(apps: Map<String, QaApp>) {
+    post("/fire") {
+        val spec = call.receiveOrBadRequest<FireRequest>() ?: return@post
+        val app = call.resolveApp(apps, spec.app) ?: return@post
+        if (!app.isConnected) {
+            // The client is instrumented per app, so traffic fired here would be captured for
+            // a session that no longer exists — silently invisible in the inspector.
+            call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse("App '${app.name}' was disconnected, so its traffic is no longer recorded."),
+            )
+            return@post
+        }
+        try {
+            lateinit var status: HttpStatusCode
+            lateinit var preview: String
+            val elapsed = measureTimeMillis {
+                val response = app.httpClient.request(spec.url) {
+                    method = HttpMethod.parse(spec.method.uppercase())
+                    spec.contentType?.let { contentType(ContentType.parse(it)) }
+                    spec.headers.forEach { (name, value) -> headers.append(name, value) }
+                    spec.body?.let { setBody(it) }
+                }
+                status = response.status
+                preview = response.bodyAsText().take(BODY_PREVIEW_LIMIT)
+            }
+            call.respond(FireResponse(status.value, elapsed, preview))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // A failed request is a legitimate QA scenario (the inspector should show it as
+            // a failure), so report it as data rather than a control-API error.
+            call.respond(HttpStatusCode.OK, ErrorResponse("${e::class.simpleName}: ${e.message}"))
+        }
+    }
+}
+
+/** Giving a session up on its own, or stopping the whole process. */
+private fun Route.sessionRoutes(apps: Map<String, QaApp>) {
+    post("/disconnect") {
+        val spec = call.receiveOrBadRequest<DisconnectRequest>() ?: return@post
+        val app = call.resolveApp(apps, spec.app) ?: return@post
+        call.respond(DisconnectResponse(app = app.name, disconnected = app.disconnect()))
+    }
+
+    post("/shutdown") {
+        call.respond(mapOf("status" to "stopping"))
+        thread {
+            Thread.sleep(200)
+            exitProcess(0)
+        }
+    }
+}
+
+/**
+ * Receives the call's body, or answers the caller that it was malformed and returns null so the
+ * handler stops. A control API driven by hand-written curl gets malformed bodies often enough that
+ * every route needs the same answer.
+ */
+private suspend inline fun <reified T : Any> ApplicationCall.receiveOrBadRequest(): T? = try {
+    receive<T>()
+} catch (e: CancellationException) {
+    throw e
+} catch (e: Exception) {
+    respond(HttpStatusCode.BadRequest, ErrorResponse("Malformed request: ${e.message}"))
+    null
 }
 
 /**

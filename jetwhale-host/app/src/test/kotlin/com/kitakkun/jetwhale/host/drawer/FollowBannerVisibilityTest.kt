@@ -14,14 +14,6 @@ class FollowBannerVisibilityTest {
 
     private val nothingPoppedOut: (String, String) -> Boolean = { _, _ -> false }
 
-    private fun invocation(pluginId: String?, sessionId: String?) = McpToolInvocation(
-        id = 1,
-        toolName = "jetwhale.click",
-        pluginId = pluginId,
-        sessionId = sessionId,
-        arguments = persistentListOf(),
-    )
-
     @Test
     fun `a call driving a plugin moves the window`() {
         val moves = invocation(pluginId = "plugin-1", sessionId = "session-1")
@@ -29,6 +21,14 @@ class FollowBannerVisibilityTest {
 
         assertTrue(moves)
     }
+
+    private fun invocation(pluginId: String?, sessionId: String?) = McpToolInvocation(
+        id = 1,
+        toolName = "jetwhale.click",
+        pluginId = pluginId,
+        sessionId = sessionId,
+        arguments = persistentListOf(),
+    )
 
     @Test
     fun `no call in flight moves nothing`() {
@@ -83,18 +83,18 @@ class FollowBannerVisibilityTest {
 }
 
 class FollowBannerPresenceTest {
+    @Test
+    fun `the strip is up whenever a follow could happen, call or no call`() {
+        assertTrue(state(isAgentConnected = true, isFollowModeOn = true).showsFollowBanner)
+        assertTrue(state(isAgentConnected = true, isFollowModeOn = true, operatingToolName = "jetwhale.click").showsFollowBanner)
+    }
+
     private fun state(isAgentConnected: Boolean, isFollowModeOn: Boolean, operatingToolName: String? = null) = AiActivityUiState(
         isAgentConnected = isAgentConnected,
         operatingToolName = operatingToolName,
         isFollowModeOn = isFollowModeOn,
         isFollowingOperation = operatingToolName != null,
     )
-
-    @Test
-    fun `the strip is up whenever a follow could happen, call or no call`() {
-        assertTrue(state(isAgentConnected = true, isFollowModeOn = true).showsFollowBanner)
-        assertTrue(state(isAgentConnected = true, isFollowModeOn = true, operatingToolName = "jetwhale.click").showsFollowBanner)
-    }
 
     @Test
     fun `the strip is down when nothing could move the window`() {

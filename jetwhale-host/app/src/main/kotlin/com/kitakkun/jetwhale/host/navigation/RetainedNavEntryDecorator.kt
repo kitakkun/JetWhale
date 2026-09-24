@@ -20,7 +20,5 @@ private class RetainedNavEntryDecorator<T : Any>(
             entry.Content()
         }
     },
-    onPop = { contentKey ->
-        registry.clearChild(contentKey)
-    },
+    onPop = registry::clearChild,
 )

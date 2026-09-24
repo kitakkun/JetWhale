@@ -8,17 +8,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class ConnectionEndpointTest {
-    private fun candidates(
-        configure: JetWhaleConnectionConfigurationScope.() -> Unit,
-    ): List<EndpointCandidate> = JetWhaleConnectionConfiguration().apply(configure).candidates
-
-    /** Only for configurations without a discovered candidate, which would browse the network for real. */
-    private fun literalAddresses(
-        configure: JetWhaleConnectionConfigurationScope.() -> Unit,
-    ): List<ResolvedEndpoint> = runBlocking {
-        JetWhaleConnectionConfiguration().apply(configure).endpointResolver().resolve()
-    }
-
     @Suppress("DEPRECATION")
     @Test
     fun `the deprecated host and port stand in for undeclared endpoints`() {
@@ -29,6 +18,13 @@ class ConnectionEndpointTest {
         }
 
         assertEquals(listOf(ResolvedEndpoint("192.168.3.26", 5443, useWss = true)), resolved)
+    }
+
+    /** Only for configurations without a discovered candidate, which would browse the network for real. */
+    private fun literalAddresses(
+        configure: JetWhaleConnectionConfigurationScope.() -> Unit,
+    ): List<ResolvedEndpoint> = runBlocking {
+        JetWhaleConnectionConfiguration().apply(configure).endpointResolver().resolve()
     }
 
     @Test
@@ -55,6 +51,10 @@ class ConnectionEndpointTest {
             declared,
         )
     }
+
+    private fun candidates(
+        configure: JetWhaleConnectionConfigurationScope.() -> Unit,
+    ): List<EndpointCandidate> = JetWhaleConnectionConfiguration().apply(configure).candidates
 
     @Test
     fun `the scheme is per candidate, so one configuration can mix them`() {

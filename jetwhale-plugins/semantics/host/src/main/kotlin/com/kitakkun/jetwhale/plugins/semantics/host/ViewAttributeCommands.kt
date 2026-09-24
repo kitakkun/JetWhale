@@ -113,7 +113,7 @@ internal class SetViewAttributeCommand(
                 ?: return errorJson(response.message ?: "this node has no View attributes")
             val current = snapshot.attributes.firstOrNull { it.id == attributeId }
                 ?: throw JetWhaleMcpArgumentException(
-                    "unknown attributeId: $attributeId (this ${snapshot.viewClass} exposes ${snapshot.attributes.joinToString { it.id }})",
+                    "unknown attributeId: $attributeId (this ${snapshot.viewClass} exposes ${snapshot.attributes.joinToString(transform = ViewAttribute::id)})",
                 )
             if (!current.editable) throw JetWhaleMcpArgumentException("$attributeId is read-only on a ${snapshot.viewClass}")
 
@@ -196,31 +196,31 @@ internal fun ViewAttributeValue.asText(): String = when (this) {
 @OptIn(ExperimentalJetWhaleApi::class)
 internal fun parseViewAttributeValue(attributeId: String, current: ViewAttributeValue, text: String): ViewAttributeValue = when (current) {
     is ViewAttributeValue.BooleanValue -> ViewAttributeValue.BooleanValue(
-        text.trim().toBooleanStrictOrNull() ?: invalidValue(attributeId, text, "true or false"),
+        text.trim().toBooleanStrictOrNull() ?: invalidValue(attributeId = attributeId, text = text, expected = "true or false"),
     )
 
     is ViewAttributeValue.IntValue -> ViewAttributeValue.IntValue(
-        text.trim().toIntOrNull() ?: invalidValue(attributeId, text, "a whole number"),
+        text.trim().toIntOrNull() ?: invalidValue(attributeId = attributeId, text = text, expected = "a whole number"),
     )
 
     is ViewAttributeValue.FloatValue -> ViewAttributeValue.FloatValue(
-        text.trim().toFloatOrNull() ?: invalidValue(attributeId, text, "a number"),
+        text.trim().toFloatOrNull() ?: invalidValue(attributeId = attributeId, text = text, expected = "a number"),
     )
 
     is ViewAttributeValue.TextValue -> ViewAttributeValue.TextValue(text)
 
     is ViewAttributeValue.ColorValue -> ViewAttributeValue.ColorValue(
-        parseArgb(text) ?: invalidValue(attributeId, text, "a color as #AARRGGBB or #RRGGBB"),
+        parseArgb(text) ?: invalidValue(attributeId = attributeId, text = text, expected = "a color as #AARRGGBB or #RRGGBB"),
     )
 
     is ViewAttributeValue.DimensionValue -> {
-        val px = text.trim().toFloatOrNull() ?: invalidValue(attributeId, text, "a length in pixels")
+        val px = text.trim().toFloatOrNull() ?: invalidValue(attributeId = attributeId, text = text, expected = "a length in pixels")
         ViewAttributeValue.DimensionValue(px = px, dp = px)
     }
 
     is ViewAttributeValue.EnumValue -> ViewAttributeValue.EnumValue(
         value = current.options.firstOrNull { it.equals(text.trim(), ignoreCase = true) }
-            ?: invalidValue(attributeId, text, "one of ${current.options.joinToString(", ")}"),
+            ?: invalidValue(attributeId = attributeId, text = text, expected = "one of ${current.options.joinToString(", ")}"),
         options = current.options,
     )
 
@@ -230,7 +230,7 @@ internal fun parseViewAttributeValue(attributeId: String, current: ViewAttribute
         when {
             constant != null -> current.copy(constant = constant, px = null, dp = null)
             px != null -> current.copy(constant = null, px = px, dp = px)
-            else -> invalidValue(attributeId, text, "one of ${current.constants.joinToString(", ")}, or a length in pixels")
+            else -> invalidValue(attributeId = attributeId, text = text, expected = "one of ${current.constants.joinToString(", ")}, or a length in pixels")
         }
     }
 }

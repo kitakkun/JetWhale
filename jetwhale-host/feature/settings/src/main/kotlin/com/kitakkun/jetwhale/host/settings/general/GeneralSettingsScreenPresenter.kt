@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.AppearanceSettings
-import com.kitakkun.jetwhale.host.model.DebuggerBehaviorSettings
 import com.kitakkun.jetwhale.host.model.DebuggingToolsDiagnostics
 import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
 import soil.query.compose.rememberMutation
@@ -13,7 +12,9 @@ import soil.query.compose.rememberMutation
 context(presenterContext: SettingsPresenterContext)
 fun generalSettingsScreenPresenter(
     screenChannel: ScreenChannel<GeneralSettingsScreenAction, Nothing>,
-    debuggerBehaviorSettings: DebuggerBehaviorSettings,
+    automaticallyWireADBTransport: Boolean,
+    checkForUpdatesOnStartup: Boolean,
+    followAiOperationEnabled: Boolean,
     appearanceSettings: AppearanceSettings,
     diagnostics: DebuggingToolsDiagnostics,
 ): GeneralSettingsScreenUiState {
@@ -61,15 +62,15 @@ fun generalSettingsScreenPresenter(
     }
 
     return GeneralSettingsScreenUiState(
-        automaticallyWireADBTransport = debuggerBehaviorSettings.adbAutoPortMappingEnabled,
+        automaticallyWireADBTransport = automaticallyWireADBTransport,
         selectedColorSchemeId = appearanceSettings.activeColorScheme,
         availableColorSchemes = appearanceSettings.availableColorSchemes,
         language = appearanceSettings.appLanguage,
         appDataPath = diagnostics.appDataPath,
         adbPath = diagnostics.adbPath,
         currentVersion = presenterContext.hostVersionInfo.version,
-        checkForUpdatesOnStartup = debuggerBehaviorSettings.checkForUpdatesOnStartup,
-        followAiOperation = debuggerBehaviorSettings.followAiOperationEnabled,
+        checkForUpdatesOnStartup = checkForUpdatesOnStartup,
+        followAiOperation = followAiOperationEnabled,
         isCheckingForUpdates = updateCheckMutation.isPending,
         updateCheckResult = updateCheckMutation.data,
         updateCheckError = updateCheckMutation.error?.message,

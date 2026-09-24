@@ -41,8 +41,6 @@ sealed interface com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent { // 
         final val frame // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.frame|{}frame[0]
             final fun <get-frame>(): com.kitakkun.jetwhale.protocol.messaging/PluginFrame // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.frame.<get-frame>|<get-frame>(){}[0]
 
-        final fun component1(): com.kitakkun.jetwhale.protocol.messaging/PluginFrame // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.component1|component1(){}[0]
-        final fun copy(com.kitakkun.jetwhale.protocol.messaging/PluginFrame = ...): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.copy|copy(com.kitakkun.jetwhale.protocol.messaging.PluginFrame){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggeeEvent.PluginFrameMessage.toString|toString(){}[0]
@@ -76,8 +74,6 @@ sealed interface com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent { // 
         final val pluginId // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginActivated.pluginId|{}pluginId[0]
             final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginActivated.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
 
-        final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginActivated.component1|component1(){}[0]
-        final fun copy(kotlin/String = ...): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginActivated // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginActivated.copy|copy(kotlin.String){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginActivated.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginActivated.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginActivated.toString|toString(){}[0]
@@ -102,8 +98,6 @@ sealed interface com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent { // 
         final val pluginId // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginDeactivated.pluginId|{}pluginId[0]
             final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginDeactivated.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
 
-        final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginDeactivated.component1|component1(){}[0]
-        final fun copy(kotlin/String = ...): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginDeactivated // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginDeactivated.copy|copy(kotlin.String){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginDeactivated.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginDeactivated.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginDeactivated.toString|toString(){}[0]
@@ -128,8 +122,6 @@ sealed interface com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent { // 
         final val frame // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.frame|{}frame[0]
             final fun <get-frame>(): com.kitakkun.jetwhale.protocol.messaging/PluginFrame // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.frame.<get-frame>|<get-frame>(){}[0]
 
-        final fun component1(): com.kitakkun.jetwhale.protocol.messaging/PluginFrame // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.component1|component1(){}[0]
-        final fun copy(com.kitakkun.jetwhale.protocol.messaging/PluginFrame = ...): com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.copy|copy(com.kitakkun.jetwhale.protocol.messaging.PluginFrame){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.core/JetWhaleDebuggerEvent.PluginFrameMessage.toString|toString(){}[0]
@@ -174,10 +166,6 @@ sealed interface com.kitakkun.jetwhale.protocol.messaging/PluginFrame { // com.k
             final val pluginId // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Failure.pluginId|{}pluginId[0]
                 final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Failure.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
 
-            final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Failure.component1|component1(){}[0]
-            final fun component2(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Failure.component2|component2(){}[0]
-            final fun component3(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Failure.component3|component3(){}[0]
-            final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/String = ...): com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Failure // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Failure.copy|copy(kotlin.String;kotlin.String;kotlin.String){}[0]
             final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Failure.equals|equals(kotlin.Any?){}[0]
             final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Failure.hashCode|hashCode(){}[0]
             final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Failure.toString|toString(){}[0]
@@ -206,10 +194,6 @@ sealed interface com.kitakkun.jetwhale.protocol.messaging/PluginFrame { // com.k
             final val pluginId // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Success.pluginId|{}pluginId[0]
                 final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Success.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
 
-            final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Success.component1|component1(){}[0]
-            final fun component2(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Success.component2|component2(){}[0]
-            final fun component3(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Success.component3|component3(){}[0]
-            final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/String = ...): com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Success // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Success.copy|copy(kotlin.String;kotlin.String;kotlin.String){}[0]
             final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Success.equals|equals(kotlin.Any?){}[0]
             final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Success.hashCode|hashCode(){}[0]
             final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Reply.Success.toString|toString(){}[0]
@@ -244,10 +228,6 @@ sealed interface com.kitakkun.jetwhale.protocol.messaging/PluginFrame { // com.k
         final val pluginId // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Notification.pluginId|{}pluginId[0]
             final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Notification.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
 
-        final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Notification.component1|component1(){}[0]
-        final fun component2(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Notification.component2|component2(){}[0]
-        final fun component3(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Notification.component3|component3(){}[0]
-        final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/String = ...): com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Notification // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Notification.copy|copy(kotlin.String;kotlin.String;kotlin.String){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Notification.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Notification.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Notification.toString|toString(){}[0]
@@ -278,11 +258,6 @@ sealed interface com.kitakkun.jetwhale.protocol.messaging/PluginFrame { // com.k
         final val pluginId // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Request.pluginId|{}pluginId[0]
             final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Request.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
 
-        final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Request.component1|component1(){}[0]
-        final fun component2(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Request.component2|component2(){}[0]
-        final fun component3(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Request.component3|component3(){}[0]
-        final fun component4(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Request.component4|component4(){}[0]
-        final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., kotlin/String = ...): com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Request // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Request.copy|copy(kotlin.String;kotlin.String;kotlin.String;kotlin.String){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Request.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Request.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.messaging/PluginFrame.Request.toString|toString(){}[0]
@@ -314,8 +289,6 @@ sealed interface com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotia
         final val plugins // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.AvailablePlugins.plugins|{}plugins[0]
             final fun <get-plugins>(): kotlin.collections/List<com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo> // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.AvailablePlugins.plugins.<get-plugins>|<get-plugins>(){}[0]
 
-        final fun component1(): kotlin.collections/List<com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo> // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.AvailablePlugins.component1|component1(){}[0]
-        final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo> = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.AvailablePlugins // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.AvailablePlugins.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo>){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.AvailablePlugins.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.AvailablePlugins.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.AvailablePlugins.toString|toString(){}[0]
@@ -342,8 +315,6 @@ sealed interface com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotia
         final val capabilities // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Capabilities.capabilities|{}capabilities[0]
             final fun <get-capabilities>(): kotlin.collections/Map<kotlin/String, kotlin/String> // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Capabilities.capabilities.<get-capabilities>|<get-capabilities>(){}[0]
 
-        final fun component1(): kotlin.collections/Map<kotlin/String, kotlin/String> // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Capabilities.component1|component1(){}[0]
-        final fun copy(kotlin.collections/Map<kotlin/String, kotlin/String> = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Capabilities // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Capabilities.copy|copy(kotlin.collections.Map<kotlin.String,kotlin.String>){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Capabilities.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Capabilities.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Capabilities.toString|toString(){}[0]
@@ -370,8 +341,6 @@ sealed interface com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotia
         final val version // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.ProtocolVersion.version|{}version[0]
             final fun <get-version>(): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleProtocolVersion // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.ProtocolVersion.version.<get-version>|<get-version>(){}[0]
 
-        final fun component1(): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleProtocolVersion // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.ProtocolVersion.component1|component1(){}[0]
-        final fun copy(com.kitakkun.jetwhale.protocol.negotiation/JetWhaleProtocolVersion = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.ProtocolVersion // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.ProtocolVersion.copy|copy(com.kitakkun.jetwhale.protocol.negotiation.JetWhaleProtocolVersion){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.ProtocolVersion.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.ProtocolVersion.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.ProtocolVersion.toString|toString(){}[0]
@@ -400,10 +369,6 @@ sealed interface com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotia
         final val sessionName // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.sessionName|{}sessionName[0]
             final fun <get-sessionName>(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.sessionName.<get-sessionName>|<get-sessionName>(){}[0]
 
-        final fun component1(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.component1|component1(){}[0]
-        final fun component2(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.component2|component2(){}[0]
-        final fun component3(): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.component3|component3(){}[0]
-        final fun copy(kotlin/String? = ..., kotlin/String = ..., com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.copy|copy(kotlin.String?;kotlin.String;com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAppMetadata){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAgentNegotiationRequest.Session.toString|toString(){}[0]
@@ -436,8 +401,6 @@ sealed interface com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiat
             final val version // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept.version|{}version[0]
                 final fun <get-version>(): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleProtocolVersion // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept.version.<get-version>|<get-version>(){}[0]
 
-            final fun component1(): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleProtocolVersion // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept.component1|component1(){}[0]
-            final fun copy(com.kitakkun.jetwhale.protocol.negotiation/JetWhaleProtocolVersion = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept.copy|copy(com.kitakkun.jetwhale.protocol.negotiation.JetWhaleProtocolVersion){}[0]
             final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept.equals|equals(kotlin.Any?){}[0]
             final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept.hashCode|hashCode(){}[0]
             final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Accept.toString|toString(){}[0]
@@ -464,9 +427,6 @@ sealed interface com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiat
             final val supportedVersions // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Reject.supportedVersions|{}supportedVersions[0]
                 final fun <get-supportedVersions>(): kotlin.collections/List<com.kitakkun.jetwhale.protocol.negotiation/JetWhaleProtocolVersion> // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Reject.supportedVersions.<get-supportedVersions>|<get-supportedVersions>(){}[0]
 
-            final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Reject.component1|component1(){}[0]
-            final fun component2(): kotlin.collections/List<com.kitakkun.jetwhale.protocol.negotiation/JetWhaleProtocolVersion> // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Reject.component2|component2(){}[0]
-            final fun copy(kotlin/String = ..., kotlin.collections/List<com.kitakkun.jetwhale.protocol.negotiation/JetWhaleProtocolVersion> = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Reject // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Reject.copy|copy(kotlin.String;kotlin.collections.List<com.kitakkun.jetwhale.protocol.negotiation.JetWhaleProtocolVersion>){}[0]
             final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Reject.equals|equals(kotlin.Any?){}[0]
             final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Reject.hashCode|hashCode(){}[0]
             final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.ProtocolVersionResponse.Reject.toString|toString(){}[0]
@@ -499,8 +459,6 @@ sealed interface com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiat
         final val sessionId // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AcceptSession.sessionId|{}sessionId[0]
             final fun <get-sessionId>(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AcceptSession.sessionId.<get-sessionId>|<get-sessionId>(){}[0]
 
-        final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AcceptSession.component1|component1(){}[0]
-        final fun copy(kotlin/String = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AcceptSession // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AcceptSession.copy|copy(kotlin.String){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AcceptSession.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AcceptSession.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AcceptSession.toString|toString(){}[0]
@@ -527,9 +485,6 @@ sealed interface com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiat
         final val incompatiblePlugins // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AvailablePluginsResponse.incompatiblePlugins|{}incompatiblePlugins[0]
             final fun <get-incompatiblePlugins>(): kotlin.collections/List<com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo> // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AvailablePluginsResponse.incompatiblePlugins.<get-incompatiblePlugins>|<get-incompatiblePlugins>(){}[0]
 
-        final fun component1(): kotlin.collections/List<com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo> // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AvailablePluginsResponse.component1|component1(){}[0]
-        final fun component2(): kotlin.collections/List<com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo> // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AvailablePluginsResponse.component2|component2(){}[0]
-        final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo> = ..., kotlin.collections/List<com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo> = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AvailablePluginsResponse // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AvailablePluginsResponse.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo>;kotlin.collections.List<com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo>){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AvailablePluginsResponse.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AvailablePluginsResponse.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.AvailablePluginsResponse.toString|toString(){}[0]
@@ -556,8 +511,6 @@ sealed interface com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiat
         final val capabilities // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.CapabilitiesResponse.capabilities|{}capabilities[0]
             final fun <get-capabilities>(): kotlin.collections/Map<kotlin/String, kotlin/String> // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.CapabilitiesResponse.capabilities.<get-capabilities>|<get-capabilities>(){}[0]
 
-        final fun component1(): kotlin.collections/Map<kotlin/String, kotlin/String> // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.CapabilitiesResponse.component1|component1(){}[0]
-        final fun copy(kotlin.collections/Map<kotlin/String, kotlin/String> = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.CapabilitiesResponse // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.CapabilitiesResponse.copy|copy(kotlin.collections.Map<kotlin.String,kotlin.String>){}[0]
         final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.CapabilitiesResponse.equals|equals(kotlin.Any?){}[0]
         final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.CapabilitiesResponse.hashCode|hashCode(){}[0]
         final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleHostNegotiationResponse.CapabilitiesResponse.toString|toString(){}[0]
@@ -634,11 +587,6 @@ final class com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata { // 
     final val deviceName // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.deviceName|{}deviceName[0]
         final fun <get-deviceName>(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.deviceName.<get-deviceName>|<get-deviceName>(){}[0]
 
-    final fun component1(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.component1|component1(){}[0]
-    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.component2|component2(){}[0]
-    final fun component3(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.component3|component3(){}[0]
-    final fun component4(): kotlin/String? // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.component4|component4(){}[0]
-    final fun copy(kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ..., kotlin/String? = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.copy|copy(kotlin.String?;kotlin.String?;kotlin.String?;kotlin.String?){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhaleAppMetadata.toString|toString(){}[0]
@@ -665,9 +613,6 @@ final class com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo { // c
     final val pluginVersion // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo.pluginVersion|{}pluginVersion[0]
         final fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
 
-    final fun component1(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo.component1|component1(){}[0]
-    final fun component2(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo.component2|component2(){}[0]
-    final fun copy(kotlin/String = ..., kotlin/String = ...): com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo.copy|copy(kotlin.String;kotlin.String){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.protocol.negotiation/JetWhalePluginInfo.toString|toString(){}[0]

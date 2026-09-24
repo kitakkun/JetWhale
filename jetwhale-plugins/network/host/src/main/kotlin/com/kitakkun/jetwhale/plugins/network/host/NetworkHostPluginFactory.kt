@@ -82,17 +82,36 @@ private class NetworkHostPlugin :
         }
     }
 
+    private inline fun updateTransaction(txId: String, transform: (HttpTransaction) -> HttpTransaction) {
+        val index = transactions.indexOfFirst { it.request.txId == txId }
+        if (index >= 0) transactions[index] = transform(transactions[index])
+    }
+
+    @Composable
+    override fun Content() {
+        // MCP screenshot captures are AI-agent-facing like tool results, so MCP_ONLY rules
+        // apply to them too; the interactive window keeps showing the raw values.
+        val redactForCapture = LocalIsMcpCapture.current && mcpRedactionRules.isNotEmpty()
+        NetworkInspectorScreenRoot(
+            transactions = if (redactForCapture) transactions.map { it.redactedForMcp() } else transactions,
+            mockRules = mockRules,
+            mockingEnabled = mockingEnabled,
+            onClearTransactions = transactions::clear,
+            onToggleMocking = { enabled ->
+                pluginScope.launch { syncMockingEnabled(enabled) }
+            },
+            onMockRulesChanged = { rules ->
+                pluginScope.launch { syncMockRules(rules) }
+            },
+        )
+    }
+
     private fun HttpTransaction.redactedForMcp(): HttpTransaction {
         if (mcpRedactionRules.isEmpty()) return this
         return copy(
             request = mcpRedactionRules.redact(request),
             response = response?.let { mcpRedactionRules.redact(it) },
         )
-    }
-
-    private inline fun updateTransaction(txId: String, transform: (HttpTransaction) -> HttpTransaction) {
-        val index = transactions.indexOfFirst { it.request.txId == txId }
-        if (index >= 0) transactions[index] = transform(transactions[index])
     }
 
     // Pushes the new rule set to the agent first and commits it locally only on success, so the
@@ -120,28 +139,9 @@ private class NetworkHostPlugin :
         return null
     }
 
-    @Composable
-    override fun Content() {
-        // MCP screenshot captures are AI-agent-facing like tool results, so MCP_ONLY rules
-        // apply to them too; the interactive window keeps showing the raw values.
-        val redactForCapture = LocalIsMcpCapture.current && mcpRedactionRules.isNotEmpty()
-        NetworkInspectorScreen(
-            transactions = if (redactForCapture) transactions.map { it.redactedForMcp() } else transactions,
-            mockRules = mockRules,
-            mockingEnabled = mockingEnabled,
-            onClearTransactions = { transactions.clear() },
-            onToggleMocking = { enabled ->
-                pluginScope.launch { syncMockingEnabled(enabled) }
-            },
-            onMockRulesChanged = { rules ->
-                pluginScope.launch { syncMockRules(rules) }
-            },
-        )
-    }
-
     override val mcpCommands: List<JetWhaleMcpCommand> = listOf(
-        ListTransactionsCommand(transactions = { transactions.toList() }, redactForMcp = { it.redactedForMcp() }),
-        GetTransactionCommand(transactions = { transactions.toList() }, redactForMcp = { it.redactedForMcp() }),
+        ListTransactionsCommand(transactions = transactions::toList, redactForMcp = { it.redactedForMcp() }),
+        GetTransactionCommand(transactions = transactions::toList, redactForMcp = { it.redactedForMcp() }),
         ClearTransactionsCommand(
             clearTransactions = {
                 val cleared = transactions.size
@@ -149,10 +149,10 @@ private class NetworkHostPlugin :
                 cleared
             },
         ),
-        GetMockConfigCommand(mockingEnabled = { mockingEnabled }, mockRules = { mockRules.toList() }),
+        GetMockConfigCommand(mockingEnabled = { mockingEnabled }, mockRules = mockRules::toList),
         SetMockingEnabledCommand(syncMockingEnabled = ::syncMockingEnabled),
-        AddMockRuleCommand(mockRules = { mockRules.toList() }, syncMockRules = ::syncMockRules),
-        RemoveMockRuleCommand(mockRules = { mockRules.toList() }, syncMockRules = ::syncMockRules),
+        AddMockRuleCommand(mockRules = mockRules::toList, syncMockRules = ::syncMockRules),
+        RemoveMockRuleCommand(mockRules = mockRules::toList, syncMockRules = ::syncMockRules),
         SetMockRulesCommand(syncMockRules = ::syncMockRules),
     )
 }

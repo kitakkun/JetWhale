@@ -214,7 +214,7 @@ private fun JwSnackbar(data: JwSnackbarData) {
  */
 @Composable
 private fun SnackbarAction(label: String, onClick: () -> Unit) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     Box(
         modifier = Modifier

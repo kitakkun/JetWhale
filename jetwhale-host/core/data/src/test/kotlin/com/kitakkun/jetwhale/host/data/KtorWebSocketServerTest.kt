@@ -37,8 +37,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
 class KtorWebSocketServerTest {
-    private fun freePort(): Int = ServerSocket(0).use { it.localPort }
-
     @Test
     fun `starts with plain ws connector only`() {
         val server = KtorWebSocketServer(
@@ -51,6 +49,8 @@ class KtorWebSocketServerTest {
             server.stop()
         }
     }
+
+    private fun freePort(): Int = ServerSocket(0).use(ServerSocket::getLocalPort)
 
     @Test
     fun `starts wss connector backed by the active certificate`() {
@@ -86,6 +86,9 @@ class KtorWebSocketServerTest {
         }
     }
 
+    // The hot-swap is observable only on the wire: the server exposes no signal for "the TLS
+    // listener is back up with the new certificate", so the handshake has to be retried for it.
+    @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
     @Test
     fun `swapping the active certificate restarts the tls listener with the new certificate`() {
         // A real certificate manager backed by a temp home so activating a new certificate emits on
@@ -110,14 +113,9 @@ class KtorWebSocketServerTest {
                     server.statusFlow.first { it is DebugWebSocketServerStatus.Started }
                 }
 
-                val serialBefore = withTimeout(10_000) {
-                    var serial: BigInteger? = null
-                    while (serial == null) {
-                        serial = runCatching { fetchLeafSerial(wssPort) }.getOrNull()
-                        if (serial == null) delay(100)
-                    }
-                    serial
-                }
+                // Started is only reported once both listeners have bound, so the first handshake
+                // needs no retry; only the swap below does.
+                val serialBefore = fetchLeafSerial(wssPort)
 
                 // Generating a new certificate marks it active, which the server hot-swaps onto the
                 // wss listener without touching the plain server.
@@ -205,16 +203,7 @@ class KtorWebSocketServerTest {
                     server.statusFlow.first { it is DebugWebSocketServerStatus.Started }
                 }
 
-                val body = withTimeout(10_000) {
-                    var result: String? = null
-                    while (result == null) {
-                        result = runCatching { httpsGet(wssPort, "/jetwhale/ca") }.getOrNull()
-                        if (result == null) delay(100)
-                    }
-                    result
-                }
-
-                assertEquals(expectedPem, body)
+                assertEquals(expectedPem, httpsGet(wssPort, "/jetwhale/ca"))
                 server.stop()
             }
         } finally {

@@ -1,4 +1,4 @@
-@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+@file:OptIn(ExperimentalCoroutinesApi::class)
 
 package com.kitakkun.jetwhale.agent.runtime
 
@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.annotations.InternalJetWhaleApi
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggeeEvent
 import com.kitakkun.jetwhale.protocol.core.JetWhaleDebuggerEvent
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -66,11 +67,6 @@ private class ScriptedEndpointResolver(private val rounds: List<List<ResolvedEnd
 
 @OptIn(InternalJetWhaleApi::class)
 class MessagingServiceResolutionTest {
-    private fun service(socketClient: JetWhaleSocketClient, resolver: EndpointResolver) = DefaultJetWhaleMessagingService(
-        socketClient = socketClient,
-        pluginService = JetWhaleAgentPluginService(plugins = emptyList()),
-    ).also { it.startService(resolver) }
-
     @Test
     fun `a candidate that refuses is passed over for the next one in the same round`() = runBlocking {
         // The point of the whole list: a host that answers discovery but refuses connections must not
@@ -88,6 +84,11 @@ class MessagingServiceResolutionTest {
 
         assertEquals(listOf(unreachable, reachable), socketClient.attempts.take(2))
     }
+
+    private fun service(socketClient: JetWhaleSocketClient, resolver: EndpointResolver) = DefaultJetWhaleMessagingService(
+        socketClient = socketClient,
+        pluginService = JetWhaleAgentPluginService(plugins = emptyList()),
+    ).also { it.startService(resolver) }
 
     @Test
     fun `the fallback is reached when the discovered candidate refuses`() = runBlocking {
@@ -107,6 +108,9 @@ class MessagingServiceResolutionTest {
         assertEquals(fallback, socketClient.connected.getCompleted())
     }
 
+    // The service decides a session held by reading a monotonic clock, so the hold has to be real
+    // time: under virtual time the session would measure as instant and the round as failed.
+    @Suppress("KOTRAIL_TEST_REAL_TIME_WAIT")
     @Test
     fun `a session that held reconnects without waiting out a backoff`() = runBlocking {
         // Refusals before the candidate that worked are not the round's verdict, so a session that ran

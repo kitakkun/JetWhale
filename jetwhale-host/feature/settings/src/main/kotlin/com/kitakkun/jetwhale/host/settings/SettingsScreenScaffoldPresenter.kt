@@ -10,6 +10,7 @@ import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 
 sealed interface SettingsScreenScaffoldAction {
     data class SelectPage(val page: SettingsScreenPage) : SettingsScreenScaffoldAction
+
     data class ToggleSection(val section: SettingsScreenSection) : SettingsScreenScaffoldAction
 }
 

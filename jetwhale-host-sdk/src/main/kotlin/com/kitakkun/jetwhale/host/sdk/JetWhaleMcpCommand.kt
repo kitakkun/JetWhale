@@ -52,12 +52,12 @@ import kotlin.reflect.KProperty
  *   available to [execute] for encoding results. Defaults to [DefaultArgumentJson]. Pass a custom
  *   instance to register a [kotlinx.serialization.modules.SerializersModule] (needed for contextual
  *   or open polymorphic types) or to change the class discriminator or naming strategy — the
- *   derived schema follows the instance, so the two cannot drift apart.
+ *   derived schema follows the instance, so the two cannot drift apart. It is a constructor
+ *   parameter rather than an open val because parameters are declared as property initializers,
+ *   which run before a subclass' own property overrides would be assigned.
  */
 @ExperimentalJetWhaleApi
 public abstract class JetWhaleMcpCommand(
-    // A constructor parameter rather than an open val: parameters are declared as property
-    // initializers, which run before a subclass' own property overrides would be assigned.
     protected val json: Json = DefaultArgumentJson,
 ) {
     /** Globally unique tool name; by convention prefixed with the pluginId. */
@@ -205,7 +205,7 @@ public abstract class JetWhaleMcpCommand(
         raw[paramName]?.takeUnless { it is JsonNull }?.let { parse(paramName, it) }
     }
 
-    internal fun <T> declare(parameter: JetWhaleMcpParameter<T>): JetWhaleMcpParameter<T> {
+    internal fun <T> declare(parameter: JetWhaleMcpParameter<T>) {
         check(!parametersSealed) {
             "Parameter '${parameter.name}' was declared after the parameter list of '$name' was read. Declare parameters only as property declarations on the command, never inside execute()."
         }
@@ -213,20 +213,19 @@ public abstract class JetWhaleMcpCommand(
             "Parameter '${parameter.name}' is declared twice on '$name'."
         }
         declaredParameters.add(parameter)
-        return parameter
     }
 
     private fun scalarContent(name: String, element: JsonElement): String = (element as? JsonPrimitive)?.content
         ?: throw JetWhaleMcpArgumentException("invalid $name: expected a scalar value")
 
-    private fun parseInt(name: String, value: String): Int = value.toIntOrNull() ?: invalid(name, value, "an integer")
+    private fun parseInt(name: String, value: String): Int = value.toIntOrNull() ?: invalid(name = name, value = value, expected = "an integer")
 
-    private fun parseLong(name: String, value: String): Long = value.toLongOrNull() ?: invalid(name, value, "an integer")
+    private fun parseLong(name: String, value: String): Long = value.toLongOrNull() ?: invalid(name = name, value = value, expected = "an integer")
 
-    private fun parseBoolean(name: String, value: String): Boolean = value.toBooleanStrictOrNull() ?: invalid(name, value, "true or false")
+    private fun parseBoolean(name: String, value: String): Boolean = value.toBooleanStrictOrNull() ?: invalid(name = name, value = value, expected = "true or false")
 
     private fun <T : Enum<T>> parseEnum(name: String, value: String, entries: List<T>): T = entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
-        ?: invalid(name, value, "one of ${entries.joinToString(", ") { it.name }}")
+        ?: invalid(name = name, value = value, expected = "one of ${entries.joinToString(", ") { it.name }}")
 
     private fun parseStringList(name: String, element: JsonElement): List<String> {
         val array = element as? JsonArray ?: throw JetWhaleMcpArgumentException("invalid $name: expected a JSON array")
@@ -298,14 +297,13 @@ public class JetWhaleMcpParameterDeclaration<T> internal constructor(
 ) : PropertyDelegateProvider<Any?, ReadOnlyProperty<Any?, JetWhaleMcpParameter<T>>> {
     override fun provideDelegate(thisRef: Any?, property: KProperty<*>): ReadOnlyProperty<Any?, JetWhaleMcpParameter<T>> {
         val parameterName = explicitName ?: property.name
-        val parameter = command.declare(
-            JetWhaleMcpParameter(
-                name = parameterName,
-                schema = schema,
-                description = description,
-                required = required,
-            ) { raw -> extract(parameterName, raw) },
-        )
+        val parameter = JetWhaleMcpParameter(
+            name = parameterName,
+            schema = schema,
+            description = description,
+            required = required,
+        ) { raw -> extract(parameterName, raw) }
+        command.declare(parameter)
         return ReadOnlyProperty { _, _ -> parameter }
     }
 }
@@ -313,12 +311,13 @@ public class JetWhaleMcpParameterDeclaration<T> internal constructor(
 /**
  * A single typed parameter of a [JetWhaleMcpCommand]. Obtained by reading a `by`-declared
  * parameter property; read the value with [JetWhaleMcpArguments.get].
+ *
+ * @property schema JSON Schema fragment for the values this parameter accepts; carries no
+ *   "description" of its own, which the MCP server merges in from [description].
  */
 @ExperimentalJetWhaleApi
 public class JetWhaleMcpParameter<T> internal constructor(
     public val name: String,
-    // JSON Schema fragment for the values this parameter accepts; carries no "description" of its
-    // own, which the MCP server merges in from [description].
     public val schema: JsonObject,
     public val description: String,
     public val required: Boolean,

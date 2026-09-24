@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
+import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
 import kotlinx.serialization.json.JsonObject
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -19,7 +20,7 @@ internal class ReplaceBackStackCommand(
     private val stackId by stringOrNull("Which back stack to replace. Defaults to the app's only one.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val target = resolveStackId(arguments[stackId], controller.stacks().map { it.stackId })
+        val target = resolveStackId(arguments[stackId], controller.stacks().map(NavBackStackSnapshot::stackId))
         val newKeys = arguments[keys]
         if (newKeys.isEmpty()) {
             throw JetWhaleMcpArgumentException("keys must not be empty: Navigation 3 cannot render an empty back stack")

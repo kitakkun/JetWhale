@@ -19,9 +19,10 @@ fun LogViewerScreen(
     onClearLogs: () -> Unit,
     onFilterTextChange: (String) -> Unit,
     onAutoScrollChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
     ) {
         LogViewerToolbar(
             filterText = uiState.filterText,

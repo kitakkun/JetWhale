@@ -10,6 +10,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class FindMatchingTest {
+    @Test
+    fun `returns no mock when mocking is globally disabled`() {
+        val rules = listOf(rule(pattern = "/users"))
+        assertNull(rules.findMatching("GET", "https://api/users", enabled = false))
+    }
+
     private fun rule(
         method: String? = null,
         pattern: String,
@@ -24,13 +30,7 @@ class FindMatchingTest {
     )
 
     @Test
-    fun returnsNull_whenGloballyDisabled() {
-        val rules = listOf(rule(pattern = "/users"))
-        assertNull(rules.findMatching("GET", "https://api/users", enabled = false))
-    }
-
-    @Test
-    fun matchesContains_andReturnsFirstEnabledRule() {
+    fun `returns the first enabled rule whose pattern the url contains`() {
         val rules = listOf(
             rule(pattern = "/users", status = 201),
             rule(pattern = "/users", status = 500),
@@ -39,7 +39,7 @@ class FindMatchingTest {
     }
 
     @Test
-    fun skipsDisabledRules() {
+    fun `skips rules that are disabled`() {
         val rules = listOf(
             rule(pattern = "/users", enabled = false, status = 201),
             rule(pattern = "/users", status = 503),
@@ -48,14 +48,14 @@ class FindMatchingTest {
     }
 
     @Test
-    fun honorsMethodFilter() {
+    fun `matches the method case-insensitively when a rule names one`() {
         val rules = listOf(rule(method = "POST", pattern = "/users"))
         assertNull(rules.findMatching("GET", "https://api/users", enabled = true))
         assertEquals(200, rules.findMatching("post", "https://api/users", enabled = true)?.statusCode)
     }
 
     @Test
-    fun supportsExactAndRegex() {
+    fun `supports exact and regex match types`() {
         val exact = listOf(rule(pattern = "https://api/users", type = MockMatchType.EXACT))
         assertNull(exact.findMatching("GET", "https://api/users/1", enabled = true))
         assertEquals(200, exact.findMatching("GET", "https://api/users", enabled = true)?.statusCode)

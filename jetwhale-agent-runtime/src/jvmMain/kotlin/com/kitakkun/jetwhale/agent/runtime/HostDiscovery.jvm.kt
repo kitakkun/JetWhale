@@ -1,7 +1,9 @@
 package com.kitakkun.jetwhale.agent.runtime
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import javax.jmdns.JmDNS
 import javax.jmdns.ServiceInfo
 
@@ -19,7 +21,9 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
     try {
         jmdns = JmDNS.create(address)
         // Blocking browse: returns the services resolved within the timeout window.
-        DiscoveryResult.Browsed(jmdns.list(SERVICE_TYPE_LOCAL, timeoutMillis).mapNotNull { it.toDiscoveredService() })
+        DiscoveryResult.Browsed(jmdns.list(SERVICE_TYPE_LOCAL, timeoutMillis).mapNotNull(ServiceInfo::toDiscoveredService))
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         // The detail goes to debug; the caller reports the failure itself, deduplicated across the
         // retries that would otherwise repeat it forever.
@@ -28,7 +32,7 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
     } finally {
         try {
             jmdns?.close()
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             JetWhaleLogger.d("Failed to close jmDNS", e)
         }
     }

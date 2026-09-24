@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.mcp.tools.host
 import com.kitakkun.jetwhale.host.mcp.HostMcpCommand
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.McpServerStatusHolder
+import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
@@ -63,7 +64,7 @@ class HostStatusCommand(
                 mcpServer = mcpServerStatusHolder.statusFlow.value.toJson(),
                 sessions = SessionCountsJson(
                     total = sessions.size,
-                    active = sessions.count { it.isActive },
+                    active = sessions.count(DebugSession::isActive),
                 ),
                 plugins = PluginCountsJson(
                     loaded = pluginFactoryRepository.loadedPlugins.size,
@@ -89,8 +90,8 @@ class HostStatusCommand(
 }
 
 private fun McpPermissions.toJson() = PermissionsJson(
-    allowedHostGroups = allowedHostGroups.map { it.name }.sorted(),
-    deniedHostGroups = McpHostToolGroup.entries.filterNot { it in allowedHostGroups }.map { it.name },
+    allowedHostGroups = allowedHostGroups.map(McpHostToolGroup::name).sorted(),
+    deniedHostGroups = McpHostToolGroup.entries.filterNot(allowedHostGroups::contains).map(McpHostToolGroup::name),
     pluginsWithInspectDenied = pluginsDeniedInspect.sorted(),
     pluginsWithInteractDenied = pluginsDeniedInteract.sorted(),
     deniedPluginTools = deniedPluginTools.sorted(),
@@ -109,19 +110,22 @@ private fun HostViewState.toJson() = UiStateJson(
 internal fun DebugWebSocketServerStatus.toJson(): ServerStateJson = when (this) {
     is DebugWebSocketServerStatus.Started -> ServerStateJson("Started", host = host, port = port, wssPort = wssPort)
     is DebugWebSocketServerStatus.Error -> ServerStateJson("Error", message = message)
-    DebugWebSocketServerStatus.Starting -> ServerStateJson("Starting")
-    DebugWebSocketServerStatus.Stopping -> ServerStateJson("Stopping")
-    DebugWebSocketServerStatus.Stopped -> ServerStateJson("Stopped")
+    is DebugWebSocketServerStatus.Starting -> ServerStateJson("Starting")
+    is DebugWebSocketServerStatus.Stopping -> ServerStateJson("Stopping")
+    is DebugWebSocketServerStatus.Stopped -> ServerStateJson("Stopped")
 }
 
 private fun McpServerStatus.toJson(): ServerStateJson = when (this) {
     is McpServerStatus.Running -> ServerStateJson("Running", host = host, port = port)
     is McpServerStatus.Error -> ServerStateJson("Error", message = message)
-    McpServerStatus.Starting -> ServerStateJson("Starting")
-    McpServerStatus.Stopping -> ServerStateJson("Stopping")
-    McpServerStatus.Stopped -> ServerStateJson("Stopped")
+    is McpServerStatus.Starting -> ServerStateJson("Starting")
+    is McpServerStatus.Stopping -> ServerStateJson("Stopping")
+    is McpServerStatus.Stopped -> ServerStateJson("Stopped")
 }
 
+/**
+ * @property ui Null until the host window has composed.
+ */
 @Serializable
 data class HostStatusResult(
     val host: HostInfoJson,
@@ -131,25 +135,23 @@ data class HostStatusResult(
     val plugins: PluginCountsJson,
     val settings: SettingsJson,
     val permissions: PermissionsJson,
-    /** Null until the host window has composed. */
     val ui: UiStateJson? = null,
 )
 
 /**
  * What this agent is allowed to do. Reported so a refusal can be anticipated — and explained to the
  * user — rather than only discovered by calling a tool and being turned away.
+ *
+ * @property pluginsWithInspectDenied Plugins whose UI an agent may not read.
+ * @property pluginsWithInteractDenied Plugins whose UI an agent may not send input to.
+ * @property deniedPluginTools Individual plugin-contributed tools that are off, by tool name.
  */
 @Serializable
 data class PermissionsJson(
     val allowedHostGroups: List<String>,
     val deniedHostGroups: List<String>,
-    /** Plugins whose UI an agent may not read. */
     val pluginsWithInspectDenied: List<String>,
-
-    /** Plugins whose UI an agent may not send input to. */
     val pluginsWithInteractDenied: List<String>,
-
-    /** Individual plugin-contributed tools that are off, by tool name. */
     val deniedPluginTools: List<String>,
     val changeableIn: String = "Settings → AI Agents → Permissions",
 )

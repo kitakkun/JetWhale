@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.data
 
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.attribute.PosixFileAttributeView
 import java.nio.file.attribute.PosixFilePermission
 
 /**
@@ -34,7 +35,7 @@ internal object FilePermissionsWriter {
 
     private fun applyOwnerOnly(file: File, posixPermissions: Set<PosixFilePermission>, executable: Boolean) {
         val path = file.toPath()
-        val supportsPosix = Files.getFileStore(path).supportsFileAttributeView(java.nio.file.attribute.PosixFileAttributeView::class.java)
+        val supportsPosix = Files.getFileStore(path).supportsFileAttributeView(PosixFileAttributeView::class.java)
         if (supportsPosix) {
             Files.setPosixFilePermissions(path, posixPermissions)
         } else {

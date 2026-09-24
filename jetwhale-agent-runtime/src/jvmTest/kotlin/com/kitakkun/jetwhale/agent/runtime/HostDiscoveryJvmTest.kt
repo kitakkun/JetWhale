@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.agent.runtime
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import javax.jmdns.JmDNS
 import javax.jmdns.ServiceInfo
@@ -50,6 +51,8 @@ class HostDiscoveryJvmTest {
             assertEquals(8080, match.wsPort)
             assertEquals(8443, match.wssPort)
             assertEquals(instanceName, match.advertisedHostName)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             // Environment lacks a usable multicast stack; treat as a skipped test.
             println("Skipping mDNS round-trip test: ${e.message}")

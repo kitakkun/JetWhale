@@ -36,6 +36,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.seconds
 
@@ -87,7 +88,7 @@ class DefaultMcpServerService(
         }
 
         statusHolder.update(McpServerStatus.Starting)
-        val transports = java.util.concurrent.ConcurrentHashMap<String, SseServerTransport>()
+        val transports = ConcurrentHashMap<String, SseServerTransport>()
         val server = embeddedServer(Netty, host = host, port = port) {
             install(SSE)
             routing {
@@ -112,7 +113,7 @@ class DefaultMcpServerService(
                     }
                     mcpActivityRepository.clientConnected()
                     try {
-                        mcpServer.createSession(transport).onClose { markDisconnected() }
+                        mcpServer.createSession(transport).onClose(::markDisconnected)
                         awaitCancellation()
                     } finally {
                         markDisconnected()

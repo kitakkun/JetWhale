@@ -56,6 +56,7 @@ internal fun View.toViewNode(
     val visible = visibility == View.VISIBLE && isShown && !visibleBounds.isEmpty
     if (!visible && !options.includeInvisible && children.isEmpty()) return null
 
+    val boundsInScreen = visibleBounds.translated(windowOffsetX, windowOffsetY)
     val editable = this as? EditText
     val label = this as? TextView
 
@@ -63,12 +64,12 @@ internal fun View.toViewNode(
         id = ViewNodeIds.idOf(this),
         viewClass = javaClass.name,
         resourceId = resourceEntryName(),
-        text = label?.takeIf { editable == null }?.text?.toString()?.takeIf { it.isNotEmpty() },
-        editableText = editable?.takeUnless { it.isPasswordInput() }?.text?.toString(),
-        contentDescription = contentDescription?.toString()?.takeIf { it.isNotEmpty() },
+        text = label?.takeIf { editable == null }?.text?.toString()?.takeIf(String::isNotEmpty),
+        editableText = editable?.takeUnless(EditText::isPasswordInput)?.text?.toString(),
+        contentDescription = contentDescription?.toString()?.takeIf(String::isNotEmpty),
         toggleableState = (this as? Checkable)?.let { if (it.isChecked) "On" else "Off" },
         bounds = bounds,
-        boundsInScreen = visibleBounds.translated(windowOffsetX, windowOffsetY),
+        boundsInScreen = boundsInScreen,
         actions = viewActionNames(),
         isEnabled = isEnabled,
         isClickable = isClickable,
@@ -177,7 +178,7 @@ private fun View.resourceEntryName(): String? {
  */
 private fun View.visibleBoundsInWindow(): NodeBounds {
     val visible = Rect()
-    if (!getGlobalVisibleRect(visible)) return NodeBounds(0f, 0f, 0f, 0f)
+    if (!getGlobalVisibleRect(visible)) return NodeBounds(left = 0f, top = 0f, right = 0f, bottom = 0f)
     return NodeBounds(
         left = visible.left.toFloat(),
         top = visible.top.toFloat(),

@@ -53,7 +53,7 @@ internal fun describeNavKeyTypes(
 
     // Sorted by name: a SerializersModule enumerates its registrations in no defined order, so
     // without this the host's key-type list would come out shuffled differently every session.
-    return descriptors.values.map { it.toNavKeyTypeDescriptor() }.sortedBy { it.serialName }
+    return descriptors.values.map(SerialDescriptor::toNavKeyTypeDescriptor).sortedBy(NavKeyTypeDescriptor::serialName)
 }
 
 /** Collects the `polymorphic(NavKey::class, ...)` registrations of a module and ignores the rest. */
@@ -123,21 +123,21 @@ private fun placeholderFor(descriptor: SerialDescriptor, visited: Set<String>, d
     // A nullable field takes null: it is always a valid value, and it reads as "nothing here yet".
     if (descriptor.isNullable) return JsonNull
     return when (descriptor.kind) {
-        PrimitiveKind.STRING, PrimitiveKind.CHAR -> JsonPrimitive("")
+        is PrimitiveKind.STRING, is PrimitiveKind.CHAR -> JsonPrimitive("")
 
-        PrimitiveKind.BOOLEAN -> JsonPrimitive(false)
+        is PrimitiveKind.BOOLEAN -> JsonPrimitive(false)
 
-        PrimitiveKind.BYTE, PrimitiveKind.SHORT, PrimitiveKind.INT, PrimitiveKind.LONG -> JsonPrimitive(0)
+        is PrimitiveKind.BYTE, is PrimitiveKind.SHORT, is PrimitiveKind.INT, is PrimitiveKind.LONG -> JsonPrimitive(0)
 
-        PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> JsonPrimitive(0.0)
+        is PrimitiveKind.FLOAT, is PrimitiveKind.DOUBLE -> JsonPrimitive(0.0)
 
-        SerialKind.ENUM -> if (descriptor.elementsCount > 0) JsonPrimitive(descriptor.getElementName(0)) else JsonNull
+        is SerialKind.ENUM -> if (descriptor.elementsCount > 0) JsonPrimitive(descriptor.getElementName(0)) else JsonNull
 
-        StructureKind.LIST -> JsonArray(emptyList())
+        is StructureKind.LIST -> JsonArray(emptyList())
 
-        StructureKind.MAP -> JsonObject(emptyMap())
+        is StructureKind.MAP -> JsonObject(emptyMap())
 
-        StructureKind.CLASS, StructureKind.OBJECT ->
+        is StructureKind.CLASS, is StructureKind.OBJECT ->
             if (depth >= MAX_TEMPLATE_DEPTH || descriptor.serialName in visited) {
                 JsonObject(emptyMap())
             } else {
@@ -151,9 +151,9 @@ private fun placeholderFor(descriptor: SerialDescriptor, visited: Set<String>, d
 
 private fun readableTypeName(descriptor: SerialDescriptor): String {
     val base = when (descriptor.kind) {
-        StructureKind.LIST -> "List<${readableTypeName(descriptor.getElementDescriptor(0))}>"
-        StructureKind.MAP -> "Map<${readableTypeName(descriptor.getElementDescriptor(0))}, ${readableTypeName(descriptor.getElementDescriptor(1))}>"
-        SerialKind.ENUM -> (0 until descriptor.elementsCount).joinToString("|", prefix = "enum(", postfix = ")") { descriptor.getElementName(it) }
+        is StructureKind.LIST -> "List<${readableTypeName(descriptor.getElementDescriptor(0))}>"
+        is StructureKind.MAP -> "Map<${readableTypeName(descriptor.getElementDescriptor(0))}, ${readableTypeName(descriptor.getElementDescriptor(1))}>"
+        is SerialKind.ENUM -> (0 until descriptor.elementsCount).joinToString("|", prefix = "enum(", postfix = ")", transform = descriptor::getElementName)
         else -> descriptor.serialName.removeSuffix("?").substringAfterLast('.')
     }
     return if (descriptor.isNullable) "$base?" else base

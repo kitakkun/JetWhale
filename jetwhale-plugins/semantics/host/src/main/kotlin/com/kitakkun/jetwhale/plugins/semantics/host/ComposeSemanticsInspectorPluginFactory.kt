@@ -55,28 +55,6 @@ private class ComposeNodeInspectorHostPlugin :
     // compounding into UI jank in the app being debugged.
     private val captureLock = Mutex()
 
-    private suspend fun capture(options: NodeTreeCaptureOptions): NodeTreeSnapshot = captureLock.withLock {
-        capturing = true
-        val startedAt = TimeSource.Monotonic.markNow()
-        try {
-            messenger.request(CaptureNodeTree(options)).also {
-                snapshot = it
-                roundTripMs = startedAt.elapsedNow().inWholeMilliseconds
-                errorMessage = null
-            }
-        } finally {
-            capturing = false
-        }
-    }
-
-    private suspend fun performAction(request: PerformNodeAction): NodeActionResult = messenger.request(request)
-
-    // Attributes are read per node, on demand, so they stay out of the capture and out of the
-    // capture lock: a selection change must not queue behind an auto-refresh.
-    private suspend fun loadViewAttributes(request: GetViewAttributes): ViewAttributeResponse = messenger.request(request)
-
-    private suspend fun setViewAttribute(request: SetViewAttribute): ViewAttributeResult = messenger.request(request)
-
     // Owned by the plugin rather than by the panel: the attributes outlive the panel being closed,
     // a write outlives the editor that started it, and an agent's write goes through here too, so
     // an open panel is never left showing a value the app no longer has. Built lazily because
@@ -88,6 +66,12 @@ private class ComposeNodeInspectorHostPlugin :
             write = ::setViewAttribute,
         )
     }
+
+    // Attributes are read per node, on demand, so they stay out of the capture and out of the
+    // capture lock: a selection change must not queue behind an auto-refresh.
+    private suspend fun loadViewAttributes(request: GetViewAttributes): ViewAttributeResponse = messenger.request(request)
+
+    private suspend fun setViewAttribute(request: SetViewAttribute): ViewAttributeResult = messenger.request(request)
 
     // Owned by the plugin rather than the screen so the box can be taken down when the instance goes
     // away, which the screen's own composition scope is not around to do. Built lazily because
@@ -105,7 +89,7 @@ private class ComposeNodeInspectorHostPlugin :
 
     @Composable
     override fun Content() {
-        ComposeSemanticsInspectorScreen(
+        ComposeSemanticsInspectorScreenRoot(
             snapshot = snapshot,
             capturing = capturing,
             roundTripMs = roundTripMs,
@@ -151,6 +135,22 @@ private class ComposeNodeInspectorHostPlugin :
             onHighlightTargetChange = highlightController::setTarget,
         )
     }
+
+    private suspend fun capture(options: NodeTreeCaptureOptions): NodeTreeSnapshot = captureLock.withLock {
+        capturing = true
+        val startedAt = TimeSource.Monotonic.markNow()
+        try {
+            messenger.request(CaptureNodeTree(options)).also {
+                snapshot = it
+                roundTripMs = startedAt.elapsedNow().inWholeMilliseconds
+                errorMessage = null
+            }
+        } finally {
+            capturing = false
+        }
+    }
+
+    private suspend fun performAction(request: PerformNodeAction): NodeActionResult = messenger.request(request)
 
     // Lazy for the same reason the store is: reading this list builds the store, and the store needs
     // pluginScope. The runtime asks for the commands well after it has bound one.

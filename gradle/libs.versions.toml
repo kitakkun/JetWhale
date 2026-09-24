@@ -38,6 +38,7 @@ kermit = "2.1.0"
 
 aboutLibraries = "15.0.4"
 spotless = "8.9.0"
+kotrail = "0.1.0-20260924.054346-14"
 roborazzi = "1.73.0"
 conveyor = "2.0"
 conveyorControl = "1.1"
@@ -198,6 +199,7 @@ aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "abo
 conveyor = { id = "dev.hydraulic.conveyor", version.ref = "conveyor" }
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+kotrail = { id = "com.kitakkun.kotrail", version.ref = "kotrail" }
 
 # conventions
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }

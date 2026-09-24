@@ -42,7 +42,9 @@ data class CertificateUiEntry(
 sealed interface ServerState {
     data object Stopped : ServerState
     data class Running(val host: String, val port: Int, val wssPort: Int? = null) : ServerState
+
     data class Error(val reason: String) : ServerState
+
     data object Starting : ServerState
     data object Stopping : ServerState
 }

@@ -14,7 +14,8 @@ package com.kitakkun.jetwhale.host.model
  * already. [McpPermissions.allOverriddenBy] keeps it visible in the settings screen and in
  * `jetwhale.getStatus` rather than silently disagreeing with what the checkboxes show.
  */
-data class McpPermissionOverride(val allowAll: Boolean) {
+@JvmInline
+value class McpPermissionOverride(val allowAll: Boolean) {
     companion object {
         val None = McpPermissionOverride(allowAll = false)
     }

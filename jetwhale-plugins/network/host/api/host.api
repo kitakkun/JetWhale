@@ -1,10 +1,10 @@
 public final class com/kitakkun/jetwhale/plugins/network/host/ComposableSingletons$TrafficViewKt {
 	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/network/host/ComposableSingletons$TrafficViewKt;
 	public fun <init> ()V
-	public final fun getLambda$-688098813$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$-864837632$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$625731073$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
-	public final fun getLambda$802469892$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-1380131018$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-1725046763$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$1535173298$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$1880089043$com_kitakkun_jetwhale_plugins_network_host ()Lkotlin/jvm/functions/Function3;
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/host/HttpTransaction {
@@ -32,6 +32,10 @@ public final class com/kitakkun/jetwhale/plugins/network/host/NetworkHostPluginF
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/host/NetworkInspectorScreenKt {
-	public static final fun NetworkInspectorScreen (Ljava/util/List;Ljava/util/List;ZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;I)V
+	public static final fun NetworkInspectorScreen (Ljava/util/List;Ljava/util/List;ZLcom/kitakkun/jetwhale/host/ui/JwSplitPaneState;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+}
+
+public final class com/kitakkun/jetwhale/plugins/network/host/NetworkInspectorScreenRootKt {
+	public static final fun NetworkInspectorScreenRoot (Ljava/util/List;Ljava/util/List;ZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 

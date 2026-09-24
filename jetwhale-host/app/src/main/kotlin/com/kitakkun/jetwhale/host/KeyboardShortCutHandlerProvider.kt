@@ -8,6 +8,8 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.tooling.preview.Preview
+import com.kitakkun.jetwhale.host.ui.JwText
 
 @Composable
 fun KeyboardShortcutHandlerProvider(
@@ -25,4 +27,12 @@ fun KeyboardShortcutHandlerProvider(
         },
         content = content,
     )
+}
+
+@Preview
+@Composable
+private fun KeyboardShortcutHandlerProviderPreview() {
+    KeyboardShortcutHandlerProvider(onPressSettingsShortcut = {}) {
+        JwText(text = "Press the settings shortcut")
+    }
 }

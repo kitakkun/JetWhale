@@ -56,26 +56,26 @@ private fun SerialDescriptor.buildSchema(context: SchemaContext, enclosingTypes:
     if (isInline) return getElementDescriptor(0).buildSchema(context, enclosingTypes)
 
     val schema = when (kind) {
-        PrimitiveKind.STRING, PrimitiveKind.CHAR -> typeOnly("string")
+        is PrimitiveKind.STRING, is PrimitiveKind.CHAR -> typeOnly("string")
 
-        PrimitiveKind.BYTE, PrimitiveKind.SHORT, PrimitiveKind.INT, PrimitiveKind.LONG -> typeOnly("integer")
+        is PrimitiveKind.BYTE, is PrimitiveKind.SHORT, is PrimitiveKind.INT, is PrimitiveKind.LONG -> typeOnly("integer")
 
-        PrimitiveKind.FLOAT, PrimitiveKind.DOUBLE -> typeOnly("number")
+        is PrimitiveKind.FLOAT, is PrimitiveKind.DOUBLE -> typeOnly("number")
 
-        PrimitiveKind.BOOLEAN -> typeOnly("boolean")
+        is PrimitiveKind.BOOLEAN -> typeOnly("boolean")
 
-        SerialKind.ENUM -> buildJsonObject {
+        is SerialKind.ENUM -> buildJsonObject {
             put("type", "string")
             putJsonArray("enum") { elementNames.forEach { add(it) } }
         }
 
-        StructureKind.LIST -> buildJsonObject {
+        is StructureKind.LIST -> buildJsonObject {
             put("type", "array")
             put("items", getElementDescriptor(0).buildSchema(context, enclosingTypes))
         }
 
         // Element 0 is the key descriptor, element 1 the value descriptor.
-        StructureKind.MAP -> buildJsonObject {
+        is StructureKind.MAP -> buildJsonObject {
             put("type", "object")
             put("additionalProperties", getElementDescriptor(1).buildSchema(context, enclosingTypes))
         }
@@ -83,9 +83,9 @@ private fun SerialDescriptor.buildSchema(context: SchemaContext, enclosingTypes:
         // Only these kinds can contain themselves, so only these are guarded against recursion.
         // Collections repeat their serial name at every nesting level
         // ("kotlin.collections.ArrayList"), so guarding them too would cut List<List<T>> short.
-        StructureKind.CLASS, StructureKind.OBJECT -> guarded(enclosingTypes) { classSchema(context, enclosingTypes) }
+        is StructureKind.CLASS, is StructureKind.OBJECT -> guarded(enclosingTypes) { classSchema(context, enclosingTypes) }
 
-        PolymorphicKind.SEALED -> guarded(enclosingTypes) { sealedSchema(context, enclosingTypes) }
+        is PolymorphicKind.SEALED -> guarded(enclosingTypes) { sealedSchema(context, enclosingTypes) }
 
         else -> typeOnly("object")
     }
@@ -111,7 +111,7 @@ private fun SerialDescriptor.classSchema(context: SchemaContext, enclosingTypes:
         }
     }
     val required = (0 until elementsCount)
-        .filterNot { isElementOptional(it) }
+        .filterNot(::isElementOptional)
         .map { context.jsonNameOf(this@classSchema, it) }
     if (required.isNotEmpty()) putJsonArray("required") { required.forEach { add(it) } }
 }

@@ -112,9 +112,8 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
         for (source in sources) {
             try {
                 source.capture(options)?.let(roots::add)
-            } catch (e: CancellationException) {
-                throw e
             } catch (e: Throwable) {
+                if (e is CancellationException) throw e
                 // One unreadable root (a view detached mid-capture, a toolkit-specific failure)
                 // must not cost the caller the roots that did read cleanly.
                 warnings += "${source.sourceId}: failed to capture (${e.describeFailure()})"
@@ -183,9 +182,8 @@ class JetWhaleSemanticsAgentPlugin : JetWhaleAgentPlugin() {
             ?: return NodeActionResult(performed = false, message = ComposeNodeSourceRegistry.unknownRootMessage(request.rootId))
         return try {
             source.performAction(request)
-        } catch (e: CancellationException) {
-            throw e
         } catch (e: Throwable) {
+            if (e is CancellationException) throw e
             NodeActionResult(performed = false, message = "action failed: ${e.describeFailure()}")
         }
     }

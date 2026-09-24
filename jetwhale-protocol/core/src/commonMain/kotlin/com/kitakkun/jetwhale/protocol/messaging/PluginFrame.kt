@@ -28,11 +28,25 @@ public sealed interface PluginFrame {
      */
     @SerialName("frame/notification")
     @Serializable
-    public data class Notification(
+    public class Notification(
         override val pluginId: String,
-        val messageType: String,
-        val payload: String,
-    ) : PluginFrame
+        public val messageType: String,
+        public val payload: String,
+    ) : PluginFrame {
+        override fun equals(other: Any?): Boolean = other is Notification &&
+            pluginId == other.pluginId &&
+            messageType == other.messageType &&
+            payload == other.payload
+
+        override fun hashCode(): Int {
+            var result = pluginId.hashCode()
+            result = 31 * result + messageType.hashCode()
+            result = 31 * result + payload.hashCode()
+            return result
+        }
+
+        override fun toString(): String = "Notification(pluginId=$pluginId, messageType=$messageType, payload=$payload)"
+    }
 
     /**
      * A message that expects exactly one [Reply] correlated via [correlationId].
@@ -44,12 +58,29 @@ public sealed interface PluginFrame {
      */
     @SerialName("frame/request")
     @Serializable
-    public data class Request(
+    public class Request(
         override val pluginId: String,
-        val correlationId: String,
-        val messageType: String,
-        val payload: String,
-    ) : PluginFrame
+        public val correlationId: String,
+        public val messageType: String,
+        public val payload: String,
+    ) : PluginFrame {
+        override fun equals(other: Any?): Boolean = other is Request &&
+            pluginId == other.pluginId &&
+            correlationId == other.correlationId &&
+            messageType == other.messageType &&
+            payload == other.payload
+
+        override fun hashCode(): Int {
+            var result = pluginId.hashCode()
+            result = 31 * result + correlationId.hashCode()
+            result = 31 * result + messageType.hashCode()
+            result = 31 * result + payload.hashCode()
+            return result
+        }
+
+        override fun toString(): String = "Request(pluginId=$pluginId, correlationId=$correlationId, " +
+            "messageType=$messageType, payload=$payload)"
+    }
 
     /** The answer to a [Request], correlated via [inReplyTo]. Exactly success or failure. */
     @Serializable
@@ -67,11 +98,25 @@ public sealed interface PluginFrame {
          */
         @SerialName("frame/reply/success")
         @Serializable
-        public data class Success(
+        public class Success(
             override val pluginId: String,
             override val inReplyTo: String,
-            val payload: String,
-        ) : Reply
+            public val payload: String,
+        ) : Reply {
+            override fun equals(other: Any?): Boolean = other is Success &&
+                pluginId == other.pluginId &&
+                inReplyTo == other.inReplyTo &&
+                payload == other.payload
+
+            override fun hashCode(): Int {
+                var result = pluginId.hashCode()
+                result = 31 * result + inReplyTo.hashCode()
+                result = 31 * result + payload.hashCode()
+                return result
+            }
+
+            override fun toString(): String = "Success(pluginId=$pluginId, inReplyTo=$inReplyTo, payload=$payload)"
+        }
 
         /**
          * A request that could not be handled (no handler, handler threw, undispatchable, ...).
@@ -83,10 +128,24 @@ public sealed interface PluginFrame {
          */
         @SerialName("frame/reply/failure")
         @Serializable
-        public data class Failure(
+        public class Failure(
             override val pluginId: String,
             override val inReplyTo: String,
-            val errorMessage: String,
-        ) : Reply
+            public val errorMessage: String,
+        ) : Reply {
+            override fun equals(other: Any?): Boolean = other is Failure &&
+                pluginId == other.pluginId &&
+                inReplyTo == other.inReplyTo &&
+                errorMessage == other.errorMessage
+
+            override fun hashCode(): Int {
+                var result = pluginId.hashCode()
+                result = 31 * result + inReplyTo.hashCode()
+                result = 31 * result + errorMessage.hashCode()
+                return result
+            }
+
+            override fun toString(): String = "Failure(pluginId=$pluginId, inReplyTo=$inReplyTo, errorMessage=$errorMessage)"
+        }
     }
 }

@@ -75,7 +75,7 @@ public fun JwDropdownButton(
     trailingIcon: (@Composable RowScope.() -> Unit)? = null,
     menu: @Composable ColumnScope.() -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     val scheme = JwTheme.colors
     val colors = JwTheme.colors
@@ -195,7 +195,7 @@ public fun JwMenuItem(
     selected: Boolean = false,
     tone: JwTone = JwTone.Neutral,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     val colors = JwTheme.colors
     val contentColor = when {

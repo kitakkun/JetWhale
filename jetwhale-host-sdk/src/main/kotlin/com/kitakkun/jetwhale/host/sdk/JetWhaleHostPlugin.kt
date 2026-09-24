@@ -100,6 +100,9 @@ public abstract class JetWhaleHostPlugin {
     }
 
     @InternalJetWhaleHostApi
+    // Unlike the other lifecycle hooks, onDispose is public, so this dispatcher is not a facade
+    // over a less visible callee; it stays as the host-side counterpart of dispatchCreate.
+    @Suppress("KOTRAIL_PASS_THROUGH_FUNCTION")
     public fun dispatchDispose() {
         onDispose()
     }
@@ -117,6 +120,12 @@ public abstract class JetWhaleHostPlugin {
 
         @Volatile
         private var migrated = false
+
+        override suspend fun <T> put(key: String, value: T, serializer: KSerializer<T>) {
+            ensureMigrated()
+            require(key != VERSION_KEY) { "'$VERSION_KEY' is reserved by the JetWhale runtime." }
+            raw.put(key, value, serializer)
+        }
 
         private suspend fun ensureMigrated() {
             if (migrated) return
@@ -141,12 +150,6 @@ public abstract class JetWhaleHostPlugin {
                 raw.put(VERSION_KEY, maxOf(storedVersion, storageVersion), Int.serializer())
                 migrated = true
             }
-        }
-
-        override suspend fun <T> put(key: String, value: T, serializer: KSerializer<T>) {
-            ensureMigrated()
-            require(key != VERSION_KEY) { "'$VERSION_KEY' is reserved by the JetWhale runtime." }
-            raw.put(key, value, serializer)
         }
 
         override suspend fun <T> get(key: String, serializer: KSerializer<T>): T? {

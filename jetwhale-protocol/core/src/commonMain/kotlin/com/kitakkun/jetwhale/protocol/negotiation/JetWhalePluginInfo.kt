@@ -12,7 +12,13 @@ import kotlinx.serialization.Serializable
  */
 @SerialName(JetWhaleSerialNames.MODEL_PLUGIN_INFO)
 @Serializable
-public data class JetWhalePluginInfo(
-    val pluginId: String,
-    val pluginVersion: String,
-)
+public class JetWhalePluginInfo(
+    public val pluginId: String,
+    public val pluginVersion: String,
+) {
+    override fun equals(other: Any?): Boolean = other is JetWhalePluginInfo && pluginId == other.pluginId && pluginVersion == other.pluginVersion
+
+    override fun hashCode(): Int = 31 * pluginId.hashCode() + pluginVersion.hashCode()
+
+    override fun toString(): String = "JetWhalePluginInfo(pluginId=$pluginId, pluginVersion=$pluginVersion)"
+}

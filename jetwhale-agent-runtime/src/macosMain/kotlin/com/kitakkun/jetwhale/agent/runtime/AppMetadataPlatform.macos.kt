@@ -48,7 +48,7 @@ private fun NSImage.pngBytesOrNull(size: Int): ByteArray? {
     val context = NSGraphicsContext.graphicsContextWithBitmapImageRep(representation) ?: return null
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.currentContext = context
-    drawInRect(CGRectMake(0.0, 0.0, size.toDouble(), size.toDouble()))
+    drawInRect(CGRectMake(x = 0.0, y = 0.0, width = size.toDouble(), height = size.toDouble()))
     NSGraphicsContext.restoreGraphicsState()
     return representation.representationUsingType(NSBitmapImageFileType.NSBitmapImageFileTypePNG, mapOf<Any?, Any?>())?.toByteArray()
 }

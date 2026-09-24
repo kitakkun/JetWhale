@@ -11,6 +11,7 @@ sealed interface HostNavigationRequest {
     data class Plugin(val pluginId: String, val sessionId: String?) : HostNavigationRequest
 
     data class Settings(val section: HostSettingsSection) : HostNavigationRequest
+
     data object Info : HostNavigationRequest
     data object LogViewer : HostNavigationRequest
 }

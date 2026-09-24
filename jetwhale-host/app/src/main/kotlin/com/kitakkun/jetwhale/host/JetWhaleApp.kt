@@ -18,6 +18,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.savedstate.serialization.SavedStateConfiguration
@@ -26,6 +27,9 @@ import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
 import com.kitakkun.jetwhale.host.component.UpdateAvailableBanner
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldRoot
+import com.kitakkun.jetwhale.host.model.AppLanguage
+import com.kitakkun.jetwhale.host.model.JetWhaleColorScheme
+import com.kitakkun.jetwhale.host.model.UpdateCheckResult
 import com.kitakkun.jetwhale.host.navigation.EmptyPluginNavKey
 import com.kitakkun.jetwhale.host.navigation.InfoNavKey
 import com.kitakkun.jetwhale.host.navigation.JetWhaleNavDisplay
@@ -50,6 +54,9 @@ import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberMutation
 import soil.query.compose.rememberSubscription
 
+// The window's entry point takes its whole dependency graph as a context parameter, which a
+// @Preview has no way to build.
+@Suppress("KOTRAIL_COMPOSABLE_WITHOUT_PREVIEW")
 @Composable
 context(appGraph: JetWhaleAppGraph)
 fun JetWhaleApp() {
@@ -66,6 +73,48 @@ fun JetWhaleApp() {
         EmptyPluginNavKey,
     )
 
+    HostWindowEffects(backStack)
+
+    KeyboardShortcutHandlerProvider(
+        onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey()) },
+    ) {
+        SwrClientProvider(appGraph.swrClient) {
+            // Startup update check: notify-only. Installing always requires an explicit
+            // user action in the settings screen.
+            val updateCheckMutation = rememberMutation(appGraph.updateCheckMutationKey)
+            var updateBannerDismissed by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) {
+                if (appGraph.debuggerSettingsRepository.readCheckForUpdatesOnStartup()) {
+                    runCatching { updateCheckMutation.mutateAsync(Unit) }
+                }
+            }
+            val availableUpdate = updateCheckMutation.data?.takeIf(UpdateCheckResult::updateAvailable)
+
+            SoilDataBoundary(
+                state1 = rememberSubscription(appGraph.themeSubscriptionKey),
+                state2 = rememberSubscription(appGraph.appearanceSettingsSubscriptionKey),
+                fallback = SoilFallbackDefaults.none(),
+            ) { theme, settings ->
+                ThemedHostWindow(
+                    colorScheme = theme.colorScheme,
+                    appLanguage = settings.appLanguage,
+                    backStack = backStack,
+                    availableUpdate = availableUpdate,
+                    onDismissUpdateBanner = { updateBannerDismissed = true },
+                    isUpdateBannerDismissed = updateBannerDismissed,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The window's long-lived collectors: what the window shows, what the agent asks it to follow, and
+ * the back stack entries that must go when the thing behind them disappears.
+ */
+@Composable
+context(appGraph: JetWhaleAppGraph)
+private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
     // Scenes created for a caller that never displays them (the MCP screenshot tool, say) would
     // otherwise lay out at density 1.0 and disagree with what this window shows.
     val density = LocalDensity.current
@@ -120,104 +169,109 @@ fun JetWhaleApp() {
             appGraph.pluginComposeSceneService.disposePluginScenesForPlugin(disabledPluginId)
         }
     }
+}
 
-    KeyboardShortcutHandlerProvider(
-        onPressSettingsShortcut = { backStack.addSingleTop(SettingsNavKey()) },
-    ) {
-        SwrClientProvider(appGraph.swrClient) {
-            // Startup update check: notify-only. Installing always requires an explicit
-            // user action in the settings screen.
-            val updateCheckMutation = rememberMutation(appGraph.updateCheckMutationKey)
-            var updateBannerDismissed by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                if (appGraph.debuggerSettingsRepository.readCheckForUpdatesOnStartup()) {
-                    runCatching { updateCheckMutation.mutateAsync(Unit) }
-                }
-            }
-            val availableUpdate = updateCheckMutation.data?.takeIf { it.updateAvailable }
-
-            SoilDataBoundary(
-                state1 = rememberSubscription(appGraph.themeSubscriptionKey),
-                state2 = rememberSubscription(appGraph.appearanceSettingsSubscriptionKey),
-                fallback = SoilFallbackDefaults.none(),
-            ) { theme, settings ->
-                HostTheme(theme.colorScheme) {
-                    AppEnvironment(settings.appLanguage) {
-                        JwSurface(modifier = Modifier.fillMaxSize().clearFocusOnBlankPress()) {
-                            context(retain { appGraph.toolingScaffoldScreenContext }) {
-                                ToolingScaffoldRoot(
-                                    onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },
-                                    onClickPluginSettings = {
-                                        backStack.addSingleTop(
-                                            SettingsNavKey(initialPage = SettingsScreenPage.InstalledPlugins),
-                                        )
-                                    },
-                                    onClickInfo = { backStack.addSingleTop(InfoNavKey) },
-                                    onClickPlugin = { pluginId, sessionId ->
-                                        backStack.addSingleTop(PluginNavKey(pluginId, sessionId))
-                                    },
-                                    onOpenMcpTools = { pluginId, sessionId ->
-                                        backStack.openMcpTools(pluginId = pluginId, sessionId = sessionId)
-                                    },
-                                    onClickPopout = { pluginId, pluginName, sessionId ->
-                                        backStack.addSingleTop(
-                                            PluginPopoutNavKey(
-                                                pluginId = pluginId,
-                                                sessionId = sessionId,
-                                                pluginName = pluginName,
-                                            ),
-                                        )
-                                    },
-                                    isPoppedOut = backStack::isPluginPoppedOut,
-                                    onClickBringBack = backStack::bringPluginBackToMainWindow,
-                                    onNavigateHome = {
-                                        // Popouts live in their own windows; going home in the main
-                                        // window must not close them.
-                                        backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey }
-                                    },
-                                    onNavigateSettings = { page ->
-                                        backStack.addSingleTop(SettingsNavKey(initialPage = page))
-                                    },
-                                    onNavigateLogViewer = { backStack.addSingleTop(LogViewerNavKey) },
-                                    onSelectedSessionChange = { selectedSession ->
-                                        // When the user switches the active session, make any plugin screen
-                                        // currently on top follow the newly-selected session instead of
-                                        // lingering on the previous one.
-                                        backStack.followPluginToSession(
-                                            newSessionId = selectedSession.id,
-                                            isPluginAvailableOnNewSession = { pluginId ->
-                                                selectedSession.installedPlugins.any { it.pluginId == pluginId }
-                                            },
-                                        )
-                                    },
-                                ) {
-                                    Column {
-                                        AnimatedVisibility(
-                                            visible = availableUpdate != null && !updateBannerDismissed,
-                                            enter = slideInVertically { -it } + expandVertically(expandFrom = Alignment.Top),
-                                            exit = slideOutVertically { -it } + shrinkVertically(shrinkTowards = Alignment.Top),
-                                        ) {
-                                            // Non-null while visible; stays rendered during the exit
-                                            // animation because dismissing only flips the flag.
-                                            availableUpdate?.let { update ->
-                                                UpdateAvailableBanner(
-                                                    latestVersion = update.latestVersion,
-                                                    onClickOpenSettings = {
-                                                        updateBannerDismissed = true
-                                                        backStack.addSingleTop(SettingsNavKey())
-                                                    },
-                                                    onDismiss = { updateBannerDismissed = true },
-                                                )
-                                            }
-                                        }
-                                        JetWhaleNavDisplay(backStack)
-                                    }
-                                }
-                            }
-                        }
+@Composable
+context(appGraph: JetWhaleAppGraph)
+private fun ThemedHostWindow(
+    colorScheme: JetWhaleColorScheme,
+    appLanguage: AppLanguage,
+    backStack: NavBackStack<NavKey>,
+    availableUpdate: UpdateCheckResult?,
+    isUpdateBannerDismissed: Boolean,
+    onDismissUpdateBanner: () -> Unit,
+) {
+    HostTheme(colorScheme) {
+        AppEnvironment(appLanguage) {
+            JwSurface(modifier = Modifier.fillMaxSize().clearFocusOnBlankPress()) {
+                context(retain { appGraph.toolingScaffoldScreenContext }) {
+                    ToolingScaffoldRoot(
+                        onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },
+                        onClickPluginSettings = {
+                            backStack.addSingleTop(
+                                SettingsNavKey(initialPage = SettingsScreenPage.InstalledPlugins),
+                            )
+                        },
+                        onClickInfo = { backStack.addSingleTop(InfoNavKey) },
+                        onClickPlugin = { pluginId, sessionId ->
+                            backStack.addSingleTop(PluginNavKey(pluginId, sessionId))
+                        },
+                        onOpenMcpTools = backStack::openMcpTools,
+                        onClickPopout = { pluginId, pluginName, sessionId ->
+                            backStack.addSingleTop(
+                                PluginPopoutNavKey(
+                                    pluginId = pluginId,
+                                    sessionId = sessionId,
+                                    pluginName = pluginName,
+                                ),
+                            )
+                        },
+                        isPoppedOut = backStack::isPluginPoppedOut,
+                        onClickBringBack = backStack::bringPluginBackToMainWindow,
+                        onNavigateHome = {
+                            // Popouts live in their own windows; going home in the main
+                            // window must not close them.
+                            backStack.removeAll { it !is EmptyPluginNavKey && it !is PluginPopoutNavKey }
+                        },
+                        onNavigateSettings = { page ->
+                            backStack.addSingleTop(SettingsNavKey(initialPage = page))
+                        },
+                        onNavigateLogViewer = { backStack.addSingleTop(LogViewerNavKey) },
+                        onSelectedSessionChange = { selectedSession ->
+                            // When the user switches the active session, make any plugin screen
+                            // currently on top follow the newly-selected session instead of
+                            // lingering on the previous one.
+                            backStack.followPluginToSession(
+                                newSessionId = selectedSession.id,
+                                isPluginAvailableOnNewSession = { pluginId ->
+                                    selectedSession.installedPlugins.any { it.pluginId == pluginId }
+                                },
+                            )
+                        },
+                    ) {
+                        HostWindowContent(
+                            backStack = backStack,
+                            availableUpdate = availableUpdate,
+                            isUpdateBannerDismissed = isUpdateBannerDismissed,
+                            onDismissUpdateBanner = onDismissUpdateBanner,
+                            onClickOpenUpdateSettings = {
+                                onDismissUpdateBanner()
+                                backStack.addSingleTop(SettingsNavKey())
+                            },
+                        )
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+context(appGraph: JetWhaleAppGraph)
+private fun HostWindowContent(
+    backStack: NavBackStack<NavKey>,
+    availableUpdate: UpdateCheckResult?,
+    isUpdateBannerDismissed: Boolean,
+    onDismissUpdateBanner: () -> Unit,
+    onClickOpenUpdateSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        AnimatedVisibility(
+            visible = availableUpdate != null && !isUpdateBannerDismissed,
+            enter = slideInVertically(initialOffsetY = Int::unaryMinus) + expandVertically(expandFrom = Alignment.Top),
+            exit = slideOutVertically(targetOffsetY = Int::unaryMinus) + shrinkVertically(shrinkTowards = Alignment.Top),
+        ) {
+            // Non-null while visible; stays rendered during the exit animation because dismissing
+            // only flips the flag.
+            availableUpdate?.let { update ->
+                UpdateAvailableBanner(
+                    latestVersion = update.latestVersion,
+                    onClickOpenSettings = onClickOpenUpdateSettings,
+                    onDismiss = onDismissUpdateBanner,
+                )
+            }
+        }
+        JetWhaleNavDisplay(backStack)
     }
 }

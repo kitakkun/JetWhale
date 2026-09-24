@@ -12,14 +12,10 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 import kotlin.math.roundToInt
 
-// The attributes of an Android `View` that this plugin reads, and the subset it writes.
-//
-// The list is an explicit allowlist rather than reflection over the view's getters. Reflection is
-// what makes the equivalent in other layout inspectors fragile, and Android's non-SDK interface
-// restrictions block most of what it would reach anyway; a typed list is smaller, says exactly what
-// it will touch, and cannot surprise the app being debugged.
-//
-// Everything here must run on the main thread.
+// The attributes of an Android `View` that this plugin reads, and the subset it writes. Everything
+// here must run on the main thread. The list is an explicit allowlist rather than reflection over
+// the view's getters: reflection is what makes the equivalent in other layout inspectors fragile,
+// and Android's non-SDK interface restrictions block most of what it would reach anyway.
 
 /**
  * One attribute: how to read it off a view, and how to write it back when it can be written.
@@ -68,7 +64,7 @@ internal fun View.writeAttribute(attributeId: String, value: ViewAttributeValue)
         if (descriptor.relayouts) requestLayout() else invalidate()
         ViewAttributeResult(applied = true, attribute = descriptor.toAttribute(this))
     } catch (e: Throwable) {
-        ViewAttributeResult(applied = false, message = e.message?.takeIf { it.isNotBlank() } ?: (e::class.simpleName ?: "the write failed"))
+        ViewAttributeResult(applied = false, message = e.message?.takeIf(String::isNotBlank) ?: (e::class.simpleName ?: "the write failed"))
     }
 }
 
@@ -98,14 +94,14 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
             relayouts = true,
         ),
     )
-    addFlag(id = "enabled", group = GROUP_STATE, read = { it.isEnabled }, write = { view, on -> view.isEnabled = on })
-    addFlag(id = "selected", group = GROUP_STATE, read = { it.isSelected }, write = { view, on -> view.isSelected = on })
-    addFlag(id = "activated", group = GROUP_STATE, read = { it.isActivated }, write = { view, on -> view.isActivated = on })
-    addFlag(id = "clickable", group = GROUP_STATE, read = { it.isClickable }, write = { view, on -> view.isClickable = on })
-    addFlag(id = "focusable", group = GROUP_STATE, read = { it.isFocusable }, write = { view, on -> view.isFocusable = on })
+    addFlag(id = "enabled", group = GROUP_STATE, read = View::isEnabled, write = { view, on -> view.isEnabled = on })
+    addFlag(id = "selected", group = GROUP_STATE, read = View::isSelected, write = { view, on -> view.isSelected = on })
+    addFlag(id = "activated", group = GROUP_STATE, read = View::isActivated, write = { view, on -> view.isActivated = on })
+    addFlag(id = "clickable", group = GROUP_STATE, read = View::isClickable, write = { view, on -> view.isClickable = on })
+    addFlag(id = "focusable", group = GROUP_STATE, read = View::isFocusable, write = { view, on -> view.isFocusable = on })
     // Read-only: taking focus is an action with side effects of its own — a keyboard, a scroll —
     // so it belongs to performNodeAction's RequestFocus rather than to a property editor.
-    addFlag(id = "focused", group = GROUP_STATE, read = { it.isFocused }, write = null)
+    addFlag(id = "focused", group = GROUP_STATE, read = View::isFocused, write = null)
 
     // Layout -----------------------------------------------------------------
     addLayoutSize(id = "layout.width", read = { it.width }, write = { params, size -> params.width = size })
@@ -173,7 +169,7 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
     addFloat(
         id = "alpha",
         group = GROUP_APPEARANCE,
-        read = { it.alpha },
+        read = View::getAlpha,
         // Anything outside 0..1 is silently treated as opaque by the platform, which would read back
         // as "applied" while nothing changed; clamping makes the reported value the honest one.
         write = { view, value -> view.alpha = value.coerceIn(0f, 1f) },
@@ -202,12 +198,12 @@ private val VIEW_ATTRIBUTES: List<ViewAttributeDescriptor> = buildList {
             write = null,
         ),
     )
-    addDimension(id = "elevation", group = GROUP_APPEARANCE, read = { it.elevation }, write = { view, px -> view.elevation = px }, relayouts = false)
-    addDimension(id = "translationX", group = GROUP_APPEARANCE, read = { it.translationX }, write = { view, px -> view.translationX = px }, relayouts = false)
-    addDimension(id = "translationY", group = GROUP_APPEARANCE, read = { it.translationY }, write = { view, px -> view.translationY = px }, relayouts = false)
-    addFloat(id = "rotation", group = GROUP_APPEARANCE, read = { it.rotation }, write = { view, value -> view.rotation = value })
-    addFloat(id = "scaleX", group = GROUP_APPEARANCE, read = { it.scaleX }, write = { view, value -> view.scaleX = value })
-    addFloat(id = "scaleY", group = GROUP_APPEARANCE, read = { it.scaleY }, write = { view, value -> view.scaleY = value })
+    addDimension(id = "elevation", group = GROUP_APPEARANCE, read = View::getElevation, write = { view, px -> view.elevation = px }, relayouts = false)
+    addDimension(id = "translationX", group = GROUP_APPEARANCE, read = View::getTranslationX, write = { view, px -> view.translationX = px }, relayouts = false)
+    addDimension(id = "translationY", group = GROUP_APPEARANCE, read = View::getTranslationY, write = { view, px -> view.translationY = px }, relayouts = false)
+    addFloat(id = "rotation", group = GROUP_APPEARANCE, read = View::getRotation, write = { view, value -> view.rotation = value })
+    addFloat(id = "scaleX", group = GROUP_APPEARANCE, read = View::getScaleX, write = { view, value -> view.scaleX = value })
+    addFloat(id = "scaleY", group = GROUP_APPEARANCE, read = View::getScaleY, write = { view, value -> view.scaleY = value })
 
     // Text -------------------------------------------------------------------
     add(
@@ -327,9 +323,9 @@ private fun MutableList<ViewAttributeDescriptor>.addFloat(
 private fun MutableList<ViewAttributeDescriptor>.addDimension(
     id: String,
     group: String,
+    relayouts: Boolean,
     read: (View) -> Float,
     write: (View, Float) -> Unit,
-    relayouts: Boolean,
 ) {
     add(
         ViewAttributeDescriptor(

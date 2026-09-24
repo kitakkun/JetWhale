@@ -24,7 +24,7 @@ internal fun node(
     isVisible: Boolean = true,
     isHittable: Boolean = true,
     obscuredBy: NodeRef? = null,
-    bounds: NodeBounds = NodeBounds(0f, 0f, 100f, 40f),
+    bounds: NodeBounds = NodeBounds(left = 0f, top = 0f, right = 100f, bottom = 40f),
     children: List<UiNode> = emptyList(),
 ): ComposeNode = ComposeNode(
     id = id,
@@ -54,7 +54,7 @@ internal fun viewNode(
     contentDescription: String? = null,
     actions: List<String> = emptyList(),
     isClickable: Boolean = false,
-    bounds: NodeBounds = NodeBounds(0f, 0f, 100f, 40f),
+    bounds: NodeBounds = NodeBounds(left = 0f, top = 0f, right = 100f, bottom = 40f),
     children: List<UiNode> = emptyList(),
 ): ViewNode = ViewNode(
     id = id,
@@ -79,7 +79,7 @@ internal fun appleNode(
     text: String? = null,
     actions: List<String> = emptyList(),
     isClickable: Boolean = false,
-    bounds: NodeBounds = NodeBounds(0f, 0f, 100f, 40f),
+    bounds: NodeBounds = NodeBounds(left = 0f, top = 0f, right = 100f, bottom = 40f),
     children: List<UiNode> = emptyList(),
 ): AppleNode = AppleNode(
     id = id,

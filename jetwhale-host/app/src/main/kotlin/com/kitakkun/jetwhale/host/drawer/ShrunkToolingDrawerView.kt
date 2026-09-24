@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.expand_sidebar
@@ -50,6 +51,7 @@ import com.kitakkun.jetwhale.host.ui.JwStatusDot
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.decodeToSvgPainter
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -68,10 +70,11 @@ fun ShrunkToolingDrawerView(
     onClickInfo: () -> Unit,
     onOpenAllMcpTools: () -> Unit,
     onSelectSession: (DebugSession) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val selectedSessionId = selectedSession?.id
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxHeight()
             .width(JwMetrics.railWidth)
             .background(JwTheme.colors.sidebarBackground),
@@ -105,7 +108,10 @@ fun ShrunkToolingDrawerView(
             contentPadding = PaddingValues(vertical = JwSpacing.extraSmall),
             verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
         ) {
-            items(plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }, key = { it.id }) {
+            items(
+                items = plugins.filter { it.pluginAvailability == PluginAvailability.Enabled },
+                key = DrawerPluginItemUiState::id,
+            ) {
                 val selected = selectedPluginId == it.id && selectedSessionId != null
                 Box {
                     JwIconButton(
@@ -163,10 +169,11 @@ private fun RailSessionButton(
     sessions: ImmutableList<DebugSession>,
     selectedSession: DebugSession?,
     onSelectSession: (DebugSession) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val activeSessions = remember(sessions) { sessions.filter { it.isActive } }
-    Box {
+    val activeSessions = remember(sessions) { sessions.filter(DebugSession::isActive) }
+    Box(modifier = modifier) {
         JwIconButton(
             enabled = activeSessions.isNotEmpty(),
             onClick = { expanded = true },
@@ -235,4 +242,33 @@ fun rememberPluginIconSvgPainter(
     return remember(resource) {
         resource.path.openStream().use { it.readBytes().decodeToSvgPainter(density) }
     }
+}
+
+@Preview
+@Composable
+private fun ShrunkToolingDrawerViewPreview() {
+    ShrunkToolingDrawerView(
+        plugins = persistentListOf(
+            DrawerPluginItemUiState(
+                name = "Inspector",
+                id = "com.example.inspector",
+                activeIconResource = null,
+                inactiveIconResource = null,
+                pluginAvailability = PluginAvailability.Enabled,
+                underAiControl = false,
+                exposesMcpTools = true,
+                isHeadless = false,
+            ),
+        ),
+        sessions = persistentListOf(),
+        selectedSession = null,
+        selectedPluginId = "com.example.inspector",
+        aiActivity = AiActivityUiState.Idle,
+        onClickExpandMenu = {},
+        onClickSettings = {},
+        onClickPlugin = {},
+        onClickInfo = {},
+        onOpenAllMcpTools = {},
+        onSelectSession = {},
+    )
 }

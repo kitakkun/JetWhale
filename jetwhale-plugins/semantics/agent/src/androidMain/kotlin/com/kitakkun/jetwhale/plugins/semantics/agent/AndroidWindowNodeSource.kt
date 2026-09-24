@@ -63,10 +63,6 @@ internal class AndroidWindowNodeSource(rootView: View) :
         highlightOverlay.clearFromAnyThread()
     }
 
-    // A detached window has nothing readable to report, and reading a composition inside it can
-    // throw, so the attachment check gates every call rather than only the registration.
-    private fun attachedRootView(): View? = rootViewRef.get()?.takeIf { it.isAttachedToWindow }
-
     override suspend fun capture(options: NodeTreeCaptureOptions): ComposeRoot? = AndroidComposeUiThread.await {
         val rootView = attachedRootView() ?: return@await null
         val offset = rootView.windowOffsetOnScreen()
@@ -85,6 +81,10 @@ internal class AndroidWindowNodeSource(rootView: View) :
             ),
         )
     }
+
+    // A detached window has nothing readable to report, and reading a composition inside it can
+    // throw, so the attachment check gates every call rather than only the registration.
+    private fun attachedRootView(): View? = rootViewRef.get()?.takeIf(View::isAttachedToWindow)
 
     override suspend fun performAction(request: PerformNodeAction): NodeActionResult = AndroidComposeUiThread.await {
         val rootView = attachedRootView()

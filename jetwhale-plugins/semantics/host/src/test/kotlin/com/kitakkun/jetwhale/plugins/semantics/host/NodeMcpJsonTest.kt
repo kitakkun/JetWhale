@@ -22,7 +22,7 @@ class NodeMcpJsonTest {
             testTag = "send-button",
             actions = listOf("OnClick"),
             isClickable = true,
-            bounds = NodeBounds(10f, 20f, 110f, 60f),
+            bounds = NodeBounds(left = 10f, top = 20f, right = 110f, bottom = 60f),
         ).toMcpJson()
 
         assertEquals(7, json["id"]?.jsonPrimitive?.content?.toInt())
@@ -90,8 +90,8 @@ class NodeMcpJsonTest {
     fun `spells out a disabled or invisible node, which is the surprising case`() {
         val json = node(id = 1, isEnabled = false, isVisible = false).toMcpJson()
 
-        assertFalse(json["enabled"]!!.jsonPrimitive.content.toBoolean())
-        assertFalse(json["visible"]!!.jsonPrimitive.content.toBoolean())
+        assertFalse(json.getValue("enabled").jsonPrimitive.content.toBoolean())
+        assertFalse(json.getValue("visible").jsonPrimitive.content.toBoolean())
     }
 
     @Test
@@ -136,7 +136,7 @@ class NodeMcpJsonTest {
 
     @Test
     fun `omits the tap point for a node with no area to tap`() {
-        val json = node(id = 1, bounds = NodeBounds(0f, 0f, 0f, 0f)).toMcpJson()
+        val json = node(id = 1, bounds = NodeBounds(left = 0f, top = 0f, right = 0f, bottom = 0f)).toMcpJson()
 
         assertNull(json["tap"])
     }
@@ -154,7 +154,7 @@ class NodeMcpJsonTest {
         val json = snapshot(root("window", label = "MainActivity", node = node(id = 1))).toMcpJson()
 
         assertEquals(1, json["roots"]?.jsonArray?.size)
-        val root = json["roots"]!!.jsonArray.single().jsonObject
+        val root = json.getValue("roots").jsonArray.single().jsonObject
         assertEquals("window", root["rootId"]?.jsonPrimitive?.content)
         assertEquals("MainActivity", root["label"]?.jsonPrimitive?.content)
         assertTrue(root["node"] is JsonObject)
@@ -167,7 +167,7 @@ class NodeMcpJsonTest {
         // would drift if they were reported window-relative — so the offset is worth surfacing.
         val dialog = root("dialog", node = node(id = 1)).copy(windowOffsetX = 120.4f, windowOffsetY = 926.6f)
 
-        val offset = snapshot(dialog).toMcpJson()["roots"]!!.jsonArray.single().jsonObject["windowOffset"]!!.jsonObject
+        val offset = snapshot(dialog).toMcpJson().getValue("roots").jsonArray.single().jsonObject.getValue("windowOffset").jsonObject
 
         assertEquals(120, offset["x"]?.jsonPrimitive?.content?.toInt())
         assertEquals(927, offset["y"]?.jsonPrimitive?.content?.toInt())

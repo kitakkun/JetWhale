@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackOperation
+import com.kitakkun.jetwhale.plugins.nav3.protocol.NavBackStackSnapshot
 
 @OptIn(ExperimentalJetWhaleApi::class)
 internal class PopBackStackCommand(
@@ -19,7 +20,7 @@ internal class PopBackStackCommand(
     private val stackId by stringOrNull("Which back stack to pop. Defaults to the app's only one.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
-        val target = resolveStackId(arguments[stackId], controller.stacks().map { it.stackId })
+        val target = resolveStackId(arguments[stackId], controller.stacks().map(NavBackStackSnapshot::stackId))
         val requestedIndex = arguments[toIndex]
         val operation = when (requestedIndex) {
             null -> NavBackStackOperation.Pop(count = arguments[count] ?: 1)

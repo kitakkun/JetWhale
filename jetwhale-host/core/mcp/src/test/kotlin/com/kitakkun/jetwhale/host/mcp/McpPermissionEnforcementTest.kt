@@ -16,10 +16,12 @@ import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.mcpSse
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import io.modelcontextprotocol.kotlin.sdk.types.Tool
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
+import java.net.ServerSocket
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -104,7 +106,7 @@ class McpPermissionEnforcementTest {
         ),
         tools = setOf(ObserveCommand(), RestartCommand()),
     ) { client, _ ->
-        val names = client.listTools().tools.map { it.name }
+        val names = client.listTools().tools.map(Tool::name)
 
         assertContains(names, "jetwhale.test.observe")
         assertFalse("jetwhale.test.restart" in names, "A denied group must not be advertised: $names")
@@ -116,7 +118,7 @@ class McpPermissionEnforcementTest {
         tools = setOf(RestartCommand()),
     ) { client, permissions ->
         // Registered while allowed, so it is in this connection's tool list for good.
-        assertContains(client.listTools().tools.map { it.name }, "jetwhale.test.restart")
+        assertContains(client.listTools().tools.map(Tool::name), "jetwhale.test.restart")
 
         permissions.setHostGroupAllowed(McpHostToolGroup.SETTINGS_AND_SERVERS, allowed = false)
 
@@ -138,7 +140,7 @@ class McpPermissionEnforcementTest {
         permissions.setHostGroupAllowed(McpHostToolGroup.OBSERVE, allowed = true)
         // Registration was skipped while it was denied, and a tool list is fixed for the life of a
         // connection, so it only comes back on the next one — the reconnect rule the docs describe.
-        assertFalse("jetwhale.test.observe" in client.listTools().tools.map { it.name })
+        assertFalse("jetwhale.test.observe" in client.listTools().tools.map(Tool::name))
     }
 
     @Test
@@ -190,7 +192,7 @@ class McpPermissionEnforcementTest {
     ) { client, _ ->
         // A per-tool denial cannot be settled at registration either — it is stored per tool name,
         // but the tool stays listed so the refusal can explain itself.
-        assertContains(client.listTools().tools.map { it.name }, "jetwhale.test.mutate")
+        assertContains(client.listTools().tools.map(Tool::name), "jetwhale.test.mutate")
 
         val denied = client.callTool("jetwhale.test.mutate", mapOf("pluginId" to "com.example.ok"))
         assertEquals(true, denied.isError)
@@ -212,7 +214,7 @@ class McpPermissionEnforcementTest {
             builtInTools = tools,
             statusHolder = McpServerStatusHolder(),
         )
-        val port = java.net.ServerSocket(0).use { it.localPort }
+        val port = ServerSocket(0).use(ServerSocket::getLocalPort)
         service.start("localhost", port)
         try {
             val client = HttpClient(CIO) { install(SSE) }.mcpSse("http://localhost:$port/sse")

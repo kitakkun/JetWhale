@@ -43,13 +43,15 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
  * The read, the write and their outcome all live on the plugin instance; what reaches the
  * composition is this value, so the panel is a function of data and the plugin is free to keep the
  * attributes across the panel being closed and reopened, and to let an agent's write land in them.
+ *
+ * @property attributes The attributes of the node the section is showing, or `null` while they are
+ *   being read or could not be.
+ * @property message Why there are no attributes to show, when there are none.
+ * @property writeStatus What the last write to the shown node came back with.
  */
 internal data class ViewAttributesUiState(
-    /** The attributes of the node the section is showing, or `null` while they are being read or could not be. */
     val attributes: List<ViewAttribute>?,
-    /** Why there are no attributes to show, when there are none. */
     val message: String?,
-    /** What the last write to the shown node came back with. */
     val writeStatus: String?,
     val writeFailed: Boolean,
 ) {
@@ -70,10 +72,11 @@ internal data class ViewAttributesUiState(
 internal fun ViewAttributesPanel(
     state: ViewAttributesUiState,
     onCommit: (ViewAttribute, String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val attributes = state.attributes
     val message = state.message
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
         JwSectionHeader(title = "View attributes", contentPadding = PaddingValues(0.dp))
         JwText(
             text = "Edits are temporary: a relayout, a rebind, or the app writing the property itself takes the value back.",
@@ -91,7 +94,7 @@ internal fun ViewAttributesPanel(
             attributes == null -> JwStatusLine(text = message.orEmpty(), tone = JwTone.Warning)
 
             else -> {
-                for ((group, rows) in attributes.groupBy { it.group }) {
+                for ((group, rows) in attributes.groupBy(ViewAttribute::group)) {
                     JwSectionHeader(title = group, contentPadding = PaddingValues(0.dp))
                     for (attribute in rows) {
                         AttributeRow(attribute = attribute, onCommit = { text -> onCommit(attribute, text) })
@@ -120,9 +123,9 @@ private val ColorSwatchSize = 16.dp
 private const val FIXED_CHOICE = "Fixed"
 
 @Composable
-private fun AttributeRow(attribute: ViewAttribute, onCommit: (String) -> Unit) {
+private fun AttributeRow(attribute: ViewAttribute, onCommit: (String) -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
@@ -177,9 +180,9 @@ private fun AttributeRow(attribute: ViewAttribute, onCommit: (String) -> Unit) {
 }
 
 @Composable
-private fun EnumEditor(value: ViewAttributeValue.EnumValue, onCommit: (String) -> Unit) {
+private fun EnumEditor(value: ViewAttributeValue.EnumValue, onCommit: (String) -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
-    Box(Modifier.width(AttributeEditorWidth)) {
+    Box(modifier.width(AttributeEditorWidth)) {
         JwDropdownButton(
             text = value.value,
             expanded = expanded,
@@ -207,12 +210,13 @@ private fun EnumEditor(value: ViewAttributeValue.EnumValue, onCommit: (String) -
  * field, so the choice is remembered here until the number that follows it lands.
  */
 @Composable
-private fun LayoutSizeEditor(value: ViewAttributeValue.LayoutSizeValue, onCommit: (String) -> Unit) {
+private fun LayoutSizeEditor(value: ViewAttributeValue.LayoutSizeValue, onCommit: (String) -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
     var fixed by remember(value) { mutableStateOf(value.constant == null) }
     val choice = if (fixed) FIXED_CHOICE else value.constant.orEmpty()
 
     Row(
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
     ) {
@@ -267,8 +271,8 @@ private fun TextEditor(
     current: String,
     enabled: Boolean,
     placeholder: String?,
-    modifier: Modifier,
     onCommit: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var draft by remember(current) { mutableStateOf(current) }
     var committed by remember(current) { mutableStateOf(current) }

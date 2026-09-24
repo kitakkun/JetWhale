@@ -23,6 +23,8 @@ import soil.query.compose.MutationObject
  * `mutateAsync` so failures flow through the mutation state instead of being swallowed by a
  * fire-and-forget `mutate`.
  *
+ * An effect, not a UI element: it emits nothing a `@Preview` could render.
+ *
  * @param T Type of the return value from the mutation.
  * @param U Type of the key to identify whether the failure has already been handled.
  * @param mutation The MutationObject whose error will be observed.
@@ -54,6 +56,8 @@ fun <T, U : Any> MutationErrorEffect(
 
 /**
  * A [MutationErrorEffect] keyed by `errorUpdatedAt`, so [block] is invoked once per new failure.
+ *
+ * An effect, not a UI element: it emits nothing a `@Preview` could render.
  *
  * @param T Type of the return value from the mutation.
  * @param mutation The MutationObject whose error will be observed.

@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.settings.general
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
@@ -8,12 +9,15 @@ import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import soil.query.compose.rememberQuery
 import soil.query.compose.rememberSubscription
 import java.awt.Desktop
+import java.io.File
+import java.net.URI
 
 @Composable
 context(screenContext: SettingsScreenContext)
 fun GeneralSettingsScreenRoot(
     page: SettingsScreenPage,
-    onOpenLogViewer: () -> Unit = {},
+    onOpenLogViewer: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     SoilDataBoundary(
         state1 = rememberSubscription(screenContext.settingsSubscriptionKey),
@@ -24,7 +28,9 @@ fun GeneralSettingsScreenRoot(
         val uiState = context(screenContext.presenterContext) {
             generalSettingsScreenPresenter(
                 screenChannel = screenChannel,
-                debuggerBehaviorSettings = debuggerSettings,
+                automaticallyWireADBTransport = debuggerSettings.adbAutoPortMappingEnabled,
+                checkForUpdatesOnStartup = debuggerSettings.checkForUpdatesOnStartup,
+                followAiOperationEnabled = debuggerSettings.followAiOperationEnabled,
                 appearanceSettings = appearanceSettings,
                 diagnostics = diagnostics,
             )
@@ -33,6 +39,7 @@ fun GeneralSettingsScreenRoot(
         GeneralSettingsScreen(
             page = page,
             uiState = uiState,
+            modifier = modifier,
             onCheckedChangePersistData = {
                 screenChannel.send(GeneralSettingsScreenAction.ChangePersistData(it))
             },
@@ -48,7 +55,7 @@ fun GeneralSettingsScreenRoot(
             onClickOpenAppDataPath = {
                 val path = uiState.appDataPath.replace("~", System.getProperty("user.home"))
                 try {
-                    Desktop.getDesktop().open(java.io.File(path))
+                    Desktop.getDesktop().open(File(path))
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -68,7 +75,7 @@ fun GeneralSettingsScreenRoot(
             },
             onClickOpenDownloadPage = { url ->
                 try {
-                    Desktop.getDesktop().browse(java.net.URI(url))
+                    Desktop.getDesktop().browse(URI(url))
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }

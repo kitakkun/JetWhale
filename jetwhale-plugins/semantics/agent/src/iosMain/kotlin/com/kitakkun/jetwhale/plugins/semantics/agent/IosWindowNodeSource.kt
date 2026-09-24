@@ -28,10 +28,6 @@ import platform.darwin.NSObject
 internal class IosWindowNodeSource(private val window: UIWindow) : ComposeNodeSource {
     override val sourceId: String = "ios-window-${window.objcPtr().toLong().toString(16)}"
 
-    // A window that has gone off screen has nothing readable to report, so the check gates every
-    // call rather than only the registration.
-    private fun visibleWindow(): UIWindow? = window.takeIf { !it.hidden }
-
     override suspend fun capture(options: NodeTreeCaptureOptions): ComposeRoot? = IosUiThread.await {
         val window = visibleWindow() ?: return@await null
         val frame = window.frame.toNodeBounds()
@@ -52,10 +48,14 @@ internal class IosWindowNodeSource(private val window: UIWindow) : ComposeNodeSo
         )
     }
 
+    // A window that has gone off screen has nothing readable to report, so the check gates every
+    // call rather than only the registration.
+    private fun visibleWindow(): UIWindow? = window.takeIf { !it.hidden }
+
     override suspend fun performAction(request: PerformNodeAction): NodeActionResult = IosUiThread.await {
         val window = visibleWindow()
             ?: return@await NodeActionResult(performed = false, message = "the window is no longer readable")
-        val node = AppleNodeIds.objectOf(request.nodeId, window)?.takeIf { window.stillHolds(it) }
+        val node = AppleNodeIds.objectOf(request.nodeId, window)?.takeIf(window::stillHolds)
             ?: return@await NodeActionResult(
                 performed = false,
                 message = "unknown nodeId: ${request.nodeId} (the node may have left this window; capture the tree again)",

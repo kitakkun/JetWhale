@@ -16,7 +16,7 @@ import com.kitakkun.jetwhale.host.mcp.jsonInt
 import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.viewport.McpViewport
-import com.kitakkun.jetwhale.host.mcp.viewport.isValidForViewport
+import com.kitakkun.jetwhale.host.mcp.viewport.sceneViewportSize
 import com.kitakkun.jetwhale.host.mcp.viewport.withScopedViewport
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginComposeScene
@@ -165,11 +165,5 @@ internal fun resolveViewport(
     } else {
         null
     }
-    val currentSize = runCatching { scene.composeScene.size }.getOrNull()
-    val size =
-        requested
-            ?: currentSize?.takeIf { it.isValidForViewport() }
-            ?: scene.windowInfoUpdater.currentIntSize.takeIf { it.isValidForViewport() }
-            ?: IntSize(1280, 720)
-    return McpViewport(size = size, density = density)
+    return McpViewport(size = requested ?: sceneViewportSize(scene), density = density)
 }

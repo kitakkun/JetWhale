@@ -67,26 +67,12 @@ internal object ScrollActions {
             var carried = Offset.Zero
             var ancestor = node.parent
             while (ancestor != null) {
-                // A merged ancestor's config can carry a ScrollBy folded in from a scrollable descendant
-                // that is not on this node's path; Compose reads the unmerged config here, which is
-                // internal. A scrollable inside a merging container is rare enough to live with.
-                val scrollBy = ancestor.config.getOrNull(SemanticsActions.ScrollBy)?.action
-                if (scrollBy != null) {
-                    val delta = ancestor.alongItsAxes(
-                        scrollDeltaToReveal(
-                            target = Rect(node.positionInRoot + carried, node.size.toSize()),
-                            viewport = ancestor.viewportInRoot(),
-                        ),
-                    )
-                    if (delta != Offset.Zero) {
-                        val oriented = ancestor.inItsScrollDirection(delta)
-                        if (scrollBy(oriented.x, oriented.y)) {
-                            containersScrolled++
-                            carried -= delta
-                        } else {
-                            containersDeclined++
-                        }
-                    }
+                val moved = ancestor.scrollToReveal(Rect(node.positionInRoot + carried, node.size.toSize()))
+                if (moved == null) {
+                    containersDeclined++
+                } else if (moved != Offset.Zero) {
+                    containersScrolled++
+                    carried -= moved
                 }
                 ancestor = ancestor.parent
             }
@@ -112,6 +98,23 @@ internal object ScrollActions {
                     message = "the node is clipped by something on its path that cannot scroll — a non-scrollable clip, or the edge of the composition",
                 )
             }
+        }
+
+        /**
+         * Scrolls this container by the least amount that shows [target].
+         *
+         * @return how far the node moves in root coordinates: [Offset.Zero] when this container does
+         *   not scroll or the node already fits, and `null` when it was asked to scroll and declined.
+         */
+        private fun SemanticsNode.scrollToReveal(target: Rect): Offset? {
+            // A merged ancestor's config can carry a ScrollBy folded in from a scrollable descendant
+            // that is not on this node's path; Compose reads the unmerged config here, which is
+            // internal. A scrollable inside a merging container is rare enough to live with.
+            val scrollBy = config.getOrNull(SemanticsActions.ScrollBy)?.action ?: return Offset.Zero
+            val delta = alongItsAxes(scrollDeltaToReveal(target = target, viewport = viewportInRoot()))
+            if (delta == Offset.Zero) return Offset.Zero
+            val oriented = inItsScrollDirection(delta)
+            return if (scrollBy(oriented.x, oriented.y)) delta else null
         }
 
         /**

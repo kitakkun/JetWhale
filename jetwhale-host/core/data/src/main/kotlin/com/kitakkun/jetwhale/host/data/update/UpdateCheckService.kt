@@ -82,7 +82,7 @@ class UpdateCheckService(
          */
         fun numericVersionOf(version: String): String {
             val base = version.substringBefore("-")
-            val preReleaseNumber = version.substringAfter("-", "").filter { it.isDigit() }.toIntOrNull()
+            val preReleaseNumber = version.substringAfter("-", "").filter(Char::isDigit).toIntOrNull()
             return if (preReleaseNumber != null) "$base.$preReleaseNumber" else base
         }
 

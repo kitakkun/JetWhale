@@ -10,6 +10,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -122,5 +123,13 @@ private fun DemoScreen(title: String, actions: @Composable () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
         )
         actions()
+    }
+}
+
+@Preview
+@Composable
+private fun Nav3TestScreenPreview() {
+    MaterialTheme {
+        Nav3TestScreen(rememberTrackedDemoNavBackStack())
     }
 }

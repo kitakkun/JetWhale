@@ -46,11 +46,13 @@ internal val usage = """
 """.trimIndent()
 
 internal fun parseArgs(args: Array<String>): QaAgentOptions {
-    val apps = mutableListOf<String>()
-    val plugins = mutableMapOf<String, String>()
-    var hostName = "localhost"
-    var hostPort = DEFAULT_HOST_PORT
-    var controlPort = DEFAULT_CONTROL_PORT
+    var options = QaAgentOptions(
+        apps = emptyList(),
+        plugins = emptyMap(),
+        hostName = "localhost",
+        hostPort = DEFAULT_HOST_PORT,
+        controlPort = DEFAULT_CONTROL_PORT,
+    )
 
     fun valueOf(index: Int, name: String): String = args.getOrNull(index) ?: error("$name requires a value.\n\n$usage")
 
@@ -63,8 +65,8 @@ internal fun parseArgs(args: Array<String>): QaAgentOptions {
                 val name = valueOf(++i, arg)
                 // Names key every control call, so a duplicate would make one of the two sessions
                 // unreachable rather than merely confusing.
-                require(name !in apps) { "--app $name was given twice; app names address sessions and must be unique.\n\n$usage" }
-                apps += name
+                require(name !in options.apps) { "--app $name was given twice; app names address sessions and must be unique.\n\n$usage" }
+                options = options.copy(apps = options.apps + name)
             }
 
             "--plugin" -> {
@@ -75,14 +77,14 @@ internal fun parseArgs(args: Array<String>): QaAgentOptions {
                     "--plugin $id is already built in; registering it again would shadow its request " +
                         "handlers and leave mocking unreachable. Drop the flag — the plugin is always on.\n\n$usage"
                 }
-                plugins[id] = version
+                options = options.copy(plugins = options.plugins + (id to version))
             }
 
-            "--host" -> hostName = valueOf(++i, arg)
+            "--host" -> options = options.copy(hostName = valueOf(++i, arg))
 
-            "--port" -> hostPort = intValueOf(++i, arg)
+            "--port" -> options = options.copy(hostPort = intValueOf(++i, arg))
 
-            "--control-port" -> controlPort = intValueOf(++i, arg)
+            "--control-port" -> options = options.copy(controlPort = intValueOf(++i, arg))
 
             "--help", "-h" -> throw HelpRequestedException()
 
@@ -91,13 +93,7 @@ internal fun parseArgs(args: Array<String>): QaAgentOptions {
         i++
     }
 
-    return QaAgentOptions(
-        apps = apps.ifEmpty { listOf(DEFAULT_APP_NAME) },
-        plugins = plugins,
-        hostName = hostName,
-        hostPort = hostPort,
-        controlPort = controlPort,
-    )
+    return options.copy(apps = options.apps.ifEmpty { listOf(DEFAULT_APP_NAME) })
 }
 
 /** Thrown for `--help`, so parsing stays free of process exits and can be tested. */

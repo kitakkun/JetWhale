@@ -5,6 +5,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
+import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.model.ActivateSslCertificateMutationKey
 import com.kitakkun.jetwhale.host.model.CheckForUpdatesOnStartupMutationKey
@@ -181,11 +182,17 @@ private fun runPresenter(
         SwrClientProvider(SwrCachePlus(SwrCachePlusPolicy(CoroutineScope(Dispatchers.Unconfined + SupervisorJob())))) {
             channel = rememberScreenChannel()
             uiState = context(presenterContext { applied = it }) {
+                val currentSettings = settingsFlow.collectAsStateValue()
                 serverSettingsScreenPresenter(
                     screenChannel = channel,
                     serverStatus = statusFlow.collectAsStateValue(),
                     mcpServerStatus = McpServerStatus.Stopped,
-                    debuggerSettings = settingsFlow.collectAsStateValue(),
+                    debugServerSettings = DebugServerSettings(
+                        serverPort = currentSettings.serverPort,
+                        wssPort = currentSettings.wssPort,
+                        wssEnabled = currentSettings.wssEnabled,
+                    ),
+                    mcpServerPort = currentSettings.mcpServerPort,
                     sslCertificates = emptyList<SslCertificateEntry>(),
                     mcpPermissionsSnapshot = McpPermissionsSnapshot(emptyPermissions, emptyList(), isOverriddenForLaunch = false),
                 )
@@ -224,7 +231,7 @@ private val emptyPermissions = McpPermissions(
     deniedPluginTools = emptySet(),
 )
 
-private object TestScreenContext : com.kitakkun.jetwhale.host.architecture.ScreenContext
+private object TestScreenContext : ScreenContext
 
 /** Every key is a no-op except the one under test, which records what Apply handed it. */
 private fun presenterContext(onApply: (DebugServerSettings) -> Unit) = SettingsPresenterContext(

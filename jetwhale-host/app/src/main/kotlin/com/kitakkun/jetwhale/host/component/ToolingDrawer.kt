@@ -5,12 +5,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.drawer.AiActivityUiState
 import com.kitakkun.jetwhale.host.drawer.DrawerPluginItemUiState
 import com.kitakkun.jetwhale.host.drawer.ExpandedToolingDrawerView
 import com.kitakkun.jetwhale.host.drawer.ShrunkToolingDrawerView
 import com.kitakkun.jetwhale.host.model.DebugSession
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 
 @Composable
 fun ToolingDrawer(
@@ -31,6 +34,7 @@ fun ToolingDrawer(
     isPoppedOut: (pluginId: String) -> Boolean,
     onClickBringBack: (DrawerPluginItemUiState) -> Unit,
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     // Retained rather than remembered: a settings dialog opening over the window must not reset a
     // sidebar the user just collapsed.
@@ -38,6 +42,7 @@ fun ToolingDrawer(
 
     AnimatedSwappableContent(
         showContent1 = expandMenu,
+        modifier = modifier,
         content1 = {
             ExpandedToolingDrawerView(
                 selectedPluginId = selectedPluginId,
@@ -75,5 +80,29 @@ fun ToolingDrawer(
                 onSelectSession = onSelectSession,
             )
         },
+    )
+}
+
+@Preview
+@Composable
+private fun ToolingDrawerPreview() {
+    ToolingDrawer(
+        plugins = persistentListOf(),
+        hasFailedJars = false,
+        sessions = persistentListOf(),
+        selectedSession = null,
+        selectedPluginId = "",
+        aiActivity = AiActivityUiState.Idle,
+        onClickSettings = {},
+        onClickPluginSettings = {},
+        onClickInfo = {},
+        onClickPlugin = {},
+        onOpenMcpTools = {},
+        onOpenAllMcpTools = {},
+        onSelectSession = {},
+        onClickPopout = {},
+        isPoppedOut = { false },
+        onClickBringBack = {},
+        onSetPluginEnabled = { _, _ -> },
     )
 }

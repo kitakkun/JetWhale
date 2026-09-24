@@ -105,7 +105,7 @@ public fun JwListItem(
     muted: Boolean = false,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     val background = when {
         selected -> JwTheme.colors.selection

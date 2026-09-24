@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -33,16 +34,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.mcp_history_copy_arguments
@@ -69,8 +74,10 @@ import com.kitakkun.jetwhale.host.mcp_tools_search
 import com.kitakkun.jetwhale.host.mcp_tools_search_clear
 import com.kitakkun.jetwhale.host.mcp_tools_tab_history
 import com.kitakkun.jetwhale.host.mcp_tools_tab_tools
+import com.kitakkun.jetwhale.host.model.McpCallArgument
 import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpToolParameterSummary
+import com.kitakkun.jetwhale.host.model.McpToolSummary
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwDropdownButton
@@ -93,7 +100,11 @@ import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import java.awt.datatransfer.StringSelection
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -122,8 +133,9 @@ fun McpToolsScreen(
     uiState: McpToolsScreenUiState,
     onSelectPluginFilters: (Set<String>) -> Unit,
     onSelectSessionFilters: (Set<String>) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    JwSurface(color = JwTheme.colors.elevatedBackground, shape = JwShapes.large) {
+    JwSurface(modifier = modifier, color = JwTheme.colors.elevatedBackground, shape = JwShapes.large) {
         Column(
             modifier = Modifier
                 .fillMaxSize(MCP_TOOLS_DIALOG_WINDOW_FRACTION)
@@ -224,6 +236,7 @@ private fun McpFilterChipGroup(
     options: ImmutableList<McpFilterOption>,
     selectedIds: ImmutableSet<String>,
     onSelectionChange: (Set<String>) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val allLabel = stringResource(Res.string.mcp_tools_filter_all)
@@ -235,12 +248,12 @@ private fun McpFilterChipGroup(
         val labelsById = options.associate { it.id to it.label }
         selectedIds
             .map { id -> McpFilterOption(id = id, label = labelsById[id] ?: id) }
-            .sortedBy { it.label }
+            .sortedBy(McpFilterOption::label)
     }
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         JwText(
             text = label,
@@ -342,10 +355,10 @@ internal fun McpToolCallCountBadge(count: Int, running: Boolean) {
 private fun McpToolsPane(
     toolRows: ImmutableList<McpToolRowUiState>,
     query: String,
-    onQueryChange: (String) -> Unit,
     selectedToolKey: String?,
-    onSelectTool: (String) -> Unit,
     modifier: Modifier,
+    onQueryChange: (String) -> Unit,
+    onSelectTool: (String) -> Unit,
 ) {
     val filtered = remember(query, toolRows) {
         if (query.isBlank()) {
@@ -371,7 +384,7 @@ private fun McpToolsPane(
             )
             Spacer(Modifier.size(8.dp))
             LazyColumn(modifier = Modifier.fillMaxHeight()) {
-                items(filtered, key = { it.key }) { row ->
+                items(filtered, key = McpToolRowUiState::key) { row ->
                     val isSelected = row.key == selected?.key
                     JwListItem(selected = isSelected, onClick = { onSelectTool(row.key) }) {
                         Column(modifier = Modifier.weight(1f)) {
@@ -473,7 +486,7 @@ private fun McpCallHistoryPane(
             modifier = Modifier.width(320.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            items(callHistory, key = { it.id }) { record ->
+            items(callHistory, key = McpCallRecord::id) { record ->
                 McpCallHistoryRow(
                     record = record,
                     selected = record.id == selected.id,
@@ -505,143 +518,29 @@ private fun McpCallDetailPane(
     )
     val finishedAt = formatCallTime(record.finishedAtEpochMillis)
     val renderedArguments = record.arguments.joinToString(separator = "\n") { "${it.name} = ${it.value}" }
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            JwText(
-                text = record.toolName.substringAfterLast('.'),
-                style = JwTheme.textStyles.title,
-                fontFamily = FontFamily.Monospace,
-            )
-            McpCopyIconButton(
-                contentDescription = stringResource(Res.string.mcp_history_copy_tool_name),
-                onClick = { clipboardManager.setText(AnnotatedString(record.toolName)) },
-            )
-        }
-        JwText(
-            text = record.toolName,
-            style = JwTheme.textStyles.code,
-            color = JwTheme.colors.textSecondary,
+        McpCallSummary(
+            toolName = record.toolName,
+            succeeded = record.succeeded,
+            statusLabel = statusLabel,
+            finishedAt = finishedAt,
         )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            JwIcon(
-                imageVector = if (record.succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
-                contentDescription = null,
-                tint = if (record.succeeded) JwTheme.colors.aiAccent else JwTheme.colors.error,
-            )
-            JwText(
-                text = statusLabel,
-                style = JwTheme.textStyles.label,
-                color = if (record.succeeded) {
-                    JwTheme.colors.textSecondary
-                } else {
-                    JwTheme.colors.error
-                },
-            )
-            JwText(
-                text = finishedAt,
-                style = JwTheme.textStyles.code,
-                color = JwTheme.colors.textSecondary,
-            )
-        }
-
-        Spacer(Modifier.size(4.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            JwText(
-                text = stringResource(Res.string.mcp_tools_parameters),
-                style = JwTheme.textStyles.label,
-            )
-            if (record.arguments.isNotEmpty()) {
-                McpCopyIconButton(
-                    contentDescription = stringResource(Res.string.mcp_history_copy_arguments),
-                    onClick = { clipboardManager.setText(AnnotatedString(renderedArguments)) },
-                )
-            }
-        }
-        if (record.arguments.isEmpty()) {
-            JwText(
-                text = stringResource(Res.string.mcp_history_no_arguments),
-                style = JwTheme.textStyles.bodySmall,
-                color = JwTheme.colors.textSecondary,
-            )
-        } else {
-            record.arguments.forEach { argument ->
-                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    JwText(
-                        text = argument.name,
-                        style = JwTheme.textStyles.code,
-                    )
-                    JwText(
-                        text = argument.value,
-                        style = JwTheme.textStyles.code,
-                        color = JwTheme.colors.textSecondary,
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.size(4.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            JwText(
-                text = stringResource(Res.string.mcp_history_response),
-                style = JwTheme.textStyles.label,
-            )
-            if (record.response.isNotEmpty()) {
-                McpCopyIconButton(
-                    contentDescription = stringResource(Res.string.mcp_history_copy_response),
-                    onClick = { clipboardManager.setText(AnnotatedString(record.response)) },
-                )
-            }
-        }
-        if (record.response.isEmpty()) {
-            JwText(
-                text = stringResource(Res.string.mcp_history_no_response),
-                style = JwTheme.textStyles.bodySmall,
-                color = JwTheme.colors.textSecondary,
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // Bounded and scrolled on its own so a long response stays readable instead of
-                    // pushing the copy action out of the pane.
-                    .heightIn(max = 240.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(JwTheme.colors.neutralContainer)
-                    .verticalScroll(rememberScrollState())
-                    .padding(8.dp),
-            ) {
-                JwText(
-                    text = record.response,
-                    style = JwTheme.textStyles.code,
-                    color = JwTheme.colors.textSecondary,
-                )
-            }
-        }
+        McpCallArguments(arguments = record.arguments, renderedArguments = renderedArguments)
+        McpCallResponse(response = record.response)
 
         Spacer(Modifier.size(4.dp))
         JwButton(
             text = stringResource(Res.string.mcp_history_copy_details),
             style = JwButtonStyle.Text,
             onClick = {
-                clipboardManager.setText(
-                    AnnotatedString(
+                scope.launch {
+                    clipboard.setPlainText(
                         buildCallDetails(
                             toolName = record.toolName,
                             statusLabel = statusLabel,
@@ -649,10 +548,157 @@ private fun McpCallDetailPane(
                             renderedArguments = renderedArguments,
                             response = record.response,
                         ),
-                    ),
-                )
+                    )
+                }
             },
         )
+    }
+}
+
+/** What the call was and how it ended: the tool's name, its outcome, and when it finished. */
+@Composable
+private fun ColumnScope.McpCallSummary(
+    toolName: String,
+    succeeded: Boolean,
+    statusLabel: String,
+    finishedAt: String,
+) {
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        JwText(
+            text = toolName.substringAfterLast('.'),
+            style = JwTheme.textStyles.title,
+            fontFamily = FontFamily.Monospace,
+        )
+        McpCopyIconButton(
+            contentDescription = stringResource(Res.string.mcp_history_copy_tool_name),
+            onClick = { scope.launch { clipboard.setPlainText(toolName) } },
+        )
+    }
+    JwText(
+        text = toolName,
+        style = JwTheme.textStyles.code,
+        color = JwTheme.colors.textSecondary,
+    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        JwIcon(
+            imageVector = if (succeeded) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
+            contentDescription = null,
+            tint = if (succeeded) JwTheme.colors.aiAccent else JwTheme.colors.error,
+        )
+        JwText(
+            text = statusLabel,
+            style = JwTheme.textStyles.label,
+            color = if (succeeded) {
+                JwTheme.colors.textSecondary
+            } else {
+                JwTheme.colors.error
+            },
+        )
+        JwText(
+            text = finishedAt,
+            style = JwTheme.textStyles.code,
+            color = JwTheme.colors.textSecondary,
+        )
+    }
+}
+
+/** The arguments the call was made with, name over value, or a note that it took none. */
+@Composable
+private fun ColumnScope.McpCallArguments(arguments: ImmutableList<McpCallArgument>, renderedArguments: String) {
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    Spacer(Modifier.size(4.dp))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        JwText(
+            text = stringResource(Res.string.mcp_tools_parameters),
+            style = JwTheme.textStyles.label,
+        )
+        if (arguments.isNotEmpty()) {
+            McpCopyIconButton(
+                contentDescription = stringResource(Res.string.mcp_history_copy_arguments),
+                onClick = { scope.launch { clipboard.setPlainText(renderedArguments) } },
+            )
+        }
+    }
+    if (arguments.isEmpty()) {
+        JwText(
+            text = stringResource(Res.string.mcp_history_no_arguments),
+            style = JwTheme.textStyles.bodySmall,
+            color = JwTheme.colors.textSecondary,
+        )
+    } else {
+        arguments.forEach { argument ->
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                JwText(
+                    text = argument.name,
+                    style = JwTheme.textStyles.code,
+                )
+                JwText(
+                    text = argument.value,
+                    style = JwTheme.textStyles.code,
+                    color = JwTheme.colors.textSecondary,
+                )
+            }
+        }
+    }
+}
+
+/** What the call returned, or a note that it returned nothing. */
+@Composable
+private fun ColumnScope.McpCallResponse(response: String) {
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    Spacer(Modifier.size(4.dp))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        JwText(
+            text = stringResource(Res.string.mcp_history_response),
+            style = JwTheme.textStyles.label,
+        )
+        if (response.isNotEmpty()) {
+            McpCopyIconButton(
+                contentDescription = stringResource(Res.string.mcp_history_copy_response),
+                onClick = { scope.launch { clipboard.setPlainText(response) } },
+            )
+        }
+    }
+    if (response.isEmpty()) {
+        JwText(
+            text = stringResource(Res.string.mcp_history_no_response),
+            style = JwTheme.textStyles.bodySmall,
+            color = JwTheme.colors.textSecondary,
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                // Bounded and scrolled on its own so a long response stays readable instead of
+                // pushing the copy action out of the pane.
+                .heightIn(max = 240.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(JwTheme.colors.neutralContainer)
+                .verticalScroll(rememberScrollState())
+                .padding(8.dp),
+        ) {
+            JwText(
+                text = response,
+                style = JwTheme.textStyles.code,
+                color = JwTheme.colors.textSecondary,
+            )
+        }
     }
 }
 
@@ -661,8 +707,10 @@ private fun McpCallDetailPane(
 private fun McpCopyIconButton(
     contentDescription: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     JwIconButton(
+        modifier = modifier,
         onClick = onClick,
         tooltip = contentDescription,
         size = JwIconButtonDefaults.inlineSize,
@@ -680,6 +728,7 @@ private fun McpCallHistoryRow(
     record: McpCallRecord,
     selected: Boolean,
     onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val statusLabel = stringResource(
         if (record.succeeded) Res.string.mcp_history_succeeded else Res.string.mcp_history_failed,
@@ -687,38 +736,39 @@ private fun McpCallHistoryRow(
     val finishedAt = formatCallTime(record.finishedAtEpochMillis)
     val renderedArguments = record.arguments.joinToString(separator = "\n") { "${it.name} = ${it.value}" }
 
-    val clipboardManager = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
     val copyToolNameLabel = stringResource(Res.string.mcp_history_copy_tool_name)
     val copyArgumentsLabel = stringResource(Res.string.mcp_history_copy_arguments)
     val copyResponseLabel = stringResource(Res.string.mcp_history_copy_response)
     val copyDetailsLabel = stringResource(Res.string.mcp_history_copy_details)
 
+    val clipboard = LocalClipboard.current
     ContextMenuArea(
         items = {
             buildList {
                 add(
                     ContextMenuItem(copyToolNameLabel) {
-                        clipboardManager.setText(AnnotatedString(record.toolName))
+                        scope.launch { clipboard.setPlainText(record.toolName) }
                     },
                 )
                 if (record.arguments.isNotEmpty()) {
                     add(
                         ContextMenuItem(copyArgumentsLabel) {
-                            clipboardManager.setText(AnnotatedString(renderedArguments))
+                            scope.launch { clipboard.setPlainText(renderedArguments) }
                         },
                     )
                 }
                 if (record.response.isNotEmpty()) {
                     add(
                         ContextMenuItem(copyResponseLabel) {
-                            clipboardManager.setText(AnnotatedString(record.response))
+                            scope.launch { clipboard.setPlainText(record.response) }
                         },
                     )
                 }
                 add(
                     ContextMenuItem(copyDetailsLabel) {
-                        clipboardManager.setText(
-                            AnnotatedString(
+                        scope.launch {
+                            clipboard.setPlainText(
                                 buildCallDetails(
                                     toolName = record.toolName,
                                     statusLabel = statusLabel,
@@ -726,8 +776,8 @@ private fun McpCallHistoryRow(
                                     renderedArguments = renderedArguments,
                                     response = record.response,
                                 ),
-                            ),
-                        )
+                            )
+                        }
                     },
                 )
             }
@@ -763,6 +813,11 @@ private fun McpCallHistoryRow(
             )
         }
     }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+private suspend fun Clipboard.setPlainText(text: String) {
+    setClipEntry(ClipEntry(StringSelection(text)))
 }
 
 private fun buildCallDetails(
@@ -832,4 +887,51 @@ private fun McpParameterRow(param: McpToolParameterSummary) {
             )
         }
     }
+}
+
+@Preview
+@Composable
+private fun McpToolsScreenPreview() {
+    McpToolsScreen(
+        uiState = McpToolsScreenUiState(
+            pluginOptions = persistentListOf(McpFilterOption(id = "com.example.inspector", label = "Inspector")),
+            sessionOptions = persistentListOf(McpFilterOption(id = "session-1", label = "Sample app")),
+            selectedPluginIds = persistentSetOf(),
+            selectedSessionIds = persistentSetOf(),
+            toolRows = persistentListOf(
+                McpToolRowUiState(
+                    pluginId = "com.example.inspector",
+                    pluginName = "Inspector",
+                    tool = McpToolSummary(
+                        name = "inspector.dump",
+                        description = "Dumps the current view tree",
+                        parameters = emptyList(),
+                    ),
+                    callCount = 3,
+                    running = false,
+                ),
+            ),
+            callHistory = persistentListOf(
+                McpCallRecord(
+                    id = 1,
+                    toolName = "inspector.dump",
+                    pluginId = "com.example.inspector",
+                    sessionId = "session-1",
+                    succeeded = true,
+                    finishedAtEpochMillis = 0,
+                    arguments = persistentListOf(),
+                    response = "{}",
+                ),
+            ),
+            runningToolName = null,
+        ),
+        onSelectPluginFilters = {},
+        onSelectSessionFilters = {},
+    )
+}
+
+@Preview
+@Composable
+private fun McpToolCallCountBadgePreview() {
+    McpToolCallCountBadge(count = 3, running = true)
 }

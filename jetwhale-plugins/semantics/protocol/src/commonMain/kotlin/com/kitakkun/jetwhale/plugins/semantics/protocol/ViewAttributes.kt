@@ -5,15 +5,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 // Reading and writing the platform attributes of one `ViewNode` — what an Android `View` exposes
-// beyond the semantics every `UiNode` reports.
-//
-// Attributes travel on their own request rather than inside a `NodeTreeSnapshot`: a tree of two
-// hundred nodes must not carry thirty attributes each, and a host only ever shows the attributes of
-// the one node a user selected.
-//
-// A `ComposeNode` has none. A semantics node is a projection of composition state, so a write to it
-// lasts until the next recomposition overwrites it — which is why a root read through its
-// `SemanticsOwner` answers "not supported" instead.
+// beyond the semantics every `UiNode` reports. Attributes travel on their own request rather than
+// inside a `NodeTreeSnapshot`: a tree of two hundred nodes must not carry thirty attributes each,
+// and a host only ever shows the attributes of the one node a user selected.
 
 /** One attribute's current value; the variant also says how a host should edit it. */
 @Serializable
@@ -86,12 +80,13 @@ sealed interface ViewAttributeValue {
  * where a rejected write explains itself, and in the MCP tool's own description — and written out
  * separately they drift: the description went out of step with what a read actually returned.
  * [wireName] is pinned to the variant's `@SerialName` by a test.
+ *
+ * @property writtenAs How a caller writes a value of this type as text.
+ * @property extraFields What a read adds beside `value` for this type.
  */
 enum class ViewAttributeType(
     val wireName: String,
-    /** How a caller writes a value of this type as text. */
     val writtenAs: String,
-    /** What a read adds beside `value` for this type. */
     val extraFields: List<String>,
 ) {
     Bool("bool", "\"true\"", emptyList()),
@@ -121,15 +116,17 @@ val ViewAttributeValue.type: ViewAttributeType
         is ViewAttributeValue.LayoutSizeValue -> ViewAttributeType.LayoutSize
     }
 
+/**
+ * @property id Stable identifier a [SetViewAttribute] names, e.g. `visibility`, `padding.left`.
+ * @property group Section a host groups this under: `State`, `Layout`, `Appearance`, `Text`, `Info`.
+ * @property editable `false` when this view exposes the attribute but nothing can write it back.
+ */
 @Serializable
 data class ViewAttribute(
-    /** Stable identifier a [SetViewAttribute] names, e.g. `visibility`, `padding.left`. */
     val id: String,
     val label: String,
-    /** Section a host groups this under: `State`, `Layout`, `Appearance`, `Text`, `Info`. */
     val group: String,
     val value: ViewAttributeValue,
-    /** `false` when this view exposes the attribute but nothing can write it back. */
     val editable: Boolean,
 )
 
@@ -146,6 +143,10 @@ data class ViewAttributeSnapshot(
  *
  * Answered per node, on demand: a host asks when a selection changes, so a capture stays as small
  * as it is today.
+ *
+ * A [ComposeNode] has none. A semantics node is a projection of composition state, so a write to it
+ * lasts until the next recomposition overwrites it — which is why a root read through its
+ * `SemanticsOwner` answers "not supported" instead.
  */
 @SerialName("view/get_attributes")
 @Serializable
@@ -176,10 +177,13 @@ data class SetViewAttribute(
     val value: ViewAttributeValue,
 ) : JetWhaleRequest<ViewAttributeResult>
 
+/**
+ * @property attribute The attribute as it reads back after the write, so a host shows what actually
+ *   took effect.
+ */
 @Serializable
 data class ViewAttributeResult(
     val applied: Boolean,
     val message: String? = null,
-    /** The attribute as it reads back after the write, so a host shows what actually took effect. */
     val attribute: ViewAttribute? = null,
 )

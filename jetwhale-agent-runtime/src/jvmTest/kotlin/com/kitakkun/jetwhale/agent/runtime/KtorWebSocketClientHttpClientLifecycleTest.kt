@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
 import com.kitakkun.test.annotations.IgnoreNative
 import com.kitakkun.test.annotations.IgnoreWeb
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.server.engine.connector
 import io.ktor.server.testing.ApplicationTestBuilder
@@ -94,7 +95,7 @@ class KtorWebSocketClientHttpClientLifecycleTest {
     /** Hands out a throwaway client per connection, exactly as the production provider does. */
     private fun ApplicationTestBuilder.recordingProvider() = RecordingProvider {
         createClient {
-            install(io.ktor.client.plugins.websocket.WebSockets) {
+            install(WebSockets) {
                 contentConverter = KotlinxWebsocketSerializationConverter(json)
             }
         }

@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.model.DebugSession
@@ -15,6 +16,7 @@ import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwMenuItem
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
+import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 
 /** Smaller than a regular glyph: the lock is a secondary annotation beside the session name. */
@@ -29,23 +31,21 @@ fun SessionSecurityIcon(
     transportSecurity: SessionTransportSecurity,
     modifier: Modifier = Modifier,
 ) {
-    when (transportSecurity) {
-        SessionTransportSecurity.TLS -> JwIcon(
-            imageVector = Icons.Default.Lock,
-            contentDescription = stringResource(Res.string.session_secure_connection),
-            tint = JwTone.Success.color,
-            modifier = modifier.size(SecurityIconSize),
-        )
-
-        SessionTransportSecurity.LOOPBACK -> JwIcon(
-            imageVector = Icons.Default.Lock,
-            contentDescription = stringResource(Res.string.session_local_connection),
-            tint = JwTheme.colors.textSecondary,
-            modifier = modifier.size(SecurityIconSize),
-        )
-
-        SessionTransportSecurity.PLAINTEXT -> Unit
+    val description = when (transportSecurity) {
+        SessionTransportSecurity.TLS -> stringResource(Res.string.session_secure_connection)
+        SessionTransportSecurity.LOOPBACK -> stringResource(Res.string.session_local_connection)
+        SessionTransportSecurity.PLAINTEXT -> return
     }
+    JwIcon(
+        imageVector = Icons.Default.Lock,
+        contentDescription = description,
+        tint = if (transportSecurity == SessionTransportSecurity.TLS) {
+            JwTone.Success.color
+        } else {
+            JwTheme.colors.textSecondary
+        },
+        modifier = modifier.size(SecurityIconSize),
+    )
 }
 
 /** One session in a picker menu: its app icon, [displayName], and the transport lock. */
@@ -65,5 +65,31 @@ fun SessionMenuItem(
         trailingIcon = { SessionSecurityIcon(session.transportSecurity) },
         onClick = onClick,
         modifier = modifier,
+    )
+}
+
+@Preview
+@Composable
+private fun SessionSecurityIconPreview() {
+    SessionSecurityIcon(transportSecurity = SessionTransportSecurity.TLS)
+}
+
+@Preview
+@Composable
+private fun SessionMenuItemPreview() {
+    SessionMenuItem(
+        session = DebugSession(
+            id = "session-1",
+            name = "Sample app",
+            isActive = true,
+            transportSecurity = SessionTransportSecurity.LOOPBACK,
+            installedPlugins = persistentListOf(),
+            appName = "Sample app",
+            deviceId = "device-1",
+            deviceName = "Pixel 9",
+        ),
+        displayName = "Sample app",
+        selected = true,
+        onClick = {},
     )
 }

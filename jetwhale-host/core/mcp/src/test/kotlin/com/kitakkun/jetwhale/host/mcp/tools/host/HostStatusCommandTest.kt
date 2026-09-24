@@ -138,7 +138,7 @@ class HostStatusCommandTest {
         // Without this an agent could only discover a denial by calling a tool and being refused.
         val permissions = command.execute(arguments()).decode().permissions
 
-        assertEquals(McpHostToolGroup.entries.map { it.name }.sorted(), permissions.allowedHostGroups)
+        assertEquals(McpHostToolGroup.entries.map(McpHostToolGroup::name).sorted(), permissions.allowedHostGroups)
         assertTrue(permissions.deniedHostGroups.isEmpty())
         assertTrue(permissions.pluginsWithInspectDenied.isEmpty())
         assertTrue(permissions.pluginsWithInteractDenied.isEmpty())

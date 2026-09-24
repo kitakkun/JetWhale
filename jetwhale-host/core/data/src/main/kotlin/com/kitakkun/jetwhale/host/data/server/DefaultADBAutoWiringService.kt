@@ -35,7 +35,7 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
     // device-tracking job serves all of them.
     private val wiredPorts = ConcurrentSet<Int>()
     private var wiringJob: Job? = null
-    private val adbPath: String by lazy { findAdbPath() }
+    private val adbPath: String by lazy(::findAdbPath)
 
     override fun startAutoWiring(port: Int) {
         if (wiredPorts.add(port)) {
@@ -106,9 +106,7 @@ class DefaultADBAutoWiringService : ADBAutoWiringService {
             close()
         }
 
-        awaitClose {
-            deviceTrackingProcess.destroy()
-        }
+        awaitClose(deviceTrackingProcess::destroy)
     }
 
     private fun wire(serial: String, port: Int) {
@@ -173,5 +171,6 @@ private class AdbUnavailableException(adbPath: String, cause: IOException) : Exc
 
 private sealed interface DeviceEvent {
     data class Connected(val serial: String) : DeviceEvent
+
     data class Disconnected(val serial: String) : DeviceEvent
 }

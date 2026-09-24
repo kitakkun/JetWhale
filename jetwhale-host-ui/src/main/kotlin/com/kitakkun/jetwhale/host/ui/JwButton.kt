@@ -89,29 +89,27 @@ public fun JwButton(
     enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
-    val scheme = JwTheme.colors
     val colors = JwTheme.colors
     val accent = tone.color
-    val onAccent = tone.onColor
     val background = when {
-        !enabled -> if (style == JwButtonStyle.Primary) scheme.onSurface.copy(alpha = 0.12f) else Color.Transparent
+        !enabled -> if (style == JwButtonStyle.Primary) colors.onSurface.copy(alpha = 0.12f) else Color.Transparent
         style == JwButtonStyle.Primary -> if (hovered) accent.copy(alpha = 0.88f) else accent
         hovered -> colors.hover
         else -> Color.Transparent
     }
     val contentColor = when {
         !enabled -> colors.textDisabled
-        style == JwButtonStyle.Primary -> onAccent
+        style == JwButtonStyle.Primary -> tone.onColor
         style == JwButtonStyle.Text -> accent
-        tone == JwTone.Accent -> scheme.onSurface
+        tone == JwTone.Accent -> colors.onSurface
         else -> accent
     }
     val borderColor = when {
         style != JwButtonStyle.Secondary -> Color.Transparent
         !enabled -> colors.border.copy(alpha = 0.5f)
-        tone == JwTone.Accent -> scheme.controlBorder
+        tone == JwTone.Accent -> colors.controlBorder
         else -> accent.copy(alpha = 0.6f)
     }
     Row(

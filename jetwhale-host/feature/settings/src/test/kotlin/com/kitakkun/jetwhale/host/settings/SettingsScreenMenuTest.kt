@@ -32,7 +32,7 @@ class SettingsScreenMenuTest {
         // The menu renders pages by filtering the enum per section, so interleaving two sections'
         // pages would silently reorder the list away from the declaration order it reads as.
         val sectionRuns = SettingsScreenPage.entries
-            .map { it.section }
+            .map(SettingsScreenPage::section)
             .fold(mutableListOf<SettingsScreenSection>()) { runs, section ->
                 if (runs.lastOrNull() != section) runs.add(section)
                 runs

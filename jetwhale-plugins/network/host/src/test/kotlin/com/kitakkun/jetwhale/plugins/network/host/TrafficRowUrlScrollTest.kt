@@ -2,7 +2,6 @@ package com.kitakkun.jetwhale.plugins.network.host
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.ScrollAxisRange
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -16,16 +15,10 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
-import com.kitakkun.jetwhale.host.sdk.JetWhalePluginStorage
-import com.kitakkun.jetwhale.host.sdk.LocalJetWhalePluginStorage
 import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
-import kotlinx.serialization.KSerializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -98,6 +91,9 @@ private const val LONG_LIST = 60
 /** Few enough rows that the list fits the viewport and cannot scroll at all. */
 private const val SHORT_LIST = 3
 
+/** Leaves the list pane wide enough for the assertions and matches what the plugin defaults to. */
+private const val SPLIT_POSITION = 0.42f
+
 /** Mouse wheel notches to send; one notch alone is a sub-pixel move under smooth scrolling. */
 private const val WHEEL_NOTCHES = 10
 
@@ -110,11 +106,33 @@ private const val TOP_ROW = 0
 private fun txId(index: Int) = "tx-$index"
 
 /**
- * Long enough to overflow the list pane at any plausible split position, and index-tagged so each
- * row is individually addressable.
+ * Renders [TrafficTab] with [rows] transactions at a fixed size and runs [block] against it. The
+ * lambda receives a getter for the most recently selected transaction id.
  */
-private fun url(index: Int) = "https://example.com/a/deliberately/long/path/that/no/list/pane/" +
-    "is/wide/enough/to/show/items/$index?first=1&second=2&third=3"
+@OptIn(ExperimentalTestApi::class)
+private fun runTrafficTab(
+    rows: Int = LONG_LIST,
+    block: suspend ComposeUiTest.(selected: () -> String?) -> Unit,
+) = runComposeUiTest {
+    var selected: String? = null
+    setContent {
+        JwTheme(darkTheme = false) {
+            // Wide enough to clear ListMinWidth + DetailMinWidth, and tall enough that LONG_LIST
+            // overflows the viewport while SHORT_LIST does not.
+            Box(Modifier.requiredSize(width = 900.dp, height = 600.dp)) {
+                TrafficTab(
+                    transactions = List(rows) { transaction(index = rows - 1 - it, rows = rows) },
+                    selectedTxId = null,
+                    splitPaneState = rememberJwSplitPaneState(SPLIT_POSITION),
+                    onSelectTx = { selected = it },
+                    onClear = {},
+                    onCreateMock = {},
+                )
+            }
+        }
+    }
+    block { selected }
+}
 
 /** Built newest-first so that [TOP_ROW] is index 0 once [TrafficTab] reverses the list. */
 private fun transaction(index: Int, rows: Int) = HttpTransaction(
@@ -133,34 +151,11 @@ private fun transaction(index: Int, rows: Int) = HttpTransaction(
 )
 
 /**
- * Renders [TrafficTab] with [rows] transactions at a fixed size and runs [block] against it. The
- * lambda receives a getter for the most recently selected transaction id.
+ * Long enough to overflow the list pane at any plausible split position, and index-tagged so each
+ * row is individually addressable.
  */
-@OptIn(ExperimentalTestApi::class)
-private fun runTrafficTab(
-    rows: Int = LONG_LIST,
-    block: suspend ComposeUiTest.(selected: () -> String?) -> Unit,
-) = runComposeUiTest {
-    var selected: String? = null
-    setContent {
-        CompositionLocalProvider(LocalJetWhalePluginStorage provides InMemoryPluginStorage()) {
-            JwTheme(darkTheme = false) {
-                // Wide enough to clear ListMinWidth + DetailMinWidth, and tall enough that LONG_LIST
-                // overflows the viewport while SHORT_LIST does not.
-                Box(Modifier.requiredSize(width = 900.dp, height = 600.dp)) {
-                    TrafficTab(
-                        transactions = List(rows) { transaction(index = rows - 1 - it, rows = rows) },
-                        selectedTxId = null,
-                        onSelectTx = { selected = it },
-                        onClear = {},
-                        onCreateMock = {},
-                    )
-                }
-            }
-        }
-    }
-    block { selected }
-}
+private fun url(index: Int) = "https://example.com/a/deliberately/long/path/that/no/list/pane/" +
+    "is/wide/enough/to/show/items/$index?first=1&second=2&third=3"
 
 @OptIn(ExperimentalTestApi::class)
 private fun ComposeUiTest.urlNode(index: Int): SemanticsNodeInteraction = onNodeWithText(url(index))
@@ -170,29 +165,3 @@ private fun SemanticsNodeInteraction.horizontalScrollRange(): ScrollAxisRange = 
 
 private fun SemanticsNodeInteraction.verticalScrollRange(): ScrollAxisRange = fetchSemanticsNode()
     .config[SemanticsProperties.VerticalScrollAxisRange]
-
-/** Minimal in-memory [JetWhalePluginStorage] so `rememberPersistent` has something to bind to. */
-@Suppress("UNCHECKED_CAST")
-private class InMemoryPluginStorage : JetWhalePluginStorage {
-    private val values = MutableStateFlow<Map<String, Any?>>(emptyMap())
-
-    override suspend fun <T> put(key: String, value: T, serializer: KSerializer<T>) {
-        values.update { it + (key to value) }
-    }
-
-    override suspend fun <T> get(key: String, serializer: KSerializer<T>): T? = values.value[key] as T?
-
-    override fun <T> getFlow(key: String, serializer: KSerializer<T>): Flow<T?> = values.map { it[key] as T? }
-
-    override suspend fun contains(key: String): Boolean = values.value.containsKey(key)
-
-    override suspend fun remove(key: String) {
-        values.update { it - key }
-    }
-
-    override suspend fun clear() {
-        values.value = emptyMap()
-    }
-
-    override val keysFlow: Flow<Set<String>> get() = values.map { it.keys }
-}

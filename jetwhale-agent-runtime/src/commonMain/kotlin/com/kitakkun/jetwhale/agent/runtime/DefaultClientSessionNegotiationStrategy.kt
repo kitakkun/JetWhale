@@ -26,11 +26,12 @@ internal class DefaultClientSessionNegotiationStrategy(
 
         val response = negotiatePlugins(plugins)
 
-        ClientSessionNegotiationResult.Success(availablePluginIds = response.availablePlugins.map { it.pluginId })
-    } catch (e: CancellationException) {
-        // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
-        throw e
+        ClientSessionNegotiationResult.Success(
+            availablePluginIds = response.availablePlugins.map(JetWhalePluginInfo::pluginId),
+        )
     } catch (e: Throwable) {
+        // Never swallow cancellation: re-throw so the coroutine cancellation mechanism keeps working.
+        if (e is CancellationException) throw e
         ClientSessionNegotiationResult.Failure(reason = e.message ?: "Unknown error during negotiation")
     }
 

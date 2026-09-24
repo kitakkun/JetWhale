@@ -36,7 +36,7 @@ fun FrameWindowScope.JetWhaleSemanticsProbe() {
     // itself is the same instance across changes, which would never re-key the effect.
     val owners = window.semanticsOwners.toList()
 
-    DisposableEffect(window, owners, density) {
+    DisposableEffect(key1 = window, key2 = owners, key3 = density) {
         val registrations = owners.mapIndexed { index, owner ->
             ComposeNodeSourceRegistry.register(owner.toNodeSource(window, density, index))
         }
@@ -53,7 +53,7 @@ private fun SemanticsOwner.toNodeSource(window: ComposeWindow, density: Float, i
         // distinguished by position rather than guessed at.
         label = { if (index == 0) title else "$title / layer $index" },
         density = { density },
-        windowOffset = { window.composeSurfaceOffsetOnScreen() },
+        windowOffset = window::composeSurfaceOffsetOnScreen,
         uiThread = SwingComposeUiThread,
     )
 }

@@ -38,7 +38,7 @@ class HostLogCommandsTest {
     fun `getLogs returns the newest entries last`() = runBlocking {
         val result = GetLogsCommand(logCaptureService).execute(arguments()).decodeLogs()
 
-        assertEquals(listOf("first info", "second boom", "third info"), result.logs.map { it.message })
+        assertEquals(listOf("first info", "second boom", "third info"), result.logs.map(LogEntryJson::message))
         assertEquals(3, result.returned)
         assertEquals(3, result.total)
     }
@@ -47,7 +47,7 @@ class HostLogCommandsTest {
     fun `getLogs keeps only the most recent entries when a limit is given`() = runBlocking {
         val result = GetLogsCommand(logCaptureService).execute(arguments("limit" to JsonPrimitive(2))).decodeLogs()
 
-        assertEquals(listOf("second boom", "third info"), result.logs.map { it.message })
+        assertEquals(listOf("second boom", "third info"), result.logs.map(LogEntryJson::message))
         assertEquals(2, result.returned)
         assertEquals(3, result.total)
     }
@@ -56,7 +56,7 @@ class HostLogCommandsTest {
     fun `getLogs filters by level`() = runBlocking {
         val result = GetLogsCommand(logCaptureService).execute(arguments("level" to JsonPrimitive("ERROR"))).decodeLogs()
 
-        assertEquals(listOf("second boom"), result.logs.map { it.message })
+        assertEquals(listOf("second boom"), result.logs.map(LogEntryJson::message))
         assertEquals(1, result.total)
     }
 
@@ -64,7 +64,7 @@ class HostLogCommandsTest {
     fun `getLogs filters by substring case-insensitively`() = runBlocking {
         val result = GetLogsCommand(logCaptureService).execute(arguments("contains" to JsonPrimitive("BOOM"))).decodeLogs()
 
-        assertEquals(listOf("second boom"), result.logs.map { it.message })
+        assertEquals(listOf("second boom"), result.logs.map(LogEntryJson::message))
     }
 
     @Test

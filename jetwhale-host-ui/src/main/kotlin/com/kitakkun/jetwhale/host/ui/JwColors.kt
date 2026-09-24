@@ -11,92 +11,98 @@ import androidx.compose.ui.graphics.Color
  * Obtain one from [light] or [dark] and adjust it with [copy]; there is no public constructor, so
  * the set can grow without breaking callers. The host maps its configured theme onto this and
  * applies it through [JwTheme]; a plugin reads it back as [JwTheme.colors].
+ *
+ * @property surface The background of content panes.
+ * @property onSurface Body text and icons on [surface] and the other surfaces.
+ * @property textSecondary De-emphasized text that must still be read: descriptions, placeholders,
+ * counts, hints.
+ * @property textDisabled Text of a disabled control — and only that. It sits below the contrast text
+ * needs, as a disabled control may; a placeholder, a count or a hint is [textSecondary].
+ * @property sidebarBackground Background of the sidebar and other secondary panes beside the main
+ * content.
+ * @property toolbarBackground Background of toolbars and headers that sit on top of the content they
+ * control.
+ * @property panelBackground Background of a panel or an input: the lightest surface, so it reads as
+ * a sheet on the pane.
+ * @property elevatedBackground Background of a menu or a dialog floating over the content.
+ * @property border Hairline borders between panes and around panels. Decorative: lighter than a
+ * control's edge.
+ * @property controlBorder The edge of a control — an input, a secondary button — strong enough to
+ * find the control by.
+ * @property hover Background of a row the pointer is hovering.
+ * @property selection Background of the selected row in a list or sidebar.
+ * @property onSelection Text on [selection].
+ * @property accent The one accent: primary buttons, links, the selected tab's underline, the focus
+ * ring.
+ * @property onAccent Text or icon on [accent].
+ * @property accentContainer Soft accent background for a tinted tag or banner.
+ * @property onAccentContainer Text or icon on [accentContainer].
+ * @property neutralContainer Soft neutral background: a [JwTone.Neutral] tag or banner, an unfilled
+ * count badge.
+ * @property error Strong red: a failure, a 4xx/5xx status, a destructive action.
+ * @property onError Text or icon on [error].
+ * @property errorContainer Soft red background for a tinted tag or banner.
+ * @property onErrorContainer Text or icon on [errorContainer].
+ * @property success Strong green: a passing state, a healthy connection, a 2xx status.
+ * @property onSuccess Text or icon on [success].
+ * @property successContainer Soft green background for a tinted tag or banner.
+ * @property onSuccessContainer Text or icon on [successContainer].
+ * @property warning Strong amber: something to look at, not yet an error.
+ * @property onWarning Text or icon on [warning].
+ * @property warningContainer Soft amber background for a tinted tag or banner.
+ * @property onWarningContainer Text or icon on [warningContainer].
+ * @property info Strong blue: neutral information, a 3xx status. Usually the same as [accent].
+ * @property onInfo Text or icon on [info].
+ * @property infoContainer Soft blue background for a tinted tag or banner.
+ * @property onInfoContainer Text or icon on [infoContainer].
+ * @property aiAccent Marks what an AI agent is operating right now. Deliberately the same in every
+ * scheme: it has to stand out against the accent-tinted selection of the very row it decorates.
+ * @property onAiAccent Text or icon on [aiAccent].
+ * @property tooltipBackground Background of a tooltip: the inverse of the surfaces, so it floats.
+ * @property onTooltip Text on [tooltipBackground].
+ * @property isDark Whether this is a dark scheme; decides which built-in scheme fills what a theme
+ * leaves out.
  */
 @Immutable
 public class JwColors internal constructor(
-    /** The background of content panes. */
     public val surface: Color,
-    /** Body text and icons on [surface] and the other surfaces. */
     public val onSurface: Color,
-    /** De-emphasized text that must still be read: descriptions, placeholders, counts, hints. */
     public val textSecondary: Color,
-    /**
-     * Text of a disabled control — and only that. It sits below the contrast text needs, as a
-     * disabled control may; a placeholder, a count or a hint is [textSecondary].
-     */
     public val textDisabled: Color,
-    /** Background of the sidebar and other secondary panes beside the main content. */
     public val sidebarBackground: Color,
-    /** Background of toolbars and headers that sit on top of the content they control. */
     public val toolbarBackground: Color,
-    /** Background of a panel or an input: the lightest surface, so it reads as a sheet on the pane. */
     public val panelBackground: Color,
-    /** Background of a menu or a dialog floating over the content. */
     public val elevatedBackground: Color,
-    /** Hairline borders between panes and around panels. Decorative: lighter than a control's edge. */
     public val border: Color,
-    /** The edge of a control — an input, a secondary button — strong enough to find the control by. */
     public val controlBorder: Color,
-    /** Background of a row the pointer is hovering. */
     public val hover: Color,
-    /** Background of the selected row in a list or sidebar. */
     public val selection: Color,
-    /** Text on [selection]. */
     public val onSelection: Color,
-    /** The one accent: primary buttons, links, the selected tab's underline, the focus ring. */
     public val accent: Color,
-    /** Text or icon on [accent]. */
     public val onAccent: Color,
-    /** Soft accent background for a tinted tag or banner. */
     public val accentContainer: Color,
-    /** Text or icon on [accentContainer]. */
     public val onAccentContainer: Color,
-    /** Soft neutral background: a [JwTone.Neutral] tag or banner, an unfilled count badge. */
     public val neutralContainer: Color,
-    /** Strong red: a failure, a 4xx/5xx status, a destructive action. */
     public val error: Color,
-    /** Text or icon on [error]. */
     public val onError: Color,
-    /** Soft red background for a tinted tag or banner. */
     public val errorContainer: Color,
-    /** Text or icon on [errorContainer]. */
     public val onErrorContainer: Color,
-    /** Strong green: a passing state, a healthy connection, a 2xx status. */
     public val success: Color,
-    /** Text or icon on [success]. */
     public val onSuccess: Color,
-    /** Soft green background for a tinted tag or banner. */
     public val successContainer: Color,
-    /** Text or icon on [successContainer]. */
     public val onSuccessContainer: Color,
-    /** Strong amber: something to look at, not yet an error. */
     public val warning: Color,
-    /** Text or icon on [warning]. */
     public val onWarning: Color,
-    /** Soft amber background for a tinted tag or banner. */
     public val warningContainer: Color,
-    /** Text or icon on [warningContainer]. */
     public val onWarningContainer: Color,
-    /** Strong blue: neutral information, a 3xx status. Usually the same as [accent]. */
     public val info: Color,
-    /** Text or icon on [info]. */
     public val onInfo: Color,
-    /** Soft blue background for a tinted tag or banner. */
     public val infoContainer: Color,
-    /** Text or icon on [infoContainer]. */
     public val onInfoContainer: Color,
-    /**
-     * Marks what an AI agent is operating right now. Deliberately the same in every scheme: it has
-     * to stand out against the accent-tinted selection of the very row it decorates.
-     */
     public val aiAccent: Color,
-    /** Text or icon on [aiAccent]. */
     public val onAiAccent: Color,
-    /** Background of a tooltip: the inverse of the surfaces, so it floats. */
     public val tooltipBackground: Color,
-    /** Text on [tooltipBackground]. */
     public val onTooltip: Color,
-    /** Whether this is a dark scheme; decides which built-in scheme fills what a theme leaves out. */
     public val isDark: Boolean,
 ) {
     /** A copy with the given colors replaced. Every parameter defaults to this instance's value. */

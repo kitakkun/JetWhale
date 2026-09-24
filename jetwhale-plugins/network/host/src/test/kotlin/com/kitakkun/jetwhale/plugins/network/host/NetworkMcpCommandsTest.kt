@@ -23,16 +23,24 @@ import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
 class NetworkMcpCommandsTest {
+    private val transactions = listOf(tx("a", 100), tx("b", 200), tx("c", 300), tx("d", 400))
+
     private fun tx(txId: String, timestampMs: Long, url: String = "https://api.example.com/$txId", method: String = "GET") = HttpTransaction(
         request = CapturedHttpRequest(txId = txId, method = method, url = url, timestampMs = timestampMs),
     )
 
-    private val transactions = listOf(tx("a", 100), tx("b", 200), tx("c", 300), tx("d", 400))
+    @Test
+    fun `listTransactions without arguments returns all oldest first`() {
+        val result = execute(listCommand())
+        assertEquals(listOf("a", "b", "c", "d"), txIdsOf(result))
+        assertNull(nextCursorOf(result))
+    }
 
     private fun listCommand(data: List<HttpTransaction> = transactions) = ListTransactionsCommand(transactions = { data }, redactForMcp = { it })
 
@@ -45,13 +53,6 @@ class NetworkMcpCommandsTest {
         .map { it.jsonObject.getValue("txId").jsonPrimitive.content }
 
     private fun nextCursorOf(result: String): String? = Json.parseToJsonElement(result).jsonObject["nextCursor"]?.jsonPrimitive?.content
-
-    @Test
-    fun `listTransactions without arguments returns all oldest first`() {
-        val result = execute(listCommand())
-        assertEquals(listOf("a", "b", "c", "d"), txIdsOf(result))
-        assertNull(nextCursorOf(result))
-    }
 
     @Test
     fun `limit without cursor keeps latest-N meaning`() {
@@ -88,7 +89,8 @@ class NetworkMcpCommandsTest {
         val exception = assertFailsWith<JetWhaleMcpArgumentException> {
             execute(listCommand(), "afterTxId" to "ghost")
         }
-        assertTrue("ghost" in exception.message!!, "The message should name the unknown cursor: ${exception.message}")
+        val message = assertNotNull(exception.message)
+        assertTrue("ghost" in message, "The message should name the unknown cursor: $message")
     }
 
     @Test
@@ -96,23 +98,23 @@ class NetworkMcpCommandsTest {
         val badLimit = assertFailsWith<JetWhaleMcpArgumentException> {
             execute(listCommand(), "limit" to "many")
         }
-        assertTrue("invalid limit" in badLimit.message!!, badLimit.message!!)
+        assertTrue("invalid limit" in assertNotNull(badLimit.message), badLimit.message)
 
         val badEnabled = assertFailsWith<JetWhaleMcpArgumentException> {
             execute(SetMockingEnabledCommand { null }, "enabled" to "yes")
         }
-        assertTrue("invalid enabled" in badEnabled.message!!, badEnabled.message!!)
+        assertTrue("invalid enabled" in assertNotNull(badEnabled.message), badEnabled.message)
 
         val addMockRule = AddMockRuleCommand(mockRules = { emptyList() }, syncMockRules = { null })
         val missingPattern = assertFailsWith<JetWhaleMcpArgumentException> {
             execute(addMockRule)
         }
-        assertTrue("missing required argument: urlPattern" in missingPattern.message!!, missingPattern.message!!)
+        assertTrue("missing required argument: urlPattern" in assertNotNull(missingPattern.message), missingPattern.message)
 
         val badMatchType = assertFailsWith<JetWhaleMcpArgumentException> {
             execute(addMockRule, "urlPattern" to "/x", "matchType" to "GLOB")
         }
-        assertTrue("invalid matchType" in badMatchType.message!!, badMatchType.message!!)
+        assertTrue("invalid matchType" in assertNotNull(badMatchType.message), badMatchType.message)
     }
 
     @Test
@@ -130,7 +132,7 @@ class NetworkMcpCommandsTest {
                 put("X-Trace", "abc")
             },
         )
-        val rule = synced!!.single()
+        val rule = assertNotNull(synced).single()
         assertEquals(mapOf("Content-Type" to "application/json", "X-Trace" to "abc"), rule.response.headers)
         assertTrue("application/json" in result, result)
     }
@@ -147,7 +149,7 @@ class NetworkMcpCommandsTest {
             "urlPattern" to JsonPrimitive("/x"),
             "contentType" to JsonPrimitive("application/json"),
         )
-        assertEquals(mapOf("Content-Type" to "application/json"), synced!!.single().response.headers)
+        assertEquals(mapOf("Content-Type" to "application/json"), assertNotNull(synced).single().response.headers)
     }
 
     @Test
@@ -163,7 +165,7 @@ class NetworkMcpCommandsTest {
             "contentType" to JsonPrimitive("text/plain"),
             "headers" to buildJsonObject { put("Content-Type", "application/json") },
         )
-        assertEquals(mapOf("Content-Type" to "application/json"), synced!!.single().response.headers)
+        assertEquals(mapOf("Content-Type" to "application/json"), assertNotNull(synced).single().response.headers)
     }
 
     @Test
@@ -196,7 +198,7 @@ class NetworkMcpCommandsTest {
                 "rules" to Json.parseToJsonElement("""[{"name":"missing id and matcher"}]"""),
             )
         }
-        assertTrue("invalid rules" in exception.message!!, exception.message!!)
+        assertTrue("invalid rules" in assertNotNull(exception.message), exception.message)
     }
 
     @Test
@@ -212,7 +214,7 @@ class NetworkMcpCommandsTest {
         }
         command.toDescriptor()
         val exception = assertFailsWith<IllegalStateException> { execute(command) }
-        assertTrue("late" in exception.message!!, exception.message!!)
+        assertTrue("late" in assertNotNull(exception.message), exception.message)
     }
 
     @Test
@@ -228,6 +230,6 @@ class NetworkMcpCommandsTest {
                 override suspend fun execute(arguments: JetWhaleMcpArguments): String = "unused"
             }
         }
-        assertTrue("declared twice" in exception.message!!, exception.message!!)
+        assertTrue("declared twice" in assertNotNull(exception.message), exception.message)
     }
 }

@@ -31,11 +31,12 @@ internal interface JetWhaleMessagingService {
  * @property addresses When non-empty, only a host resolving to one of these IP addresses is selected.
  * @property useWss Whether the connection will use wss (true when `ssl {}` is configured). A host is
  *   usable only when it advertises the port for that scheme, since the scheme is not negotiable.
+ * @property acceptsAnyHost Set by `allowAll()`: take any host that advertises the service,
+ *   allowlists or not.
  */
 internal data class HostDiscoveryConfig(
     val hostNames: List<String>,
     val addresses: List<String>,
-    /** Set by `allowAll()`: take any host that advertises the service, allowlists or not. */
     val acceptsAnyHost: Boolean,
 ) {
     /** True when at least one allowlist narrows the discovered hosts. */

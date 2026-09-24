@@ -81,6 +81,7 @@ class HeadlessHostRunner(
 
     private sealed interface ListenerStartup {
         data object Ready : ListenerStartup
+
         data class Failed(val reason: String) : ListenerStartup
     }
 
@@ -132,7 +133,11 @@ class HeadlessHostRunner(
     /**
      * Makes SIGINT/SIGTERM a graceful stop. Without it the JVM dies with its ports still bound from
      * the OS's point of view and its adb port mappings still installed on attached devices.
+     *
+     * Only the headless process registers it; the IntelliJ plugin, which bundles this class,
+     * never instantiates the runner.
      */
+    @Suppress("KOTRAIL_UNSCOPED_REGISTRATION_IN_UNLOADABLE_CODE")
     private fun installShutdownHook() {
         Runtime.getRuntime().addShutdownHook(
             Thread {

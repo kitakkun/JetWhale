@@ -12,8 +12,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
@@ -27,18 +27,6 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwToolbar
 
-@Composable
-fun ExamplePluginContent(
-    eventLogs: SnapshotStateList<String>,
-    onClickSendPing: () -> Unit,
-) {
-    ExamplePluginView(
-        eventLogs = eventLogs,
-        onClickSendPing = onClickSendPing,
-        onClickTriggerUIError = { error("Example Error") },
-    )
-}
-
 /**
  * The reference plugin UI: built from `jetwhale-host-ui` alone, so it doubles as the smallest
  * example of a plugin that looks like part of the host.
@@ -46,14 +34,13 @@ fun ExamplePluginContent(
 @Composable
 fun ExamplePluginView(
     eventLogs: List<String>,
+    persistedInput: String,
     onClickSendPing: () -> Unit,
     onClickTriggerUIError: () -> Unit,
+    onPersistedInputChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    // Demonstrates rememberPersistent: this text is saved to the plugin's own pluginId-scoped
-    // storage and survives plugin reloads and host restarts.
-    var persistedInput by rememberPersistent("draft-input", default = "")
-
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         JwToolbar(
             title = "Example JetWhale Plugin",
             actions = {
@@ -65,7 +52,7 @@ fun ExamplePluginView(
             JwFormField(label = "Persisted input", supportingText = "Saved with rememberPersistent; survives reloads and restarts.") {
                 JwTextField(
                     value = persistedInput,
-                    onValueChange = { persistedInput = it },
+                    onValueChange = onPersistedInputChange,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -87,5 +74,33 @@ fun ExamplePluginView(
                 }
             }
         }
+    }
+}
+
+@Preview
+@Composable
+private fun ExamplePluginViewPreview() {
+    JwTheme(darkTheme = false) {
+        ExamplePluginView(
+            eventLogs = listOf("ping sent", "pong received"),
+            persistedInput = "a draft that survived a restart",
+            onClickSendPing = {},
+            onClickTriggerUIError = {},
+            onPersistedInputChange = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun ExamplePluginViewEmptyPreview() {
+    JwTheme(darkTheme = false) {
+        ExamplePluginView(
+            eventLogs = emptyList(),
+            persistedInput = "",
+            onClickSendPing = {},
+            onClickTriggerUIError = {},
+            onPersistedInputChange = {},
+        )
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.shutting_down
@@ -31,4 +32,10 @@ fun ShuttingDownDialog() {
             JwProgressIndicator(color = JwTheme.colors.onTooltip, size = JwProgressIndicatorDefaults.largeSize)
         }
     }
+}
+
+@Preview
+@Composable
+private fun ShuttingDownDialogPreview() {
+    ShuttingDownDialog()
 }

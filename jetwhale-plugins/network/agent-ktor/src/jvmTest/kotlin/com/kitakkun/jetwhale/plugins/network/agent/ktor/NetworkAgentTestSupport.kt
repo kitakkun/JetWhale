@@ -11,12 +11,13 @@ import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import com.kitakkun.jetwhale.protocol.messaging.DefaultJetWhaleMessagingFormat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.StringFormat
+import java.util.Collections
 import kotlin.time.Duration
 
 @OptIn(InternalJetWhaleApi::class)
 internal fun agentWithEvents(): Pair<JetWhaleNetworkAgentPlugin, MutableList<Any>> {
     val agent = JetWhaleNetworkAgentPlugin()
-    val recorder = RecordingMessenger(java.util.Collections.synchronizedList(mutableListOf()))
+    val recorder = RecordingMessenger(Collections.synchronizedList(mutableListOf()))
     agent.bindMessenger(recorder)
     return agent to recorder.events
 }

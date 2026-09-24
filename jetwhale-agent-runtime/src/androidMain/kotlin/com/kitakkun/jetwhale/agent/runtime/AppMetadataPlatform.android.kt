@@ -12,6 +12,14 @@ import java.io.ByteArrayOutputStream
 /** Edge length the app icon is rasterized to, matching the cap the negotiation payload documents. */
 private const val APP_ICON_SIZE_PX: Int = 64
 
+@SuppressLint("HardwareIds")
+internal actual fun getDeviceId(): String? = try {
+    val context = currentApplicationOrNull() ?: return null
+    Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+} catch (_: Throwable) {
+    null
+}
+
 /**
  * Retrieves the current [Application] context without requiring the host app to pass one in.
  * Uses the hidden `ActivityThread.currentApplication()` entry point reflectively so metadata
@@ -21,14 +29,6 @@ private fun currentApplicationOrNull(): Context? = try {
     val activityThread = Class.forName("android.app.ActivityThread")
     val method = activityThread.getMethod("currentApplication")
     method.invoke(null) as? Application
-} catch (_: Throwable) {
-    null
-}
-
-@SuppressLint("HardwareIds")
-internal actual fun getDeviceId(): String? = try {
-    val context = currentApplicationOrNull() ?: return null
-    Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
 } catch (_: Throwable) {
     null
 }

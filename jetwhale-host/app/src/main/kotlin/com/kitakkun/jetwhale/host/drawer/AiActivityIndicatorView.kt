@@ -95,14 +95,22 @@ fun Modifier.aiOperatingBorder(
         val radius = cornerRadius.toPx()
         val ring = Path().apply {
             fillType = PathFillType.EvenOdd
-            addRoundRect(RoundRect(0f, 0f, size.width, size.height, CornerRadius(radius)))
             addRoundRect(
                 RoundRect(
-                    strokePx,
-                    strokePx,
-                    size.width - strokePx,
-                    size.height - strokePx,
-                    CornerRadius((radius - strokePx).coerceAtLeast(0f)),
+                    left = 0f,
+                    top = 0f,
+                    right = size.width,
+                    bottom = size.height,
+                    cornerRadius = CornerRadius(radius),
+                ),
+            )
+            addRoundRect(
+                RoundRect(
+                    left = strokePx,
+                    top = strokePx,
+                    right = size.width - strokePx,
+                    bottom = size.height - strokePx,
+                    cornerRadius = CornerRadius((radius - strokePx).coerceAtLeast(0f)),
                 ),
             )
         }
@@ -155,8 +163,8 @@ fun AiActivityIndicatorView(
         visible = uiState.isAgentConnected,
         // The strip slides in from the sidebar's leading edge and leaves the same way, collapsing
         // its height as it goes so the rest of the sidebar closes the gap rather than jumping.
-        enter = slideInHorizontally { -it } + expandVertically() + fadeIn(),
-        exit = slideOutHorizontally { -it } + shrinkVertically() + fadeOut(),
+        enter = slideInHorizontally(initialOffsetX = Int::unaryMinus) + expandVertically() + fadeIn(),
+        exit = slideOutHorizontally(targetOffsetX = Int::unaryMinus) + shrinkVertically() + fadeOut(),
     ) {
         val pulseAlpha = aiActivityPulseAlpha(uiState.isOperating)
         // A fast tool call flips isOperating on and off within a few frames; animating the colour
@@ -256,6 +264,19 @@ private fun AiActivityIndicatorConnectedPreview() {
 @Composable
 private fun AiActivityIndicatorOperatingPreview() {
     AiActivityIndicatorView(
+        uiState = AiActivityUiState(
+            isAgentConnected = true,
+            operatingToolName = "jetwhale.click",
+            isFollowModeOn = true,
+            isFollowingOperation = true,
+        ),
+    )
+}
+
+@Preview
+@Composable
+private fun CompactAiActivityIndicatorOperatingPreview() {
+    CompactAiActivityIndicatorView(
         uiState = AiActivityUiState(
             isAgentConnected = true,
             operatingToolName = "jetwhale.click",

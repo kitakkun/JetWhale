@@ -27,7 +27,7 @@ data class MavenCoordinates(
             }
 
             val parts = coordPart.split(":").map { it.trim() }
-            require(parts.size == 3 && parts.none { it.isEmpty() }) {
+            require(parts.size == 3 && parts.none(String::isEmpty)) {
                 "Invalid Maven coordinates format. Expected 'groupId:artifactId:version', got: $coordinates"
             }
             return MavenCoordinates(

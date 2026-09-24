@@ -127,27 +127,19 @@ public fun JwTableCellText(
     style: TextStyle? = null,
     color: Color = Color.Unspecified,
 ) {
-    when (LocalJwColumnOverflow.current) {
-        JwColumnOverflow.Ellipsis -> JwText(
-            text = text,
-            modifier = modifier,
-            style = style,
-            color = color,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-
-        JwColumnOverflow.Wrap -> JwText(text = text, modifier = modifier, style = style, color = color)
-
-        JwColumnOverflow.Scroll -> JwText(
-            text = text,
-            modifier = modifier,
-            style = style,
-            color = color,
-            maxLines = 1,
-            softWrap = false,
-        )
-    }
+    val columnOverflow = LocalJwColumnOverflow.current
+    JwText(
+        text = text,
+        modifier = modifier,
+        style = style,
+        color = color,
+        overflow = if (columnOverflow == JwColumnOverflow.Ellipsis) TextOverflow.Ellipsis else TextOverflow.Clip,
+        softWrap = columnOverflow != JwColumnOverflow.Scroll,
+        maxLines = when (columnOverflow) {
+            JwColumnOverflow.Ellipsis, JwColumnOverflow.Scroll -> 1
+            JwColumnOverflow.Wrap -> Int.MAX_VALUE
+        },
+    )
 }
 
 /**

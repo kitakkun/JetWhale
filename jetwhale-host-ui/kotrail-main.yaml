@@ -1,0 +1,3 @@
+# The previews of this library live in the `preview` compilation, not beside the components.
+rules:
+  compose.previewRequired: off

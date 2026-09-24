@@ -70,19 +70,19 @@ public fun JwTabRow(
  * One tab of a [JwTabRow].
  *
  * @param selected whether this tab's view is showing.
- * @param onClick what selecting the tab does.
  * @param text the tab's label.
+ * @param onClick what selecting the tab does.
  * @param count drawn after the text, the way "Traffic 12" reads.
  */
 @Composable
 public fun JwTab(
     selected: Boolean,
-    onClick: () -> Unit,
     text: String,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
     count: Int? = null,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     val textColor = when {
         selected -> JwTheme.colors.onSurface

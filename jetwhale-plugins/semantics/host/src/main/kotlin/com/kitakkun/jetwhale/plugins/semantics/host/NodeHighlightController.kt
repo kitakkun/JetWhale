@@ -24,9 +24,10 @@ import kotlinx.coroutines.withContext
  * It owns the one fact the screen cannot recompute — which root is currently showing a box — because
  * a root only ever clears its own overlay: moving the highlight from a dialog to the screen behind it
  * has to tell the dialog to stop showing one.
+ *
+ * @param scope outlives the tree view, so leaving the screen can still take the box down.
  */
 internal class NodeHighlightController(
-    /** Outlives the tree view, so leaving the screen can still take the box down. */
     private val scope: CoroutineScope,
     private val send: suspend (HighlightNode) -> HighlightResult,
 ) {

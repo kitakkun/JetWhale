@@ -71,12 +71,7 @@ internal class JetWhaleAgentPluginService(
         runtimes.values
             .filter { it.active && it.plugin.pluginId !in availableIds }
             .forEach { deactivate(it) }
-        availableIds.forEach { activate(it) }
-    }
-
-    /** On a `PluginActivated` event: the host enabled one plugin. */
-    fun activatePlugin(id: String) {
-        activate(id)
+        availableIds.forEach(::activatePlugin)
     }
 
     /** On a `PluginDeactivated` event: the host disabled one plugin. */
@@ -89,7 +84,8 @@ internal class JetWhaleAgentPluginService(
         runtimes.values.forEach { dropPeer(it, notifyDisconnected = true) }
     }
 
-    private fun activate(id: String) {
+    /** On a `PluginActivated` event: the host enabled one plugin. */
+    fun activatePlugin(id: String) {
         val runtime = runtimes[id] ?: return
         if (!runtime.active) {
             runtime.active = true
@@ -112,9 +108,8 @@ internal class JetWhaleAgentPluginService(
         runtime.active = false
         try {
             runtime.plugin.dispatchDeactivate()
-        } catch (e: CancellationException) {
-            throw e
         } catch (e: Throwable) {
+            if (e is CancellationException) throw e
             JetWhaleLogger.w("JetWhale: onDeactivate for plugin '${runtime.plugin.pluginId}' failed.", e)
         }
     }
@@ -129,7 +124,7 @@ internal class JetWhaleAgentPluginService(
             peer = peer,
             descriptor = descriptor,
             registerHandlers = { runtime.plugin.registerHandlers(this) },
-            warn = { message, e -> JetWhaleLogger.w(message, e) },
+            warn = JetWhaleLogger::w,
         )
         if (!configured) {
             scope.launch { peer.close() }
@@ -144,7 +139,7 @@ internal class JetWhaleAgentPluginService(
             descriptor = descriptor,
             prepareTimeoutMillis = runtime.plugin.prepareTimeoutMillis(),
             dispatchPrepare = { runtime.plugin.dispatchPrepare() },
-            warn = { message, e -> JetWhaleLogger.w(message, e) },
+            warn = JetWhaleLogger::w,
             onReady = { runtime.messenger.startFlush() },
         )
     }
@@ -161,9 +156,8 @@ internal class JetWhaleAgentPluginService(
         runtime.peer = null
         try {
             if (notifyDisconnected) runtime.plugin.dispatchDisconnected()
-        } catch (e: CancellationException) {
-            throw e
         } catch (e: Throwable) {
+            if (e is CancellationException) throw e
             // Isolate per plugin: one throwing onDisconnected must not skip dropPeer for the others,
             // or they would stay bound to the dead peer across the reconnect.
             JetWhaleLogger.w("JetWhale: onDisconnected for plugin '${runtime.plugin.pluginId}' failed.", e)
@@ -186,7 +180,7 @@ internal class JetWhaleAgentPluginService(
             frame = frame,
             errorMessage = "Plugin '${frame.pluginId}' is not active in the agent.",
             send = sendFrame,
-            warn = { message, e -> JetWhaleLogger.w(message, e) },
+            warn = JetWhaleLogger::w,
         )
     }
 }

@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.settings.Res
 import com.kitakkun.jetwhale.host.settings.close
@@ -47,6 +48,7 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwToolbar
 import com.mikepenz.aboutlibraries.Libs
 import com.mikepenz.aboutlibraries.entity.Library
+import com.mikepenz.aboutlibraries.entity.License
 import org.jetbrains.compose.resources.stringResource
 
 /** The share of the window the licenses dialog takes. */
@@ -63,10 +65,11 @@ private val LicenseTextMaxHeight = 320.dp
 fun LicensesScreen(
     libraries: Libs,
     onClickBack: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var selectedLibrary by remember { mutableStateOf<Library?>(null) }
     JwSurface(
-        modifier = Modifier.fillMaxSize(LICENSES_DIALOG_WINDOW_FRACTION),
+        modifier = modifier.fillMaxSize(LICENSES_DIALOG_WINDOW_FRACTION),
         color = JwTheme.colors.elevatedBackground,
         shape = JwShapes.large,
         border = BorderStroke(JwMetrics.borderWidth, JwTheme.colors.border),
@@ -85,7 +88,7 @@ fun LicensesScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(JwSpacing.medium),
             ) {
-                items(libraries.libraries, key = { it.uniqueId }) { library ->
+                items(libraries.libraries, key = Library::uniqueId) { library ->
                     JwListItem(
                         text = library.name,
                         supportingText = library.artifactId,
@@ -100,46 +103,58 @@ fun LicensesScreen(
         }
     }
     selectedLibrary?.let { library ->
-        LibraryDetailDialog(library = library, onDismissRequest = { selectedLibrary = null })
+        LibraryDetailDialog(
+            name = library.name,
+            version = library.artifactVersion.orEmpty(),
+            description = library.description,
+            website = library.website,
+            licenses = library.licenses,
+            onDismissRequest = { selectedLibrary = null },
+        )
     }
 }
 
 /** The details of one library: version, a link to its website, and each license's text. */
 @Composable
 private fun LibraryDetailDialog(
-    library: Library,
+    name: String,
+    version: String,
+    description: String?,
+    website: String?,
+    licenses: Set<License>,
     onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val uriHandler = LocalUriHandler.current
     JwDialog(
         onDismissRequest = onDismissRequest,
-        title = library.name,
+        title = name,
         closeLabel = stringResource(Res.string.close),
-        confirmButton = library.website?.let { website ->
+        confirmButton = website?.let { websiteUrl ->
             {
                 JwButton(
                     text = stringResource(Res.string.licenses_open_website),
-                    onClick = { uriHandler.openUri(website) },
+                    onClick = { uriHandler.openUri(websiteUrl) },
                     style = JwButtonStyle.Text,
                 )
             }
         },
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
             JwKeyValueRow(
                 key = stringResource(Res.string.licenses_version),
-                value = library.artifactVersion.orEmpty(),
+                value = version,
                 monospace = true,
             )
-            library.description?.takeIf { it.isNotBlank() }?.let { description ->
-                JwText(text = description, style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary)
+            description?.takeIf(String::isNotBlank)?.let { text ->
+                JwText(text = text, style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary)
             }
-            library.licenses.forEach { license ->
+            licenses.forEach { license ->
                 JwText(text = license.name, style = JwTheme.textStyles.subtitle)
-                val content = license.licenseContent?.takeIf { it.isNotBlank() }
+                val content = license.licenseContent?.takeIf(String::isNotBlank)
                     ?: license.url
                     ?: stringResource(Res.string.licenses_no_license_text)
                 // Bounded and scrolled on its own so a long license keeps the dialog's buttons in reach.
@@ -157,3 +172,37 @@ private fun LibraryDetailDialog(
         }
     }
 }
+
+@Preview
+@Composable
+private fun LicensesScreenPreview() {
+    JwTheme(darkTheme = false) {
+        LicensesScreen(
+            libraries = Libs(
+                libraries = listOf(
+                    Library(
+                        uniqueId = "com.example:sample-library",
+                        artifactVersion = "1.2.3",
+                        name = "Sample Library",
+                        description = "A library the host depends on.",
+                        website = "https://example.com/sample-library",
+                        developers = emptyList(),
+                        organization = null,
+                        scm = null,
+                        licenses = setOf(PreviewApacheLicense),
+                    ),
+                ),
+                licenses = setOf(PreviewApacheLicense),
+            ),
+            onClickBack = {},
+        )
+    }
+}
+
+private val PreviewApacheLicense = License(
+    name = "Apache License 2.0",
+    url = "https://www.apache.org/licenses/LICENSE-2.0",
+    spdxId = "Apache-2.0",
+    licenseContent = "Licensed under the Apache License, Version 2.0.",
+    hash = "apache-2.0",
+)

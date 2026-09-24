@@ -37,7 +37,11 @@ class ScreenChannel<Action, ActionResult>(
 @Composable
 fun <A, R> rememberScreenChannel(): ScreenChannel<A, R> = remember { ScreenChannel() }
 
-/** Consumes actions in the Presenter. Gated by [PresenterContext]. */
+/**
+ * Consumes actions in the Presenter. Gated by [PresenterContext].
+ *
+ * An effect, not a UI element: it emits nothing a `@Preview` could render.
+ */
 @Composable
 context(_: PresenterContext)
 fun <A> ActionEffect(
@@ -49,7 +53,11 @@ fun <A> ActionEffect(
     }
 }
 
-/** Consumes results in the Root. Gated by [ScreenContext]. */
+/**
+ * Consumes results in the Root. Gated by [ScreenContext].
+ *
+ * An effect, not a UI element: it emits nothing a `@Preview` could render.
+ */
 @Composable
 context(_: ScreenContext)
 fun <R> ActionResultEffect(

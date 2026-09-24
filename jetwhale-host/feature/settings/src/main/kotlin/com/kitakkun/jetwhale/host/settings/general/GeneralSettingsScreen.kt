@@ -85,143 +85,248 @@ fun GeneralSettingsScreen(
     onFollowAiOperationChange: (Boolean) -> Unit,
     onClickInstallUpdate: () -> Unit,
     onClickOpenDownloadPage: (url: String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = SettingsScreenScaffoldPageContentPadding,
     ) {
         if (page == SettingsScreenPage.Appearance) {
             item {
-                SettingOptionView(
-                    label = stringResource(Res.string.appearance),
-                ) {
-                    DropdownSettingsItemView(
-                        label = stringResource(Res.string.language_option),
-                        currentItem = uiState.language,
-                        items = AppLanguage.entries,
-                        onSelect = { onSelectLanguage(it) },
-                        itemNameProvider = { it.displayName },
-                    )
-                    DropdownSettingsItemView(
-                        label = stringResource(Res.string.theme_option),
-                        currentItem = uiState.selectedColorSchemeId,
-                        items = uiState.availableColorSchemes,
-                        onSelect = { onSelectColorScheme(it) },
-                        itemNameProvider = { it.id },
-                    )
-                }
+                AppearanceSection(
+                    language = uiState.language,
+                    selectedColorSchemeId = uiState.selectedColorSchemeId,
+                    availableColorSchemes = uiState.availableColorSchemes,
+                    onSelectLanguage = onSelectLanguage,
+                    onSelectColorScheme = onSelectColorScheme,
+                )
             }
         }
         if (page == SettingsScreenPage.Adb) {
             item {
-                SettingOptionView(stringResource(Res.string.adb_support)) {
-                    SwitchSettingsItemView(
-                        label = stringResource(Res.string.automatically_wire_adb_transport),
-                        isChecked = uiState.automaticallyWireADBTransport,
-                        onCheckedChange = onAutomaticallyWireADBTransportChange,
-                    )
-                }
+                AdbSupportSection(
+                    automaticallyWireADBTransport = uiState.automaticallyWireADBTransport,
+                    onAutomaticallyWireADBTransportChange = onAutomaticallyWireADBTransportChange,
+                )
             }
         }
         if (page == SettingsScreenPage.AiActivity) {
             item {
-                SettingOptionView(stringResource(Res.string.settings_page_ai_activity)) {
-                    SwitchSettingsItemView(
-                        label = stringResource(Res.string.follow_ai_operation),
-                        isChecked = uiState.followAiOperation,
-                        onCheckedChange = onFollowAiOperationChange,
-                    )
-                    JwText(
-                        text = stringResource(Res.string.follow_ai_operation_description),
-                        style = JwTheme.textStyles.bodySmall,
-                        color = JwTheme.colors.textSecondary,
-                    )
-                }
+                AiActivitySection(
+                    followAiOperation = uiState.followAiOperation,
+                    onFollowAiOperationChange = onFollowAiOperationChange,
+                )
             }
         }
         if (page == SettingsScreenPage.Application) {
             item {
-                SettingOptionView(stringResource(Res.string.maintenance)) {
-                    // Not SettingsItemRow here: the path can be very long. The label keeps a min width so
-                    // it can't be starved down to one character per line, and the path takes the
-                    // remaining space (weight) and wraps within it.
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        JwText(
-                            text = stringResource(Res.string.application_data_directory),
-                            modifier = Modifier.widthIn(min = 120.dp),
-                        )
-                        SelectionContainer(modifier = Modifier.weight(1f)) {
-                            JwText(
-                                text = uiState.appDataPath,
-                                style = JwTheme.textStyles.code,
-                            )
-                        }
-                        JwIconButton(
-                            onClick = onClickOpenAppDataPath,
-                            tooltip = stringResource(Res.string.application_data_directory),
-                        ) {
-                            JwIcon(Icons.Default.FolderOpen, null)
-                        }
-                    }
-                    JwButton(
-                        text = stringResource(Res.string.view_application_logs),
-                        onClick = onClickOpenLogViewer,
-                        style = JwButtonStyle.Primary,
-                    )
-                }
+                MaintenanceSection(
+                    appDataPath = uiState.appDataPath,
+                    onClickOpenAppDataPath = onClickOpenAppDataPath,
+                    onClickOpenLogViewer = onClickOpenLogViewer,
+                )
             }
         }
         if (page == SettingsScreenPage.Application) {
             item {
-                SettingOptionView(stringResource(Res.string.updates)) {
-                    SettingsItemRow(stringResource(Res.string.current_version)) {
-                        JwText(
-                            text = uiState.currentVersion,
-                            style = JwTheme.textStyles.code,
-                        )
-                    }
-                    SwitchSettingsItemView(
-                        label = stringResource(Res.string.check_for_updates_on_startup),
-                        isChecked = uiState.checkForUpdatesOnStartup,
-                        onCheckedChange = onCheckForUpdatesOnStartupChange,
-                    )
-                    UpdateCheckStatusView(
-                        isChecking = uiState.isCheckingForUpdates,
-                        result = uiState.updateCheckResult,
-                        error = uiState.updateCheckError,
-                        onClickInstallUpdate = onClickInstallUpdate,
-                        onClickOpenDownloadPage = onClickOpenDownloadPage,
-                    )
-                    JwButton(
-                        text = stringResource(Res.string.check_for_updates),
-                        onClick = onClickCheckForUpdates,
-                        enabled = !uiState.isCheckingForUpdates,
-                        style = JwButtonStyle.Primary,
-                    )
-                }
+                UpdatesSection(
+                    currentVersion = uiState.currentVersion,
+                    checkForUpdatesOnStartup = uiState.checkForUpdatesOnStartup,
+                    isCheckingForUpdates = uiState.isCheckingForUpdates,
+                    updateCheckResult = uiState.updateCheckResult,
+                    updateCheckError = uiState.updateCheckError,
+                    onCheckForUpdatesOnStartupChange = onCheckForUpdatesOnStartupChange,
+                    onClickCheckForUpdates = onClickCheckForUpdates,
+                    onClickInstallUpdate = onClickInstallUpdate,
+                    onClickOpenDownloadPage = onClickOpenDownloadPage,
+                )
             }
         }
         if (page == SettingsScreenPage.Adb) {
-            item {
-                SettingOptionView(stringResource(Res.string.health_check)) {
-                    SettingsItemRow(stringResource(Res.string.adb_executable_path)) {
-                        JwText(
-                            text = uiState.adbPath.ifEmpty { stringResource(Res.string.adb_unavailable) },
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        if (uiState.adbPath.isNotEmpty()) {
-                            JwIcon(
-                                imageVector = Icons.Default.Check,
-                                tint = JwTone.Success.color,
-                                contentDescription = null,
-                            )
-                        }
-                    }
-                }
+            item { AdbHealthCheckSection(adbPath = uiState.adbPath) }
+        }
+    }
+}
+
+@Composable
+private fun AppearanceSection(
+    language: AppLanguage,
+    selectedColorSchemeId: JetWhaleColorSchemeId,
+    availableColorSchemes: List<JetWhaleColorSchemeId>,
+    onSelectLanguage: (AppLanguage) -> Unit,
+    onSelectColorScheme: (JetWhaleColorSchemeId) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingOptionView(
+        label = stringResource(Res.string.appearance),
+        modifier = modifier,
+    ) {
+        DropdownSettingsItemView(
+            label = stringResource(Res.string.language_option),
+            currentItem = language,
+            items = AppLanguage.entries,
+            onSelect = onSelectLanguage,
+            itemNameProvider = AppLanguage::displayName,
+        )
+        DropdownSettingsItemView(
+            label = stringResource(Res.string.theme_option),
+            currentItem = selectedColorSchemeId,
+            items = availableColorSchemes,
+            onSelect = onSelectColorScheme,
+            itemNameProvider = JetWhaleColorSchemeId::id,
+        )
+    }
+}
+
+@Composable
+private fun AdbSupportSection(
+    automaticallyWireADBTransport: Boolean,
+    onAutomaticallyWireADBTransportChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingOptionView(
+        label = stringResource(Res.string.adb_support),
+        modifier = modifier,
+    ) {
+        SwitchSettingsItemView(
+            label = stringResource(Res.string.automatically_wire_adb_transport),
+            isChecked = automaticallyWireADBTransport,
+            onCheckedChange = onAutomaticallyWireADBTransportChange,
+        )
+    }
+}
+
+@Composable
+private fun AiActivitySection(
+    followAiOperation: Boolean,
+    onFollowAiOperationChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingOptionView(
+        label = stringResource(Res.string.settings_page_ai_activity),
+        modifier = modifier,
+    ) {
+        SwitchSettingsItemView(
+            label = stringResource(Res.string.follow_ai_operation),
+            isChecked = followAiOperation,
+            onCheckedChange = onFollowAiOperationChange,
+        )
+        JwText(
+            text = stringResource(Res.string.follow_ai_operation_description),
+            style = JwTheme.textStyles.bodySmall,
+            color = JwTheme.colors.textSecondary,
+        )
+    }
+}
+
+@Composable
+private fun MaintenanceSection(
+    appDataPath: String,
+    onClickOpenAppDataPath: () -> Unit,
+    onClickOpenLogViewer: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingOptionView(
+        label = stringResource(Res.string.maintenance),
+        modifier = modifier,
+    ) {
+        // Not SettingsItemRow here: the path can be very long. The label keeps a min width so
+        // it can't be starved down to one character per line, and the path takes the
+        // remaining space (weight) and wraps within it.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            JwText(
+                text = stringResource(Res.string.application_data_directory),
+                modifier = Modifier.widthIn(min = 120.dp),
+            )
+            SelectionContainer(modifier = Modifier.weight(1f)) {
+                JwText(
+                    text = appDataPath,
+                    style = JwTheme.textStyles.code,
+                )
+            }
+            JwIconButton(
+                onClick = onClickOpenAppDataPath,
+                tooltip = stringResource(Res.string.application_data_directory),
+            ) {
+                JwIcon(Icons.Default.FolderOpen, null)
+            }
+        }
+        JwButton(
+            text = stringResource(Res.string.view_application_logs),
+            onClick = onClickOpenLogViewer,
+            style = JwButtonStyle.Primary,
+        )
+    }
+}
+
+@Composable
+private fun UpdatesSection(
+    currentVersion: String,
+    checkForUpdatesOnStartup: Boolean,
+    isCheckingForUpdates: Boolean,
+    updateCheckResult: UpdateCheckResult?,
+    updateCheckError: String?,
+    onCheckForUpdatesOnStartupChange: (Boolean) -> Unit,
+    onClickCheckForUpdates: () -> Unit,
+    onClickInstallUpdate: () -> Unit,
+    onClickOpenDownloadPage: (url: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingOptionView(
+        label = stringResource(Res.string.updates),
+        modifier = modifier,
+    ) {
+        SettingsItemRow(stringResource(Res.string.current_version)) {
+            JwText(
+                text = currentVersion,
+                style = JwTheme.textStyles.code,
+            )
+        }
+        SwitchSettingsItemView(
+            label = stringResource(Res.string.check_for_updates_on_startup),
+            isChecked = checkForUpdatesOnStartup,
+            onCheckedChange = onCheckForUpdatesOnStartupChange,
+        )
+        UpdateCheckStatusView(
+            isChecking = isCheckingForUpdates,
+            result = updateCheckResult,
+            error = updateCheckError,
+            onClickInstallUpdate = onClickInstallUpdate,
+            onClickOpenDownloadPage = onClickOpenDownloadPage,
+        )
+        JwButton(
+            text = stringResource(Res.string.check_for_updates),
+            onClick = onClickCheckForUpdates,
+            enabled = !isCheckingForUpdates,
+            style = JwButtonStyle.Primary,
+        )
+    }
+}
+
+@Composable
+private fun AdbHealthCheckSection(
+    adbPath: String,
+    modifier: Modifier = Modifier,
+) {
+    SettingOptionView(
+        label = stringResource(Res.string.health_check),
+        modifier = modifier,
+    ) {
+        SettingsItemRow(stringResource(Res.string.adb_executable_path)) {
+            JwText(
+                text = adbPath.ifEmpty { stringResource(Res.string.adb_unavailable) },
+            )
+            Spacer(Modifier.width(8.dp))
+            if (adbPath.isNotEmpty()) {
+                JwIcon(
+                    imageVector = Icons.Default.Check,
+                    tint = JwTone.Success.color,
+                    contentDescription = null,
+                )
             }
         }
     }
@@ -234,73 +339,76 @@ private fun UpdateCheckStatusView(
     error: String?,
     onClickInstallUpdate: () -> Unit,
     onClickOpenDownloadPage: (url: String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    when {
-        isChecking -> {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                JwProgressIndicator()
-                JwText(stringResource(Res.string.checking_for_updates))
+    Column(modifier = modifier) {
+        when {
+            isChecking -> {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    JwProgressIndicator()
+                    JwText(stringResource(Res.string.checking_for_updates))
+                }
             }
-        }
 
-        error != null -> {
-            JwText(
-                text = stringResource(Res.string.update_check_failed, error),
-                color = JwTheme.colors.error,
-            )
-        }
+            error != null -> {
+                JwText(
+                    text = stringResource(Res.string.update_check_failed, error),
+                    color = JwTheme.colors.error,
+                )
+            }
 
-        result == null -> Unit
+            result == null -> Unit
 
-        result.updateAvailable -> {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(JwTone.Info.containerColor, JwShapes.small)
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                CompositionLocalProvider(LocalJwContentColor provides JwTone.Info.onContainerColor) {
-                    JwText(
-                        text = stringResource(Res.string.update_available, result.latestVersion),
-                        style = JwTheme.textStyles.subtitle,
-                    )
-                    JwText(
-                        text = stringResource(Res.string.update_available_hint),
-                        style = JwTheme.textStyles.bodySmall,
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (result.canInstallInApp) {
+            result.updateAvailable -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(JwTone.Info.containerColor, JwShapes.small)
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CompositionLocalProvider(LocalJwContentColor provides JwTone.Info.onContainerColor) {
+                        JwText(
+                            text = stringResource(Res.string.update_available, result.latestVersion),
+                            style = JwTheme.textStyles.subtitle,
+                        )
+                        JwText(
+                            text = stringResource(Res.string.update_available_hint),
+                            style = JwTheme.textStyles.bodySmall,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (result.canInstallInApp) {
+                                JwButton(
+                                    text = stringResource(Res.string.install_update),
+                                    onClick = onClickInstallUpdate,
+                                    style = JwButtonStyle.Primary,
+                                )
+                            }
                             JwButton(
-                                text = stringResource(Res.string.install_update),
-                                onClick = onClickInstallUpdate,
-                                style = JwButtonStyle.Primary,
+                                text = stringResource(Res.string.open_download_page),
+                                onClick = { onClickOpenDownloadPage(result.downloadPageUrl) },
+                                style = JwButtonStyle.Secondary,
                             )
                         }
-                        JwButton(
-                            text = stringResource(Res.string.open_download_page),
-                            onClick = { onClickOpenDownloadPage(result.downloadPageUrl) },
-                            style = JwButtonStyle.Secondary,
-                        )
                     }
                 }
             }
-        }
 
-        else -> {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                JwIcon(
-                    imageVector = Icons.Default.Check,
-                    tint = JwTone.Success.color,
-                    contentDescription = null,
-                )
-                JwText(stringResource(Res.string.update_up_to_date))
+            else -> {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    JwIcon(
+                        imageVector = Icons.Default.Check,
+                        tint = JwTone.Success.color,
+                        contentDescription = null,
+                    )
+                    JwText(stringResource(Res.string.update_up_to_date))
+                }
             }
         }
     }

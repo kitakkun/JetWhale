@@ -23,7 +23,8 @@ data class McpToolSummary(
  * ...) can drive any plugin's UI regardless, so absence here does not mean an agent cannot reach
  * the plugin at all — only that the plugin publishes nothing of its own.
  */
-data class McpCapablePlugins(val toolsBySessionAndPlugin: Map<String, Map<String, List<McpToolSummary>>>) {
+@JvmInline
+value class McpCapablePlugins(val toolsBySessionAndPlugin: Map<String, Map<String, List<McpToolSummary>>>) {
     fun pluginIdsFor(sessionId: String?): Set<String> = sessionId?.let { toolsBySessionAndPlugin[it]?.keys }.orEmpty()
 
     fun toolsFor(sessionId: String?, pluginId: String): List<McpToolSummary> = sessionId?.let { toolsBySessionAndPlugin[it]?.get(pluginId) }.orEmpty()

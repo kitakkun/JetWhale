@@ -39,9 +39,9 @@ private val DialogShadowElevation = 12.dp
  * For a dialog that has no title bar — an image preview, a one-line confirmation — build on
  * [JwDialogSurface] instead and place your own close control.
  *
- * @param onDismissRequest called by the close button, Escape, and a click outside the dialog.
  * @param title shown in the title bar.
  * @param closeLabel the close button's tooltip and accessibility label, in the UI's language.
+ * @param onDismissRequest called by the close button, Escape, and a click outside the dialog.
  * @param width the dialog's fixed width; the height follows the content.
  * @param confirmButton the action that completes the dialog, placed last in the footer.
  * @param dismissButton the action that abandons it, placed before [confirmButton].
@@ -49,9 +49,9 @@ private val DialogShadowElevation = 12.dp
  */
 @Composable
 public fun JwDialog(
-    onDismissRequest: () -> Unit,
     title: String,
     closeLabel: String,
+    onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     width: Dp = JwDialogDefaults.width,
     confirmButton: (@Composable () -> Unit)? = null,

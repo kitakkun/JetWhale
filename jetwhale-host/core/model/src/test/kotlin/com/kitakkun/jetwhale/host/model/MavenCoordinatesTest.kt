@@ -6,7 +6,7 @@ import kotlin.test.assertNull
 
 class MavenCoordinatesTest {
     @Test
-    fun parseLenient_plainCoordinates() {
+    fun `parses plain coordinates and defaults to Maven Central`() {
         val coordinates = MavenCoordinates.parseLenient("com.example:my-plugin:1.0.0")
         assertEquals("com.example", coordinates?.groupId)
         assertEquals("my-plugin", coordinates?.artifactId)
@@ -15,7 +15,7 @@ class MavenCoordinatesTest {
     }
 
     @Test
-    fun parseLenient_plainCoordinatesWithRepositoryUrl() {
+    fun `parses plain coordinates with a repository url`() {
         val coordinates = MavenCoordinates.parseLenient("com.example:my-plugin:1.0.0@https://example.com/maven2")
         assertEquals("com.example", coordinates?.groupId)
         assertEquals("my-plugin", coordinates?.artifactId)
@@ -24,7 +24,7 @@ class MavenCoordinatesTest {
     }
 
     @Test
-    fun parseLenient_gradleKotlinDsl() {
+    fun `parses a Gradle Kotlin DSL dependency line`() {
         val coordinates = MavenCoordinates.parseLenient("""implementation("com.example:my-plugin:1.0.0-alpha01")""")
         assertEquals("com.example", coordinates?.groupId)
         assertEquals("my-plugin", coordinates?.artifactId)
@@ -32,7 +32,7 @@ class MavenCoordinatesTest {
     }
 
     @Test
-    fun parseLenient_gradleGroovyDsl() {
+    fun `parses a Gradle Groovy DSL dependency line`() {
         val coordinates = MavenCoordinates.parseLenient("implementation 'com.example:my-plugin:1.0.0'")
         assertEquals("com.example", coordinates?.groupId)
         assertEquals("my-plugin", coordinates?.artifactId)
@@ -40,7 +40,7 @@ class MavenCoordinatesTest {
     }
 
     @Test
-    fun parseLenient_mavenXml() {
+    fun `parses a Maven XML dependency block`() {
         val coordinates = MavenCoordinates.parseLenient(
             """
             <dependency>
@@ -56,7 +56,7 @@ class MavenCoordinatesTest {
     }
 
     @Test
-    fun parseLenient_mavenXmlMissingVersion() {
+    fun `returns null for a Maven XML block without a version`() {
         val coordinates = MavenCoordinates.parseLenient(
             """
             <dependency>
@@ -69,7 +69,7 @@ class MavenCoordinatesTest {
     }
 
     @Test
-    fun parseLenient_unparseableInput() {
+    fun `returns null for input that holds no coordinates`() {
         assertNull(MavenCoordinates.parseLenient(""))
         assertNull(MavenCoordinates.parseLenient("   "))
         assertNull(MavenCoordinates.parseLenient("not coordinates"))
@@ -77,8 +77,13 @@ class MavenCoordinatesTest {
     }
 
     @Test
-    fun snapshotUrls() {
-        val coordinates = MavenCoordinates("com.example", "my-plugin", "1.0.0-SNAPSHOT", "https://example.com/snapshots/")
+    fun `builds directory and jar urls for a snapshot`() {
+        val coordinates = MavenCoordinates(
+            groupId = "com.example",
+            artifactId = "my-plugin",
+            version = "1.0.0-SNAPSHOT",
+            repositoryUrl = "https://example.com/snapshots/",
+        )
         assertEquals(true, coordinates.isSnapshot)
         assertEquals(
             "https://example.com/snapshots/com/example/my-plugin/1.0.0-SNAPSHOT",
@@ -91,7 +96,7 @@ class MavenCoordinatesTest {
     }
 
     @Test
-    fun releaseIsNotSnapshot() {
-        assertEquals(false, MavenCoordinates("com.example", "my-plugin", "1.0.0").isSnapshot)
+    fun `reports a release version as not a snapshot`() {
+        assertEquals(false, MavenCoordinates(groupId = "com.example", artifactId = "my-plugin", version = "1.0.0").isSnapshot)
     }
 }

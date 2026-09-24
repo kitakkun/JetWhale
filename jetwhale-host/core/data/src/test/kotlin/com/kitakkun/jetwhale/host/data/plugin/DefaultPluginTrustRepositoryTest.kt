@@ -34,11 +34,6 @@ class DefaultPluginTrustRepositoryTest {
         tempHome.deleteRecursively()
     }
 
-    // A fresh repository each time so we exercise the on-disk read path, not just the in-memory
-    // cache. Whether the registry is signed is decided entirely by the injected signer (key present
-    // or not); the repository holds no policy of its own.
-    private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), signer)
-
     /**
      * Deterministic stand-in for the keyring-backed signer. "Signing enabled" is modeled by
      * [keyPresent]; the "signature" is a digest of the payload (not the payload itself, so editing
@@ -86,6 +81,11 @@ class DefaultPluginTrustRepositoryTest {
         assertEquals("hash-a", reloaded.trustedEntry("/plugins/a.jar")?.sha256)
         assertEquals("hash-b", reloaded.trustedEntry("/plugins/b.jar")?.sha256)
     }
+
+    // A fresh repository each time so we exercise the on-disk read path, not just the in-memory
+    // cache. Whether the registry is signed is decided entirely by the injected signer (key present
+    // or not); the repository holds no policy of its own.
+    private fun newRepository(signer: TrustRegistrySigner = FakeTrustRegistrySigner()) = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), signer)
 
     @Test
     fun `revoke removes the entry and persists`() = runBlocking {

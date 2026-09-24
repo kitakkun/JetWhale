@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwIcon
@@ -24,6 +25,7 @@ import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
 import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwToolbar
 import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
@@ -97,6 +99,24 @@ fun SettingsScreenScaffold(
             Column(modifier = Modifier.fillMaxSize()) {
                 content(uiState.selectedPage)
             }
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun SettingsScreenScaffoldPreview() {
+    JwTheme(darkTheme = false) {
+        SettingsScreenScaffold(
+            uiState = SettingsScreenScaffoldUiState(
+                selectedPage = SettingsScreenPage.Appearance,
+                expandedSections = setOf(SettingsScreenPage.Appearance.section),
+            ),
+            onClickClose = {},
+            onSelectPage = {},
+            onToggleSection = {},
+        ) { page ->
+            JwText(text = stringResource(page.labelTextRes))
         }
     }
 }

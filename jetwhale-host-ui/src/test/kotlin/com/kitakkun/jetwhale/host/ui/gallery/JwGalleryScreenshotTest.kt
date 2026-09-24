@@ -2,7 +2,7 @@ package com.kitakkun.jetwhale.host.ui.gallery
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.test.runDesktopComposeUiTest
+import androidx.compose.ui.test.v2.runDesktopComposeUiTest
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import io.github.takahirom.roborazzi.captureRoboImage

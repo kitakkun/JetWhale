@@ -68,14 +68,6 @@ private class RecordingPlugin : JetWhaleAgentPlugin() {
 
 @OptIn(InternalJetWhaleApi::class)
 class MessagingServiceStopTest {
-    private fun startedService(
-        socketClient: FakeSocketClient,
-        plugin: RecordingPlugin,
-    ): JetWhaleMessagingService = DefaultJetWhaleMessagingService(
-        socketClient = socketClient,
-        pluginService = JetWhaleAgentPluginService(plugins = listOf(plugin)),
-    ).also { it.startService(FixedEndpointResolver(ResolvedEndpoint("localhost", 1, useWss = false))) }
-
     @Test
     fun `stopService closes the socket so the host sees the session go away`() = runBlocking {
         val socketClient = FakeSocketClient()
@@ -88,6 +80,14 @@ class MessagingServiceStopTest {
 
         withTimeout(AWAIT_TIMEOUT_MILLIS) { socketClient.closed.await() }
     }
+
+    private fun startedService(
+        socketClient: FakeSocketClient,
+        plugin: RecordingPlugin,
+    ): JetWhaleMessagingService = DefaultJetWhaleMessagingService(
+        socketClient = socketClient,
+        pluginService = JetWhaleAgentPluginService(plugins = listOf(plugin)),
+    ).also { it.startService(FixedEndpointResolver(ResolvedEndpoint("localhost", 1, useWss = false))) }
 
     @Test
     fun `stopService disconnects the plugins`() = runBlocking {

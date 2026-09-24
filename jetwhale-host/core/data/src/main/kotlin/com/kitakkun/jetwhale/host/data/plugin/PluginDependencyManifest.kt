@@ -21,6 +21,6 @@ object PluginDependencyManifest {
         jar.getInputStream(entry).bufferedReader().readLines()
             .map { it.trim() }
             .filter { it.isNotEmpty() && !it.startsWith("#") }
-            .map { MavenCoordinates.parse(it) }
+            .map(MavenCoordinates::parse)
     }
 }

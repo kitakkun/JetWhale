@@ -43,11 +43,7 @@ public fun JwTooltip(
     anchor: JwPopupAnchor = JwPopupAnchor.BelowCenter,
     content: @Composable () -> Unit,
 ) {
-    if (text == null) {
-        Box(modifier = modifier) { content() }
-        return
-    }
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(hovered) {
@@ -58,9 +54,9 @@ public fun JwTooltip(
             visible = false
         }
     }
-    Box(modifier = modifier.hoverable(interactionSource)) {
+    Box(modifier = modifier.then(if (text == null) Modifier else Modifier.hoverable(interactionSource))) {
         content()
-        if (visible) {
+        if (text != null && visible) {
             Popup(popupPositionProvider = rememberJwPopupPositionProvider(anchor)) {
                 Box(
                     modifier = Modifier

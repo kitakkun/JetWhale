@@ -1,0 +1,6 @@
+# This compilation carries the previews, so it is where every component is checked for having one.
+rules:
+  compose.previewRequired: off
+  compose.previewCoverage:
+    enabled: true
+    packages: [com.kitakkun.jetwhale.host.ui]

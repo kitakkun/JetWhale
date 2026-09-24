@@ -13,6 +13,7 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewAttributeValue
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
@@ -24,43 +25,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
-@OptIn(ExperimentalJetWhaleApi::class)
-private fun JetWhaleMcpCommand.run(arguments: JsonObject): JsonObject = runBlocking {
-    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
-}
-
-private fun attribute(
-    id: String,
-    value: ViewAttributeValue,
-    group: String = "State",
-    editable: Boolean = true,
-): ViewAttribute = ViewAttribute(id = id, label = id, group = group, value = value, editable = editable)
-
-private fun response(vararg attributes: ViewAttribute): ViewAttributeResponse = ViewAttributeResponse(
-    snapshot = ViewAttributeSnapshot(
-        rootId = "window-1",
-        nodeId = -4,
-        viewClass = "android.widget.TextView",
-        attributes = attributes.toList(),
-    ),
-)
-
-private fun layoutSize(constant: String?, px: Float?, dp: Float?): ViewAttributeValue.LayoutSizeValue = ViewAttributeValue.LayoutSizeValue(
-    constant = constant,
-    px = px,
-    dp = dp,
-    constants = listOf("MATCH_PARENT", "WRAP_CONTENT"),
-)
-
-private fun arguments(vararg pairs: Pair<String, Any>): JsonObject = buildJsonObject {
-    for ((key, value) in pairs) {
-        when (value) {
-            is Int -> put(key, value)
-            else -> put(key, value.toString())
-        }
-    }
-}
 
 @OptIn(ExperimentalJetWhaleApi::class)
 class ViewAttributeCommandsTest {
@@ -78,10 +42,10 @@ class ViewAttributeCommandsTest {
         val result = command.run(arguments("rootId" to "window-1", "nodeId" to -4))
 
         assertEquals("android.widget.TextView", result["viewClass"]?.jsonPrimitive?.content)
-        val rows = result["attributes"]!!.jsonArray.map { it.jsonObject }
+        val rows = result.getValue("attributes").jsonArray.map(JsonElement::jsonObject)
         assertEquals("enum", rows[0]["type"]?.jsonPrimitive?.content)
         assertEquals("VISIBLE", rows[0]["value"]?.jsonPrimitive?.content)
-        assertEquals(listOf("VISIBLE", "INVISIBLE", "GONE"), rows[0]["options"]!!.jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(listOf("VISIBLE", "INVISIBLE", "GONE"), rows[0].getValue("options").jsonArray.map { it.jsonPrimitive.content })
         assertEquals("dimension", rows[1]["type"]?.jsonPrimitive?.content)
         assertEquals("48.0", rows[1]["value"]?.jsonPrimitive?.content)
         assertEquals(24f, rows[1]["dp"]?.jsonPrimitive?.content?.toFloat())
@@ -98,15 +62,15 @@ class ViewAttributeCommandsTest {
             },
         )
 
-        val rows = command.run(arguments("rootId" to "window-1", "nodeId" to -4))["attributes"]!!.jsonArray.map { it.jsonObject }
+        val rows = command.run(arguments("rootId" to "window-1", "nodeId" to -4)).getValue("attributes").jsonArray.map(JsonElement::jsonObject)
 
         assertEquals("layoutSize", rows[0]["type"]?.jsonPrimitive?.content)
         assertEquals("WRAP_CONTENT", rows[0]["value"]?.jsonPrimitive?.content)
-        assertEquals(listOf("MATCH_PARENT", "WRAP_CONTENT"), rows[0]["constants"]!!.jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(listOf("MATCH_PARENT", "WRAP_CONTENT"), rows[0].getValue("constants").jsonArray.map { it.jsonPrimitive.content })
         assertNull(rows[0]["dp"])
         // …and the same constants are offered while it reads as a length.
         assertEquals("500.0", rows[1]["value"]?.jsonPrimitive?.content)
-        assertEquals(listOf("MATCH_PARENT", "WRAP_CONTENT"), rows[1]["constants"]!!.jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(listOf("MATCH_PARENT", "WRAP_CONTENT"), rows[1].getValue("constants").jsonArray.map { it.jsonPrimitive.content })
         assertEquals(250f, rows[1]["dp"]?.jsonPrimitive?.content?.toFloat())
     }
 
@@ -146,7 +110,7 @@ class ViewAttributeCommandsTest {
             },
         )
 
-        val rows = command.run(arguments("rootId" to "window-1", "nodeId" to -4))["attributes"]!!.jsonArray.map { it.jsonObject }
+        val rows = command.run(arguments("rootId" to "window-1", "nodeId" to -4)).getValue("attributes").jsonArray.map(JsonElement::jsonObject)
 
         assertNull(rows[0]["editable"])
         assertEquals(false, rows[1]["editable"]?.jsonPrimitive?.content?.toBoolean())
@@ -160,7 +124,7 @@ class ViewAttributeCommandsTest {
 
         val result = command.run(arguments("rootId" to "window-1", "nodeId" to 42))
 
-        assertTrue(result["message"]!!.jsonPrimitive.content.contains("Compose semantics node"))
+        assertTrue(result.getValue("message").jsonPrimitive.content.contains("Compose semantics node"))
         assertNull(result["attributes"])
     }
 
@@ -181,8 +145,8 @@ class ViewAttributeCommandsTest {
         val result = command.run(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "visibility", "value" to "gone"))
 
         assertEquals(ViewAttributeValue.EnumValue("GONE", listOf("VISIBLE", "INVISIBLE", "GONE")), sent?.value)
-        assertTrue(result["applied"]!!.jsonPrimitive.content.toBoolean())
-        assertEquals("GONE", result["attribute"]!!.jsonObject["value"]?.jsonPrimitive?.content)
+        assertTrue(result.getValue("applied").jsonPrimitive.content.toBoolean())
+        assertEquals("GONE", result.getValue("attribute").jsonObject["value"]?.jsonPrimitive?.content)
     }
 
     @Test
@@ -196,8 +160,8 @@ class ViewAttributeCommandsTest {
             command.run(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "colour", "value" to "red"))
         }
 
-        assertTrue(failure.message!!.contains("unknown attributeId: colour"), failure.message!!)
-        assertTrue(failure.message!!.contains("enabled"), failure.message!!)
+        assertTrue(failure.reason.contains("unknown attributeId: colour"), failure.reason)
+        assertTrue(failure.reason.contains("enabled"), failure.reason)
     }
 
     @Test
@@ -215,7 +179,7 @@ class ViewAttributeCommandsTest {
             command.run(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "bounds", "value" to "1,1,2,2"))
         }
 
-        assertTrue(failure.message!!.contains("read-only"), failure.message!!)
+        assertTrue(failure.reason.contains("read-only"), failure.reason)
         assertEquals(false, reached)
     }
 
@@ -228,8 +192,45 @@ class ViewAttributeCommandsTest {
 
         val result = command.run(arguments("rootId" to "window-1", "nodeId" to -4, "attributeId" to "alpha", "value" to "0.5"))
 
-        assertEquals(false, result["applied"]!!.jsonPrimitive.content.toBoolean())
+        assertEquals(false, result.getValue("applied").jsonPrimitive.content.toBoolean())
         assertEquals("the app rejected the change", result["message"]?.jsonPrimitive?.content)
+    }
+}
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private fun JetWhaleMcpCommand.run(arguments: JsonObject): JsonObject = runBlocking {
+    Json.parseToJsonElement(execute(JetWhaleMcpArguments(arguments))).jsonObject
+}
+
+private fun attribute(
+    id: String,
+    value: ViewAttributeValue,
+    group: String = "State",
+    editable: Boolean = true,
+): ViewAttribute = ViewAttribute(id = id, label = id, group = group, value = value, editable = editable)
+
+private fun response(vararg attributes: ViewAttribute): ViewAttributeResponse = ViewAttributeResponse(
+    snapshot = ViewAttributeSnapshot(
+        rootId = "window-1",
+        nodeId = -4,
+        viewClass = "android.widget.TextView",
+        attributes = attributes.toList(),
+    ),
+)
+
+private fun layoutSize(constant: String?, px: Float?, dp: Float?): ViewAttributeValue.LayoutSizeValue = ViewAttributeValue.LayoutSizeValue(
+    constant = constant,
+    px = px,
+    dp = dp,
+    constants = listOf("MATCH_PARENT", "WRAP_CONTENT"),
+)
+
+private fun arguments(vararg pairs: Pair<String, Any>): JsonObject = buildJsonObject {
+    for ((key, value) in pairs) {
+        when (value) {
+            is Int -> put(key, value)
+            else -> put(key, value.toString())
+        }
     }
 }
 
@@ -286,8 +287,8 @@ class ViewAttributeValueParsingTest {
             parseViewAttributeValue("layout.width", layoutSize(constant = "WRAP_CONTENT", px = null, dp = null), "as wide as it likes")
         }
 
-        assertTrue(failure.message!!.contains("MATCH_PARENT, WRAP_CONTENT"), failure.message!!)
-        assertTrue(failure.message!!.contains("a length in pixels"), failure.message!!)
+        assertTrue(failure.reason.contains("MATCH_PARENT, WRAP_CONTENT"), failure.reason)
+        assertTrue(failure.reason.contains("a length in pixels"), failure.reason)
     }
 
     @Test
@@ -296,8 +297,8 @@ class ViewAttributeValueParsingTest {
             parseViewAttributeValue("padding.left", ViewAttributeValue.DimensionValue(px = 0f, dp = 0f), "banana")
         }
 
-        assertTrue(failure.message!!.contains("invalid value for padding.left"), failure.message!!)
-        assertTrue(failure.message!!.contains("expected a length in pixels"), failure.message!!)
+        assertTrue(failure.reason.contains("invalid value for padding.left"), failure.reason)
+        assertTrue(failure.reason.contains("expected a length in pixels"), failure.reason)
     }
 
     @Test
@@ -306,7 +307,7 @@ class ViewAttributeValueParsingTest {
             parseViewAttributeValue("visibility", ViewAttributeValue.EnumValue("VISIBLE", listOf("VISIBLE", "INVISIBLE", "GONE")), "500")
         }
 
-        assertTrue(failure.message!!.contains("VISIBLE, INVISIBLE, GONE"), failure.message!!)
+        assertTrue(failure.reason.contains("VISIBLE, INVISIBLE, GONE"), failure.reason)
     }
 
     @Test
@@ -323,7 +324,7 @@ class ViewAttributeValueParsingTest {
             parseViewAttributeValue("visibility", ViewAttributeValue.EnumValue("VISIBLE", listOf("VISIBLE", "GONE")), "hidden")
         }
 
-        assertTrue(failure.message!!.contains("VISIBLE, GONE"), failure.message!!)
+        assertTrue(failure.reason.contains("VISIBLE, GONE"), failure.reason)
     }
 
     @Test
@@ -332,7 +333,7 @@ class ViewAttributeValueParsingTest {
             parseViewAttributeValue("maxLines", ViewAttributeValue.IntValue(1), "a few")
         }
 
-        assertTrue(failure.message!!.contains("expected a whole number"), failure.message!!)
+        assertTrue(failure.reason.contains("expected a whole number"), failure.reason)
     }
 
     @Test
@@ -355,3 +356,6 @@ class ViewAttributeValueParsingTest {
         assertEquals("#FF0000FF", formatArgb(0xFF0000FFu.toInt()))
     }
 }
+
+@OptIn(ExperimentalJetWhaleApi::class)
+private val JetWhaleMcpArgumentException.reason: String get() = requireNotNull(message) { "an argument error without a message says nothing about what was wrong" }

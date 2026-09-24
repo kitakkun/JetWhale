@@ -41,9 +41,9 @@ class UpdateSettingsCommand(
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         // Validate every port before writing any of them, so a bad argument late in the list cannot
         // leave the settings half-applied.
-        val newServerPort = arguments[serverPort]?.requireValidPort("serverPort")
-        val newWssPort = arguments[wssPort]?.requireValidPort("wssPort")
-        val newMcpServerPort = arguments[mcpServerPort]?.requireValidPort("mcpServerPort")
+        val newServerPort = arguments[serverPort]?.also { it.requireValidPort("serverPort") }
+        val newWssPort = arguments[wssPort]?.also { it.requireValidPort("wssPort") }
+        val newMcpServerPort = arguments[mcpServerPort]?.also { it.requireValidPort("mcpServerPort") }
 
         val applied = mutableMapOf<String, String>()
         val notes = mutableListOf<String>()
@@ -83,7 +83,7 @@ class UpdateSettingsCommand(
             throw JetWhaleMcpArgumentException("no settings given: supply at least one setting to change")
         }
 
-        val debugServerAffected = applied.keys.any { it in DEBUG_SERVER_SETTINGS }
+        val debugServerAffected = applied.keys.any(DEBUG_SERVER_SETTINGS::contains)
         val shouldRestart = arguments[restartDebugServer] ?: debugServerAffected
         if (shouldRestart) {
             restartDebugServer(settingsRepository, debugWebSocketServer)
@@ -103,9 +103,8 @@ class UpdateSettingsCommand(
         )
     }
 
-    private fun Int.requireValidPort(parameterName: String): Int {
+    private fun Int.requireValidPort(parameterName: String) {
         if (this !in 1..65535) throw JetWhaleMcpArgumentException("invalid $parameterName: expected 1..65535 but was $this")
-        return this
     }
 
     private companion object {

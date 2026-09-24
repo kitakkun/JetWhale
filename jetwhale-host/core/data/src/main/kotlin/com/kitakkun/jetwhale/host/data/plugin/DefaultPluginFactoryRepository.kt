@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifestFile
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -44,13 +45,6 @@ class DefaultPluginFactoryRepository(
 
     private val mutableFailedJarsFlow: MutableStateFlow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
     override val failedJarsFlow: Flow<List<FailedPluginJar>> = mutableFailedJarsFlow.asStateFlow()
-
-    /** Records [pluginJarPath] as failed with [reason], replacing any previous failure for the jar. */
-    private fun recordFailedJar(pluginJarPath: String, reason: String) {
-        mutableFailedJarsFlow.update { failed ->
-            failed.filterNot { it.jarPath == pluginJarPath } + FailedPluginJar(pluginJarPath, reason)
-        }
-    }
 
     /**
      * The classloader that owns each loaded jar, keyed by absolute jar path. A single jar may declare
@@ -157,6 +151,13 @@ class DefaultPluginFactoryRepository(
         }
     }
 
+    /** Records [pluginJarPath] as failed with [reason], replacing any previous failure for the jar. */
+    private fun recordFailedJar(pluginJarPath: String, reason: String) {
+        mutableFailedJarsFlow.update { failed ->
+            failed.filterNot { it.jarPath == pluginJarPath } + FailedPluginJar(pluginJarPath, reason)
+        }
+    }
+
     /**
      * Maps the plugin jar's dependency manifest to the downloaded jar files in the plugin libs
      * directory, failing with a clear message when one is missing (e.g. the jar was copied from
@@ -195,7 +196,7 @@ class DefaultPluginFactoryRepository(
             )
         }
         require(manifests.isNotEmpty()) { "$MANIFEST_PATH in $pluginJarPath declares no plugins" }
-        val duplicateIds = manifests.groupingBy { it.pluginId }.eachCount().filterValues { it > 1 }.keys
+        val duplicateIds = manifests.groupingBy(JetWhaleHostPluginManifest::pluginId).eachCount().filterValues { it > 1 }.keys
         require(duplicateIds.isEmpty()) {
             "$MANIFEST_PATH in $pluginJarPath declares duplicate pluginId(s): ${duplicateIds.joinToString()}"
         }
@@ -228,7 +229,7 @@ class DefaultPluginFactoryRepository(
     private fun detachPluginIdsFromOtherJars(pluginIds: Set<String>, keepJarPath: String) {
         for ((jarPath, ids) in jarPathToPluginIds) {
             if (jarPath == keepJarPath) continue
-            val remaining = ids.filterNot { it in pluginIds }
+            val remaining = ids.filterNot(pluginIds::contains)
             if (remaining.size == ids.size) continue
             if (remaining.isEmpty()) {
                 jarPathToPluginIds.remove(jarPath)

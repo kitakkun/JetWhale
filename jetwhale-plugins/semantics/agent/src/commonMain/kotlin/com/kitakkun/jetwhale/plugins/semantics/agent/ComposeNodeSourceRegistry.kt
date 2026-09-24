@@ -22,7 +22,7 @@ object ComposeNodeSourceRegistry {
     private val entries = MutableStateFlow<List<Entry>>(emptyList())
 
     /** The registered roots, oldest registration first. */
-    val sources: List<ComposeNodeSource> get() = entries.value.map { it.source }
+    val sources: List<ComposeNodeSource> get() = entries.value.map(Entry::source)
 
     /** The registered root a request names, or `null` when no such root is registered. */
     internal fun sourceOf(rootId: String): ComposeNodeSource? = sources.firstOrNull { it.sourceId == rootId }

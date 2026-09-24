@@ -11,12 +11,16 @@ import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SceneStrategyScope
 
-// A dialog OverlayScene whose identity is only the dialog entry's content key. NavDisplay tracks overlay
-// scenes by object equality, and the built-in DialogScene also compares previousEntries/overlaidEntries.
-// Those are the entries drawn *below* the overlay, so navigating the underlying back stack changes them
-// and makes the scene unequal, which makes NavDisplay tear the dialog down and rebuild it in a fresh slot
-// — a visible flash. Comparing only the content key keeps the dialog stable across unrelated navigation,
-// mirroring [WindowOverlayScene].
+/**
+ * A dialog [OverlayScene] whose identity is only the dialog entry's content key.
+ *
+ * NavDisplay tracks overlay scenes by object equality, and the built-in DialogScene also compares
+ * `previousEntries`/`overlaidEntries`. Those are the entries drawn *below* the overlay, so
+ * navigating the underlying back stack changes them and makes the scene unequal, which makes
+ * NavDisplay tear the dialog down and rebuild it in a fresh slot — a visible flash. Comparing only
+ * the content key keeps the dialog stable across unrelated navigation, mirroring
+ * [WindowOverlayScene].
+ */
 internal class StableDialogScene<T : Any>(
     override val key: Any,
     private val entry: NavEntry<T>,

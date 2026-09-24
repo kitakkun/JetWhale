@@ -2,14 +2,16 @@ package com.kitakkun.jetwhale.host.data.discovery
 
 import com.kitakkun.jetwhale.host.model.DebugServerStatusProvider
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.time.Duration.Companion.seconds
 
 class DefaultHostDiscoveryAdvertiserTest {
     private class FakeStatusProvider : DebugServerStatusProvider {
@@ -18,21 +20,31 @@ class DefaultHostDiscoveryAdvertiserTest {
         override val statusFlow: StateFlow<DebugWebSocketServerStatus> = mutableStatusFlow
     }
 
+    private sealed interface RegistrarCall {
+        data class Register(val instanceName: String, val wsPort: Int, val wssPort: Int?) : RegistrarCall
+        data object Unregister : RegistrarCall
+        data object Close : RegistrarCall
+    }
+
+    /**
+     * Records every call the advertiser makes, in order, so a test awaits the next one instead of
+     * polling for a count to change.
+     */
     private class FakeMdnsRegistrar : MdnsRegistrar {
-        val registrations: MutableList<Triple<String, Int, Int?>> = mutableListOf()
-        var unregisterCount: Int = 0
-        var closeCount: Int = 0
+        private val calls = Channel<RegistrarCall>(Channel.UNLIMITED)
+
+        suspend fun nextCall(): RegistrarCall = withTimeout(5.seconds) { calls.receive() }
 
         override fun register(instanceName: String, wsPort: Int, wssPort: Int?) {
-            registrations.add(Triple(instanceName, wsPort, wssPort))
+            calls.trySend(RegistrarCall.Register(instanceName, wsPort, wssPort))
         }
 
         override fun unregister() {
-            unregisterCount++
+            calls.trySend(RegistrarCall.Unregister)
         }
 
         override fun close() {
-            closeCount++
+            calls.trySend(RegistrarCall.Close)
         }
     }
 
@@ -45,16 +57,16 @@ class DefaultHostDiscoveryAdvertiserTest {
         advertiser.start()
 
         statusProvider.mutableStatusFlow.value = DebugWebSocketServerStatus.Started("localhost", 8080, 8443)
-        awaitUntil { registrar.registrations.size == 1 }
-        assertEquals(8080, registrar.registrations.last().second)
-        assertEquals(8443, registrar.registrations.last().third)
+        val registered = assertIs<RegistrarCall.Register>(registrar.nextCall())
+        assertEquals(8080, registered.wsPort)
+        assertEquals(8443, registered.wssPort)
 
         statusProvider.mutableStatusFlow.value = DebugWebSocketServerStatus.Stopped
-        awaitUntil { registrar.unregisterCount == 1 }
+        assertEquals(RegistrarCall.Unregister, registrar.nextCall())
 
         // stop() must fully close the mDNS stack (not just unregister) so it does not leak.
         advertiser.stop()
-        awaitUntil { registrar.closeCount == 1 }
+        assertEquals(RegistrarCall.Close, registrar.nextCall())
     }
 
     @Test
@@ -66,25 +78,15 @@ class DefaultHostDiscoveryAdvertiserTest {
         advertiser.start()
 
         statusProvider.mutableStatusFlow.value = DebugWebSocketServerStatus.Started("localhost", 8080, null)
-        awaitUntil { registrar.registrations.size == 1 }
+        assertNull(assertIs<RegistrarCall.Register>(registrar.nextCall()).wssPort)
 
-        // Re-emitting an equivalent Started must not re-register.
+        // An equivalent Started must not re-register; a wss port appearing (e.g. certificate loaded)
+        // must. The advertiser observes the two in order, so the next registration it makes is the
+        // one carrying the wss port — a redundant one would arrive here instead.
         statusProvider.mutableStatusFlow.value = DebugWebSocketServerStatus.Started("localhost", 8080, null)
-        delay(200)
-        assertEquals(1, registrar.registrations.size)
-
-        // A wss port appearing (e.g. certificate loaded) must re-register.
         statusProvider.mutableStatusFlow.value = DebugWebSocketServerStatus.Started("localhost", 8080, 8443)
-        awaitUntil { registrar.registrations.size == 2 }
-        assertEquals(8443, registrar.registrations.last().third)
+        assertEquals(8443, assertIs<RegistrarCall.Register>(registrar.nextCall()).wssPort)
 
         advertiser.stop()
-    }
-
-    private suspend fun awaitUntil(condition: () -> Boolean) {
-        withTimeout(5_000) {
-            while (!condition()) delay(20)
-        }
-        assertTrue(condition())
     }
 }

@@ -8,15 +8,6 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-/** Keys are plain strings here: the operations are about positions, not about what a key is. */
-private fun key(name: String): JsonElement = JsonPrimitive(name)
-
-private fun decodeKey(element: JsonElement): String {
-    val name = (element as JsonPrimitive).content
-    require(name.isNotEmpty()) { "empty key" }
-    return name
-}
-
 /** Counts the removals a mutation performs, so "smallest possible edit" can be asserted. */
 private class CountingList(private val delegate: MutableList<String>) : MutableList<String> by delegate {
     var removals = 0
@@ -29,10 +20,6 @@ private class CountingList(private val delegate: MutableList<String>) : MutableL
 }
 
 class NavBackStackOperationsTest {
-    private fun apply(stack: MutableList<String>, vararg operations: NavBackStackOperation) {
-        applyNavOperations(stack, operations.toList(), ::decodeKey)
-    }
-
     @Test
     fun `push appends to the top of the stack`() {
         val stack = mutableListOf("home")
@@ -40,6 +27,10 @@ class NavBackStackOperationsTest {
         apply(stack, NavBackStackOperation.Push(key("detail"), index = null))
 
         assertContentEquals(listOf("home", "detail"), stack)
+    }
+
+    private fun apply(stack: MutableList<String>, vararg operations: NavBackStackOperation) {
+        applyNavOperations(stack, operations.toList(), ::decodeKey)
     }
 
     @Test
@@ -185,4 +176,13 @@ class NavBackStackOperationsTest {
         // "home" stays exactly where it is: only "list" and "detail" are taken off.
         assertEquals(2, stack.removals)
     }
+}
+
+/** Keys are plain strings here: the operations are about positions, not about what a key is. */
+private fun key(name: String): JsonElement = JsonPrimitive(name)
+
+private fun decodeKey(element: JsonElement): String {
+    val name = (element as JsonPrimitive).content
+    require(name.isNotEmpty()) { "empty key" }
+    return name
 }

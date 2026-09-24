@@ -25,21 +25,12 @@ import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class, ExperimentalSerializationApi::class)
 class McpParameterDslTest {
-    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
-
-    private fun JetWhaleMcpCommand.schemaOf(parameter: String): JsonObject = toDescriptor().parameters.getValue(parameter).schema
-
-    private fun JsonObject.obj(key: String): JsonObject = get(key) as JsonObject
-
-    private fun JsonObject.property(name: String): JsonObject = obj("properties").obj(name)
-
-    private fun JsonObject.strings(key: String): List<String> = (get(key) as JsonArray).map { (it as JsonPrimitive).content }
-
     private class StringMapCommand : JetWhaleMcpCommand() {
         override val name = "test.stringMap"
         override val description = "echoes a string map"
@@ -121,6 +112,8 @@ class McpParameterDslTest {
         assertEquals("Content-Type=application/json,X-Trace=abc", result)
     }
 
+    private fun execute(command: JetWhaleMcpCommand, vararg args: Pair<String, JsonElement>): String = runBlocking { command.execute(JetWhaleMcpArguments(JsonObject(args.toMap()))) }
+
     @Test
     fun `optional stringMap is null when omitted`() {
         assertEquals("absent", execute(OptionalStringMapCommand()))
@@ -161,7 +154,7 @@ class McpParameterDslTest {
         val exception = assertFailsWith<JetWhaleMcpArgumentException> {
             execute(StringMapCommand(), "headers" to JsonPrimitive("not-an-object"))
         }
-        assertTrue("headers" in exception.message!!, exception.message!!)
+        assertTrue("headers" in assertNotNull(exception.message), exception.message)
     }
 
     @Test
@@ -169,7 +162,7 @@ class McpParameterDslTest {
         val exception = assertFailsWith<JetWhaleMcpArgumentException> {
             execute(StringMapCommand())
         }
-        assertTrue("missing required argument: headers" in exception.message!!, exception.message!!)
+        assertTrue("missing required argument: headers" in assertNotNull(exception.message), exception.message)
     }
 
     @Test
@@ -185,6 +178,8 @@ class McpParameterDslTest {
         assertEquals("""{"type":"object"}""", JsonObjectCommand().schemaOf("payload").toString())
         assertEquals("""{"type":"array"}""", JsonArrayCommand().schemaOf("payload").toString())
     }
+
+    private fun JetWhaleMcpCommand.schemaOf(parameter: String): JsonObject = toDescriptor().parameters.getValue(parameter).schema
 
     @Test
     fun `an enum parameter advertises its entry names`() {
@@ -232,6 +227,12 @@ class McpParameterDslTest {
         val matchType = rule.property("matcher").property("matchType")
         assertEquals(listOf("CONTAINS", "EXACT", "REGEX"), matchType.strings("enum"))
     }
+
+    private fun JsonObject.property(name: String): JsonObject = obj("properties").obj(name)
+
+    private fun JsonObject.obj(key: String): JsonObject = get(key) as JsonObject
+
+    private fun JsonObject.strings(key: String): List<String> = (get(key) as JsonArray).map { (it as JsonPrimitive).content }
 
     @Test
     fun `the derived schema requires only properties without defaults`() {
@@ -317,6 +318,6 @@ class McpParameterDslTest {
         val exception = assertFailsWith<JetWhaleMcpArgumentException> {
             execute(SerializableCommand(), "rules" to buildJsonArray { add(buildJsonObject { put("id", "rule-1") }) })
         }
-        assertTrue("invalid rules" in exception.message!!, exception.message!!)
+        assertTrue("invalid rules" in assertNotNull(exception.message), exception.message)
     }
 }

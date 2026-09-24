@@ -81,7 +81,7 @@ internal val UiNode.isOperable: Boolean
 
 /** How a node should read in a list: its own label if it has one, otherwise its role or id. */
 internal fun UiNode.displayLabel(): String {
-    val label = text ?: contentDescription ?: editableText ?: (this as? ComposeNode)?.testTag
+    val label = listOfNotNull(text, contentDescription, editableText, (this as? ComposeNode)?.testTag).firstOrNull()
     return when (this) {
         // Named like a View, by class then identifier: the class is what says what the thing is,
         // and a mangled Swift or a Compose-internal class still tells a reader which toolkit it is.
@@ -111,19 +111,24 @@ internal fun UiNode.displayLabel(): String {
     }
 }
 
-/** Matcher shared by the tree view's search box and the `findNodes` MCP tool. */
+/**
+ * Matcher shared by the tree view's search box and the `findNodes` MCP tool.
+ *
+ * @property resourceId Always compared whole, whatever [exact] says: a resource id is an
+ *   identifier, not a label.
+ * @property operableOnly Keep only nodes the user could operate right now — see
+ *   [UiNode.isOperable].
+ * @property exact Compare whole values instead of substrings. Substring matching is the default
+ *   because a caller usually knows part of a label, not its exact composition.
+ */
 internal data class NodeQuery(
     val text: String? = null,
     val contentDescription: String? = null,
     val testTag: String? = null,
-    /** Always compared whole, whatever [exact] says: a resource id is an identifier, not a label. */
     val resourceId: String? = null,
     val role: String? = null,
     val interactiveOnly: Boolean = false,
-    /** Keep only nodes the user could operate right now — see [UiNode.isOperable]. */
     val operableOnly: Boolean = false,
-    /** Compare whole values instead of substrings. Substring matching is the default because a
-     *  caller usually knows part of a label, not its exact composition. */
     val exact: Boolean = false,
 ) {
     val isEmpty: Boolean

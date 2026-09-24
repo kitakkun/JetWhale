@@ -70,16 +70,16 @@ internal fun Nav3NavigatorScreen(
     keyTypes: List<NavKeyTypeDescriptor>,
     selectedStackId: String?,
     status: Nav3Status?,
+    draft: String,
     onSelectStack: (String) -> Unit,
     onApplyOperation: (stackId: String, operation: NavBackStackOperation) -> Unit,
     onRefresh: () -> Unit,
+    onDraftChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val selected = stacks.firstOrNull { it.stackId == selectedStackId } ?: stacks.firstOrNull()
-    // The draft survives plugin reloads and host restarts, so a half-written key is not lost to a
-    // hot reload in the middle of composing one.
-    var draft by rememberPersistent("push-draft", default = "")
 
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         JwToolbar(
             title = "Navigation 3",
             actions = {
@@ -113,14 +113,14 @@ internal fun Nav3NavigatorScreen(
                     BackStackPane(
                         snapshot = selected,
                         onApplyOperation = { onApplyOperation(selected.stackId, it) },
-                        onCopyKeyToEditor = { draft = PrettyJson.encodeToString(JsonElement.serializer(), it) },
+                        onCopyKeyToEditor = { onDraftChange(PrettyJson.encodeToString(JsonElement.serializer(), it)) },
                     )
                 },
                 second = {
                     PushPane(
                         keyTypes = keyTypes,
                         draft = draft,
-                        onDraftChange = { draft = it },
+                        onDraftChange = onDraftChange,
                         onApplyOperation = { onApplyOperation(selected.stackId, it) },
                     )
                 },
@@ -142,8 +142,9 @@ private fun BackStackPane(
     snapshot: NavBackStackSnapshot,
     onApplyOperation: (NavBackStackOperation) -> Unit,
     onCopyKeyToEditor: (JsonElement) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.large, vertical = JwSpacing.medium),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -188,8 +189,9 @@ private fun BackStackEntryCard(
     canRemove: Boolean,
     onApplyOperation: (NavBackStackOperation) -> Unit,
     onCopyKeyToEditor: (JsonElement) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    JwPanel {
+    JwPanel(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
             JwText("#$index", style = JwTheme.textStyles.label, color = JwTheme.colors.textSecondary)
             JwText(entry.typeName, style = JwTheme.textStyles.subtitle)
@@ -235,6 +237,7 @@ private fun PushPane(
     draft: String,
     onDraftChange: (String) -> Unit,
     onApplyOperation: (NavBackStackOperation) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var editorError by remember { mutableStateOf<String?>(null) }
 
@@ -250,7 +253,7 @@ private fun PushPane(
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large),
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large),
         verticalArrangement = Arrangement.spacedBy(JwSpacing.large),
     ) {
         JwFormField(
@@ -306,7 +309,7 @@ private fun PushPane(
 }
 
 @Composable
-private fun KeyTypeRow(type: NavKeyTypeDescriptor, onClick: () -> Unit) {
+private fun KeyTypeRow(type: NavKeyTypeDescriptor, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val fields = type.fields.joinToString { field ->
         buildString {
             append(field.name)
@@ -319,6 +322,7 @@ private fun KeyTypeRow(type: NavKeyTypeDescriptor, onClick: () -> Unit) {
         text = type.serialName,
         selected = false,
         onClick = onClick,
+        modifier = modifier,
         trailingContent = {
             if (fields.isNotEmpty()) {
                 JwText(

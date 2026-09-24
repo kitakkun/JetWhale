@@ -90,11 +90,11 @@ class DefaultDebugWebSocketServer(
                     // Wire both connectors so an on-device app can reach ws and wss alike through
                     // localhost, whichever it is configured for.
                     wiredPorts = listOfNotNull(status.port, status.wssPort)
-                    wiredPorts.forEach { adbAutoWiringService.startAutoWiring(it) }
+                    wiredPorts.forEach(adbAutoWiringService::startAutoWiring)
                 }
 
                 is DebugWebSocketServerStatus.Stopped -> {
-                    wiredPorts.forEach { adbAutoWiringService.stopAutoWiring(it) }
+                    wiredPorts.forEach(adbAutoWiringService::stopAutoWiring)
                 }
 
                 else -> Unit

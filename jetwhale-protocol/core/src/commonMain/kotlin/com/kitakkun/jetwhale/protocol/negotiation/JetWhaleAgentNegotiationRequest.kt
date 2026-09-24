@@ -20,52 +20,84 @@ public sealed interface JetWhaleAgentNegotiationRequest {
      * Protocol version negotiation request.
      * This request must be sent first when establishing connection.
      *
-     * @param version the protocol version of the agent.
+     * @property version the protocol version of the agent.
      * @see [JetWhaleHostNegotiationResponse.ProtocolVersionResponse] for response
      */
     @SerialName(JetWhaleSerialNames.NEGOTIATION_AGENT_PROTOCOL_VERSION)
     @Serializable
-    public data class ProtocolVersion(val version: JetWhaleProtocolVersion) : JetWhaleAgentNegotiationRequest
+    public class ProtocolVersion(public val version: JetWhaleProtocolVersion) : JetWhaleAgentNegotiationRequest {
+        override fun equals(other: Any?): Boolean = other is ProtocolVersion && version == other.version
+
+        override fun hashCode(): Int = version.hashCode()
+
+        override fun toString(): String = "ProtocolVersion(version=$version)"
+    }
 
     /**
      * Session negotiation request.
      * This request is sent after protocol version is accepted.
      *
-     * @param sessionId the session ID to join. If null, a new session is requested.
-     * @param sessionName the name of the session which is displayed in the host UI.
-     * @param appMetadata optional application/device metadata used by the host to group sessions.
+     * @property sessionId the session ID to join. If null, a new session is requested.
+     * @property sessionName the name of the session which is displayed in the host UI.
+     * @property appMetadata optional application/device metadata used by the host to group sessions.
      *   Added additively with a default so older hosts and agents keep interoperating.
      * @see [JetWhaleHostNegotiationResponse.AcceptSession] for response
      */
     @SerialName(JetWhaleSerialNames.NEGOTIATION_AGENT_SESSION)
     @Serializable
-    public data class Session(
-        val sessionId: String?,
-        val sessionName: String,
-        val appMetadata: JetWhaleAppMetadata = JetWhaleAppMetadata(),
-    ) : JetWhaleAgentNegotiationRequest
+    public class Session(
+        public val sessionId: String?,
+        public val sessionName: String,
+        public val appMetadata: JetWhaleAppMetadata = JetWhaleAppMetadata(),
+    ) : JetWhaleAgentNegotiationRequest {
+        override fun equals(other: Any?): Boolean = other is Session &&
+            sessionId == other.sessionId &&
+            sessionName == other.sessionName &&
+            appMetadata == other.appMetadata
+
+        override fun hashCode(): Int {
+            var result = sessionId.hashCode()
+            result = 31 * result + sessionName.hashCode()
+            result = 31 * result + appMetadata.hashCode()
+            return result
+        }
+
+        override fun toString(): String = "Session(sessionId=$sessionId, sessionName=$sessionName, appMetadata=$appMetadata)"
+    }
 
     /**
      * Capabilities information request.
      * This request is sent after session is accepted.
      *
-     * @param capabilities the map of capability names and their values.
+     * @property capabilities the map of capability names and their values.
      * @see [JetWhaleHostNegotiationResponse.CapabilitiesResponse] for response
      */
     @SerialName(JetWhaleSerialNames.NEGOTIATION_AGENT_CAPABILITIES)
     @Serializable
-    public data class Capabilities(
-        val capabilities: Map<String, String>,
-    ) : JetWhaleAgentNegotiationRequest
+    public class Capabilities(
+        public val capabilities: Map<String, String>,
+    ) : JetWhaleAgentNegotiationRequest {
+        override fun equals(other: Any?): Boolean = other is Capabilities && capabilities == other.capabilities
+
+        override fun hashCode(): Int = capabilities.hashCode()
+
+        override fun toString(): String = "Capabilities(capabilities=$capabilities)"
+    }
 
     /**
      * Available plugins information request.
      * This request is sent after capabilities are exchanged.
      *
-     * @param plugins the list of available plugins in the agent.
+     * @property plugins the list of available plugins in the agent.
      * @see [JetWhaleHostNegotiationResponse.AvailablePluginsResponse] for response
      */
     @SerialName(JetWhaleSerialNames.NEGOTIATION_AGENT_AVAILABLE_PLUGINS)
     @Serializable
-    public data class AvailablePlugins(val plugins: List<JetWhalePluginInfo>) : JetWhaleAgentNegotiationRequest
+    public class AvailablePlugins(public val plugins: List<JetWhalePluginInfo>) : JetWhaleAgentNegotiationRequest {
+        override fun equals(other: Any?): Boolean = other is AvailablePlugins && plugins == other.plugins
+
+        override fun hashCode(): Int = plugins.hashCode()
+
+        override fun toString(): String = "AvailablePlugins(plugins=$plugins)"
+    }
 }

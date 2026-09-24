@@ -63,7 +63,7 @@ public fun JwSectionHeader(
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val collapsible = expanded != null && onToggleExpanded != null
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     Row(
         modifier = modifier

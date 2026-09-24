@@ -36,7 +36,7 @@ internal class QaApp(
     val isConnected: Boolean get() = connected.get()
 
     /** Whether every impersonated plugin could reach the host right now. Vacuously true with none registered. */
-    val isReady: Boolean get() = isConnected && wirePluginsById.values.all { it.isReady }
+    val isReady: Boolean get() = isConnected && wirePluginsById.values.all(WireLevelQaPlugin::isReady)
 
     /**
      * Drops this app's session, so the host sees the app go away while the agent's other apps stay
@@ -84,13 +84,13 @@ internal fun startQaApp(name: String, options: QaAgentOptions): QaApp {
         }
         plugins {
             register(networkAgentPlugin)
-            wirePlugins.forEach { register(it) }
+            wirePlugins.forEach(::register)
         }
     }
 
     return QaApp(
         name = name,
-        wirePluginsById = wirePlugins.associateBy { it.pluginId },
+        wirePluginsById = wirePlugins.associateBy(WireLevelQaPlugin::pluginId),
         httpClient = HttpClient {
             install(networkAgentPlugin.ktorClientPlugin())
         },
@@ -100,6 +100,7 @@ internal fun startQaApp(name: String, options: QaAgentOptions): QaApp {
 
 internal sealed interface AppResolution {
     data class Resolved(val name: String) : AppResolution
+
     data class Failed(val error: String) : AppResolution
 }
 

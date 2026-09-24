@@ -41,10 +41,13 @@ class NetworkRedactionRules private constructor(rules: List<RedactionRule>) {
     class Builder internal constructor() {
         private val rules = mutableListOf<RedactionRule>()
 
-        /** Redacts all values of the given request/response headers. */
+        /**
+         * Redacts all values of the given request/response headers.
+         *
+         * @param scope Defaulted: the DSL's common case is "hide everywhere, as a placeholder".
+         */
         fun header(
             vararg names: String,
-            // Defaulted: the DSL's common case is "hide everywhere, as a placeholder".
             scope: RedactionScope = RedactionScope.EVERYWHERE,
             strategy: RedactionStrategy = RedactionStrategy.PLACEHOLDER,
         ) {

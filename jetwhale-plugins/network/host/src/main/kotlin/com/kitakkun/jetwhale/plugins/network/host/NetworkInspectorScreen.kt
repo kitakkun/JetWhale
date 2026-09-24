@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.kitakkun.jetwhale.host.ui.JwSplitPaneState
 import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
@@ -22,15 +23,17 @@ fun NetworkInspectorScreen(
     transactions: List<HttpTransaction>,
     mockRules: List<MockRule>,
     mockingEnabled: Boolean,
+    trafficSplitPaneState: JwSplitPaneState,
     onClearTransactions: () -> Unit,
     onToggleMocking: (Boolean) -> Unit,
     onMockRulesChanged: (List<MockRule>) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     // Hoisted out of TrafficTab so the selection survives a round trip through the Mocks tab, which
     // swaps the tab content composable out of the composition entirely.
     var selectedTxId by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         JwTabRow {
             JwTab(
                 text = "Traffic",
@@ -49,6 +52,7 @@ fun NetworkInspectorScreen(
             0 -> TrafficTab(
                 transactions = transactions,
                 selectedTxId = selectedTxId,
+                splitPaneState = trafficSplitPaneState,
                 onSelectTx = { selectedTxId = it },
                 onClear = onClearTransactions,
                 onCreateMock = { tx ->

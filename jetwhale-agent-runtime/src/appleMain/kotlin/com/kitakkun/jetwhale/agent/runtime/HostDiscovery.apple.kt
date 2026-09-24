@@ -45,10 +45,9 @@ private const val IPV4_SOCKADDR_LENGTH = SIN_ADDR_OFFSET + IPV4_OCTETS
 internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): DiscoveryResult {
     // Atomic because this list crosses threads: the delegate appends from the main run loop, while
     // the read at the end happens on whatever thread the coroutine resumed on once the timeout
-    // expired — and the browser is still live at that moment, since cancellation only *dispatches*
-    // the stop to the main queue. A plain MutableList would be a data race; Android's actual uses a
-    // synchronized list for the same reason. Appends are single-writer (the main queue alone), so
-    // read-then-store needs no CAS loop — only the visibility the atomic provides.
+    // expired — and the browser is still live then, since cancellation only *dispatches* the stop
+    // to the main queue. Appends are single-writer (the main queue alone), so read-then-store needs
+    // no CAS loop — only the visibility the atomic provides.
     val results = AtomicReference(emptyList<DiscoveredService>())
     // Strong references kept for the whole browse so the delegates and services outlive the enclosing
     // frame; their callbacks fire asynchronously on the run loop.
@@ -118,7 +117,7 @@ private fun NSNetService.toDiscoveredService(): DiscoveredService? {
     // dialling it fails hostname verification. Using the address also makes `allowAddress` mean what
     // it says on this platform.
     val address = resolvedIpv4Address() ?: return null
-    val txt = TXTRecordData()?.let { NSNetService.dictionaryFromTXTRecordData(it) }
+    val txt = TXTRecordData()?.let(NSNetService::dictionaryFromTXTRecordData)
     return DiscoveredService(
         instanceName = name,
         advertisedHostName = txt?.get(TXT_KEY_HOST_NAME)?.toDecodedString(),
@@ -149,7 +148,7 @@ private fun NSNetService.resolvedIpv4Address(): String? {
 
 /** TXT record values arrive as `NSData`; decode them as UTF-8 strings. */
 private fun Any?.toDecodedString(): String? {
-    val data = this as? platform.Foundation.NSData ?: return null
+    val data = this as? NSData ?: return null
     @Suppress("CAST_NEVER_SUCCEEDS")
     return NSString.create(data, NSUTF8StringEncoding) as? String
 }

@@ -84,6 +84,8 @@ class JetWhaleNav3AgentPlugin<K : NavKey>(
      * @param stackId Names the stack for the host. The default suits the common single-stack app;
      *   an app with nested navigation gives each stack its own id.
      */
+    // The host's pushes and pops are applied to the app's own list, so it has to arrive mutable.
+    @Suppress("KOTRAIL_MUTABLE_COLLECTION_IN_PUBLIC_API")
     fun registerBackStack(backStack: MutableList<K>, stackId: String = DEFAULT_NAV_STACK_ID) {
         backStacks.update { it + (stackId to backStack) }
     }

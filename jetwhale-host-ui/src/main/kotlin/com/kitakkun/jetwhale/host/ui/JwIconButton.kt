@@ -35,9 +35,9 @@ public object JwIconButtonDefaults {
  * [selected]. The icon slot receives the content color to draw with; [JwIcon] is the usual
  * thing to put in it.
  *
- * @param onClick what the button does.
  * @param tooltip shown on hover, and the button's accessibility name — the only label a bare
  * icon carries, so pass one. Leave the icon's own contentDescription null then, or the two merge.
+ * @param onClick what the button does.
  * @param enabled false greys the icon out and ignores clicks.
  * @param selected tints the button, for a toggle that is on or the item that is current.
  * @param size the button's side; the icon inside keeps [JwMetrics.iconSize]. See [JwIconButtonDefaults].
@@ -45,15 +45,15 @@ public object JwIconButtonDefaults {
  */
 @Composable
 public fun JwIconButton(
-    onClick: () -> Unit,
     tooltip: String?,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     selected: Boolean = false,
     size: Dp = JwIconButtonDefaults.size,
     content: @Composable () -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     val pressed by interactionSource.collectIsPressedAsState()
     val background = when {

@@ -17,6 +17,7 @@ import platform.UIKit.UICollectionViewFlowLayout
 import platform.UIKit.UICollectionViewScrollDirection
 import platform.UIKit.UICollectionViewScrollPositionLeft
 import platform.UIKit.UICollectionViewScrollPositionTop
+import platform.UIKit.UIFocusItemScrollableContainerProtocol
 import platform.UIKit.UIScrollView
 import platform.UIKit.UITableView
 import platform.UIKit.UITableViewScrollPosition
@@ -47,27 +48,12 @@ internal object AppleNodeScrollActions {
         override fun perform(node: NSObject, request: PerformNodeAction): NodeActionResult {
             if (node is UIScrollView) {
                 if (!node.isScrollable()) return NodeActionResult.notSupported("the scroll view has nothing to scroll")
-                val (x, y) = node.contentOffset.useContents { x to y }
-                val (contentWidth, contentHeight) = node.contentSize.useContents { width to height }
-                val (width, height) = node.bounds.useContents { size.width to size.height }
-                // The insets extend the reachable range on both ends: a navigation bar's inset
-                // puts the top of the content at a negative offset, and a bottom inset lets the
-                // content scroll past its own end.
-                val (insetTop, insetLeft, insetBottom, insetRight) = node.adjustedContentInset.useContents { listOf(top, left, bottom, right) }
-                val targetX = (x + request.scrollX).coerceIn(-insetLeft, maxOf(-insetLeft, contentWidth - width + insetRight))
-                val targetY = (y + request.scrollY).coerceIn(-insetTop, maxOf(-insetTop, contentHeight - height + insetBottom))
-                node.setContentOffset(CGPointMake(targetX, targetY), animated = false)
-                return NodeActionResult(performed = true)
+                return node.scrollBy(request)
             }
-            node.scrollableContainer()?.let { container ->
+            val container = node.scrollableContainer()
+            if (container != null) {
                 if (!node.isScrollable()) return NodeActionResult.notSupported("the container has nothing to scroll")
-                val (x, y) = container.contentOffset.useContents { x to y }
-                val (contentWidth, contentHeight) = container.contentSize.useContents { width to height }
-                val (width, height) = container.visibleSize.useContents { width to height }
-                val targetX = (x + request.scrollX).coerceIn(0.0, maxOf(0.0, contentWidth - width))
-                val targetY = (y + request.scrollY).coerceIn(0.0, maxOf(0.0, contentHeight - height))
-                container.setContentOffset(CGPointMake(targetX, targetY))
-                return NodeActionResult(performed = true)
+                return container.scrollBy(request)
             }
             val direction = scrollDirection(request.scrollX, request.scrollY)
                 ?: return NodeActionResult.notSupported("ScrollBy needs a non-zero scrollX or scrollY")
@@ -78,6 +64,35 @@ internal object AppleNodeScrollActions {
                 if (result.performed) result.copy(message = "sent accessibilityScroll(${direction.name()}), which moves one page rather than the distance asked for") else result
             }
         }
+
+        private fun UIScrollView.scrollBy(request: PerformNodeAction): NodeActionResult {
+            val (x, y) = contentOffset.useContents { x to y }
+            val (contentWidth, contentHeight) = contentSize.useContents { width to height }
+            val (width, height) = bounds.useContents { size.width to size.height }
+            val (xRange, yRange) = adjustedContentInset.useContents {
+                reachableRange(content = contentWidth, viewport = width, leadingInset = left, trailingInset = right) to
+                    reachableRange(content = contentHeight, viewport = height, leadingInset = top, trailingInset = bottom)
+            }
+            setContentOffset(CGPointMake((x + request.scrollX).coerceIn(xRange), (y + request.scrollY).coerceIn(yRange)), animated = false)
+            return NodeActionResult(performed = true)
+        }
+
+        private fun UIFocusItemScrollableContainerProtocol.scrollBy(request: PerformNodeAction): NodeActionResult {
+            val (x, y) = contentOffset.useContents { x to y }
+            val (contentWidth, contentHeight) = contentSize.useContents { width to height }
+            val (width, height) = visibleSize.useContents { width to height }
+            val targetX = (x + request.scrollX).coerceIn(0.0, maxOf(0.0, contentWidth - width))
+            val targetY = (y + request.scrollY).coerceIn(0.0, maxOf(0.0, contentHeight - height))
+            setContentOffset(CGPointMake(targetX, targetY))
+            return NodeActionResult(performed = true)
+        }
+
+        /**
+         * The offsets one axis of a scroll view can be set to. The insets extend the reachable range
+         * on both ends: a navigation bar's inset puts the top of the content at a negative offset,
+         * and a bottom inset lets the content scroll past its own end.
+         */
+        private fun reachableRange(content: Double, viewport: Double, leadingInset: Double, trailingInset: Double): ClosedFloatingPointRange<Double> = -leadingInset..maxOf(-leadingInset, content - viewport + trailingInset)
 
         private fun scrollDirection(scrollX: Float, scrollY: Float): UIAccessibilityScrollDirection? = when {
             scrollX == 0f && scrollY == 0f -> null
@@ -108,7 +123,7 @@ internal object AppleNodeScrollActions {
             val index = request.index ?: return NodeActionResult.missingArgument(NodeAction.ScrollToIndex, "index")
             return when (node) {
                 is UITableView -> {
-                    val sections = (0 until node.numberOfSections).map { node.numberOfRowsInSection(it) }
+                    val sections = (0 until node.numberOfSections).map(node::numberOfRowsInSection)
                     val path = sectionedIndex(index, sections)
                         ?: return NodeActionResult.notSupported("index $index is out of bounds [0, ${sections.sum()})")
                     node.scrollToRowAtIndexPath(NSIndexPath.indexPathForRow(path.item, inSection = path.section), atScrollPosition = UITableViewScrollPosition.UITableViewScrollPositionTop, animated = false)
@@ -116,7 +131,7 @@ internal object AppleNodeScrollActions {
                 }
 
                 is UICollectionView -> {
-                    val sections = (0 until node.numberOfSections).map { node.numberOfItemsInSection(it) }
+                    val sections = (0 until node.numberOfSections).map(node::numberOfItemsInSection)
                     val path = sectionedIndex(index, sections)
                         ?: return NodeActionResult.notSupported("index $index is out of bounds [0, ${sections.sum()})")
                     node.scrollToItemAtIndexPath(NSIndexPath.indexPathForItem(path.item, inSection = path.section), atScrollPosition = node.startPosition(), animated = false)

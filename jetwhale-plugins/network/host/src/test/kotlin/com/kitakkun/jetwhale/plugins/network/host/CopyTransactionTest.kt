@@ -9,6 +9,13 @@ import kotlin.test.assertTrue
 
 class CopyTransactionTest {
 
+    @Test
+    fun `leaves the method implicit for a GET without a body`() {
+        val command = buildCurlCommand(request())
+        assertFalse("-X" in command)
+        assertTrue(command.startsWith("curl --globoff"))
+    }
+
     private fun request(
         method: String = "GET",
         url: String = "https://example.com/items",
@@ -28,20 +35,13 @@ class CopyTransactionTest {
     )
 
     @Test
-    fun getWithoutBody_omitsExplicitMethod() {
-        val command = buildCurlCommand(request())
-        assertFalse("-X" in command)
-        assertTrue(command.startsWith("curl --globoff"))
-    }
-
-    @Test
-    fun getWithBody_keepsMethodExplicit() {
+    fun `states the method explicitly for a GET that carries a body`() {
         val command = buildCurlCommand(request(body = """{"q":1}"""))
         assertTrue("-X GET" in command)
     }
 
     @Test
-    fun binaryBody_isOmittedAndFlagged() {
+    fun `omits a binary body and says so in a leading note`() {
         val command = buildCurlCommand(
             request(
                 method = "POST",
@@ -58,20 +58,20 @@ class CopyTransactionTest {
     }
 
     @Test
-    fun bodyUsesDataRaw() {
+    fun `sends the body with data-raw so curl does not expand it`() {
         val command = buildCurlCommand(request(method = "POST", body = "@payload.json"))
         assertTrue("--data-raw '@payload.json'" in command)
         assertFalse("--data '" in command)
     }
 
     @Test
-    fun nonGetMethodIsUppercasedAndExplicit() {
+    fun `uppercases a non-GET method and states it explicitly`() {
         val command = buildCurlCommand(request(method = "delete"))
         assertTrue("-X DELETE" in command)
     }
 
     @Test
-    fun contentLengthHeaderIsDropped() {
+    fun `drops the Content-Length header and keeps the others`() {
         val command = buildCurlCommand(
             request(
                 method = "POST",
@@ -84,13 +84,13 @@ class CopyTransactionTest {
     }
 
     @Test
-    fun singleQuotesAreEscaped() {
+    fun `escapes single quotes inside the body`() {
         val command = buildCurlCommand(request(method = "POST", body = "it's"))
         assertTrue("""--data-raw 'it'\''s'""" in command)
     }
 
     @Test
-    fun placeholderBodyIsOmittedAndFlagged() {
+    fun `omits an uncaptured body and says so in a leading note`() {
         val command = buildCurlCommand(request(method = "POST", body = "<streaming request body>"))
         assertFalse("--data-raw" in command)
         assertTrue("-X POST" in command)
@@ -98,7 +98,7 @@ class CopyTransactionTest {
     }
 
     @Test
-    fun contentTypePlaceholderBodyIsOmitted() {
+    fun `treats a content-type placeholder as an uncaptured body`() {
         val command = buildCurlCommand(request(method = "GET", body = "<application/json>"))
         assertFalse("--data-raw" in command)
         assertFalse("-X" in command)
@@ -106,20 +106,20 @@ class CopyTransactionTest {
     }
 
     @Test
-    fun xmlBodyIsNotMistakenForPlaceholder() {
+    fun `sends an XML body instead of mistaking it for a placeholder`() {
         val command = buildCurlCommand(request(method = "POST", body = "<a><b/></a>"))
         assertTrue("--data-raw '<a><b/></a>'" in command)
         assertFalse("# NOTE" in command)
     }
 
     @Test
-    fun truncatedBodyIsFlaggedWithLeadingComment() {
+    fun `flags a truncated body with a leading note`() {
         val command = buildCurlCommand(request(method = "POST", body = "partial", bodyTruncated = true))
         assertTrue(command.startsWith("# NOTE: request body was truncated at capture time\n"))
     }
 
     @Test
-    fun linesAreJoinedAsShellContinuations() {
+    fun `joins the lines as shell continuations`() {
         val command = buildCurlCommand(request(method = "POST", body = "{}"))
         assertEquals(
             """

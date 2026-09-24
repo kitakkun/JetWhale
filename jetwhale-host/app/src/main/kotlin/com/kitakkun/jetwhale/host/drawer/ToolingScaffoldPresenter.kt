@@ -26,7 +26,9 @@ import soil.query.compose.rememberMutation
 
 sealed interface ToolingScaffoldScreenAction {
     data class SelectSession(val session: DebugSession) : ToolingScaffoldScreenAction
+
     data class UpdateSelectedPlugin(val pluginId: String) : ToolingScaffoldScreenAction
+
     data class SetPluginEnabled(val pluginId: String, val enabled: Boolean) : ToolingScaffoldScreenAction
 
     /** Turns the follow mode off from the banner it puts on screen, without a trip to the settings. */
@@ -55,7 +57,7 @@ internal fun closedSessions(
     previouslyConnected: List<DebugSession>,
     current: List<DebugSession>,
 ): List<DebugSession> {
-    val stillConnected = current.filter { it.isActive }.mapTo(mutableSetOf()) { it.id }
+    val stillConnected = current.filter(DebugSession::isActive).mapTo(mutableSetOf(), DebugSession::id)
     return previouslyConnected.filterNot { it.id in stillConnected }
 }
 
@@ -69,7 +71,7 @@ internal fun newlyConnectedSessions(
     previouslyConnected: List<DebugSession>,
     current: List<DebugSession>,
 ): List<DebugSession> {
-    val alreadyConnected = previouslyConnected.mapTo(mutableSetOf()) { it.id }
+    val alreadyConnected = previouslyConnected.mapTo(mutableSetOf(), DebugSession::id)
     return current.filter { it.isActive && it.id !in alreadyConnected }
 }
 
@@ -156,18 +158,18 @@ fun toolingScaffoldPresenter(
 
     LaunchedEffect(debugSessions) {
         if (selectedSession?.isActive != true) {
-            selectedSessionId = debugSessions.firstOrNull { it.isActive }?.id.orEmpty()
+            selectedSessionId = debugSessions.firstOrNull(DebugSession::isActive)?.id.orEmpty()
         }
     }
 
     // Seeded from the sessions of the first composition so opening the window announces nothing:
     // whoever was already connected is not an arrival. Read only inside the effect below, never
     // during composition, so writing it back cannot drive a recomposition loop.
-    var connectedSessions by remember { mutableStateOf(debugSessions.filter { it.isActive }) }
+    var connectedSessions by remember { mutableStateOf(debugSessions.filter(DebugSession::isActive)) }
     LaunchedEffect(debugSessions) {
         val closedSessions = closedSessions(previouslyConnected = connectedSessions, current = debugSessions)
         val connectedSessionsToAnnounce = newlyConnectedSessions(previouslyConnected = connectedSessions, current = debugSessions)
-        connectedSessions = debugSessions.filter { it.isActive }
+        connectedSessions = debugSessions.filter(DebugSession::isActive)
         if (closedSessions.isNotEmpty()) {
             screenChannel.emit(ToolingScaffoldScreenActionResult.SessionClosed(closedSessions.toImmutableList()))
         }
@@ -190,7 +192,7 @@ fun toolingScaffoldPresenter(
                 setPluginEnabledMutation.mutateAsync(SetPluginEnabledParams(action.pluginId, action.enabled))
             }
 
-            ToolingScaffoldScreenAction.StopFollowingAiOperation -> {
+            is ToolingScaffoldScreenAction.StopFollowingAiOperation -> {
                 followAiOperationMutation.mutateAsync(false)
             }
         }

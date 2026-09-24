@@ -4,6 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.tooling.preview.Preview
+import com.kitakkun.jetwhale.host.ui.JwText
 import soil.plant.compose.reacty.AwaitHost
 import soil.plant.compose.reacty.Catch
 import soil.plant.compose.reacty.CatchScope
@@ -101,5 +103,20 @@ inline fun <T1, T2, T3, T4, T5, T6> Await(
         onDispose {
             host.remove(id)
         }
+    }
+}
+
+@Preview
+@Composable
+private fun AwaitPreview() {
+    Await(
+        state1 = PreviewDataModel("one"),
+        state2 = PreviewDataModel("two"),
+        state3 = PreviewDataModel("three"),
+        state4 = PreviewDataModel("four"),
+        state5 = PreviewDataModel("five"),
+        state6 = PreviewDataModel("six"),
+    ) { first, second, third, fourth, fifth, sixth ->
+        JwText(text = "$first $second $third $fourth $fifth $sixth")
     }
 }

@@ -86,9 +86,9 @@ public fun JwTreeRow(
     contentPadding: PaddingValues = PaddingValues(start = JwSpacing.extraSmall, end = JwSpacing.medium),
     trailingContent: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
-    val chevronInteractionSource = remember { MutableInteractionSource() }
+    val chevronInteractionSource = remember(calculation = ::MutableInteractionSource)
     val chevronHovered by chevronInteractionSource.collectIsHoveredAsState()
     val colors = JwTheme.colors
     val background = when {

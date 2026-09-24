@@ -1,5 +1,6 @@
 @file:OptIn(ExperimentalAbiValidation::class)
 
+import com.kitakkun.kotrail.gradle.KotrailExtension
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 plugins {
@@ -15,6 +16,13 @@ plugins {
 
 kotlin {
     abiValidation {
+    }
+
+    // A compilation of its own for the previews, so that they are compiled and rule-checked on
+    // every build without reaching the plugin jar, the publication or the ABI dump. Associating it
+    // with `main` also lets a preview call an internal declaration.
+    target.compilations.create("preview") {
+        associateWith(target.compilations.getByName("main"))
     }
 }
 
@@ -36,6 +44,9 @@ dependencies {
     compileOnly(libs.material3)
     compileOnly(libs.kotlinxSerializationJson)
     api(projects.jetwhalePlugins.semantics.protocol)
+    "previewImplementation"(projects.jetwhaleHostUi)
+    "previewImplementation"(compose.desktop.currentOs)
+    "previewImplementation"(libs.jetbrainsComposePreview)
 
     testImplementation(projects.jetwhaleHostSdk)
     testImplementation(projects.jetwhaleHostUi)
@@ -44,6 +55,15 @@ dependencies {
     testImplementation(libs.kotlinxSerializationJson)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.material3)
+}
+
+tasks.named("check") {
+    dependsOn("compilePreviewKotlin")
+}
+
+configure<KotrailExtension> {
+    compilation("main") { configFile = file("kotrail-main.yaml") }
+    compilation("preview") { configFile = file("kotrail-preview.yaml") }
 }
 
 // The jetwhalePlugin convention publishes the `packageMavenPlugin` jar (the module's classes plus a

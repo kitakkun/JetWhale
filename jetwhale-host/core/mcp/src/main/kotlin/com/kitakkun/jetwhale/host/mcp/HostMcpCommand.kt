@@ -36,7 +36,7 @@ abstract class HostMcpCommand :
     // Lazy, never an eager property: base-class initializers run before the subclass declares its
     // parameters, and reading the descriptor seals the parameter list. Producing it is idempotent,
     // so caching it here only avoids rebuilding it once per SSE connection.
-    private val descriptor by lazy { toDescriptor() }
+    private val descriptor by lazy(::toDescriptor)
 
     /**
      * Which host group this command belongs to. Abstract rather than defaulted: a new host tool has

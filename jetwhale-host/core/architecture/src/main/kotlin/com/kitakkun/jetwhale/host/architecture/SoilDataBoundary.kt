@@ -1,6 +1,9 @@
 package com.kitakkun.jetwhale.host.architecture
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
+import com.kitakkun.jetwhale.host.ui.JwText
 import soil.plant.compose.reacty.Await
 import soil.plant.compose.reacty.ErrorBoundary
 import soil.plant.compose.reacty.Suspense
@@ -162,6 +165,58 @@ fun <T1, T2, T3, T4, T5, T6> SoilDataBoundary(
                 state6 = state6,
                 content = content,
             )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun SoilDataBoundaryPreview() {
+    context(object : ScreenContext {}) {
+        Column {
+            SoilDataBoundary(state = PreviewDataModel("one")) { value ->
+                JwText(text = value)
+            }
+            SoilDataBoundary(
+                state1 = PreviewDataModel("one"),
+                state2 = PreviewDataModel("two"),
+            ) { first, second ->
+                JwText(text = "$first $second")
+            }
+            SoilDataBoundary(
+                state1 = PreviewDataModel("one"),
+                state2 = PreviewDataModel("two"),
+                state3 = PreviewDataModel("three"),
+            ) { first, second, third ->
+                JwText(text = "$first $second $third")
+            }
+            SoilDataBoundary(
+                state1 = PreviewDataModel("one"),
+                state2 = PreviewDataModel("two"),
+                state3 = PreviewDataModel("three"),
+                state4 = PreviewDataModel("four"),
+            ) { first, second, third, fourth ->
+                JwText(text = "$first $second $third $fourth")
+            }
+            SoilDataBoundary(
+                state1 = PreviewDataModel("one"),
+                state2 = PreviewDataModel("two"),
+                state3 = PreviewDataModel("three"),
+                state4 = PreviewDataModel("four"),
+                state5 = PreviewDataModel("five"),
+            ) { first, second, third, fourth, fifth ->
+                JwText(text = "$first $second $third $fourth $fifth")
+            }
+            SoilDataBoundary(
+                state1 = PreviewDataModel("one"),
+                state2 = PreviewDataModel("two"),
+                state3 = PreviewDataModel("three"),
+                state4 = PreviewDataModel("four"),
+                state5 = PreviewDataModel("five"),
+                state6 = PreviewDataModel("six"),
+            ) { first, second, third, fourth, fifth, sixth ->
+                JwText(text = "$first $second $third $fourth $fifth $sixth")
+            }
         }
     }
 }
