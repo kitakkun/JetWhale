@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mainthread.agent
 
+import com.kitakkun.jetwhale.plugins.mainthread.protocol.Hotspot
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorCapabilities
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorSettings
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.ViolationKind
@@ -139,7 +140,7 @@ class MainThreadRecorderTest {
         recorder.sampleIfDue { listOf("com.example.Newcomer.run(N.kt:1)") }
         recorder.taskFinished()
 
-        val signatures = recorder.report(capabilities).hotspots.map { it.signature }
+        val signatures = recorder.report(capabilities).hotspots.map(Hotspot::signature)
         assertEquals(HOTSPOT_CAPACITY, signatures.size)
         assertTrue("com.example.Newcomer.run(N.kt:1)" in signatures)
     }
