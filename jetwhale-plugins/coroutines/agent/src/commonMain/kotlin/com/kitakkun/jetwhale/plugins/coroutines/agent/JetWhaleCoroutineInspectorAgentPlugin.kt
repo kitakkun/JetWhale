@@ -1,0 +1,132 @@
+package com.kitakkun.jetwhale.plugins.coroutines.agent
+
+import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.COROUTINES_PLUGIN_ID
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.ClearLongRuns
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.ClearedLongRuns
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStatsReport
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.DumpCoroutines
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.GetCoroutineTree
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.GetDispatcherStats
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.GetTrackedFlows
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.TrackedFlowInfo
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.TrackedFlowReport
+import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
+import com.kitakkun.jetwhale.protocol.messaging.reply
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlin.concurrent.atomics.AtomicReference
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.time.Clock
+import kotlin.time.Duration
+
+/**
+ * Agent plugin that shows the host what the app's coroutines are doing: the coroutines below the
+ * scopes the app registers, how busy the dispatchers it tracks are, and what its tracked flows
+ * emit. Nothing is instrumented automatically; the app points the plugin at what it wants to see.
+ *
+ * ```kotlin
+ * val inspector = JetWhaleCoroutineInspectorAgentPlugin()
+ * startJetWhale { plugins { register(inspector) } }
+ *
+ * inspector.register(applicationScope, name = "Application")
+ * val main = inspector.track(Dispatchers.Main, name = "Main", longRunThreshold = 16.milliseconds)
+ * val prices = inspector.track(repository.prices, name = "prices")
+ * ```
+ *
+ * The host asks for everything while someone is looking; when no one is, tracking costs a clock
+ * read and a few counter updates per dispatch or emission.
+ */
+@OptIn(ExperimentalAtomicApi::class)
+class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
+    override val pluginId: String get() = COROUTINES_PLUGIN_ID
+    override val pluginVersion: String get() = "1.0.0"
+
+    private val roots = AtomicReference(emptyMap<String, Job>())
+    private val dispatchers = AtomicReference(emptyList<DispatcherRecorder>())
+    private val flows = AtomicReference(emptyMap<String, FlowRecorder>())
+    private val walker = JobTreeWalker(nodeLimit = MAX_TREE_NODES)
+    private val walkLock = Mutex()
+
+    /**
+     * Shows the coroutines of [scope] under [name]. A scope whose job completes is dropped by
+     * itself; one registered again under the same name replaces the previous one.
+     *
+     * @throws IllegalArgumentException when [scope] has no `Job`, e.g. `GlobalScope`.
+     */
+    fun register(scope: CoroutineScope, name: String) {
+        val job = requireNotNull(scope.coroutineContext[Job]) { "the scope '$name' has no Job to walk" }
+        register(job, name)
+    }
+
+    /** Shows the coroutines below [job] under [name]; see the scope overload. */
+    fun register(job: Job, name: String) {
+        roots.updateAndGet { it + (name to job) }
+        job.invokeOnCompletion { roots.updateAndGet { current -> if (current[name] === job) current - name else current } }
+    }
+
+    fun unregister(name: String) {
+        roots.updateAndGet { it - name }
+    }
+
+    /**
+     * Returns [dispatcher] wrapped so that the host sees how many tasks wait on it, how long they
+     * wait and how long each holds its thread; a task running [longRunThreshold] or longer is
+     * listed with the name of its coroutine. Use the returned dispatcher where the app used
+     * [dispatcher].
+     *
+     * The wrapper is a plain `CoroutineDispatcher`: `Dispatchers.Main.immediate` behavior and the
+     * dispatcher's own timer for `delay` are not carried over, so delays are timed by the
+     * coroutines library's default timer and then dispatched here.
+     */
+    fun track(dispatcher: CoroutineDispatcher, name: String, longRunThreshold: Duration): CoroutineDispatcher {
+        val recorder = DispatcherRecorder(name = name, longRunThreshold = longRunThreshold)
+        dispatchers.updateAndGet { it + recorder }
+        return TrackedDispatcher(dispatcher, recorder)
+    }
+
+    /**
+     * Returns [flow] recording each collection of it under [name]: when it starts and how it
+     * ends, how many run at once, and its recent values as text. Flows tracked under one name
+     * share one record. A `StateFlow` or `SharedFlow` comes back as a plain `Flow`, so track it
+     * where it is collected rather than where it is exposed.
+     */
+    fun <T> track(flow: Flow<T>, name: String): Flow<T> {
+        val recorder = flows.updateAndGet { current ->
+            if (name in current) current else current + (name to FlowRecorder(name))
+        }.getValue(name)
+        return trackedFlow(flow, recorder)
+    }
+
+    override fun JetWhaleMessageHandlers.configure() {
+        onRequest { _: GetCoroutineTree ->
+            reply(walkLock.withLock { walker.walk(roots.load(), capturedAtEpochMillis = nowEpochMillis()) })
+        }
+        onRequest { _: GetDispatcherStats ->
+            reply(DispatcherStatsReport(dispatchers.load().map(DispatcherRecorder::snapshot), capturedAtEpochMillis = nowEpochMillis()))
+        }
+        onRequest { _: GetTrackedFlows ->
+            reply(TrackedFlowReport(flows.load().values.map(FlowRecorder::snapshot).sortedBy(TrackedFlowInfo::name), capturedAtEpochMillis = nowEpochMillis()))
+        }
+        onRequest { _: DumpCoroutines -> reply(dumpCoroutines()) }
+        onRequest { _: ClearLongRuns -> reply(ClearedLongRuns(dispatchers.load().sumOf(DispatcherRecorder::clearLongRuns))) }
+    }
+}
+
+/** Enough to show every coroutine of an ordinary app, few enough that a runaway leak cannot flood the connection. */
+private const val MAX_TREE_NODES = 5_000
+
+internal fun nowEpochMillis(): Long = Clock.System.now().toEpochMilliseconds()
+
+@OptIn(ExperimentalAtomicApi::class)
+internal inline fun <T> AtomicReference<T>.updateAndGet(transform: (T) -> T): T {
+    while (true) {
+        val current = load()
+        val next = transform(current)
+        if (compareAndSet(current, next)) return next
+    }
+}
