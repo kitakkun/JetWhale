@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.network.agent.okhttp
 
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
+import com.kitakkun.jetwhale.plugins.network.agent.NetworkConditionPlan
 import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
@@ -69,15 +70,38 @@ private class JetWhaleNetworkOkHttpInterceptor(
         val started = TimeSource.Monotonic.markNow()
 
         recordRequest(request, txId)
+        // The condition shapes the network and the mock stands in for the server, so a mocked
+        // response still travels through the simulated network.
+        val condition = agent.planNetworkCondition(request.method, request.url.toString())
         val mock = agent.findMock(request.method, request.url.toString())
 
-        val response = if (mock != null) {
-            serveMock(request, mock)
-        } else {
-            sendRequest(chain, request, txId, started)
-        }
-        recordResponse(response, fromMock = mock != null, txId = txId, started = started)
-        return response
+        val response = exchange(chain, request, condition, mock, txId, started)
+        recordResponse(response, fromMock = mock != null, condition = condition, txId = txId, started = started)
+        // Captured before pacing, so the capture does not wait on the throttle; the caller still
+        // reads the body at the capped rate.
+        return condition?.downloadBytesPerSecond?.let(response::withBodyPacedTo) ?: response
+    }
+
+    private fun exchange(
+        chain: Interceptor.Chain,
+        request: Request,
+        condition: NetworkConditionPlan?,
+        mock: MockResponseSpec?,
+        txId: String,
+        started: TimeSource.Monotonic.ValueTimeMark,
+    ): Response = try {
+        val shaped = condition?.let { simulateNetworkBeforeExchange(it, request) } ?: request
+        if (mock != null) serveMock(request, mock) else chain.proceed(shaped)
+    } catch (e: Throwable) {
+        agent.recordFailure(
+            HttpRequestFailure(
+                txId = txId,
+                message = e.message ?: e.toString(),
+                durationMs = started.elapsedNow().inWholeMilliseconds,
+                condition = condition?.applied(),
+            ),
+        )
+        throw e
     }
 
     private fun recordRequest(request: Request, txId: String) {
@@ -101,20 +125,7 @@ private class JetWhaleNetworkOkHttpInterceptor(
         return buildMockResponse(request, mock)
     }
 
-    private fun sendRequest(chain: Interceptor.Chain, request: Request, txId: String, started: TimeSource.Monotonic.ValueTimeMark): Response = try {
-        chain.proceed(request)
-    } catch (e: Throwable) {
-        agent.recordFailure(
-            HttpRequestFailure(
-                txId = txId,
-                message = e.message ?: e.toString(),
-                durationMs = started.elapsedNow().inWholeMilliseconds,
-            ),
-        )
-        throw e
-    }
-
-    private fun recordResponse(response: Response, fromMock: Boolean, txId: String, started: TimeSource.Monotonic.ValueTimeMark) {
+    private fun recordResponse(response: Response, fromMock: Boolean, condition: NetworkConditionPlan?, txId: String, started: TimeSource.Monotonic.ValueTimeMark) {
         val body = captureResponseBodySafely(response, maxBodyChars, maxImageBytes)
         agent.recordResponse(
             CapturedHttpResponse(
@@ -127,6 +138,7 @@ private class JetWhaleNetworkOkHttpInterceptor(
                 bodyEncoding = body.encoding,
                 durationMs = started.elapsedNow().inWholeMilliseconds,
                 fromMock = fromMock,
+                condition = condition?.applied(),
             ),
         )
     }
