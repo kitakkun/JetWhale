@@ -1,0 +1,177 @@
+public final class com/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming$Companion;
+	public fun <init> (JJJJJJJ)V
+	public final fun component1 ()J
+	public final fun component2 ()J
+	public final fun component3 ()J
+	public final fun component4 ()J
+	public final fun component5 ()J
+	public final fun component6 ()J
+	public final fun component7 ()J
+	public final fun copy (JJJJJJJ)Lcom/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming;JJJJJJJILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBase64Millis ()J
+	public final fun getCaptureStartedEpochMillis ()J
+	public final fun getComposeMillis ()J
+	public final fun getCompressMillis ()J
+	public final fun getMainThreadMicros ()J
+	public final fun getPixelCopyMillis ()J
+	public final fun getSentEpochMillis ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/screen/protocol/GrantFrameCredit : com/kitakkun/jetwhale/protocol/messaging/JetWhaleEvent {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/screen/protocol/GrantFrameCredit$Companion;
+	public fun <init> (I)V
+	public final fun component1 ()I
+	public final fun copy (I)Lcom/kitakkun/jetwhale/plugins/screen/protocol/GrantFrameCredit;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/screen/protocol/GrantFrameCredit;IILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/screen/protocol/GrantFrameCredit;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCount ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/screen/protocol/GrantFrameCredit$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/screen/protocol/GrantFrameCredit$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/screen/protocol/GrantFrameCredit;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/screen/protocol/GrantFrameCredit;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/screen/protocol/GrantFrameCredit$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/screen/protocol/ScreenFrame : com/kitakkun/jetwhale/protocol/messaging/JetWhaleEvent {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenFrame$Companion;
+	public fun <init> (JIILjava/lang/String;Lcom/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming;)V
+	public final fun component1 ()J
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Lcom/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming;
+	public final fun copy (JIILjava/lang/String;Lcom/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming;)Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenFrame;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenFrame;JIILjava/lang/String;Lcom/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenFrame;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getHeightPx ()I
+	public final fun getJpegBase64 ()Ljava/lang/String;
+	public final fun getSequence ()J
+	public final fun getTiming ()Lcom/kitakkun/jetwhale/plugins/screen/protocol/FrameTiming;
+	public final fun getWidthPx ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/screen/protocol/ScreenFrame$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenFrame$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenFrame;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenFrame;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/screen/protocol/ScreenFrame$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/screen/protocol/ScreenMessagesKt {
+	public static final field SCREEN_PLUGIN_ID Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/screen/protocol/ScreenStreamStatus {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenStreamStatus$Companion;
+	public fun <init> (ZLjava/lang/String;J)V
+	public final fun component1 ()Z
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()J
+	public final fun copy (ZLjava/lang/String;J)Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenStreamStatus;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenStreamStatus;ZLjava/lang/String;JILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenStreamStatus;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAgentEpochMillis ()J
+	public final fun getStreaming ()Z
+	public final fun getUnsupportedReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/screen/protocol/ScreenStreamStatus$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenStreamStatus$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenStreamStatus;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/screen/protocol/ScreenStreamStatus;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/screen/protocol/ScreenStreamStatus$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/screen/protocol/StartScreenStream : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/screen/protocol/StartScreenStream$Companion;
+	public fun <init> (FIII)V
+	public final fun component1 ()F
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun copy (FIII)Lcom/kitakkun/jetwhale/plugins/screen/protocol/StartScreenStream;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/screen/protocol/StartScreenStream;FIIIILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/screen/protocol/StartScreenStream;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getInitialCredits ()I
+	public final fun getJpegQuality ()I
+	public final fun getMaxFramesPerSecond ()I
+	public final fun getScale ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/screen/protocol/StartScreenStream$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/screen/protocol/StartScreenStream$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/screen/protocol/StartScreenStream;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/screen/protocol/StartScreenStream;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/screen/protocol/StartScreenStream$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/screen/protocol/StopScreenStream : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/screen/protocol/StopScreenStream;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+

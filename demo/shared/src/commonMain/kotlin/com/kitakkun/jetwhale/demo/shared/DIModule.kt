@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.plugins.nav3.agent.JetWhaleNav3AgentPlugin
 import com.kitakkun.jetwhale.plugins.nav3.agent.Nav3KeyCodec
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.agent.ktor.ktorClientPlugin
+import com.kitakkun.jetwhale.plugins.screen.agent.JetWhaleScreenAgentPlugin
 import com.kitakkun.jetwhale.plugins.semantics.agent.JetWhaleSemanticsAgentPlugin
 import com.kitakkun.jetwhale.plugins.storage.agent.JetWhaleStorageAgentPlugin
 import io.ktor.client.HttpClient
@@ -30,6 +31,8 @@ object DIModule {
     val semanticsAgentPlugin: JetWhaleSemanticsAgentPlugin by lazy { JetWhaleSemanticsAgentPlugin() }
 
     val storageAgentPlugin: JetWhaleStorageAgentPlugin by lazy(JetWhaleStorageAgentPlugin::platformDefaults)
+
+    val screenAgentPlugin: JetWhaleScreenAgentPlugin by lazy(::JetWhaleScreenAgentPlugin)
 
     /** A demo Ktor client wired to the Network Inspector so its traffic shows up in the debugger. */
     val httpClient: HttpClient by lazy {

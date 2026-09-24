@@ -1,0 +1,193 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, linuxArm64, linuxX64, macosArm64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.screen:protocol>
+final class com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming { // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming|null[0]
+    constructor <init>(kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long, kotlin/Long) // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.<init>|<init>(kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long){}[0]
+
+    final val base64Millis // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.base64Millis|{}base64Millis[0]
+        final fun <get-base64Millis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.base64Millis.<get-base64Millis>|<get-base64Millis>(){}[0]
+    final val captureStartedEpochMillis // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.captureStartedEpochMillis|{}captureStartedEpochMillis[0]
+        final fun <get-captureStartedEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.captureStartedEpochMillis.<get-captureStartedEpochMillis>|<get-captureStartedEpochMillis>(){}[0]
+    final val composeMillis // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.composeMillis|{}composeMillis[0]
+        final fun <get-composeMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.composeMillis.<get-composeMillis>|<get-composeMillis>(){}[0]
+    final val compressMillis // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.compressMillis|{}compressMillis[0]
+        final fun <get-compressMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.compressMillis.<get-compressMillis>|<get-compressMillis>(){}[0]
+    final val mainThreadMicros // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.mainThreadMicros|{}mainThreadMicros[0]
+        final fun <get-mainThreadMicros>(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.mainThreadMicros.<get-mainThreadMicros>|<get-mainThreadMicros>(){}[0]
+    final val pixelCopyMillis // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.pixelCopyMillis|{}pixelCopyMillis[0]
+        final fun <get-pixelCopyMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.pixelCopyMillis.<get-pixelCopyMillis>|<get-pixelCopyMillis>(){}[0]
+    final val sentEpochMillis // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.sentEpochMillis|{}sentEpochMillis[0]
+        final fun <get-sentEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.sentEpochMillis.<get-sentEpochMillis>|<get-sentEpochMillis>(){}[0]
+
+    final fun component1(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.component1|component1(){}[0]
+    final fun component2(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.component2|component2(){}[0]
+    final fun component3(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.component3|component3(){}[0]
+    final fun component4(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.component4|component4(){}[0]
+    final fun component5(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.component5|component5(){}[0]
+    final fun component6(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.component6|component6(){}[0]
+    final fun component7(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.component7|component7(){}[0]
+    final fun copy(kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.copy|copy(kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long;kotlin.Long){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming> { // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming) // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.screen.protocol.FrameTiming){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming> // com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit : com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent { // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit|null[0]
+    constructor <init>(kotlin/Int) // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.<init>|<init>(kotlin.Int){}[0]
+
+    final val count // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.count|{}count[0]
+        final fun <get-count>(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.count.<get-count>|<get-count>(){}[0]
+
+    final fun component1(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.component1|component1(){}[0]
+    final fun copy(kotlin/Int = ...): com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.copy|copy(kotlin.Int){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit> { // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit) // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.screen.protocol.GrantFrameCredit){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit> // com.kitakkun.jetwhale.plugins.screen.protocol/GrantFrameCredit.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame : com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent { // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame|null[0]
+    constructor <init>(kotlin/Long, kotlin/Int, kotlin/Int, kotlin/String, com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming) // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.<init>|<init>(kotlin.Long;kotlin.Int;kotlin.Int;kotlin.String;com.kitakkun.jetwhale.plugins.screen.protocol.FrameTiming){}[0]
+
+    final val heightPx // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.heightPx|{}heightPx[0]
+        final fun <get-heightPx>(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.heightPx.<get-heightPx>|<get-heightPx>(){}[0]
+    final val jpegBase64 // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.jpegBase64|{}jpegBase64[0]
+        final fun <get-jpegBase64>(): kotlin/String // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.jpegBase64.<get-jpegBase64>|<get-jpegBase64>(){}[0]
+    final val sequence // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.sequence|{}sequence[0]
+        final fun <get-sequence>(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.sequence.<get-sequence>|<get-sequence>(){}[0]
+    final val timing // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.timing|{}timing[0]
+        final fun <get-timing>(): com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.timing.<get-timing>|<get-timing>(){}[0]
+    final val widthPx // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.widthPx|{}widthPx[0]
+        final fun <get-widthPx>(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.widthPx.<get-widthPx>|<get-widthPx>(){}[0]
+
+    final fun component1(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.component1|component1(){}[0]
+    final fun component2(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.component2|component2(){}[0]
+    final fun component3(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.component3|component3(){}[0]
+    final fun component4(): kotlin/String // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.component4|component4(){}[0]
+    final fun component5(): com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.component5|component5(){}[0]
+    final fun copy(kotlin/Long = ..., kotlin/Int = ..., kotlin/Int = ..., kotlin/String = ..., com.kitakkun.jetwhale.plugins.screen.protocol/FrameTiming = ...): com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.copy|copy(kotlin.Long;kotlin.Int;kotlin.Int;kotlin.String;com.kitakkun.jetwhale.plugins.screen.protocol.FrameTiming){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame> { // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame) // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.screen.protocol.ScreenFrame){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame> // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenFrame.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus { // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus|null[0]
+    constructor <init>(kotlin/Boolean, kotlin/String?, kotlin/Long) // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.<init>|<init>(kotlin.Boolean;kotlin.String?;kotlin.Long){}[0]
+
+    final val agentEpochMillis // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.agentEpochMillis|{}agentEpochMillis[0]
+        final fun <get-agentEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.agentEpochMillis.<get-agentEpochMillis>|<get-agentEpochMillis>(){}[0]
+    final val streaming // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.streaming|{}streaming[0]
+        final fun <get-streaming>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.streaming.<get-streaming>|<get-streaming>(){}[0]
+    final val unsupportedReason // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.unsupportedReason|{}unsupportedReason[0]
+        final fun <get-unsupportedReason>(): kotlin/String? // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.unsupportedReason.<get-unsupportedReason>|<get-unsupportedReason>(){}[0]
+
+    final fun component1(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.component1|component1(){}[0]
+    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.component2|component2(){}[0]
+    final fun component3(): kotlin/Long // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.component3|component3(){}[0]
+    final fun copy(kotlin/Boolean = ..., kotlin/String? = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.copy|copy(kotlin.Boolean;kotlin.String?;kotlin.Long){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus> { // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus) // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.screen.protocol.ScreenStreamStatus){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus> // com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus> { // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream|null[0]
+    constructor <init>(kotlin/Float, kotlin/Int, kotlin/Int, kotlin/Int) // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.<init>|<init>(kotlin.Float;kotlin.Int;kotlin.Int;kotlin.Int){}[0]
+
+    final val initialCredits // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.initialCredits|{}initialCredits[0]
+        final fun <get-initialCredits>(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.initialCredits.<get-initialCredits>|<get-initialCredits>(){}[0]
+    final val jpegQuality // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.jpegQuality|{}jpegQuality[0]
+        final fun <get-jpegQuality>(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.jpegQuality.<get-jpegQuality>|<get-jpegQuality>(){}[0]
+    final val maxFramesPerSecond // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.maxFramesPerSecond|{}maxFramesPerSecond[0]
+        final fun <get-maxFramesPerSecond>(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.maxFramesPerSecond.<get-maxFramesPerSecond>|<get-maxFramesPerSecond>(){}[0]
+    final val scale // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.scale|{}scale[0]
+        final fun <get-scale>(): kotlin/Float // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.scale.<get-scale>|<get-scale>(){}[0]
+
+    final fun component1(): kotlin/Float // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.component1|component1(){}[0]
+    final fun component2(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.component2|component2(){}[0]
+    final fun component3(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.component3|component3(){}[0]
+    final fun component4(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.component4|component4(){}[0]
+    final fun copy(kotlin/Float = ..., kotlin/Int = ..., kotlin/Int = ..., kotlin/Int = ...): com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.copy|copy(kotlin.Float;kotlin.Int;kotlin.Int;kotlin.Int){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream> { // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream) // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.screen.protocol.StartScreenStream){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream> // com.kitakkun.jetwhale.plugins.screen.protocol/StartScreenStream.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final object com.kitakkun.jetwhale.plugins.screen.protocol/StopScreenStream : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.screen.protocol/ScreenStreamStatus>, kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.screen.protocol/StopScreenStream|null[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.screen.protocol/StopScreenStream.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.protocol/StopScreenStream.hashCode|hashCode(){}[0]
+    final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.screen.protocol/StopScreenStream> // com.kitakkun.jetwhale.plugins.screen.protocol/StopScreenStream.serializer|serializer(){}[0]
+    final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.screen.protocol/StopScreenStream.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.screen.protocol/StopScreenStream.toString|toString(){}[0]
+}
+
+final const val com.kitakkun.jetwhale.plugins.screen.protocol/SCREEN_PLUGIN_ID // com.kitakkun.jetwhale.plugins.screen.protocol/SCREEN_PLUGIN_ID|{}SCREEN_PLUGIN_ID[0]
+    final fun <get-SCREEN_PLUGIN_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.screen.protocol/SCREEN_PLUGIN_ID.<get-SCREEN_PLUGIN_ID>|<get-SCREEN_PLUGIN_ID>(){}[0]

@@ -1,0 +1,21 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.screen:agent>
+final class com.kitakkun.jetwhale.plugins.screen.agent/JetWhaleScreenAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.plugins.screen.agent/JetWhaleScreenAgentPlugin|null[0]
+    constructor <init>() // com.kitakkun.jetwhale.plugins.screen.agent/JetWhaleScreenAgentPlugin.<init>|<init>(){}[0]
+
+    final val pluginId // com.kitakkun.jetwhale.plugins.screen.agent/JetWhaleScreenAgentPlugin.pluginId|{}pluginId[0]
+        final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.plugins.screen.agent/JetWhaleScreenAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    final val pluginVersion // com.kitakkun.jetwhale.plugins.screen.agent/JetWhaleScreenAgentPlugin.pluginVersion|{}pluginVersion[0]
+        final fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.plugins.screen.agent/JetWhaleScreenAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+}
+
+final val com.kitakkun.jetwhale.plugins.screen.agent/com_kitakkun_jetwhale_plugins_screen_agent_JetWhaleScreenAgentPlugin$stableprop // com.kitakkun.jetwhale.plugins.screen.agent/com_kitakkun_jetwhale_plugins_screen_agent_JetWhaleScreenAgentPlugin$stableprop|#static{}com_kitakkun_jetwhale_plugins_screen_agent_JetWhaleScreenAgentPlugin$stableprop[0]
+
+final fun (androidx.compose.ui/Modifier).com.kitakkun.jetwhale.plugins.screen.agent/maskedInScreenStream(): androidx.compose.ui/Modifier // com.kitakkun.jetwhale.plugins.screen.agent/maskedInScreenStream|maskedInScreenStream@androidx.compose.ui.Modifier(){}[0]
+final fun com.kitakkun.jetwhale.plugins.screen.agent/com_kitakkun_jetwhale_plugins_screen_agent_JetWhaleScreenAgentPlugin$stableprop_getter(): kotlin/Int // com.kitakkun.jetwhale.plugins.screen.agent/com_kitakkun_jetwhale_plugins_screen_agent_JetWhaleScreenAgentPlugin$stableprop_getter|com_kitakkun_jetwhale_plugins_screen_agent_JetWhaleScreenAgentPlugin$stableprop_getter(){}[0]
