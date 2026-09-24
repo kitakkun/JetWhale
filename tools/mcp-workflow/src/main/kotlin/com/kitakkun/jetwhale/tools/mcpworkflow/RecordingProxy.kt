@@ -7,6 +7,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
@@ -70,11 +71,13 @@ class RecordingProxy(
             description = "Lists the tool calls recorded so far through this proxy.",
             inputSchema = ToolSchema(),
         ) {
+            val lines = calls.mapIndexed { index, call -> JsonPrimitive("${index + 1}. ${call.server}: ${call.tool}${if (call.isError) " (error)" else ""}") }
             text(
                 buildJsonObject {
                     put("recordedCalls", calls.size)
-                    put("calls", JsonArray(calls.mapIndexed { index, call -> JsonPrimitive("${index + 1}. ${call.server}: ${call.tool}${if (call.isError) " (error)" else ""}") }))
+                    put("calls", JsonArray(lines))
                 }.toString(),
+                isError = false,
             )
         }
         server.addTool(
@@ -84,53 +87,48 @@ class RecordingProxy(
         ) {
             val dropped = calls.size
             calls.clear()
-            text("""{"cleared":$dropped}""")
+            text("""{"cleared":$dropped}""", isError = false)
         }
         server.addTool(
             name = "workflow_recording_save",
             description = "Saves the recorded calls as a replayable workflow file. Values an earlier call returned and a later call used " +
                 "become saved variables, so the workflow works in a fresh run. Returns the workflow written.",
-            inputSchema = ToolSchema(
-                properties = buildJsonObject {
-                    putJsonObject("path") {
-                        put("type", "string")
-                        put("description", "File to write, e.g. workflows/login.yaml")
-                    }
-                    putJsonObject("name") {
-                        put("type", "string")
-                        put("description", "Workflow name")
-                    }
-                    putJsonObject("description") {
-                        put("type", "string")
-                        put("description", "What the flow checks")
-                    }
-                    putJsonObject("dropReads") {
-                        put("type", "boolean")
-                        put("description", "Leave out read-only calls whose results no later call uses")
-                    }
-                    putJsonObject("parameters") {
-                        put("type", "object")
-                        put("description", "Recorded literal values to turn into workflow inputs, as input name to value")
-                    }
-                },
-                required = listOf("path", "name"),
+            inputSchema = SaveToolSchema,
+        ) { request -> save(request.params.arguments ?: JsonObject(emptyMap())) }
+    }
+
+    private fun save(arguments: JsonObject): CallToolResult {
+        val path = arguments["path"]?.jsonPrimitive?.content ?: return text("""{"error":"path is required"}""", isError = true)
+        val name = arguments["name"]?.jsonPrimitive?.content ?: return text("""{"error":"name is required"}""", isError = true)
+        val yaml = workflowToYaml(
+            export(
+                name = name,
+                description = arguments["description"]?.jsonPrimitive?.content,
+                dropReads = arguments["dropReads"]?.jsonPrimitive?.booleanOrNull == true,
+                parameters = (arguments["parameters"] as? JsonObject).orEmpty(),
             ),
-        ) { request ->
-            val arguments = request.params.arguments ?: JsonObject(emptyMap())
-            val path = arguments["path"]?.jsonPrimitive?.content ?: return@addTool text("""{"error":"path is required"}""", isError = true)
-            val name = arguments["name"]?.jsonPrimitive?.content ?: return@addTool text("""{"error":"name is required"}""", isError = true)
-            val yaml = workflowToYaml(
-                export(
-                    name = name,
-                    description = arguments["description"]?.jsonPrimitive?.content,
-                    dropReads = arguments["dropReads"]?.jsonPrimitive?.booleanOrNull == true,
-                    parameters = (arguments["parameters"] as? JsonObject).orEmpty(),
-                ),
-            )
-            File(path).apply { absoluteFile.parentFile?.mkdirs() }.writeText(yaml)
-            text(yaml)
-        }
+        )
+        File(path).apply { absoluteFile.parentFile?.mkdirs() }.writeText(yaml)
+        return text(yaml, isError = false)
     }
 }
 
-private fun text(value: String, isError: Boolean = false): CallToolResult = CallToolResult(content = listOf(TextContent(value)), isError = isError)
+private val SaveToolSchema = ToolSchema(
+    properties = buildJsonObject {
+        property(name = "path", type = "string", description = "File to write, e.g. workflows/login.yaml")
+        property(name = "name", type = "string", description = "Workflow name")
+        property(name = "description", type = "string", description = "What the flow checks")
+        property(name = "dropReads", type = "boolean", description = "Leave out read-only calls whose results no later call uses")
+        property(name = "parameters", type = "object", description = "Recorded literal values to turn into workflow inputs, as input name to value")
+    },
+    required = listOf("path", "name"),
+)
+
+private fun JsonObjectBuilder.property(name: String, type: String, description: String) {
+    putJsonObject(name) {
+        put("type", type)
+        put("description", description)
+    }
+}
+
+private fun text(value: String, isError: Boolean): CallToolResult = CallToolResult(content = listOf(TextContent(value)), isError = isError)

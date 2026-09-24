@@ -123,7 +123,7 @@ private fun record(options: CommandLine): Int {
     val port = options.single("port")?.toInt()
     if (port != null) {
         System.err.println("mcp-workflow: recording proxy on http://127.0.0.1:$port/sse")
-        serveSse(port, proxy::createServer)
+        serveSse(port, wait = true, proxy::createServer)
     } else {
         runBlocking { serveStdio(proxy.createServer()) }
     }
@@ -143,7 +143,7 @@ private fun serve(options: CommandLine): Int {
     val port = options.single("port")?.toInt()
     if (port != null) {
         System.err.println("mcp-workflow: serving ${files.size} workflows on http://127.0.0.1:$port/sse")
-        serveSse(port) { toolServer.createServer() }
+        serveSse(port, wait = true) { toolServer.createServer() }
     } else {
         runBlocking { serveStdio(toolServer.createServer()) }
     }

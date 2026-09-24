@@ -155,8 +155,9 @@ class WorkflowRunner(
     )
 
     private suspend fun attempt(step: Step, server: String, variables: Map<String, JsonElement>): Attempt {
-        val arguments = try {
-            renderTemplate(step.args, variables, environment) as JsonObject
+        // Expected values are templated like arguments, so a step can check the value it just sent.
+        val (arguments, expectations) = try {
+            renderTemplate(step.args, variables, environment) as JsonObject to step.expect.map { it.rendered(variables) }
         } catch (e: TemplateException) {
             return Attempt(null, null, null, emptyMap(), e.message, fatal = true)
         }
@@ -177,7 +178,7 @@ class WorkflowRunner(
         }
         val document = resultDocument(result)
         val isError = result.isError == true
-        val failure = evaluate(step, document, isError)
+        val failure = evaluate(expectations, document, isError)
         if (failure != null) return Attempt(arguments, result, document, emptyMap(), failure, fatal = false)
         val saved = mutableMapOf<String, JsonElement>()
         step.save.forEach { (name, path) ->
@@ -187,10 +188,17 @@ class WorkflowRunner(
         return Attempt(arguments, result, document, saved, null, fatal = false)
     }
 
-    private fun evaluate(step: Step, document: JsonElement, isError: Boolean): String? {
-        if (isError && step.expect.none { it.error != null }) return "the tool reported an error: ${document.render()}"
-        return step.expect.firstNotNullOfOrNull { failureOf(it, document, isError) }
+    private fun evaluate(expectations: List<Expectation>, document: JsonElement, isError: Boolean): String? {
+        if (isError && expectations.none { it.error != null }) return "the tool reported an error: ${document.render()}"
+        return expectations.firstNotNullOfOrNull { failureOf(it, document, isError) }
     }
+
+    private fun Expectation.rendered(variables: Map<String, JsonElement>): Expectation = copy(
+        equals = equals?.let { renderTemplate(it, variables, environment) },
+        notEquals = notEquals?.let { renderTemplate(it, variables, environment) },
+        contains = contains?.let { renderTemplate(it, variables, environment) },
+        matches = matches?.let { (renderTemplate(JsonPrimitive(it), variables, environment) as JsonPrimitive).content },
+    )
 
     private fun writeImages(index: Int, step: Step, result: CallToolResult): List<File> {
         val directory = artifactDirectory ?: return emptyList()

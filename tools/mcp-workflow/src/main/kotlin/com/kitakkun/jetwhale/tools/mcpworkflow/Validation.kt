@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.tools.mcpworkflow
 
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.time.Duration
 
 /**
@@ -24,6 +25,8 @@ fun validate(workflow: Workflow, servers: Set<String>): List<String> {
         step.save.forEach { (name, path) -> checkPath(path)?.let { problems += "$where: save '$name': $it" } }
         step.expect.forEach { expectation ->
             checkPath(expectation.path)?.let { problems += "$where: expect: $it" }
+            val templates = listOfNotNull(expectation.equals, expectation.notEquals, expectation.contains, expectation.matches?.let(::JsonPrimitive))
+            (templates.flatMap(::templateReferences).toSet() - defined).forEach { problems += "$where: expect refers to '$it' before anything defines it" }
             expectation.matches?.let { pattern -> runCatching { Regex(pattern) }.onFailure { problems += "$where: expect: /$pattern/ is not a regex" } }
         }
         listOfNotNull(step.timeout, step.wait?.timeout, step.wait?.interval).forEach { text ->

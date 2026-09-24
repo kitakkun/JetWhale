@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.tools.mcpworkflow
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.install
+import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.response.respondText
@@ -39,10 +40,13 @@ internal suspend fun serveStdio(server: Server) {
     closed.await()
 }
 
-/** Serves MCP over SSE on [port], one [createServer] per connection, until the process is stopped. */
-internal fun serveSse(port: Int, createServer: suspend () -> Server) {
+/**
+ * Serves MCP over SSE at `http://127.0.0.1:<port>/sse`, one [createServer] per connection. Port 0
+ * picks a free port; [wait] blocks until the process is stopped.
+ */
+internal fun serveSse(port: Int, wait: Boolean, createServer: suspend () -> Server): EmbeddedServer<*, *> {
     val transports = ConcurrentHashMap<String, SseServerTransport>()
-    embeddedServer(Netty, host = "127.0.0.1", port = port) {
+    return embeddedServer(Netty, host = "127.0.0.1", port = port) {
         install(SSE)
         routing {
             sse("/sse") {
@@ -61,5 +65,5 @@ internal fun serveSse(port: Int, createServer: suspend () -> Server) {
                 transport.handlePostMessage(call)
             }
         }
-    }.start(wait = true)
+    }.start(wait = wait)
 }
