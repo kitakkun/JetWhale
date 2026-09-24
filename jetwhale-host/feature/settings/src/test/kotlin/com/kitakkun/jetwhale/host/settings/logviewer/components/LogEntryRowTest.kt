@@ -1,17 +1,36 @@
 package com.kitakkun.jetwhale.host.settings.logviewer.components
 
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.v2.runComposeUiTest
+import com.kitakkun.jetwhale.host.model.LogEntry
+import com.kitakkun.jetwhale.host.model.LogLevel
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Instant
+import java.util.TimeZone as JavaTimeZone
 
 class LogEntryRowTest {
+    @OptIn(ExperimentalTestApi::class)
     @Test
-    fun `the time of day is shown in the given zone rather than in UTC`() {
-        val instant = Instant.parse("2026-09-24T16:30:43.497Z")
+    fun `a row shows its time in the machine's time zone`() {
+        val previous = JavaTimeZone.getDefault()
+        JavaTimeZone.setDefault(JavaTimeZone.getTimeZone("Asia/Tokyo"))
+        try {
+            runComposeUiTest {
+                setContent {
+                    JwTheme(darkTheme = false) {
+                        LogEntryRow(LogEntry(timestamp = Instant.parse("2026-09-24T16:30:43.497Z"), message = "hello", level = LogLevel.INFO))
+                    }
+                }
 
-        assertEquals("01:30:43", instant.timeOfDayIn(TimeZone.of("Asia/Tokyo")))
-        assertEquals("16:30:43", instant.timeOfDayIn(TimeZone.UTC))
+                onNodeWithText("01:30:43").assertExists()
+            }
+        } finally {
+            JavaTimeZone.setDefault(previous)
+        }
     }
 
     @Test
