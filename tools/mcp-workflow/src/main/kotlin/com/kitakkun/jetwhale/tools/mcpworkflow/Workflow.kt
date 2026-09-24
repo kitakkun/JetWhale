@@ -85,6 +85,9 @@ data class InputSpec(
  *   condition.
  * @property timeout Longest a single call may take, e.g. `10s`.
  * @property continueOnFailure Report the failure and go on with the next step instead of stopping.
+ * @property always Run even after an earlier step failed — for teardown that must not be left
+ *   undone, such as removing a mock the workflow installed. A variable the step needs but that was
+ *   never saved fails the step as usual.
  * @property reconnect Open a new connection to the server before this step. Many servers fix a
  *   connection's tool list when it opens, so a tool enabled by an earlier step is only callable on a
  *   new connection.
@@ -103,6 +106,7 @@ data class Step(
     val timeout: String? = null,
     val continueOnFailure: Boolean = false,
     val reconnect: Boolean = false,
+    val always: Boolean = false,
 )
 
 @Serializable

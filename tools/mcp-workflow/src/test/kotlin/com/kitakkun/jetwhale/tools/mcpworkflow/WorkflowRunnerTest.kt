@@ -64,6 +64,19 @@ class WorkflowRunnerTest {
     }
 
     @Test
+    fun `an always step runs after a failure`() = runTest {
+        val caller = FakeToolCaller { _, tool, _ -> textResult("{}", isError = tool == "check") }
+
+        val outcome = runner(caller, setOf("app")).run(
+            workflow(Step(call = "setUp"), Step(call = "check"), Step(call = "more"), Step(call = "tearDown", always = true)),
+            inputs = emptyMap(),
+        )
+
+        assertEquals(listOf(StepStatus.PASSED, StepStatus.FAILED, StepStatus.SKIPPED, StepStatus.PASSED), outcome.steps.map(StepOutcome::status))
+        assertFalse(outcome.passed)
+    }
+
+    @Test
     fun `continueOnFailure goes on to the next step`() = runTest {
         val caller = FakeToolCaller { _, _, _ -> textResult("{}", isError = true) }
 
