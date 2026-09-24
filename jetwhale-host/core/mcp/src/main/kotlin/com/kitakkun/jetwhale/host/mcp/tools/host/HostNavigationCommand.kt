@@ -99,7 +99,7 @@ class HostNavigationCommand(
         }
     }
 
-    /** Turns the three ways a plugin screen can silently fail to open into three distinct errors. */
+    /** Turns the ways a plugin screen can silently fail to open into distinct errors. */
     private suspend fun validatePlugin(targetPluginId: String, targetSessionId: String?) {
         if (targetPluginId !in pluginFactoryRepository.loadedPlugins) {
             throw JetWhaleMcpArgumentException("invalid pluginId: '$targetPluginId' is not installed. See jetwhale.listInstalledPlugins.")
@@ -116,6 +116,11 @@ class HostNavigationCommand(
         }
         val session = debugSessionRepository.debugSessionsFlow.firstOrNull()?.find { it.id == targetSessionId }
             ?: throw JetWhaleMcpArgumentException("invalid sessionId: no session '$targetSessionId'. See jetwhale.listSessions.")
+        // A disconnected session stays listed, but its plugin instances are already gone: the screen
+        // would open on nothing, after the cleanup that closes such screens has run.
+        if (!session.isActive) {
+            throw JetWhaleMcpArgumentException("invalid sessionId: session '$targetSessionId' is disconnected. Pick one with isActive: true from jetwhale.listSessions.")
+        }
         if (session.installedPlugins.none { it.pluginId == targetPluginId }) {
             throw JetWhaleMcpArgumentException("invalid sessionId: session '$targetSessionId' does not have '$targetPluginId' installed on its agent.")
         }
