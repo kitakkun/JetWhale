@@ -133,9 +133,16 @@ fun ShrunkToolingDrawerView(
                             contentDescription = null,
                         )
                     }
-                    // No room for the "MCP" tag in the rail, so the plugin's MCP status collapses to
-                    // a dot: filled while an agent is operating it, a ring when it merely exposes tools.
-                    if (it.underAiControl || it.exposesMcpTools) {
+                    // No room for the "MCP" or error tags in the rail, so they collapse to a dot: a
+                    // filled error dot when the plugin has failed, a filled one while an agent is
+                    // operating it, a ring when it merely exposes tools.
+                    if (it.failureMessage != null) {
+                        RailBadge(
+                            tone = JwTone.Error,
+                            filled = true,
+                            modifier = Modifier.align(Alignment.BottomEnd),
+                        )
+                    } else if (it.underAiControl || it.exposesMcpTools) {
                         RailBadge(
                             tone = if (it.underAiControl) JwTone.Warning else JwTone.Neutral,
                             filled = it.underAiControl,
@@ -261,6 +268,7 @@ private fun ShrunkToolingDrawerViewPreview() {
                 exposesMcpTools = true,
                 isHeadless = false,
                 needsApp = true,
+                failureMessage = null,
             ),
         ),
         sessions = persistentListOf(),

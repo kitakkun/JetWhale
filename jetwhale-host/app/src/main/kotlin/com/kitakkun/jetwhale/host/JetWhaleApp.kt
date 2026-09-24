@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -24,11 +25,14 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
+import com.kitakkun.jetwhale.host.component.SafeModeBanner
+import com.kitakkun.jetwhale.host.component.UncleanExitBanner
 import com.kitakkun.jetwhale.host.component.UpdateAvailableBanner
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldRoot
 import com.kitakkun.jetwhale.host.model.AppLanguage
 import com.kitakkun.jetwhale.host.model.JetWhaleColorScheme
+import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
 import com.kitakkun.jetwhale.host.model.UpdateCheckResult
 import com.kitakkun.jetwhale.host.navigation.DisabledPluginNavKey
 import com.kitakkun.jetwhale.host.navigation.EmptyPluginNavKey
@@ -51,10 +55,16 @@ import com.kitakkun.jetwhale.host.theme.AppEnvironment
 import com.kitakkun.jetwhale.host.theme.HostTheme
 import com.kitakkun.jetwhale.host.theme.clearFocusOnBlankPress
 import com.kitakkun.jetwhale.host.ui.JwSurface
+import kotlinx.coroutines.launch
 import kotlinx.serialization.modules.SerializersModule
 import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberMutation
 import soil.query.compose.rememberSubscription
+import java.awt.Desktop
+import java.io.File
+import java.io.IOException
+import java.util.logging.Level
+import java.util.logging.Logger
 
 // The window's entry point takes its whole dependency graph as a context parameter, which a
 // @Preview has no way to build.
@@ -264,6 +274,7 @@ private fun HostWindowContent(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
+        CrashRecoveryBanners()
         AnimatedVisibility(
             visible = availableUpdate != null && !isUpdateBannerDismissed,
             enter = slideInVertically(initialOffsetY = Int::unaryMinus) + expandVertically(expandFrom = Alignment.Top),
@@ -280,5 +291,54 @@ private fun HostWindowContent(
             }
         }
         JetWhaleNavDisplay(backStack)
+    }
+}
+
+@Composable
+context(appGraph: JetWhaleAppGraph)
+private fun CrashRecoveryBanners() {
+    val dismissUncleanExitReportMutation = rememberMutation(appGraph.dismissUncleanExitReportMutationKey)
+    val leaveSafeModeMutation = rememberMutation(appGraph.leaveSafeModeMutationKey)
+    val setPluginEnabledMutation = rememberMutation(appGraph.setPluginEnabledMutationKey)
+    val coroutineScope = rememberCoroutineScope()
+
+    SoilDataBoundary(
+        state1 = rememberSubscription(appGraph.uncleanExitReportSubscriptionKey),
+        state2 = rememberSubscription(appGraph.safeModeSubscriptionKey),
+        fallback = SoilFallbackDefaults.none(),
+    ) { uncleanExitReport, safeMode ->
+        Column {
+            uncleanExitReport?.let { report ->
+                UncleanExitBanner(
+                    report = report,
+                    onClickOpenCrashLog = { path -> openInDesktop(File(path)) },
+                    onClickOpenLogs = { directory -> openInDesktop(File(directory)) },
+                    onClickDisablePlugin = { pluginId ->
+                        coroutineScope.launch {
+                            setPluginEnabledMutation.mutateAsync(SetPluginEnabledParams(pluginId = pluginId, enabled = false))
+                            dismissUncleanExitReportMutation.mutateAsync(Unit)
+                        }
+                    },
+                    onDismiss = { coroutineScope.launch { dismissUncleanExitReportMutation.mutateAsync(Unit) } },
+                )
+            }
+            safeMode?.let {
+                SafeModeBanner(
+                    safeMode = safeMode,
+                    onClickLoadPlugins = { coroutineScope.launch { leaveSafeModeMutation.mutateAsync(Unit) } },
+                )
+            }
+        }
+    }
+}
+
+private fun openInDesktop(file: File) {
+    try {
+        Desktop.getDesktop().open(file)
+    } catch (e: IOException) {
+        Logger.getLogger("com.kitakkun.jetwhale.host.CrashRecoveryBanners").log(Level.WARNING, "Could not open ${file.path}", e)
+    } catch (e: IllegalArgumentException) {
+        // Desktop.open rejects a file that no longer exists, such as a crash log deleted since startup.
+        Logger.getLogger("com.kitakkun.jetwhale.host.CrashRecoveryBanners").log(Level.WARNING, "Could not open ${file.path}", e)
     }
 }
