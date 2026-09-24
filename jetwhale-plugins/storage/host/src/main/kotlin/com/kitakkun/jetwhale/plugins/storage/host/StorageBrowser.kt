@@ -89,8 +89,12 @@ internal class StorageBrowser(
             loadFile(selected.location)
         }
         val storeNames = loaded.keyValueStores.map(KeyValueStoreInfo::name)
-        selectedStore = selectedStore?.takeIf(storeNames::contains) ?: storeNames.firstOrNull()
-        selectedStore?.let { loadStore(it) }
+        val nextStore = selectedStore?.takeIf(storeNames::contains) ?: storeNames.firstOrNull()
+        if (nextStore != selectedStore) {
+            selectedStore = nextStore
+            storeContent = null
+        }
+        nextStore?.let { loadStore(it) }
     }
 
     override fun refresh() = launchReporting {

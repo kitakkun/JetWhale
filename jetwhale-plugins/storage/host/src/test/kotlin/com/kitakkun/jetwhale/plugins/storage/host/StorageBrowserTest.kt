@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.storage.host
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
+import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -50,6 +51,33 @@ class StorageBrowserTest {
         firstStoreGate.complete(Unit)
 
         assertEquals(emptyList(), browser.storeContent?.entries)
+    }
+
+    @Test
+    fun `a reload that moves the selection to another store shows nothing until that store is read`() {
+        var firstStoreRemoved = false
+        val secondStoreGate = CompletableDeferred<Unit>()
+        val changingApp = object : StorageClient by client {
+            override suspend fun locations(): StorageLocations {
+                val locations = client.locations()
+                if (!firstStoreRemoved) return locations
+                return locations.copy(keyValueStores = locations.keyValueStores.filterNot { it.name == "first" })
+            }
+
+            override suspend fun readKeyValueStore(storeName: String): KeyValueStoreContent {
+                if (storeName == "second") secondStoreGate.await()
+                return client.readKeyValueStore(storeName)
+            }
+        }
+        val reloadingBrowser = StorageBrowser(changingApp, CoroutineScope(Dispatchers.Unconfined))
+        runBlocking { reloadingBrowser.load() }
+        firstStoreRemoved = true
+
+        reloadingBrowser.refresh()
+
+        assertEquals("second", reloadingBrowser.selectedStore)
+        assertNull(reloadingBrowser.storeContent)
+        secondStoreGate.complete(Unit)
     }
 
     @Test
