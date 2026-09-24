@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.demo
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
 import android.widget.Button
@@ -19,12 +20,14 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.kitakkun.jetwhale.demo.shared.App
+import com.kitakkun.jetwhale.demo.shared.DemoDeepLinks
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.light(0, 0))
 
         super.onCreate(savedInstanceState)
+        intent?.data?.let { DemoDeepLinks.handle(it.toString()) }
 
         val header = TextView(this).apply {
             id = R.id.demo_view_host_header
@@ -55,6 +58,12 @@ class MainActivity : ComponentActivity() {
                 addView(composeView)
             },
         )
+    }
+
+    // singleTask: a link opened while the demo runs arrives here instead of starting a second copy.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.data?.let { DemoDeepLinks.handle(it.toString()) }
     }
 }
 
