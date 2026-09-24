@@ -95,6 +95,9 @@ include(":jetwhale-plugins:nav3:host")
 include(":jetwhale-plugins:semantics:protocol")
 include(":jetwhale-plugins:semantics:agent")
 include(":jetwhale-plugins:semantics:host")
+include(":jetwhale-plugins:storage:protocol")
+include(":jetwhale-plugins:storage:agent")
+include(":jetwhale-plugins:storage:host")
 
 include(":test-annotations")
 

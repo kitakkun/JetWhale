@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +25,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -205,17 +207,39 @@ public fun <T> JwTable(
             contentPadding = contentPadding,
         ) {
             items(items = items, key = key) { item ->
-                JwListItem(
-                    selected = isSelected(item),
-                    onClick = { onClick?.invoke(item) },
-                    enabled = onClick != null,
-                ) {
+                val cells: @Composable RowScope.() -> Unit = {
                     columns.forEach { column ->
                         Cell(column) { column.cell(item) }
                     }
                 }
+                if (onClick == null) {
+                    ReadOnlyRow(selected = isSelected(item), content = cells)
+                } else {
+                    JwListItem(selected = isSelected(item), onClick = { onClick(item) }, content = cells)
+                }
             }
         }
+    }
+}
+
+/**
+ * A row of a table without [JwTable]'s onClick: the same metrics and selection tint as
+ * [JwListItem], in the ordinary text color, with no hover and nothing to click.
+ */
+@Composable
+private fun ReadOnlyRow(selected: Boolean, content: @Composable RowScope.() -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = JwMetrics.controlHeight)
+            .clip(JwShapes.small)
+            .background(if (selected) JwTheme.colors.selection else Color.Transparent)
+            .padding(horizontal = JwSpacing.medium),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
+    ) {
+        val contentColor = if (selected) JwTheme.colors.onSelection else JwTheme.colors.onSurface
+        CompositionLocalProvider(LocalJwContentColor provides contentColor, content = { content() })
     }
 }
 

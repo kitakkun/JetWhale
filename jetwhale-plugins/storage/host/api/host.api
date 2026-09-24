@@ -1,0 +1,12 @@
+public final class com/kitakkun/jetwhale/plugins/storage/host/ComposableSingletons$KeyValuePaneKt {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/storage/host/ComposableSingletons$KeyValuePaneKt;
+	public fun <init> ()V
+	public final fun getLambda$-1877101365$com_kitakkun_jetwhale_plugins_storage_host ()Lkotlin/jvm/functions/Function2;
+}
+
+public final class com/kitakkun/jetwhale/plugins/storage/host/StorageHostPluginFactory : com/kitakkun/jetwhale/host/sdk/JetWhaleHostPluginFactory {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun createPlugin ()Lcom/kitakkun/jetwhale/host/sdk/JetWhaleHostPlugin;
+}
+

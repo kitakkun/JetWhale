@@ -67,5 +67,11 @@ object OfficialPluginCatalog {
             description = "Browse and drive the Compose node tree of connected debug sessions.",
             artifactId = "jetwhale-compose-semantics-inspector",
         ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.storage",
+            displayName = "Storage Inspector",
+            description = "Browse the files and key-value stores of connected debug sessions.",
+            artifactId = "jetwhale-storage-inspector",
+        ),
     )
 }
