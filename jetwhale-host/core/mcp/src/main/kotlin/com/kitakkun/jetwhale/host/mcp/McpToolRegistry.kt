@@ -33,6 +33,11 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      */
     private val registrations: ConcurrentHashMap<String, PluginToolEntry> = ConcurrentHashMap()
 
+    // Instances register from several threads at once. Each change rebuilds the capable set from
+    // [registrations]; without one lock around the change and the rebuild, a rebuild that started
+    // earlier can publish last and drop a plugin that is registered.
+    private val publishLock = Any()
+
     /**
      * Which plugins currently offer MCP tools, so the UI can mark them before an agent acts.
      */
@@ -43,7 +48,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * Registers all MCP tools declared by a plugin instance.
      * Only called if the plugin implements [JetWhaleMcpCapablePlugin].
      */
-    fun register(pluginId: String, sessionId: String, plugin: JetWhaleMcpCapablePlugin) {
+    fun register(pluginId: String, sessionId: String, plugin: JetWhaleMcpCapablePlugin) = synchronized(publishLock) {
         plugin.mcpCommands.forEach { command ->
             val entry = registrations.getOrPut(command.name) {
                 PluginToolEntry(descriptor = command.toDescriptor(), sessionToPlugin = ConcurrentHashMap())
@@ -57,7 +62,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * Removes the given session from every tool entry.
      * Tool entries with no remaining sessions are cleaned up.
      */
-    fun unregister(pluginId: String, sessionId: String) {
+    fun unregister(pluginId: String, sessionId: String) = synchronized(publishLock) {
         registrations.entries.removeIf { (_, entry) ->
             if (entry.sessionToPlugin[sessionId] == pluginId) {
                 entry.sessionToPlugin.remove(sessionId)
@@ -100,7 +105,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
     fun pluginIdFor(toolName: String, sessionId: String): String? = registrations[toolName]?.sessionToPlugin?.get(sessionId)
 
     /** Removes all registered plugin tools. Call on server stop to avoid stale entries on restart. */
-    fun clear() {
+    fun clear() = synchronized(publishLock) {
         registrations.clear()
         publishCapablePlugins()
     }
