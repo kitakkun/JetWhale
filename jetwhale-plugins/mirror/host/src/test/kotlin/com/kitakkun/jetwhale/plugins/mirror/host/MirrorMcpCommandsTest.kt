@@ -87,6 +87,37 @@ class MirrorMcpCommandsTest {
     }
 
     @Test
+    fun `a swipe with a negative point, a bad duration or an end off the screen never reaches the device`() {
+        val refused = listOf(
+            swipe(fromX = -1, toY = 600, durationMillis = null),
+            swipe(fromX = 540, toY = 600, durationMillis = -5),
+            swipe(fromX = 540, toY = 600, durationMillis = 60_000),
+            swipe(fromX = 1080, toY = 600, durationMillis = null),
+            swipe(fromX = 540, toY = 2400, durationMillis = null),
+        ).map { arguments -> runCatching { SwipeCommand(mirror).run(arguments) }.exceptionOrNull() }
+
+        assertTrue(refused.all { it is JetWhaleMcpArgumentException }, refused.toString())
+        assertEquals(emptyList(), emulator.calls)
+    }
+
+    @Test
+    fun `a negative swipe is refused before the device is looked up`() {
+        val failure = assertFailsWith<JetWhaleMcpArgumentException> {
+            SwipeCommand(mirror).run(
+                buildJsonObject {
+                    put("deviceId", "nope")
+                    put("fromX", -1)
+                    put("fromY", 0)
+                    put("toX", 0)
+                    put("toY", 0)
+                },
+            )
+        }
+
+        assertTrue("negative" in failure.message.orEmpty())
+    }
+
+    @Test
     fun `an unknown device is refused with a pointer to listDevices`() {
         val failure = assertFailsWith<JetWhaleMcpArgumentException> {
             PressButtonCommand(mirror).run(
@@ -128,6 +159,15 @@ class MirrorMcpCommandsTest {
 
         assertEquals(listOf(CaptureQuery(deviceId = null, kind = null, sinceEpochMillis = null)), mirror.captureQueries)
     }
+}
+
+// A swipe on the 1080x2400 test screen from ([fromX], 1800) to (540, [toY]).
+private fun swipe(fromX: Int, toY: Int, durationMillis: Int?) = buildJsonObject {
+    put("fromX", fromX)
+    put("fromY", 1800)
+    put("toX", 540)
+    put("toY", toY)
+    durationMillis?.let { put("durationMillis", it) }
 }
 
 @OptIn(ExperimentalJetWhaleApi::class)
