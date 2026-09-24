@@ -15,11 +15,16 @@ import kotlin.io.encoding.Base64
 /** An app whose storage is the maps below, answering the way the agent plugin does. */
 internal class FakeStorageClient(
     private val directories: MutableMap<FileLocation, List<FileEntry>>,
-    private val files: Map<FileLocation, ByteArray>,
+    private val files: MutableMap<FileLocation, ByteArray>,
     private val stores: MutableMap<String, List<KeyValueEntry>>,
 ) : StorageClient {
     val deleted = mutableListOf<FileLocation>()
     val fileReads = mutableListOf<Triple<FileLocation, Long, Int>>()
+    val chunkWrites = mutableListOf<Pair<Long, Int>>()
+    private val staged = mutableMapOf<String, ByteArray>()
+
+    /** A file name the app refuses to write, to exercise the error path. */
+    val unwritableName = "read-only.bin"
 
     override suspend fun locations(): StorageLocations = StorageLocations(
         fileRoots = directories.keys.filter { it.path.isEmpty() }.map { FileRootInfo(name = it.rootName, absolutePath = "/data/${it.rootName}") },
@@ -36,6 +41,23 @@ internal class FakeStorageClient(
         val bytes = files[location] ?: return FileContent(contentBase64 = "", totalSizeBytes = 0, error = "'${location.name}' is not a file")
         val end = minOf(bytes.size.toLong(), offset + maxBytes).toInt()
         return FileContent(contentBase64 = Base64.encode(bytes.copyOfRange(offset.toInt(), end)), totalSizeBytes = bytes.size.toLong(), error = null)
+    }
+
+    override suspend fun writeFileChunk(location: FileLocation, uploadId: String, offset: Long, bytes: ByteArray, isLast: Boolean): StorageOperationResult {
+        chunkWrites += offset to bytes.size
+        if (location.name == unwritableName) return StorageOperationResult(error = "'${location.name}' is read-only")
+        val received = staged[uploadId] ?: ByteArray(0)
+        if (received.size.toLong() != offset) return StorageOperationResult(error = "the upload expected offset ${received.size}")
+        val assembled = received + bytes
+        staged[uploadId] = assembled
+        if (isLast) {
+            staged.remove(uploadId)
+            files[location] = assembled
+            val parent = FileLocation(location.rootName, location.path.dropLast(1))
+            val siblings = directories[parent].orEmpty().filterNot { it.name == location.name }
+            directories[parent] = siblings + fileEntry(location.name, sizeBytes = files.getValue(location).size.toLong())
+        }
+        return StorageOperationResult(error = null)
     }
 
     override suspend fun delete(location: FileLocation): StorageOperationResult {
@@ -83,3 +105,9 @@ internal fun fileEntry(name: String, sizeBytes: Long): FileEntry = FileEntry(
 internal fun directoryEntry(name: String): FileEntry = fileEntry(name, sizeBytes = 0).copy(isDirectory = true)
 
 internal fun location(rootName: String, vararg path: String): FileLocation = FileLocation(rootName, path.toList())
+
+internal suspend fun StorageClient.wholeFile(location: FileLocation): ByteArray {
+    var bytes = ByteArray(0)
+    readWholeFile(location) { bytes += it }
+    return bytes
+}

@@ -27,7 +27,7 @@ class StorageMcpCommandsTest {
             location("Files") to listOf(directoryEntry("datastore"), fileEntry("notes.txt", sizeBytes = 5)),
             location("Files", "datastore") to listOf(fileEntry("empty.preferences_pb", sizeBytes = 5)),
         ),
-        files = mapOf(
+        files = mutableMapOf(
             location("Files", "notes.txt") to "hello".encodeToByteArray(),
             location("Files", "app.db") to binary,
             location("Files", "datastore", "empty.preferences_pb") to ByteArray(0),
@@ -131,6 +131,47 @@ class StorageMcpCommandsTest {
 
         assertEquals(false, "sha256" in result)
         assertEquals(true, "error" in result)
+    }
+
+    @Test
+    fun `writeFile writes text as UTF-8`() {
+        WriteFileCommand(client).run(
+            buildJsonObject {
+                put("root", "Files")
+                put("path", "seed.json")
+                put("content", "{\"id\": 1}")
+            },
+        )
+
+        assertEquals("{\"id\": 1}", runBlocking { client.wholeFile(location("Files", "seed.json")) }.decodeToString())
+    }
+
+    @Test
+    fun `writeFile decodes Base64 content`() {
+        WriteFileCommand(client).run(
+            buildJsonObject {
+                put("root", "Files")
+                put("path", "app.db")
+                put("content", Base64.encode(binary))
+                put("encoding", "base64")
+            },
+        )
+
+        assertEquals(binary.toList(), runBlocking { client.wholeFile(location("Files", "app.db")) }.toList())
+    }
+
+    @Test
+    fun `writeFile refuses an encoding it does not know`() {
+        assertFailsWith<JetWhaleMcpArgumentException> {
+            WriteFileCommand(client).run(
+                buildJsonObject {
+                    put("root", "Files")
+                    put("path", "seed.json")
+                    put("content", "x")
+                    put("encoding", "latin-1")
+                },
+            )
+        }
     }
 
     private fun file(path: String): JsonObject = buildJsonObject {

@@ -21,7 +21,9 @@ import com.kitakkun.jetwhale.plugins.storage.protocol.ReadKeyValueStore
 import com.kitakkun.jetwhale.plugins.storage.protocol.RemoveKeyValue
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageOperationResult
+import com.kitakkun.jetwhale.plugins.storage.protocol.WriteFileChunk
 import com.kitakkun.jetwhale.protocol.messaging.request
+import kotlin.io.encoding.Base64
 
 // Instantiated by the host via the fully-qualified name declared in plugin-manifest.json.
 @Suppress("UNUSED")
@@ -51,6 +53,17 @@ private class StorageHostPlugin :
 
     override suspend fun delete(location: FileLocation): StorageOperationResult = messenger.request(DeleteFileEntry(rootName = location.rootName, path = location.path))
 
+    override suspend fun writeFileChunk(location: FileLocation, uploadId: String, offset: Long, bytes: ByteArray, isLast: Boolean): StorageOperationResult = messenger.request(
+        WriteFileChunk(
+            rootName = location.rootName,
+            path = location.path,
+            uploadId = uploadId,
+            offset = offset,
+            contentBase64 = Base64.encode(bytes),
+            isLast = isLast,
+        ),
+    )
+
     override suspend fun measureDirectory(location: FileLocation): DirectoryMeasurement = messenger.request(MeasureDirectory(rootName = location.rootName, path = location.path))
 
     override suspend fun readKeyValueStore(storeName: String): KeyValueStoreContent = messenger.request(ReadKeyValueStore(storeName))
@@ -67,6 +80,7 @@ private class StorageHostPlugin :
         ListDirectoryCommand(this),
         ReadFileCommand(this),
         DeleteFileEntryCommand(this),
+        WriteFileCommand(this),
         ReadKeyValueStoreCommand(this),
         RemoveKeyValueCommand(this),
         MeasureDirectoryCommand(this),

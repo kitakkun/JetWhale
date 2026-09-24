@@ -23,7 +23,7 @@ class StorageBrowserTest {
             location("Files") to listOf(directoryEntry("datastore"), fileEntry("notes.txt", sizeBytes = 5)),
             location("Files", "datastore") to listOf(fileEntry("settings.preferences_pb", sizeBytes = 5)),
         ),
-        files = mapOf(location("Files", "notes.txt") to "hello".encodeToByteArray()),
+        files = mutableMapOf(location("Files", "notes.txt") to "hello".encodeToByteArray()),
         stores = mutableMapOf(
             "first" to listOf(KeyValueEntry(key = "a", value = "1", type = "Int")),
             "second" to emptyList(),
@@ -91,7 +91,7 @@ class StorageBrowserTest {
         val large = ByteArray(2 * MAX_FILE_READ_BYTES + 123) { (it % 251).toByte() }
         val app = FakeStorageClient(
             directories = mutableMapOf(location("Files") to listOf(fileEntry("large.bin", sizeBytes = large.size.toLong()))),
-            files = mapOf(location("Files", "large.bin") to large),
+            files = mutableMapOf(location("Files", "large.bin") to large),
             stores = mutableMapOf(),
         )
         val target = File.createTempFile("storage-save", ".bin").apply { deleteOnExit() }
@@ -137,7 +137,7 @@ class StorageBrowserTest {
         // 30 directories of 30 directories each: 930 entries, well past the limit.
         val directories = mutableMapOf(location("Cache") to (0 until 30).map { directoryEntry("d$it") })
         (0 until 30).forEach { outer -> directories[location("Cache", "d$outer")] = (0 until 30).map { directoryEntry("e$it") } }
-        val wideApp = FakeStorageClient(directories = directories, files = emptyMap(), stores = mutableMapOf())
+        val wideApp = FakeStorageClient(directories = directories, files = mutableMapOf(), stores = mutableMapOf())
         val wideBrowser = StorageBrowser(wideApp, CoroutineScope(Dispatchers.Unconfined))
         runBlocking { wideBrowser.load() }
 
@@ -223,5 +223,62 @@ class StorageBrowserTest {
 
         assertNull(browser.selectedRow)
         assertEquals(listOf("Files", "notes.txt"), browser.treeRows.map { it.location.name })
+    }
+
+    @Test
+    fun `uploading a file larger than one chunk sends all of it in order`() {
+        val large = ByteArray(2 * MAX_FILE_READ_BYTES + 7) { (it % 253).toByte() }
+        val source = File.createTempFile("storage-upload", ".bin").apply {
+            deleteOnExit()
+            writeBytes(large)
+        }
+        runBlocking { browser.load() }
+
+        browser.requestUpload(location("Files", "large.bin"), source)
+
+        assertEquals(listOf(0L to MAX_FILE_READ_BYTES, MAX_FILE_READ_BYTES.toLong() to MAX_FILE_READ_BYTES, 2L * MAX_FILE_READ_BYTES to 7), client.chunkWrites)
+        assertContentEquals(large, runBlocking { client.wholeFile(location("Files", "large.bin")) })
+        assertEquals(false, browser.status?.isError)
+    }
+
+    @Test
+    fun `an upload that would replace a file waits for confirmation`() {
+        val source = File.createTempFile("storage-upload", ".txt").apply {
+            deleteOnExit()
+            writeText("replaced")
+        }
+        runBlocking { browser.load() }
+
+        browser.requestUpload(location("Files", "notes.txt"), source)
+
+        assertEquals(PendingUpload(location("Files", "notes.txt"), source), browser.pendingUpload)
+        assertTrue(client.chunkWrites.isEmpty())
+
+        browser.confirmUpload()
+
+        assertNull(browser.pendingUpload)
+        assertEquals("replaced", runBlocking { client.wholeFile(location("Files", "notes.txt")) }.decodeToString())
+    }
+
+    @Test
+    fun `a cancelled replacement sends nothing`() {
+        val source = File.createTempFile("storage-upload", ".txt").apply { deleteOnExit() }
+        runBlocking { browser.load() }
+        browser.requestUpload(location("Files", "notes.txt"), source)
+
+        browser.cancelUpload()
+
+        assertNull(browser.pendingUpload)
+        assertTrue(client.chunkWrites.isEmpty())
+    }
+
+    @Test
+    fun `an upload the app refuses is reported as an error`() {
+        val source = File.createTempFile("storage-upload", ".bin").apply { deleteOnExit() }
+        runBlocking { browser.load() }
+
+        browser.requestUpload(location("Files", client.unwritableName), source)
+
+        assertEquals(true, browser.status?.isError)
     }
 }
