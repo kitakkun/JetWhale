@@ -1,0 +1,391 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, linuxArm64, linuxX64, macosArm64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.mainthread:protocol>
+final enum class com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind : kotlin/Enum<com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind> { // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind|null[0]
+    enum entry CustomSlowCall // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.CustomSlowCall|null[0]
+    enum entry DiskRead // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.DiskRead|null[0]
+    enum entry DiskWrite // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.DiskWrite|null[0]
+    enum entry Network // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.Network|null[0]
+    enum entry Other // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.Other|null[0]
+    enum entry ResourceMismatch // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.ResourceMismatch|null[0]
+    enum entry UnbufferedIo // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.UnbufferedIo|null[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind> // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind> // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.values|values#static(){}[0]
+
+    final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind> // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.Companion.serializer|serializer(){}[0]
+        final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats { // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats|null[0]
+    constructor <init>(kotlin/Int, kotlin/Int, kotlin/Double, kotlin/Double, kotlin/Double, kotlin/Double, kotlin/Double, kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame>) // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.<init>|<init>(kotlin.Int;kotlin.Int;kotlin.Double;kotlin.Double;kotlin.Double;kotlin.Double;kotlin.Double;kotlin.collections.List<com.kitakkun.jetwhale.plugins.mainthread.protocol.JankyFrame>){}[0]
+
+    final val jankyFrames // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.jankyFrames|{}jankyFrames[0]
+        final fun <get-jankyFrames>(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.jankyFrames.<get-jankyFrames>|<get-jankyFrames>(){}[0]
+    final val p50Millis // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.p50Millis|{}p50Millis[0]
+        final fun <get-p50Millis>(): kotlin/Double // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.p50Millis.<get-p50Millis>|<get-p50Millis>(){}[0]
+    final val p90Millis // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.p90Millis|{}p90Millis[0]
+        final fun <get-p90Millis>(): kotlin/Double // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.p90Millis.<get-p90Millis>|<get-p90Millis>(){}[0]
+    final val p99Millis // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.p99Millis|{}p99Millis[0]
+        final fun <get-p99Millis>(): kotlin/Double // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.p99Millis.<get-p99Millis>|<get-p99Millis>(){}[0]
+    final val recentJankyFrames // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.recentJankyFrames|{}recentJankyFrames[0]
+        final fun <get-recentJankyFrames>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame> // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.recentJankyFrames.<get-recentJankyFrames>|<get-recentJankyFrames>(){}[0]
+    final val refreshIntervalMillis // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.refreshIntervalMillis|{}refreshIntervalMillis[0]
+        final fun <get-refreshIntervalMillis>(): kotlin/Double // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.refreshIntervalMillis.<get-refreshIntervalMillis>|<get-refreshIntervalMillis>(){}[0]
+    final val slowestMillis // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.slowestMillis|{}slowestMillis[0]
+        final fun <get-slowestMillis>(): kotlin/Double // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.slowestMillis.<get-slowestMillis>|<get-slowestMillis>(){}[0]
+    final val totalFrames // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.totalFrames|{}totalFrames[0]
+        final fun <get-totalFrames>(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.totalFrames.<get-totalFrames>|<get-totalFrames>(){}[0]
+
+    final fun component1(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.component1|component1(){}[0]
+    final fun component2(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.component2|component2(){}[0]
+    final fun component3(): kotlin/Double // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.component3|component3(){}[0]
+    final fun component4(): kotlin/Double // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.component4|component4(){}[0]
+    final fun component5(): kotlin/Double // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.component5|component5(){}[0]
+    final fun component6(): kotlin/Double // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.component6|component6(){}[0]
+    final fun component7(): kotlin/Double // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.component7|component7(){}[0]
+    final fun component8(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame> // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.component8|component8(){}[0]
+    final fun copy(kotlin/Int = ..., kotlin/Int = ..., kotlin/Double = ..., kotlin/Double = ..., kotlin/Double = ..., kotlin/Double = ..., kotlin/Double = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame> = ...): com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.copy|copy(kotlin.Int;kotlin.Int;kotlin.Double;kotlin.Double;kotlin.Double;kotlin.Double;kotlin.Double;kotlin.collections.List<com.kitakkun.jetwhale.plugins.mainthread.protocol.JankyFrame>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats> { // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats) // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.mainthread.protocol.FrameStats){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats> // com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot { // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot|null[0]
+    constructor <init>(kotlin/String, kotlin.collections/List<kotlin/String>, kotlin/Int, kotlin/Long, kotlin/Int) // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.<init>|<init>(kotlin.String;kotlin.collections.List<kotlin.String>;kotlin.Int;kotlin.Long;kotlin.Int){}[0]
+
+    final val blockedMillis // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.blockedMillis|{}blockedMillis[0]
+        final fun <get-blockedMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.blockedMillis.<get-blockedMillis>|<get-blockedMillis>(){}[0]
+    final val frames // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.frames|{}frames[0]
+        final fun <get-frames>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.frames.<get-frames>|<get-frames>(){}[0]
+    final val sampleCount // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.sampleCount|{}sampleCount[0]
+        final fun <get-sampleCount>(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.sampleCount.<get-sampleCount>|<get-sampleCount>(){}[0]
+    final val signature // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.signature|{}signature[0]
+        final fun <get-signature>(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.signature.<get-signature>|<get-signature>(){}[0]
+    final val taskCount // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.taskCount|{}taskCount[0]
+        final fun <get-taskCount>(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.taskCount.<get-taskCount>|<get-taskCount>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.component2|component2(){}[0]
+    final fun component3(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.component3|component3(){}[0]
+    final fun component4(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.component4|component4(){}[0]
+    final fun component5(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.component5|component5(){}[0]
+    final fun copy(kotlin/String = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/Int = ..., kotlin/Long = ..., kotlin/Int = ...): com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.copy|copy(kotlin.String;kotlin.collections.List<kotlin.String>;kotlin.Int;kotlin.Long;kotlin.Int){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot> { // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot) // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.mainthread.protocol.Hotspot){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot> // com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame { // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame|null[0]
+    constructor <init>(kotlin/Long, kotlin/Double) // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.<init>|<init>(kotlin.Long;kotlin.Double){}[0]
+
+    final val durationMillis // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.durationMillis|{}durationMillis[0]
+        final fun <get-durationMillis>(): kotlin/Double // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.durationMillis.<get-durationMillis>|<get-durationMillis>(){}[0]
+    final val endEpochMillis // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.endEpochMillis|{}endEpochMillis[0]
+        final fun <get-endEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.endEpochMillis.<get-endEpochMillis>|<get-endEpochMillis>(){}[0]
+
+    final fun component1(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.component1|component1(){}[0]
+    final fun component2(): kotlin/Double // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.component2|component2(){}[0]
+    final fun copy(kotlin/Long = ..., kotlin/Double = ...): com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.copy|copy(kotlin.Long;kotlin.Double){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame> { // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame) // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.mainthread.protocol.JankyFrame){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame> // com.kitakkun.jetwhale.plugins.mainthread.protocol/JankyFrame.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask { // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask|null[0]
+    constructor <init>(kotlin/Long, kotlin/Long, kotlin/String, kotlin/Int, kotlin/Boolean) // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.<init>|<init>(kotlin.Long;kotlin.Long;kotlin.String;kotlin.Int;kotlin.Boolean){}[0]
+
+    final val durationMillis // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.durationMillis|{}durationMillis[0]
+        final fun <get-durationMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.durationMillis.<get-durationMillis>|<get-durationMillis>(){}[0]
+    final val label // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.label|{}label[0]
+        final fun <get-label>(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.label.<get-label>|<get-label>(){}[0]
+    final val sampleCount // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.sampleCount|{}sampleCount[0]
+        final fun <get-sampleCount>(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.sampleCount.<get-sampleCount>|<get-sampleCount>(){}[0]
+    final val startEpochMillis // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.startEpochMillis|{}startEpochMillis[0]
+        final fun <get-startEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.startEpochMillis.<get-startEpochMillis>|<get-startEpochMillis>(){}[0]
+    final val unresponsive // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.unresponsive|{}unresponsive[0]
+        final fun <get-unresponsive>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.unresponsive.<get-unresponsive>|<get-unresponsive>(){}[0]
+
+    final fun component1(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.component1|component1(){}[0]
+    final fun component2(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.component2|component2(){}[0]
+    final fun component3(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.component3|component3(){}[0]
+    final fun component4(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.component4|component4(){}[0]
+    final fun component5(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.component5|component5(){}[0]
+    final fun copy(kotlin/Long = ..., kotlin/Long = ..., kotlin/String = ..., kotlin/Int = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.copy|copy(kotlin.Long;kotlin.Long;kotlin.String;kotlin.Int;kotlin.Boolean){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask> { // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask) // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.mainthread.protocol.LongTask){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask> // com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport { // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport|null[0]
+    constructor <init>(com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities, com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings, kotlin/Long, kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask>, kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot>, kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup>, com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats) // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.<init>|<init>(com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorCapabilities;com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorSettings;kotlin.Long;kotlin.collections.List<com.kitakkun.jetwhale.plugins.mainthread.protocol.LongTask>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.mainthread.protocol.Hotspot>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.mainthread.protocol.ViolationGroup>;com.kitakkun.jetwhale.plugins.mainthread.protocol.FrameStats){}[0]
+
+    final val capabilities // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.capabilities|{}capabilities[0]
+        final fun <get-capabilities>(): com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.capabilities.<get-capabilities>|<get-capabilities>(){}[0]
+    final val frames // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.frames|{}frames[0]
+        final fun <get-frames>(): com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.frames.<get-frames>|<get-frames>(){}[0]
+    final val hotspots // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.hotspots|{}hotspots[0]
+        final fun <get-hotspots>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot> // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.hotspots.<get-hotspots>|<get-hotspots>(){}[0]
+    final val longTasks // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.longTasks|{}longTasks[0]
+        final fun <get-longTasks>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask> // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.longTasks.<get-longTasks>|<get-longTasks>(){}[0]
+    final val recordingSinceEpochMillis // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.recordingSinceEpochMillis|{}recordingSinceEpochMillis[0]
+        final fun <get-recordingSinceEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.recordingSinceEpochMillis.<get-recordingSinceEpochMillis>|<get-recordingSinceEpochMillis>(){}[0]
+    final val settings // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.settings|{}settings[0]
+        final fun <get-settings>(): com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.settings.<get-settings>|<get-settings>(){}[0]
+    final val violations // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.violations|{}violations[0]
+        final fun <get-violations>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup> // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.violations.<get-violations>|<get-violations>(){}[0]
+
+    final fun component1(): com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.component1|component1(){}[0]
+    final fun component2(): com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.component2|component2(){}[0]
+    final fun component3(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.component3|component3(){}[0]
+    final fun component4(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask> // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.component4|component4(){}[0]
+    final fun component5(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot> // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.component5|component5(){}[0]
+    final fun component6(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup> // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.component6|component6(){}[0]
+    final fun component7(): com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.component7|component7(){}[0]
+    final fun copy(com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities = ..., com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings = ..., kotlin/Long = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/LongTask> = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/Hotspot> = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup> = ..., com.kitakkun.jetwhale.plugins.mainthread.protocol/FrameStats = ...): com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.copy|copy(com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorCapabilities;com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorSettings;kotlin.Long;kotlin.collections.List<com.kitakkun.jetwhale.plugins.mainthread.protocol.LongTask>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.mainthread.protocol.Hotspot>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.mainthread.protocol.ViolationGroup>;com.kitakkun.jetwhale.plugins.mainthread.protocol.FrameStats){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport> { // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport) // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.mainthread.protocol.MainThreadReport){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport> // com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities { // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities|null[0]
+    constructor <init>(kotlin/String, kotlin/Boolean, kotlin/Boolean, kotlin/Boolean, kotlin/Boolean, kotlin/String?) // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.<init>|<init>(kotlin.String;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.String?){}[0]
+
+    final val frameTiming // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.frameTiming|{}frameTiming[0]
+        final fun <get-frameTiming>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.frameTiming.<get-frameTiming>|<get-frameTiming>(){}[0]
+    final val note // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.note|{}note[0]
+        final fun <get-note>(): kotlin/String? // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.note.<get-note>|<get-note>(){}[0]
+    final val platform // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.platform|{}platform[0]
+        final fun <get-platform>(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.platform.<get-platform>|<get-platform>(){}[0]
+    final val stackSampling // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.stackSampling|{}stackSampling[0]
+        final fun <get-stackSampling>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.stackSampling.<get-stackSampling>|<get-stackSampling>(){}[0]
+    final val strictMode // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.strictMode|{}strictMode[0]
+        final fun <get-strictMode>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.strictMode.<get-strictMode>|<get-strictMode>(){}[0]
+    final val taskTiming // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.taskTiming|{}taskTiming[0]
+        final fun <get-taskTiming>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.taskTiming.<get-taskTiming>|<get-taskTiming>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.component1|component1(){}[0]
+    final fun component2(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.component2|component2(){}[0]
+    final fun component3(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.component3|component3(){}[0]
+    final fun component4(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.component4|component4(){}[0]
+    final fun component5(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.component5|component5(){}[0]
+    final fun component6(): kotlin/String? // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.component6|component6(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.copy|copy(kotlin.String;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.Boolean;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities> { // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities) // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorCapabilities){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities> // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorCapabilities.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings { // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings|null[0]
+    constructor <init>(kotlin/Long, kotlin/Long, kotlin/Long) // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.<init>|<init>(kotlin.Long;kotlin.Long;kotlin.Long){}[0]
+
+    final val longTaskThresholdMillis // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.longTaskThresholdMillis|{}longTaskThresholdMillis[0]
+        final fun <get-longTaskThresholdMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.longTaskThresholdMillis.<get-longTaskThresholdMillis>|<get-longTaskThresholdMillis>(){}[0]
+    final val sampleIntervalMillis // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.sampleIntervalMillis|{}sampleIntervalMillis[0]
+        final fun <get-sampleIntervalMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.sampleIntervalMillis.<get-sampleIntervalMillis>|<get-sampleIntervalMillis>(){}[0]
+    final val unresponsiveThresholdMillis // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.unresponsiveThresholdMillis|{}unresponsiveThresholdMillis[0]
+        final fun <get-unresponsiveThresholdMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.unresponsiveThresholdMillis.<get-unresponsiveThresholdMillis>|<get-unresponsiveThresholdMillis>(){}[0]
+
+    final fun component1(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.component1|component1(){}[0]
+    final fun component2(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.component2|component2(){}[0]
+    final fun component3(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.component3|component3(){}[0]
+    final fun copy(kotlin/Long = ..., kotlin/Long = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.copy|copy(kotlin.Long;kotlin.Long;kotlin.Long){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings> { // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings) // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorSettings){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings> // com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings> { // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings|null[0]
+    constructor <init>(com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings) // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.<init>|<init>(com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorSettings){}[0]
+
+    final val settings // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.settings|{}settings[0]
+        final fun <get-settings>(): com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.settings.<get-settings>|<get-settings>(){}[0]
+
+    final fun component1(): com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.component1|component1(){}[0]
+    final fun copy(com.kitakkun.jetwhale.plugins.mainthread.protocol/MonitorSettings = ...): com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.copy|copy(com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorSettings){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings> { // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings) // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.mainthread.protocol.UpdateMonitorSettings){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings> // com.kitakkun.jetwhale.plugins.mainthread.protocol/UpdateMonitorSettings.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup { // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup|null[0]
+    constructor <init>(com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind, kotlin/String, kotlin/String, kotlin.collections/List<kotlin/String>, kotlin/Int, kotlin/Long) // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.<init>|<init>(com.kitakkun.jetwhale.plugins.mainthread.protocol.ViolationKind;kotlin.String;kotlin.String;kotlin.collections.List<kotlin.String>;kotlin.Int;kotlin.Long){}[0]
+
+    final val callSite // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.callSite|{}callSite[0]
+        final fun <get-callSite>(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.callSite.<get-callSite>|<get-callSite>(){}[0]
+    final val count // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.count|{}count[0]
+        final fun <get-count>(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.count.<get-count>|<get-count>(){}[0]
+    final val kind // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.kind|{}kind[0]
+        final fun <get-kind>(): com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.kind.<get-kind>|<get-kind>(){}[0]
+    final val lastEpochMillis // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.lastEpochMillis|{}lastEpochMillis[0]
+        final fun <get-lastEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.lastEpochMillis.<get-lastEpochMillis>|<get-lastEpochMillis>(){}[0]
+    final val message // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.message|{}message[0]
+        final fun <get-message>(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.message.<get-message>|<get-message>(){}[0]
+    final val stack // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.stack|{}stack[0]
+        final fun <get-stack>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.stack.<get-stack>|<get-stack>(){}[0]
+
+    final fun component1(): com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.component2|component2(){}[0]
+    final fun component3(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.component3|component3(){}[0]
+    final fun component4(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.component4|component4(){}[0]
+    final fun component5(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.component5|component5(){}[0]
+    final fun component6(): kotlin/Long // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.component6|component6(){}[0]
+    final fun copy(com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationKind = ..., kotlin/String = ..., kotlin/String = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/Int = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.copy|copy(com.kitakkun.jetwhale.plugins.mainthread.protocol.ViolationKind;kotlin.String;kotlin.String;kotlin.collections.List<kotlin.String>;kotlin.Int;kotlin.Long){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup> { // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup) // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.mainthread.protocol.ViolationGroup){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup> // com.kitakkun.jetwhale.plugins.mainthread.protocol/ViolationGroup.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final object com.kitakkun.jetwhale.plugins.mainthread.protocol/GetMainThreadReport : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport>, kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.mainthread.protocol/GetMainThreadReport|null[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/GetMainThreadReport.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/GetMainThreadReport.hashCode|hashCode(){}[0]
+    final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/GetMainThreadReport> // com.kitakkun.jetwhale.plugins.mainthread.protocol/GetMainThreadReport.serializer|serializer(){}[0]
+    final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.mainthread.protocol/GetMainThreadReport.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/GetMainThreadReport.toString|toString(){}[0]
+}
+
+final object com.kitakkun.jetwhale.plugins.mainthread.protocol/ResetMainThreadStats : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.mainthread.protocol/MainThreadReport>, kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.mainthread.protocol/ResetMainThreadStats|null[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.mainthread.protocol/ResetMainThreadStats.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.mainthread.protocol/ResetMainThreadStats.hashCode|hashCode(){}[0]
+    final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.mainthread.protocol/ResetMainThreadStats> // com.kitakkun.jetwhale.plugins.mainthread.protocol/ResetMainThreadStats.serializer|serializer(){}[0]
+    final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.mainthread.protocol/ResetMainThreadStats.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/ResetMainThreadStats.toString|toString(){}[0]
+}
+
+final const val com.kitakkun.jetwhale.plugins.mainthread.protocol/MAIN_THREAD_PLUGIN_ID // com.kitakkun.jetwhale.plugins.mainthread.protocol/MAIN_THREAD_PLUGIN_ID|{}MAIN_THREAD_PLUGIN_ID[0]
+    final fun <get-MAIN_THREAD_PLUGIN_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.protocol/MAIN_THREAD_PLUGIN_ID.<get-MAIN_THREAD_PLUGIN_ID>|<get-MAIN_THREAD_PLUGIN_ID>(){}[0]

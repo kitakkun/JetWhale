@@ -86,6 +86,9 @@ from its plugin catalog, add the matching artifact to your app, and register it 
   back stack, and pushing or popping entries from the host
 - **[Storage Inspector](https://kitakkun.github.io/JetWhale/guide/storage-inspector)** — the app's
   files, caches and key-value stores, with previews and deletion
+- **[Main Thread Monitor](https://kitakkun.github.io/JetWhale/guide/main-thread-monitor)** — what
+  blocks the main thread: long tasks and where they spent their time, StrictMode's disk and network
+  violations, and janky frames
 
 ## Developing plugins
 
