@@ -66,12 +66,13 @@ internal interface CapturesActions {
  */
 @Stable
 internal class MirrorCaptures(
+    defaultRoot: File,
     private val storage: JetWhalePluginStorage?,
     private val scope: CoroutineScope,
     private val zone: ZoneId,
 ) : CapturesActions,
     ThumbnailSource {
-    var library: CaptureLibrary by mutableStateOf(CaptureLibrary(defaultCapturesRoot(), zone))
+    var library: CaptureLibrary by mutableStateOf(CaptureLibrary(defaultRoot, zone))
         private set
 
     var captures: List<Capture> by mutableStateOf(emptyList())
@@ -118,7 +119,7 @@ internal class MirrorCaptures(
         library.record(file, captureInfo(device, CaptureKind.Screenshot, size, at, durationMillis = null)).also(::added)
     }
 
-    /** A file for a recording of [device] that starts now. */
+    /** A new, empty file for a recording of [device] that starts now. */
     fun recordingFile(device: DeviceListing): File = library.newFile(device, CaptureKind.Recording, Instant.now())
 
     /** Completes a recording [file] of [device] that ran from [startedAt] until now. */

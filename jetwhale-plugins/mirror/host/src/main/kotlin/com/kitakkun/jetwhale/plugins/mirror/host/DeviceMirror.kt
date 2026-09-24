@@ -125,6 +125,10 @@ internal class DeviceMirror(
     // keeps the old decoder from writing into the surface the new one has cleared.
     private val sessions = Mutex()
 
+    // The UI and MCP start and stop recordings concurrently; each start, stop or disposal runs to
+    // completion before the next looks at [recording].
+    private val recordings = Mutex()
+
     val selectedDevice: MirrorDevice? get() = devices.firstOrNull { it.id == selectedId }
 
     /** Keeps [devices] current until the caller is cancelled; the mirror runs it while it is shown. */
@@ -324,10 +328,12 @@ internal class DeviceMirror(
     }
 
     override fun toggleRecording() = control {
-        if (recording != null) {
-            status = MirrorStatus("Saved ${stopRecording().file.name}", isError = false)
-        } else {
-            startRecording(checkNotNull(selectedDevice))
+        recordings.withLock {
+            if (recording != null) {
+                status = MirrorStatus("Saved ${stopRunningRecording().file.name}", isError = false)
+            } else {
+                startRecordingOf(checkNotNull(selectedDevice))
+            }
         }
     }
 
@@ -340,14 +346,24 @@ internal class DeviceMirror(
 
     override suspend fun saveScreenshot(device: MirrorDevice): Capture = captures.addScreenshot(device.listing, device.controller.captureScreenshot())
 
-    override suspend fun startRecording(device: MirrorDevice) {
+    override suspend fun startRecording(device: MirrorDevice) = recordings.withLock { startRecordingOf(device) }
+
+    private suspend fun startRecordingOf(device: MirrorDevice) {
         if (recording != null) throw deviceControlError("a recording is already running; stop it first")
         val file = captures.recordingFile(device.listing)
-        recording = ActiveRecording(device, device.controller.startRecording(file), file, Instant.now())
+        val handle = try {
+            device.controller.startRecording(file)
+        } catch (e: DeviceControlException) {
+            file.delete()
+            throw e
+        }
+        recording = ActiveRecording(device, handle, file, Instant.now())
         recordingDeviceId = device.id
     }
 
-    override suspend fun stopRecording(): Capture {
+    override suspend fun stopRecording(): Capture = recordings.withLock { stopRunningRecording() }
+
+    private suspend fun stopRunningRecording(): Capture {
         val running = recording ?: throw deviceControlError("no recording is running")
         recording = null
         recordingDeviceId = null
@@ -364,9 +380,12 @@ internal class DeviceMirror(
 
     /** Stops what outlives the UI: a recording in progress. */
     suspend fun dispose() {
-        recording?.let {
-            recording = null
-            it.handle.stop()
+        recordings.withLock {
+            recording?.let {
+                recording = null
+                recordingDeviceId = null
+                it.handle.stop()
+            }
         }
         surface.close()
     }

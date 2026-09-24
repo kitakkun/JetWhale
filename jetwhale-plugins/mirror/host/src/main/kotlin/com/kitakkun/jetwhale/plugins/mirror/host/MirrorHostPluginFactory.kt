@@ -45,7 +45,7 @@ private class MirrorHostPlugin :
     private val mirror by lazy {
         DeviceMirror(
             discovery = DeviceDiscovery(tools, companions),
-            captures = MirrorCaptures(storage, pluginScope, ZoneId.systemDefault()),
+            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault()),
             scope = pluginScope,
         )
     }
