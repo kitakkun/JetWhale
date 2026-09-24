@@ -96,6 +96,21 @@ compose.resources {
     packageOfResClass = "com.kitakkun.jetwhale.host"
 }
 
+// Both launches take `-PjetwhaleAppDataDir=<path>` so a CI or QA run does not share the developer's
+// `~/.jetwhale` — its settings, plugin jars and trust registry — and a native crash writes its
+// report next to that directory's host.log instead of the working directory.
+val appDataDir = providers.gradleProperty("jetwhaleAppDataDir")
+val userHome = providers.systemProperty("user.home")
+tasks.withType<JavaExec>().matching { it.name == "run" || it.name == "runHeadless" }.configureEach {
+    jvmArgumentProviders.add(
+        CommandLineArgumentProvider {
+            val crashLogDir = appDataDir.orElse(userHome.map { "$it/.jetwhale" }).get() + "/logs"
+            appDataDir.map { listOf("-Djetwhale.appDataDir=$it") }.getOrElse(emptyList()) +
+                "-XX:ErrorFile=$crashLogDir/hs_err_pid%p.log"
+        },
+    )
+}
+
 // Headless launch, for CI and agent-driven QA: the same entry point and the same DI graph as the
 // windowed `run` task, minus the window. Host options go through `--args`, e.g.
 // `--args="--server-port 5081 --wss-port 5444 --mcp-server-port 7081 --mcp-allow-all-permissions"`.
@@ -108,15 +123,6 @@ tasks.register<JavaExec>("runHeadless") {
 
     // Prepended, so a caller's `--args` cannot end up before the flag that selects this mode.
     argumentProviders.add(CommandLineArgumentProvider { listOf("--headless") })
-
-    // A CI run must not share the developer's `~/.jetwhale`: `-PjetwhaleAppDataDir=<path>` gives it
-    // its own settings, plugin jars and trust registry.
-    val appDataDir = providers.gradleProperty("jetwhaleAppDataDir")
-    jvmArgumentProviders.add(
-        CommandLineArgumentProvider {
-            appDataDir.map { listOf("-Djetwhale.appDataDir=$it") }.getOrElse(emptyList())
-        },
-    )
 }
 
 val aboutLibrariesDir = layout.buildDirectory.dir("generated/aboutlibraries")
