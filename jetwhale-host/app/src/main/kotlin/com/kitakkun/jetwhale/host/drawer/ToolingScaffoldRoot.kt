@@ -292,9 +292,10 @@ private suspend fun ToolingScaffoldScreenActionResult.sessionChangeMessage(): St
 
 /**
  * The session a plugin navigation request lands on, or null to drop the request. Only a request
- * that named no session falls back to the drawer's selection. A named session that has gone away
- * or disconnected since the request was validated drops it: its plugin instances are unloaded, so
- * there is nothing to show — and navigating to some other app instead would surprise the caller.
+ * that named no session falls back to the drawer's selection. A session that has gone away or
+ * disconnected drops it — named, or selected but not yet replaced by the presenter: its plugin
+ * instances are unloaded, so there is nothing to show, and navigating to some other app instead
+ * would surprise the caller.
  */
 internal fun navigationTargetSession(
     requestedSessionId: String?,
@@ -302,5 +303,5 @@ internal fun navigationTargetSession(
     sessions: List<DebugSession>,
 ): DebugSession? = when (requestedSessionId) {
     null -> selectedSession
-    else -> sessions.firstOrNull { it.id == requestedSessionId }?.takeIf(DebugSession::isActive)
-}
+    else -> sessions.firstOrNull { it.id == requestedSessionId }
+}?.takeIf(DebugSession::isActive)
