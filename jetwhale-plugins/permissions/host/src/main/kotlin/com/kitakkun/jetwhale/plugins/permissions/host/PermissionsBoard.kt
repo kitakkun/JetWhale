@@ -10,6 +10,7 @@ import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionReport
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
 
 /** How many changes the timeline keeps; older ones scroll off. */
 private const val TIMELINE_LIMIT = 200
@@ -44,8 +45,14 @@ internal class PermissionsBoard(
     var status: PermissionsStatus? by mutableStateOf(null)
         private set
 
+    // Reloads overlap when changes arrive quickly; only the latest one started may be shown, or a
+    // slow earlier read would overwrite a newer state.
+    private val loadGeneration = AtomicInteger()
+
     suspend fun load() {
-        report = client.report()
+        val generation = loadGeneration.incrementAndGet()
+        val loaded = client.report()
+        if (generation == loadGeneration.get()) report = loaded
     }
 
     /**
