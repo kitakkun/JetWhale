@@ -12,6 +12,31 @@ internal expect fun fileSize(path: String): Long
 /** Deletes [path] and, for a directory, everything in it. A symbolic link is deleted, never followed. */
 internal expect fun deleteRecursively(path: String)
 
+/** Writes [bytes] to [path], replacing what is there or, with [append], after it. The parent must exist. */
+internal expect fun writeFileBytes(path: String, bytes: ByteArray, append: Boolean)
+
+/** Moves the file at [source] to [target], replacing a file already there. A directory is never replaced. */
+internal expect fun moveReplacing(source: String, target: String)
+
+/**
+ * Takes one chunk of an upload: collects it in [stagingPath] and, on the [isLast] chunk, moves the
+ * staged file over [targetPath]. Any failure removes the staged file, so a broken upload leaves
+ * [targetPath] as it was and has to start again from offset 0.
+ */
+internal fun receiveUploadChunk(stagingPath: String, targetPath: String, offset: Long, bytes: ByteArray, isLast: Boolean) {
+    try {
+        if (offset != 0L) {
+            val received = fileSize(stagingPath)
+            require(received == offset) { "the upload expected a chunk at offset $received, not $offset; start it again" }
+        }
+        writeFileBytes(stagingPath, bytes, append = offset != 0L)
+        if (isLast) moveReplacing(stagingPath, targetPath)
+    } catch (e: Exception) {
+        runCatching { deleteRecursively(stagingPath) }
+        throw e
+    }
+}
+
 /** True when [path] is [root] or lies below it once every symbolic link in both is resolved. */
 internal expect fun resolvesInside(path: String, root: String): Boolean
 

@@ -40,6 +40,10 @@ internal actual fun fileSize(path: String): Long = throw UnsupportedOperationExc
 
 internal actual fun deleteRecursively(path: String): Unit = throw UnsupportedOperationException(NO_FILE_SYSTEM)
 
+internal actual fun writeFileBytes(path: String, bytes: ByteArray, append: Boolean): Unit = throw UnsupportedOperationException(NO_FILE_SYSTEM)
+
+internal actual fun moveReplacing(source: String, target: String): Unit = throw UnsupportedOperationException(NO_FILE_SYSTEM)
+
 // The web has no file system, so there is no symbolic link to lead anywhere.
 internal actual fun resolvesInside(path: String, root: String): Boolean = true
 
