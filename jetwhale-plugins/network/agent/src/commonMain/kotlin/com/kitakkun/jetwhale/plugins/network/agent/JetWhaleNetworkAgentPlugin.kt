@@ -11,16 +11,20 @@ import com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure
 import com.kitakkun.jetwhale.plugins.network.protocol.MockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockRules
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockingEnabled
+import com.kitakkun.jetwhale.plugins.network.protocol.SetNetworkConditions
 import com.kitakkun.jetwhale.plugins.network.protocol.findMatching
+import com.kitakkun.jetwhale.plugins.network.protocol.findMatchingCondition
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.reply
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlin.random.Random
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -52,6 +56,11 @@ class JetWhaleNetworkAgentPlugin(
     private val mockingEnabled = MutableStateFlow(true)
     private val mockRules = MutableStateFlow(emptyList<MockRule>())
 
+    // Unlike mocks, conditions do not outlive the host: a forgotten "Offline" must not keep the app
+    // offline after the debugger has gone away. The host pushes its set again on every connection.
+    private val conditionRules = MutableStateFlow(emptyList<NetworkConditionRule>())
+    private val conditionRandom = Random.Default
+
     override fun JetWhaleMessageHandlers.configure() {
         // We are the config's source of truth (it survives host restarts); the host fetches it in onPrepare.
         onRequest { _: GetMockConfig ->
@@ -59,6 +68,10 @@ class JetWhaleNetworkAgentPlugin(
         }
         onRequest { request: SetMockRules ->
             mockRules.value = request.rules
+            reply(Ack)
+        }
+        onRequest { request: SetNetworkConditions ->
+            conditionRules.value = request.rules
             reply(Ack)
         }
         onRequest { request: SetMockingEnabled ->
@@ -69,6 +82,14 @@ class JetWhaleNetworkAgentPlugin(
         onRequest { _: GetRedactionConfig ->
             reply(RedactionConfig(mcpOnlyRules = redaction.mcpOnlyRules))
         }
+    }
+
+    override suspend fun onDisconnected() {
+        conditionRules.value = emptyList()
+    }
+
+    override fun onDeactivate() {
+        conditionRules.value = emptyList()
     }
 
     /** Generates a transaction id correlating a request with its response/failure. */
@@ -89,6 +110,12 @@ class JetWhaleNetworkAgentPlugin(
 
     /** Returns the mock response to serve for [method] [url], or null to perform the real call. */
     fun findMock(method: String, url: String): MockResponseSpec? = mockRules.value.findMatching(method = method, url = url, enabled = mockingEnabled.value)
+
+    /**
+     * Decides how the network condition matching [method] [url] treats this request, or returns
+     * null when no condition applies and the request goes through untouched. Call once per request.
+     */
+    fun planNetworkCondition(method: String, url: String): NetworkConditionPlan? = conditionRules.value.findMatchingCondition(method = method, url = url)?.plan(conditionRandom)
 
     companion object {
         const val PLUGIN_ID: String = "com.kitakkun.jetwhale.network"
