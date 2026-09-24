@@ -43,4 +43,6 @@ internal actual fun deleteRecursively(path: String): Unit = throw UnsupportedOpe
 // The web has no file system, so there is no symbolic link to lead anywhere.
 internal actual fun resolvesInside(path: String, root: String): Boolean = true
 
+internal actual fun isSymbolicLink(path: String): Boolean = throw UnsupportedOperationException(NO_FILE_SYSTEM)
+
 private const val NO_FILE_SYSTEM = "the web has no file system to browse"

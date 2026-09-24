@@ -88,8 +88,20 @@ platform the agent supports.
 
 - **Files.** A tree of every root; a directory lists its content when you open it. Alt-click
   (Option-click) opens or closes a directory with everything below it; opening stops after 500
-  entries, since each directory is another request to the app. Selecting a file
-  shows its path, size and modification time, and a preview of its first 256 KB:
+  entries, since each directory is another request to the app.
+- **Details.** Selecting an entry shows what is known about it:
+  - its path, and what keeps it when the path says so — SharedPreferences, a Preferences or Proto
+    DataStore, SQLite / Room, WebView, the Coil image cache, an HTTP cache, `NSUserDefaults`,
+    Caches, and so on;
+  - for a file, its kind as its first bytes tell it (SQLite, PNG, JPEG, GIF, WebP, BMP, PDF, ZIP,
+    gzip, JSON, XML or plain text), and for text its line count;
+  - its size, when it was modified and created, whether the app can read and write it, and where
+    it points when it is a symbolic link.
+
+  **Calculate size** adds up a directory and everything below it, counting links without
+  following them; a tree past 100,000 entries is cut off and its totals shown as "at least".
+  **Compute SHA-256** hashes a whole file — to compare two copies, or tell whether it changed.
+- **Preview.** A file's first 256 KB, as:
   - **Preferences** for a Preferences DataStore file (`*.preferences_pb`), decoded into its keys,
     types and values.
   - **Image** for PNG, JPEG, GIF, WebP and BMP files — Coil's or Glide's disk cache, for instance.
@@ -111,11 +123,13 @@ With the [MCP server](./mcp-server) running, the same operations are available t
 | Tool | What it does |
 |------|--------------|
 | `com.kitakkun.jetwhale.storage.listLocations` | The file roots (with their absolute paths) and the key-value stores |
-| `com.kitakkun.jetwhale.storage.listDirectory` | A directory's entries with size and modification time |
+| `com.kitakkun.jetwhale.storage.listDirectory` | A directory's entries: size, modification and creation time, access, and link target |
 | `com.kitakkun.jetwhale.storage.readFile` | A file's bytes as text or Base64, a page at a time; a whole Preferences DataStore file is also decoded |
 | `com.kitakkun.jetwhale.storage.deleteFileEntry` | Delete a file or a directory |
 | `com.kitakkun.jetwhale.storage.readKeyValueStore` | Every entry of a store |
 | `com.kitakkun.jetwhale.storage.removeKeyValue` | Remove one entry from a store |
+| `com.kitakkun.jetwhale.storage.measureDirectory` | The total size, file count and directory count below a directory |
+| `com.kitakkun.jetwhale.storage.hashFile` | The SHA-256 of a whole file |
 
 Paths are relative to a root, with `/` between segments: `readFile(root = "Data", path =
 "shared_prefs/settings.xml")`.

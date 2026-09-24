@@ -13,12 +13,14 @@ import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
 import platform.Foundation.NSDate
 import platform.Foundation.NSError
+import platform.Foundation.NSFileCreationDate
 import platform.Foundation.NSFileHandle
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSFileModificationDate
 import platform.Foundation.NSFileSize
 import platform.Foundation.NSFileType
 import platform.Foundation.NSFileTypeDirectory
+import platform.Foundation.NSFileTypeSymbolicLink
 import platform.Foundation.NSNumber
 import platform.Foundation.NSString
 import platform.Foundation.closeFile
@@ -33,14 +35,23 @@ import platform.posix.memcpy
 internal actual fun listDirectoryEntries(path: String): List<FileEntry> {
     val names = withNSError { error -> NSFileManager.defaultManager.contentsOfDirectoryAtPath(path, error) }
         ?: throw IllegalStateException("'$path' cannot be listed")
+    val fileManager = NSFileManager.defaultManager
     return names.filterIsInstance<String>().map { name ->
-        val attributes = NSFileManager.defaultManager.attributesOfItemAtPath("$path/$name", null).orEmpty()
+        val childPath = "$path/$name"
+        // attributesOfItemAtPath describes a symbolic link itself, not what it points to.
+        val attributes = fileManager.attributesOfItemAtPath(childPath, null).orEmpty()
         val isDirectory = attributes[NSFileType] == NSFileTypeDirectory
+        val isLink = attributes[NSFileType] == NSFileTypeSymbolicLink
         FileEntry(
             name = name,
             isDirectory = isDirectory,
             sizeBytes = if (isDirectory) 0 else (attributes[NSFileSize] as? NSNumber)?.longLongValue ?: 0,
             lastModifiedEpochMillis = (attributes[NSFileModificationDate] as? NSDate)?.let { (it.timeIntervalSince1970 * 1000).toLong() },
+            isSymbolicLink = isLink,
+            linkTarget = if (isLink) fileManager.destinationOfSymbolicLinkAtPath(childPath, null) else null,
+            createdEpochMillis = (attributes[NSFileCreationDate] as? NSDate)?.let { (it.timeIntervalSince1970 * 1000).toLong() },
+            readable = fileManager.isReadableFileAtPath(childPath),
+            writable = fileManager.isWritableFileAtPath(childPath),
         )
     }
 }
@@ -72,6 +83,10 @@ internal actual fun fileSize(path: String): Long {
 internal actual fun deleteRecursively(path: String) {
     withNSError { error -> NSFileManager.defaultManager.removeItemAtPath(path, error) }
 }
+
+// attributesOfItemAtPath describes a link itself rather than its target.
+@OptIn(ExperimentalForeignApi::class)
+internal actual fun isSymbolicLink(path: String): Boolean = NSFileManager.defaultManager.attributesOfItemAtPath(path, null)?.get(NSFileType) == NSFileTypeSymbolicLink
 
 // stringByResolvingSymlinksInPath also drops a leading "/private", which is harmless: the root and
 // the path are both resolved the same way before they are compared.

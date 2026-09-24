@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
+import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
@@ -145,6 +146,51 @@ class StorageBrowserTest {
         val shown = wideBrowser.treeRows.size
         assertTrue(shown in 500..600, "shown $shown rows")
         assertEquals(false, wideBrowser.status?.isError)
+    }
+
+    @Test
+    fun `a measurement belongs to the directory it measured and goes when another entry is selected`() {
+        runBlocking { browser.load() }
+        browser.toggleDirectory(location("Files"))
+        browser.select(browser.treeRows.first { it.location.name == "datastore" })
+
+        browser.measureDirectory(location("Files", "datastore"))
+        assertEquals(1, browser.directoryMeasurement?.fileCount)
+
+        browser.select(browser.treeRows.first { it.location.name == "notes.txt" })
+        assertNull(browser.directoryMeasurement)
+    }
+
+    @Test
+    fun `a failed measurement arriving after another entry was selected is dropped`() {
+        val walkGate = CompletableDeferred<Unit>()
+        val failingWalk = object : StorageClient by client {
+            override suspend fun measureDirectory(location: FileLocation): DirectoryMeasurement {
+                walkGate.await()
+                return DirectoryMeasurement(totalSizeBytes = 0, fileCount = 0, directoryCount = 0, truncated = false, error = "walk failed")
+            }
+        }
+        val slowBrowser = StorageBrowser(failingWalk, CoroutineScope(Dispatchers.Unconfined))
+        runBlocking { slowBrowser.load() }
+        slowBrowser.toggleDirectory(location("Files"))
+        slowBrowser.select(slowBrowser.treeRows.first { it.location.name == "datastore" })
+
+        slowBrowser.measureDirectory(location("Files", "datastore"))
+        slowBrowser.select(slowBrowser.treeRows.first { it.location.name == "notes.txt" })
+        walkGate.complete(Unit)
+
+        assertNull(slowBrowser.status)
+    }
+
+    @Test
+    fun `a digest arriving after another entry was selected is dropped`() {
+        runBlocking { browser.load() }
+        browser.toggleDirectory(location("Files"))
+        browser.select(browser.treeRows.first { it.location.name == "datastore" })
+
+        browser.computeSha256(location("Files", "notes.txt"))
+
+        assertNull(browser.fileSha256)
     }
 
     @Test

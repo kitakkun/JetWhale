@@ -56,6 +56,41 @@ public final class com/kitakkun/jetwhale/plugins/storage/protocol/DirectoryListi
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class com/kitakkun/jetwhale/plugins/storage/protocol/DirectoryMeasurement {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/storage/protocol/DirectoryMeasurement$Companion;
+	public fun <init> (JIIZLjava/lang/String;)V
+	public final fun component1 ()J
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()Z
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy (JIIZLjava/lang/String;)Lcom/kitakkun/jetwhale/plugins/storage/protocol/DirectoryMeasurement;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/storage/protocol/DirectoryMeasurement;JIIZLjava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/storage/protocol/DirectoryMeasurement;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDirectoryCount ()I
+	public final fun getError ()Ljava/lang/String;
+	public final fun getFileCount ()I
+	public final fun getTotalSizeBytes ()J
+	public final fun getTruncated ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/storage/protocol/DirectoryMeasurement$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/storage/protocol/DirectoryMeasurement$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/storage/protocol/DirectoryMeasurement;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/storage/protocol/DirectoryMeasurement;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/storage/protocol/DirectoryMeasurement$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/kitakkun/jetwhale/plugins/storage/protocol/FileContent {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/storage/protocol/FileContent$Companion;
 	public fun <init> (Ljava/lang/String;JLjava/lang/String;)V
@@ -89,19 +124,29 @@ public final class com/kitakkun/jetwhale/plugins/storage/protocol/FileContent$Co
 
 public final class com/kitakkun/jetwhale/plugins/storage/protocol/FileEntry {
 	public static final field Companion Lcom/kitakkun/jetwhale/plugins/storage/protocol/FileEntry$Companion;
-	public fun <init> (Ljava/lang/String;ZJLjava/lang/Long;)V
+	public fun <init> (Ljava/lang/String;ZJLjava/lang/Long;ZLjava/lang/String;Ljava/lang/Long;ZZ)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Z
 	public final fun component3 ()J
 	public final fun component4 ()Ljava/lang/Long;
-	public final fun copy (Ljava/lang/String;ZJLjava/lang/Long;)Lcom/kitakkun/jetwhale/plugins/storage/protocol/FileEntry;
-	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/storage/protocol/FileEntry;Ljava/lang/String;ZJLjava/lang/Long;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/storage/protocol/FileEntry;
+	public final fun component5 ()Z
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/lang/Long;
+	public final fun component8 ()Z
+	public final fun component9 ()Z
+	public final fun copy (Ljava/lang/String;ZJLjava/lang/Long;ZLjava/lang/String;Ljava/lang/Long;ZZ)Lcom/kitakkun/jetwhale/plugins/storage/protocol/FileEntry;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/storage/protocol/FileEntry;Ljava/lang/String;ZJLjava/lang/Long;ZLjava/lang/String;Ljava/lang/Long;ZZILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/storage/protocol/FileEntry;
 	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCreatedEpochMillis ()Ljava/lang/Long;
 	public final fun getLastModifiedEpochMillis ()Ljava/lang/Long;
+	public final fun getLinkTarget ()Ljava/lang/String;
 	public final fun getName ()Ljava/lang/String;
+	public final fun getReadable ()Z
 	public final fun getSizeBytes ()J
+	public final fun getWritable ()Z
 	public fun hashCode ()I
 	public final fun isDirectory ()Z
+	public final fun isSymbolicLink ()Z
 	public fun toString ()Ljava/lang/String;
 }
 
@@ -270,6 +315,35 @@ public final synthetic class com/kitakkun/jetwhale/plugins/storage/protocol/List
 }
 
 public final class com/kitakkun/jetwhale/plugins/storage/protocol/ListDirectory$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/storage/protocol/MeasureDirectory : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/storage/protocol/MeasureDirectory$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;)Lcom/kitakkun/jetwhale/plugins/storage/protocol/MeasureDirectory;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/storage/protocol/MeasureDirectory;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/storage/protocol/MeasureDirectory;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPath ()Ljava/util/List;
+	public final fun getRootName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/storage/protocol/MeasureDirectory$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/storage/protocol/MeasureDirectory$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/storage/protocol/MeasureDirectory;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/storage/protocol/MeasureDirectory;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/storage/protocol/MeasureDirectory$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 

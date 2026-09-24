@@ -53,4 +53,11 @@ class FilePreviewTest {
             hexDump(byteArrayOf(0x48, 0x69, 0x00)),
         )
     }
+
+    @Test
+    fun `a text summary counts lines and says when it covers only the preview`() {
+        assertEquals("3 lines, UTF-8", textSummaryOf(LoadedFile(location("Files", "a.txt"), "a\nb\nc".encodeToByteArray(), totalSizeBytes = 5)))
+        assertEquals("1 line, UTF-8 (in the previewed part)", textSummaryOf(LoadedFile(location("Files", "a.txt"), "a\n".encodeToByteArray(), totalSizeBytes = 900)))
+        assertNull(textSummaryOf(LoadedFile(location("Files", "a.bin"), byteArrayOf(0x00, 0x01), totalSizeBytes = 2)))
+    }
 }

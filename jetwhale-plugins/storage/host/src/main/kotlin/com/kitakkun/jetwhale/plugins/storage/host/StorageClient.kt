@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryListing
+import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
@@ -18,6 +19,8 @@ internal interface StorageClient {
     suspend fun readFile(location: FileLocation, offset: Long, maxBytes: Int): FileContent
 
     suspend fun delete(location: FileLocation): StorageOperationResult
+
+    suspend fun measureDirectory(location: FileLocation): DirectoryMeasurement
 
     suspend fun readKeyValueStore(storeName: String): KeyValueStoreContent
 

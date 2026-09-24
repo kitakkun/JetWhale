@@ -78,6 +78,32 @@ data class DeleteFileEntry(
     val path: List<String>,
 ) : JetWhaleRequest<StorageOperationResult>
 
+/**
+ * Adds up the size of the directory at [path] and everything below it. Symbolic links are counted
+ * as entries but not followed.
+ */
+@SerialName("storage/measure_directory")
+@Serializable
+data class MeasureDirectory(
+    val rootName: String,
+    val path: List<String>,
+) : JetWhaleRequest<DirectoryMeasurement>
+
+/**
+ * Reply to [MeasureDirectory].
+ *
+ * @property truncated True when the walk stopped at the agent's entry limit, so the totals are a floor.
+ */
+@SerialName("storage/directory_measurement")
+@Serializable
+data class DirectoryMeasurement(
+    val totalSizeBytes: Long,
+    val fileCount: Int,
+    val directoryCount: Int,
+    val truncated: Boolean,
+    val error: String?,
+)
+
 /** Reads every entry of the key-value store named [storeName]. */
 @SerialName("storage/read_key_value_store")
 @Serializable

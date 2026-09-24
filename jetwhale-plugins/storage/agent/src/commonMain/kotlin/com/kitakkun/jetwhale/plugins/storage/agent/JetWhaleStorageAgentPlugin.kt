@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.storage.agent
 import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
 import com.kitakkun.jetwhale.plugins.storage.protocol.DeleteFileEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryListing
+import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileRootInfo
@@ -12,6 +13,7 @@ import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreInfo
 import com.kitakkun.jetwhale.plugins.storage.protocol.ListDirectory
 import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
+import com.kitakkun.jetwhale.plugins.storage.protocol.MeasureDirectory
 import com.kitakkun.jetwhale.plugins.storage.protocol.ReadFile
 import com.kitakkun.jetwhale.plugins.storage.protocol.ReadKeyValueStore
 import com.kitakkun.jetwhale.plugins.storage.protocol.RemoveKeyValue
@@ -22,6 +24,12 @@ import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.reply
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.encoding.Base64
+
+/**
+ * How many entries measuring a directory counts before it stops. Enough for any cache directory an
+ * app would reasonably keep, while a runaway tree still answers in bounded time.
+ */
+private const val MEASURED_ENTRY_LIMIT = 100_000
 
 /**
  * Agent plugin that lets the host browse the app's files and read its key-value stores.
@@ -57,6 +65,7 @@ class JetWhaleStorageAgentPlugin(
         onRequest { request: ListDirectory -> reply(listDirectory(request)) }
         onRequest { request: ReadFile -> reply(readFile(request)) }
         onRequest { request: DeleteFileEntry -> reply(deleteFileEntry(request)) }
+        onRequest { request: MeasureDirectory -> reply(measureDirectory(request)) }
         onRequest { request: ReadKeyValueStore -> reply(readKeyValueStore(request)) }
         onRequest { request: RemoveKeyValue -> reply(removeKeyValue(request)) }
     }
@@ -90,6 +99,12 @@ class JetWhaleStorageAgentPlugin(
         StorageOperationResult(error = null)
     } catch (e: Exception) {
         StorageOperationResult(error = e.describe())
+    }
+
+    private fun measureDirectory(request: MeasureDirectory): DirectoryMeasurement = try {
+        measureDirectoryTree(resolve(request.rootName, request.path), entryLimit = MEASURED_ENTRY_LIMIT)
+    } catch (e: Exception) {
+        DirectoryMeasurement(totalSizeBytes = 0, fileCount = 0, directoryCount = 0, truncated = false, error = e.describe())
     }
 
     private suspend fun readKeyValueStore(request: ReadKeyValueStore): KeyValueStoreContent = try {

@@ -16,14 +16,24 @@ private val previewRoots = listOf(
     FileRootInfo(name = "Cache", absolutePath = "/data/user/0/com.example.app/cache"),
 )
 
-private val previewNotes = FileEntry(name = "notes.txt", isDirectory = false, sizeBytes = 42, lastModifiedEpochMillis = 1_760_000_000_000)
+private val previewNotes = FileEntry(
+    name = "notes.txt",
+    isDirectory = false,
+    sizeBytes = 42,
+    lastModifiedEpochMillis = 1_760_000_000_000,
+    isSymbolicLink = false,
+    linkTarget = null,
+    createdEpochMillis = 1_750_000_000_000,
+    readable = true,
+    writable = true,
+)
 
 private val previewRows = listOf(
     FileTreeRow(location = FileLocation("Files", emptyList()), depth = 0, entry = null, expanded = true),
     FileTreeRow(
         location = FileLocation("Files", listOf("datastore")),
         depth = 1,
-        entry = FileEntry(name = "datastore", isDirectory = true, sizeBytes = 0, lastModifiedEpochMillis = null),
+        entry = previewNotes.copy(name = "datastore", isDirectory = true, sizeBytes = 0, createdEpochMillis = null),
         expanded = false,
     ),
     FileTreeRow(location = FileLocation("Files", listOf("notes.txt")), depth = 1, entry = previewNotes, expanded = false),
@@ -48,6 +58,10 @@ private object NoActions : StorageInspectorActions {
 
     override fun saveFile(location: FileLocation, target: File) = Unit
 
+    override fun measureDirectory(location: FileLocation) = Unit
+
+    override fun computeSha256(location: FileLocation) = Unit
+
     override fun selectStore(storeName: String) = Unit
 
     override fun removeKey(storeName: String, key: String) = Unit
@@ -63,6 +77,8 @@ private fun StorageInspectorScreenPreview() {
             treeRows = previewRows,
             selectedRow = previewRows[2],
             loadedFile = LoadedFile(location = previewRows[2].location, bytes = "Remember the milk.\n".encodeToByteArray(), totalSizeBytes = 42),
+            directoryMeasurement = null,
+            fileSha256 = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
             selectedStore = "settings",
             storeContent = KeyValueStoreContent(entries = previewEntries, error = null),
             status = StorageStatus(message = "Reloaded from the app.", isError = false),
@@ -76,7 +92,15 @@ private fun StorageInspectorScreenPreview() {
 @Composable
 private fun FilesPaneEmptyPreview() {
     JwTheme(darkTheme = false) {
-        FilesPane(treeRows = emptyList(), fileRoots = emptyList(), selectedRow = null, loadedFile = null, actions = NoActions)
+        FilesPane(
+            treeRows = emptyList(),
+            fileRoots = emptyList(),
+            selectedRow = null,
+            loadedFile = null,
+            directoryMeasurement = null,
+            fileSha256 = null,
+            actions = NoActions,
+        )
     }
 }
 

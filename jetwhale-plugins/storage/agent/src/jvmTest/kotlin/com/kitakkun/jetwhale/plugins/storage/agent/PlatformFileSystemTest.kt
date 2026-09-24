@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.storage.agent
 
+import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
 import java.io.File
 import java.io.IOException
@@ -73,6 +74,55 @@ class PlatformFileSystemTest {
 
         assertFalse(File(directory, "cache").exists())
         assertEquals("keep", File(outside, "keep.txt").readText())
+    }
+
+    @Test
+    fun `a listing marks a symbolic link and names its target`() {
+        val target = File(directory, "target.txt").apply { writeText("hello") }
+        Files.createSymbolicLink(File(directory, "link").toPath(), target.toPath())
+
+        val entries = listDirectoryEntries(directory.path).associateBy(FileEntry::name)
+
+        assertEquals(true, entries.getValue("link").isSymbolicLink)
+        assertEquals(target.canonicalPath, entries.getValue("link").linkTarget)
+        assertEquals(false, entries.getValue("target.txt").isSymbolicLink)
+        assertEquals(true, entries.getValue("target.txt").readable)
+        assertEquals(true, entries.getValue("target.txt").writable)
+    }
+
+    @Test
+    fun `measuring counts everything below and does not follow links`() {
+        val outside = File(directory, "outside").apply { mkdir() }
+        File(outside, "big.bin").writeBytes(ByteArray(1000))
+        File(directory, "cache/images").mkdirs()
+        File(directory, "cache/a.txt").writeText("hello")
+        File(directory, "cache/images/b.bin").writeBytes(ByteArray(10))
+        Files.createSymbolicLink(File(directory, "cache/link").toPath(), outside.toPath())
+
+        val measurement = measureDirectoryTree("${directory.path}/cache", entryLimit = 100)
+
+        assertEquals(DirectoryMeasurement(totalSizeBytes = 15, fileCount = 3, directoryCount = 1, truncated = false, error = null), measurement)
+    }
+
+    @Test
+    fun `measuring a link to a directory counts the link and does not follow it`() {
+        val target = File(directory, "target").apply { mkdir() }
+        File(target, "big.bin").writeBytes(ByteArray(1000))
+        Files.createSymbolicLink(File(directory, "link").toPath(), target.toPath())
+
+        val measurement = measureDirectoryTree("${directory.path}/link", entryLimit = 100)
+
+        assertEquals(DirectoryMeasurement(totalSizeBytes = 0, fileCount = 1, directoryCount = 0, truncated = false, error = null), measurement)
+    }
+
+    @Test
+    fun `measuring stops at the entry limit`() {
+        repeat(10) { File(directory, "f$it").writeText("x") }
+
+        val measurement = measureDirectoryTree(directory.path, entryLimit = 4)
+
+        assertEquals(4, measurement.fileCount)
+        assertEquals(true, measurement.truncated)
     }
 
     @Test

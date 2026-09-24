@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwToolbar
+import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
 
@@ -32,6 +33,8 @@ internal fun StorageInspectorScreenRoot(browser: StorageBrowser, modifier: Modif
         treeRows = browser.treeRows,
         selectedRow = browser.selectedRow,
         loadedFile = browser.loadedFile,
+        directoryMeasurement = browser.directoryMeasurement,
+        fileSha256 = browser.fileSha256,
         selectedStore = browser.selectedStore,
         storeContent = browser.storeContent,
         status = browser.status,
@@ -48,6 +51,8 @@ internal fun StorageInspectorScreen(
     treeRows: List<FileTreeRow>,
     selectedRow: FileTreeRow?,
     loadedFile: LoadedFile?,
+    directoryMeasurement: DirectoryMeasurement?,
+    fileSha256: String?,
     selectedStore: String?,
     storeContent: KeyValueStoreContent?,
     status: StorageStatus?,
@@ -80,6 +85,8 @@ internal fun StorageInspectorScreen(
                 fileRoots = locations?.fileRoots.orEmpty(),
                 selectedRow = selectedRow,
                 loadedFile = loadedFile,
+                directoryMeasurement = directoryMeasurement,
+                fileSha256 = fileSha256,
                 actions = actions,
             )
 

@@ -11,7 +11,7 @@ internal class ListDirectoryCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.listDirectory"
     override val description =
-        "Lists a directory of the app's storage: each entry's name, whether it is a directory, its size in bytes and when it was last modified (epoch milliseconds). Directories come first."
+        "Lists a directory of the app's storage. Each entry has its name, whether it is a directory, its size in bytes, when it was last modified and created (epoch milliseconds; creation is null where the platform does not report it), whether the app can read and write it, and, for a symbolic link, isSymbolicLink with the linkTarget it points to. Directories come first."
 
     private val root by string("Name of the file root, as listLocations reports it.")
     private val path by stringOrNull("$PATH_ARGUMENT_DESCRIPTION Omit for the root itself.")

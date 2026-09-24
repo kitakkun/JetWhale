@@ -110,6 +110,29 @@ class StorageMcpCommandsTest {
         assertFalse(result.getValue("keyValueStores").jsonArray.isEmpty())
     }
 
+    @Test
+    fun `measureDirectory adds up everything below the directory`() {
+        val result = MeasureDirectoryCommand(client).run(buildJsonObject { put("root", "Files") })
+
+        assertEquals(10, result.getValue("totalSizeBytes").jsonPrimitive.content.toLong())
+        assertEquals(1, result.getValue("directoryCount").jsonPrimitive.content.toInt())
+    }
+
+    @Test
+    fun `hashFile returns the SHA-256 of the whole file`() {
+        val result = HashFileCommand(client).run(file("notes.txt"))
+
+        assertEquals("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", result.getValue("sha256").jsonPrimitive.content)
+    }
+
+    @Test
+    fun `hashFile reports a file it cannot read`() {
+        val result = HashFileCommand(client).run(file("missing.txt"))
+
+        assertEquals(false, "sha256" in result)
+        assertEquals(true, "error" in result)
+    }
+
     private fun file(path: String): JsonObject = buildJsonObject {
         put("root", "Files")
         put("path", path)
