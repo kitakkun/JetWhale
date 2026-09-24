@@ -7,7 +7,7 @@ Everything below is the host itself — the plugins it shows are documented on t
 ([Network Inspector](/guide/network-inspector), [Nav3 Navigator](/guide/nav3-navigator),
 [Compose Semantics Inspector](/guide/compose-semantics-inspector),
 [Storage Inspector](/guide/storage-inspector), [Debug Actions](/guide/debug-actions),
-[Device Mirror](/guide/device-mirror)).
+[Device Mirror](/guide/device-mirror), [Main Thread Monitor](/guide/main-thread-monitor)).
 
 ## Plugins that need no app
 

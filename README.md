@@ -88,6 +88,9 @@ from its plugin catalog, add the matching artifact to your app, and register it 
   the app's debug menu as typed actions the host and AI agents can run
 - **[Storage Inspector](https://kitakkun.github.io/JetWhale/guide/storage-inspector)** — the app's
   files, caches and key-value stores, with previews and deletion
+- **[Main Thread Monitor](https://kitakkun.github.io/JetWhale/guide/main-thread-monitor)** — what
+  blocks the main thread: long tasks and where they spent their time, StrictMode's disk and network
+  violations, and janky frames
 
 The **[Device Mirror](https://kitakkun.github.io/JetWhale/guide/device-mirror)** *(experimental)* shows the live
 screens of Android devices and emulators, iOS simulators and iPhones, one at a time or all together

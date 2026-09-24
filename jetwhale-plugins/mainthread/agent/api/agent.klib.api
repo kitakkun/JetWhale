@@ -1,0 +1,24 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, macosArm64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.mainthread:agent>
+abstract fun interface com.kitakkun.jetwhale.plugins.mainthread.agent/MainThreadLabelProvider { // com.kitakkun.jetwhale.plugins.mainthread.agent/MainThreadLabelProvider|null[0]
+    abstract fun currentLabel(): kotlin/String? // com.kitakkun.jetwhale.plugins.mainthread.agent/MainThreadLabelProvider.currentLabel|currentLabel(){}[0]
+}
+
+final class com.kitakkun.jetwhale.plugins.mainthread.agent/JetWhaleMainThreadAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.plugins.mainthread.agent/JetWhaleMainThreadAgentPlugin|null[0]
+    constructor <init>() // com.kitakkun.jetwhale.plugins.mainthread.agent/JetWhaleMainThreadAgentPlugin.<init>|<init>(){}[0]
+
+    final val pluginId // com.kitakkun.jetwhale.plugins.mainthread.agent/JetWhaleMainThreadAgentPlugin.pluginId|{}pluginId[0]
+        final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.agent/JetWhaleMainThreadAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    final val pluginVersion // com.kitakkun.jetwhale.plugins.mainthread.agent/JetWhaleMainThreadAgentPlugin.pluginVersion|{}pluginVersion[0]
+        final fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.plugins.mainthread.agent/JetWhaleMainThreadAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+
+    final var labelProvider // com.kitakkun.jetwhale.plugins.mainthread.agent/JetWhaleMainThreadAgentPlugin.labelProvider|{}labelProvider[0]
+        final fun <get-labelProvider>(): com.kitakkun.jetwhale.plugins.mainthread.agent/MainThreadLabelProvider? // com.kitakkun.jetwhale.plugins.mainthread.agent/JetWhaleMainThreadAgentPlugin.labelProvider.<get-labelProvider>|<get-labelProvider>(){}[0]
+        final fun <set-labelProvider>(com.kitakkun.jetwhale.plugins.mainthread.agent/MainThreadLabelProvider?) // com.kitakkun.jetwhale.plugins.mainthread.agent/JetWhaleMainThreadAgentPlugin.labelProvider.<set-labelProvider>|<set-labelProvider>(com.kitakkun.jetwhale.plugins.mainthread.agent.MainThreadLabelProvider?){}[0]
+}
