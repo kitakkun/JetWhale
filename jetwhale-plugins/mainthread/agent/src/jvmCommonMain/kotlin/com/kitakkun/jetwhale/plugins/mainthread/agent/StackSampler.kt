@@ -35,7 +35,7 @@ internal class StackSampler(
         while (thread === self) {
             val target = mainThread()
             if (target != null) {
-                recorder.sampleIfDue { target.stackTrace.take(MAX_SAMPLED_FRAMES).map(StackTraceElement::toString) }
+                recorder.sampleIfDue { target.stackTrace.take(MAX_SAMPLED_FRAMES).map(::frameText) }
             }
             try {
                 Thread.sleep((recorder.currentSettings.sampleIntervalMillis / 2).coerceAtLeast(MIN_TICK_MILLIS))

@@ -74,6 +74,6 @@ private class EventDispatchThreadProbe(
 
 /** An event by its kind and, for a posted Runnable, the Runnable's class: what posted the work. */
 private fun describe(event: AWTEvent): String = when (event) {
-    is InvocationEvent -> "InvocationEvent " + event.paramString().substringAfter("runnable=", "").substringBefore(',').substringBefore('@')
+    is InvocationEvent -> "InvocationEvent " + event.paramString().substringAfter("runnable=", "").substringBefore(',').substringBefore('@').let(::withoutHiddenClassAddress)
     else -> "${event.javaClass.simpleName} on ${event.source?.javaClass?.simpleName}"
 }

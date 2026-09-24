@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mainthread.agent
 
+import com.kitakkun.jetwhale.plugins.mainthread.protocol.Hotspot
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorSettings
 import java.awt.EventQueue
 import java.awt.GraphicsEnvironment
@@ -33,6 +34,8 @@ class EventDispatchThreadProbeTest {
         assertTrue(task.label.startsWith("InvocationEvent"), task.label)
         assertTrue(task.sampleCount > 0)
         assertEquals(true, report.hotspots.any { hotspot -> hotspot.frames.any { "busyFor" in it } })
+        assertTrue(report.hotspots.flatMap(Hotspot::frames).none { '/' in it.substringBefore('(') }, "frames keep no module, loader or lambda address")
+        assertTrue("0x" !in task.label, task.label)
     }
 }
 
