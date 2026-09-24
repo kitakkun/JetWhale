@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.tools.mcpworkflow
 
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -57,6 +59,26 @@ class WorkflowFilesTest {
         assertFailsWith<WorkflowFormatException> {
             parseWorkflow("version: 1\nname: X\nsteps:\n  - call: a\n    expcet: []", source = "x.yaml")
         }
+    }
+
+    @Test
+    fun `a value starting with a YAML indicator is quoted when written`() {
+        val workflow = Workflow(
+            version = WORKFLOW_FORMAT_VERSION,
+            name = "Indicators",
+            steps = listOf(
+                Step(
+                    call = "find",
+                    args = buildJsonObject {
+                        put("user", "@username")
+                        put("tag", "#hash")
+                        put("star", "*x")
+                    },
+                ),
+            ),
+        )
+
+        assertEquals(workflow, parseWorkflow(workflowToYaml(workflow), source = "written.yaml"))
     }
 
     @Test

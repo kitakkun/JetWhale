@@ -225,6 +225,8 @@ class WorkflowRunnerTest {
 
         val artifact = outcome.steps.single().artifacts.single()
         assertEquals("01-shot-1.png", artifact.name)
+        val second = runner.run(workflow(Step(id = "shot", call = "screenshot")), inputs = emptyMap()).steps.single().artifacts.single()
+        assertTrue(second.exists() && artifact.exists() && second.parentFile != artifact.parentFile, "each run keeps its own images")
         assertTrue(png.contentEquals(artifact.readBytes()))
         directory.deleteRecursively()
     }

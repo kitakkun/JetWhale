@@ -65,7 +65,8 @@ private fun inlineText(value: JsonElement): String = when (value) {
     is JsonNull -> "null"
 }
 
-private val PlainSafe = Regex("""^[A-Za-z_$/@][A-Za-z0-9_$./@{}\-]*$""")
+// `@` and the other indicators cannot start a plain scalar, so only a letter, `_`, `$` or `/` may.
+private val PlainSafe = Regex("""^[A-Za-z_$/][A-Za-z0-9_$./@{}\-]*$""")
 private val Reserved = setOf("true", "false", "null", "yes", "no", "on", "off", "~")
 
 // A string is written plain only when YAML would read it back as the same string; otherwise it is

@@ -93,6 +93,14 @@ class RecordingExportTest {
     }
 
     @Test
+    fun `a tool recorded twice gets distinct step ids`() {
+        val workflow = exportWorkflow(listOf(calls[0], calls[0]), options(dropReads = false, parameters = emptyMap()))
+
+        assertEquals(listOf("listSessions", "listSessions-2"), workflow.steps.map(Step::id))
+        assertEquals(emptyList(), validate(workflow, setOf("app")))
+    }
+
+    @Test
     fun `dropReads keeps only reads whose results are used`() {
         val workflow = exportWorkflow(calls, options(dropReads = true, parameters = emptyMap()))
 

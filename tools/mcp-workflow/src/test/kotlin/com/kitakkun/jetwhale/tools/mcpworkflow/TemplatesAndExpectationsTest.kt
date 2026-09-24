@@ -62,6 +62,19 @@ class TemplatesAndExpectationsTest {
     }
 
     @Test
+    fun `a var may use the vars declared above it but not below`() {
+        fun vars(vararg entries: Pair<String, String>) = Workflow(
+            version = WORKFLOW_FORMAT_VERSION,
+            name = "Vars",
+            vars = linkedMapOf(*entries.map { (name, value) -> name to JsonPrimitive(value) }.toTypedArray()),
+            steps = listOf(Step(call = "a")),
+        )
+
+        assertEquals(emptyList(), validate(vars("name" to "qa", "greeting" to "hello \${name}"), servers = setOf("app")))
+        assertEquals(1, validate(vars("greeting" to "hello \${name}", "name" to "qa"), servers = setOf("app")).size)
+    }
+
+    @Test
     fun `validation finds unknown servers and variables used before they are saved`() {
         val workflow = Workflow(
             version = WORKFLOW_FORMAT_VERSION,

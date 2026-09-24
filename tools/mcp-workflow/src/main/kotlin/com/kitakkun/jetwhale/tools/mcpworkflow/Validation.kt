@@ -11,9 +11,7 @@ fun validate(workflow: Workflow, servers: Set<String>): List<String> {
     val problems = mutableListOf<String>()
     val defined = (workflow.inputs.keys + workflow.vars.keys).toMutableSet()
     val ids = mutableSetOf<String>()
-    workflow.vars.values.forEach { template ->
-        (templateReferences(template) - workflow.inputs.keys - workflow.vars.keys).forEach { problems += "vars refer to '$it', which is not an input or var" }
-    }
+    problems += varProblems(workflow)
     workflow.steps.map { it.withDefaults(workflow.defaults) }.forEachIndexed { index, step ->
         val where = "step ${index + 1} (${stepLabel(step)})"
         step.id?.let { if (!ids.add(it)) problems += "$where: duplicate id '$it'" }
@@ -39,6 +37,15 @@ fun validate(workflow: Workflow, servers: Set<String>): List<String> {
         (templateReferences(template) - defined).forEach { problems += "outputs refer to '$it', which no input, var or step defines" }
     }
     return problems
+}
+
+/** Vars are rendered in the order they are declared, so each may use the inputs and the vars above it. */
+private fun varProblems(workflow: Workflow): List<String> {
+    val declared = workflow.inputs.keys.toMutableSet()
+    return workflow.vars.flatMap { (name, template) ->
+        (templateReferences(template) - declared).map { "var '$name' refers to '$it', which is not an input or a var declared above it" }
+            .also { declared += name }
+    }
 }
 
 /** Why [path] is unusable, or null. A templated path can only be parsed once it is rendered, so only its references are checked. */

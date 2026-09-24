@@ -18,7 +18,7 @@ const val WORKFLOW_FORMAT_VERSION: Int = 1
  *   of machine-specific ports.
  * @property inputs Parameters a caller passes in; in serve mode they become the tool's arguments.
  * @property defaults What every step gets unless it says otherwise.
- * @property vars Constants, templated against the inputs.
+ * @property vars Constants, templated against the inputs and the vars declared above them.
  * @property outputs Values reported after the run, templated against everything the steps saved.
  */
 @Serializable

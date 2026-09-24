@@ -99,7 +99,14 @@ class EndToEndTest {
     fun `a served workflow is one tool whose result reports the run`() = runBlocking {
         val file = File(directory, "account-round-trip.yaml").apply { writeText(accountFlow) }
         val servers = mapOf("accounts" to demo())
-        val toolServer = WorkflowToolServer(listOf(file)) { WorkflowRunner(McpServers(servers), servers.keys, TimeSource.Monotonic, emptyMap(), artifactDirectory = null) {} }
+        val toolServer = WorkflowToolServer(listOf(file)) { workflow, inputs ->
+            val caller = McpServers(servers)
+            try {
+                WorkflowRunner(caller, servers.keys, TimeSource.Monotonic, emptyMap(), artifactDirectory = null) {}.run(workflow, inputs)
+            } finally {
+                caller.close()
+            }
+        }
         val agent = McpServers(mapOf("workflows" to ServerConfig(type = "sse", url = sseUrl(serveSse(port = 0, wait = false) { toolServer.createServer() }))))
 
         val tool = agent.listTools("workflows").single()

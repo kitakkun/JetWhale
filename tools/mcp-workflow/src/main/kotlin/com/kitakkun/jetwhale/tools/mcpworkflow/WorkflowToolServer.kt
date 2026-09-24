@@ -6,6 +6,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.ImageContent
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -23,10 +24,11 @@ private const val INLINE_IMAGE_LIMIT = 2
  * whole checked flow in one call instead of re-deriving it call by call.
  *
  * @param files Workflow files, read afresh for every connection so edits show up on reconnect.
+ * @param run Runs one workflow with the caller's inputs, releasing whatever connections it opened.
  */
 class WorkflowToolServer(
     private val files: List<File>,
-    private val runnerFor: (Workflow) -> WorkflowRunner,
+    private val run: suspend (Workflow, Map<String, JsonElement>) -> RunOutcome,
 ) {
     fun createServer(): Server {
         val server = newToolServer("mcp-workflow")
@@ -37,7 +39,7 @@ class WorkflowToolServer(
             server.addTool(name = name, description = describe(workflow, file), inputSchema = inputSchema(workflow)) { request ->
                 val inputs = (request.params.arguments ?: JsonObject(emptyMap())).filterKeys(workflow.inputs::containsKey)
                 val outcome = try {
-                    runnerFor(workflow).run(workflow, inputs)
+                    run(workflow, inputs)
                 } catch (e: WorkflowFormatException) {
                     return@addTool CallToolResult(content = listOf(TextContent(buildJsonObject { put("error", e.message) }.toString())), isError = true)
                 }

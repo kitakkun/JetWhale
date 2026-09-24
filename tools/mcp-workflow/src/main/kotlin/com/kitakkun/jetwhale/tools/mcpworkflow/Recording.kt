@@ -65,7 +65,11 @@ private val IdLikeKey = Regex("""(?i)(^id$|id$|Id$|uuid|token|handle)""")
 fun exportWorkflow(calls: List<RecordedCall>, options: ExportOptions): Workflow = RecordingExport(calls, options).export()
 
 private class RecordingExport(private val calls: List<RecordedCall>, private val options: ExportOptions) {
-    private val steps = calls.map(RecordedCall::toMutableStep)
+    private val steps = calls.mapIndexed { index, call ->
+        val base = call.tool.substringAfterLast('.').replace(Regex("[^A-Za-z0-9_-]"), "_")
+        val occurrence = calls.take(index).count { it.tool == call.tool }
+        call.toMutableStep(id = if (occurrence == 0) base else "$base-${occurrence + 1}")
+    }
     private val inputs = linkedMapOf<String, InputSpec>()
     private val variableNames = mutableSetOf<String>()
 
@@ -131,8 +135,8 @@ private class MutableStep(
 )
 
 // A recorded tool error is kept as an expected error, so the replay checks the same outcome.
-private fun RecordedCall.toMutableStep() = MutableStep(
-    id = tool.substringAfterLast('.').replace(Regex("[^A-Za-z0-9_-]"), "_"),
+private fun RecordedCall.toMutableStep(id: String) = MutableStep(
+    id = id,
     server = server,
     tool = tool,
     args = arguments,

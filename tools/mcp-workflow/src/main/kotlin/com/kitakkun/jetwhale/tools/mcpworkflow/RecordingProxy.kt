@@ -72,7 +72,7 @@ class RecordingProxy(
         System.err.println("mcp-workflow: wrote ${calls.size} recorded calls to ${output.path}")
     }
 
-    private fun export(name: String, description: String?, dropReads: Boolean, parameters: Map<String, JsonElement>): Workflow = exportWorkflow(calls.toList(), ExportOptions(name, description, dropReads, parameters, multipleServers = prefixed))
+    private fun export(name: String, description: String?, dropReads: Boolean, parameters: Map<String, JsonElement>): Workflow = exportWorkflow(synchronized(calls) { calls.toList() }, ExportOptions(name, description, dropReads, parameters, multipleServers = prefixed))
 
     private fun addControlTools(server: Server) {
         server.addTool(
@@ -102,7 +102,7 @@ class RecordingProxy(
             name = "workflow_recording_expect",
             description = "Attaches a check to the last recorded call, so the saved workflow verifies it on replay. Takes the " +
                 "fields of a workflow expectation: path (default \"$\") plus one or more of equals, notEquals, contains, matches, " +
-                "exists, gt, gte, lt, lte, length. Call it right after the call whose result it checks.",
+                "exists, gt, gte, lt, lte, length, error. Call it right after the call whose result it checks.",
             inputSchema = ExpectToolSchema,
         ) { request -> expectOnLast(request.params.arguments ?: JsonObject(emptyMap())) }
         server.addTool(
@@ -157,7 +157,13 @@ private val ExpectToolSchema = ToolSchema(
         putJsonObject("contains") { put("description", "Element, key or substring the value must contain") }
         property(name = "matches", type = "string", description = "Regular expression the value must match")
         property(name = "exists", type = "boolean", description = "Whether the path must select something")
+        putJsonObject("notEquals") { put("description", "Value the path must differ from (any JSON)") }
+        property(name = "gt", type = "number", description = "Number the value must be greater than")
+        property(name = "gte", type = "number", description = "Number the value must be at least")
+        property(name = "lt", type = "number", description = "Number the value must be less than")
+        property(name = "lte", type = "number", description = "Number the value must be at most")
         property(name = "length", type = "integer", description = "Length the array, object or string must have")
+        property(name = "error", type = "boolean", description = "Whether the tool must have reported an error")
     },
     required = emptyList(),
 )

@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import java.io.File
+import java.util.UUID
 import kotlin.io.encoding.Base64
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -65,18 +66,23 @@ class WorkflowRunner(
 ) {
     suspend fun run(workflow: Workflow, inputs: Map<String, JsonElement>): RunOutcome {
         val started = timeSource.markNow()
-        val variables = initialVariables(workflow, inputs)
+        // Each run writes its images to a directory of its own, so runs sharing a report directory
+        // — several workflows in one `run`, or concurrent calls in `serve` — keep each other's.
+        val run = RunState(
+            variables = initialVariables(workflow, inputs),
+            artifactDirectory = artifactDirectory?.let { File(it, "${slug(workflow.name)}-${UUID.randomUUID().toString().take(RUN_ID_LENGTH)}") },
+        )
         val outcomes = mutableListOf<StepOutcome>()
         var stopped = false
         workflow.steps.map { it.withDefaults(workflow.defaults) }.forEachIndexed { index, step ->
-            val outcome = if (stopped && !step.always) skipped(index, step) else runStep(index, step, variables)
+            val outcome = if (stopped && !step.always) skipped(index, step) else runStep(index, step, run)
             outcomes += outcome
             onStep(outcome)
             if (outcome.status == StepStatus.FAILED && !step.continueOnFailure) stopped = true
         }
         val outputs = workflow.outputs.mapValues { (_, template) ->
             try {
-                renderTemplate(template, variables, environment)
+                renderTemplate(template, run.variables, environment)
             } catch (e: TemplateException) {
                 JsonPrimitive("<unavailable: ${e.message}>")
             }
@@ -95,12 +101,14 @@ class WorkflowRunner(
         return variables
     }
 
-    private suspend fun runStep(index: Int, step: Step, variables: MutableMap<String, JsonElement>): StepOutcome {
+    private class RunState(val variables: MutableMap<String, JsonElement>, val artifactDirectory: File?)
+
+    private suspend fun runStep(index: Int, step: Step, run: RunState): StepOutcome {
         val started = timeSource.markNow()
         val server = step.server ?: servers.singleOrNull() ?: ""
         if (step.reconnect && server.isNotEmpty()) caller.reconnect(server)
-        val (last, attempts) = attemptUntilSettled(step, server, variables, started)
-        if (last.failure == null) variables.putAll(last.saved)
+        val (last, attempts) = attemptUntilSettled(step, server, run.variables, started)
+        if (last.failure == null) run.variables.putAll(last.saved)
         return StepOutcome(
             index = index,
             label = stepLabel(step),
@@ -112,7 +120,7 @@ class WorkflowRunner(
             duration = started.elapsedNow(),
             arguments = last.arguments,
             result = last.document,
-            artifacts = last.result?.let { writeImages(index, step, it) }.orEmpty(),
+            artifacts = last.result?.let { writeImages(index, step, it, run.artifactDirectory) }.orEmpty(),
         )
     }
 
@@ -211,8 +219,8 @@ class WorkflowRunner(
         matches = matches?.let { renderText(it, variables) },
     )
 
-    private fun writeImages(index: Int, step: Step, result: CallToolResult): List<File> {
-        val directory = artifactDirectory ?: return emptyList()
+    private fun writeImages(index: Int, step: Step, result: CallToolResult, directory: File?): List<File> {
+        if (directory == null) return emptyList()
         return resultImages(result).mapIndexed { imageIndex, image ->
             val extension = image.mimeType.substringAfter('/').substringBefore('+').ifEmpty { "img" }
             val name = "%02d-%s-%d.%s".format(index + 1, stepSlug(step), imageIndex + 1, extension)
@@ -240,4 +248,8 @@ class WorkflowRunner(
 
 internal fun stepLabel(step: Step): String = step.name ?: step.id ?: step.call
 
-private fun stepSlug(step: Step): String = (step.id ?: step.call.substringAfterLast('.')).replace(Regex("[^A-Za-z0-9_-]"), "_")
+private fun stepSlug(step: Step): String = slug(step.id ?: step.call.substringAfterLast('.'))
+
+private fun slug(text: String): String = text.replace(Regex("[^A-Za-z0-9_-]"), "_")
+
+private const val RUN_ID_LENGTH = 8

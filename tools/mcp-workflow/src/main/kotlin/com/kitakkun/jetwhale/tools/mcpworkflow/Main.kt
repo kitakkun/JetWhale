@@ -48,6 +48,11 @@ fun main(arguments: Array<String>) {
 
             "demo-server" -> runBlocking { serveStdio(demoServer()) }.let { 0 }
 
+            "--help", "-h", "help" -> {
+                println(USAGE)
+                0
+            }
+
             else -> {
                 System.err.println(USAGE)
                 EXIT_USAGE
@@ -141,9 +146,14 @@ private fun serve(options: CommandLine): Int {
     }
     if (files.isEmpty()) throw WorkflowFormatException("serve found no workflow files")
     val reportDirectory = options.single("report-dir")?.let(::File)
-    val toolServer = WorkflowToolServer(files) { workflow ->
+    val toolServer = WorkflowToolServer(files) { workflow, inputs ->
         val configs = serverConfigs(options, workflow)
-        WorkflowRunner(McpServers(configs), configs.keys, TimeSource.Monotonic, System.getenv(), reportDirectory?.let { File(it, "artifacts") }) {}
+        val caller = McpServers(configs)
+        try {
+            WorkflowRunner(caller, configs.keys, TimeSource.Monotonic, System.getenv(), reportDirectory?.let { File(it, "artifacts") }) {}.run(workflow, inputs)
+        } finally {
+            caller.close()
+        }
     }
     val port = options.single("port")?.toInt()
     if (port != null) {
