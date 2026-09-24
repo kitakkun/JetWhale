@@ -92,13 +92,15 @@ private class AndroidMainThreadProbe(
         val previous = StrictMode.getThreadPolicy()
         // Detecting more on top of an app's own policy would apply its penalties — penaltyDeath
         // included — to violations it never asked about, so an app with a policy keeps it untouched.
-        if (previous.toString() != StrictMode.ThreadPolicy.LAX.toString()) {
+        // Every app starts with the platform's policy instead, which only makes network access on
+        // the main thread throw; building on it keeps that behavior as it was.
+        if (previous.toString() !in platformDefaultPolicies) {
             appOwnsStrictMode = true
             return
         }
         previousPolicy = previous
         StrictMode.setThreadPolicy(
-            StrictMode.ThreadPolicy.Builder()
+            StrictMode.ThreadPolicy.Builder(previous)
                 .detectDiskReads()
                 .detectDiskWrites()
                 .detectNetwork()
@@ -178,6 +180,18 @@ private class AndroidMainThreadProbe(
         val window = activity.window ?: return
         frameWindows.remove(window)?.let(window::removeOnFrameMetricsAvailableListener)
     }
+}
+
+/**
+ * The thread policies an app has when it sets none: LAX, or the death-on-network policy
+ * ActivityThread installs for every app since Android 3.0. Compared as strings, since a policy has
+ * no equals and its mask is hidden.
+ */
+private val platformDefaultPolicies: Set<String> by lazy {
+    setOf(
+        StrictMode.ThreadPolicy.LAX.toString(),
+        StrictMode.ThreadPolicy.Builder().detectNetwork().penaltyDeathOnNetwork().build().toString(),
+    )
 }
 
 /**
