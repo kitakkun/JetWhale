@@ -180,11 +180,10 @@ private fun ThemedHostWindow(
     availableUpdate: UpdateCheckResult?,
     isUpdateBannerDismissed: Boolean,
     onDismissUpdateBanner: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     HostTheme(colorScheme) {
         AppEnvironment(appLanguage) {
-            JwSurface(modifier = modifier.fillMaxSize().clearFocusOnBlankPress()) {
+            JwSurface(modifier = Modifier.fillMaxSize().clearFocusOnBlankPress()) {
                 context(retain { appGraph.toolingScaffoldScreenContext }) {
                     ToolingScaffoldRoot(
                         onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },

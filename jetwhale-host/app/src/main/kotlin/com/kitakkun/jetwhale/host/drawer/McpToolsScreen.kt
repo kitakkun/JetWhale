@@ -356,9 +356,9 @@ private fun McpToolsPane(
     toolRows: ImmutableList<McpToolRowUiState>,
     query: String,
     selectedToolKey: String?,
+    modifier: Modifier,
     onQueryChange: (String) -> Unit,
     onSelectTool: (String) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val filtered = remember(query, toolRows) {
         if (query.isBlank()) {

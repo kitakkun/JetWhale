@@ -1,3 +1,4 @@
+import com.kitakkun.kotrail.gradle.KotrailExtension
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.attributes.java.TargetJvmEnvironment
 import org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask
@@ -82,5 +83,14 @@ tasks.withType<PrepareSandboxTask>().configureEach {
     from(hostRuntime) {
         into(intellijPlatform.projectName.map { "$it/host" })
         eachFile { name = jarNames.get().getValue(file) }
+    }
+}
+
+// The host jars under host/ are loaded by the plugin's own class loader and unloaded with it, so
+// Kotrail checks them, not only this module, for references that would outlive the plugin.
+configure<KotrailExtension> {
+    compilation("main") {
+        configFile = file("kotrail-main.yaml")
+        bundledConfigurations.add("hostRuntime")
     }
 }

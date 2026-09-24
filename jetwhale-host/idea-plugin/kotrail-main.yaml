@@ -1,0 +1,3 @@
+# This module and the host it bundles (hostRuntime) are unloaded with the plugin's class loader.
+rules:
+  unloadableCode: on

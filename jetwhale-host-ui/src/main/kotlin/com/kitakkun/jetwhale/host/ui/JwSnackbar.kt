@@ -213,11 +213,11 @@ private fun JwSnackbar(data: JwSnackbarData) {
  * would fight the dark background.
  */
 @Composable
-private fun SnackbarAction(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun SnackbarAction(label: String, onClick: () -> Unit) {
     val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     Box(
-        modifier = modifier
+        modifier = Modifier
             .height(JwMetrics.controlHeight)
             .jwFocusRing(interactionSource, JwShapes.small, JwFocusRingStyle.Outset)
             .clip(JwShapes.small)

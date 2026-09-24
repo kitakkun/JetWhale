@@ -29,12 +29,11 @@ fun PluginScreenErrorFallback(
     pluginId: String,
     errorBoundaryContext: ErrorBoundaryContext,
     onClickReset: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val clipboard = LocalClipboard.current
 
     Column(
-        modifier = modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

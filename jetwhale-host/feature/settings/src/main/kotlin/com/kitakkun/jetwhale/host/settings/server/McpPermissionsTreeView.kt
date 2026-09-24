@@ -235,7 +235,6 @@ private fun PermissionNodeView(
     expanded: MutableMap<String, Boolean>,
     enabled: Boolean,
     onSetAllowed: (PermissionTarget, Boolean) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     when (node) {
         is PermissionNode.Leaf -> LeafRow(
@@ -243,7 +242,6 @@ private fun PermissionNodeView(
             depth = depth,
             enabled = enabled,
             onSetAllowed = onSetAllowed,
-            modifier = modifier,
         )
 
         is PermissionNode.Branch -> {
@@ -255,7 +253,6 @@ private fun PermissionNodeView(
                 enabled = enabled,
                 onToggleExpanded = { expanded[node.id] = !isExpanded },
                 onSetAllowed = onSetAllowed,
-                modifier = modifier,
             )
             if (isExpanded) {
                 if (node.children.isEmpty() && node.emptyHint != null) {
@@ -349,14 +346,13 @@ private fun LeafRow(
     depth: Int,
     enabled: Boolean,
     onSetAllowed: (PermissionTarget, Boolean) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     JwCheckbox(
         checked = node.allowed,
         onCheckedChange = { onSetAllowed(node.target, it) },
         label = node.label,
         enabled = enabled,
-        modifier = modifier.padding(start = INDENT_STEP * depth),
+        modifier = Modifier.padding(start = INDENT_STEP * depth),
     )
 }
 
