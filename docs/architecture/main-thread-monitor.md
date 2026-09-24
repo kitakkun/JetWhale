@@ -24,12 +24,22 @@ it replaced.
 | Signal | Hook | Restored on stop |
 |--------|------|------------------|
 | Task timing | `Looper.getMainLooper().setMessageLogging` — the `>>>>> Dispatching` / `<<<<< Finished` lines bracket each message | The app's own printer, read reflectively from `Looper.mLogging` and chained to while we run |
+| Work outside messages | A heartbeat posted with `postAtFrontOfQueue` from the sampler thread; if it has waited past the threshold while no message runs, the main thread is busy outside a message | Heartbeat no longer posted |
 | Stack samples | A daemon thread reads `Looper.getMainLooper().thread.stackTrace` while a task runs past the threshold | Thread stopped |
 | StrictMode | `ThreadPolicy.Builder(previous)` + detections + `penaltyListener` (API 28+), set on the main thread | The previous policy |
 | Frames | `Window.addOnFrameMetricsAvailableListener` per resumed activity (API 24+), via `ActivityLifecycleCallbacks` and, for activities already resumed, ActivityThread's records | Listeners and callbacks removed |
 
 The printer is called for every message, so it does a prefix check and hands the raw line to the
 recorder; the line is only parsed into a label if the task turns out to be long.
+
+The printer alone misses the most common stall in a Compose app. Android dispatches input from
+inside `MessageQueue.next()`'s native poll, not as a message, so a click handler that blocks the
+main thread runs between messages. On the emulator, a 400 ms sleep in a Compose `onClick` produced a
+407 ms frame and no long task. The heartbeat closes that gap: it cannot run until the main thread
+returns to its queue, so a heartbeat left waiting with no message running means work outside a
+message. That work is recorded from the moment the heartbeat was posted (so it reads slightly short
+— 393 ms for the 400 ms sleep), sampled like any task, marked unresponsive past the threshold, and
+ends when the heartbeat or the next message runs.
 
 The platform's default thread policy is not `LAX`: ActivityThread enables death-on-network for every
 app. That policy is recognized (by its string form — policies have no `equals`) and extended; any
@@ -64,10 +74,11 @@ in this first version.
 
 ## Overhead
 
-Measured by reasoning and unit tests, not profiled on a device yet:
+Estimated from what each hook does; not profiled on a physical device:
 
 - Per main-thread message on Android: one prefix check, a lock, two clock reads.
-- While no task is long: the sampler wakes every 10 ms (default) for a lock and a comparison.
+- While no task is long: the sampler wakes every 10 ms (default) for a lock and a comparison, and on
+  Android posts one heartbeat at a time to the front of the main queue.
 - While a task is long: one `Thread.getStackTrace()` of the main thread per 20 ms — a safepoint for
   the main thread, typically tens to hundreds of microseconds.
 - StrictMode detections add the platform's own bookkeeping to disk and network calls on the main
@@ -84,6 +95,6 @@ module depending on it.
 ## Not done yet
 
 - iOS and web timing (durations only).
-- An ANR-style watchdog independent of the Looper printer: a task that never finishes is only
-  reported once it does, although its samples accumulate in hotspots while it runs.
+- A task that never finishes is reported only once it does, although its samples accumulate in
+  hotspots while it runs.
 - Overhead measured on a physical device.
