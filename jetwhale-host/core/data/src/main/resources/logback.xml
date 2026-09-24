@@ -1,11 +1,36 @@
 <configuration>
+    <!-- Same root as AppDataDirectoryProvider: the jetwhale.appDataDir system property, else ~/.jetwhale. -->
+    <property name="JETWHALE_LOGS" value="${jetwhale.appDataDir:-${user.home}/.jetwhale}/logs"/>
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
+
+    <!-- Survives the process, so what led up to a crash can be read after the host is gone. -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- The root logs at trace for the in-app log viewer; the file keeps what is worth keeping. -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+        <file>${JETWHALE_LOGS}/host.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${JETWHALE_LOGS}/host.%i.log</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>3</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>10MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
     <root level="trace">
         <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
     </root>
     <logger name="io.netty" level="INFO"/>
     <!-- jmDNS logs every mDNS record on the network at DEBUG and TRACE, enough to push the host's own
