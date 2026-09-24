@@ -19,7 +19,7 @@ internal class GetNodeTreeCommand(
         "Captures the running app's UI node tree right now — Compose semantics, plus Android Views on Android, " +
             "and on iOS everything the accessibility tree carries (UIKit, SwiftUI and Compose) — and returns it as JSON: " +
             "{\"capturedAtMs\", \"captureDurationMs\", \"merged\", \"roots\": [{\"rootId\", \"label\", \"density\", \"node\"}]}. " +
-            "Each node carries id, text, contentDescription, its actions, screen \"bounds\" in the node's \"unit\" " +
+            "Each node carries id, text, contentDescription, its actions in the platform's naming plus \"performable\" — the names performNodeAction accepts — screen \"bounds\" in the node's \"unit\" " +
             "(px, or pt on iOS), a \"tap\" point (the centre of the bounds), and per kind a role and testTag (Compose), " +
             "a viewClass and resourceId (Android View), or a className and accessibilityIdentifier (iOS). " +
             "A root is a window: on Android a dialog or popup is a window of its own, on iOS it stays inside the app's. " +

@@ -20,7 +20,8 @@ internal class FindNodesCommand(
     override val description =
         "Captures the running app's UI node tree (see getNodeTree for what it holds per platform) and returns the nodes matching the given criteria as a flat " +
             "list: {\"nodes\": [...], \"totalMatches\", \"truncated\"}. Each entry carries its \"rootId\" and " +
-            "\"id\", which together address the node in performNodeAction, plus screen \"bounds\" in the node's \"unit\" (px, or pt on iOS) and a " +
+            "\"id\", which together address the node in performNodeAction, \"performable\" with the action names performNodeAction accepts for it " +
+            "(\"actions\" is the platform's own naming, e.g. OnClick for Click; BringIntoView works on any node), plus screen \"bounds\" in the node's \"unit\" (px, or pt on iOS) and a " +
             "\"tap\" point. Criteria are combined with AND; matching is case-insensitive and by substring " +
             "unless exact is set. Omit every criterion to list all interactive nodes on screen."
 

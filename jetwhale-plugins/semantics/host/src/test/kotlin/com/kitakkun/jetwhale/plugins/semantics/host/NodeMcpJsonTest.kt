@@ -30,10 +30,25 @@ class NodeMcpJsonTest {
         assertEquals("Send", json["text"]?.jsonPrimitive?.content)
         assertEquals("send-button", json["testTag"]?.jsonPrimitive?.content)
         assertEquals(listOf("OnClick"), json["actions"]?.jsonArray?.map { it.jsonPrimitive.content })
+        assertEquals(listOf("Click"), json["performable"]?.jsonArray?.map { it.jsonPrimitive.content })
         assertEquals("px", json["unit"]?.jsonPrimitive?.content)
         assertEquals(10, json["bounds"]?.jsonObject?.get("left")?.jsonPrimitive?.content?.toInt())
         assertEquals(60, json["tap"]?.jsonObject?.get("x")?.jsonPrimitive?.content?.toInt())
         assertEquals(40, json["tap"]?.jsonObject?.get("y")?.jsonPrimitive?.content?.toInt())
+    }
+
+    @Test
+    fun `performable lists the names performNodeAction accepts and leaves out actions it cannot run`() {
+        val json = node(
+            id = 3,
+            actions = listOf("OnClick", "OnLongClick", "SetTextSubstitution", "InsertTextAtCursor", "PerformImeAction"),
+            isClickable = true,
+        ).toMcpJson()
+
+        assertEquals(
+            listOf("Click", "LongClick", "InsertText", "ImeAction"),
+            json["performable"]?.jsonArray?.map { it.jsonPrimitive.content },
+        )
     }
 
     @Test
