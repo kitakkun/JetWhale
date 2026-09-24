@@ -1,0 +1,58 @@
+# Deep-link straight into a detail screen, check the app shows it, then go back to where it was.
+# The screenshot of the Nav3 Navigator is kept as evidence in the report.
+version: 1
+name: Detail screen round trip
+description: Pushes a Detail key for an item, checks it is on top, screenshots the navigator, and pops back to Home.
+inputs:
+  itemId:
+    description: Item to open
+    default: item-42
+defaults:
+  expect:
+    - path: $.error
+      exists: false
+steps:
+  - id: session
+    call: jetwhale.listSessions
+    save:
+      sessionId: "$[?(@.isActive == true)].first().sessionId"
+
+  - id: before
+    call: com.kitakkun.jetwhale.nav3.getBackStack
+    args: { sessionId: "${sessionId}" }
+    save:
+      depth: $.stacks[0].size
+
+  - id: push
+    call: com.kitakkun.jetwhale.nav3.pushNavKey
+    args:
+      sessionId: "${sessionId}"
+      key: { type: Detail, itemId: "${itemId}", highlighted: true }
+    expect:
+      - path: $.applied
+        equals: true
+
+  - id: on-top
+    call: com.kitakkun.jetwhale.nav3.getBackStack
+    args: { sessionId: "${sessionId}" }
+    expect:
+      - path: $.stacks[0].entries[-1].typeName
+        equals: Detail
+      - path: $.stacks[0].entries[-1].key.itemId
+        equals: "${itemId}"
+
+  - id: evidence
+    call: jetwhale.screenshot
+    args: { pluginId: com.kitakkun.jetwhale.nav3, sessionId: "${sessionId}", density: 1 }
+
+  - id: back
+    always: true
+    call: com.kitakkun.jetwhale.nav3.popBackStack
+    args: { sessionId: "${sessionId}", count: 1 }
+
+  - id: restored
+    call: com.kitakkun.jetwhale.nav3.getBackStack
+    args: { sessionId: "${sessionId}" }
+    expect:
+      - path: $.stacks[0].size
+        equals: "${depth}"

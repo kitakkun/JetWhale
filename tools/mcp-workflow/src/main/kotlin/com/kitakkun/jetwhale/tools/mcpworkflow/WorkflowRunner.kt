@@ -156,9 +156,14 @@ class WorkflowRunner(
     )
 
     private suspend fun attempt(step: Step, server: String, variables: Map<String, JsonElement>): Attempt {
-        // Expected values are templated like arguments, so a step can check the value it just sent.
-        val (arguments, expectations) = try {
-            renderTemplate(step.args, variables, environment) as JsonObject to step.expect.map { it.rendered(variables) }
+        // Expectations and paths are templated like arguments, so a step can check the value it just
+        // sent, or pick a list item by a variable.
+        val (arguments, expectations, savePaths) = try {
+            Rendered(
+                arguments = renderTemplate(step.args, variables, environment) as JsonObject,
+                expectations = step.expect.map { it.rendered(variables) },
+                savePaths = step.save.mapValues { (_, path) -> renderText(path, variables) },
+            )
         } catch (e: TemplateException) {
             return Attempt(null, null, null, emptyMap(), e.message, fatal = true)
         }
@@ -182,7 +187,7 @@ class WorkflowRunner(
         val failure = evaluate(expectations, document, isError)
         if (failure != null) return Attempt(arguments, result, document, emptyMap(), failure, fatal = false)
         val saved = mutableMapOf<String, JsonElement>()
-        step.save.forEach { (name, path) ->
+        savePaths.forEach { (name, path) ->
             saved[name] = JsonPath.parse(path).select(document)
                 ?: return Attempt(arguments, result, document, emptyMap(), "save '$name': $path matched nothing in ${document.render()}", fatal = false)
         }
@@ -194,11 +199,16 @@ class WorkflowRunner(
         return expectations.firstNotNullOfOrNull { failureOf(it, document, isError) }
     }
 
+    private data class Rendered(val arguments: JsonObject, val expectations: List<Expectation>, val savePaths: Map<String, String>)
+
+    private fun renderText(text: String, variables: Map<String, JsonElement>): String = (renderTemplate(JsonPrimitive(text), variables, environment) as JsonPrimitive).content
+
     private fun Expectation.rendered(variables: Map<String, JsonElement>): Expectation = copy(
+        path = renderText(path, variables),
         equals = equals?.let { renderTemplate(it, variables, environment) },
         notEquals = notEquals?.let { renderTemplate(it, variables, environment) },
         contains = contains?.let { renderTemplate(it, variables, environment) },
-        matches = matches?.let { (renderTemplate(JsonPrimitive(it), variables, environment) as JsonPrimitive).content },
+        matches = matches?.let { renderText(it, variables) },
     )
 
     private fun writeImages(index: Int, step: Step, result: CallToolResult): List<File> {

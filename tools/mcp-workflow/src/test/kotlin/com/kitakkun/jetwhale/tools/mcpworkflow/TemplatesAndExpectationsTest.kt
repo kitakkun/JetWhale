@@ -49,6 +49,7 @@ class TemplatesAndExpectationsTest {
         assertNull(check(Expectation(path = "$.title", matches = "^Settings"), isError = false))
         assertNull(check(Expectation(path = "$.size", gte = 2.0, lt = 3.0), isError = false))
         assertNull(check(Expectation(path = "$.missing", exists = false), isError = false))
+        assertNull(failureOf(Expectation(path = "$.error", exists = false), Json.parseToJsonElement("""{"error":null}"""), isError = false))
 
         val failure = assertNotNull(check(Expectation(path = "$.size", equals = JsonPrimitive(3)), isError = false))
         assertEquals("expected $.size to equal 3, but it was 2", failure)

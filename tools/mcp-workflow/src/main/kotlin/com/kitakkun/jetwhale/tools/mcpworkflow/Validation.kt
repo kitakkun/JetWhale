@@ -22,9 +22,9 @@ fun validate(workflow: Workflow, servers: Set<String>): List<String> {
             step.server == null && servers.size != 1 -> problems += "$where: names no `server`, and there are ${servers.size} servers to choose from"
         }
         (templateReferences(step.args) - defined).forEach { problems += "$where: refers to '$it' before anything defines it" }
-        step.save.forEach { (name, path) -> checkPath(path)?.let { problems += "$where: save '$name': $it" } }
+        step.save.forEach { (name, path) -> checkPath(path, defined)?.let { problems += "$where: save '$name': $it" } }
         step.expect.forEach { expectation ->
-            checkPath(expectation.path)?.let { problems += "$where: expect: $it" }
+            checkPath(expectation.path, defined)?.let { problems += "$where: expect: $it" }
             val templates = listOfNotNull(expectation.equals, expectation.notEquals, expectation.contains, expectation.matches?.let(::JsonPrimitive))
             (templates.flatMap(::templateReferences).toSet() - defined).forEach { problems += "$where: expect refers to '$it' before anything defines it" }
             expectation.matches?.let { pattern -> runCatching { Regex(pattern) }.onFailure { problems += "$where: expect: /$pattern/ is not a regex" } }
@@ -41,9 +41,14 @@ fun validate(workflow: Workflow, servers: Set<String>): List<String> {
     return problems
 }
 
-private fun checkPath(path: String): String? = try {
-    JsonPath.parse(path)
-    null
-} catch (e: IllegalArgumentException) {
-    e.message
+/** Why [path] is unusable, or null. A templated path can only be parsed once it is rendered, so only its references are checked. */
+private fun checkPath(path: String, defined: Set<String>): String? {
+    val references = templateReferences(JsonPrimitive(path))
+    if (references.isNotEmpty()) return (references - defined).firstOrNull()?.let { "$path refers to '$it' before anything defines it" }
+    return try {
+        JsonPath.parse(path)
+        null
+    } catch (e: IllegalArgumentException) {
+        e.message
+    }
 }

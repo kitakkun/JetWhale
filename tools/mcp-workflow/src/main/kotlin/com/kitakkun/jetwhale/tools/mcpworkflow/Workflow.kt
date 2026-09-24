@@ -117,7 +117,7 @@ data class WaitSpec(
 
 /**
  * A check on a call's result. [path] selects a value in the result document (see [JsonPath]); every
- * other property that is set must hold for it. [error] checks whether the server reported a tool
+ * other property that is set must hold for it. For [exists], a JSON `null` counts as absent. [error] checks whether the server reported a tool
  * error; a step with no expectation about [error] fails on a tool error.
  */
 @Serializable
