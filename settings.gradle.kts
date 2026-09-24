@@ -101,6 +101,7 @@ include(":jetwhale-plugins:actions:host")
 include(":jetwhale-plugins:mirror:host")
 include(":jetwhale-plugins:permissions:protocol")
 include(":jetwhale-plugins:permissions:agent")
+include(":jetwhale-plugins:permissions:host")
 
 include(":test-annotations")
 
