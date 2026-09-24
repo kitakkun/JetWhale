@@ -24,6 +24,7 @@ import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginInstallRequest
+import com.kitakkun.jetwhale.host.model.PluginFailures
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
 import com.kitakkun.jetwhale.host.model.SidebarWidth
@@ -110,6 +111,7 @@ fun toolingScaffoldPresenter(
     mcpActivity: McpActivity,
     mcpCapablePlugins: McpCapablePlugins,
     headlessPlugins: HeadlessPlugins,
+    pluginFailures: PluginFailures,
     followAiOperationEnabled: Boolean,
     persistedSidebarWidth: SidebarWidth,
     mcpServerStatus: McpServerStatus,
@@ -131,7 +133,7 @@ fun toolingScaffoldPresenter(
     var draggedSidebarWidth by retain { mutableStateOf<Dp?>(null) }
     val sidebarWidth = clampSidebarWidth(draggedSidebarWidth ?: persistedSidebarWidth.widthDp?.dp ?: JwMetrics.sidebarWidth)
 
-    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, activeInvocation) {
+    val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, pluginFailures, activeInvocation) {
         derivedStateOf {
             loadedPlugins.map { metaData ->
                 val sessionId = if (metaData.requiresAgent) selectedSession?.id else HostSession.ID
@@ -152,6 +154,7 @@ fun toolingScaffoldPresenter(
                     exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
                     isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
                     needsApp = metaData.requiresAgent,
+                    failureMessage = pluginFailures.latestFor(sessionId, metaData.id)?.message,
                 )
             }.toImmutableList()
         }

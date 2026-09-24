@@ -139,7 +139,13 @@ fun ShrunkToolingDrawerView(
                             contentDescription = null,
                         )
                     }
-                    if (it.underAiControl || it.exposesMcpTools) {
+                    if (it.failureMessage != null) {
+                        RailBadge(
+                            tone = JwTone.Error,
+                            filled = true,
+                            modifier = Modifier.align(Alignment.BottomEnd),
+                        )
+                    } else if (it.underAiControl || it.exposesMcpTools) {
                         RailBadge(
                             tone = if (it.underAiControl) JwTone.Warning else JwTone.Neutral,
                             filled = it.underAiControl,
@@ -264,6 +270,7 @@ private fun ShrunkToolingDrawerViewPreview() {
                     exposesMcpTools = true,
                     isHeadless = false,
                     needsApp = true,
+                    failureMessage = null,
                 ),
             ),
             sessions = persistentListOf(),
