@@ -94,7 +94,7 @@ internal fun workFactsOf(item: BackgroundWorkItem): List<WorkFact> = buildList {
     add(WorkFact("Id", item.id, monospace = true))
     item.uniqueName?.let { add(WorkFact("Unique name", it, monospace = false)) }
     item.runAttemptCount?.let { add(WorkFact("Run attempts", it.toString(), monospace = false)) }
-    item.nextRunEpochMillis?.let { add(WorkFact("Next run", DateTimeFormatterLong.format(Instant.ofEpochMilli(it)), monospace = false)) }
+    item.nextRunEpochMillis?.let { add(WorkFact("Earliest run", DateTimeFormatterLong.format(Instant.ofEpochMilli(it)), monospace = false)) }
     item.periodMillis?.let { period ->
         val flex = item.flexMillis?.let { " (flex ${it.milliseconds})" }.orEmpty()
         add(WorkFact("Repeats every", "${period.milliseconds}$flex", monospace = false))
