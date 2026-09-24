@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Android
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -167,7 +167,9 @@ internal fun AppIcon(session: DebugSession?) {
             modifier = Modifier.size(JwMetrics.iconSize),
         )
     } else {
-        JwIcon(imageVector = Icons.Default.Android, contentDescription = null)
+        // An app sends no icon from a platform the agent cannot read one on (desktop, web), so the
+        // fallback must not name a platform.
+        JwIcon(imageVector = Icons.Default.Apps, contentDescription = null)
     }
 }
 
