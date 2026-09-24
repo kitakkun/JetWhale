@@ -1,0 +1,447 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, linuxArm64, linuxX64, macosArm64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.storage:protocol>
+final class com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult> { // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry|null[0]
+    constructor <init>(kotlin/String, kotlin.collections/List<kotlin/String>) // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.<init>|<init>(kotlin.String;kotlin.collections.List<kotlin.String>){}[0]
+
+    final val path // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.path|{}path[0]
+        final fun <get-path>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.path.<get-path>|<get-path>(){}[0]
+    final val rootName // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.rootName|{}rootName[0]
+        final fun <get-rootName>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.rootName.<get-rootName>|<get-rootName>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., kotlin.collections/List<kotlin/String> = ...): com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.copy|copy(kotlin.String;kotlin.collections.List<kotlin.String>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry> { // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry) // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.DeleteFileEntry){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry> // com.kitakkun.jetwhale.plugins.storage.protocol/DeleteFileEntry.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing { // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing|null[0]
+    constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry>, kotlin/String?) // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry>;kotlin.String?){}[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.entries|{}entries[0]
+        final fun <get-entries>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry> // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.entries.<get-entries>|<get-entries>(){}[0]
+    final val error // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.error|{}error[0]
+        final fun <get-error>(): kotlin/String? // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.error.<get-error>|<get-error>(){}[0]
+
+    final fun component1(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry> // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.component1|component1(){}[0]
+    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.component2|component2(){}[0]
+    final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry> = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry>;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing> { // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing) // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryListing){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing> // com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/FileContent { // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent|null[0]
+    constructor <init>(kotlin/String, kotlin/Long, kotlin/String?) // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.<init>|<init>(kotlin.String;kotlin.Long;kotlin.String?){}[0]
+
+    final val contentBase64 // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.contentBase64|{}contentBase64[0]
+        final fun <get-contentBase64>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.contentBase64.<get-contentBase64>|<get-contentBase64>(){}[0]
+    final val error // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.error|{}error[0]
+        final fun <get-error>(): kotlin/String? // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.error.<get-error>|<get-error>(){}[0]
+    final val totalSizeBytes // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.totalSizeBytes|{}totalSizeBytes[0]
+        final fun <get-totalSizeBytes>(): kotlin/Long // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.totalSizeBytes.<get-totalSizeBytes>|<get-totalSizeBytes>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.component1|component1(){}[0]
+    final fun component2(): kotlin/Long // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.component2|component2(){}[0]
+    final fun component3(): kotlin/String? // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.component3|component3(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Long = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.storage.protocol/FileContent // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.copy|copy(kotlin.String;kotlin.Long;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/FileContent> { // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/FileContent // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/FileContent) // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.FileContent){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/FileContent> // com.kitakkun.jetwhale.plugins.storage.protocol/FileContent.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry { // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry|null[0]
+    constructor <init>(kotlin/String, kotlin/Boolean, kotlin/Long, kotlin/Long?) // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.<init>|<init>(kotlin.String;kotlin.Boolean;kotlin.Long;kotlin.Long?){}[0]
+
+    final val isDirectory // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.isDirectory|{}isDirectory[0]
+        final fun <get-isDirectory>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.isDirectory.<get-isDirectory>|<get-isDirectory>(){}[0]
+    final val lastModifiedEpochMillis // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.lastModifiedEpochMillis|{}lastModifiedEpochMillis[0]
+        final fun <get-lastModifiedEpochMillis>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.lastModifiedEpochMillis.<get-lastModifiedEpochMillis>|<get-lastModifiedEpochMillis>(){}[0]
+    final val name // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.name|{}name[0]
+        final fun <get-name>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.name.<get-name>|<get-name>(){}[0]
+    final val sizeBytes // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.sizeBytes|{}sizeBytes[0]
+        final fun <get-sizeBytes>(): kotlin/Long // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.sizeBytes.<get-sizeBytes>|<get-sizeBytes>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.component1|component1(){}[0]
+    final fun component2(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.component2|component2(){}[0]
+    final fun component3(): kotlin/Long // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.component3|component3(){}[0]
+    final fun component4(): kotlin/Long? // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.component4|component4(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Boolean = ..., kotlin/Long = ..., kotlin/Long? = ...): com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.copy|copy(kotlin.String;kotlin.Boolean;kotlin.Long;kotlin.Long?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry> { // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry) // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry> // com.kitakkun.jetwhale.plugins.storage.protocol/FileEntry.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo { // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo|null[0]
+    constructor <init>(kotlin/String, kotlin/String) // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.<init>|<init>(kotlin.String;kotlin.String){}[0]
+
+    final val absolutePath // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.absolutePath|{}absolutePath[0]
+        final fun <get-absolutePath>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.absolutePath.<get-absolutePath>|<get-absolutePath>(){}[0]
+    final val name // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.name|{}name[0]
+        final fun <get-name>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.name.<get-name>|<get-name>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ...): com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.copy|copy(kotlin.String;kotlin.String){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo> { // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo) // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.FileRootInfo){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo> // com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry { // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry|null[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/String) // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.<init>|<init>(kotlin.String;kotlin.String;kotlin.String){}[0]
+
+    final val key // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.key|{}key[0]
+        final fun <get-key>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.key.<get-key>|<get-key>(){}[0]
+    final val type // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.type|{}type[0]
+        final fun <get-type>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.type.<get-type>|<get-type>(){}[0]
+    final val value // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.value|{}value[0]
+        final fun <get-value>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.value.<get-value>|<get-value>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.component2|component2(){}[0]
+    final fun component3(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.component3|component3(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/String = ...): com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.copy|copy(kotlin.String;kotlin.String;kotlin.String){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry> { // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry) // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry> // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent { // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent|null[0]
+    constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry>, kotlin/String?) // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry>;kotlin.String?){}[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.entries|{}entries[0]
+        final fun <get-entries>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry> // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.entries.<get-entries>|<get-entries>(){}[0]
+    final val error // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.error|{}error[0]
+        final fun <get-error>(): kotlin/String? // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.error.<get-error>|<get-error>(){}[0]
+
+    final fun component1(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry> // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.component1|component1(){}[0]
+    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.component2|component2(){}[0]
+    final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry> = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry>;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent> { // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent) // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent> // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo { // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo|null[0]
+    constructor <init>(kotlin/String) // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.<init>|<init>(kotlin.String){}[0]
+
+    final val name // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.name|{}name[0]
+        final fun <get-name>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.name.<get-name>|<get-name>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.component1|component1(){}[0]
+    final fun copy(kotlin/String = ...): com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.copy|copy(kotlin.String){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo> { // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo) // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreInfo){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo> // com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.storage.protocol/DirectoryListing> { // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory|null[0]
+    constructor <init>(kotlin/String, kotlin.collections/List<kotlin/String>) // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.<init>|<init>(kotlin.String;kotlin.collections.List<kotlin.String>){}[0]
+
+    final val path // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.path|{}path[0]
+        final fun <get-path>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.path.<get-path>|<get-path>(){}[0]
+    final val rootName // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.rootName|{}rootName[0]
+        final fun <get-rootName>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.rootName.<get-rootName>|<get-rootName>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., kotlin.collections/List<kotlin/String> = ...): com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.copy|copy(kotlin.String;kotlin.collections.List<kotlin.String>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory> { // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory) // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.ListDirectory){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory> // com.kitakkun.jetwhale.plugins.storage.protocol/ListDirectory.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.storage.protocol/FileContent> { // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile|null[0]
+    constructor <init>(kotlin/String, kotlin.collections/List<kotlin/String>, kotlin/Long, kotlin/Int) // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.<init>|<init>(kotlin.String;kotlin.collections.List<kotlin.String>;kotlin.Long;kotlin.Int){}[0]
+
+    final val maxBytes // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.maxBytes|{}maxBytes[0]
+        final fun <get-maxBytes>(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.maxBytes.<get-maxBytes>|<get-maxBytes>(){}[0]
+    final val offset // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.offset|{}offset[0]
+        final fun <get-offset>(): kotlin/Long // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.offset.<get-offset>|<get-offset>(){}[0]
+    final val path // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.path|{}path[0]
+        final fun <get-path>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.path.<get-path>|<get-path>(){}[0]
+    final val rootName // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.rootName|{}rootName[0]
+        final fun <get-rootName>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.rootName.<get-rootName>|<get-rootName>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.component2|component2(){}[0]
+    final fun component3(): kotlin/Long // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.component3|component3(){}[0]
+    final fun component4(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.component4|component4(){}[0]
+    final fun copy(kotlin/String = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/Long = ..., kotlin/Int = ...): com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.copy|copy(kotlin.String;kotlin.collections.List<kotlin.String>;kotlin.Long;kotlin.Int){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile> { // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile) // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.ReadFile){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile> // com.kitakkun.jetwhale.plugins.storage.protocol/ReadFile.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreContent> { // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore|null[0]
+    constructor <init>(kotlin/String) // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.<init>|<init>(kotlin.String){}[0]
+
+    final val storeName // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.storeName|{}storeName[0]
+        final fun <get-storeName>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.storeName.<get-storeName>|<get-storeName>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.component1|component1(){}[0]
+    final fun copy(kotlin/String = ...): com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.copy|copy(kotlin.String){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore> { // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore) // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.ReadKeyValueStore){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore> // com.kitakkun.jetwhale.plugins.storage.protocol/ReadKeyValueStore.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult> { // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue|null[0]
+    constructor <init>(kotlin/String, kotlin/String) // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.<init>|<init>(kotlin.String;kotlin.String){}[0]
+
+    final val key // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.key|{}key[0]
+        final fun <get-key>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.key.<get-key>|<get-key>(){}[0]
+    final val storeName // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.storeName|{}storeName[0]
+        final fun <get-storeName>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.storeName.<get-storeName>|<get-storeName>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ...): com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.copy|copy(kotlin.String;kotlin.String){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue> { // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue) // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.RemoveKeyValue){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue> // com.kitakkun.jetwhale.plugins.storage.protocol/RemoveKeyValue.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations { // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations|null[0]
+    constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo>, kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo>) // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.storage.protocol.FileRootInfo>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreInfo>){}[0]
+
+    final val fileRoots // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.fileRoots|{}fileRoots[0]
+        final fun <get-fileRoots>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo> // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.fileRoots.<get-fileRoots>|<get-fileRoots>(){}[0]
+    final val keyValueStores // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.keyValueStores|{}keyValueStores[0]
+        final fun <get-keyValueStores>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo> // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.keyValueStores.<get-keyValueStores>|<get-keyValueStores>(){}[0]
+
+    final fun component1(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo> // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo> // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.component2|component2(){}[0]
+    final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/FileRootInfo> = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueStoreInfo> = ...): com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.plugins.storage.protocol.FileRootInfo>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreInfo>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations> { // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations) // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations> // com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult { // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult|null[0]
+    constructor <init>(kotlin/String?) // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.<init>|<init>(kotlin.String?){}[0]
+
+    final val error // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.error|{}error[0]
+        final fun <get-error>(): kotlin/String? // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.error.<get-error>|<get-error>(){}[0]
+
+    final fun component1(): kotlin/String? // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.component1|component1(){}[0]
+    final fun copy(kotlin/String? = ...): com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.copy|copy(kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult> { // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult) // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.storage.protocol.StorageOperationResult){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult> // com.kitakkun.jetwhale.plugins.storage.protocol/StorageOperationResult.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final object com.kitakkun.jetwhale.plugins.storage.protocol/GetStorageLocations : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.storage.protocol/StorageLocations>, kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.storage.protocol/GetStorageLocations|null[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.storage.protocol/GetStorageLocations.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/GetStorageLocations.hashCode|hashCode(){}[0]
+    final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.storage.protocol/GetStorageLocations> // com.kitakkun.jetwhale.plugins.storage.protocol/GetStorageLocations.serializer|serializer(){}[0]
+    final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.storage.protocol/GetStorageLocations.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/GetStorageLocations.toString|toString(){}[0]
+}
+
+final const val com.kitakkun.jetwhale.plugins.storage.protocol/MAX_FILE_READ_BYTES // com.kitakkun.jetwhale.plugins.storage.protocol/MAX_FILE_READ_BYTES|{}MAX_FILE_READ_BYTES[0]
+    final fun <get-MAX_FILE_READ_BYTES>(): kotlin/Int // com.kitakkun.jetwhale.plugins.storage.protocol/MAX_FILE_READ_BYTES.<get-MAX_FILE_READ_BYTES>|<get-MAX_FILE_READ_BYTES>(){}[0]
+final const val com.kitakkun.jetwhale.plugins.storage.protocol/STORAGE_PLUGIN_ID // com.kitakkun.jetwhale.plugins.storage.protocol/STORAGE_PLUGIN_ID|{}STORAGE_PLUGIN_ID[0]
+    final fun <get-STORAGE_PLUGIN_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.protocol/STORAGE_PLUGIN_ID.<get-STORAGE_PLUGIN_ID>|<get-STORAGE_PLUGIN_ID>(){}[0]

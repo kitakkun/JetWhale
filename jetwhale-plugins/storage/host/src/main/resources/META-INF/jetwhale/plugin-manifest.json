@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../../../../../schemas/plugin-manifest.schema.json",
+  "plugins": [
+    {
+      "pluginId": "com.kitakkun.jetwhale.storage",
+      "pluginName": "Storage Inspector",
+      "version": "1.0.0",
+      "factoryClass": "com.kitakkun.jetwhale.plugins.storage.host.StorageHostPluginFactory",
+      "agentVersionRange": {
+        "min": "1.0.0",
+        "max": "1.0.0"
+      },
+      "icon": {
+        "activePath": "icons/storage_filled.svg",
+        "inactivePath": "icons/storage_outlined.svg"
+      }
+    }
+  ]
+}

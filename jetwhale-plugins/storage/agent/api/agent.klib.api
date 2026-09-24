@@ -1,0 +1,44 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, macosArm64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.storage:agent>
+abstract interface com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore { // com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore|null[0]
+    abstract val name // com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.name|{}name[0]
+        abstract fun <get-name>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.name.<get-name>|<get-name>(){}[0]
+
+    abstract fun entries(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.protocol/KeyValueEntry> // com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.entries|entries(){}[0]
+    abstract fun remove(kotlin/String) // com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.remove|remove(kotlin.String){}[0]
+
+    final object Companion // com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.Companion|null[0]
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.agent/FileRoot { // com.kitakkun.jetwhale.plugins.storage.agent/FileRoot|null[0]
+    constructor <init>(kotlin/String, kotlin/String) // com.kitakkun.jetwhale.plugins.storage.agent/FileRoot.<init>|<init>(kotlin.String;kotlin.String){}[0]
+
+    final val name // com.kitakkun.jetwhale.plugins.storage.agent/FileRoot.name|{}name[0]
+        final fun <get-name>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.agent/FileRoot.name.<get-name>|<get-name>(){}[0]
+    final val path // com.kitakkun.jetwhale.plugins.storage.agent/FileRoot.path|{}path[0]
+        final fun <get-path>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.agent/FileRoot.path.<get-path>|<get-path>(){}[0]
+
+    final object Companion // com.kitakkun.jetwhale.plugins.storage.agent/FileRoot.Companion|null[0]
+}
+
+final class com.kitakkun.jetwhale.plugins.storage.agent/JetWhaleStorageAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.plugins.storage.agent/JetWhaleStorageAgentPlugin|null[0]
+    constructor <init>(kotlin/Function0<kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.agent/FileRoot>>, kotlin/Function0<kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore>>) // com.kitakkun.jetwhale.plugins.storage.agent/JetWhaleStorageAgentPlugin.<init>|<init>(kotlin.Function0<kotlin.collections.List<com.kitakkun.jetwhale.plugins.storage.agent.FileRoot>>;kotlin.Function0<kotlin.collections.List<com.kitakkun.jetwhale.plugins.storage.agent.KeyValueStore>>){}[0]
+
+    final val pluginId // com.kitakkun.jetwhale.plugins.storage.agent/JetWhaleStorageAgentPlugin.pluginId|{}pluginId[0]
+        final fun <get-pluginId>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.agent/JetWhaleStorageAgentPlugin.pluginId.<get-pluginId>|<get-pluginId>(){}[0]
+    final val pluginVersion // com.kitakkun.jetwhale.plugins.storage.agent/JetWhaleStorageAgentPlugin.pluginVersion|{}pluginVersion[0]
+        final fun <get-pluginVersion>(): kotlin/String // com.kitakkun.jetwhale.plugins.storage.agent/JetWhaleStorageAgentPlugin.pluginVersion.<get-pluginVersion>|<get-pluginVersion>(){}[0]
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.storage.agent/JetWhaleStorageAgentPlugin.Companion|null[0]
+        final fun platformDefaults(): com.kitakkun.jetwhale.plugins.storage.agent/JetWhaleStorageAgentPlugin // com.kitakkun.jetwhale.plugins.storage.agent/JetWhaleStorageAgentPlugin.Companion.platformDefaults|platformDefaults(){}[0]
+    }
+}
+
+final fun (com.kitakkun.jetwhale.plugins.storage.agent/FileRoot.Companion).com.kitakkun.jetwhale.plugins.storage.agent/platformDefaults(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.agent/FileRoot> // com.kitakkun.jetwhale.plugins.storage.agent/platformDefaults|platformDefaults@com.kitakkun.jetwhale.plugins.storage.agent.FileRoot.Companion(){}[0]
+final fun (com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore.Companion).com.kitakkun.jetwhale.plugins.storage.agent/platformDefaults(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.storage.agent/KeyValueStore> // com.kitakkun.jetwhale.plugins.storage.agent/platformDefaults|platformDefaults@com.kitakkun.jetwhale.plugins.storage.agent.KeyValueStore.Companion(){}[0]

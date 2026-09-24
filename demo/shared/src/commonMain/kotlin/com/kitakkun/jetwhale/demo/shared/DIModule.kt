@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.plugins.nav3.agent.Nav3KeyCodec
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.agent.ktor.ktorClientPlugin
 import com.kitakkun.jetwhale.plugins.semantics.agent.JetWhaleSemanticsAgentPlugin
+import com.kitakkun.jetwhale.plugins.storage.agent.JetWhaleStorageAgentPlugin
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.HttpTimeout
@@ -27,6 +28,8 @@ object DIModule {
      * up per platform, in `demo/android` and `demo/desktop`.
      */
     val semanticsAgentPlugin: JetWhaleSemanticsAgentPlugin by lazy { JetWhaleSemanticsAgentPlugin() }
+
+    val storageAgentPlugin: JetWhaleStorageAgentPlugin by lazy(JetWhaleStorageAgentPlugin::platformDefaults)
 
     /** A demo Ktor client wired to the Network Inspector so its traffic shows up in the debugger. */
     val httpClient: HttpClient by lazy {

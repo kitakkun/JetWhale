@@ -1,0 +1,36 @@
+public final class com/kitakkun/jetwhale/plugins/storage/agent/FileRoot {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/storage/agent/FileRoot$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun getName ()Ljava/lang/String;
+	public final fun getPath ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/storage/agent/FileRoot$Companion {
+}
+
+public final class com/kitakkun/jetwhale/plugins/storage/agent/JetWhaleStorageAgentPlugin : com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/storage/agent/JetWhaleStorageAgentPlugin$Companion;
+	public fun <init> (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;)V
+	public fun getPluginId ()Ljava/lang/String;
+	public fun getPluginVersion ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/storage/agent/JetWhaleStorageAgentPlugin$Companion {
+	public final fun platformDefaults ()Lcom/kitakkun/jetwhale/plugins/storage/agent/JetWhaleStorageAgentPlugin;
+}
+
+public abstract interface class com/kitakkun/jetwhale/plugins/storage/agent/KeyValueStore {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/storage/agent/KeyValueStore$Companion;
+	public abstract fun entries ()Ljava/util/List;
+	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun remove (Ljava/lang/String;)V
+}
+
+public final class com/kitakkun/jetwhale/plugins/storage/agent/KeyValueStore$Companion {
+}
+
+public final class com/kitakkun/jetwhale/plugins/storage/agent/PlatformDefaults_jvmKt {
+	public static final fun platformDefaults (Lcom/kitakkun/jetwhale/plugins/storage/agent/FileRoot$Companion;)Ljava/util/List;
+	public static final fun platformDefaults (Lcom/kitakkun/jetwhale/plugins/storage/agent/KeyValueStore$Companion;)Ljava/util/List;
+}
+
