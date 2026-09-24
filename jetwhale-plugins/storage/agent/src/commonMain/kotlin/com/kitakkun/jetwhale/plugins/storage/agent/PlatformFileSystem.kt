@@ -24,10 +24,11 @@ internal expect fun moveReplacing(source: String, target: String)
  * [targetPath] as it was and has to start again from offset 0.
  */
 internal fun receiveUploadChunk(stagingPath: String, targetPath: String, offset: Long, bytes: ByteArray, isLast: Boolean) {
+    // Refused before the try: the cleanup below may only ever remove a plain file this upload
+    // created, never a link (writing would follow it) or a directory that happens to have the name.
+    require(!isSymbolicLink(stagingPath)) { "the upload's staging file is a symbolic link" }
+    require(!isDirectory(stagingPath)) { "the upload's staging path is an existing directory" }
     try {
-        // Writing follows a link, which would overwrite whatever it points to before the upload is
-        // confirmed; the staging file is only ever a plain file this upload created.
-        require(!isSymbolicLink(stagingPath)) { "the upload's staging file is a symbolic link" }
         if (offset != 0L) {
             val received = fileSize(stagingPath)
             require(received == offset) { "the upload expected a chunk at offset $received, not $offset; start it again" }
@@ -45,6 +46,8 @@ internal expect fun resolvesInside(path: String, root: String): Boolean
 
 /** True when [path] itself is a symbolic link, looked at without following it. */
 internal expect fun isSymbolicLink(path: String): Boolean
+
+internal expect fun isDirectory(path: String): Boolean
 
 /**
  * Adds up [path] and everything below it, breadth first. A symbolic link counts as one file of no

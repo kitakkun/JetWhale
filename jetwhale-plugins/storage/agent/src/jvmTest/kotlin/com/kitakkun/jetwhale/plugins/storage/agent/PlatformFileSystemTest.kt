@@ -162,6 +162,18 @@ class PlatformFileSystemTest {
     }
 
     @Test
+    fun `a directory already at the staging path is refused and left as it was`() {
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1").apply { mkdir() }
+        File(staging, "keep.txt").writeText("keep")
+
+        assertFailsWith<IllegalArgumentException> {
+            receiveUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1), isLast = true)
+        }
+
+        assertEquals("keep", File(staging, "keep.txt").readText())
+    }
+
+    @Test
     fun `a chunk at the wrong offset discards the upload and keeps the target`() {
         val target = File(directory, "settings.bin").apply { writeText("old") }
         val staging = File(directory, ".settings.bin.jetwhale-upload-1")
