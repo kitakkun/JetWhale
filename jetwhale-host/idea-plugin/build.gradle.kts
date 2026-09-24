@@ -23,7 +23,6 @@ repositories {
         content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
     }
     maven("https://central.sonatype.com/repository/maven-snapshots/") {
-        mavenContent { snapshotsOnly() }
         content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
     }
 }
