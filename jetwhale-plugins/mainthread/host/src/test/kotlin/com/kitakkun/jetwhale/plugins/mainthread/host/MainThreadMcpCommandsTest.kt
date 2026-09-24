@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mainthread.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.FrameStats
@@ -21,6 +22,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -42,6 +44,11 @@ class MainThreadMcpCommandsTest {
 
         val signatures = result.getValue("hotspots").jsonArray.map { it.jsonObject.getValue("signature").jsonPrimitive.content }
         assertEquals(listOf("com.example.Site1.run", "com.example.Site2.run", "com.example.Site3.run"), signatures)
+    }
+
+    @Test
+    fun `getHotspots refuses a limit below one`() {
+        assertFailsWith<JetWhaleMcpArgumentException> { GetHotspotsCommand(client).run(buildJsonObject { put("limit", -1) }) }
     }
 
     @Test

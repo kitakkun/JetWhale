@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mainthread.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.Hotspot
@@ -20,8 +21,10 @@ internal class GetHotspotsCommand(
     private val limit by intOrNull("How many hotspots to return, most blocking first. Defaults to $DEFAULT_HOTSPOT_LIMIT.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
+        val count = arguments[limit] ?: DEFAULT_HOTSPOT_LIMIT
+        if (count < 1) throw JetWhaleMcpArgumentException("limit must be at least 1, not $count")
         val report = client.report()
-        val hotspots = report.hotspots.take(arguments[limit] ?: DEFAULT_HOTSPOT_LIMIT)
+        val hotspots = report.hotspots.take(count)
         return reportJson(report) { put("hotspots", McpJson.encodeToJsonElement(ListSerializer(Hotspot.serializer()), hotspots)) }
     }
 }
