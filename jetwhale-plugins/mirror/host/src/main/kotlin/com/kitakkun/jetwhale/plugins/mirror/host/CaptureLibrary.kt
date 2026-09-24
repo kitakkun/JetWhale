@@ -54,14 +54,17 @@ private val TimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("HHmmss"
 internal class CaptureLibrary(val root: File, private val zone: ZoneId) {
     fun deviceFolder(device: DeviceListing): File = File(root, "${safeName(device.name)}-${shortId(device.id)}")
 
-    /** A file for a new capture of [device] taken at [at], not yet written. */
+    /**
+     * A new, empty file for a capture of [device] taken at [at]. It is created here, atomically, so
+     * two captures in the same second never get the same file.
+     */
     fun newFile(device: DeviceListing, kind: CaptureKind, at: Instant): File {
         val time = at.atZone(zone)
         val day = File(deviceFolder(device), DayFormat.format(time)).apply { mkdirs() }
         val base = "${TimeFormat.format(time)}-${kind.suffix}"
         return generateSequence(1) { it + 1 }
             .map { n -> File(day, if (n == 1) "$base.${kind.extension}" else "$base-$n.${kind.extension}") }
-            .first { !it.exists() }
+            .first(File::createNewFile)
     }
 
     /** Writes [info] beside [file], which completes the capture. */
