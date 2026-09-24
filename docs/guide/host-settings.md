@@ -297,6 +297,7 @@ When you launch the host from a plugin project with
 | `--log-level <level>` | the host's configured level | Minimum level the host's own logging emits: `DEBUG`, `INFO`, `WARN` or `ERROR`. Lower it when diagnosing a plugin that will not load, then read the result in the [log viewer](/guide/host-window#the-log-viewer). |
 | `--mcp-allow-all-permissions` | off | Allows every MCP tool for that process only — see [MCP Server → Lifting every permission for one launch](/guide/mcp-server#lifting-every-permission-for-one-launch). |
 | `--headless` | off | Runs without the application window — see [Headless mode](#headless-mode) below. |
+| `--safe-mode` | off | Starts without creating any plugin instance — see [Crashes and safe mode](/guide/host-window#crashes-and-safe-mode). Applies to that launch only; nothing is saved. |
 
 Ports are validated at parse time (they must be in `1..65535`), so a typo is reported immediately
 rather than as a bind failure later. Unrecognized arguments are ignored.
