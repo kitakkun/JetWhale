@@ -13,7 +13,7 @@ import java.util.zip.ZipOutputStream
  * silently lacks a file is worse for a bug report than no ZIP. [onFileZipped] receives the running
  * count of files written.
  */
-internal suspend fun StorageClient.zipDirectory(directory: FileLocation, zip: ZipOutputStream, onFileZipped: (Int) -> Unit): String? = DirectoryZipper(client = this, zip = zip, onFileZipped = onFileZipped).write(directory, entryName = "${directory.name}/")
+internal suspend fun StorageClient.zipDirectory(directory: FileLocation, zip: ZipOutputStream, onFileZipped: (Int) -> Unit): String? = DirectoryZipper(client = this, zip = zip, onFileZipped = onFileZipped).write(directory, entryName = "${zipSafeSegment(directory.name)}/")
 
 /** One ZIP being written: the client it reads through, the stream it writes to, and its file count. */
 private class DirectoryZipper(
@@ -31,7 +31,8 @@ private class DirectoryZipper(
         zip.closeEntry()
         for (entry in listing.entries.filterNot(FileEntry::isSymbolicLink)) {
             val child = location.child(entry.name)
-            val error = if (entry.isDirectory) write(child, "$entryName${entry.name}/") else writeFile(child, "$entryName${entry.name}", entry)
+            val name = zipSafeSegment(entry.name)
+            val error = if (entry.isDirectory) write(child, "$entryName$name/") else writeFile(child, "$entryName$name", entry)
             if (error != null) return error
         }
         return null
@@ -44,4 +45,14 @@ private class DirectoryZipper(
         onFileZipped(++filesZipped)
         return null
     }
+}
+
+/**
+ * [name] as one ZIP path segment. A root's name comes from the app and is not bound to be a single
+ * plain segment, and an entry named "../x" or with a separator would make extraction write outside
+ * the destination.
+ */
+internal fun zipSafeSegment(name: String): String {
+    val replaced = name.replace('/', '_').replace('\\', '_')
+    return if (replaced.isBlank() || replaced == "." || replaced == "..") "_" else replaced
 }
