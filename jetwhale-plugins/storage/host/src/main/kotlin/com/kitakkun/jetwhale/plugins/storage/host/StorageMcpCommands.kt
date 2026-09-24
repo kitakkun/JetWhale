@@ -13,5 +13,4 @@ internal val McpJson: Json = Json { encodeDefaults = true }
 internal const val PATH_ARGUMENT_DESCRIPTION = "Path below the root, with '/' between segments, e.g. 'files/datastore/settings.preferences_pb'."
 
 /** A tool's `root` and `path` arguments as the location they name. */
-internal fun fileLocationOf(rootName: String, path: String?): FileLocation =
-    FileLocation(rootName = rootName, path = path.orEmpty().split('/').filter(String::isNotEmpty))
+internal fun fileLocationOf(rootName: String, path: String?): FileLocation = FileLocation(rootName = rootName, path = path.orEmpty().split('/').filter(String::isNotEmpty))

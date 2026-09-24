@@ -55,8 +55,7 @@ internal class FakeStorageClient(
     }
 }
 
-internal fun fileEntry(name: String, sizeBytes: Long): FileEntry =
-    FileEntry(name = name, isDirectory = false, sizeBytes = sizeBytes, lastModifiedEpochMillis = null)
+internal fun fileEntry(name: String, sizeBytes: Long): FileEntry = FileEntry(name = name, isDirectory = false, sizeBytes = sizeBytes, lastModifiedEpochMillis = null)
 
 internal fun directoryEntry(name: String): FileEntry = FileEntry(name = name, isDirectory = true, sizeBytes = 0, lastModifiedEpochMillis = null)
 

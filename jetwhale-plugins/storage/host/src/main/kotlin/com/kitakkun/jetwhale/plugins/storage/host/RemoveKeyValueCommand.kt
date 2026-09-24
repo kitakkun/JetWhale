@@ -16,6 +16,5 @@ internal class RemoveKeyValueCommand(
     private val store by string("Name of the store, as listLocations reports it.")
     private val key by string("The key to remove.")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String =
-        McpJson.encodeToString(StorageOperationResult.serializer(), client.removeKeyValue(storeName = arguments[store], key = arguments[key]))
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(StorageOperationResult.serializer(), client.removeKeyValue(storeName = arguments[store], key = arguments[key]))
 }

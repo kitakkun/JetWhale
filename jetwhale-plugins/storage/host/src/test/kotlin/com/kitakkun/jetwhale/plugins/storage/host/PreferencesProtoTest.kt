@@ -15,7 +15,12 @@ class PreferencesProtoTest {
             "launches" to value(3) { varint(42) },
             "installedAt" to value(4) { varint(1_700_000_000_000) },
             "userName" to value(5) { string("kitakkun") },
-            "tags" to value(6) { lengthDelimited { string(1, "a"); string(1, "b") } },
+            "tags" to value(6) {
+                lengthDelimited {
+                    string(1, "a")
+                    string(1, "b")
+                }
+            },
             "ratio" to value(7) { fixed64(0.25.toRawBits()) },
             "token" to value(8) { bytes(byteArrayOf(0x0A, 0xFF.toByte())) },
         )
