@@ -7,5 +7,4 @@ internal actual fun discoverDeclaredDeepLinks(): DeclaredDeepLinks = DeclaredDee
     notes = listOf("A JVM app declares no links the platform can list. Register them as templates."),
 )
 
-actual fun DeepLinkOpener.Companion.platformDefault(): DeepLinkOpener =
-    UnsupportedDeepLinkOpener("the JVM has no way to route a link into the running app; pass a DeepLinkOpener that hands it to the app's router")
+actual fun DeepLinkOpener.Companion.platformDefault(): DeepLinkOpener = UnsupportedDeepLinkOpener("the JVM has no way to route a link into the running app; pass a DeepLinkOpener that hands it to the app's router")
