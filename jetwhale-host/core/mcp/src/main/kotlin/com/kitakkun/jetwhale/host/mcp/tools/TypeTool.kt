@@ -8,6 +8,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.text.AnnotatedString
 import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
@@ -36,7 +37,8 @@ class TypeMcpTool(
     override fun register(registrar: McpToolRegistrar) {
         registrar.addTool(
             name = "jetwhale.type",
-            description = "Types text or dispatches a special key into a plugin's UI. " +
+            description = "Types text or dispatches a special key into a plugin's UI. Text goes into the focused text field " +
+                "(click one first to focus it), or into the first text field when none has focus. " +
                 "Use 'text' for printable characters. Use 'specialKey' for keys like ENTER, BACKSPACE, TAB, ESCAPE, " +
                 "UP, DOWN, LEFT, RIGHT, HOME, END, PAGE_UP, PAGE_DOWN, DELETE.",
             inputSchema = ToolSchema(
@@ -92,7 +94,8 @@ class TypeMcpTool(
 }
 
 /**
- * Inserts [text] into the first editable node in the scene via [SemanticsActions.InsertTextAtCursor].
+ * Inserts [text] into the focused editable node via [SemanticsActions.InsertTextAtCursor] — where a
+ * user's keystrokes would land — or into the first editable node when none has focus.
  *
  * Using a semantics action avoids the need to simulate low-level key events and works
  * reliably in headless ComposeScenes where the platform event loop is not running.
@@ -100,18 +103,17 @@ class TypeMcpTool(
  * @return true if an editable node was found and the text was inserted, false otherwise.
  */
 fun dispatchTyping(scene: PluginComposeScene, text: String): Boolean {
-    val rootNodes = scene.semanticsOwners.map(SemanticsOwner::rootSemanticsNode)
-    val target = rootNodes.firstNotNullOfOrNull(::findInsertableNode) ?: return false
+    val insertable = scene.semanticsOwners.map(SemanticsOwner::rootSemanticsNode).flatMap(::insertableNodes)
+    val target = insertable.firstOrNull { it.config.getOrNull(SemanticsProperties.Focused) == true }
+        ?: insertable.firstOrNull()
+        ?: return false
     target.config.getOrNull(SemanticsActions.InsertTextAtCursor)?.action?.invoke(AnnotatedString(text))
     return true
 }
 
-private fun findInsertableNode(node: SemanticsNode): SemanticsNode? {
-    for (child in node.children) {
-        val result = findInsertableNode(child)
-        if (result != null) return result
-    }
-    return if (node.config.getOrNull(SemanticsActions.InsertTextAtCursor) != null) node else null
+private fun insertableNodes(node: SemanticsNode): List<SemanticsNode> = buildList {
+    node.children.forEach { addAll(insertableNodes(it)) }
+    if (node.config.getOrNull(SemanticsActions.InsertTextAtCursor) != null) add(node)
 }
 
 /**
