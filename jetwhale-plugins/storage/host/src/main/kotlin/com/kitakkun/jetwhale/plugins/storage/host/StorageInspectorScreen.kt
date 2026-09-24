@@ -39,6 +39,7 @@ internal fun StorageInspectorScreenRoot(browser: StorageBrowser, modifier: Modif
         storeContent = browser.storeContent,
         status = browser.status,
         pendingUpload = browser.pendingUpload,
+        pendingZipDownload = browser.pendingZipDownload,
         actions = browser,
         onSelectTab = { tab = it },
         modifier = modifier,
@@ -58,6 +59,7 @@ internal fun StorageInspectorScreen(
     storeContent: KeyValueStoreContent?,
     status: StorageStatus?,
     pendingUpload: PendingUpload?,
+    pendingZipDownload: PendingZipDownload?,
     actions: StorageInspectorActions,
     onSelectTab: (StorageTab) -> Unit,
     modifier: Modifier = Modifier,
@@ -105,8 +107,25 @@ internal fun StorageInspectorScreen(
             title = "Replace ${upload.target.name}?",
             message = "The file in the app is replaced with ${upload.source.name}. This cannot be undone.",
             confirmLabel = "Replace",
+            confirmTone = JwTone.Error,
             onConfirm = actions::confirmUpload,
             onDismiss = actions::cancelUpload,
+        )
+    }
+    pendingZipDownload?.let { download ->
+        val measurement = download.measurement
+        ConfirmDialog(
+            title = "Download ${download.location.name}?",
+            message = buildString {
+                append("${download.location.name} holds ")
+                if (measurement.truncated) append("more than ")
+                append("${measurement.fileCount} files, ${formatByteSize(measurement.totalSizeBytes)}. ")
+                append("Every byte is read from the app over the debug connection, so this can take a while.")
+            },
+            confirmLabel = "Download",
+            confirmTone = JwTone.Accent,
+            onConfirm = actions::confirmZipDownload,
+            onDismiss = actions::cancelZipDownload,
         )
     }
 }

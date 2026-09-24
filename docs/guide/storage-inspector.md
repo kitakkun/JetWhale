@@ -110,6 +110,12 @@ platform the agent supports.
   - **Text** for anything that reads as UTF-8.
   - **Hex** for everything, including SQLite databases and other binary formats.
 - **Save.** Downloads the whole file to your machine, however large — not just the previewed part.
+- **Download as ZIP.** On a directory, roots included: the directory and everything below it in one
+  ZIP, under a folder of the directory's name — `databases/` with its `-wal` and `-shm` files, say,
+  or a whole root for a bug report. Symbolic links are left out rather than followed. A directory
+  over 100 MB or 10,000 files asks first, since every byte is read from the app over the debug
+  connection. A file the app cannot read stops the download and names the file, and the partial
+  ZIP is removed.
 - **Upload and Replace.** **Upload…** on a directory sends a file from your machine into it;
   **Replace…** on a file overwrites it with one of yours. Replacing a file that is already there
   asks first. The file is sent in 1 MB chunks and swapped in only once all of it has arrived, so
