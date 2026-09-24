@@ -43,6 +43,10 @@ internal class MirrorSurface : AutoCloseable {
     // Set by [close]; a decoder still finishing its last frame then writes nothing.
     private var closed = false
 
+    // True while [drawFrame] runs its draw outside the lock; [close] then leaves `front` for the
+    // draw to close when it ends.
+    private var drawing = false
+
     /** The size the frames are drawn at, in pixels; the decoder shrinks frames to it. Set by the view. */
     @Volatile
     var viewSize: IntSize = IntSize.Zero
@@ -91,19 +95,36 @@ internal class MirrorSurface : AutoCloseable {
         publishStatsIfDue()
     }
 
-    /** The frame to draw now, swapping in the newest complete one. Called from the draw phase. */
-    fun frameForDraw(): Bitmap? = synchronized(lock) {
-        if (closed) return null
-        retired?.close()
-        retired = null
-        if (readyIsNewer) {
-            val shown = front
-            front = ready
-            ready = shown
-            readyIsNewer = false
-            window.recordDisplayed()
+    /**
+     * Runs [draw] with the frame to show now, swapping in the newest complete one; does nothing
+     * when there is no frame. Called from the draw phase. The bitmap stays open until [draw]
+     * returns, even when [close] runs meanwhile.
+     */
+    fun drawFrame(draw: (Bitmap) -> Unit) {
+        val bitmap = synchronized(lock) {
+            if (closed) return
+            retired?.close()
+            retired = null
+            if (readyIsNewer) {
+                val shown = front
+                front = ready
+                ready = shown
+                readyIsNewer = false
+                window.recordDisplayed()
+            }
+            front?.also { drawing = true }
+        } ?: return
+        try {
+            draw(bitmap)
+        } finally {
+            synchronized(lock) {
+                drawing = false
+                if (closed) {
+                    front?.close()
+                    front = null
+                }
+            }
         }
-        front
     }
 
     fun recordDraw(nanos: Long) = window.recordDraw(nanos)
@@ -124,14 +145,25 @@ internal class MirrorSurface : AutoCloseable {
         frameCounter++
     }
 
-    /** Frees every bitmap; for when nothing will draw from this surface again. */
+    /**
+     * Frees every bitmap; for when nothing will draw from this surface again. A frame being drawn
+     * is freed when its draw ends.
+     */
     override fun close() {
-        clear()
         synchronized(lock) {
             closed = true
+            back?.close()
+            ready?.close()
             retired?.close()
+            if (!drawing) front?.close()
+            back = null
+            ready = null
             retired = null
+            if (!drawing) front = null
+            readyIsNewer = false
         }
+        stats = MirrorStats.Empty
+        frameCounter++
     }
 
     private fun publishStatsIfDue() {
