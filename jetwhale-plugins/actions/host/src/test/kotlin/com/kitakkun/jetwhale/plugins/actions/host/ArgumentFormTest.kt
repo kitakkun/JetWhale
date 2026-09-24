@@ -49,6 +49,13 @@ class ArgumentFormTest {
     }
 
     @Test
+    fun `a blank required string is reported as missing rather than sent empty`() {
+        val built = buildArguments(parameters, mapOf("email" to " ", "enabled" to "false", "tier" to "FREE", "tags" to "[]"))
+
+        assertEquals(mapOf("email" to "required"), (built as FormArguments.Invalid).errors)
+    }
+
+    @Test
     fun `malformed text is reported per field instead of being sent`() {
         val built = buildArguments(parameters, mapOf("email" to "a", "count" to "three", "enabled" to "false", "tier" to "GOLD", "tags" to "[unclosed"))
 

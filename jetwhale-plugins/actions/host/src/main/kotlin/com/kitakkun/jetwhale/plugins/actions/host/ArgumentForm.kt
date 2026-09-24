@@ -32,7 +32,8 @@ internal sealed interface FormArguments {
 
 /**
  * Turns the form's [values] into the arguments object. A blank field is left out when the property
- * has a default, sent as `null` when it is nullable, and otherwise reported as missing.
+ * has a default, sent as `null` when it is nullable, and otherwise reported as missing — a string
+ * included, since a blank required field is far more often forgotten than meant to be empty.
  */
 internal fun buildArguments(parameters: List<ActionParameter>, values: Map<String, String>): FormArguments {
     val arguments = mutableMapOf<String, JsonElement>()
@@ -44,7 +45,7 @@ internal fun buildArguments(parameters: List<ActionParameter>, values: Map<Strin
 
             text.isBlank() && parameter.nullable -> arguments[parameter.name] = JsonNull
 
-            text.isBlank() && parameter.type != ParameterType.STRING -> errors[parameter.name] = "required"
+            text.isBlank() -> errors[parameter.name] = "required"
 
             else -> parameter.parse(text).fold(
                 onSuccess = { arguments[parameter.name] = it },
