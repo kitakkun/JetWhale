@@ -10,10 +10,12 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.storage.protocol.DeleteFileEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryListing
+import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.GetStorageLocations
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.ListDirectory
+import com.kitakkun.jetwhale.plugins.storage.protocol.MeasureDirectory
 import com.kitakkun.jetwhale.plugins.storage.protocol.ReadFile
 import com.kitakkun.jetwhale.plugins.storage.protocol.ReadKeyValueStore
 import com.kitakkun.jetwhale.plugins.storage.protocol.RemoveKeyValue
@@ -49,6 +51,8 @@ private class StorageHostPlugin :
 
     override suspend fun delete(location: FileLocation): StorageOperationResult = messenger.request(DeleteFileEntry(rootName = location.rootName, path = location.path))
 
+    override suspend fun measureDirectory(location: FileLocation): DirectoryMeasurement = messenger.request(MeasureDirectory(rootName = location.rootName, path = location.path))
+
     override suspend fun readKeyValueStore(storeName: String): KeyValueStoreContent = messenger.request(ReadKeyValueStore(storeName))
 
     override suspend fun removeKeyValue(storeName: String, key: String): StorageOperationResult = messenger.request(RemoveKeyValue(storeName = storeName, key = key))
@@ -65,5 +69,7 @@ private class StorageHostPlugin :
         DeleteFileEntryCommand(this),
         ReadKeyValueStoreCommand(this),
         RemoveKeyValueCommand(this),
+        MeasureDirectoryCommand(this),
+        HashFileCommand(this),
     )
 }

@@ -24,7 +24,7 @@ internal enum class PreviewFormat(val label: String) {
 internal fun previewFormatsOf(file: LoadedFile): List<PreviewFormat> = buildList {
     // A truncated DataStore file cannot be decoded: its last entry would be cut in half.
     if (file.location.name.endsWith(PREFERENCES_DATASTORE_SUFFIX) && !file.isTruncated) add(PreviewFormat.Preferences)
-    if (IMAGE_SIGNATURES.any(file.bytes::startsWith)) add(PreviewFormat.Image)
+    if (fileKindOf(file.location.name, file.bytes)?.isImage == true) add(PreviewFormat.Image)
     if (decodeTextOrNull(file.bytes) != null) add(PreviewFormat.Text)
     add(PreviewFormat.Hex)
 }
@@ -38,16 +38,6 @@ internal fun hexDump(bytes: ByteArray): String = bytes.asList().chunked(HEX_DUMP
 }
 
 private const val HEX_DUMP_WIDTH = 16
-
-private val IMAGE_SIGNATURES: List<ByteArray> = listOf(
-    byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47), // PNG
-    byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()), // JPEG
-    "GIF8".encodeToByteArray(),
-    "RIFF".encodeToByteArray(), // WebP, whose "WEBP" tag follows the RIFF size
-    "BM".encodeToByteArray(),
-)
-
-private fun ByteArray.startsWith(prefix: ByteArray): Boolean = size >= prefix.size && prefix.indices.all { this[it] == prefix[it] }
 
 /**
  * [bytes] as text, or null when they are not UTF-8 or hold control characters other than
@@ -63,4 +53,17 @@ internal fun decodeTextOrNull(bytes: ByteArray): String? {
         }
     } ?: return null
     return decoded.takeIf { text -> text.none { it.isISOControl() && it != '\n' && it != '\r' && it != '\t' } }
+}
+
+/**
+ * The line count of a file that reads as text, or null for anything else. For a file read only in
+ * part, the count covers the part that was read.
+ */
+internal fun textSummaryOf(file: LoadedFile): String? {
+    val text = decodeTextOrNull(file.bytes) ?: return null
+    val lines = text.count { it == '\n' } + if (text.isNotEmpty() && !text.endsWith('\n')) 1 else 0
+    return buildString {
+        append("$lines ${if (lines == 1) "line" else "lines"}, UTF-8")
+        if (file.isTruncated) append(" (in the previewed part)")
+    }
 }

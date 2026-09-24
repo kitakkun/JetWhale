@@ -148,6 +148,30 @@ class StorageBrowserTest {
     }
 
     @Test
+    fun `a measurement belongs to the directory it measured and goes when another entry is selected`() {
+        runBlocking { browser.load() }
+        browser.toggleDirectory(location("Files"))
+        browser.select(browser.treeRows.first { it.location.name == "datastore" })
+
+        browser.measureDirectory(location("Files", "datastore"))
+        assertEquals(1, browser.directoryMeasurement?.fileCount)
+
+        browser.select(browser.treeRows.first { it.location.name == "notes.txt" })
+        assertNull(browser.directoryMeasurement)
+    }
+
+    @Test
+    fun `a digest arriving after another entry was selected is dropped`() {
+        runBlocking { browser.load() }
+        browser.toggleDirectory(location("Files"))
+        browser.select(browser.treeRows.first { it.location.name == "datastore" })
+
+        browser.computeSha256(location("Files", "notes.txt"))
+
+        assertNull(browser.fileSha256)
+    }
+
+    @Test
     fun `selecting a collapsed directory opens it`() {
         runBlocking { browser.load() }
 

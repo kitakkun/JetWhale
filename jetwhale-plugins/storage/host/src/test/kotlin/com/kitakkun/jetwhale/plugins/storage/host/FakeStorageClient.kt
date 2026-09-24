@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryListing
+import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileRootInfo
@@ -44,6 +45,18 @@ internal class FakeStorageClient(
         return StorageOperationResult(error = null)
     }
 
+    override suspend fun measureDirectory(location: FileLocation): DirectoryMeasurement {
+        val entries = directories[location] ?: return DirectoryMeasurement(totalSizeBytes = 0, fileCount = 0, directoryCount = 0, truncated = false, error = "'${location.name}' is not a directory")
+        val below = entries.filter(FileEntry::isDirectory).map { measureDirectory(location.child(it.name)) }
+        return DirectoryMeasurement(
+            totalSizeBytes = entries.filterNot(FileEntry::isDirectory).sumOf(FileEntry::sizeBytes) + below.sumOf(DirectoryMeasurement::totalSizeBytes),
+            fileCount = entries.count { !it.isDirectory } + below.sumOf(DirectoryMeasurement::fileCount),
+            directoryCount = entries.count(FileEntry::isDirectory) + below.sumOf(DirectoryMeasurement::directoryCount),
+            truncated = false,
+            error = null,
+        )
+    }
+
     override suspend fun readKeyValueStore(storeName: String): KeyValueStoreContent = when (val entries = stores[storeName]) {
         null -> KeyValueStoreContent(entries = emptyList(), error = "no key-value store is named '$storeName'")
         else -> KeyValueStoreContent(entries = entries, error = null)
@@ -55,8 +68,18 @@ internal class FakeStorageClient(
     }
 }
 
-internal fun fileEntry(name: String, sizeBytes: Long): FileEntry = FileEntry(name = name, isDirectory = false, sizeBytes = sizeBytes, lastModifiedEpochMillis = null)
+internal fun fileEntry(name: String, sizeBytes: Long): FileEntry = FileEntry(
+    name = name,
+    isDirectory = false,
+    sizeBytes = sizeBytes,
+    lastModifiedEpochMillis = null,
+    isSymbolicLink = false,
+    linkTarget = null,
+    createdEpochMillis = null,
+    readable = true,
+    writable = true,
+)
 
-internal fun directoryEntry(name: String): FileEntry = FileEntry(name = name, isDirectory = true, sizeBytes = 0, lastModifiedEpochMillis = null)
+internal fun directoryEntry(name: String): FileEntry = fileEntry(name, sizeBytes = 0).copy(isDirectory = true)
 
 internal fun location(rootName: String, vararg path: String): FileLocation = FileLocation(rootName, path.toList())

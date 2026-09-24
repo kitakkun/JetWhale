@@ -41,15 +41,12 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTreeRow
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
+import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileRootInfo
 import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.swing.SwingUtilities
 import org.jetbrains.skia.Image as SkiaImage
 
@@ -59,7 +56,8 @@ private const val TREE_FRACTION = 0.35f
 /** A hex dump of more than this many bytes is too long to scroll through usefully. */
 private const val HEX_PREVIEW_BYTES = 16 * 1024
 
-private val TimestampFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
+/** Facts whose value is a path or a digest: set in code, on one line that scrolls sideways. */
+private val MONOSPACE_FACTS = setOf("Path", "Link", "SHA-256")
 
 @Composable
 internal fun FilesPane(
@@ -67,6 +65,8 @@ internal fun FilesPane(
     fileRoots: List<FileRootInfo>,
     selectedRow: FileTreeRow?,
     loadedFile: LoadedFile?,
+    directoryMeasurement: DirectoryMeasurement?,
+    fileSha256: String?,
     actions: StorageInspectorActions,
     modifier: Modifier = Modifier,
 ) {
@@ -78,7 +78,15 @@ internal fun FilesPane(
             )
             return@Box
         }
-        FileTreeSplit(treeRows = treeRows, fileRoots = fileRoots, selectedRow = selectedRow, loadedFile = loadedFile, actions = actions)
+        FileTreeSplit(
+            treeRows = treeRows,
+            fileRoots = fileRoots,
+            selectedRow = selectedRow,
+            loadedFile = loadedFile,
+            directoryMeasurement = directoryMeasurement,
+            fileSha256 = fileSha256,
+            actions = actions,
+        )
     }
 }
 
@@ -89,6 +97,8 @@ private fun FileTreeSplit(
     fileRoots: List<FileRootInfo>,
     selectedRow: FileTreeRow?,
     loadedFile: LoadedFile?,
+    directoryMeasurement: DirectoryMeasurement?,
+    fileSha256: String?,
     actions: StorageInspectorActions,
 ) {
     JwSplitPane(
@@ -129,10 +139,14 @@ private fun FileTreeSplit(
             } else {
                 EntryDetail(
                     row = selectedRow,
-                    root = fileRoots.firstOrNull { it.name == selectedRow.location.rootName },
-                    loadedFile = loadedFile?.takeIf { it.location == selectedRow.location },
-                    onDelete = { actions.delete(selectedRow.location) },
-                    onSave = { chooseSaveTarget(selectedRow.location.name) { actions.saveFile(selectedRow.location, it) } },
+                    facts = EntryFacts(
+                        row = selectedRow,
+                        root = fileRoots.firstOrNull { it.name == selectedRow.location.rootName },
+                        loadedFile = loadedFile?.takeIf { it.location == selectedRow.location },
+                        directoryMeasurement = directoryMeasurement,
+                        fileSha256 = fileSha256,
+                    ),
+                    actions = actions,
                 )
             }
         },
@@ -142,27 +156,26 @@ private fun FileTreeSplit(
 @Composable
 private fun EntryDetail(
     row: FileTreeRow,
-    root: FileRootInfo?,
-    loadedFile: LoadedFile?,
-    onDelete: () -> Unit,
-    onSave: () -> Unit,
+    facts: EntryFacts,
+    actions: StorageInspectorActions,
 ) {
     var confirmingDelete by remember(row.location) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().padding(JwSpacing.large), verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
             JwText(text = row.location.name, style = JwTheme.textStyles.title, modifier = Modifier.weight(1f))
-            if (!row.isDirectory) JwButton(text = "Save…", onClick = onSave)
+            if (row.isDirectory) {
+                JwButton(text = "Calculate size", onClick = { actions.measureDirectory(row.location) })
+            } else {
+                JwButton(text = "Compute SHA-256", onClick = { actions.computeSha256(row.location) })
+                JwButton(text = "Save…", onClick = { chooseSaveTarget(row.location.name) { actions.saveFile(row.location, it) } })
+            }
             // A root is where the app keeps things, not a thing it keeps: there is nothing to delete.
             if (row.location.path.isNotEmpty()) {
                 JwButton(text = "Delete…", onClick = { confirmingDelete = true }, tone = JwTone.Error)
             }
         }
-        root?.let { JwKeyValueRow(key = "Path", value = (listOf(it.absolutePath.trimEnd('/')) + row.location.path).joinToString("/"), monospace = true, wrap = false) }
-        row.entry?.let { entry ->
-            if (!entry.isDirectory) JwKeyValueRow(key = "Size", value = "${formatByteSize(entry.sizeBytes)} (${entry.sizeBytes} bytes)")
-            entry.lastModifiedEpochMillis?.let { JwKeyValueRow(key = "Modified", value = TimestampFormatter.format(Instant.ofEpochMilli(it))) }
-        }
-        if (!row.isDirectory && loadedFile != null) FilePreview(loadedFile, Modifier.weight(1f))
+        facts.rows.forEach { (key, value) -> JwKeyValueRow(key = key, value = value, monospace = key in MONOSPACE_FACTS, wrap = key !in MONOSPACE_FACTS) }
+        facts.loadedFile?.takeUnless { row.isDirectory }?.let { FilePreview(it, Modifier.weight(1f)) }
     }
     if (confirmingDelete) {
         ConfirmDeleteDialog(
@@ -174,7 +187,7 @@ private fun EntryDetail(
             },
             onConfirm = {
                 confirmingDelete = false
-                onDelete()
+                actions.delete(row.location)
             },
             onDismiss = { confirmingDelete = false },
         )
@@ -267,12 +280,6 @@ private fun ImagePreview(bytes: ByteArray) {
 @Composable
 private fun ScrollingCode(text: String) {
     JwCodeBlock(text = text, modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()))
-}
-
-private fun formatByteSize(bytes: Long): String = when {
-    bytes < 1024 -> "$bytes B"
-    bytes < 1024 * 1024 -> String.format(Locale.ROOT, "%.1f KB", bytes / 1024.0)
-    else -> String.format(Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024.0))
 }
 
 private enum class ImageScale(val label: String) {

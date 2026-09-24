@@ -5,11 +5,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.kitakkun.jetwhale.plugins.storage.protocol.DirectoryMeasurement
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileRootInfo
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreInfo
-import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.coroutines.CoroutineScope
@@ -46,6 +46,12 @@ internal interface StorageInspectorActions {
     /** Reads the whole file at [location], not just the previewed part, and writes it to [target]. */
     fun saveFile(location: FileLocation, target: File)
 
+    /** Adds up the size of the directory at [location] and everything below it. */
+    fun measureDirectory(location: FileLocation)
+
+    /** Computes the SHA-256 of the whole file at [location]. */
+    fun computeSha256(location: FileLocation)
+
     fun selectStore(storeName: String)
 
     fun removeKey(storeName: String, key: String)
@@ -79,6 +85,14 @@ internal class StorageBrowser(
     var loadedFile: LoadedFile? by mutableStateOf(null)
         private set
 
+    /** The size of the selected directory, once asked for; any other selection clears it. */
+    var directoryMeasurement: DirectoryMeasurement? by mutableStateOf(null)
+        private set
+
+    /** The SHA-256 of the selected file as hex, once asked for; any other selection clears it. */
+    var fileSha256: String? by mutableStateOf(null)
+        private set
+
     var selectedStore: String? by mutableStateOf(null)
         private set
 
@@ -91,6 +105,9 @@ internal class StorageBrowser(
     /** Loads the locations, then everything the user had open, so a reconnect restores the view. */
     suspend fun load() {
         val loaded = client.locations()
+        // Sizes and contents may have changed since they were computed.
+        directoryMeasurement = null
+        fileSha256 = null
         locations = loaded
         val rootNames = loaded.fileRoots.map(FileRootInfo::name).toSet()
         expanded = expanded.filterTo(mutableSetOf()) { it.rootName in rootNames }
@@ -155,6 +172,8 @@ internal class StorageBrowser(
     override fun select(row: FileTreeRow) {
         selectedLocation = row.location
         loadedFile = null
+        directoryMeasurement = null
+        fileSha256 = null
         when {
             !row.isDirectory -> launchReporting { loadFile(row.location) }
             !row.expanded -> toggleDirectory(row.location)
@@ -190,20 +209,28 @@ internal class StorageBrowser(
 
     /** Copies the file page by page; returns the agent's error, if any, after removing the partial copy. */
     private suspend fun copyFileTo(location: FileLocation, target: File): String? {
-        target.outputStream().use { output ->
-            var offset = 0L
-            while (true) {
-                val page = client.readFile(location, offset = offset, maxBytes = MAX_FILE_READ_BYTES)
-                page.error?.let { error ->
-                    output.close()
-                    target.delete()
-                    return error
-                }
-                val bytes = Base64.decode(page.contentBase64)
-                output.write(bytes)
-                offset += bytes.size
-                if (bytes.isEmpty() || offset >= page.totalSizeBytes) return null
-            }
+        val error = target.outputStream().use { output -> client.readWholeFile(location, output::write) }
+        if (error != null) target.delete()
+        return error
+    }
+
+    override fun measureDirectory(location: FileLocation) = launchReporting {
+        val measurement = client.measureDirectory(location)
+        val error = measurement.error
+        when {
+            error != null -> status = StorageStatus(message = error, isError = true)
+
+            // The user may have picked another entry while the walk was running.
+            selectedLocation == location -> directoryMeasurement = measurement
+        }
+    }
+
+    override fun computeSha256(location: FileLocation) = launchReporting {
+        val digest = client.sha256Of(location)
+        val error = digest.error
+        when {
+            error != null -> status = StorageStatus(message = error, isError = true)
+            selectedLocation == location -> fileSha256 = digest.sha256Hex
         }
     }
 
