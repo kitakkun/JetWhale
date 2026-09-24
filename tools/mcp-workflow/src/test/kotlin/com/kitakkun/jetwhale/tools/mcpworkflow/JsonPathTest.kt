@@ -36,6 +36,13 @@ class JsonPathTest {
     }
 
     @Test
+    fun `a filter can require several fields at once`() {
+        val sessions = Json.parseToJsonElement("""[{"name":"Mac","isActive":false,"id":1},{"name":"Mac","isActive":true,"id":2}]""")
+
+        assertEquals(JsonPrimitive(2), JsonPath.parse("$[?(@.name == 'Mac' && @.isActive == true)].first().id").select(sessions))
+    }
+
+    @Test
     fun `a filter without first selects a list which may be empty`() {
         assertEquals(JsonArray(emptyList()), select("$.nodes[?(@.text == 'Nope')]"))
     }

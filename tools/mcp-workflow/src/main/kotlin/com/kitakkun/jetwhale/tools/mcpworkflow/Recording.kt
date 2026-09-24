@@ -7,7 +7,12 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.math.abs
 
-/** One call that went through the recording proxy. */
+/**
+ * One call that went through the recording proxy.
+ *
+ * @property expectations Checks the recording agent attached to this call; the exported step keeps
+ *   them, and keeps the step even when it only reads.
+ */
 data class RecordedCall(
     val server: String,
     val tool: String,
@@ -15,6 +20,7 @@ data class RecordedCall(
     val document: JsonElement,
     val isError: Boolean,
     val readOnly: Boolean,
+    val expectations: List<Expectation>,
 )
 
 /**
@@ -34,10 +40,17 @@ data class ExportOptions(
 )
 
 /** Field names that identify an item in a list well enough to find it again in a later run. */
-private val IdentifyingFields = listOf("testTag", "text", "name", "title", "label", "contentDescription", "appName", "key", "email")
+private val IdentifyingFields = listOf(
+    "testTag", "text", "name", "title", "label", "contentDescription", "appName", "sessionName", "deviceName", "key", "email",
+)
+
+/** Boolean fields that mark an item as the live one among entries that otherwise look alike. */
+private val LivenessFlags = listOf("isActive", "active", "connected", "isConnected", "online", "isCurrent", "current")
 
 /** Strings shorter than this are too likely to repeat by coincidence to be treated as data flow. */
-private const val MIN_TRACKED_STRING_LENGTH = 4
+private const val MIN_TRACKED_STRING_LENGTH = 6
+
+private val IdLikeKey = Regex("""(?i)(^id$|id$|Id$|uuid|token|handle)""")
 
 /**
  * Turns recorded calls into a workflow that can run again.
@@ -86,7 +99,7 @@ private class RecordingExport(private val calls: List<RecordedCall>, private val
     /** The template that replaces [value] in call [index]'s arguments, or null to keep the literal. */
     private fun templateFor(index: Int, key: String?, value: JsonPrimitive): String? {
         options.parameters.entries.firstOrNull { (_, parameter) -> jsonEquals(parameter, value) }?.let { return "\${${it.key}}" }
-        if (!value.isTrackable()) return null
+        if (!value.isTrackable(key)) return null
         savedEarlier(index, key, value)?.let { return "\${$it}" }
         if (key == null || !(key.endsWith("Id") || key == "id")) return null
         val input = uniqueName(key, variableNames)
@@ -124,8 +137,8 @@ private fun RecordedCall.toMutableStep() = MutableStep(
     tool = tool,
     args = arguments,
     save = linkedMapOf(),
-    expect = if (isError) listOf(Expectation(error = true)) else emptyList(),
-    keep = false,
+    expect = (if (isError) listOf(Expectation(error = true)) else emptyList()) + expectations,
+    keep = expectations.isNotEmpty(),
 )
 
 /** Replaces primitive leaves of [element] for which [replacement] returns a template. */
@@ -136,10 +149,17 @@ private fun rewrite(element: JsonElement, argumentKey: String?, replacement: (ke
     is JsonNull -> JsonNull
 }
 
-private fun JsonPrimitive.isTrackable(): Boolean = when {
-    isString -> content.length >= MIN_TRACKED_STRING_LENGTH
+/**
+ * Whether [this] value, sent under [key], looks like something a server generated rather than a
+ * constant the caller chose. Only such values are traced back to earlier results: a word like
+ * `Settings` also appears in some earlier listing, and tying it to that listing's order would make
+ * the replay fragile for nothing.
+ */
+private fun JsonPrimitive.isTrackable(key: String?): Boolean = when {
     content == "true" || content == "false" -> false
-    else -> content.toDoubleOrNull()?.let { abs(it) >= 10 } == true
+    !isString -> content.toDoubleOrNull()?.let { abs(it) >= 10 } == true
+    key != null && IdLikeKey.containsMatchIn(key) -> content.isNotEmpty()
+    else -> content.length >= MIN_TRACKED_STRING_LENGTH && content.any(Char::isDigit) && content.none(Char::isWhitespace)
 }
 
 /** A path to [value] inside [document], preferring identifying filters over list indices. */
@@ -155,16 +175,23 @@ internal fun findPath(document: JsonElement, value: JsonPrimitive): String? {
 
 private fun memberSegment(key: String): String = if (key.all { it.isLetterOrDigit() || it == '_' }) ".$key" else "['${key.replace("'", "")}']"
 
-/** `[?(@.text == 'Settings')].first()` when the item has a field unique among its siblings, else `[index]`. */
+/**
+ * `[?(@.text == 'Settings')].first()` when the item has a field unique among its siblings, else
+ * `[index]`. A liveness flag the item had (`isActive`, `connected`, …) joins the filter: a list of
+ * sessions or devices keeps its dead entries under the same names, and the replay wants the live one.
+ */
 private fun itemSegment(array: JsonArray, index: Int): String {
     val item = array[index] as? JsonObject ?: return "[$index]"
-    for (field in IdentifyingFields) {
-        val identity = (item[field] as? JsonPrimitive)?.takeIf { it.isString && "'" !in it.content } ?: continue
-        val unique = array.count { sibling -> ((sibling as? JsonObject)?.get(field) as? JsonPrimitive)?.content == identity.content } == 1
-        if (unique) return "[?(@.$field == '${identity.content}')].first()"
-    }
-    return "[$index]"
+    val flags = LivenessFlags.filter { (item[it] as? JsonPrimitive)?.content == "true" }
+    val identity = IdentifyingFields.firstOrNull { field ->
+        val value = (item[field] as? JsonPrimitive)?.takeIf { it.isString && "'" !in it.content } ?: return@firstOrNull false
+        array.count { sibling -> sibling is JsonObject && sibling.sameAs(item, listOf(field) + flags) } == 1 && value.content.isNotEmpty()
+    } ?: return "[$index]"
+    val conditions = listOf("@.$identity == '${(item[identity] as JsonPrimitive).content}'") + flags.map { "@.$it == true" }
+    return "[?(${conditions.joinToString(" && ")})].first()"
 }
+
+private fun JsonObject.sameAs(other: JsonObject, fields: List<String>): Boolean = fields.all { field -> (this[field] as? JsonPrimitive)?.content == (other[field] as? JsonPrimitive)?.content }
 
 private fun uniqueName(base: String, taken: MutableSet<String>): String {
     val clean = base.replace(Regex("[^A-Za-z0-9_]"), "_").ifEmpty { "value" }

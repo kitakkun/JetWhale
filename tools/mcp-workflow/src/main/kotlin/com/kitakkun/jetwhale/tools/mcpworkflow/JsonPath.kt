@@ -14,7 +14,7 @@ import kotlinx.serialization.json.doubleOrNull
  * - `$` the whole document; `.key` or `['key']` a member; `[2]` an element, `[-1]` counting from the end
  * - `[*]` every element or member value
  * - `[?(@.a.b == 'x')]` the elements whose field equals (`==`) or differs from (`!=`) a literal
- *   (quoted string, number, `true`, `false` or `null`)
+ *   (quoted string, number, `true`, `false` or `null`); `&&` joins several such comparisons
  *
  * - `.first()` (an extension of this tool) the first of the values selected so far, so a filter can
  *   pick one item: `$.nodes[?(@.text == 'Settings')].first().id`
@@ -73,10 +73,14 @@ class JsonPath private constructor(val source: String, private val segments: Lis
             }
         }
 
-        data class Filter(val field: JsonPath, val negated: Boolean, val literal: JsonElement) : Segment {
-            override fun apply(node: JsonElement): List<JsonElement> = Wildcard.apply(node).filter { item ->
+        data class Filter(val conditions: List<Condition>) : Segment {
+            override fun apply(node: JsonElement): List<JsonElement> = Wildcard.apply(node).filter { item -> conditions.all { it.holds(item) } }
+        }
+
+        data class Condition(val field: JsonPath, val negated: Boolean, val literal: JsonElement) {
+            fun holds(item: JsonElement): Boolean {
                 val value = field.select(item)
-                (value != null && jsonEquals(value, literal)) != negated
+                return (value != null && jsonEquals(value, literal)) != negated
             }
         }
     }
@@ -141,12 +145,38 @@ class JsonPath private constructor(val source: String, private val segments: Lis
             throw IllegalArgumentException("unclosed '[' in path '$text'")
         }
 
-        private fun filter(expression: String): Segment {
+        private fun filter(expression: String): Segment = Segment.Filter(splitOutsideQuotes(expression, "&&").map { condition(it.trim()) })
+
+        private fun condition(expression: String): Segment.Condition {
             val negated = "!=" in expression
             val operator = if (negated) "!=" else "=="
             val parts = expression.split(operator, limit = 2)
             require(parts.size == 2) { "filter '$expression' must compare with == or != in path '$text'" }
-            return Segment.Filter(field = JsonPath.parse(parts[0].trim()), negated = negated, literal = literal(parts[1].trim()))
+            return Segment.Condition(field = JsonPath.parse(parts[0].trim()), negated = negated, literal = literal(parts[1].trim()))
+        }
+
+        private fun splitOutsideQuotes(expression: String, separator: String): List<String> {
+            val parts = mutableListOf<String>()
+            var quote: Char? = null
+            var start = 0
+            var index = 0
+            while (index < expression.length) {
+                val char = expression[index]
+                when {
+                    quote != null -> if (char == quote) quote = null
+
+                    char == '\'' || char == '"' -> quote = char
+
+                    expression.startsWith(separator, index) -> {
+                        parts += expression.substring(start, index)
+                        start = index + separator.length
+                        index = start - 1
+                    }
+                }
+                index++
+            }
+            parts += expression.substring(start)
+            return parts
         }
 
         private fun literal(token: String): JsonElement = when {

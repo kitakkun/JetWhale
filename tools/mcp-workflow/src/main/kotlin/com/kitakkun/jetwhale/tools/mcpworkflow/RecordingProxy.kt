@@ -4,6 +4,7 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -46,7 +47,15 @@ class RecordingProxy(
                 server.addTool(tool.copy(name = listedName)) { request ->
                     val arguments = request.params.arguments ?: JsonObject(emptyMap())
                     val result = caller.callTool(upstream, tool.name, arguments)
-                    calls += RecordedCall(upstream, tool.name, arguments, resultDocument(result), result.isError == true, readOnly)
+                    calls += RecordedCall(
+                        server = upstream,
+                        tool = tool.name,
+                        arguments = arguments,
+                        document = resultDocument(result),
+                        isError = result.isError == true,
+                        readOnly = readOnly,
+                        expectations = emptyList(),
+                    )
                     result
                 }
             }
@@ -90,11 +99,39 @@ class RecordingProxy(
             text("""{"cleared":$dropped}""", isError = false)
         }
         server.addTool(
+            name = "workflow_recording_expect",
+            description = "Attaches a check to the last recorded call, so the saved workflow verifies it on replay. Takes the " +
+                "fields of a workflow expectation: path (default \"$\") plus one or more of equals, notEquals, contains, matches, " +
+                "exists, gt, gte, lt, lte, length. Call it right after the call whose result it checks.",
+            inputSchema = ExpectToolSchema,
+        ) { request -> expectOnLast(request.params.arguments ?: JsonObject(emptyMap())) }
+        server.addTool(
             name = "workflow_recording_save",
             description = "Saves the recorded calls as a replayable workflow file. Values an earlier call returned and a later call used " +
                 "become saved variables, so the workflow works in a fresh run. Returns the workflow written.",
             inputSchema = SaveToolSchema,
         ) { request -> save(request.params.arguments ?: JsonObject(emptyMap())) }
+    }
+
+    private fun expectOnLast(arguments: JsonObject): CallToolResult {
+        val expectation = try {
+            WorkflowJson.decodeFromJsonElement(Expectation.serializer(), arguments)
+        } catch (e: SerializationException) {
+            return text(buildJsonObject { put("error", "not an expectation: ${e.message}") }.toString(), isError = true)
+        }
+        val failure = synchronized(calls) {
+            val last = calls.lastOrNull() ?: return text("""{"error":"nothing has been recorded yet"}""", isError = true)
+            calls[calls.lastIndex] = last.copy(expectations = last.expectations + expectation)
+            failureOf(expectation, last.document, last.isError)
+        }
+        // A check that already fails on the recorded result would fail every replay; say so now.
+        return text(
+            buildJsonObject {
+                put("attached", true)
+                failure?.let { put("warning", "fails on the recorded result: $it") }
+            }.toString(),
+            isError = false,
+        )
     }
 
     private fun save(arguments: JsonObject): CallToolResult {
@@ -112,6 +149,18 @@ class RecordingProxy(
         return text(yaml, isError = false)
     }
 }
+
+private val ExpectToolSchema = ToolSchema(
+    properties = buildJsonObject {
+        property(name = "path", type = "string", description = "Path into the result, e.g. $.stacks[0].entries[-1].typeName")
+        putJsonObject("equals") { put("description", "Value the path must equal (any JSON)") }
+        putJsonObject("contains") { put("description", "Element, key or substring the value must contain") }
+        property(name = "matches", type = "string", description = "Regular expression the value must match")
+        property(name = "exists", type = "boolean", description = "Whether the path must select something")
+        property(name = "length", type = "integer", description = "Length the array, object or string must have")
+    },
+    required = emptyList(),
+)
 
 private val SaveToolSchema = ToolSchema(
     properties = buildJsonObject {

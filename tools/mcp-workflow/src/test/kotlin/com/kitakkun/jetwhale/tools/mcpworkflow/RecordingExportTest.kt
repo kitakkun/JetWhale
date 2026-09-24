@@ -29,11 +29,54 @@ class RecordingExportTest {
     }
 
     @Test
+    fun `a live item is told from dead ones with the same name by its liveness flag`() {
+        val workflow = exportWorkflow(
+            listOf(
+                call(
+                    tool = "listSessions",
+                    arguments = "{}",
+                    result = """[{"sessionId":"old-5f1a","sessionName":"Mac","isActive":false},{"sessionId":"new-7c2e","sessionName":"Mac","isActive":true}]""",
+                    readOnly = true,
+                ),
+                call(tool = "getBackStack", arguments = """{"sessionId":"new-7c2e"}""", result = "{}", readOnly = true),
+            ),
+            options(dropReads = false, parameters = emptyMap()),
+        )
+
+        assertEquals(mapOf("sessionId" to "$[?(@.sessionName == 'Mac' && @.isActive == true)].first().sessionId"), workflow.steps[0].save)
+    }
+
+    @Test
     fun `a list item is found again by an identifying field rather than its index`() {
         val workflow = exportWorkflow(calls, options(dropReads = false, parameters = emptyMap()))
 
         assertEquals(mapOf("nodeId" to "$.nodes[?(@.text == 'Settings')].first().id"), workflow.steps[2].save)
         assertEquals(JsonPrimitive("\${nodeId}"), workflow.steps[3].args["nodeId"])
+    }
+
+    @Test
+    fun `a constant that also appears in an earlier result stays a literal`() {
+        val workflow = exportWorkflow(
+            listOf(
+                call(tool = "listNavKeyTypes", arguments = "{}", result = """{"keyTypes":[{"serialName":"Home"},{"serialName":"Settings"}]}""", readOnly = true),
+                call(tool = "pushNavKey", arguments = """{"key":{"type":"Settings","section":"Privacy"}}""", result = "{}", readOnly = false),
+            ),
+            options(dropReads = true, parameters = emptyMap()),
+        )
+
+        assertEquals(listOf("pushNavKey"), workflow.steps.map(Step::call))
+        assertEquals(Json.parseToJsonElement("""{"type":"Settings","section":"Privacy"}"""), workflow.steps.single().args["key"])
+    }
+
+    @Test
+    fun `a read with an attached check is kept as a check`() {
+        val checked = calls[1].copy(expectations = listOf(Expectation(path = "$.ready", equals = JsonPrimitive(true))))
+
+        val workflow = exportWorkflow(listOf(calls[0], checked), options(dropReads = true, parameters = emptyMap()))
+
+        // listSessions stays too: the check's call uses the session id it returned.
+        assertEquals(listOf("listSessions", "getPluginStatus"), workflow.steps.map(Step::call))
+        assertEquals(1, workflow.steps.last().expect.size)
     }
 
     @Test
@@ -84,6 +127,7 @@ class RecordingExportTest {
         document = Json.parseToJsonElement(result),
         isError = false,
         readOnly = readOnly,
+        expectations = emptyList(),
     )
 
     private fun options(dropReads: Boolean, parameters: Map<String, JsonPrimitive>) = ExportOptions(name = "Flow", description = null, dropReads = dropReads, parameters = parameters, multipleServers = false)
