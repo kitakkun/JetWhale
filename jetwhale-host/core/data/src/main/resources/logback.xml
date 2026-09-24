@@ -8,4 +8,7 @@
         <appender-ref ref="STDOUT"/>
     </root>
     <logger name="io.netty" level="INFO"/>
+    <!-- jmDNS logs every mDNS record on the network at DEBUG and TRACE, enough to push the host's own
+         entries out of the log viewer within minutes. -->
+    <logger name="javax.jmdns" level="INFO"/>
 </configuration>
