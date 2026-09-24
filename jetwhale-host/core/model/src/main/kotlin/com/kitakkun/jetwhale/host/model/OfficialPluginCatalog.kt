@@ -117,5 +117,11 @@ object OfficialPluginCatalog {
             agentRegistration = null,
             guidePath = "device-mirror",
         ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.background",
+            displayName = "Background Work",
+            description = "Inspect, cancel and run the scheduled background work of connected debug sessions.",
+            artifactId = "jetwhale-background-work",
+        ),
     )
 }

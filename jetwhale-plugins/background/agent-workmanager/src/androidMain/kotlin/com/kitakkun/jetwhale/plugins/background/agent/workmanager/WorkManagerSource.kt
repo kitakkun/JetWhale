@@ -42,10 +42,9 @@ private class WorkManagerSource(private val workManager: WorkManager) : Backgrou
         supportsCancelByUniqueName = true,
     )
 
-    override fun observe(): Flow<List<BackgroundWorkItem>> =
-        workManager.getWorkInfosFlow(WorkQuery.fromStates(WorkInfo.State.entries)).map { infos ->
-            infos.map { workInfoToItem(it, ::isWorkerClass) }
-        }
+    override fun observe(): Flow<List<BackgroundWorkItem>> = workManager.getWorkInfosFlow(WorkQuery.fromStates(WorkInfo.State.entries)).map { infos ->
+        infos.map { workInfoToItem(it, ::isWorkerClass) }
+    }
 
     override suspend fun cancel(target: CancelTarget): String {
         when (target) {
@@ -70,6 +69,7 @@ private class WorkManagerSource(private val workManager: WorkManager) : Backgrou
             ?: throw IllegalArgumentException("no work has id $id")
         val workerClassName = info.tags.firstOrNull(::isWorkerClass)
             ?: throw IllegalStateException("the worker class of $id cannot be loaded, so it cannot be copied")
+
         @Suppress("UNCHECKED_CAST")
         val workerClass = Class.forName(workerClassName) as Class<out ListenableWorker>
         val copy = OneTimeWorkRequest.Builder(workerClass)

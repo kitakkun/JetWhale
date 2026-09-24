@@ -1,7 +1,3 @@
-@file:OptIn(ExperimentalAbiValidation::class)
-
-import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
-
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
@@ -11,11 +7,9 @@ plugins {
 group = "com.kitakkun.jetwhale.plugins.background"
 
 // WorkManager is Android-only, and a separate artifact so that an app without it is not made to
-// depend on it through the agent.
+// depend on it through the agent. Kotlin's ABI validation does not cover an Android-only target, so
+// this module has no ABI dump.
 kotlin {
-    abiValidation {
-    }
-
     jvmToolchain(17)
 
     android {

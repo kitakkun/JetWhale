@@ -1,0 +1,387 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, linuxArm64, linuxX64, macosArm64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.background:protocol>
+final enum class com.kitakkun.jetwhale.plugins.background.protocol/WorkState : kotlin/Enum<com.kitakkun.jetwhale.plugins.background.protocol/WorkState> { // com.kitakkun.jetwhale.plugins.background.protocol/WorkState|null[0]
+    enum entry Blocked // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.Blocked|null[0]
+    enum entry Cancelled // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.Cancelled|null[0]
+    enum entry Enqueued // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.Enqueued|null[0]
+    enum entry Failed // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.Failed|null[0]
+    enum entry Running // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.Running|null[0]
+    enum entry Scheduled // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.Scheduled|null[0]
+    enum entry Succeeded // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.Succeeded|null[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.plugins.background.protocol/WorkState> // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.plugins.background.protocol/WorkState // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.plugins.background.protocol/WorkState> // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.values|values#static(){}[0]
+
+    final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.background.protocol/WorkState> // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.Companion.serializer|serializer(){}[0]
+        final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.background.protocol/WorkState.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    }
+}
+
+sealed interface com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget { // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget|null[0]
+    final class ById : com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget { // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById|null[0]
+        constructor <init>(kotlin/String) // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.<init>|<init>(kotlin.String){}[0]
+
+        final val id // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.id|{}id[0]
+            final fun <get-id>(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.id.<get-id>|<get-id>(){}[0]
+
+        final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.component1|component1(){}[0]
+        final fun copy(kotlin/String = ...): com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.copy|copy(kotlin.String){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById> { // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById) // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.background.protocol.CancelTarget.ById){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById> // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ById.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class ByTag : com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget { // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag|null[0]
+        constructor <init>(kotlin/String) // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.<init>|<init>(kotlin.String){}[0]
+
+        final val tag // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.tag|{}tag[0]
+            final fun <get-tag>(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.tag.<get-tag>|<get-tag>(){}[0]
+
+        final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.component1|component1(){}[0]
+        final fun copy(kotlin/String = ...): com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.copy|copy(kotlin.String){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag> { // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag) // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.background.protocol.CancelTarget.ByTag){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag> // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByTag.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final class ByUniqueName : com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget { // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName|null[0]
+        constructor <init>(kotlin/String) // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.<init>|<init>(kotlin.String){}[0]
+
+        final val uniqueName // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.uniqueName|{}uniqueName[0]
+            final fun <get-uniqueName>(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.uniqueName.<get-uniqueName>|<get-uniqueName>(){}[0]
+
+        final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.component1|component1(){}[0]
+        final fun copy(kotlin/String = ...): com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.copy|copy(kotlin.String){}[0]
+        final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.equals|equals(kotlin.Any?){}[0]
+        final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.hashCode|hashCode(){}[0]
+        final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.toString|toString(){}[0]
+
+        final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName> { // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.$serializer|null[0]
+            final val descriptor // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.$serializer.descriptor|{}descriptor[0]
+                final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+            final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.$serializer.childSerializers|childSerializers(){}[0]
+            final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+            final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName) // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.background.protocol.CancelTarget.ByUniqueName){}[0]
+        }
+
+        final object Companion { // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.Companion|null[0]
+            final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName> // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.ByUniqueName.Companion.serializer|serializer(){}[0]
+        }
+    }
+
+    final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget> // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.Companion.serializer|serializer(){}[0]
+        final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged : com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent { // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged|null[0]
+    constructor <init>(com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot) // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.<init>|<init>(com.kitakkun.jetwhale.plugins.background.protocol.BackgroundWorkSnapshot){}[0]
+
+    final val snapshot // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.snapshot|{}snapshot[0]
+        final fun <get-snapshot>(): com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.snapshot.<get-snapshot>|<get-snapshot>(){}[0]
+
+    final fun component1(): com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.component1|component1(){}[0]
+    final fun copy(com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot = ...): com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.copy|copy(com.kitakkun.jetwhale.plugins.background.protocol.BackgroundWorkSnapshot){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged> { // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged) // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.background.protocol.BackgroundWorkChanged){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkChanged.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem { // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem|null[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/String, com.kitakkun.jetwhale.plugins.background.protocol/WorkState, kotlin.collections/List<kotlin/String>, kotlin/String?, kotlin/Int?, kotlin.collections/List<kotlin/String>, kotlin/Long?, kotlin/Long?, kotlin/Long?, kotlin.collections/Map<kotlin/String, kotlin/String>, kotlin.collections/Map<kotlin/String, kotlin/String>, kotlin/String?, kotlin.collections/Map<kotlin/String, kotlin/String>, kotlin/Boolean, kotlin/Boolean, kotlin/String?) // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.<init>|<init>(kotlin.String;kotlin.String;kotlin.String;com.kitakkun.jetwhale.plugins.background.protocol.WorkState;kotlin.collections.List<kotlin.String>;kotlin.String?;kotlin.Int?;kotlin.collections.List<kotlin.String>;kotlin.Long?;kotlin.Long?;kotlin.Long?;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.String?;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.Boolean;kotlin.Boolean;kotlin.String?){}[0]
+
+    final val canCancel // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.canCancel|{}canCancel[0]
+        final fun <get-canCancel>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.canCancel.<get-canCancel>|<get-canCancel>(){}[0]
+    final val canRunNow // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.canRunNow|{}canRunNow[0]
+        final fun <get-canRunNow>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.canRunNow.<get-canRunNow>|<get-canRunNow>(){}[0]
+    final val constraints // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.constraints|{}constraints[0]
+        final fun <get-constraints>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.constraints.<get-constraints>|<get-constraints>(){}[0]
+    final val details // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.details|{}details[0]
+        final fun <get-details>(): kotlin.collections/Map<kotlin/String, kotlin/String> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.details.<get-details>|<get-details>(){}[0]
+    final val flexMillis // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.flexMillis|{}flexMillis[0]
+        final fun <get-flexMillis>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.flexMillis.<get-flexMillis>|<get-flexMillis>(){}[0]
+    final val id // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.id|{}id[0]
+        final fun <get-id>(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.id.<get-id>|<get-id>(){}[0]
+    final val name // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.name|{}name[0]
+        final fun <get-name>(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.name.<get-name>|<get-name>(){}[0]
+    final val nextRunEpochMillis // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.nextRunEpochMillis|{}nextRunEpochMillis[0]
+        final fun <get-nextRunEpochMillis>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.nextRunEpochMillis.<get-nextRunEpochMillis>|<get-nextRunEpochMillis>(){}[0]
+    final val output // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.output|{}output[0]
+        final fun <get-output>(): kotlin.collections/Map<kotlin/String, kotlin/String> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.output.<get-output>|<get-output>(){}[0]
+    final val periodMillis // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.periodMillis|{}periodMillis[0]
+        final fun <get-periodMillis>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.periodMillis.<get-periodMillis>|<get-periodMillis>(){}[0]
+    final val progress // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.progress|{}progress[0]
+        final fun <get-progress>(): kotlin.collections/Map<kotlin/String, kotlin/String> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.progress.<get-progress>|<get-progress>(){}[0]
+    final val runAttemptCount // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.runAttemptCount|{}runAttemptCount[0]
+        final fun <get-runAttemptCount>(): kotlin/Int? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.runAttemptCount.<get-runAttemptCount>|<get-runAttemptCount>(){}[0]
+    final val runNowHint // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.runNowHint|{}runNowHint[0]
+        final fun <get-runNowHint>(): kotlin/String? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.runNowHint.<get-runNowHint>|<get-runNowHint>(){}[0]
+    final val source // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.source|{}source[0]
+        final fun <get-source>(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.source.<get-source>|<get-source>(){}[0]
+    final val state // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.state|{}state[0]
+        final fun <get-state>(): com.kitakkun.jetwhale.plugins.background.protocol/WorkState // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.state.<get-state>|<get-state>(){}[0]
+    final val stopReason // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.stopReason|{}stopReason[0]
+        final fun <get-stopReason>(): kotlin/String? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.stopReason.<get-stopReason>|<get-stopReason>(){}[0]
+    final val tags // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.tags|{}tags[0]
+        final fun <get-tags>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.tags.<get-tags>|<get-tags>(){}[0]
+    final val uniqueName // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.uniqueName|{}uniqueName[0]
+        final fun <get-uniqueName>(): kotlin/String? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.uniqueName.<get-uniqueName>|<get-uniqueName>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component1|component1(){}[0]
+    final fun component10(): kotlin/Long? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component10|component10(){}[0]
+    final fun component11(): kotlin/Long? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component11|component11(){}[0]
+    final fun component12(): kotlin.collections/Map<kotlin/String, kotlin/String> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component12|component12(){}[0]
+    final fun component13(): kotlin.collections/Map<kotlin/String, kotlin/String> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component13|component13(){}[0]
+    final fun component14(): kotlin/String? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component14|component14(){}[0]
+    final fun component15(): kotlin.collections/Map<kotlin/String, kotlin/String> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component15|component15(){}[0]
+    final fun component16(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component16|component16(){}[0]
+    final fun component17(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component17|component17(){}[0]
+    final fun component18(): kotlin/String? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component18|component18(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component2|component2(){}[0]
+    final fun component3(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component3|component3(){}[0]
+    final fun component4(): com.kitakkun.jetwhale.plugins.background.protocol/WorkState // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component4|component4(){}[0]
+    final fun component5(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component5|component5(){}[0]
+    final fun component6(): kotlin/String? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component6|component6(){}[0]
+    final fun component7(): kotlin/Int? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component7|component7(){}[0]
+    final fun component8(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component8|component8(){}[0]
+    final fun component9(): kotlin/Long? // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.component9|component9(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., kotlin/String = ..., com.kitakkun.jetwhale.plugins.background.protocol/WorkState = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/String? = ..., kotlin/Int? = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/Long? = ..., kotlin/Long? = ..., kotlin/Long? = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin/String? = ..., kotlin.collections/Map<kotlin/String, kotlin/String> = ..., kotlin/Boolean = ..., kotlin/Boolean = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.copy|copy(kotlin.String;kotlin.String;kotlin.String;com.kitakkun.jetwhale.plugins.background.protocol.WorkState;kotlin.collections.List<kotlin.String>;kotlin.String?;kotlin.Int?;kotlin.collections.List<kotlin.String>;kotlin.Long?;kotlin.Long?;kotlin.Long?;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.String?;kotlin.collections.Map<kotlin.String,kotlin.String>;kotlin.Boolean;kotlin.Boolean;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem> { // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem) // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.background.protocol.BackgroundWorkItem){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot { // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot|null[0]
+    constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo>, kotlin.collections/List<com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem>) // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.background.protocol.WorkSourceInfo>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.background.protocol.BackgroundWorkItem>){}[0]
+
+    final val items // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.items|{}items[0]
+        final fun <get-items>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.items.<get-items>|<get-items>(){}[0]
+    final val sources // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.sources|{}sources[0]
+        final fun <get-sources>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.sources.<get-sources>|<get-sources>(){}[0]
+
+    final fun component1(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.component2|component2(){}[0]
+    final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo> = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkItem> = ...): com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.plugins.background.protocol.WorkSourceInfo>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.background.protocol.BackgroundWorkItem>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot> { // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot) // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.background.protocol.BackgroundWorkSnapshot){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot> // com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.background.protocol/CancelWork : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult> { // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork|null[0]
+    constructor <init>(kotlin/String, com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget) // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.<init>|<init>(kotlin.String;com.kitakkun.jetwhale.plugins.background.protocol.CancelTarget){}[0]
+
+    final val source // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.source|{}source[0]
+        final fun <get-source>(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.source.<get-source>|<get-source>(){}[0]
+    final val target // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.target|{}target[0]
+        final fun <get-target>(): com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.target.<get-target>|<get-target>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.component1|component1(){}[0]
+    final fun component2(): com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., com.kitakkun.jetwhale.plugins.background.protocol/CancelTarget = ...): com.kitakkun.jetwhale.plugins.background.protocol/CancelWork // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.copy|copy(kotlin.String;com.kitakkun.jetwhale.plugins.background.protocol.CancelTarget){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.background.protocol/CancelWork> { // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.background.protocol/CancelWork // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.background.protocol/CancelWork) // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.background.protocol.CancelWork){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.background.protocol/CancelWork> // com.kitakkun.jetwhale.plugins.background.protocol/CancelWork.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult> { // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow|null[0]
+    constructor <init>(kotlin/String, kotlin/String) // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.<init>|<init>(kotlin.String;kotlin.String){}[0]
+
+    final val id // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.id|{}id[0]
+        final fun <get-id>(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.id.<get-id>|<get-id>(){}[0]
+    final val source // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.source|{}source[0]
+        final fun <get-source>(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.source.<get-source>|<get-source>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ...): com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.copy|copy(kotlin.String;kotlin.String){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow> { // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow) // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.background.protocol.RunWorkNow){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow> // com.kitakkun.jetwhale.plugins.background.protocol/RunWorkNow.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult { // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult|null[0]
+    constructor <init>(kotlin/String?, kotlin/String?) // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.<init>|<init>(kotlin.String?;kotlin.String?){}[0]
+
+    final val error // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.error|{}error[0]
+        final fun <get-error>(): kotlin/String? // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.error.<get-error>|<get-error>(){}[0]
+    final val message // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.message|{}message[0]
+        final fun <get-message>(): kotlin/String? // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.message.<get-message>|<get-message>(){}[0]
+
+    final fun component1(): kotlin/String? // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.component1|component1(){}[0]
+    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.component2|component2(){}[0]
+    final fun copy(kotlin/String? = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.copy|copy(kotlin.String?;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult> { // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult) // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.background.protocol.WorkOperationResult){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult> // com.kitakkun.jetwhale.plugins.background.protocol/WorkOperationResult.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo { // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo|null[0]
+    constructor <init>(kotlin/String, kotlin/Boolean, kotlin/String?, kotlin/Boolean, kotlin/Boolean) // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.<init>|<init>(kotlin.String;kotlin.Boolean;kotlin.String?;kotlin.Boolean;kotlin.Boolean){}[0]
+
+    final val available // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.available|{}available[0]
+        final fun <get-available>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.available.<get-available>|<get-available>(){}[0]
+    final val name // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.name|{}name[0]
+        final fun <get-name>(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.name.<get-name>|<get-name>(){}[0]
+    final val supportsCancelByTag // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.supportsCancelByTag|{}supportsCancelByTag[0]
+        final fun <get-supportsCancelByTag>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.supportsCancelByTag.<get-supportsCancelByTag>|<get-supportsCancelByTag>(){}[0]
+    final val supportsCancelByUniqueName // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.supportsCancelByUniqueName|{}supportsCancelByUniqueName[0]
+        final fun <get-supportsCancelByUniqueName>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.supportsCancelByUniqueName.<get-supportsCancelByUniqueName>|<get-supportsCancelByUniqueName>(){}[0]
+    final val unavailableReason // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.unavailableReason|{}unavailableReason[0]
+        final fun <get-unavailableReason>(): kotlin/String? // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.unavailableReason.<get-unavailableReason>|<get-unavailableReason>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.component1|component1(){}[0]
+    final fun component2(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.component2|component2(){}[0]
+    final fun component3(): kotlin/String? // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.component3|component3(){}[0]
+    final fun component4(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.component4|component4(){}[0]
+    final fun component5(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.component5|component5(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Boolean = ..., kotlin/String? = ..., kotlin/Boolean = ..., kotlin/Boolean = ...): com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.copy|copy(kotlin.String;kotlin.Boolean;kotlin.String?;kotlin.Boolean;kotlin.Boolean){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo> { // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo) // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.background.protocol.WorkSourceInfo){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo> // com.kitakkun.jetwhale.plugins.background.protocol/WorkSourceInfo.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final object com.kitakkun.jetwhale.plugins.background.protocol/GetBackgroundWork : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.background.protocol/BackgroundWorkSnapshot>, kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.background.protocol/GetBackgroundWork|null[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.background.protocol/GetBackgroundWork.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.background.protocol/GetBackgroundWork.hashCode|hashCode(){}[0]
+    final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.background.protocol/GetBackgroundWork> // com.kitakkun.jetwhale.plugins.background.protocol/GetBackgroundWork.serializer|serializer(){}[0]
+    final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.background.protocol/GetBackgroundWork.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/GetBackgroundWork.toString|toString(){}[0]
+}
+
+final const val com.kitakkun.jetwhale.plugins.background.protocol/BACKGROUND_WORK_PLUGIN_ID // com.kitakkun.jetwhale.plugins.background.protocol/BACKGROUND_WORK_PLUGIN_ID|{}BACKGROUND_WORK_PLUGIN_ID[0]
+    final fun <get-BACKGROUND_WORK_PLUGIN_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.background.protocol/BACKGROUND_WORK_PLUGIN_ID.<get-BACKGROUND_WORK_PLUGIN_ID>|<get-BACKGROUND_WORK_PLUGIN_ID>(){}[0]

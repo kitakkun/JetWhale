@@ -1,0 +1,358 @@
+public final class com/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkChanged : com/kitakkun/jetwhale/protocol/messaging/JetWhaleEvent {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkChanged$Companion;
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot;)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot;
+	public final fun copy (Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot;)Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkChanged;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkChanged;Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkChanged;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSnapshot ()Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkChanged$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkChanged$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkChanged;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkChanged;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkChanged$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkItem {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkItem$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;Ljava/util/List;Ljava/lang/String;Ljava/lang/Integer;Ljava/util/List;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;Ljava/util/Map;ZZLjava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()Ljava/lang/Long;
+	public final fun component11 ()Ljava/lang/Long;
+	public final fun component12 ()Ljava/util/Map;
+	public final fun component13 ()Ljava/util/Map;
+	public final fun component14 ()Ljava/lang/String;
+	public final fun component15 ()Ljava/util/Map;
+	public final fun component16 ()Z
+	public final fun component17 ()Z
+	public final fun component18 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/lang/Integer;
+	public final fun component8 ()Ljava/util/List;
+	public final fun component9 ()Ljava/lang/Long;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;Ljava/util/List;Ljava/lang/String;Ljava/lang/Integer;Ljava/util/List;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;Ljava/util/Map;ZZLjava/lang/String;)Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkItem;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkItem;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;Ljava/util/List;Ljava/lang/String;Ljava/lang/Integer;Ljava/util/List;Ljava/lang/Long;Ljava/lang/Long;Ljava/lang/Long;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;Ljava/util/Map;ZZLjava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkItem;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCanCancel ()Z
+	public final fun getCanRunNow ()Z
+	public final fun getConstraints ()Ljava/util/List;
+	public final fun getDetails ()Ljava/util/Map;
+	public final fun getFlexMillis ()Ljava/lang/Long;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getNextRunEpochMillis ()Ljava/lang/Long;
+	public final fun getOutput ()Ljava/util/Map;
+	public final fun getPeriodMillis ()Ljava/lang/Long;
+	public final fun getProgress ()Ljava/util/Map;
+	public final fun getRunAttemptCount ()Ljava/lang/Integer;
+	public final fun getRunNowHint ()Ljava/lang/String;
+	public final fun getSource ()Ljava/lang/String;
+	public final fun getState ()Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;
+	public final fun getStopReason ()Ljava/lang/String;
+	public final fun getTags ()Ljava/util/List;
+	public final fun getUniqueName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkItem$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkItem$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkItem;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkItem;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkItem$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkMessagesKt {
+	public static final field BACKGROUND_WORK_PLUGIN_ID Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot$Companion;
+	public fun <init> (Ljava/util/List;Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;Ljava/util/List;)Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getItems ()Ljava/util/List;
+	public final fun getSources ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/BackgroundWorkSnapshot$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public abstract interface class com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$Companion;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ById : com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ById$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ById;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ById;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ById;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ById$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ById$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ById;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ById;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ById$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByTag : com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByTag$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByTag;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByTag;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByTag;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getTag ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByTag$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByTag$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByTag;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByTag;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByTag$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByUniqueName : com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByUniqueName$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByUniqueName;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByUniqueName;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByUniqueName;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getUniqueName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByUniqueName$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByUniqueName$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByUniqueName;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByUniqueName;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$ByUniqueName$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/CancelTarget$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/CancelWork : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelWork$Companion;
+	public fun <init> (Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget;
+	public final fun copy (Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget;)Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelWork;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelWork;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelWork;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSource ()Ljava/lang/String;
+	public final fun getTarget ()Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelTarget;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/background/protocol/CancelWork$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelWork$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelWork;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/background/protocol/CancelWork;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/CancelWork$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/GetBackgroundWork : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/background/protocol/GetBackgroundWork;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/RunWorkNow : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/protocol/RunWorkNow$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/background/protocol/RunWorkNow;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/background/protocol/RunWorkNow;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/background/protocol/RunWorkNow;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getSource ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/background/protocol/RunWorkNow$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/background/protocol/RunWorkNow$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/background/protocol/RunWorkNow;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/background/protocol/RunWorkNow;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/RunWorkNow$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/WorkOperationResult {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkOperationResult$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkOperationResult;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkOperationResult;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkOperationResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Ljava/lang/String;
+	public final fun getMessage ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/background/protocol/WorkOperationResult$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkOperationResult$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkOperationResult;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkOperationResult;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/WorkOperationResult$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/WorkSourceInfo {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkSourceInfo$Companion;
+	public fun <init> (Ljava/lang/String;ZLjava/lang/String;ZZ)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Z
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Z
+	public final fun component5 ()Z
+	public final fun copy (Ljava/lang/String;ZLjava/lang/String;ZZ)Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkSourceInfo;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkSourceInfo;Ljava/lang/String;ZLjava/lang/String;ZZILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkSourceInfo;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAvailable ()Z
+	public final fun getName ()Ljava/lang/String;
+	public final fun getSupportsCancelByTag ()Z
+	public final fun getSupportsCancelByUniqueName ()Z
+	public final fun getUnavailableReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/background/protocol/WorkSourceInfo$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkSourceInfo$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkSourceInfo;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkSourceInfo;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/WorkSourceInfo$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/WorkState : java/lang/Enum {
+	public static final field Blocked Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;
+	public static final field Cancelled Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState$Companion;
+	public static final field Enqueued Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;
+	public static final field Failed Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;
+	public static final field Running Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;
+	public static final field Scheduled Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;
+	public static final field Succeeded Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;
+	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/background/protocol/WorkState;
+}
+
+public final class com/kitakkun/jetwhale/plugins/background/protocol/WorkState$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
