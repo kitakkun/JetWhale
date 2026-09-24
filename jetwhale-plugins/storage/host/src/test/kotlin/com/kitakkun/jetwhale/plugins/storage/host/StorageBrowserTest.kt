@@ -136,16 +136,20 @@ class StorageBrowserTest {
     }
 
     @Test
-    fun `a zip that fails partway is removed`() {
+    fun `a zip that fails partway leaves the file it would have replaced and no partial file`() {
         val failingRead = object : StorageClient by client {
             override suspend fun readFile(location: FileLocation, offset: Long, maxBytes: Int): FileContent = FileContent(contentBase64 = "", totalSizeBytes = 0, error = "permission denied")
         }
         val failingBrowser = StorageBrowser(failingRead, CoroutineScope(Dispatchers.Unconfined))
-        val target = File.createTempFile("storage-zip", ".zip")
+        val target = File.createTempFile("storage-zip", ".zip").apply {
+            deleteOnExit()
+            writeText("previous archive")
+        }
 
         failingBrowser.requestZipDownload(location("Files"), target)
 
-        assertFalse(target.exists())
+        assertEquals("previous archive", target.readText())
+        assertFalse(File(target.parentFile, ".${target.name}.part").exists())
         assertEquals(true, failingBrowser.status?.isError)
     }
 

@@ -17,6 +17,8 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.zip.ZipOutputStream
 import kotlin.io.encoding.Base64
 
@@ -323,14 +325,14 @@ internal class StorageBrowser(
         if (isLarge) {
             pendingZipDownload = PendingZipDownload(location, target, measurement)
         } else {
-            zipTo(location, target, expectedFiles = measurement.fileCount)
+            zipTo(location, target)
         }
     }
 
     override fun confirmZipDownload() {
         val download = pendingZipDownload ?: return
         pendingZipDownload = null
-        launchReporting { zipTo(download.location, download.target, expectedFiles = download.measurement.fileCount) }
+        launchReporting { zipTo(download.location, download.target) }
     }
 
     override fun cancelZipDownload() {
@@ -339,26 +341,33 @@ internal class StorageBrowser(
 
     /**
      * Writes the ZIP, reporting progress in [status]. Only the status is touched, never the selection
-     * or the previews, so selecting something else meanwhile is safe. A ZIP that did not finish is
-     * removed, whatever stopped it.
+     * or the previews, so selecting something else meanwhile is safe. The ZIP is written beside
+     * [target] and moved over it only once complete, so a failed download removes its own partial
+     * file and leaves a file the user chose to overwrite as it was.
      */
-    private suspend fun zipTo(location: FileLocation, target: File, expectedFiles: Int) {
+    private suspend fun zipTo(location: FileLocation, target: File) {
+        val partial = File(target.absoluteFile.parentFile, ".${target.name}.part")
         var finished = false
         try {
-            val error = ZipOutputStream(target.outputStream()).use { zip ->
+            // The measured file count includes symbolic links, which the ZIP leaves out, so it
+            // cannot serve as the denominator of the progress.
+            val error = ZipOutputStream(partial.outputStream()).use { zip ->
                 client.zipDirectory(location, zip) { zipped ->
-                    status = StorageStatus(message = "Zipping ${location.name}: $zipped of $expectedFiles files", isError = false)
+                    status = StorageStatus(message = "Zipping ${location.name}: $zipped files so far", isError = false)
                 }
+            }
+            if (error == null) {
+                Files.move(partial.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                finished = true
             }
             status = when (error) {
                 null -> StorageStatus(message = "Saved ${location.name} to ${target.absolutePath}.", isError = false)
                 else -> StorageStatus(message = "Could not zip ${location.name}: $error", isError = true)
             }
-            finished = error == null
         } catch (e: IOException) {
             status = StorageStatus(message = "Could not write ${target.absolutePath}: ${e.message}", isError = true)
         } finally {
-            if (!finished) target.delete()
+            if (!finished) partial.delete()
         }
     }
 

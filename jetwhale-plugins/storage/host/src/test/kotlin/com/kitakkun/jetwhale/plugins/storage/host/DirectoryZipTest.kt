@@ -51,6 +51,15 @@ class DirectoryZipTest {
     }
 
     @Test
+    fun `names that could climb out of the extraction folder are made into plain segments`() {
+        assertEquals(".._outside", zipSafeSegment("../outside"))
+        assertEquals("a_b", zipSafeSegment("a\\b"))
+        assertEquals("_", zipSafeSegment(".."))
+        assertEquals("_", zipSafeSegment(""))
+        assertEquals("cache", zipSafeSegment("cache"))
+    }
+
+    @Test
     fun `a file larger than one read arrives whole`() {
         val entries = unzip(zipOf(location("Cache", "cache")))
 
