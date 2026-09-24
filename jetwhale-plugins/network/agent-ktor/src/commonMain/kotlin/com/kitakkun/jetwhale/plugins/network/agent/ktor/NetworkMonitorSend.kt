@@ -65,13 +65,13 @@ internal suspend fun JetWhaleNetworkAgentPlugin.monitorSend(
     val exchange = recordRequestAndPlanExchange(request, txId, limits)
     val call = performExchange(client, request, exchange, txId, started, proceed)
 
-    val (callToReturn, body) = captureResponseBodySafely(call, limits)
+    val (capturedCall, body) = captureResponseBodySafely(call, limits)
     recordResponse(
         CapturedHttpResponse(
             txId = txId,
-            statusCode = callToReturn.response.status.value,
-            statusDescription = callToReturn.response.status.description,
-            headers = callToReturn.response.headers.toCapturedMap(),
+            statusCode = capturedCall.response.status.value,
+            statusDescription = capturedCall.response.status.description,
+            headers = capturedCall.response.headers.toCapturedMap(),
             body = body.text,
             bodyTruncated = body.truncated,
             bodyEncoding = body.encoding,
@@ -80,7 +80,10 @@ internal suspend fun JetWhaleNetworkAgentPlugin.monitorSend(
             condition = exchange.condition?.applied(),
         ),
     )
-    return callToReturn
+    // Paced only now: capture buffers the body with save(), so a call paced before it would reach
+    // the app already buffered. The transaction's duration therefore ends at capture, not at the
+    // app's last paced byte.
+    return exchange.condition?.downloadBytesPerSecond?.let(capturedCall::withResponseBodyPacedTo) ?: capturedCall
 }
 
 /**
@@ -116,7 +119,7 @@ private suspend fun JetWhaleNetworkAgentPlugin.performExchange(
     proceed: suspend (HttpRequestBuilder) -> HttpClientCall,
 ): HttpClientCall {
     val condition = exchange.condition
-    val call = try {
+    return try {
         condition?.let { simulateNetworkBeforeExchange(it, request, exchange.url, mocked = exchange.mock != null) }
         if (exchange.mock != null) serveMock(client, request, exchange.mock) else proceed(request)
     } catch (e: Throwable) {
@@ -130,7 +133,6 @@ private suspend fun JetWhaleNetworkAgentPlugin.performExchange(
         )
         throw e
     }
-    return condition?.downloadBytesPerSecond?.let(call::withResponseBodyPacedTo) ?: call
 }
 
 private fun JetWhaleNetworkAgentPlugin.recordRequest(request: HttpRequestBuilder, txId: String, method: String, url: String, limits: BodyCaptureLimits) {

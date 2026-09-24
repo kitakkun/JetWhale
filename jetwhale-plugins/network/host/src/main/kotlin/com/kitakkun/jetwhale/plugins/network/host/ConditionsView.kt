@@ -39,6 +39,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.NetworkCondition
 import com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule
+import com.kitakkun.jetwhale.plugins.network.protocol.problems
 import java.util.UUID
 
 @Composable
@@ -139,7 +140,7 @@ private fun ConditionRuleDialog(
             JwButton(
                 text = "Save",
                 onClick = { onSave(draft) },
-                enabled = draft.matcher?.urlPattern?.isNotBlank() ?: true,
+                enabled = (draft.matcher?.urlPattern?.isNotBlank() ?: true) && draft.condition.problems().isEmpty(),
                 style = JwButtonStyle.Primary,
             )
         },
@@ -151,6 +152,7 @@ private fun ConditionRuleDialog(
                 }
                 ConditionScopeFields(matcher = draft.matcher, onMatcherChange = { draft = draft.copy(matcher = it) })
                 ConditionFields(condition = draft.condition, onConditionChange = { draft = draft.copy(condition = it) })
+                draft.condition.problems().forEach { JwText(text = it, style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.error) }
             }
         },
     )
@@ -228,7 +230,7 @@ private fun NetworkCondition.summary(): String = if (offline) {
     "offline"
 } else {
     listOfNotNull(
-        "+${latencyMs}ms".takeIf { latencyMs > 0 }?.let { if (jitterMs > 0) "$it ±${jitterMs}ms" else it },
+        "+${latencyMs}ms".takeIf { latencyMs > 0 || jitterMs > 0 }?.let { if (jitterMs > 0) "$it ±${jitterMs}ms" else it },
         downloadBytesPerSecond?.let { "↓ ${formatRate(it)}" },
         uploadBytesPerSecond?.let { "↑ ${formatRate(it)}" },
         "${(failureRate * PERCENT).toInt()}% $failure".takeIf { failureRate > 0.0 },

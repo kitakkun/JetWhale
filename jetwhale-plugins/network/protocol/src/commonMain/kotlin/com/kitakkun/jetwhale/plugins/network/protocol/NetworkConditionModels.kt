@@ -43,6 +43,26 @@ data class NetworkCondition(
     val offline: Boolean = false,
 )
 
+/** The longest delay a condition may add — latency, jitter or time to fail: ten minutes. */
+const val MAX_SIMULATED_DELAY_MS: Long = 10 * 60 * 1_000
+
+/**
+ * What is wrong with this condition's numbers, one sentence per field; empty when it can be applied.
+ * Delays must lie within 0..[MAX_SIMULATED_DELAY_MS], rates must be positive when set, and
+ * [NetworkCondition.failureRate] must lie within 0..1.
+ */
+fun NetworkCondition.problems(): List<String> = buildList {
+    fun checkDelay(name: String, value: Long) {
+        if (value !in 0..MAX_SIMULATED_DELAY_MS) add("$name must be between 0 and $MAX_SIMULATED_DELAY_MS, was $value")
+    }
+    checkDelay("latencyMs", latencyMs)
+    checkDelay("jitterMs", jitterMs)
+    checkDelay("failureAfterMs", failureAfterMs)
+    downloadBytesPerSecond?.let { if (it <= 0) add("downloadBytesPerSecond must be positive when set, was $it") }
+    uploadBytesPerSecond?.let { if (it <= 0) add("uploadBytesPerSecond must be positive when set, was $it") }
+    if (!(failureRate in 0.0..1.0)) add("failureRate must be between 0 and 1, was $failureRate")
+}
+
 /**
  * A network condition applied to the requests [matcher] selects, or to every request when
  * [matcher] is null. Owned by the host and pushed to the agent via [SetNetworkConditions].

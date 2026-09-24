@@ -49,8 +49,12 @@ private fun InjectedFailure.toException(host: String, cause: String): IOExceptio
     InjectedFailure.UNREACHABLE -> ConnectException("Failed to connect to $host: Network is unreachable ($cause)")
 }
 
-/** This response with its body paced to [bytesPerSecond] as the caller reads it. */
+/**
+ * This response with its body paced to [bytesPerSecond] as the caller reads it. A WebSocket upgrade
+ * is left alone: its body is the live frame stream, which pacing here would corrupt.
+ */
 internal fun Response.withBodyPacedTo(bytesPerSecond: Long): Response {
+    if (isWebSocketUpgrade()) return this
     val original = body
     return newBuilder().body(PacedResponseBody(original, bytesPerSecond)).build()
 }
