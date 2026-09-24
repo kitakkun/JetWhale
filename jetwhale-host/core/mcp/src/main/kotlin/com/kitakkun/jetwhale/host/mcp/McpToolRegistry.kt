@@ -16,6 +16,9 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.util.concurrent.ConcurrentHashMap
+import java.util.logging.Level
+import java.util.logging.Logger
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Registry that tracks MCP tools contributed by plugin instances that implement
@@ -26,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap
  * call to the correct plugin instance.
  */
 class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) {
+    private val logger = Logger.getLogger(McpToolRegistry::class.java.name)
 
     /**
      * Maps a tool name to its descriptor and the set of (sessionId → pluginId) pairs
@@ -90,6 +94,16 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
             command.execute(JetWhaleMcpArguments(JsonObject(arguments - "sessionId")))
         } catch (e: JetWhaleMcpArgumentException) {
             buildJsonObject { put("error", e.message.orEmpty()) }.toString()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            // A bug in the plugin's command: name the plugin so the agent (and whoever reads the
+            // log) knows whose it is, rather than surfacing a bare exception from the server.
+            logger.log(Level.WARNING, "MCP tool '$toolName' of plugin '$pluginId' threw", e)
+            buildJsonObject {
+                put("error", "the plugin's tool failed: $e")
+                put("pluginId", pluginId)
+            }.toString()
         }
     }
 
