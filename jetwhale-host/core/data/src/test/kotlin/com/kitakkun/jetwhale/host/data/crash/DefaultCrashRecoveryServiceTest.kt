@@ -102,6 +102,16 @@ class DefaultCrashRecoveryServiceTest {
     }
 
     @Test
+    fun `a marker left by an earlier run that had this run's pid is still reported`() {
+        markers.add(deadRunMarker(startupCompleted = true, consecutiveStartupCrashes = 0).copy(pid = ProcessHandle.current().pid()))
+        val service = newService()
+
+        service.onStartup()
+
+        assertNotNull(service.uncleanExitReportFlow.value)
+    }
+
+    @Test
     fun `a clean shutdown waits for a grace-period write under way and then removes the marker`() = runBlocking {
         val writeStarted = CompletableDeferred<Unit>()
         val releaseWrite = CountDownLatch(1)

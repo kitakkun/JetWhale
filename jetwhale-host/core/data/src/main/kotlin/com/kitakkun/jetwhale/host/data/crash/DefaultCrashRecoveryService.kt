@@ -69,16 +69,15 @@ class DefaultCrashRecoveryService(
         private set
 
     override fun onStartup() {
-        val current = ProcessHandle.current()
         // A marker whose process is still running belongs to another host sharing this data
         // directory; it is that host's to remove.
-        val abandoned = runMarkerRepository.readAll().filter { it.pid != current.pid() && !isStillRunning(it) }
+        val abandoned = runMarkerRepository.readAll().filterNot(::isStillRunning)
         abandoned.maxByOrNull(RunMarker::startedAtMillis)?.let(::reportUncleanExit)
         abandoned.forEach { runMarkerRepository.delete(it.runId) }
 
         val marker = RunMarker(
             runId = UUID.randomUUID().toString(),
-            pid = current.pid(),
+            pid = ProcessHandle.current().pid(),
             startedAtMillis = System.currentTimeMillis(),
             workingDirectory = System.getProperty("user.dir").orEmpty(),
             startupCompleted = false,
