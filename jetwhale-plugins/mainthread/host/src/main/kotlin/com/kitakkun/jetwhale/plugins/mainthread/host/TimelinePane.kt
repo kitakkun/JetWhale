@@ -31,6 +31,8 @@ import com.kitakkun.jetwhale.plugins.mainthread.protocol.MainThreadReport
 private const val TIMELINE_WINDOW_MILLIS = 60_000L
 
 private val TimelineHeight = 96.dp
+
+private const val MIN_BAR_FRACTION = 0.15f
 private val TimeColumnWidth = 104.dp
 private val DurationColumnWidth = 88.dp
 
@@ -40,7 +42,6 @@ internal fun TimelinePane(report: MainThreadReport, modifier: Modifier = Modifie
         MainThreadTimeline(
             tasks = report.longTasks,
             jankyFrames = report.frames.recentJankyFrames,
-            unresponsiveMillis = report.settings.unresponsiveThresholdMillis,
             modifier = Modifier.fillMaxWidth().height(TimelineHeight).padding(horizontal = JwSpacing.large, vertical = JwSpacing.medium),
         )
         FrameSummary(report.frames, frameTiming = report.capabilities.frameTiming)
@@ -67,11 +68,11 @@ internal fun TimelinePane(report: MainThreadReport, modifier: Modifier = Modifie
 
 /**
  * The last minute of the main thread: each long task a bar at its start, as tall as it was long
- * (capped at the unresponsive threshold, and red once it reached it), and each janky frame a thin
+ * next to the longest one in view (red if it made the app unresponsive), and each janky frame a thin
  * tick along the bottom, so a stutter can be matched with the task that caused it.
  */
 @Composable
-private fun MainThreadTimeline(tasks: List<LongTask>, jankyFrames: List<JankyFrame>, unresponsiveMillis: Long, modifier: Modifier = Modifier) {
+private fun MainThreadTimeline(tasks: List<LongTask>, jankyFrames: List<JankyFrame>, modifier: Modifier = Modifier) {
     val taskColor = JwTheme.colors.warning
     val unresponsiveColor = JwTheme.colors.error
     val frameColor = JwTheme.colors.accent
@@ -84,10 +85,13 @@ private fun MainThreadTimeline(tasks: List<LongTask>, jankyFrames: List<JankyFra
         fun x(epochMillis: Long): Float = ((epochMillis - start).toFloat() / TIMELINE_WINDOW_MILLIS) * size.width
         val tickHeight = size.height * 0.15f
         val barArea = size.height - tickHeight
-        tasks.filter { it.startEpochMillis + it.durationMillis >= start }.forEach { task ->
+        val shown = tasks.filter { it.startEpochMillis + it.durationMillis >= start }
+        val longest = shown.maxOfOrNull(LongTask::durationMillis)?.toFloat() ?: 1f
+        shown.forEach { task ->
             val left = x(task.startEpochMillis).coerceAtLeast(0f)
             val width = (x(task.startEpochMillis + task.durationMillis) - left).coerceAtLeast(2f)
-            val height = barArea * (task.durationMillis.toFloat() / unresponsiveMillis).coerceIn(0.1f, 1f)
+            // The shortest recorded task still reads as a bar beside a much longer one.
+            val height = barArea * (task.durationMillis / longest).coerceAtLeast(MIN_BAR_FRACTION)
             drawRect(
                 color = if (task.unresponsive) unresponsiveColor else taskColor,
                 topLeft = Offset(left, barArea - height),
