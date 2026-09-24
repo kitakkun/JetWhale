@@ -15,6 +15,5 @@ internal class RequestPermissionCommand(
 
     private val id by string("The permission's id, as listPermissions reports it (e.g. android.permission.CAMERA or ios.camera).")
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String =
-        McpJson.encodeToString(PermissionActionResult.serializer(), client.request(arguments[id]))
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(PermissionActionResult.serializer(), client.request(arguments[id]))
 }

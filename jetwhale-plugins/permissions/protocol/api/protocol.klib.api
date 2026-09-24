@@ -1,0 +1,265 @@
+// Klib ABI Dump
+// Targets: [iosArm64, iosSimulatorArm64, js, linuxArm64, linuxX64, macosArm64, mingwX64, wasmJs]
+// Rendering settings:
+// - Signature version: 2
+// - Show manifest properties: true
+// - Show declarations: true
+
+// Library unique name: <com.kitakkun.jetwhale.plugins.permissions:protocol>
+final enum class com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory : kotlin/Enum<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory> { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory|null[0]
+    enum entry InstallTime // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory.InstallTime|null[0]
+    enum entry Runtime // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory.Runtime|null[0]
+    enum entry SpecialAccess // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory.SpecialAccess|null[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory.values|values#static(){}[0]
+
+    final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory.Companion.serializer|serializer(){}[0]
+        final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    }
+}
+
+final enum class com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus : kotlin/Enum<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus> { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus|null[0]
+    enum entry Denied // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus.Denied|null[0]
+    enum entry Granted // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus.Granted|null[0]
+    enum entry Limited // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus.Limited|null[0]
+    enum entry NotDetermined // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus.NotDetermined|null[0]
+    enum entry Restricted // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus.Restricted|null[0]
+
+    final val entries // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus.entries|#static{}entries[0]
+        final fun <get-entries>(): kotlin.enums/EnumEntries<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus.entries.<get-entries>|<get-entries>#static(){}[0]
+
+    final fun valueOf(kotlin/String): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus.valueOf|valueOf#static(kotlin.String){}[0]
+    final fun values(): kotlin/Array<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus.values|values#static(){}[0]
+
+    final object Companion : kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus.Companion.serializer|serializer(){}[0]
+        final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus.Companion.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult|null[0]
+    constructor <init>(kotlin/String, kotlin/String?) // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.<init>|<init>(kotlin.String;kotlin.String?){}[0]
+
+    final val error // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.error|{}error[0]
+        final fun <get-error>(): kotlin/String? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.error.<get-error>|<get-error>(){}[0]
+    final val message // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.message|{}message[0]
+        final fun <get-message>(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.message.<get-message>|<get-message>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.component1|component1(){}[0]
+    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.copy|copy(kotlin.String;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult> { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult) // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionActionResult){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange|null[0]
+    constructor <init>(kotlin/String, kotlin/String, com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus?, com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus?, kotlin/Long) // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.<init>|<init>(kotlin.String;kotlin.String;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus?;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus?;kotlin.Long){}[0]
+
+    final val from // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.from|{}from[0]
+        final fun <get-from>(): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.from.<get-from>|<get-from>(){}[0]
+    final val id // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.id|{}id[0]
+        final fun <get-id>(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.id.<get-id>|<get-id>(){}[0]
+    final val label // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.label|{}label[0]
+        final fun <get-label>(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.label.<get-label>|<get-label>(){}[0]
+    final val observedAtEpochMillis // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.observedAtEpochMillis|{}observedAtEpochMillis[0]
+        final fun <get-observedAtEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.observedAtEpochMillis.<get-observedAtEpochMillis>|<get-observedAtEpochMillis>(){}[0]
+    final val to // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.to|{}to[0]
+        final fun <get-to>(): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.to.<get-to>|<get-to>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.component2|component2(){}[0]
+    final fun component3(): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.component3|component3(){}[0]
+    final fun component4(): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.component4|component4(){}[0]
+    final fun component5(): kotlin/Long // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.component5|component5(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus? = ..., com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus? = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.copy|copy(kotlin.String;kotlin.String;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus?;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus?;kotlin.Long){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange> { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange) // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionChange){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport|null[0]
+    constructor <init>(kotlin/String, kotlin/String?, kotlin.collections/List<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState>) // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.<init>|<init>(kotlin.String;kotlin.String?;kotlin.collections.List<com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionState>){}[0]
+
+    final val permissions // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.permissions|{}permissions[0]
+        final fun <get-permissions>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.permissions.<get-permissions>|<get-permissions>(){}[0]
+    final val platform // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.platform|{}platform[0]
+        final fun <get-platform>(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.platform.<get-platform>|<get-platform>(){}[0]
+    final val unsupportedReason // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.unsupportedReason|{}unsupportedReason[0]
+        final fun <get-unsupportedReason>(): kotlin/String? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.unsupportedReason.<get-unsupportedReason>|<get-unsupportedReason>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.component1|component1(){}[0]
+    final fun component2(): kotlin/String? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.component2|component2(){}[0]
+    final fun component3(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.component3|component3(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String? = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState> = ...): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.copy|copy(kotlin.String;kotlin.String?;kotlin.collections.List<com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionState>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport> { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport) // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionReport){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState|null[0]
+    constructor <init>(kotlin/String, kotlin/String, com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory, kotlin/String?, com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus, kotlin/Boolean, kotlin/String?) // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.<init>|<init>(kotlin.String;kotlin.String;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionCategory;kotlin.String?;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus;kotlin.Boolean;kotlin.String?){}[0]
+
+    final val category // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.category|{}category[0]
+        final fun <get-category>(): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.category.<get-category>|<get-category>(){}[0]
+    final val id // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.id|{}id[0]
+        final fun <get-id>(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.id.<get-id>|<get-id>(){}[0]
+    final val label // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.label|{}label[0]
+        final fun <get-label>(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.label.<get-label>|<get-label>(){}[0]
+    final val note // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.note|{}note[0]
+        final fun <get-note>(): kotlin/String? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.note.<get-note>|<get-note>(){}[0]
+    final val protection // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.protection|{}protection[0]
+        final fun <get-protection>(): kotlin/String? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.protection.<get-protection>|<get-protection>(){}[0]
+    final val requestable // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.requestable|{}requestable[0]
+        final fun <get-requestable>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.requestable.<get-requestable>|<get-requestable>(){}[0]
+    final val status // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.status|{}status[0]
+        final fun <get-status>(): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.status.<get-status>|<get-status>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.component1|component1(){}[0]
+    final fun component2(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.component2|component2(){}[0]
+    final fun component3(): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.component3|component3(){}[0]
+    final fun component4(): kotlin/String? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.component4|component4(){}[0]
+    final fun component5(): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.component5|component5(){}[0]
+    final fun component6(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.component6|component6(){}[0]
+    final fun component7(): kotlin/String? // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.component7|component7(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/String = ..., com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionCategory = ..., kotlin/String? = ..., com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionStatus = ..., kotlin/Boolean = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.copy|copy(kotlin.String;kotlin.String;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionCategory;kotlin.String?;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus;kotlin.Boolean;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState> { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState) // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionState){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionState.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged : com.kitakkun.jetwhale.protocol.messaging/JetWhaleEvent { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged|null[0]
+    constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange>) // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionChange>){}[0]
+
+    final val changes // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.changes|{}changes[0]
+        final fun <get-changes>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.changes.<get-changes>|<get-changes>(){}[0]
+
+    final fun component1(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.component1|component1(){}[0]
+    final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionChange> = ...): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionChange>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged> { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged) // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionsChanged){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged> // com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionsChanged.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult> { // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission|null[0]
+    constructor <init>(kotlin/String) // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.<init>|<init>(kotlin.String){}[0]
+
+    final val id // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.id|{}id[0]
+        final fun <get-id>(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.id.<get-id>|<get-id>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.component1|component1(){}[0]
+    final fun copy(kotlin/String = ...): com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.copy|copy(kotlin.String){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission> { // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission) // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.permissions.protocol.RequestPermission){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission> // com.kitakkun.jetwhale.plugins.permissions.protocol/RequestPermission.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final object com.kitakkun.jetwhale.plugins.permissions.protocol/GetPermissions : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionReport>, kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.permissions.protocol/GetPermissions|null[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.permissions.protocol/GetPermissions.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.permissions.protocol/GetPermissions.hashCode|hashCode(){}[0]
+    final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/GetPermissions> // com.kitakkun.jetwhale.plugins.permissions.protocol/GetPermissions.serializer|serializer(){}[0]
+    final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.permissions.protocol/GetPermissions.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/GetPermissions.toString|toString(){}[0]
+}
+
+final object com.kitakkun.jetwhale.plugins.permissions.protocol/OpenAppSettings : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.permissions.protocol/PermissionActionResult>, kotlinx.serialization.internal/SerializerFactory { // com.kitakkun.jetwhale.plugins.permissions.protocol/OpenAppSettings|null[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.permissions.protocol/OpenAppSettings.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.permissions.protocol/OpenAppSettings.hashCode|hashCode(){}[0]
+    final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.permissions.protocol/OpenAppSettings> // com.kitakkun.jetwhale.plugins.permissions.protocol/OpenAppSettings.serializer|serializer(){}[0]
+    final fun serializer(kotlin/Array<out kotlinx.serialization/KSerializer<*>>...): kotlinx.serialization/KSerializer<*> // com.kitakkun.jetwhale.plugins.permissions.protocol/OpenAppSettings.serializer|serializer(kotlin.Array<out|kotlinx.serialization.KSerializer<*>>...){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/OpenAppSettings.toString|toString(){}[0]
+}
+
+final const val com.kitakkun.jetwhale.plugins.permissions.protocol/PERMISSIONS_PLUGIN_ID // com.kitakkun.jetwhale.plugins.permissions.protocol/PERMISSIONS_PLUGIN_ID|{}PERMISSIONS_PLUGIN_ID[0]
+    final fun <get-PERMISSIONS_PLUGIN_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.permissions.protocol/PERMISSIONS_PLUGIN_ID.<get-PERMISSIONS_PLUGIN_ID>|<get-PERMISSIONS_PLUGIN_ID>(){}[0]
