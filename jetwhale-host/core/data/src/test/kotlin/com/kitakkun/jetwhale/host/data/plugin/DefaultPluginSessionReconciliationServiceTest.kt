@@ -9,8 +9,12 @@ import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.model.PluginFailures
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.model.SafeMode
+import com.kitakkun.jetwhale.host.model.SafeModeReason
+import com.kitakkun.jetwhale.host.model.SafeModeService
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
@@ -29,8 +33,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class DefaultPluginSessionReconciliationServiceTest {
     private val pluginId = "com.example.plugin"
@@ -85,6 +91,7 @@ class DefaultPluginSessionReconciliationServiceTest {
             enabledPluginsRepository = FakeEnabledPluginsRepository(setOf(pluginId)),
             pluginFactoryRepository = factoryRepository,
             pluginInstanceService = instanceService,
+            safeModeService = FakeSafeModeService(null),
         )
 
         val collectJob = launch { service.reconciliationEvents().collect { } }
@@ -108,6 +115,7 @@ class DefaultPluginSessionReconciliationServiceTest {
             enabledPluginsRepository = FakeEnabledPluginsRepository(setOf(hostOnlyPluginId)),
             pluginFactoryRepository = factoryRepository,
             pluginInstanceService = instanceService,
+            safeModeService = FakeSafeModeService(initial = null),
         )
 
         val collectJob = launch { service.reconciliationEvents().collect { } }
@@ -128,11 +136,44 @@ class DefaultPluginSessionReconciliationServiceTest {
             enabledPluginsRepository = FakeEnabledPluginsRepository(emptySet()),
             pluginFactoryRepository = factoryRepository,
             pluginInstanceService = FakePluginInstanceService(factoryRepository),
+            safeModeService = FakeSafeModeService(initial = null),
         )
 
         assertEquals(setOf(HostSession.ID), service.targetSessionIds(hostOnlyPluginId, listOf(activeSession)))
         assertEquals(setOf(sessionId), service.targetSessionIds(pluginId, listOf(activeSession)))
         assertEquals(emptySet(), service.targetSessionIds(pluginId, emptyList()))
+    }
+
+    @Test
+    fun `safe mode creates no instance until it is left`() = runBlocking {
+        val factoryRepository = FakePluginFactoryRepository().apply { load(loadedPlugin) }
+        val instanceService = FakePluginInstanceService(factoryRepository)
+        val safeModeService = FakeSafeModeService(SafeMode(SafeModeReason.RequestedOnCommandLine))
+        val service = DefaultPluginSessionReconciliationService(
+            sessionRepository = FakeDebugSessionRepository(MutableStateFlow(persistentListOf(activeSession))),
+            enabledPluginsRepository = FakeEnabledPluginsRepository(setOf(pluginId)),
+            pluginFactoryRepository = factoryRepository,
+            pluginInstanceService = instanceService,
+            safeModeService = safeModeService,
+        )
+
+        val collectJob = launch { service.reconciliationEvents().collect { } }
+
+        assertNull(withTimeoutOrNull(QUIET_MILLIS) { instanceService.calls.receive() })
+
+        safeModeService.leaveSafeMode()
+
+        assertEquals(setOf(sessionId), withTimeout(TIMEOUT_MILLIS) { instanceService.calls.receive() })
+
+        collectJob.cancel()
+    }
+
+    private class FakeSafeModeService(initial: SafeMode?) : SafeModeService {
+        override val safeModeFlow: MutableStateFlow<SafeMode?> = MutableStateFlow(initial)
+
+        override fun leaveSafeMode() {
+            safeModeFlow.value = null
+        }
     }
 
     private class FakeDebugSessionRepository(
@@ -185,6 +226,8 @@ class DefaultPluginSessionReconciliationServiceTest {
     private class FakePluginInstanceService(
         private val factoryRepository: PluginFactoryRepository,
     ) : PluginInstanceService {
+        override val pluginFailuresFlow: StateFlow<PluginFailures> = MutableStateFlow(PluginFailures.Empty)
+
         /** The session ids newly initialized by each reconciliation pass, in order. */
         val calls: Channel<Set<String>> = Channel(Channel.UNLIMITED)
 
@@ -216,5 +259,8 @@ class DefaultPluginSessionReconciliationServiceTest {
 
     private companion object {
         const val TIMEOUT_MILLIS = 5_000L
+
+        // Long enough for a reconciliation that should not happen to have happened.
+        const val QUIET_MILLIS = 500L
     }
 }

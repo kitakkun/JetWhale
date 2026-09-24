@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginReconciliationEvent
 import com.kitakkun.jetwhale.host.model.PluginSessionReconciliationService
+import com.kitakkun.jetwhale.host.model.SafeModeService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -27,6 +28,7 @@ class DefaultPluginSessionReconciliationService(
     private val enabledPluginsRepository: EnabledPluginsRepository,
     private val pluginFactoryRepository: PluginFactoryRepository,
     private val pluginInstanceService: PluginInstanceService,
+    private val safeModeService: SafeModeService,
 ) : PluginSessionReconciliationService {
     override fun requiresAgent(pluginId: String): Boolean = pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.requiresAgent ?: true
 
@@ -53,7 +55,11 @@ class DefaultPluginSessionReconciliationService(
                 // above — without this the freshly loaded plugin would never get an instance, and
                 // opening it would fail until the next enable toggle, session, or app restart.
                 pluginFactoryRepository.loadedPluginsFlow,
-            ) { enabledPluginIds, activeSessions, _ -> enabledPluginIds to activeSessions }
+                // In safe mode no instance is created; leaving it re-runs this with the real set.
+                safeModeService.safeModeFlow,
+            ) { enabledPluginIds, activeSessions, _, safeMode ->
+                (if (safeMode == null) enabledPluginIds else emptySet()) to activeSessions
+            }
                 .collect { (enabledPluginIds, activeSessions) ->
                     enabledPluginIds.forEach { pluginId ->
                         val activatedSessionIds = pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(

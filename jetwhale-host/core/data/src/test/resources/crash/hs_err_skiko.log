@@ -1,0 +1,33 @@
+#
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  SIGSEGV (0xb) at pc=0x000000014957d3d0, pid=65669, tid=130819
+#
+# JRE version: OpenJDK Runtime Environment Corretto-21.0.10.7.1 (21.0.10+7) (build 21.0.10+7-LTS)
+# Java VM: OpenJDK 64-Bit Server VM Corretto-21.0.10.7.1 (21.0.10+7-LTS, mixed mode, sharing, tiered, compressed oops, compressed class ptrs, g1 gc, bsd-aarch64)
+# Problematic frame:
+# C  [libskiko-macos-arm64.dylib+0x1053d0]  SkBitmap::notifyPixelsChanged() const+0x0
+#
+# No core dump will be written. Core dumps have been disabled. To enable core dumping, try "ulimit -c unlimited" before starting Java again
+#
+
+---------------  S U M M A R Y ------------
+
+Command Line: -Djdk.attach.allowAttachSelf=true -Djetwhale.appDataDir=/tmp/sandbox com.kitakkun.jetwhale.host.MainKt
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x000000012e8ebe00):  JavaThread "DefaultDispatcher-worker-10" daemon [_thread_in_native, id=130819, stack(0x000000030aeac000,0x000000030b0af000) (2060K)]
+
+Stack: [0x000000030aeac000,0x000000030b0af000],  sp=0x000000030b0ae520,  free space=2057k
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+C  [libskiko-macos-arm64.dylib+0x1053d0]  SkBitmap::notifyPixelsChanged() const+0x0
+J 18474 c1 com.kitakkun.jetwhale.plugins.mirror.host.MirrorSurface.writeFrame(IILkotlin/jvm/functions/Function1;)V (219 bytes) @ 0x00000001137c8310 [0x00000001137c7800+0x0000000000000b10]
+J 19402 c1 com.kitakkun.jetwhale.plugins.mirror.host.H264DecodingKt.writeFrame(Lcom/kitakkun/jetwhale/plugins/mirror/host/MirrorSurface;Lorg/bytedeco/javacv/Frame;)Z (64 bytes) @ 0x00000001145a9a90 [0x00000001145a8e80+0x0000000000000c10]
+j  com.kitakkun.jetwhale.plugins.mirror.host.H264DecodingKt.decodeH264Into(Lcom/kitakkun/jetwhale/plugins/mirror/host/MirrorSurface;Ljava/io/InputStream;Lkotlin/jvm/functions/Function0;)V+102
+J 9145 c2 kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(Ljava/lang/Object;)V (124 bytes) @ 0x000000011b32a758 [0x000000011b32a700+0x0000000000000058]
+J 8945 c2 kotlinx.coroutines.DispatchedTask.run()V (400 bytes) @ 0x000000011b30ac70 [0x000000011b30aa00+0x0000000000000270]
+v  ~StubRoutines::call_stub 0x000000011a9d0154
+V  [libjvm.dylib+0x3a2d40]  JavaCalls::call_helper(JavaValue*, methodHandle const&, JavaCallArguments*, JavaThread*)+0x248
+
+siginfo: si_signo: 11 (SIGSEGV), si_code: 2 (SEGV_ACCERR), si_addr: 0x0000000000000000

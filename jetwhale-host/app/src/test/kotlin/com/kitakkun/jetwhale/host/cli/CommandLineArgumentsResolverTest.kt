@@ -29,6 +29,12 @@ class CommandLineArgumentsResolverTest {
     }
 
     @Test
+    fun `safe mode is requested only when the flag is passed`() {
+        assertTrue(CommandLineArgumentsParser().parse(arrayOf("--safe-mode")).safeMode.requested)
+        assertFalse(CommandLineArgumentsParser().parse(arrayOf()).safeMode.requested)
+    }
+
+    @Test
     fun `no plugin dir options yield an empty list`() {
         val resolver = CommandLineArgumentsParser()
         val args = arrayOf<String>()
