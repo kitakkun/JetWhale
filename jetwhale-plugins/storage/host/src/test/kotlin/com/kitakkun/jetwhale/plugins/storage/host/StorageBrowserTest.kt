@@ -106,6 +106,28 @@ class StorageBrowserTest {
     }
 
     @Test
+    fun `a linked directory is not zipped since a zip never follows links`() {
+        val linkedApp = FakeStorageClient(
+            directories = mutableMapOf(
+                location("Files") to listOf(directoryEntry("linked").copy(isSymbolicLink = true)),
+                location("Files", "linked") to listOf(fileEntry("notes.txt", sizeBytes = 5)),
+            ),
+            files = mutableMapOf(location("Files", "linked", "notes.txt") to "hello".encodeToByteArray()),
+            stores = mutableMapOf(),
+        )
+        val linkedBrowser = StorageBrowser(linkedApp, CoroutineScope(Dispatchers.Unconfined))
+        runBlocking { linkedBrowser.load() }
+        linkedBrowser.toggleDirectory(location("Files"))
+        val target = File.createTempFile("storage-zip", ".zip").apply { deleteOnExit() }
+
+        linkedBrowser.requestZipDownload(location("Files", "linked"), target)
+
+        assertEquals(true, linkedBrowser.status?.isError)
+        assertEquals(0, target.length())
+        assertTrue(linkedApp.fileReads.isEmpty())
+    }
+
+    @Test
     fun `a small directory is zipped straight into the chosen file`() {
         val zipBrowser = StorageBrowser(readableApp(), CoroutineScope(Dispatchers.Unconfined))
         val target = File.createTempFile("storage-zip", ".zip").apply { deleteOnExit() }

@@ -316,6 +316,10 @@ internal class StorageBrowser(
     }
 
     override fun requestZipDownload(location: FileLocation, target: File) = launchReporting {
+        if (treeRows.firstOrNull { it.location == location }?.entry?.isSymbolicLink == true) {
+            status = StorageStatus(message = "${location.name} is a symbolic link; a ZIP never follows links.", isError = true)
+            return@launchReporting
+        }
         val measurement = client.measureDirectory(location)
         measurement.error?.let { error ->
             status = StorageStatus(message = error, isError = true)
