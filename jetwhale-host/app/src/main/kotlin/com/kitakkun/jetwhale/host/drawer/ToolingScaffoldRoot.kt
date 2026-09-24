@@ -257,13 +257,8 @@ private fun HostNavigationRequestEffect(
                         currentOnClickPlugin(request.pluginId, HostSession.ID)
                         return@collect
                     }
-                    // Only a request that named no session falls back to the drawer's selection.
-                    // A named session that has gone away since the request was validated must
-                    // drop the request rather than navigate to some other app.
-                    val targetSession = when (val requestedSessionId = request.sessionId) {
-                        null -> currentUiState.selectedSession
-                        else -> currentSessions.firstOrNull { it.id == requestedSessionId }
-                    } ?: return@collect
+                    val targetSession = navigationTargetSession(request.sessionId, currentUiState.selectedSession, currentSessions)
+                        ?: return@collect
                     // Drive the same path a drawer click takes, so an MCP-driven navigation and a
                     // click are indistinguishable downstream.
                     if (targetSession.id != currentUiState.selectedSessionId) {
@@ -293,4 +288,19 @@ private suspend fun ToolingScaffoldScreenActionResult.sessionChangeMessage(): St
         ?: getString(Res.string.sessions_connected_message, connectedSessions.size)
 
     is ToolingScaffoldScreenActionResult.SetPluginEnabledFailed -> null
+}
+
+/**
+ * The session a plugin navigation request lands on, or null to drop the request. Only a request
+ * that named no session falls back to the drawer's selection. A named session that has gone away
+ * or disconnected since the request was validated drops it: its plugin instances are unloaded, so
+ * there is nothing to show — and navigating to some other app instead would surprise the caller.
+ */
+internal fun navigationTargetSession(
+    requestedSessionId: String?,
+    selectedSession: DebugSession?,
+    sessions: List<DebugSession>,
+): DebugSession? = when (requestedSessionId) {
+    null -> selectedSession
+    else -> sessions.firstOrNull { it.id == requestedSessionId }?.takeIf(DebugSession::isActive)
 }
