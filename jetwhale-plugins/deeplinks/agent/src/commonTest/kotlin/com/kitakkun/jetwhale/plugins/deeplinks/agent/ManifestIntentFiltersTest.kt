@@ -53,6 +53,10 @@ class ManifestIntentFiltersTest {
                     element("action", "name" to "android.intent.action.VIEW")
                     element("data", "mimeType" to "image/*")
                 }
+                element("intent-filter") {
+                    element("action", "name" to "android.intent.action.SENDTO")
+                    element("data", "scheme" to "mailto")
+                }
             }
         }
 
