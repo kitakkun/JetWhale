@@ -33,7 +33,10 @@ private class EventDispatchThreadProbe(
 
     @Volatile private var dispatchThread: Thread? = null
     private var queue: TimingEventQueue? = null
-    private val sampler = StackSampler(recorder) { dispatchThread }
+
+    // Every event the dispatch thread handles passes through the timing queue, so there is no work
+    // outside a task for a heartbeat to find.
+    private val sampler = StackSampler(recorder, mainThread = { dispatchThread }, onTick = {})
 
     override fun start() {
         if (queue != null) return

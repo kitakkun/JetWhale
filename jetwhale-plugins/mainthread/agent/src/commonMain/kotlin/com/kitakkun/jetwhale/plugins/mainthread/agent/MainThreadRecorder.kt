@@ -74,20 +74,47 @@ internal class MainThreadRecorder(
      * if the task turns out long: most tasks are short, and this runs for every one of them.
      */
     fun taskStarted(description: String, extraLabel: String?) = lock.withLock {
+        // A stall ends when the main thread gets back to its queue, which is where this message came from.
+        if (running?.isStall == true) finishRunning()
         running = RunningTask(
             id = nextTaskId++,
             description = description,
             extraLabel = extraLabel,
             startMonotonic = clock.monotonicMillis(),
             startEpoch = clock.epochMillis(),
+            isStall = false,
         )
     }
 
-    fun taskFinished() = lock.withLock {
-        val task = running ?: return@withLock
+    fun taskFinished() = lock.withLock(::finishRunning)
+
+    /**
+     * The main thread has been busy for [busyForMillis] without the probe seeing a task start —
+     * work the platform runs outside its task hooks, such as Android's input dispatch. It is recorded
+     * as a task that began [busyForMillis] ago and ends at [stallEnded] or when the next task starts.
+     * While a task is running, the stall is that task and nothing changes.
+     */
+    fun stallDetected(description: String, busyForMillis: Long) = lock.withLock {
+        if (running != null) return@withLock
+        running = RunningTask(
+            id = nextTaskId++,
+            description = description,
+            extraLabel = null,
+            startMonotonic = clock.monotonicMillis() - busyForMillis,
+            startEpoch = clock.epochMillis() - busyForMillis,
+            isStall = true,
+        )
+    }
+
+    fun stallEnded() = lock.withLock {
+        if (running?.isStall == true) finishRunning()
+    }
+
+    private fun finishRunning() {
+        val task = running ?: return
         running = null
         val duration = clock.monotonicMillis() - task.startMonotonic
-        if (duration < settings.longTaskThresholdMillis) return@withLock
+        if (duration < settings.longTaskThresholdMillis) return
         longTasks.addBounded(
             LongTask(
                 startEpochMillis = task.startEpoch,
@@ -213,6 +240,7 @@ internal class MainThreadRecorder(
         val extraLabel: String?,
         val startMonotonic: Long,
         val startEpoch: Long,
+        val isStall: Boolean,
     ) {
         var lastSampleMonotonic: Long? = null
         var samples = 0
