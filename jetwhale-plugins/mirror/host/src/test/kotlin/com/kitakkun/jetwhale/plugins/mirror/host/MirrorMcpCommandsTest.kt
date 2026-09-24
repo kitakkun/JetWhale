@@ -101,6 +101,24 @@ class MirrorMcpCommandsTest {
     }
 
     @Test
+    fun `a swipe on a physical iPhone is refused without asking for its screen size`() {
+        val failure = assertFailsWith<JetWhaleMcpArgumentException> {
+            SwipeCommand(mirror).run(
+                buildJsonObject {
+                    put("deviceId", "00008110")
+                    put("fromX", 10)
+                    put("fromY", 20)
+                    put("toX", 10)
+                    put("toY", 200)
+                },
+            )
+        }
+
+        assertTrue("view-only" in failure.message.orEmpty())
+        assertEquals(0, iphone.screenSizeQueries)
+    }
+
+    @Test
     fun `a negative swipe is refused before the device is looked up`() {
         val failure = assertFailsWith<JetWhaleMcpArgumentException> {
             SwipeCommand(mirror).run(
@@ -223,7 +241,12 @@ private class FakeController(
 
     override suspend fun captureScreenshot(): ByteArray = ByteArray(0)
 
-    override suspend fun screenSize(): IntSize = IntSize(1080, 2400)
+    var screenSizeQueries = 0
+
+    override suspend fun screenSize(): IntSize {
+        screenSizeQueries++
+        return IntSize(1080, 2400)
+    }
 
     override suspend fun tap(x: Int, y: Int) = record("tap $x,$y")
 
