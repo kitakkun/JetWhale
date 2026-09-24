@@ -18,6 +18,14 @@ class FileRootTest {
     }
 
     @Test
+    fun `the file system root stays absolute`() {
+        val fileSystemRoot = FileRoot(name = "Everything", path = "/")
+
+        assertEquals("/", fileSystemRoot.resolve(emptyList()))
+        assertEquals("/tmp", fileSystemRoot.resolve(listOf("tmp")))
+    }
+
+    @Test
     fun `a segment that climbs out of the root is refused`() {
         listOf("..", ".", "", "a/b", "..\\secrets").forEach { segment ->
             assertFailsWith<IllegalArgumentException>(segment) { root.resolve(listOf("datastore", segment)) }

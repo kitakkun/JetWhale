@@ -38,6 +38,25 @@ internal actual fun fileSize(path: String): Long = File(path).length()
 
 internal actual fun deleteRecursively(path: String) {
     val file = File(path)
-    if (!file.exists()) throw FileNotFoundException("'$path' does not exist")
-    if (!file.deleteRecursively()) throw IOException("'$path' could not be deleted completely")
+    // exists() follows links, so a dangling link would read as missing.
+    if (!file.exists() && !file.isSymbolicLink()) throw FileNotFoundException("'$path' does not exist")
+    deleteWithoutFollowingLinks(file)
+}
+
+internal actual fun resolvesInside(path: String, root: String): Boolean {
+    val canonicalRoot = File(root).canonicalFile
+    return generateSequence(File(path).canonicalFile, File::getParentFile).any { it == canonicalRoot }
+}
+
+// java.nio.file would say this directly, but Android has it only from API 26.
+private fun deleteWithoutFollowingLinks(file: File) {
+    if (file.isDirectory && !file.isSymbolicLink()) file.listFiles()?.forEach(::deleteWithoutFollowingLinks)
+    if (!file.delete()) throw IOException("'${file.path}' could not be deleted")
+}
+
+/** True when the last component of this path is a symbolic link, whether or not its target exists. */
+private fun File.isSymbolicLink(): Boolean {
+    val parent = absoluteFile.parentFile?.canonicalFile ?: return false
+    val inCanonicalParent = File(parent, name)
+    return inCanonicalParent.canonicalFile != inCanonicalParent.absoluteFile
 }

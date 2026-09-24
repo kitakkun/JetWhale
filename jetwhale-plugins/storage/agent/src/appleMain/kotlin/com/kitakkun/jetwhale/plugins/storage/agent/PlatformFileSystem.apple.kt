@@ -20,10 +20,12 @@ import platform.Foundation.NSFileSize
 import platform.Foundation.NSFileType
 import platform.Foundation.NSFileTypeDirectory
 import platform.Foundation.NSNumber
+import platform.Foundation.NSString
 import platform.Foundation.closeFile
 import platform.Foundation.fileHandleForReadingAtPath
 import platform.Foundation.readDataOfLength
 import platform.Foundation.seekToFileOffset
+import platform.Foundation.stringByResolvingSymlinksInPath
 import platform.Foundation.timeIntervalSince1970
 import platform.posix.memcpy
 
@@ -65,9 +67,19 @@ internal actual fun fileSize(path: String): Long {
     return (attributes?.get(NSFileSize) as? NSNumber)?.longLongValue ?: 0
 }
 
+// removeItemAtPath deletes a symbolic link itself, never what it points to.
 @OptIn(ExperimentalForeignApi::class)
 internal actual fun deleteRecursively(path: String) {
     withNSError { error -> NSFileManager.defaultManager.removeItemAtPath(path, error) }
+}
+
+// stringByResolvingSymlinksInPath also drops a leading "/private", which is harmless: the root and
+// the path are both resolved the same way before they are compared.
+@Suppress("CAST_NEVER_SUCCEEDS")
+internal actual fun resolvesInside(path: String, root: String): Boolean {
+    val resolvedRoot = (root as NSString).stringByResolvingSymlinksInPath.trimEnd('/')
+    val resolvedPath = (path as NSString).stringByResolvingSymlinksInPath
+    return resolvedPath == resolvedRoot.ifEmpty { "/" } || resolvedPath.startsWith("$resolvedRoot/")
 }
 
 /** Runs a Foundation call that reports failure through an `NSError**`, and throws that error instead. */

@@ -54,6 +54,28 @@ class PlatformFileSystemTest {
     }
 
     @Test
+    fun `a symbolic link that leads outside the root is refused`() {
+        val root = File(directory, "root").apply { mkdir() }
+        val outside = File(directory, "outside").apply { mkdir() }
+        Files.createSymbolicLink(File(root, "escape").toPath(), outside.toPath())
+
+        assertFailsWith<IllegalArgumentException> { FileRoot(name = "Root", path = root.path).resolve(listOf("escape")) }
+    }
+
+    @Test
+    fun `deleting a directory removes a link inside it but not what the link points to`() {
+        val outside = File(directory, "outside").apply { mkdir() }
+        File(outside, "keep.txt").writeText("keep")
+        File(directory, "cache").mkdir()
+        Files.createSymbolicLink(File(directory, "cache/link").toPath(), outside.toPath())
+
+        deleteRecursively("${directory.path}/cache")
+
+        assertFalse(File(directory, "cache").exists())
+        assertEquals("keep", File(outside, "keep.txt").readText())
+    }
+
+    @Test
     fun `listing a file is an error`() {
         File(directory, "notes.txt").writeText("hello")
 

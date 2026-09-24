@@ -14,10 +14,12 @@ class FileRoot(
 }
 
 /**
- * The absolute path of [segments] below this root. The segments come from the host, so each must
- * be one plain name: nothing may climb out of the root.
+ * The absolute path of [segments] below this root. The segments come from the host, so nothing
+ * may climb out of the root: each must be one plain name, and the path it leads to must still be
+ * inside the root once symbolic links are resolved.
  *
- * @throws IllegalArgumentException when a segment is empty, `.`, `..`, or holds a path separator.
+ * @throws IllegalArgumentException when a segment is empty, `.`, `..`, or holds a path separator,
+ *   or when a symbolic link leads outside the root.
  */
 internal fun FileRoot.resolve(segments: List<String>): String {
     segments.forEach { segment ->
@@ -25,7 +27,13 @@ internal fun FileRoot.resolve(segments: List<String>): String {
             "'$segment' is not a plain file name"
         }
     }
-    return (listOf(path.trimEnd('/')) + segments).joinToString("/")
+    val base = path.trimEnd('/')
+    if (segments.isEmpty()) return base.ifEmpty { "/" }
+    val resolved = "$base/${segments.joinToString("/")}"
+    require(resolvesInside(resolved, root = path)) {
+        "'${segments.joinToString("/")}' leads outside the root through a symbolic link"
+    }
+    return resolved
 }
 
 /**
