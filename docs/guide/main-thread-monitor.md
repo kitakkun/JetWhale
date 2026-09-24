@@ -38,7 +38,7 @@ whatever the app had in place when it is disabled.
 
 | Platform | Long tasks | Stack samples | StrictMode | Frames |
 |----------|------------|---------------|------------|--------|
-| Android | Every message the main Looper dispatches | Yes | Android 9 (API 28)+ | Android 7 (API 24)+ |
+| Android | Every message the main Looper dispatches, and work between messages such as input dispatch (a Compose click handler) | Yes | Android 9 (API 28)+ | Android 7 (API 24)+ |
 | JVM desktop | Every event the AWT event dispatch thread handles (Compose Desktop's main dispatcher runs there) | Yes | — | — |
 | iOS, macOS | — | — | — | — |
 | Web | — | — | — | — |
