@@ -38,9 +38,13 @@ private fun hostMatches(declared: String, host: String): Boolean = when {
 
 internal fun pathMatches(matcher: PathMatcher, path: String): Boolean = when (matcher.kind) {
     PathMatchKind.Exact -> path == matcher.value
+
     PathMatchKind.Prefix -> path.startsWith(matcher.value)
+
     PathMatchKind.Suffix -> path.endsWith(matcher.value)
+
     PathMatchKind.Pattern -> simpleGlobToRegex(matcher.value).matches(path)
+
     // Close enough to a regular expression for checking a draft; the device has the final word.
     PathMatchKind.AdvancedPattern -> runCatching { Regex(matcher.value).matches(path) }.getOrDefault(false)
 }

@@ -50,6 +50,7 @@ internal fun declaredDeepLinksOf(
 
             is ManifestEvent.End -> when (event.tag) {
                 "activity", "activity-alias" -> component = null
+
                 "intent-filter" -> {
                     filter?.takeIf(FilterBuilder::isDeepLink)?.let { links += it.build(verificationOf) }
                     filter = null
