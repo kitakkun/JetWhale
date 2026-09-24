@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../../../../../schemas/plugin-manifest.schema.json",
+  "plugins": [
+    {
+      "pluginId": "com.kitakkun.jetwhale.permissions",
+      "pluginName": "Permissions",
+      "version": "1.0.0",
+      "factoryClass": "com.kitakkun.jetwhale.plugins.permissions.host.PermissionsHostPluginFactory",
+      "agentVersionRange": {
+        "min": "1.0.0",
+        "max": "1.0.0"
+      },
+      "icon": {
+        "activePath": "icons/permissions_filled.svg",
+        "inactivePath": "icons/permissions_outlined.svg"
+      }
+    }
+  ]
+}
