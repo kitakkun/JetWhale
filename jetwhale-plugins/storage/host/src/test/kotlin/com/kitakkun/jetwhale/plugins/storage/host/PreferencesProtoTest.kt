@@ -46,6 +46,19 @@ class PreferencesProtoTest {
     }
 
     @Test
+    fun `a length too large for the file is rejected rather than read out of bounds`() {
+        // Field 1 is read and field 9 is skipped: both paths must bound the length.
+        listOf(1, 9).forEach { field ->
+            val file = ProtoWriter().apply {
+                tag(field, 2)
+                varint(Int.MAX_VALUE.toLong())
+            }.toByteArray()
+
+            assertFailsWith<IllegalArgumentException>("field $field") { decodePreferencesDataStore(file) }
+        }
+    }
+
+    @Test
     fun `a file cut in the middle of an entry is rejected`() {
         val file = preferenceMap("userName" to value(5) { string("kitakkun") })
 

@@ -102,9 +102,10 @@ private class ProtoReader(
 
     fun lengthDelimited(): ProtoReader {
         expect(WIRE_LENGTH_DELIMITED)
-        val length = varintAt().toInt()
-        require(length >= 0 && position + length <= end) { "a length-delimited field runs past the end of its message" }
-        return ProtoReader(bytes, position, position + length).also { position += length }
+        // A malformed length may not fit an Int, so it is checked against the bytes left before it is narrowed.
+        val length = varintAt()
+        require(length in 0..(end - position).toLong()) { "a length-delimited field runs past the end of its message" }
+        return ProtoReader(bytes, position, position + length.toInt()).also { position += length.toInt() }
     }
 
     fun remainingBytes(): ByteArray = bytes.copyOfRange(position, end).also { position = end }
@@ -115,15 +116,15 @@ private class ProtoReader(
         when (pendingWireType) {
             WIRE_VARINT -> varintAt()
             WIRE_FIXED64 -> advance(8)
-            WIRE_LENGTH_DELIMITED -> advance(varintAt().toInt())
+            WIRE_LENGTH_DELIMITED -> advance(varintAt())
             WIRE_FIXED32 -> advance(4)
             else -> throw IllegalArgumentException("wire type $pendingWireType is not supported")
         }
     }
 
-    private fun advance(count: Int) {
-        require(count >= 0 && position + count <= end) { "a field runs past the end of its message" }
-        position += count
+    private fun advance(count: Long) {
+        require(count in 0..(end - position).toLong()) { "a field runs past the end of its message" }
+        position += count.toInt()
     }
 
     private fun expect(wireType: Int) {
