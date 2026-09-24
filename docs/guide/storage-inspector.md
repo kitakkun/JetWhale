@@ -68,8 +68,11 @@ without registering the plugin again.
   - **Preferences** for a Preferences DataStore file (`*.preferences_pb`), decoded into its keys,
     types and values.
   - **Image** for PNG, JPEG, GIF, WebP and BMP files — Coil's or Glide's disk cache, for instance.
+    **Fit** scales the image to the pane, a small icon included; **Actual size** shows it pixel for
+    pixel, scrolling when it is larger than the pane.
   - **Text** for anything that reads as UTF-8.
   - **Hex** for everything, including SQLite databases and other binary formats.
+- **Save.** Downloads the whole file to your machine, however large — not just the previewed part.
 - **Delete.** A file, or a directory with everything in it. The root itself cannot be deleted.
 - **Key-Value.** The stores in a list, and the selected store's entries with their types. Each
   entry can be removed.

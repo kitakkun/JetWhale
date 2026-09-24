@@ -2,13 +2,17 @@ package com.kitakkun.jetwhale.plugins.storage.host
 
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
+import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import java.io.File
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 class StorageBrowserTest {
@@ -78,6 +82,32 @@ class StorageBrowserTest {
         assertEquals("second", reloadingBrowser.selectedStore)
         assertNull(reloadingBrowser.storeContent)
         secondStoreGate.complete(Unit)
+    }
+
+    @Test
+    fun `saving a file larger than one read copies all of it`() {
+        val large = ByteArray(2 * MAX_FILE_READ_BYTES + 123) { (it % 251).toByte() }
+        val app = FakeStorageClient(
+            directories = mutableMapOf(location("Files") to listOf(fileEntry("large.bin", sizeBytes = large.size.toLong()))),
+            files = mapOf(location("Files", "large.bin") to large),
+            stores = mutableMapOf(),
+        )
+        val target = File.createTempFile("storage-save", ".bin").apply { deleteOnExit() }
+
+        StorageBrowser(app, CoroutineScope(Dispatchers.Unconfined)).saveFile(location("Files", "large.bin"), target)
+
+        assertContentEquals(large, target.readBytes())
+        assertEquals(3, app.fileReads.size)
+    }
+
+    @Test
+    fun `a failed save leaves no partial file behind`() {
+        val target = File.createTempFile("storage-save", ".bin")
+
+        browser.saveFile(location("Files", "missing.bin"), target)
+
+        assertFalse(target.exists())
+        assertEquals(true, browser.status?.isError)
     }
 
     @Test

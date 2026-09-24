@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.storage.host
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -38,10 +40,14 @@ import com.kitakkun.jetwhale.host.ui.JwTreeRow
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileRootInfo
+import java.awt.FileDialog
+import java.awt.Frame
+import java.io.File
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import javax.swing.SwingUtilities
 import org.jetbrains.skia.Image as SkiaImage
 
 /** The tree is a column of names; the preview beside it needs the room. */
@@ -116,6 +122,7 @@ private fun FileTreeSplit(
                     root = fileRoots.firstOrNull { it.name == selectedRow.location.rootName },
                     loadedFile = loadedFile?.takeIf { it.location == selectedRow.location },
                     onDelete = { actions.delete(selectedRow.location) },
+                    onSave = { chooseSaveTarget(selectedRow.location.name) { actions.saveFile(selectedRow.location, it) } },
                 )
             }
         },
@@ -128,11 +135,13 @@ private fun EntryDetail(
     root: FileRootInfo?,
     loadedFile: LoadedFile?,
     onDelete: () -> Unit,
+    onSave: () -> Unit,
 ) {
     var confirmingDelete by remember(row.location) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().padding(JwSpacing.large), verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
             JwText(text = row.location.name, style = JwTheme.textStyles.title, modifier = Modifier.weight(1f))
+            if (!row.isDirectory) JwButton(text = "Save…", onClick = onSave)
             // A root is where the app keeps things, not a thing it keeps: there is nothing to delete.
             if (row.location.path.isNotEmpty()) {
                 JwButton(text = "Delete…", onClick = { confirmingDelete = true }, tone = JwTone.Error)
@@ -233,9 +242,27 @@ private fun ImagePreview(bytes: ByteArray) {
         JwEmptyState(title = "Cannot draw this image", description = "The format is not one Skia reads, or the preview cut it short.")
         return
     }
-    Column {
-        Image(bitmap = bitmap, contentDescription = "Image preview", contentScale = ContentScale.Fit, modifier = Modifier.weight(1f, fill = false))
-        JwText(text = "${bitmap.width}×${bitmap.height}", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
+    var scale by remember(bytes) { mutableStateOf(ImageScale.Fit) }
+    Column(verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
+            JwSegmentedButtons(options = ImageScale.entries, selected = scale, onSelect = { scale = it }, label = ImageScale::label)
+            JwText(text = "${bitmap.width}×${bitmap.height}", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
+        }
+        when (scale) {
+            // Nearest-neighbour keeps a small icon's pixels sharp when Fit enlarges it; a photo shrunk
+            // to fit still reads well without smoothing.
+            ImageScale.Fit -> Image(
+                bitmap = bitmap,
+                contentDescription = "Image preview",
+                contentScale = ContentScale.Fit,
+                filterQuality = FilterQuality.None,
+                modifier = Modifier.fillMaxSize(),
+            )
+
+            ImageScale.ActualSize -> Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).horizontalScroll(rememberScrollState())) {
+                Image(bitmap = bitmap, contentDescription = "Image preview")
+            }
+        }
     }
 }
 
@@ -248,4 +275,27 @@ private fun formatByteSize(bytes: Long): String = when {
     bytes < 1024 -> "$bytes B"
     bytes < 1024 * 1024 -> String.format(Locale.ROOT, "%.1f KB", bytes / 1024.0)
     else -> String.format(Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024.0))
+}
+
+private enum class ImageScale(val label: String) {
+    Fit("Fit"),
+
+    /** One image pixel per screen pixel. */
+    ActualSize("Actual size"),
+}
+
+/**
+ * Asks where to save a file named [suggestedName] and hands the choice to [onChosen]; a cancelled
+ * dialog calls nothing. The dialog runs on the AWT event thread, which the plugin's Compose scene
+ * is not guaranteed to be on.
+ */
+private fun chooseSaveTarget(suggestedName: String, onChosen: (File) -> Unit) {
+    SwingUtilities.invokeLater {
+        val dialog = FileDialog(null as Frame?, "Save $suggestedName", FileDialog.SAVE)
+        dialog.file = suggestedName
+        dialog.isVisible = true
+        val directory = dialog.directory ?: return@invokeLater
+        val fileName = dialog.file ?: return@invokeLater
+        onChosen(File(directory, fileName))
+    }
 }

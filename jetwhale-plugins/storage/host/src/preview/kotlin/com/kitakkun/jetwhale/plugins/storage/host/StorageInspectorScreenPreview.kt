@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreInfo
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
+import java.io.File
 
 private val previewRoots = listOf(
     FileRootInfo(name = "Files", absolutePath = "/data/user/0/com.example.app/files"),
@@ -42,6 +43,8 @@ private object NoActions : StorageInspectorActions {
     override fun toggleDirectory(location: FileLocation) = Unit
 
     override fun delete(location: FileLocation) = Unit
+
+    override fun saveFile(location: FileLocation, target: File) = Unit
 
     override fun selectStore(storeName: String) = Unit
 

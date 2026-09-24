@@ -9,10 +9,13 @@ import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
 import com.kitakkun.jetwhale.plugins.storage.protocol.FileRootInfo
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreContent
 import com.kitakkun.jetwhale.plugins.storage.protocol.KeyValueStoreInfo
+import com.kitakkun.jetwhale.plugins.storage.protocol.MAX_FILE_READ_BYTES
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.IOException
 import kotlin.io.encoding.Base64
 
 /** How much of a file the UI reads to preview it; the rest is left to a tool that pages through it. */
@@ -30,6 +33,9 @@ internal interface StorageInspectorActions {
     fun toggleDirectory(location: FileLocation)
 
     fun delete(location: FileLocation)
+
+    /** Reads the whole file at [location], not just the previewed part, and writes it to [target]. */
+    fun saveFile(location: FileLocation, target: File)
 
     fun selectStore(storeName: String)
 
@@ -133,6 +139,37 @@ internal class StorageBrowser(
         expanded = expanded.filterNot(location::contains).toSet()
         loadDirectory(FileLocation(location.rootName, location.path.dropLast(1)))
         status = StorageStatus(message = "Deleted ${location.name}.", isError = false)
+    }
+
+    override fun saveFile(location: FileLocation, target: File) = launchReporting {
+        try {
+            val error = copyFileTo(location, target)
+            status = when (error) {
+                null -> StorageStatus(message = "Saved ${location.name} to ${target.absolutePath}.", isError = false)
+                else -> StorageStatus(message = error, isError = true)
+            }
+        } catch (e: IOException) {
+            status = StorageStatus(message = "Could not write ${target.absolutePath}: ${e.message}", isError = true)
+        }
+    }
+
+    /** Copies the file page by page; returns the agent's error, if any, after removing the partial copy. */
+    private suspend fun copyFileTo(location: FileLocation, target: File): String? {
+        target.outputStream().use { output ->
+            var offset = 0L
+            while (true) {
+                val page = client.readFile(location, offset = offset, maxBytes = MAX_FILE_READ_BYTES)
+                page.error?.let { error ->
+                    output.close()
+                    target.delete()
+                    return error
+                }
+                val bytes = Base64.decode(page.contentBase64)
+                output.write(bytes)
+                offset += bytes.size
+                if (bytes.isEmpty() || offset >= page.totalSizeBytes) return null
+            }
+        }
     }
 
     override fun selectStore(storeName: String) {
