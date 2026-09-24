@@ -111,7 +111,7 @@ private class AndroidMainThreadProbe(
                     recorder.violation(
                         kind = violationKindOf(violation.javaClass.name),
                         message = violation.message ?: violation.javaClass.simpleName,
-                        stack = violation.stackTrace.map(StackTraceElement::toString),
+                        stack = violation.stackTrace.map(::frameText),
                     )
                 }
                 .build(),
