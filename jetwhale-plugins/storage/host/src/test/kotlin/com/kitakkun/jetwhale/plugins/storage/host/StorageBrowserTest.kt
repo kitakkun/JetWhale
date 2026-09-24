@@ -14,6 +14,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class StorageBrowserTest {
     private val client = FakeStorageClient(
@@ -108,6 +109,42 @@ class StorageBrowserTest {
 
         assertFalse(target.exists())
         assertEquals(true, browser.status?.isError)
+    }
+
+    @Test
+    fun `expanding a subtree opens every directory below it`() {
+        runBlocking { browser.load() }
+
+        browser.toggleSubtree(location("Files"))
+
+        assertEquals(listOf("Files", "datastore", "settings.preferences_pb", "notes.txt"), browser.treeRows.map { it.location.name })
+    }
+
+    @Test
+    fun `collapsing a subtree closes the directories below it too`() {
+        runBlocking { browser.load() }
+        browser.toggleSubtree(location("Files"))
+
+        browser.toggleSubtree(location("Files"))
+        browser.toggleDirectory(location("Files"))
+
+        assertEquals(listOf("Files", "datastore", "notes.txt"), browser.treeRows.map { it.location.name })
+    }
+
+    @Test
+    fun `expanding a very large subtree stops at the entry limit`() {
+        // 30 directories of 30 directories each: 930 entries, well past the limit.
+        val directories = mutableMapOf(location("Cache") to (0 until 30).map { directoryEntry("d$it") })
+        (0 until 30).forEach { outer -> directories[location("Cache", "d$outer")] = (0 until 30).map { directoryEntry("e$it") } }
+        val wideApp = FakeStorageClient(directories = directories, files = emptyMap(), stores = mutableMapOf())
+        val wideBrowser = StorageBrowser(wideApp, CoroutineScope(Dispatchers.Unconfined))
+        runBlocking { wideBrowser.load() }
+
+        wideBrowser.toggleSubtree(location("Cache"))
+
+        val shown = wideBrowser.treeRows.size
+        assertTrue(shown in 500..600, "shown $shown rows")
+        assertEquals(false, wideBrowser.status?.isError)
     }
 
     @Test

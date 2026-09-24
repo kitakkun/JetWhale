@@ -42,6 +42,8 @@ private object NoActions : StorageInspectorActions {
 
     override fun toggleDirectory(location: FileLocation) = Unit
 
+    override fun toggleSubtree(location: FileLocation) = Unit
+
     override fun delete(location: FileLocation) = Unit
 
     override fun saveFile(location: FileLocation, target: File) = Unit

@@ -63,7 +63,9 @@ without registering the plugin again.
 
 ## What you get in the host
 
-- **Files.** A tree of every root; a directory lists its content when you open it. Selecting a file
+- **Files.** A tree of every root; a directory lists its content when you open it. Alt-click
+  (Option-click) opens or closes a directory with everything below it; opening stops after 500
+  entries, since each directory is another request to the app. Selecting a file
   shows its path, size and modification time, and a preview of its first 256 KB:
   - **Preferences** for a Preferences DataStore file (`*.preferences_pb`), decoded into its keys,
     types and values.
@@ -74,8 +76,8 @@ without registering the plugin again.
   - **Hex** for everything, including SQLite databases and other binary formats.
 - **Save.** Downloads the whole file to your machine, however large — not just the previewed part.
 - **Delete.** A file, or a directory with everything in it. The root itself cannot be deleted.
-- **Key-Value.** The stores in a list, and the selected store's entries with their types. Each
-  entry can be removed.
+- **Key-Value.** The stores in a list, and the selected store's entries with their types. Select
+  an entry and press **Delete…** to remove it, as with a file.
 
 **Reload from app** reads everything again, keeping the directories you have open.
 

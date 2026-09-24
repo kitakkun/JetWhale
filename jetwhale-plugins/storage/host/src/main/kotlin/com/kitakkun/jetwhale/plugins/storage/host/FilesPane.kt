@@ -19,10 +19,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.isAltPressed
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.layout.ContentScale
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwCodeBlock
@@ -77,6 +82,7 @@ internal fun FilesPane(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun FileTreeSplit(
     treeRows: List<FileTreeRow>,
@@ -90,14 +96,20 @@ private fun FileTreeSplit(
         first = {
             LazyColumn(Modifier.fillMaxSize()) {
                 items(treeRows, key = FileTreeRow::location) { row ->
+                    // JwTreeRow reports a click without the keys held for it, so Alt is read from
+                    // the press that starts the click: Alt-click opens or closes the whole subtree.
+                    var altPressed by remember { mutableStateOf(false) }
                     JwTreeRow(
                         text = row.location.name,
                         depth = row.depth,
                         expandable = row.isDirectory,
                         expanded = row.expanded,
                         selected = row.location == selectedRow?.location,
-                        onClick = { actions.select(row) },
-                        onToggleExpanded = { actions.toggleDirectory(row.location) },
+                        onClick = { if (altPressed && row.isDirectory) actions.toggleSubtree(row.location) else actions.select(row) },
+                        onToggleExpanded = { if (altPressed) actions.toggleSubtree(row.location) else actions.toggleDirectory(row.location) },
+                        modifier = Modifier.onPointerEvent(PointerEventType.Press, PointerEventPass.Initial) {
+                            altPressed = it.keyboardModifiers.isAltPressed
+                        },
                         trailingContent = row.entry?.takeUnless(FileEntry::isDirectory)?.let { entry ->
                             {
                                 JwText(

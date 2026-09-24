@@ -21,6 +21,12 @@ import kotlin.io.encoding.Base64
 /** How much of a file the UI reads to preview it; the rest is left to a tool that pages through it. */
 private const val PREVIEW_BYTES = 256 * 1024
 
+/**
+ * How many entries expanding a whole subtree lists before it stops. An app's data directory can
+ * hold thousands of cache entries, each directory among them one more request to the app.
+ */
+private const val SUBTREE_ENTRY_LIMIT = 500
+
 internal data class StorageStatus(val message: String, val isError: Boolean)
 
 /** The storage the inspector's UI shows, and what the user does to it. */
@@ -31,6 +37,9 @@ internal interface StorageInspectorActions {
     fun select(row: FileTreeRow)
 
     fun toggleDirectory(location: FileLocation)
+
+    /** Collapses [location] with everything below it, or expands it and every directory below it. */
+    fun toggleSubtree(location: FileLocation)
 
     fun delete(location: FileLocation)
 
@@ -115,6 +124,32 @@ internal class StorageBrowser(
         }
         expanded = expanded + location
         launchReporting { loadDirectory(location) }
+    }
+
+    override fun toggleSubtree(location: FileLocation) {
+        if (location in expanded) {
+            expanded = expanded.filterNot(location::contains).toSet()
+            return
+        }
+        launchReporting { expandSubtree(location) }
+    }
+
+    /** Expands directories breadth first, so a stop at the limit leaves the upper levels complete. */
+    private suspend fun expandSubtree(location: FileLocation) {
+        val pending = ArrayDeque(listOf(location))
+        var listed = 0
+        while (pending.isNotEmpty()) {
+            if (listed >= SUBTREE_ENTRY_LIMIT) {
+                status = StorageStatus(message = "Stopped expanding ${location.name} after $listed entries; open the rest a level at a time.", isError = false)
+                return
+            }
+            val directory = pending.removeFirst()
+            expanded = expanded + directory
+            loadDirectory(directory)
+            val entries = children[directory].orEmpty()
+            listed += entries.size
+            entries.filter(FileEntry::isDirectory).mapTo(pending) { directory.child(it.name) }
+        }
     }
 
     override fun select(row: FileTreeRow) {
