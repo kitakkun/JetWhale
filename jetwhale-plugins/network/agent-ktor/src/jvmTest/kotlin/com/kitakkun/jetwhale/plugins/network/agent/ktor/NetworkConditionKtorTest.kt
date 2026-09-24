@@ -13,8 +13,8 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.toByteArray
 import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.request.get
-import io.ktor.client.request.prepareGet
 import io.ktor.client.request.post
+import io.ktor.client.request.prepareGet
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.readRawBytes
 import kotlinx.coroutines.runBlocking
