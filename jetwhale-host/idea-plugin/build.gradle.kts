@@ -18,6 +18,9 @@ repositories {
         defaultRepositories()
     }
     // Declaring repositories here replaces the ones in settings.gradle.kts, Kotrail's included.
+    mavenLocal {
+        content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
+    }
     maven("https://central.sonatype.com/repository/maven-snapshots/") {
         mavenContent { snapshotsOnly() }
         content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }

@@ -27,13 +27,14 @@ import java.awt.datatransfer.StringSelection
 @Composable
 fun PluginScreenErrorFallback(
     pluginId: String,
-    onClickReset: () -> Unit,
     errorBoundaryContext: ErrorBoundaryContext,
+    onClickReset: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val clipboard = LocalClipboard.current
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

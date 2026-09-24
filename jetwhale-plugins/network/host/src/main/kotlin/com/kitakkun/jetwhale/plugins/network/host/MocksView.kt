@@ -62,7 +62,7 @@ internal fun MocksTab(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
-            JwSwitch(mockingEnabled, onToggleMocking, contentDescription = "Mocking enabled")
+            JwSwitch(mockingEnabled, contentDescription = "Mocking enabled", onCheckedChange = onToggleMocking)
             JwText(
                 text = "Mocking enabled",
                 style = JwTheme.textStyles.body,
@@ -114,7 +114,7 @@ private fun MockRuleRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.large),
         ) {
-            JwSwitch(rule.enabled, onToggle, contentDescription = "Rule enabled")
+            JwSwitch(rule.enabled, contentDescription = "Rule enabled", onCheckedChange = onToggle)
             Column(Modifier.weight(1f)) {
                 JwText(
                     text = rule.name.ifBlank { "(unnamed rule)" },

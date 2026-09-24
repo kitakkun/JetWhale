@@ -30,16 +30,16 @@ private val ThumbInset = 2.dp
  * A compact toggle (32×18dp) for settings rows, where Material's 52×32 switch dwarfs the label.
  *
  * @param checked whether the switch is on.
- * @param onCheckedChange called with the new value when the switch is clicked.
  * @param contentDescription the switch's accessibility name — the label of the setting it
  * controls, since the switch shows none of its own.
+ * @param onCheckedChange called with the new value when the switch is clicked.
  * @param enabled false greys the switch out and ignores clicks.
  */
 @Composable
 public fun JwSwitch(
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
     contentDescription: String,
+    onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {

@@ -138,16 +138,16 @@ public fun JwTextField(
  * A [JwTextField] dressed as a filter box: search glyph in front, a clear button once typed.
  *
  * @param value the current query.
- * @param onValueChange called with the new query on every edit, and with "" when cleared.
  * @param clearLabel the clear button's tooltip and accessibility name, in the UI's language.
+ * @param onValueChange called with the new query on every edit, and with "" when cleared.
  * @param placeholder what can be searched for, shown while [value] is empty.
  * @param enabled false greys the field out and ignores input.
  */
 @Composable
 public fun JwSearchField(
     value: String,
-    onValueChange: (String) -> Unit,
     clearLabel: String,
+    onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     placeholder: String? = null,
     enabled: Boolean = true,

@@ -29,6 +29,7 @@ import kotlinx.collections.immutable.persistentListOf
 @Composable
 fun ToolingScaffold(
     uiState: ToolingScaffoldUiState,
+    snackbarHostState: JwSnackbarHostState,
     onClickSettings: () -> Unit,
     onClickPluginSettings: () -> Unit,
     onClickInfo: () -> Unit,
@@ -41,7 +42,6 @@ fun ToolingScaffold(
     onSelectSession: (DebugSession) -> Unit,
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
     onClickStopFollowingAiOperation: () -> Unit,
-    snackbarHostState: JwSnackbarHostState,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {

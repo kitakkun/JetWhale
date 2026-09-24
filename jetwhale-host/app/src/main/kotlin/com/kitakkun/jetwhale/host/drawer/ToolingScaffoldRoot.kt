@@ -125,6 +125,7 @@ context(screenContext: ToolingScaffoldScreenContext)
 private fun ToolingScaffoldWithActions(
     uiState: ToolingScaffoldUiState,
     screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
+    snackbarHostState: JwSnackbarHostState,
     onClickSettings: () -> Unit,
     onClickPluginSettings: () -> Unit,
     onClickInfo: () -> Unit,
@@ -133,7 +134,6 @@ private fun ToolingScaffoldWithActions(
     onClickPopout: (pluginId: String, pluginName: String, sessionId: String) -> Unit,
     isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
     onClickBringBack: (pluginId: String, sessionId: String) -> Unit,
-    snackbarHostState: JwSnackbarHostState,
     content: @Composable () -> Unit,
 ) {
     ToolingScaffold(
@@ -183,10 +183,10 @@ private fun ToolingScaffoldWithActions(
 @Composable
 context(screenContext: ToolingScaffoldScreenContext)
 private fun SelectionPublishingEffect(
-    onSelectedSessionChange: (DebugSession) -> Unit,
     selectedSession: DebugSession?,
     selectedSessionId: String,
     selectedPluginId: String,
+    onSelectedSessionChange: (DebugSession) -> Unit,
 ) {
     LaunchedEffect(selectedSessionId) {
         onSelectedSessionChange(selectedSession ?: return@LaunchedEffect)
@@ -208,14 +208,14 @@ private fun SelectionPublishingEffect(
 context(screenContext: ToolingScaffoldScreenContext)
 private fun HostNavigationRequestEffect(
     screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
+    sessions: ImmutableList<DebugSession>,
+    selectedSession: DebugSession?,
+    selectedSessionId: String,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
     onClickInfo: () -> Unit,
     onNavigateHome: () -> Unit,
     onNavigateSettings: (SettingsScreenPage) -> Unit,
     onNavigateLogViewer: () -> Unit,
-    sessions: ImmutableList<DebugSession>,
-    selectedSession: DebugSession?,
-    selectedSessionId: String,
 ) {
     // The collector outlives every recomposition, so it must not close over the sessions and the
     // selection of the composition that started it.

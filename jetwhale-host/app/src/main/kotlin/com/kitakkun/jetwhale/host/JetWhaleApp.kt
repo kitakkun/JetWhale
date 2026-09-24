@@ -178,12 +178,13 @@ private fun ThemedHostWindow(
     appLanguage: AppLanguage,
     backStack: NavBackStack<NavKey>,
     availableUpdate: UpdateCheckResult?,
-    onDismissUpdateBanner: () -> Unit,
     isUpdateBannerDismissed: Boolean,
+    onDismissUpdateBanner: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     HostTheme(colorScheme) {
         AppEnvironment(appLanguage) {
-            JwSurface(modifier = Modifier.fillMaxSize().clearFocusOnBlankPress()) {
+            JwSurface(modifier = modifier.fillMaxSize().clearFocusOnBlankPress()) {
                 context(retain { appGraph.toolingScaffoldScreenContext }) {
                     ToolingScaffoldRoot(
                         onClickSettings = { backStack.addSingleTop(SettingsNavKey()) },

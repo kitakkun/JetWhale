@@ -346,8 +346,8 @@ private fun LazyListScope.enabledPluginSection(
     plugins: List<DrawerPluginItemUiState>,
     expanded: Boolean,
     selectedPluginId: String,
-    onToggleExpanded: () -> Unit,
     actions: EnabledPluginActions,
+    onToggleExpanded: () -> Unit,
 ) {
     pluginSection(
         title = title,

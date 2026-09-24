@@ -80,7 +80,7 @@ internal class NodeHighlightOverlay {
      * gone — on [rootView], replacing whatever was showing, and schedules it to clear itself after
      * [ttl].
      */
-    fun show(rootView: View, resolveBounds: () -> Rect?, ttl: Duration) {
+    fun show(rootView: View, ttl: Duration, resolveBounds: () -> Rect?) {
         val current = attachedRootRef?.get()
         if (current !== rootView) {
             clear()

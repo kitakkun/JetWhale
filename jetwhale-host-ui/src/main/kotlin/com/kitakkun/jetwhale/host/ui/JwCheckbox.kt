@@ -43,16 +43,16 @@ private val IndeterminateMarkHeight = 2.dp
  * rows, where Material's 48dp touch target would push everything else apart.
  *
  * @param checked whether the box is ticked.
- * @param onCheckedChange called with the new value when the row is clicked.
  * @param label the text beside the box, part of the click target; null for a bare box in a table
  * column, which the surrounding row must then name.
+ * @param onCheckedChange called with the new value when the row is clicked.
  * @param enabled false greys the row out and ignores clicks.
  */
 @Composable
 public fun JwCheckbox(
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
     label: String?,
+    onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
@@ -81,15 +81,15 @@ public fun JwCheckbox(
  * decides what a mixed selection turns into.
  *
  * @param state on, off, or indeterminate for a partial selection.
- * @param onClick called when the row is clicked.
  * @param label the text beside the box, part of the click target; null for a bare box.
+ * @param onClick called when the row is clicked.
  * @param enabled false greys the row out and ignores clicks.
  */
 @Composable
 public fun JwTriStateCheckbox(
     state: ToggleableState,
-    onClick: () -> Unit,
     label: String?,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {

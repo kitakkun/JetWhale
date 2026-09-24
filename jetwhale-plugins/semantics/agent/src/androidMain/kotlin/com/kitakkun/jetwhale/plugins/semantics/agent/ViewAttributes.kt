@@ -323,9 +323,9 @@ private fun MutableList<ViewAttributeDescriptor>.addFloat(
 private fun MutableList<ViewAttributeDescriptor>.addDimension(
     id: String,
     group: String,
+    relayouts: Boolean,
     read: (View) -> Float,
     write: (View, Float) -> Unit,
-    relayouts: Boolean,
 ) {
     add(
         ViewAttributeDescriptor(

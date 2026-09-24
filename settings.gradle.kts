@@ -10,6 +10,11 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
         google()
+        // A locally published Kotrail (publishToMavenLocal) wins over the Central snapshot when
+        // present; CI and other machines fall through to Central.
+        mavenLocal {
+            content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
+        }
         maven("https://central.sonatype.com/repository/maven-snapshots/") {
             mavenContent { snapshotsOnly() }
             content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
@@ -21,6 +26,11 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
         google()
+        // A locally published Kotrail (publishToMavenLocal) wins over the Central snapshot when
+        // present; CI and other machines fall through to Central.
+        mavenLocal {
+            content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }
+        }
         maven("https://central.sonatype.com/repository/maven-snapshots/") {
             mavenContent { snapshotsOnly() }
             content { includeGroupByRegex("com\\.kitakkun\\.kotrail.*") }

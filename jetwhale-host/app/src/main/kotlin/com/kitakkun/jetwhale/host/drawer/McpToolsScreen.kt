@@ -355,10 +355,10 @@ internal fun McpToolCallCountBadge(count: Int, running: Boolean) {
 private fun McpToolsPane(
     toolRows: ImmutableList<McpToolRowUiState>,
     query: String,
-    onQueryChange: (String) -> Unit,
     selectedToolKey: String?,
+    onQueryChange: (String) -> Unit,
     onSelectTool: (String) -> Unit,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     val filtered = remember(query, toolRows) {
         if (query.isBlank()) {

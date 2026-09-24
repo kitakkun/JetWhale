@@ -17,3 +17,7 @@ rules:
     # reports every component with more than a handful of inputs. Lazy list sections take the
     # same inputs without the annotation.
     exclude: composable || extension(androidx.compose.foundation.lazy.LazyListScope)
+  compose.noCallbackInModel:
+    # A @Composable slot in a model (a table column's cell, a fallback's content) is the model's
+    # point; the callbacks the rule is after are the event handlers.
+    allowComposableSlots: true
