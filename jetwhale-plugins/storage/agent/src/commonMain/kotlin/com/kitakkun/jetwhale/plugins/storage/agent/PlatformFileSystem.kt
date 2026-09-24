@@ -25,6 +25,9 @@ internal expect fun moveReplacing(source: String, target: String)
  */
 internal fun receiveUploadChunk(stagingPath: String, targetPath: String, offset: Long, bytes: ByteArray, isLast: Boolean) {
     try {
+        // Writing follows a link, which would overwrite whatever it points to before the upload is
+        // confirmed; the staging file is only ever a plain file this upload created.
+        require(!isSymbolicLink(stagingPath)) { "the upload's staging file is a symbolic link" }
         if (offset != 0L) {
             val received = fileSize(stagingPath)
             require(received == offset) { "the upload expected a chunk at offset $received, not $offset; start it again" }
