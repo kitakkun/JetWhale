@@ -99,6 +99,9 @@ include(":jetwhale-plugins:storage:protocol")
 include(":jetwhale-plugins:storage:agent")
 include(":jetwhale-plugins:storage:agent-datastore")
 include(":jetwhale-plugins:storage:host")
+include(":jetwhale-plugins:deeplinks:protocol")
+include(":jetwhale-plugins:deeplinks:agent")
+include(":jetwhale-plugins:deeplinks:host")
 
 include(":test-annotations")
 
