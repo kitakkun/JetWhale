@@ -13,6 +13,5 @@ internal class OpenAppSettingsCommand(
     override val description =
         "Opens the app's page in the system settings on the device, where a permanently denied permission can be changed by hand."
 
-    override suspend fun execute(arguments: JetWhaleMcpArguments): String =
-        McpJson.encodeToString(PermissionActionResult.serializer(), client.openAppSettings())
+    override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(PermissionActionResult.serializer(), client.openAppSettings())
 }

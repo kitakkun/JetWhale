@@ -1,0 +1,238 @@
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/GetPermissions : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/permissions/protocol/GetPermissions;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/OpenAppSettings : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/permissions/protocol/OpenAppSettings;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionActionResult {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionActionResult$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionActionResult;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionActionResult;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionActionResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Ljava/lang/String;
+	public final fun getMessage ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionActionResult$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionActionResult$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionActionResult;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionActionResult;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionActionResult$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionCategory : java/lang/Enum {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionCategory$Companion;
+	public static final field InstallTime Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionCategory;
+	public static final field Runtime Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionCategory;
+	public static final field SpecialAccess Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionCategory;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionCategory;
+	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionCategory;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionCategory$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionChange {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionChange$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;J)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;
+	public final fun component4 ()Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;
+	public final fun component5 ()J
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;J)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionChange;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionChange;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;JILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionChange;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFrom ()Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getLabel ()Ljava/lang/String;
+	public final fun getObservedAtEpochMillis ()J
+	public final fun getTo ()Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionChange$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionChange$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionChange;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionChange;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionChange$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionReport {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionReport$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionReport;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionReport;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionReport;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPermissions ()Ljava/util/List;
+	public final fun getPlatform ()Ljava/lang/String;
+	public final fun getUnsupportedReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionReport$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionReport$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionReport;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionReport;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionReport$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionState {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionState$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionCategory;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;ZLjava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionCategory;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;
+	public final fun component6 ()Z
+	public final fun component7 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionCategory;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;ZLjava/lang/String;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionState;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionState;Ljava/lang/String;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionCategory;Ljava/lang/String;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;ZLjava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionState;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCategory ()Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionCategory;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getLabel ()Ljava/lang/String;
+	public final fun getNote ()Ljava/lang/String;
+	public final fun getProtection ()Ljava/lang/String;
+	public final fun getRequestable ()Z
+	public final fun getStatus ()Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionState$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionState$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionState;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionState;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionState$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus : java/lang/Enum {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus$Companion;
+	public static final field Denied Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;
+	public static final field Granted Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;
+	public static final field Limited Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;
+	public static final field NotDetermined Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;
+	public static final field Restricted Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;
+	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionStatus$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionsChanged : com/kitakkun/jetwhale/protocol/messaging/JetWhaleEvent {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionsChanged$Companion;
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionsChanged;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionsChanged;Ljava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionsChanged;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getChanges ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionsChanged$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionsChanged$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionsChanged;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/PermissionsChanged;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionsChanged$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/PermissionsMessagesKt {
+	public static final field PERMISSIONS_PLUGIN_ID Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/RequestPermission : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/permissions/protocol/RequestPermission$Companion;
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/RequestPermission;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/permissions/protocol/RequestPermission;Ljava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/RequestPermission;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/permissions/protocol/RequestPermission$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/permissions/protocol/RequestPermission$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/permissions/protocol/RequestPermission;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/permissions/protocol/RequestPermission;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/permissions/protocol/RequestPermission$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+

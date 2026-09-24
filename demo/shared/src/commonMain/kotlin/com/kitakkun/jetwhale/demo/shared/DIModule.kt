@@ -6,8 +6,8 @@ import com.kitakkun.jetwhale.plugins.nav3.agent.JetWhaleNav3AgentPlugin
 import com.kitakkun.jetwhale.plugins.nav3.agent.Nav3KeyCodec
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
 import com.kitakkun.jetwhale.plugins.network.agent.ktor.ktorClientPlugin
-import com.kitakkun.jetwhale.plugins.semantics.agent.JetWhaleSemanticsAgentPlugin
 import com.kitakkun.jetwhale.plugins.permissions.agent.JetWhalePermissionsAgentPlugin
+import com.kitakkun.jetwhale.plugins.semantics.agent.JetWhaleSemanticsAgentPlugin
 import com.kitakkun.jetwhale.plugins.storage.agent.JetWhaleStorageAgentPlugin
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.DefaultRequest

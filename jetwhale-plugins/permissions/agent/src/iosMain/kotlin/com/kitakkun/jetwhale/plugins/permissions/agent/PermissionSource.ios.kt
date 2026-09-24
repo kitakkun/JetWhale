@@ -209,9 +209,13 @@ private suspend fun locationStatus(): PermissionStatus = when (CLLocationManager
 
 private suspend fun contactsStatus(): PermissionStatus = when (CNContactStore.authorizationStatusForEntityType(CNEntityType.CNEntityTypeContacts)) {
     CNAuthorizationStatusAuthorized -> PermissionStatus.Granted
+
     CNAuthorizationStatusDenied -> PermissionStatus.Denied
+
     CNAuthorizationStatusRestricted -> PermissionStatus.Restricted
+
     CNAuthorizationStatusNotDetermined -> PermissionStatus.NotDetermined
+
     // iOS 18's limited access, which older SDK bindings do not name.
     else -> PermissionStatus.Limited
 }
