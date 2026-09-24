@@ -138,6 +138,48 @@ class MainThreadRecorderTest {
     }
 
     @Test
+    fun `a task running across a reset is left out of the fresh recording`() {
+        recorder.taskStarted("before", extraLabel = null)
+        clock.advance(120)
+        recorder.reset()
+        recorder.sampleIfDue { appStack }
+        clock.advance(100)
+        recorder.taskFinished()
+
+        val report = recorder.report(capabilities)
+        assertTrue(report.longTasks.isEmpty() && report.hotspots.isEmpty())
+    }
+
+    @Test
+    fun `samples keep the interval they were taken at when the interval changes`() {
+        recorder.taskStarted("task", extraLabel = null)
+        clock.advance(120)
+        recorder.sampleIfDue { appStack }
+        recorder.taskFinished()
+
+        recorder.updateSettings(MonitorSettings(longTaskThresholdMillis = 100, sampleIntervalMillis = 100, unresponsiveThresholdMillis = 1_000))
+
+        assertEquals(20, recorder.report(capabilities).hotspots.single().blockedMillis)
+    }
+
+    @Test
+    fun `hotspots rank by blocked time rather than sample count`() {
+        recorder.taskStarted("fine", extraLabel = null)
+        clock.advance(120)
+        recorder.sampleIfDue { listOf("com.example.Fine.run(F.kt:1)") }
+        clock.advance(20)
+        recorder.sampleIfDue { listOf("com.example.Fine.run(F.kt:1)") }
+        recorder.taskFinished()
+        recorder.updateSettings(MonitorSettings(longTaskThresholdMillis = 100, sampleIntervalMillis = 100, unresponsiveThresholdMillis = 1_000))
+        recorder.taskStarted("coarse", extraLabel = null)
+        clock.advance(120)
+        recorder.sampleIfDue { listOf("com.example.Coarse.run(C.kt:1)") }
+        recorder.taskFinished()
+
+        assertEquals(listOf("com.example.Coarse.run(C.kt:1)", "com.example.Fine.run(F.kt:1)"), recorder.report(capabilities).hotspots.map(Hotspot::signature))
+    }
+
+    @Test
     fun `a task past the unresponsive threshold is marked`() {
         recorder.taskStarted("stuck", extraLabel = null)
         clock.advance(1_200)

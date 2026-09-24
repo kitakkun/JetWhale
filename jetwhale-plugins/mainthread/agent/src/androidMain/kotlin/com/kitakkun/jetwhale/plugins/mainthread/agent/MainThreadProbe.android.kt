@@ -13,6 +13,7 @@ import android.util.Printer
 import android.view.FrameMetrics
 import android.view.Window
 import com.kitakkun.jetwhale.plugins.mainthread.protocol.MonitorCapabilities
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 internal actual fun createMainThreadProbe(recorder: MainThreadRecorder, labels: () -> String?): MainThreadProbe = AndroidMainThreadProbe(recorder, labels)
@@ -46,9 +47,10 @@ private class AndroidMainThreadProbe(
     // Written on the main thread when the policy is installed, read by the host's report request.
     @Volatile private var appOwnsStrictMode = false
 
-    private var frameThread: HandlerThread? = null
-    private val frameWindows = mutableMapOf<Window, Window.OnFrameMetricsAvailableListener>()
-    private var application: Application? = null
+    // Delivers StrictMode violations to the recorder; shut down with the policy it belongs to.
+    private var violationExecutor: ExecutorService? = null
+
+    private var frameTiming: FrameTimingSession? = null
 
     override val capabilities: MonitorCapabilities
         get() = MonitorCapabilities(
@@ -71,7 +73,9 @@ private class AndroidMainThreadProbe(
         mainLooper.setMessageLogging(::onLooperLine)
         sampler.start()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) mainHandler.post(::installStrictMode)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) startFrameTiming()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            frameTiming = currentApplicationOrNull()?.let { FrameTimingSession(it, recorder, mainHandler) }
+        }
     }
 
     override fun stop() {
@@ -81,7 +85,8 @@ private class AndroidMainThreadProbe(
         sampler.stop()
         heartbeatPostedAt = null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) mainHandler.post(::restoreStrictMode)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) stopFrameTiming()
+        frameTiming?.close()
+        frameTiming = null
     }
 
     // Called for every message the main thread handles, so it does no more than a prefix check.
@@ -128,6 +133,7 @@ private class AndroidMainThreadProbe(
             return
         }
         previousPolicy = previous
+        val executor = Executors.newSingleThreadExecutor().also { violationExecutor = it }
         StrictMode.setThreadPolicy(
             StrictMode.ThreadPolicy.Builder(previous)
                 .detectDiskReads()
@@ -136,7 +142,7 @@ private class AndroidMainThreadProbe(
                 .detectCustomSlowCalls()
                 .detectResourceMismatches()
                 .detectUnbufferedIo()
-                .penaltyListener(Executors.newSingleThreadExecutor()) { violation ->
+                .penaltyListener(executor) { violation ->
                     recorder.violation(
                         kind = violationKindOf(violation.javaClass.name),
                         message = violation.message ?: violation.javaClass.simpleName,
@@ -151,33 +157,33 @@ private class AndroidMainThreadProbe(
         previousPolicy?.let(StrictMode::setThreadPolicy)
         previousPolicy = null
         appOwnsStrictMode = false
+        // Violations already queued are still delivered; none can arrive once the policy is gone.
+        violationExecutor?.shutdown()
+        violationExecutor = null
     }
+}
 
-    private fun startFrameTiming() {
-        val app = currentApplicationOrNull() ?: return
-        application = app
-        frameThread = HandlerThread("jetwhale-frame-metrics").apply { start() }
-        app.registerActivityLifecycleCallbacks(activityCallbacks)
-        // The plugin is usually enabled after the first screen is up; it is picked up here rather
-        // than on its next resume.
-        mainHandler.post { resumedActivitiesOrEmpty().forEach(::attachFrameMetrics) }
-    }
+/**
+ * Frame timing for one activation: its own listener thread, lifecycle callbacks and listeners. A
+ * session only ever cleans up what it created, so closing one whose cleanup is still queued cannot
+ * touch the session that replaced it.
+ */
+private class FrameTimingSession(
+    private val application: Application,
+    private val recorder: MainThreadRecorder,
+    private val mainHandler: Handler,
+) {
+    private val thread = HandlerThread("jetwhale-frame-metrics").apply { start() }
+    private val handler = Handler(thread.looper)
 
-    private fun stopFrameTiming() {
-        application?.unregisterActivityLifecycleCallbacks(activityCallbacks)
-        application = null
-        mainHandler.post {
-            frameWindows.forEach { (window, listener) -> runCatching { window.removeOnFrameMetricsAvailableListener(listener) } }
-            frameWindows.clear()
-            frameThread?.quitSafely()
-            frameThread = null
-        }
-    }
+    // Touched only on the main thread, where lifecycle callbacks and the posted work below run.
+    private val windows = mutableMapOf<Window, Window.OnFrameMetricsAvailableListener>()
+    private var closed = false
 
-    private val activityCallbacks = object : Application.ActivityLifecycleCallbacks {
-        override fun onActivityResumed(activity: Activity) = attachFrameMetrics(activity)
+    private val callbacks = object : Application.ActivityLifecycleCallbacks {
+        override fun onActivityResumed(activity: Activity) = attach(activity)
 
-        override fun onActivityPaused(activity: Activity) = detachFrameMetrics(activity)
+        override fun onActivityPaused(activity: Activity) = detach(activity)
 
         override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
 
@@ -190,24 +196,40 @@ private class AndroidMainThreadProbe(
         override fun onActivityDestroyed(activity: Activity) = Unit
     }
 
-    private fun attachFrameMetrics(activity: Activity) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+    init {
+        application.registerActivityLifecycleCallbacks(callbacks)
+        // The plugin is usually enabled after the first screen is up; it is picked up here rather
+        // than on its next resume.
+        mainHandler.post { resumedActivitiesOrEmpty().forEach(::attach) }
+    }
+
+    fun close() {
+        application.unregisterActivityLifecycleCallbacks(callbacks)
+        mainHandler.post {
+            closed = true
+            windows.forEach { (window, listener) -> runCatching { window.removeOnFrameMetricsAvailableListener(listener) } }
+            windows.clear()
+            thread.quitSafely()
+        }
+    }
+
+    private fun attach(activity: Activity) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || closed) return
         val window = activity.window ?: return
-        val handler = frameThread?.let { Handler(it.looper) } ?: return
-        if (window in frameWindows) return
+        if (window in windows) return
         @Suppress("DEPRECATION")
         val refreshIntervalMillis = 1000.0 / activity.windowManager.defaultDisplay.refreshRate
         val listener = Window.OnFrameMetricsAvailableListener { _, metrics, _ ->
             recorder.frame(metrics.getMetric(FrameMetrics.TOTAL_DURATION) / 1_000_000.0, refreshIntervalMillis)
         }
         window.addOnFrameMetricsAvailableListener(listener, handler)
-        frameWindows[window] = listener
+        windows[window] = listener
     }
 
-    private fun detachFrameMetrics(activity: Activity) {
+    private fun detach(activity: Activity) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
         val window = activity.window ?: return
-        frameWindows.remove(window)?.let(window::removeOnFrameMetricsAvailableListener)
+        windows.remove(window)?.let(window::removeOnFrameMetricsAvailableListener)
     }
 }
 

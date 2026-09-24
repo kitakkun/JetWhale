@@ -152,8 +152,14 @@ internal class MainThreadRecorder(
             val signature = stackSignature(stack)
             val accumulator = hotspots.getOrPut(signature) { HotspotAccumulator() }
             accumulator.samples++
+            // Weighted by the interval in force now, so that changing it later leaves this estimate alone.
+            accumulator.blockedMillis += settings.sampleIntervalMillis
             accumulator.frames = stack
-            accumulator.taskIds += task.id
+            // Task ids only grow and samples arrive in task order, so a new id is a new task.
+            if (accumulator.lastTaskId != task.id) {
+                accumulator.lastTaskId = task.id
+                accumulator.taskCount++
+            }
             if (hotspots.size > HOTSPOT_CAPACITY) {
                 // The rarest hotspot matters least; the one just sampled is never the one dropped,
                 // or a full table could never take in anything new.
@@ -190,6 +196,8 @@ internal class MainThreadRecorder(
 
     fun reset() = lock.withLock {
         recordingSince = clock.epochMillis()
+        // A task in progress began before the boundary; it must not reappear in the fresh recording.
+        running = null
         longTasks.clear()
         hotspots.clear()
         violations.clear()
@@ -200,7 +208,6 @@ internal class MainThreadRecorder(
     }
 
     fun report(capabilities: MonitorCapabilities): MainThreadReport = lock.withLock {
-        val interval = settings.sampleIntervalMillis
         MainThreadReport(
             capabilities = capabilities,
             settings = settings,
@@ -211,10 +218,10 @@ internal class MainThreadRecorder(
                     signature = signature,
                     frames = accumulator.frames,
                     sampleCount = accumulator.samples,
-                    blockedMillis = accumulator.samples * interval,
-                    taskCount = accumulator.taskIds.size,
+                    blockedMillis = accumulator.blockedMillis,
+                    taskCount = accumulator.taskCount,
                 )
-            }.sortedByDescending(Hotspot::sampleCount),
+            }.sortedByDescending(Hotspot::blockedMillis),
             violations = violations.values.sortedByDescending(ViolationGroup::count),
             frames = frameStats(),
         )
@@ -248,8 +255,10 @@ internal class MainThreadRecorder(
 
     private class HotspotAccumulator {
         var samples = 0
+        var blockedMillis = 0L
+        var taskCount = 0
+        var lastTaskId: Long? = null
         var frames: List<String> = emptyList()
-        val taskIds = mutableSetOf<Long>()
     }
 }
 
