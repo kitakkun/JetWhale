@@ -257,6 +257,8 @@ private suspend fun onMainThread(block: () -> Unit) = suspendCancellableCoroutin
 /** The app's Application, reached the same way the agent runtime does: no Context has to be passed in. */
 private fun currentApplicationOrNull(): Application? = try {
     Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null) as? Application
-} catch (_: ReflectiveOperationException) {
+} catch (_: Exception) {
+    // A hidden-API restriction surfaces as a SecurityException rather than a reflective failure;
+    // either way the plugin reports itself unsupported instead of failing the app's startup.
     null
 }

@@ -145,8 +145,10 @@ private class IosPermissionSource : PermissionSource {
 
     override suspend fun openAppSettings(): PermissionActionResult = withContext(Dispatchers.Main) {
         val url = NSURL.URLWithString(UIApplicationOpenSettingsURLString) ?: return@withContext failure("the Settings URL is unavailable")
-        UIApplication.sharedApplication.openURL(url, options = emptyMap<Any?, Any>(), completionHandler = null)
-        PermissionActionResult(message = "Opened the app's Settings page.", error = null)
+        val opened = suspendCancellableCoroutine { continuation ->
+            UIApplication.sharedApplication.openURL(url, options = emptyMap<Any?, Any>()) { success -> continuation.resume(success) }
+        }
+        if (opened) PermissionActionResult(message = "Opened the app's Settings page.", error = null) else failure("iOS did not open the Settings page")
     }
 }
 

@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionChange
 import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionReport
 import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionState
 import com.kitakkun.jetwhale.plugins.permissions.protocol.PermissionStatus
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -64,6 +65,29 @@ class PermissionsHostTest {
 
         assertEquals(listOf("third", "second", "first"), board.timeline.map(PermissionChange::id))
         assertEquals(PermissionStatus.Granted, board.report?.permissions?.single()?.status)
+    }
+
+    @Test
+    fun `a slow reload finishing after a newer one does not overwrite it`() {
+        val firstRead = CompletableDeferred<Unit>()
+        var reads = 0
+        val slowFirst = object : PermissionsClient by client {
+            override suspend fun report(): PermissionReport {
+                val read = ++reads
+                if (read == 1) {
+                    firstRead.await()
+                    return client.report().copy(platform = "stale")
+                }
+                return client.report().copy(platform = "fresh")
+            }
+        }
+        val slowBoard = PermissionsBoard(slowFirst, CoroutineScope(Dispatchers.Unconfined))
+
+        slowBoard.onChanged(listOf(change("first")))
+        slowBoard.onChanged(listOf(change("second")))
+        firstRead.complete(Unit)
+
+        assertEquals("fresh", slowBoard.report?.platform)
     }
 
     private fun change(id: String) = PermissionChange(id = id, label = id, from = PermissionStatus.Denied, to = PermissionStatus.Granted, observedAtEpochMillis = 0)
