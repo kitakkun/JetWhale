@@ -77,6 +77,7 @@ androidxActivityCompose = { module = "androidx.activity:activity-compose", versi
 androidxActivityKtx = { module = "androidx.activity:activity-ktx", version.ref = "androidxActivity" }
 androidxRecyclerView = { module = "androidx.recyclerview:recyclerview", version.ref = "androidxRecyclerView" }
 androidxDatastorePreferences = { module = "androidx.datastore:datastore-preferences", version.ref = "androidxDatastore" }
+androidxDatastorePreferencesCore = { module = "androidx.datastore:datastore-preferences-core", version.ref = "androidxDatastore" }
 androidxDatastoreCoreOkio = { module = "androidx.datastore:datastore-core-okio", version.ref = "androidxDatastore" }
 
 # compose

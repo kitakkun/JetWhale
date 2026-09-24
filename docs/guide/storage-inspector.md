@@ -61,6 +61,29 @@ A `KeyValueStore` has a `name`, returns its `entries()`, and can `remove(key)`. 
 for again on every request from the host, so a store the app creates after startup shows up
 without registering the plugin again.
 
+#### Live DataStore stores
+
+The file preview decodes a Preferences DataStore file from disk, which can lag behind a write the
+app has just made, and cannot change it. To show a `DataStore<Preferences>` as a key-value store,
+add the DataStore adapter and pass the instance your app already holds:
+
+```kotlin
+dependencies {
+    implementation("com.kitakkun.jetwhale:jetwhale-storage-inspector-agent-datastore:<version>")
+}
+```
+
+```kotlin
+JetWhaleStorageAgentPlugin(
+    fileRoots = { FileRoot.platformDefaults() },
+    keyValueStores = { KeyValueStore.platformDefaults() + KeyValueStore.dataStore("settings", settingsDataStore) },
+)
+```
+
+The host then reads the entries through the DataStore itself, and removing an entry is a
+`dataStore.edit { … }`, so the app's collectors of `data` see the change. It is available on every
+platform the agent supports.
+
 ## What you get in the host
 
 - **Files.** A tree of every root; a directory lists its content when you open it. Alt-click
