@@ -76,6 +76,17 @@ class JobTreeWalkerTest {
     }
 
     @Test
+    fun `the node limit also bounds how many registered roots are walked`() = runTest {
+        val roots = (1..5).associate { "scope-$it" to Job() }
+
+        val tree = JobTreeWalker(nodeLimit = 3).walk(roots, capturedAtEpochMillis = 0)
+
+        assertEquals(3, tree.roots.size)
+        assertTrue(tree.truncated)
+        roots.values.forEach(Job::cancel)
+    }
+
+    @Test
     fun `job states map to the coroutine states the host shows`() = runTest {
         val completed = Job().apply { complete() }
         val cancelled = Job().apply { cancel() }

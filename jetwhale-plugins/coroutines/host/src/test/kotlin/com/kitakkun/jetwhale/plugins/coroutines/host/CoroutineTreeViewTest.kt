@@ -40,9 +40,19 @@ class CoroutineTreeViewTest {
 
     @Test
     fun `a collapsed node hides its descendants but keeps its depth`() {
-        val rows = flattenCoroutineTree(tree, collapsed = setOf("sync"))
+        val rows = flattenCoroutineTree(tree, collapsed = setOf("root/sync"))
 
         assertEquals(listOf("Application" to 0, "sync" to 1, "poll" to 1), rows.map { it.node.name to it.depth })
+    }
+
+    @Test
+    fun `a coroutine under two overlapping registered scopes gets a distinct row id each time`() {
+        val shared = node("shared", "shared", CoroutineState.Active, observed = 0)
+        val roots = listOf(node("parent", "Parent", CoroutineState.Active, 0, node("child", "Child", CoroutineState.Active, 0, shared)), node("child", "Child", CoroutineState.Active, 0, shared))
+
+        val rowIds = flattenCoroutineTree(roots, collapsed = emptySet()).map(CoroutineRow::rowId)
+
+        assertEquals(rowIds.size, rowIds.toSet().size)
     }
 
     @Test

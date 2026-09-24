@@ -16,13 +16,15 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.TimeSource
 
-/** Passes every task on to [delegate], timing how long it waits and how long it runs. */
+/**
+ * Passes every task on to [delegate], timing how long it waits and how long it runs. It keeps the
+ * default `isDispatchNeeded` of true rather than asking the delegate: a task the delegate would run
+ * in place, as `Dispatchers.Main.immediate` does, would bypass `dispatch` and go untimed.
+ */
 internal class TrackedDispatcher(
     private val delegate: CoroutineDispatcher,
     private val recorder: DispatcherRecorder,
 ) : CoroutineDispatcher() {
-    override fun isDispatchNeeded(context: CoroutineContext): Boolean = delegate.isDispatchNeeded(context)
-
     override fun dispatch(context: CoroutineContext, block: Runnable) {
         val queuedAt = TimeSource.Monotonic.markNow()
         recorder.onQueued()

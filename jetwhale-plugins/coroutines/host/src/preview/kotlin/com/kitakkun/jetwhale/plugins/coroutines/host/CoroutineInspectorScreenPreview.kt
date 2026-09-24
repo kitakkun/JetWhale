@@ -70,7 +70,7 @@ private val previewFlows = TrackedFlowReport(
 private object NoActions : CoroutineInspectorActions {
     override fun refresh(tab: InspectorTab) = Unit
 
-    override fun toggleCollapsed(nodeId: String) = Unit
+    override fun toggleCollapsed(rowId: String) = Unit
 
     override fun clearLongRuns() = Unit
 }
@@ -101,7 +101,7 @@ private fun CoroutineInspectorScreenPreview() {
 @Composable
 private fun CoroutinesPanePreview() {
     JwTheme(darkTheme = true) {
-        CoroutinesPane(tree = previewTree, collapsed = setOf("c2"), filter = CoroutineFilter.None, actions = NoActions, onFilterChange = {})
+        CoroutinesPane(tree = previewTree, collapsed = setOf("c1/c2"), filter = CoroutineFilter.None, actions = NoActions, onFilterChange = {})
     }
 }
 
