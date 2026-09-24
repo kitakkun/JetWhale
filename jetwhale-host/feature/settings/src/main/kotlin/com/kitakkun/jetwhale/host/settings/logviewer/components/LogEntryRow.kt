@@ -16,7 +16,10 @@ import com.kitakkun.jetwhale.host.model.LogEntry
 import com.kitakkun.jetwhale.host.model.LogLevel
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 @Composable
 fun LogEntryRow(
@@ -36,11 +39,7 @@ fun LogEntryRow(
                 .padding(horizontal = 12.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            LogTimestamp(
-                timestamp = logEntry.timestamp.toString()
-                    .substringAfter("T")
-                    .substringBefore("."),
-            )
+            LogTimestamp(timestamp = logEntry.timestamp.timeOfDayIn(TimeZone.currentSystemDefault()))
 
             LogLevelBadge(
                 level = logEntry.level,
@@ -54,6 +53,12 @@ fun LogEntryRow(
             )
         }
     }
+}
+
+/** The wall-clock time of [this] in [zone], to the second, as the host's own log lines print it. */
+internal fun Instant.timeOfDayIn(zone: TimeZone): String {
+    val time = toLocalDateTime(zone).time
+    return listOf(time.hour, time.minute, time.second).joinToString(":") { it.toString().padStart(2, '0') }
 }
 
 @Composable
