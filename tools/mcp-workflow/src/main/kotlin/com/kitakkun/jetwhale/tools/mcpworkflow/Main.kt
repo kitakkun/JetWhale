@@ -43,6 +43,7 @@ fun main(arguments: Array<String>) {
             "record" -> record(options)
 
             "serve" -> serve(options)
+
             "tools" -> listToolsCommand(options)
 
             "demo-server" -> runBlocking { serveStdio(demoServer()) }.let { 0 }

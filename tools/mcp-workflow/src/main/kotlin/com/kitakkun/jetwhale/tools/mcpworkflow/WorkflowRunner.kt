@@ -68,7 +68,7 @@ class WorkflowRunner(
         val variables = initialVariables(workflow, inputs)
         val outcomes = mutableListOf<StepOutcome>()
         var stopped = false
-        workflow.steps.forEachIndexed { index, step ->
+        workflow.steps.map { it.withDefaults(workflow.defaults) }.forEachIndexed { index, step ->
             val outcome = if (stopped) skipped(index, step) else runStep(index, step, variables)
             outcomes += outcome
             onStep(outcome)

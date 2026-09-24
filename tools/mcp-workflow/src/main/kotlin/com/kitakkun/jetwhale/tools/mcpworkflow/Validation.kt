@@ -14,7 +14,7 @@ fun validate(workflow: Workflow, servers: Set<String>): List<String> {
     workflow.vars.values.forEach { template ->
         (templateReferences(template) - workflow.inputs.keys - workflow.vars.keys).forEach { problems += "vars refer to '$it', which is not an input or var" }
     }
-    workflow.steps.forEachIndexed { index, step ->
+    workflow.steps.map { it.withDefaults(workflow.defaults) }.forEachIndexed { index, step ->
         val where = "step ${index + 1} (${stepLabel(index, step)})"
         step.id?.let { if (!ids.add(it)) problems += "$where: duplicate id '$it'" }
         when {

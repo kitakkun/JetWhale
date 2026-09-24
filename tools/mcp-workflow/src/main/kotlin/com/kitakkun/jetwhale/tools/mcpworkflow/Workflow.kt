@@ -17,6 +17,7 @@ const val WORKFLOW_FORMAT_VERSION: Int = 1
  *   Merged over the servers of an `.mcp.json` passed on the command line, so a workflow can stay free
  *   of machine-specific ports.
  * @property inputs Parameters a caller passes in; in serve mode they become the tool's arguments.
+ * @property defaults What every step gets unless it says otherwise.
  * @property vars Constants, templated against the inputs.
  * @property outputs Values reported after the run, templated against everything the steps saved.
  */
@@ -27,6 +28,7 @@ data class Workflow(
     val description: String? = null,
     val servers: Map<String, ServerConfig> = emptyMap(),
     val inputs: Map<String, InputSpec> = emptyMap(),
+    val defaults: StepDefaults = StepDefaults(),
     val vars: Map<String, JsonElement> = emptyMap(),
     val steps: List<Step>,
     val outputs: Map<String, JsonElement> = emptyMap(),
@@ -43,6 +45,25 @@ data class ServerConfig(
     val command: String? = null,
     val args: List<String> = emptyList(),
     val env: Map<String, String> = emptyMap(),
+)
+
+/**
+ * @property expect Checked on every step's result before its own expectations — how a workflow states a
+ *   server's own error convention, such as JetWhale answering a mistaken call with `{"error": ...}`
+ *   rather than a tool error: `- path: $.error` / `exists: false`. A step that expects a tool error
+ *   (`error: true`) is exempt, since its result is the error.
+ * @property timeout The per-call timeout of a step that names none.
+ */
+@Serializable
+data class StepDefaults(
+    val expect: List<Expectation> = emptyList(),
+    val timeout: String? = null,
+)
+
+/** This step as it runs under [defaults]: the default timeout when it names none, and the default expectations first. */
+internal fun Step.withDefaults(defaults: StepDefaults): Step = copy(
+    timeout = timeout ?: defaults.timeout,
+    expect = if (expect.any { it.error == true }) expect else defaults.expect + expect,
 )
 
 /** A workflow parameter. [type] is a JSON Schema primitive type name. */

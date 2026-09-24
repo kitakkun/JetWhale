@@ -111,6 +111,26 @@ class WorkflowRunnerTest {
     }
 
     @Test
+    fun `default expectations apply to every step except one expecting an error`() = runTest {
+        val caller = FakeToolCaller { _, tool, _ ->
+            when (tool) {
+                "mistaken" -> textResult("""{"error":"invalid action"}""", isError = false)
+                else -> textResult("""{"error":"denied"}""", isError = true)
+            }
+        }
+        val flow = Workflow(
+            version = WORKFLOW_FORMAT_VERSION,
+            name = "Defaults",
+            defaults = StepDefaults(expect = listOf(Expectation(path = "$.error", exists = false))),
+            steps = listOf(Step(call = "refused", expect = listOf(Expectation(error = true))), Step(call = "mistaken")),
+        )
+
+        val outcome = runner(caller, setOf("app")).run(flow, inputs = emptyMap())
+
+        assertEquals(listOf(StepStatus.PASSED, StepStatus.FAILED), outcome.steps.map(StepOutcome::status))
+    }
+
+    @Test
     fun `retries repeat a failed call without waiting`() = runTest {
         var calls = 0
         val caller = FakeToolCaller { _, _, _ -> textResult("{}", isError = ++calls < 3) }
