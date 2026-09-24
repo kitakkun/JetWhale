@@ -61,8 +61,8 @@ private val MethodColumnWidth = 44.dp
 /** Fits a three-digit status so the method column lines up. */
 private val StatusTagWidth = 36.dp
 
-/** Room for the MOCK tag. */
-private val MockColumnWidth = 44.dp
+/** Room for the MOCK and NET tags side by side. */
+private val MarkerColumnWidth = 84.dp
 
 /** Fits "1234ms". */
 private val DurationColumnWidth = 52.dp
@@ -204,8 +204,11 @@ private fun rememberTrafficColumns(): List<JwTableColumn<HttpTransaction>> {
                 overflow = JwColumnOverflow.Scroll,
                 style = urlStyle,
             ) { it.request.url },
-            JwTableColumn(header = "", width = JwColumnWidth.Fixed(MockColumnWidth)) {
-                if (it.response?.fromMock == true) MockChip()
+            JwTableColumn(header = "", width = JwColumnWidth.Fixed(MarkerColumnWidth)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
+                    if (it.response?.fromMock == true) MockChip()
+                    if (it.condition != null) NetworkConditionChip()
+                }
             },
             JwTableColumn(header = "Time", width = JwColumnWidth.Fixed(DurationColumnWidth), alignment = Alignment.End) {
                 it.response?.let { response ->
@@ -262,6 +265,11 @@ private fun MockChip() {
     JwTag(text = "MOCK", tone = JwTone.Accent, style = JwTagStyle.Tinted)
 }
 
+@Composable
+private fun NetworkConditionChip() {
+    JwTag(text = "NET", tone = JwTone.Warning, style = JwTagStyle.Tinted)
+}
+
 private enum class DetailTab(val title: String) {
     Body("Body"),
     Headers("Headers"),
@@ -291,6 +299,9 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit, mod
             if (tx.response?.fromMock == true) {
                 MockChip()
             }
+            if (tx.condition != null) {
+                NetworkConditionChip()
+            }
             Spacer(Modifier.weight(1f))
             if (tx.response != null) {
                 JwButton(text = "Mock this", onClick = onCreateMock)
@@ -313,6 +324,13 @@ private fun TransactionDetail(tx: HttpTransaction, onCreateMock: () -> Unit, mod
             )
 
             else -> EmptyHint("Pending…")
+        }
+        tx.condition?.let { condition ->
+            JwText(
+                text = "Network condition '${condition.ruleName.ifBlank { condition.ruleId }}': ${condition.summary()}",
+                style = JwTheme.textStyles.bodySmall,
+                color = JwTheme.colors.textSecondary,
+            )
         }
 
         // Only surface the Query tab when the URL actually has query params — a permanently

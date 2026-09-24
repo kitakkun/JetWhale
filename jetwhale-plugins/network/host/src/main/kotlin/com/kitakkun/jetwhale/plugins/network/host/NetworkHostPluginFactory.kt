@@ -17,12 +17,14 @@ import com.kitakkun.jetwhale.host.sdk.LocalIsMcpCapture
 import com.kitakkun.jetwhale.plugins.network.protocol.GetMockConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.GetRedactionConfig
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RedactionRule
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestFailed
 import com.kitakkun.jetwhale.plugins.network.protocol.RequestSent
 import com.kitakkun.jetwhale.plugins.network.protocol.ResponseReceived
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockRules
 import com.kitakkun.jetwhale.plugins.network.protocol.SetMockingEnabled
+import com.kitakkun.jetwhale.plugins.network.protocol.SetNetworkConditions
 import com.kitakkun.jetwhale.plugins.network.protocol.redact
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessagingException
@@ -46,6 +48,10 @@ private class NetworkHostPlugin :
     private val transactions: SnapshotStateList<HttpTransaction> = mutableStateListOf()
     private val mockRules: SnapshotStateList<MockRule> = mutableStateListOf()
     private var mockingEnabled by mutableStateOf(true)
+
+    // The host owns the conditions: the agent drops them on disconnect, and they are pushed again
+    // on every connection, so what this list shows is what the app gets.
+    private val conditionRules: SnapshotStateList<NetworkConditionRule> = mutableStateListOf()
 
     // MCP_ONLY redaction rules configured on the agent: applied to MCP tool results only, so the
     // host UI keeps showing the raw values. Empty when the agent predates GetRedactionConfig.
@@ -73,6 +79,7 @@ private class NetworkHostPlugin :
             clear()
             addAll(config.rules)
         }
+        if (conditionRules.isNotEmpty()) messenger.request(SetNetworkConditions(conditionRules.toList()))
         mcpRedactionRules = try {
             messenger.request(GetRedactionConfig).mcpOnlyRules
         } catch (_: JetWhaleMessagingException) {
@@ -96,12 +103,16 @@ private class NetworkHostPlugin :
             transactions = if (redactForCapture) transactions.map { it.redactedForMcp() } else transactions,
             mockRules = mockRules,
             mockingEnabled = mockingEnabled,
+            conditionRules = conditionRules,
             onClearTransactions = transactions::clear,
             onToggleMocking = { enabled ->
                 pluginScope.launch { syncMockingEnabled(enabled) }
             },
             onMockRulesChanged = { rules ->
                 pluginScope.launch { syncMockRules(rules) }
+            },
+            onConditionRulesChanged = { rules ->
+                pluginScope.launch { syncConditionRules(rules) }
             },
         )
     }
@@ -123,6 +134,19 @@ private class NetworkHostPlugin :
             return e
         }
         mockRules.apply {
+            clear()
+            addAll(newRules)
+        }
+        return null
+    }
+
+    private suspend fun syncConditionRules(newRules: List<NetworkConditionRule>): JetWhaleMessagingException? {
+        try {
+            messenger.request(SetNetworkConditions(newRules))
+        } catch (e: JetWhaleMessagingException) {
+            return e
+        }
+        conditionRules.apply {
             clear()
             addAll(newRules)
         }
@@ -154,5 +178,8 @@ private class NetworkHostPlugin :
         AddMockRuleCommand(mockRules = mockRules::toList, syncMockRules = ::syncMockRules),
         RemoveMockRuleCommand(mockRules = mockRules::toList, syncMockRules = ::syncMockRules),
         SetMockRulesCommand(syncMockRules = ::syncMockRules),
+        SetNetworkConditionsCommand(syncConditionRules = ::syncConditionRules),
+        GetNetworkConditionsCommand(conditionRules = conditionRules::toList),
+        ClearNetworkConditionsCommand(syncConditionRules = ::syncConditionRules),
     )
 }
