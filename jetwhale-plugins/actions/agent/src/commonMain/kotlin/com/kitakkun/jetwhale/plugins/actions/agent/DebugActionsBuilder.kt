@@ -68,8 +68,10 @@ class DebugActionsBuilder internal constructor(private val group: String?) {
  *
  * @property destructive The action changes or discards something that cannot be restored. The host
  *   asks before running it, and an AI agent has to confirm explicitly.
- * @property runsOnMainThread Runs the action on `Dispatchers.Main`, for work that touches UI state.
- *   Otherwise it runs on a background dispatcher.
+ * @property runsOnMainThread Runs the action on `Dispatchers.Main`, for work on UI objects that are
+ *   bound to the main thread. Compose snapshot state does not need it. On the JVM, `Dispatchers.Main`
+ *   exists only when the app has a module providing it, such as kotlinx-coroutines-swing; without
+ *   one the run fails and says so. Otherwise the action runs on a background dispatcher.
  * @property timeout How long a run may take before it is cancelled and reported as timed out.
  */
 @DebugActionsDsl

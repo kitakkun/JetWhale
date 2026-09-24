@@ -62,7 +62,7 @@ actionsPlugin.register {
 | `description` | Shown under the title and to agents |
 | `options(property) { … }` | Suggested values for a property, fetched from the app each time |
 | `destructive = true` | The host asks before running; an agent must pass `confirmDestructive: true` |
-| `runsOnMainThread = true` | Runs on `Dispatchers.Main`, for work that touches UI state |
+| `runsOnMainThread = true` | Runs on `Dispatchers.Main`, for UI objects bound to the main thread (Compose state does not need it; on the JVM the app needs a `Dispatchers.Main` provider such as kotlinx-coroutines-swing) |
 | `timeout` | How long a run may take (30 seconds unless set) |
 
 The value `run` returns is shown to whoever ran it: a `String` as text, a `JsonElement` as JSON,
