@@ -46,5 +46,4 @@ internal suspend fun <A> DebugActionDefinition<A>.runWith(arguments: JsonObject,
     }
 }
 
-private fun failedResult(error: String, stackTrace: String?, durationMillis: Long): ActionResult =
-    ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = error, stackTrace = stackTrace, durationMillis = durationMillis)
+private fun failedResult(error: String, stackTrace: String?, durationMillis: Long): ActionResult = ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = error, stackTrace = stackTrace, durationMillis = durationMillis)

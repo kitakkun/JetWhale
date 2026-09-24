@@ -3,11 +3,11 @@ package com.kitakkun.jetwhale.plugins.actions.agent
 import com.kitakkun.jetwhale.plugins.actions.protocol.ActionOutcome
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.yield
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -16,7 +16,6 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -79,18 +78,25 @@ class ActionRunTest {
     @Test
     fun `cancelling the run is not reported as a failure but propagates`() = runTest {
         val started = CompletableDeferred<Unit>()
-        val run = async {
-            definition<Greeting> {
-                started.complete(Unit)
-                awaitCancellation()
-            }.runWith(buildJsonObject { put("name", "Ada") }, json)
+        var escaped: Throwable? = null
+        var returned: Any? = null
+        val run = launch {
+            try {
+                returned = definition<Greeting> {
+                    started.complete(Unit)
+                    awaitCancellation()
+                }.runWith(buildJsonObject { put("name", "Ada") }, json)
+            } catch (e: CancellationException) {
+                escaped = e
+                throw e
+            }
         }
         started.await()
-        yield()
 
-        run.cancel()
+        run.cancelAndJoin()
 
-        assertFailsWith<CancellationException> { run.await() }
+        assertNull(returned)
+        assertTrue(escaped is CancellationException)
     }
 
     private inline fun <reified A> definition(noinline body: suspend (A) -> Any?): DebugActionDefinition<A> {
