@@ -6,6 +6,15 @@
 // - Show declarations: true
 
 // Library unique name: <com.kitakkun.jetwhale.plugins.network:agent>
+final class com.kitakkun.jetwhale.plugins.network.agent/BandwidthPacer { // com.kitakkun.jetwhale.plugins.network.agent/BandwidthPacer|null[0]
+    constructor <init>(kotlin/Long, kotlin.time/TimeSource) // com.kitakkun.jetwhale.plugins.network.agent/BandwidthPacer.<init>|<init>(kotlin.Long;kotlin.time.TimeSource){}[0]
+
+    final val chunkSize // com.kitakkun.jetwhale.plugins.network.agent/BandwidthPacer.chunkSize|{}chunkSize[0]
+        final fun <get-chunkSize>(): kotlin/Int // com.kitakkun.jetwhale.plugins.network.agent/BandwidthPacer.chunkSize.<get-chunkSize>|<get-chunkSize>(){}[0]
+
+    final fun delayBefore(kotlin/Int): kotlin.time/Duration // com.kitakkun.jetwhale.plugins.network.agent/BandwidthPacer.delayBefore|delayBefore(kotlin.Int){}[0]
+}
+
 final class com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin : com.kitakkun.jetwhale.agent.sdk/JetWhaleAgentPlugin { // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin|null[0]
     constructor <init>(com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules = ...) // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.<init>|<init>(com.kitakkun.jetwhale.plugins.network.agent.NetworkRedactionRules){}[0]
 
@@ -16,6 +25,7 @@ final class com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlug
 
     final fun findMock(kotlin/String, kotlin/String): com.kitakkun.jetwhale.plugins.network.protocol/MockResponseSpec? // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.findMock|findMock(kotlin.String;kotlin.String){}[0]
     final fun newTransactionId(): kotlin/String // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.newTransactionId|newTransactionId(){}[0]
+    final fun planNetworkCondition(kotlin/String, kotlin/String): com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan? // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.planNetworkCondition|planNetworkCondition(kotlin.String;kotlin.String){}[0]
     final fun recordFailure(com.kitakkun.jetwhale.plugins.network.protocol/HttpRequestFailure) // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.recordFailure|recordFailure(com.kitakkun.jetwhale.plugins.network.protocol.HttpRequestFailure){}[0]
     final fun recordRequest(com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpRequest) // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.recordRequest|recordRequest(com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest){}[0]
     final fun recordResponse(com.kitakkun.jetwhale.plugins.network.protocol/CapturedHttpResponse) // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.recordResponse|recordResponse(com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse){}[0]
@@ -24,6 +34,27 @@ final class com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlug
         final const val PLUGIN_ID // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.Companion.PLUGIN_ID|{}PLUGIN_ID[0]
             final fun <get-PLUGIN_ID>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.agent/JetWhaleNetworkAgentPlugin.Companion.PLUGIN_ID.<get-PLUGIN_ID>|<get-PLUGIN_ID>(){}[0]
     }
+}
+
+final class com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan { // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan|null[0]
+    final val downloadBytesPerSecond // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.downloadBytesPerSecond|{}downloadBytesPerSecond[0]
+        final fun <get-downloadBytesPerSecond>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.downloadBytesPerSecond.<get-downloadBytesPerSecond>|<get-downloadBytesPerSecond>(){}[0]
+    final val failure // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.failure|{}failure[0]
+        final fun <get-failure>(): com.kitakkun.jetwhale.plugins.network.protocol/InjectedFailure? // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.failure.<get-failure>|<get-failure>(){}[0]
+    final val failureAfter // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.failureAfter|{}failureAfter[0]
+        final fun <get-failureAfter>(): kotlin.time/Duration // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.failureAfter.<get-failureAfter>|<get-failureAfter>(){}[0]
+    final val latency // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.latency|{}latency[0]
+        final fun <get-latency>(): kotlin.time/Duration // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.latency.<get-latency>|<get-latency>(){}[0]
+    final val offline // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.offline|{}offline[0]
+        final fun <get-offline>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.offline.<get-offline>|<get-offline>(){}[0]
+    final val ruleId // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.ruleId|{}ruleId[0]
+        final fun <get-ruleId>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.ruleId.<get-ruleId>|<get-ruleId>(){}[0]
+    final val ruleName // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.ruleName|{}ruleName[0]
+        final fun <get-ruleName>(): kotlin/String // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.ruleName.<get-ruleName>|<get-ruleName>(){}[0]
+    final val uploadBytesPerSecond // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.uploadBytesPerSecond|{}uploadBytesPerSecond[0]
+        final fun <get-uploadBytesPerSecond>(): kotlin/Long? // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.uploadBytesPerSecond.<get-uploadBytesPerSecond>|<get-uploadBytesPerSecond>(){}[0]
+
+    final fun applied(): com.kitakkun.jetwhale.plugins.network.protocol/AppliedNetworkCondition // com.kitakkun.jetwhale.plugins.network.agent/NetworkConditionPlan.applied|applied(){}[0]
 }
 
 final class com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules { // com.kitakkun.jetwhale.plugins.network.agent/NetworkRedactionRules|null[0]
