@@ -2,7 +2,7 @@ package com.kitakkun.jetwhale.plugins.mainthread.host
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
@@ -28,7 +28,8 @@ internal fun SettingsPane(settings: MonitorSettings, onApply: (MonitorSettings) 
     var unresponsive by remember(settings) { mutableStateOf(settings.unresponsiveThresholdMillis.toString()) }
     val edited = validSettingsOf(longTask = longTask, interval = interval, unresponsive = unresponsive)
     Column(
-        modifier = modifier.fillMaxSize().padding(JwSpacing.large).widthIn(max = FormWidth),
+        // fillMaxHeight, not fillMaxSize: a width fixed to the pane would leave widthIn nothing to narrow.
+        modifier = modifier.fillMaxHeight().padding(JwSpacing.large).widthIn(max = FormWidth),
         verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
     ) {
         JwFormField(label = "Long task (ms)", supportingText = "Tasks at least this long are recorded, and sampled while they run.") {
