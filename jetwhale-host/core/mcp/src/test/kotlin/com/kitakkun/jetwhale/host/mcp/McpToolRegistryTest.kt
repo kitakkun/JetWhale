@@ -7,6 +7,8 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCapablePlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import dev.mokkery.mock
+import java.util.concurrent.CountDownLatch
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -39,6 +41,25 @@ class McpToolRegistryTest {
             setOf("com.example.a", "com.example.b"),
             registry.mcpCapablePluginsFlow.value.pluginIdsFor("session-1"),
         )
+    }
+
+    @Test
+    fun `plugins registering at the same time from several threads are all reported`() {
+        // The lost update depends on timing, so one attempt may pass by luck; many rounds do not.
+        repeat(ROUNDS) { round ->
+            val registry = McpToolRegistry(mock<PluginInstanceService>())
+            val start = CountDownLatch(1)
+            val threads = (0 until THREADS).map { index ->
+                thread {
+                    start.await()
+                    registry.register("com.example.p$index", "session-1", FakeTooledPlugin("p$index.greet"))
+                }
+            }
+            start.countDown()
+            threads.forEach(Thread::join)
+
+            assertEquals(THREADS, registry.mcpCapablePluginsFlow.value.pluginIdsFor("session-1").size, "round $round")
+        }
     }
 
     @Test
@@ -90,3 +111,6 @@ private class FakeTooledPlugin(private vararg val toolNames: String) :
         }
     }
 }
+
+private const val ROUNDS = 200
+private const val THREADS = 8
