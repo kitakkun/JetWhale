@@ -86,7 +86,7 @@ private fun UntrackedDispatchers(untracked: List<UntrackedDispatcher>) {
         modifier = Modifier.fillMaxWidth().height((DispatcherRowHeight * (untracked.size + 1)).coerceAtMost(DispatcherTableMaxHeight)),
     )
     MetricsLegend("Coroutines in the registered scopes run on these, so they are counted here, but the app has not tracked them, so they have no wait or run times: timing needs every task to pass through the inspector, and a dispatcher such as Dispatchers.Default has no statistics to read from outside. To time one, track it once and use the returned dispatcher where the app used the original:")
-    JwCodeBlock(text = trackingSnippet(untracked), copyLabel = "Copy", modifier = Modifier.padding(start = JwSpacing.large, end = JwSpacing.large, bottom = JwSpacing.large))
+    JwCodeBlock(text = trackingSnippet(untracked), copyLabel = "Copy", wrap = true, modifier = Modifier.padding(start = JwSpacing.large, end = JwSpacing.large, bottom = JwSpacing.large))
 }
 
 /**
