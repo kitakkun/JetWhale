@@ -203,7 +203,10 @@ private fun ApplicationScope.JetWhaleMainWindow(appGraph: JetWhaleAppGraph, wind
 /**
  * Sends every exception no one caught to the log (and so to the log file and the log viewer), then
  * lets the previous handler — the JVM's, which prints it — run as before.
+ *
+ * Only main() installs it; the IntelliJ plugin, which bundles this file, never calls main().
  */
+@Suppress("KOTRAIL_UNSCOPED_REGISTRATION_IN_UNLOADABLE_CODE")
 private fun logUncaughtExceptions() {
     val previous = Thread.getDefaultUncaughtExceptionHandler()
     Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->

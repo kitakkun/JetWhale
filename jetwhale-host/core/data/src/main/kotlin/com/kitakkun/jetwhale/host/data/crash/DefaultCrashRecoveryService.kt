@@ -68,6 +68,9 @@ class DefaultCrashRecoveryService(
     override var consecutiveStartupCrashes: Int = 0
         private set
 
+    // Only the standalone host's main() calls this; the IntelliJ plugin, which bundles this class,
+    // never does, so the shutdown hook below never outlives a plugin class loader.
+    @Suppress("KOTRAIL_UNSCOPED_REGISTRATION_IN_UNLOADABLE_CODE")
     override fun onStartup() {
         // A marker whose process is still running belongs to another host sharing this data
         // directory; it is that host's to remove.
