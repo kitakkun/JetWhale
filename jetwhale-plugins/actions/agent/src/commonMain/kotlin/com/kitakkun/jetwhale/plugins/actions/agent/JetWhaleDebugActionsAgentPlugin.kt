@@ -18,6 +18,7 @@ import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.reply
 import com.kitakkun.jetwhale.protocol.messaging.trySend
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -135,7 +136,8 @@ class JetWhaleDebugActionsAgentPlugin : JetWhaleAgentPlugin() {
         }
         val scope = activeScope
             ?: return ActionResult(ActionOutcome.FAILURE, text = null, json = null, error = "the plugin is not active", stackTrace = null, durationMillis = 0)
-        val deferred = scope.async { action.definition.runWith(request.arguments, json) }
+        // Started only once registered, so a cancel that arrives right away finds the run.
+        val deferred = scope.async(start = CoroutineStart.LAZY) { action.definition.runWith(request.arguments, json) }
         runs.update { it + (request.runId to deferred) }
         return try {
             deferred.await()

@@ -14,6 +14,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -46,6 +47,7 @@ class ActionsMcpCommandsTest {
         val login = listed.first { it.getValue("id").jsonPrimitive.content == loginAs.id }
         assertEquals("string", login.getValue("argumentsSchema").jsonObject.getValue("properties").jsonObject.getValue("email").jsonObject.getValue("type").jsonPrimitive.content)
         assertEquals(listOf("email"), login.getValue("argumentsSchema").jsonObject.getValue("required").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(false, login.getValue("argumentsSchema").jsonObject.getValue("additionalProperties").jsonPrimitive.boolean)
         assertEquals("qa@example.com", login.getValue("suggestedValues").jsonObject.getValue("email").jsonArray.single().jsonPrimitive.content)
         assertEquals(true, listed.first { it.getValue("id").jsonPrimitive.content == wipe.id }.getValue("destructive").jsonPrimitive.content.toBoolean())
     }

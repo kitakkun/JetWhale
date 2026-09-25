@@ -59,6 +59,8 @@ private fun ActionDescriptor.argumentsSchema(): JsonObject = buildJsonObject {
         parameters.forEach { parameter -> put(parameter.name, parameter.schema()) }
     }
     putJsonArray("required") { parameters.filterNot(ActionParameter::optional).forEach { add(it.name) } }
+    // The app decodes arguments strictly, so a key the action does not declare fails the run.
+    put("additionalProperties", false)
 }
 
 private fun ActionParameter.schema(): JsonObject = buildJsonObject {

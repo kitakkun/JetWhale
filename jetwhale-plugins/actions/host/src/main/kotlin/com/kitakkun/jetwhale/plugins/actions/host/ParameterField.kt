@@ -40,6 +40,13 @@ internal fun ParameterField(
         modifier = modifier,
     ) {
         when (parameter.type) {
+            // A switch has no third state for the blank value that means "default" or null.
+            ParameterType.BOOLEAN if parameter.optional || parameter.nullable -> ChoiceMenu(
+                text = value.ifEmpty { if (parameter.optional) "Default" else "null" },
+                choices = listOf("", "true", "false"),
+                onChoose = onValueChange,
+            )
+
             ParameterType.BOOLEAN -> JwSwitch(
                 checked = value == "true",
                 contentDescription = parameter.name,
