@@ -380,14 +380,10 @@ internal class DeviceMirror(
 
     override fun listCaptures(deviceId: String?, kind: CaptureKind?, sinceEpochMillis: Long?): List<Capture> = captures.library.list(deviceId, kind, sinceEpochMillis)
 
-    /** Stops what outlives the UI: a recording in progress. */
+    /** Stops what outlives the UI: a recording in progress, which is kept in the library. */
     suspend fun dispose() {
         recordings.withLock {
-            recording?.let {
-                recording = null
-                recordingDeviceId = null
-                it.handle.stop()
-            }
+            if (recording != null) stopRunningRecording()
         }
         surface.close()
     }
