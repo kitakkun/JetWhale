@@ -42,7 +42,9 @@ internal fun filterCoroutineTree(roots: List<CoroutineNode>, filter: CoroutineFi
  * One visible line of the coroutine tree.
  *
  * @property rowId The ids from the root down to this node. A coroutine below two overlapping
- *   registered scopes appears twice with the same id; the path tells the two rows apart.
+ *   registered scopes appears twice with the same id; the path tells the two rows apart. A job
+ *   registered more than once is a root more than once, so a repeated root id carries its
+ *   occurrence (`id#1`).
  */
 internal data class CoroutineRow(
     val node: CoroutineNode,
@@ -56,13 +58,17 @@ internal data class CoroutineRow(
  * children. Rows start expanded, so a newly appearing coroutine is visible without a click.
  */
 internal fun flattenCoroutineTree(roots: List<CoroutineNode>, collapsed: Set<String>): List<CoroutineRow> = buildList {
-    fun add(node: CoroutineNode, parentRowId: String?, depth: Int) {
-        val rowId = if (parentRowId == null) node.id else "$parentRowId/${node.id}"
+    fun add(node: CoroutineNode, rowId: String, depth: Int) {
         val expanded = rowId !in collapsed
         add(CoroutineRow(node = node, rowId = rowId, depth = depth, expanded = expanded))
-        if (expanded) node.children.forEach { add(it, rowId, depth + 1) }
+        if (expanded) node.children.forEach { add(it, "$rowId/${it.id}", depth + 1) }
     }
-    roots.forEach { add(it, parentRowId = null, depth = 0) }
+    val rootOccurrences = mutableMapOf<String, Int>()
+    roots.forEach { root ->
+        val occurrence = rootOccurrences.getOrElse(root.id) { 0 }
+        rootOccurrences[root.id] = occurrence + 1
+        add(root, rowId = if (occurrence == 0) root.id else "${root.id}#$occurrence", depth = 0)
+    }
 }
 
 /** "3.2 s", "4 min 10 s": how long a coroutine has been around, at the precision a person reads it. */
