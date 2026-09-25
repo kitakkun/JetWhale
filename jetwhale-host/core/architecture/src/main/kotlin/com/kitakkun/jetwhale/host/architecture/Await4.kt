@@ -56,7 +56,7 @@ inline fun <T1, T2, T3, T4> Await(
     LaunchedEffect(id, state1, state2, state3, state4) {
         host[id] = listOf(state1, state2, state3, state4).any { it.isAwaited() }
     }
-    DisposableEffect(id) {
+    DisposableEffect(id, host) {
         onDispose {
             host.remove(id)
         }
