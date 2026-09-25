@@ -49,6 +49,6 @@ internal actual fun resolvesInside(path: String, root: String): Boolean = true
 
 internal actual fun isSymbolicLink(path: String): Boolean = throw UnsupportedOperationException(NO_FILE_SYSTEM)
 
-internal actual fun isDirectory(path: String): Boolean = throw UnsupportedOperationException(NO_FILE_SYSTEM)
+internal actual fun existsAsNonRegularFile(path: String): Boolean = throw UnsupportedOperationException(NO_FILE_SYSTEM)
 
 private const val NO_FILE_SYSTEM = "the web has no file system to browse"

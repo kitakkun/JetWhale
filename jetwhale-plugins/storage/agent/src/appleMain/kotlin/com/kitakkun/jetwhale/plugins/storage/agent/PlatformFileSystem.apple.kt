@@ -22,6 +22,7 @@ import platform.Foundation.NSFileModificationDate
 import platform.Foundation.NSFileSize
 import platform.Foundation.NSFileType
 import platform.Foundation.NSFileTypeDirectory
+import platform.Foundation.NSFileTypeRegular
 import platform.Foundation.NSFileTypeSymbolicLink
 import platform.Foundation.NSNumber
 import platform.Foundation.NSString
@@ -120,7 +121,10 @@ internal actual fun deleteRecursively(path: String) {
 internal actual fun isSymbolicLink(path: String): Boolean = NSFileManager.defaultManager.attributesOfItemAtPath(path, null)?.get(NSFileType) == NSFileTypeSymbolicLink
 
 @OptIn(ExperimentalForeignApi::class)
-internal actual fun isDirectory(path: String): Boolean = NSFileManager.defaultManager.attributesOfItemAtPath(path, null)?.get(NSFileType) == NSFileTypeDirectory
+internal actual fun existsAsNonRegularFile(path: String): Boolean {
+    val type = NSFileManager.defaultManager.attributesOfItemAtPath(path, null)?.get(NSFileType) ?: return false
+    return type != NSFileTypeRegular
+}
 
 // stringByResolvingSymlinksInPath also drops a leading "/private", which is harmless: the root and
 // the path are both resolved the same way before they are compared.

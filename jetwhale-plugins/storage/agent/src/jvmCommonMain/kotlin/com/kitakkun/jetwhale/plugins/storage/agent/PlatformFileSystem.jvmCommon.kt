@@ -75,7 +75,7 @@ internal actual fun deleteRecursively(path: String) {
 
 internal actual fun isSymbolicLink(path: String): Boolean = File(path).isSymbolicLink()
 
-internal actual fun isDirectory(path: String): Boolean = File(path).isDirectory
+internal actual fun existsAsNonRegularFile(path: String): Boolean = File(path).let { it.exists() && !it.isFile }
 
 internal actual fun resolvesInside(path: String, root: String): Boolean {
     val canonicalRoot = File(root).canonicalFile

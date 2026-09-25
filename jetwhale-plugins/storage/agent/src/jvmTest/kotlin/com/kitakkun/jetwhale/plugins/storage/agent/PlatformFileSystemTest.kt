@@ -5,12 +5,16 @@ import com.kitakkun.jetwhale.plugins.storage.protocol.FileEntry
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class PlatformFileSystemTest {
     private val directory: File = Files.createTempDirectory("storage-agent-test").toFile()
@@ -171,6 +175,21 @@ class PlatformFileSystemTest {
         }
 
         assertEquals("keep", File(staging, "keep.txt").readText())
+    }
+
+    @Test
+    fun `a named pipe already at the staging path is refused without opening it`() {
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1")
+        check(ProcessBuilder("mkfifo", staging.path).start().waitFor() == 0) { "mkfifo failed" }
+
+        // Opening a FIFO for writing blocks until a reader appears, so without the guard this call
+        // would never return; the timeout turns that hang into a failure.
+        val outcome = CompletableFuture.supplyAsync {
+            runCatching { receiveUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1), isLast = true) }
+        }.get(10, TimeUnit.SECONDS)
+
+        assertIs<IllegalArgumentException>(outcome.exceptionOrNull())
+        assertTrue(staging.exists())
     }
 
     @Test
