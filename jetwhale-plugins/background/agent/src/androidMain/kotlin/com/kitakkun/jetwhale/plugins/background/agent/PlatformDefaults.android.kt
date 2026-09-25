@@ -69,7 +69,7 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
             nextRunEpochMillis = null,
             periodMillis = job.intervalMillis.takeIf { job.isPeriodic },
             // getFlexMillis arrived in API 24, a year after the rest of these accessors.
-            flexMillis = job.flexMillis.takeIf { job.isPeriodic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N },
+            flexMillis = if (job.isPeriodic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) job.flexMillis else null,
             progress = emptyMap(),
             output = emptyMap(),
             stopReason = null,
@@ -94,7 +94,9 @@ private class JobSchedulerSource(private val context: Context) : BackgroundWorkS
         val namespace = itemId.substringBeforeLast(NAMESPACE_SEPARATOR, missingDelimiterValue = "").ifEmpty { null }
         val jobId = itemId.substringAfterLast(NAMESPACE_SEPARATOR).toIntOrNull() ?: throw IllegalArgumentException("'$itemId' is not a job id")
         val scoped = scheduler?.let { if (namespace != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) it.forNamespace(namespace) else it }
-        val job = scoped?.getPendingJob(jobId) ?: throw IllegalArgumentException("no pending job has id $itemId")
+        // getPendingJob arrived in API 24; before it, the job is found among all pending ones.
+        val job = scoped?.let { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) it.getPendingJob(jobId) else it.allPendingJobs.firstOrNull { job -> job.id == jobId } }
+            ?: throw IllegalArgumentException("no pending job has id $itemId")
         require(job.service.className != WORK_MANAGER_JOB_SERVICE) { "job $itemId belongs to WorkManager; cancel the WorkManager work instead" }
         scoped.cancel(jobId)
         return "Cancelled job $itemId."
