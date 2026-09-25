@@ -67,14 +67,20 @@ class MavenPluginInstallService(
             throw PluginInstallationException("Failed to load plugin from $coordinates: ${e.message}", e)
         }
         val installedJar = File(appDataDirectoryProvider.getPluginDirectory(), stagedJar.name)
+        pluginInstallProgressRepository.update(PluginInstallProgress.LoadingPlugin)
         try {
-            pluginInstallProgressRepository.update(PluginInstallProgress.LoadingPlugin)
             Files.move(stagedJar.toPath(), installedJar.toPath(), StandardCopyOption.ATOMIC_MOVE)
+        } catch (e: Exception) {
+            // The move did not happen, so a jar of the same name already installed is still the
+            // working one and stays.
+            stagedJar.delete()
+            throw PluginInstallationException("Failed to install plugin $coordinates: ${e.message}", e)
+        }
+        try {
             // Requesting an install by coordinates is the user's explicit consent, exactly like the
             // file picker: approve (pin the content hash) and load.
             pluginTrustService.trustAndLoad(installedJar.absolutePath)
         } catch (e: Exception) {
-            stagedJar.delete()
             installedJar.delete()
             throw PluginInstallationException("Failed to load plugin from $coordinates: ${e.message}", e)
         }

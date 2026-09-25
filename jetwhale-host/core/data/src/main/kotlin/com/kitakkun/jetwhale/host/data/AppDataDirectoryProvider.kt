@@ -8,6 +8,8 @@ import okio.Path
 import okio.Path.Companion.toPath
 import java.io.File
 import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 @SingleIn(AppScope::class)
 @Inject
@@ -119,11 +121,17 @@ class AppDataDirectoryProvider(
 
     fun copyJarFileToAppDataDirectory(jarFilePath: String): String {
         val jarFileName = jarFilePath.substringAfterLast('/')
-        val destinationPath = "$pluginDir/$jarFileName"
-
-        File(jarFilePath).copyTo(File(destinationPath), overwrite = true)
-
-        return destinationPath
+        val destination = File(pluginDir, jarFileName)
+        // Copied into the staging directory and moved in whole: the plugins directory is watched, and
+        // a copy that pauses long enough would be offered half-written.
+        val staged = File.createTempFile("$jarFileName.", ".part", File(pluginStagingDir))
+        try {
+            File(jarFilePath).copyTo(staged, overwrite = true)
+            Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE)
+        } finally {
+            staged.delete()
+        }
+        return destination.path
     }
 
     fun getAllPluginJarFilePaths(): List<String> {
