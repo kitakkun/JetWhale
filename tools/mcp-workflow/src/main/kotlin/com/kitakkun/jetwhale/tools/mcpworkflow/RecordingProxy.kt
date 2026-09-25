@@ -80,10 +80,11 @@ class RecordingProxy(
             description = "Lists the tool calls recorded so far through this proxy.",
             inputSchema = ToolSchema(),
         ) {
-            val lines = calls.mapIndexed { index, call -> JsonPrimitive("${index + 1}. ${call.server}: ${call.tool}${if (call.isError) " (error)" else ""}") }
+            val recorded = synchronized(calls) { calls.toList() }
+            val lines = recorded.mapIndexed { index, call -> JsonPrimitive("${index + 1}. ${call.server}: ${call.tool}${if (call.isError) " (error)" else ""}") }
             text(
                 buildJsonObject {
-                    put("recordedCalls", calls.size)
+                    put("recordedCalls", recorded.size)
                     put("calls", JsonArray(lines))
                 }.toString(),
                 isError = false,
@@ -94,8 +95,7 @@ class RecordingProxy(
             description = "Forgets every call recorded so far, to start the recording of a flow from here.",
             inputSchema = ToolSchema(),
         ) {
-            val dropped = calls.size
-            calls.clear()
+            val dropped = synchronized(calls) { calls.size.also { calls.clear() } }
             text("""{"cleared":$dropped}""", isError = false)
         }
         server.addTool(
