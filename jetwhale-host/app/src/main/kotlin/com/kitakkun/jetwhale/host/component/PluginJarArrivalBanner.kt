@@ -20,6 +20,7 @@ import com.kitakkun.jetwhale.host.plugin_arrived_more
 import com.kitakkun.jetwhale.host.plugin_arrived_new
 import com.kitakkun.jetwhale.host.plugin_arrived_review
 import com.kitakkun.jetwhale.host.plugin_arrived_unreadable
+import com.kitakkun.jetwhale.host.plugin_arrived_unreadable_because
 import com.kitakkun.jetwhale.host.plugin_arrived_update
 import com.kitakkun.jetwhale.host.plugin_arrived_update_action
 import com.kitakkun.jetwhale.host.ui.JwBanner
@@ -105,13 +106,21 @@ fun PluginJarArrivalBanner(
     }
 }
 
-/** Size and hash first: the file name can be long enough to push them out of the one line. */
+/**
+ * Size and hash first: the file name can be long enough to push them out of the one line. Why a
+ * manifest could not be read comes last, for the same reason.
+ */
 @Composable
 private fun ArrivedPluginJar.headline(): String {
     val details = "${formatSize(sizeBytes)} · SHA-256 ${sha256.take(SHORT_HASH_LENGTH)} · $fileName"
     return when {
-        declaredPlugins.isEmpty() -> stringResource(Res.string.plugin_arrived_unreadable, details)
+        declaredPlugins.isEmpty() -> when (val reason = unreadableReason) {
+            null -> stringResource(Res.string.plugin_arrived_unreadable, details)
+            else -> stringResource(Res.string.plugin_arrived_unreadable_because, details, reason)
+        }
+
         replacedPlugins.isEmpty() -> stringResource(Res.string.plugin_arrived_new, declaredPlugins.joinToString { "${it.pluginName} ${it.version}" }, details)
+
         else -> stringResource(Res.string.plugin_arrived_update, describeUpdate(replaced = replacedPlugins, declared = declaredPlugins), details)
     }
 }
