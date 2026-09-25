@@ -5,6 +5,8 @@ import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.util.jar.JarEntry
+import java.util.jar.JarOutputStream
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -66,6 +68,20 @@ class DefaultPluginFactoryRepositoryTest {
         repository.unloadPluginJar(jar.absolutePath)
 
         assertEquals(emptyList(), repository.failedJarsFlow.first())
+    }
+
+    @Test
+    fun `a manifest too large to be real fails the load instead of being read whole`() = runBlocking {
+        val jar = File(pluginsDir, "huge.jar")
+        JarOutputStream(jar.outputStream()).use { archive ->
+            archive.putNextEntry(JarEntry(PLUGIN_MANIFEST_PATH))
+            archive.write(ByteArray(MAX_PLUGIN_MANIFEST_BYTES + 1) { ' '.code.toByte() })
+            archive.closeEntry()
+        }
+
+        repository.loadPlugin(jar.absolutePath, expectedSha256 = null)
+
+        assertTrue(repository.failedJarsFlow.first().single().reason.contains("larger than"))
     }
 
     private companion object {
