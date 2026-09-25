@@ -1,6 +1,9 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
 
 /**
  * Reports the jars directly in [directory] that were added, changed or removed, once they have
@@ -40,12 +43,22 @@ internal class PluginJarDirectoryPoller(private val directory: File) {
 
     /** The jars in [directory], or null when it cannot be listed. */
     private fun stamps(): Map<String, JarStamp>? = directory.listFiles { file -> file.isFile && file.extension == "jar" }
-        ?.associate { it.absolutePath to JarStamp(sizeBytes = it.length(), lastModifiedMillis = it.lastModified()) }
+        ?.associate { it.absolutePath to JarStamp(sizeBytes = it.length(), lastModifiedMillis = it.lastModified(), fileKey = fileKeyOf(it)) }
 
-    private data class JarStamp(val sizeBytes: Long, val lastModifiedMillis: Long)
+    /**
+     * The file system's identity for [file] (an inode on POSIX), which changes when a file is replaced
+     * by a rename even if its size and modification time were kept; null where the platform has none.
+     */
+    private fun fileKeyOf(file: File): Any? = try {
+        Files.readAttributes(file.toPath(), BasicFileAttributes::class.java).fileKey()
+    } catch (_: IOException) {
+        null
+    }
+
+    private data class JarStamp(val sizeBytes: Long, val lastModifiedMillis: Long, val fileKey: Any?)
 
     private companion object {
         /** Differs from every real stamp and from absence, so the path always reads as changed. */
-        val UNHANDLED = JarStamp(sizeBytes = -1, lastModifiedMillis = -1)
+        val UNHANDLED = JarStamp(sizeBytes = -1, lastModifiedMillis = -1, fileKey = null)
     }
 }

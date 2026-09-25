@@ -202,9 +202,10 @@ class DefaultPluginTrustService(
 
     override suspend fun revokeTrust(jarPath: String): Unit = jarStateMutex.withLock {
         pluginTrustRepository.revoke(jarPath)
-        // Unload everything this jar provided so revoking trust takes effect immediately, without a
-        // restart. The jar file itself stays in the directory, so it becomes untrusted-but-present.
-        pluginFactoryRepository.unloadPluginJar(jarPath)
+        // Dispose and unload everything this jar provided, as a deletion does, so revoking trust takes
+        // effect immediately, without a restart. The jar file itself stays in the directory, so it
+        // becomes untrusted-but-present.
+        pluginJarSwapService.remove(jarPath)
         if (File(jarPath).exists()) {
             untrustedJarPathsFlow.update { if (jarPath in it) it else it + jarPath }
         }

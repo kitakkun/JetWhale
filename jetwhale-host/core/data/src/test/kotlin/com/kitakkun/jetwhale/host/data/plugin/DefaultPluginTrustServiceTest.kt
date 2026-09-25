@@ -245,6 +245,17 @@ class DefaultPluginTrustServiceTest {
     }
 
     @Test
+    fun `revoking trust disposes the jar's running plugins as a deletion does`() = runBlocking {
+        val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
+        trustRepository.entries[jar.absolutePath] = TrustedPluginEntry(jar.absolutePath, sha256Of(jar), 0L)
+
+        service.revokeTrust(jar.absolutePath)
+
+        assertEquals(listOf(jar.absolutePath), swapService.removedJarPaths)
+        assertEquals(listOf(jar.absolutePath), service.untrustedJarPathsFlow.first())
+    }
+
+    @Test
     fun `a manifest too large to be real is reported as unreadable without being read whole`() = runBlocking {
         val jar = pluginJar("huge.jar", " ".repeat(MAX_PLUGIN_MANIFEST_BYTES + 1))
 
