@@ -2,7 +2,10 @@ package com.kitakkun.jetwhale.host.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.SaverScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ComposeUiTest
@@ -60,6 +63,30 @@ class JwTableColumnResizeTest {
         drag("Name", by = 1_000f)
 
         assertClose(JwTableDefaults.minColumnWidth, state.laidOutWidths.getValue("Value"))
+    }
+
+    @Test
+    fun `a dragged width gives way when the table gets narrower`() = runComposeUiTest {
+        val state = JwTableColumnState(mapOf("Name" to 300.dp))
+        var tableWidth by mutableStateOf(TABLE_WIDTH)
+        setContent {
+            JwTheme(darkTheme = false) {
+                Box(Modifier.requiredSize(width = tableWidth, height = 300.dp)) {
+                    JwTable(
+                        items = listOf("alpha"),
+                        columns = listOf(textColumn("Name", JwColumnWidth.Weight(1f)), textColumn("Value", JwColumnWidth.Weight(1f))),
+                        columnState = state,
+                    )
+                }
+            }
+        }
+        waitForIdle()
+
+        tableWidth = 200.dp
+        waitForIdle()
+
+        assertClose(JwTableDefaults.minColumnWidth, state.laidOutWidths.getValue("Value"))
+        assertEquals(300.dp, state.widths.getValue("Name"), "the user's width is kept for when the table is wide again")
     }
 
     @Test

@@ -230,17 +230,19 @@ public fun <T> JwTable(
             columns.forEach { column ->
                 Cell(
                     column = column,
+                    columns = columns,
                     columnState = columnState,
                     modifier = Modifier.onSizeChanged { columnState.laidOutWidths[column.header] = with(density) { it.width.toDp() } },
                 ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.CenterStart) {
+                    // The handle overlaps the header's end rather than taking width from it: it is
+                    // invisible until hovered, and a narrow column needs every dp for its name.
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = column.contentAlignment()) {
                         JwText(
                             text = column.header,
                             style = JwTheme.textStyles.labelSmall,
                             color = JwTheme.colors.textSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(end = JwTableDefaults.resizeHandleWidth),
                         )
                         ResizeHandle(column = column, columns = columns, columnState = columnState, modifier = Modifier.align(Alignment.CenterEnd))
                     }
@@ -260,7 +262,7 @@ public fun <T> JwTable(
             items(items = items, key = key) { item ->
                 val cells: @Composable RowScope.() -> Unit = {
                     columns.forEach { column ->
-                        Cell(column = column, columnState = columnState) { column.cell(item) }
+                        Cell(column = column, columns = columns, columnState = columnState) { column.cell(item) }
                     }
                 }
                 if (onClick == null) {
@@ -312,7 +314,7 @@ private fun <T> ResizeHandle(
     val dragged by interactionSource.collectIsDraggedAsState()
     val dragState = rememberDraggableState(
         onDelta = onDelta@{ deltaPx ->
-            val current = columnState.widths[column.header] ?: columnState.laidOutWidths[column.header] ?: return@onDelta
+            val current = columnState.shownWidth(column, columns) ?: columnState.laidOutWidths[column.header] ?: return@onDelta
             val growth = with(density) { deltaPx.toDp() }
             val widest = columnState.widest(column, columns).coerceAtLeast(column.minWidth)
             columnState.widths += column.header to (current + growth).coerceIn(column.minWidth, widest)
@@ -354,6 +356,18 @@ private fun <T> JwTableColumnState.widest(column: JwTableColumn<T>, columns: Lis
 }
 
 /**
+ * The width a user-sized [column] is laid out at: what the user set, but no wider than the row now
+ * allows, so a width dragged in a wide window does not push the other columns out of a narrow one.
+ * Null for a column the user has not sized.
+ */
+private fun <T> JwTableColumnState.shownWidth(column: JwTableColumn<T>, columns: List<JwTableColumn<T>>): Dp? {
+    val set = widths[column.header] ?: return null
+    // Before the header row is measured there is nothing to fit into yet.
+    if (rowWidth == 0.dp) return set
+    return set.coerceAtMost(widest(column, columns).coerceAtLeast(column.minWidth))
+}
+
+/**
  * Finishes a double-click fit: gives the rows a frame to report their content widths for the column
  * being fitted, then sets the column to the widest of them.
  */
@@ -374,11 +388,12 @@ private fun <T> FitColumnEffect(columns: List<JwTableColumn<T>>, columnState: Jw
 @Composable
 private fun <T> RowScope.Cell(
     column: JwTableColumn<T>,
+    columns: List<JwTableColumn<T>>,
     columnState: JwTableColumnState,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val sizing = when (val width = columnState.widths[column.header]?.let(JwColumnWidth::Fixed) ?: column.width) {
+    val sizing = when (val width = columnState.shownWidth(column, columns)?.let(JwColumnWidth::Fixed) ?: column.width) {
         is JwColumnWidth.Fixed -> Modifier.width(width.width)
         is JwColumnWidth.Weight -> Modifier.weight(width.weight)
     }
@@ -400,12 +415,15 @@ private fun <T> RowScope.Cell(
     }
     Box(
         modifier = modifier.then(sizing).then(overflow).then(fitProbe),
-        contentAlignment = when (column.alignment) {
-            Alignment.End -> Alignment.CenterEnd
-            Alignment.CenterHorizontally -> Alignment.Center
-            else -> Alignment.CenterStart
-        },
+        contentAlignment = column.contentAlignment(),
     ) {
         CompositionLocalProvider(LocalJwColumnOverflow provides column.overflow, content = content)
     }
+}
+
+/** Where content sits in a cell of this column, vertically centered in the row. */
+private fun JwTableColumn<*>.contentAlignment(): Alignment = when (alignment) {
+    Alignment.End -> Alignment.CenterEnd
+    Alignment.CenterHorizontally -> Alignment.Center
+    else -> Alignment.CenterStart
 }
