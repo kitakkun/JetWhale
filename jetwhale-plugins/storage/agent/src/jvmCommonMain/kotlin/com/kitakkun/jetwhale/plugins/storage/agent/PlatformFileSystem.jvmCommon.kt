@@ -97,5 +97,8 @@ private fun File.isSymbolicLinkIn(canonicalParent: File): Boolean {
     // Not Files.isSymbolicLink: java.nio.file arrives on Android only at API 26, and this code runs
     // down to API 23.
     val inCanonicalParent = File(canonicalParent, name)
-    return inCanonicalParent.canonicalFile != inCanonicalParent.absoluteFile
+    if (inCanonicalParent.canonicalFile != inCanonicalParent.absoluteFile) return true
+    // Canonicalization leaves a link whose target is missing unresolved, and exists() follows it.
+    // An entry the directory lists but that does not exist can only be such a link.
+    return !exists() && canonicalParent.list().orEmpty().contains(name)
 }
