@@ -61,14 +61,16 @@ internal class MirrorTools(
     companion object {
         fun locate(): MirrorTools {
             val home = System.getProperty("user.home")
+            val adb = if (System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)) "adb.exe" else "adb"
             val sdkDirectories = listOfNotNull(
                 System.getenv("ANDROID_HOME"),
                 System.getenv("ANDROID_SDK_ROOT"),
                 "$home/Library/Android/sdk",
                 "$home/Android/Sdk",
+                System.getenv("LOCALAPPDATA")?.let { "$it/Android/Sdk" },
             )
             return MirrorTools(
-                adb = sdkDirectories.map { "$it/platform-tools/adb" }.firstOrNull(::isExecutable) ?: onPath("adb"),
+                adb = sdkDirectories.map { "$it/platform-tools/$adb" }.firstOrNull(::isExecutable) ?: onPath(adb),
                 idb = onPath("idb"),
                 idbCompanion = onPath("idb_companion"),
                 xcrun = "/usr/bin/xcrun".takeIf(::isExecutable),
