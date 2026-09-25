@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.data.plugin
 
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -72,6 +73,21 @@ class PluginJarDirectoryPollerTest {
         check(hidden.renameTo(directory))
         assertEquals(emptySet(), poller.poll())
         assertEquals(true, installed.exists())
+    }
+
+    @Test
+    fun `a jar replaced by a rename that keeps its size and time is reported`() {
+        val installed = jar("installed.jar", byteArrayOf(1, 2), modifiedAt = 1_000)
+        val poller = PluginJarDirectoryPoller(directory)
+        val replacement = File(directory, "replacement.tmp").apply {
+            writeBytes(byteArrayOf(3, 4))
+            setLastModified(1_000)
+        }
+
+        Files.move(replacement.toPath(), installed.toPath(), StandardCopyOption.REPLACE_EXISTING)
+
+        assertEquals(emptySet(), poller.poll())
+        assertEquals(setOf(installed.absolutePath), poller.poll())
     }
 
     @Test
