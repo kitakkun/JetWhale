@@ -90,7 +90,8 @@ internal fun BackgroundWorkScreen(
         FilterRow(filter = filter, onFilterChange = actions::changeFilter)
         WorkContent(snapshot = snapshot, visibleItems = visibleItems, selectedItem = selectedItem, history = history, actions = actions)
     }
-    if (cancellingUnique) {
+    // A later snapshot can take away the last source that cancels by unique name.
+    if (cancellingUnique && uniqueNameSources.isNotEmpty()) {
         CancelUniqueWorkDialog(
             sourceNames = uniqueNameSources.map(WorkSourceInfo::name),
             onCancel = { source, target ->
