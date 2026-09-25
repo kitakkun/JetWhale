@@ -5,6 +5,7 @@ import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import org.slf4j.LoggerFactory
+import java.io.IOException
 import java.net.DatagramSocket
 import java.net.Inet4Address
 import java.net.InetAddress
@@ -48,7 +49,7 @@ private fun routedSourceAddress(): InetAddress? = try {
         socket.connect(InetAddress.getByName(ROUTE_PROBE_ADDRESS), 9)
         socket.localAddress
     }
-} catch (_: Exception) {
+} catch (_: IOException) {
     null
 }
 
@@ -86,6 +87,7 @@ class JmDnsRegistrar : MdnsRegistrar {
 
     override fun register(instanceName: String, wsPort: Int, wssPort: Int?) {
         unregister()
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             val address = primaryMulticastAddress()
             if (address == null) {
@@ -117,6 +119,8 @@ class JmDnsRegistrar : MdnsRegistrar {
 
     override fun unregister() {
         registeredService?.let { service ->
+            // Unregistering is best effort: whatever jmDNS throws, shutting down or re-registering goes on.
+            @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             try {
                 jmdns?.unregisterService(service)
             } catch (e: Exception) {
@@ -133,7 +137,7 @@ class JmDnsRegistrar : MdnsRegistrar {
         jmdns = null
         try {
             instance.close()
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             logger.warn("Failed to close jmDNS", e)
         }
     }

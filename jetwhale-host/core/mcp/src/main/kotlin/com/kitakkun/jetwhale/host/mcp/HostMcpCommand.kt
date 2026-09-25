@@ -51,6 +51,7 @@ abstract class HostMcpCommand :
             inputSchema = descriptor.toToolSchema(),
             permission = McpToolPermission.HostGroup(group),
         ) { request ->
+            @Suppress("KOTRAIL_CATCH_TOO_BROAD")
             try {
                 val result = execute(JetWhaleMcpArguments(JsonObject(request.arguments ?: emptyMap())))
                 CallToolResult(content = listOf(TextContent(result)))

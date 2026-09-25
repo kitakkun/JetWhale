@@ -131,9 +131,11 @@ internal class NodeHighlightOverlay {
     private fun moveToCurrentBounds() {
         val rootView = attachedRootRef?.get() ?: return
         val current = drawable ?: return
+
         // Runs from a posted callback with nothing above it to catch: a composition disposed between
         // frames can make the lookup throw, and an exception here would take the app down. A node
         // that cannot be resolved is a node that is gone.
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         val bounds = try {
             resolveBounds?.invoke()
         } catch (_: Throwable) {

@@ -120,6 +120,8 @@ class KtorWebSocketServer(
 
     suspend fun start(host: String, port: Int, wssPort: Int?) {
         mutableStatusFlow.update { DebugWebSocketServerStatus.Starting }
+        // Every start failure (a taken port, a bad certificate, the engine itself) is shown as the server's Error status.
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             currentHost = host
             currentPort = port

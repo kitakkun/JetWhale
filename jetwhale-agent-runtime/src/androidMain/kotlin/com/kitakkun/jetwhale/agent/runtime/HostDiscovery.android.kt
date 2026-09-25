@@ -80,7 +80,7 @@ internal actual suspend fun browseJetWhaleServices(timeoutMillis: Long): Discove
             continuation.invokeOnCancellation {
                 try {
                     nsdManager.stopServiceDiscovery(discoveryListener)
-                } catch (e: Exception) {
+                } catch (e: IllegalArgumentException) {
                     JetWhaleLogger.d("Failed to stop mDNS discovery", e)
                 }
             }
@@ -106,7 +106,7 @@ private fun currentApplicationContext(): Context? = try {
     Class.forName("android.app.ActivityThread")
         .getMethod("currentApplication")
         .invoke(null) as? Context
-} catch (e: Exception) {
+} catch (e: ReflectiveOperationException) {
     JetWhaleLogger.d("Reflective Context lookup failed", e)
     null
 }

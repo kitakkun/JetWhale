@@ -118,6 +118,7 @@ class DefaultPluginInstanceService(
     private fun createInstanceIfAbsent(pluginId: String, sessionId: String, loaded: LoadedHostPlugin): Boolean {
         val key = PluginInstanceKey(pluginId, sessionId)
         var created = false
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             loadedPlugins.computeIfAbsent(key) {
                 created = true
@@ -212,6 +213,7 @@ class DefaultPluginInstanceService(
 
     /** Runs the plugin's `onCreate`; a throwing plugin must not abort loading for the caller. */
     private fun dispatchCreateGuarded(plugin: JetWhaleHostPlugin, descriptor: String) {
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             plugin.dispatchCreate()
         } catch (e: Throwable) {
@@ -250,6 +252,7 @@ class DefaultPluginInstanceService(
 
     private fun disposeInstance(key: PluginInstanceKey, emitEvent: Boolean = true) {
         val removed = loadedPlugins.remove(key) ?: return
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             removed.plugin.dispatchDispose()
         } catch (e: Throwable) {

@@ -29,7 +29,7 @@ public val JetWhaleJson: Json = Json {
 @InternalJetWhaleApi
 public inline fun <reified T> Json.decodeFromStringOrNull(value: String): T? = try {
     decodeFromString<T>(value)
-} catch (_: Throwable) {
+} catch (_: IllegalArgumentException) {
     null
 }
 
@@ -40,7 +40,7 @@ public inline fun <reified T> Json.decodeFromStringOrNull(value: String): T? = t
 @InternalJetWhaleApi
 public fun <T> Json.decodeFromStringOrNull(deserializer: DeserializationStrategy<T>, value: String): T? = try {
     decodeFromString(deserializer, value)
-} catch (_: Throwable) {
+} catch (_: IllegalArgumentException) {
     null
 }
 
@@ -51,7 +51,7 @@ public fun <T> Json.decodeFromStringOrNull(deserializer: DeserializationStrategy
 @InternalJetWhaleApi
 public inline fun <reified T> Json.encodeToStringOrNull(value: T): String? = try {
     encodeToString(value)
-} catch (_: Throwable) {
+} catch (_: IllegalArgumentException) {
     null
 }
 
@@ -61,7 +61,7 @@ public inline fun <reified T> Json.encodeToStringOrNull(value: T): String? = try
  */
 @InternalJetWhaleApi
 public inline fun <reified T> Json.encodeToStringOrNull(serializer: SerializationStrategy<T>, value: T): String? = try {
-    encodeToString(value)
-} catch (_: Throwable) {
+    encodeToString(serializer, value)
+} catch (_: IllegalArgumentException) {
     null
 }

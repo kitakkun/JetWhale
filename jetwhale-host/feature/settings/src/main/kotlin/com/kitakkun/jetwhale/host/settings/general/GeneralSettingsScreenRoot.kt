@@ -10,7 +10,9 @@ import soil.query.compose.rememberQuery
 import soil.query.compose.rememberSubscription
 import java.awt.Desktop
 import java.io.File
+import java.io.IOException
 import java.net.URI
+import java.util.logging.Logger
 
 @Composable
 context(screenContext: SettingsScreenContext)
@@ -56,8 +58,10 @@ fun GeneralSettingsScreenRoot(
                 val path = uiState.appDataPath.replace("~", System.getProperty("user.home"))
                 try {
                     Desktop.getDesktop().open(File(path))
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                } catch (e: IOException) {
+                    logger.warning("Could not open $path: ${e.message}")
+                } catch (e: UnsupportedOperationException) {
+                    logger.warning("This desktop cannot open folders: ${e.message}")
                 }
             },
             onClickOpenLogViewer = onOpenLogViewer,
@@ -76,10 +80,14 @@ fun GeneralSettingsScreenRoot(
             onClickOpenDownloadPage = { url ->
                 try {
                     Desktop.getDesktop().browse(URI(url))
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                } catch (e: IOException) {
+                    logger.warning("Could not open $url: ${e.message}")
+                } catch (e: UnsupportedOperationException) {
+                    logger.warning("This desktop cannot open links: ${e.message}")
                 }
             },
         )
     }
 }
+
+private val logger: Logger = Logger.getLogger("com.kitakkun.jetwhale.host.settings.GeneralSettingsScreenRoot")

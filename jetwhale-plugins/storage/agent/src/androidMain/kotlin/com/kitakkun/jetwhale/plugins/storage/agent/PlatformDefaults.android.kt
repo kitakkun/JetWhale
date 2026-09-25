@@ -56,6 +56,6 @@ private class SharedPreferencesStore(
  */
 private fun currentApplicationOrNull(): Context? = try {
     Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null) as? Application
-} catch (_: Exception) {
+} catch (_: ReflectiveOperationException) {
     null
 }

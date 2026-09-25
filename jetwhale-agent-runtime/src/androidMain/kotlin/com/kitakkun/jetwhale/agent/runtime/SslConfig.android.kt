@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.agent.runtime
 import io.ktor.client.engine.HttpClientEngineConfig
 import io.ktor.client.engine.cio.CIOEngineConfig
 import java.io.ByteArrayInputStream
+import java.security.GeneralSecurityException
 import java.security.KeyStore
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
@@ -33,7 +34,7 @@ internal actual fun HttpClientEngineConfig.configureSsl(sslConfiguration: JetWha
 
     val trustManager = try {
         createTrustManager(sslConfiguration.trustedCertificates)
-    } catch (e: Exception) {
+    } catch (e: GeneralSecurityException) {
         // An invalid PEM must not take the whole connection down in a non-obvious way; fall back to
         // system trust evaluation with an explicit warning instead.
         JetWhaleLogger.w("Failed to build a trust manager from the configured certificates; falling back to system trust evaluation.", e)

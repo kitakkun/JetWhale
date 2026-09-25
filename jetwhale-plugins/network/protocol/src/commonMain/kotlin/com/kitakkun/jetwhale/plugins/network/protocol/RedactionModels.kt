@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.network.protocol
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -120,7 +121,7 @@ private fun List<RedactionRule>.redactBody(body: String, headers: Map<String, Li
     if (headers.mediaType() == FORM_URLENCODED_MEDIA_TYPE) return redactFormBody(body)
     val element = try {
         Json.parseToJsonElement(body).takeIf { it is JsonObject || it is JsonArray } ?: return body
-    } catch (_: Exception) {
+    } catch (_: SerializationException) {
         return body
     }
     return Json.encodeToString(JsonElement.serializer(), redactFields(element))

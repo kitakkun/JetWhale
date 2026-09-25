@@ -17,6 +17,8 @@ class DefaultServerSessionNegotiationStrategy(
 ) : ServerSessionNegotiationStrategy {
     context(logger: Logger)
     override suspend fun DefaultWebSocketServerSession.negotiate(): ServerSessionNegotiationResult {
+        // A failure in any negotiation step fails this session, and is reported as its result.
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             with(protocolNegotiationStrategy) { negotiate() }
 

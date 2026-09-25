@@ -13,6 +13,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.net.InetAddress
+import java.net.UnknownHostException
 
 /**
  * A [HostDiscoveryAdvertiser] that observes the debug server status and keeps a `_jetwhale._tcp`
@@ -90,7 +91,7 @@ class DefaultHostDiscoveryAdvertiser(
      */
     private fun instanceName(): String = try {
         InetAddress.getLocalHost().hostName.substringBefore('.').ifEmpty { DEFAULT_INSTANCE_NAME }
-    } catch (e: Exception) {
+    } catch (e: UnknownHostException) {
         logger.debug("Could not resolve local hostname for mDNS instance name; using default", e)
         DEFAULT_INSTANCE_NAME
     }

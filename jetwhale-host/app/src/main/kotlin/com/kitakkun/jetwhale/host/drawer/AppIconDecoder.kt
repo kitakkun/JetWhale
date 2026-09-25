@@ -20,7 +20,7 @@ internal fun decodeIconOrNull(base64Png: String): ImageBitmap? {
     return try {
         val bytes = Base64.getDecoder().decode(base64Png)
         Image.makeFromEncoded(bytes).toComposeImageBitmap()
-    } catch (_: Throwable) {
+    } catch (_: IllegalArgumentException) {
         null
     }
 }

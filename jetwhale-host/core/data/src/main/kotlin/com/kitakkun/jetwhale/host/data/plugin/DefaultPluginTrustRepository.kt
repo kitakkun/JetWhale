@@ -70,6 +70,7 @@ class DefaultPluginTrustRepository(
     private fun readFromDisk(): Map<String, TrustedPluginEntry> {
         val file = appDataDirectoryProvider.getTrustRegistryFile()
         if (!file.exists()) return emptyMap()
+        @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         return try {
             val registry = json.decodeFromString<TrustRegistryFile>(file.readText())
             // Verify the HMAC over the exact re-encoding of the entries map — the same string
