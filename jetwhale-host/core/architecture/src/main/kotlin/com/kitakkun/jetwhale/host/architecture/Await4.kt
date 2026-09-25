@@ -53,7 +53,7 @@ inline fun <T1, T2, T3, T4> Await(
         is Reply.Some -> content(reply.value.first, reply.value.second, reply.value.third, reply.value.fourth)
         is Reply.None -> Catch(state1, state2, state3, state4, filter = errorPredicate, content = errorFallback)
     }
-    LaunchedEffect(id, state1, state2, state3, state4) {
+    LaunchedEffect(id, host, state1, state2, state3, state4) {
         host[id] = listOf(state1, state2, state3, state4).any { it.isAwaited() }
     }
     DisposableEffect(id, host) {
