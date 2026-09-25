@@ -42,6 +42,7 @@ import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
 import com.kitakkun.jetwhale.host.ui.JwTable
 import com.kitakkun.jetwhale.host.ui.JwTableColumn
+import com.kitakkun.jetwhale.host.ui.JwTableColumnState
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwTagStyle
 import com.kitakkun.jetwhale.host.ui.JwText
@@ -72,6 +73,7 @@ internal fun TrafficTab(
     transactions: List<HttpTransaction>,
     selectedTxId: String?,
     splitPaneState: JwSplitPaneState,
+    columnState: JwTableColumnState,
     onSelectTx: (String) -> Unit,
     onClear: () -> Unit,
     onCreateMock: (HttpTransaction) -> Unit,
@@ -123,6 +125,7 @@ internal fun TrafficTab(
                 TrafficList(
                     transactions = visible,
                     selectedTxId = selectedTxId,
+                    columnState = columnState,
                     onSelectTx = onSelectTx,
                 )
             },
@@ -140,6 +143,7 @@ internal fun TrafficTab(
 private fun TrafficList(
     transactions: List<HttpTransaction>,
     selectedTxId: String?,
+    columnState: JwTableColumnState,
     onSelectTx: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -161,6 +165,7 @@ private fun TrafficList(
         isSelected = { it.txId == selectedTxId },
         onClick = { onSelectTx(it.txId) },
         state = listState,
+        columnState = columnState,
         modifier = modifier
             .fillMaxSize()
             .focusable()

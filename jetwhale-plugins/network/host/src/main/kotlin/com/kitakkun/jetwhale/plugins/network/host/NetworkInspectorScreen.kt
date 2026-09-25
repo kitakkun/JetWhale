@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import com.kitakkun.jetwhale.host.ui.JwSplitPaneState
 import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
+import com.kitakkun.jetwhale.host.ui.JwTableColumnState
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
@@ -24,6 +25,7 @@ fun NetworkInspectorScreen(
     mockRules: List<MockRule>,
     mockingEnabled: Boolean,
     trafficSplitPaneState: JwSplitPaneState,
+    trafficColumnState: JwTableColumnState,
     onClearTransactions: () -> Unit,
     onToggleMocking: (Boolean) -> Unit,
     onMockRulesChanged: (List<MockRule>) -> Unit,
@@ -53,6 +55,7 @@ fun NetworkInspectorScreen(
                 transactions = transactions,
                 selectedTxId = selectedTxId,
                 splitPaneState = trafficSplitPaneState,
+                columnState = trafficColumnState,
                 onSelectTx = { selectedTxId = it },
                 onClear = onClearTransactions,
                 onCreateMock = { tx ->
