@@ -10,10 +10,12 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMessagingHostPlugin
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.ClearLongRuns
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.ClearedLongRuns
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDetail
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDump
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineTree
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStatsReport
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.DumpCoroutines
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.GetCoroutineDetail
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.GetCoroutineTree
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.GetDispatcherStats
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.GetTrackedFlows
@@ -43,6 +45,8 @@ private class CoroutineInspectorHostPlugin :
 
     override suspend fun dump(): CoroutineDump = messenger.request(DumpCoroutines)
 
+    override suspend fun coroutineDetail(id: String): CoroutineDetail = messenger.request(GetCoroutineDetail(id))
+
     override suspend fun clearLongRuns(): ClearedLongRuns = messenger.request(ClearLongRuns)
 
     @Composable
@@ -54,6 +58,7 @@ private class CoroutineInspectorHostPlugin :
         GetCoroutineTreeCommand(this),
         GetDispatcherStatsCommand(this),
         GetTrackedFlowsCommand(this),
+        GetCoroutineDetailCommand(this),
         DumpCoroutinesCommand(this),
     )
 }

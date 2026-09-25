@@ -1,7 +1,10 @@
 package com.kitakkun.jetwhale.plugins.coroutines.host
 
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.ClearedLongRuns
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDetail
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDump
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineNode
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineState
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineTree
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStatsReport
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.TrackedFlowReport
@@ -22,7 +25,7 @@ class CoroutineInspectorStateTest {
         override suspend fun coroutineTree(): CoroutineTree {
             calls += "tree"
             if (!reachable) throw JetWhaleMessagingException("offline")
-            return CoroutineTree(roots = emptyList(), coroutineCount = 0, truncated = false, capturedAtEpochMillis = 0)
+            return CoroutineTree(roots = treeRoots, coroutineCount = 0, truncated = false, capturedAtEpochMillis = 0)
         }
 
         override suspend fun dispatcherStats(): DispatcherStatsReport {
@@ -41,6 +44,13 @@ class CoroutineInspectorStateTest {
         }
 
         override suspend fun clearLongRuns(): ClearedLongRuns = ClearedLongRuns(cleared = 3)
+
+        var treeRoots = listOf(node("c1", "Application", CoroutineState.Active, 0, node("c2", "sync", CoroutineState.Active, 0)))
+
+        override suspend fun coroutineDetail(id: String): CoroutineDetail {
+            calls += "detail:$id"
+            return CoroutineDetail(id = id, found = true, debugState = null, suspensionStack = emptyList(), creationStack = emptyList(), stackUnavailableReason = "no probes")
+        }
     }
 
     private val client = FlakyClient()
@@ -105,6 +115,58 @@ class CoroutineInspectorStateTest {
         gate.complete(Unit)
 
         assertEquals(2, clearingState.dispatchers?.capturedAtEpochMillis)
+    }
+
+    @Test
+    fun `selecting a coroutine reads its detail and keeps where it lives`() {
+        client.reachable = true
+        state.refresh(InspectorTab.Coroutines)
+
+        state.select("c2")
+
+        assertEquals("c2", state.detail?.id)
+        assertEquals(listOf("c1"), state.lastSeenSelection?.ancestors?.map(CoroutineNode::id))
+    }
+
+    @Test
+    fun `a selected coroutine that disappears from the tree stays selected with how it last looked`() {
+        client.reachable = true
+        state.refresh(InspectorTab.Coroutines)
+        state.select("c2")
+
+        client.treeRoots = listOf(node("c1", "Application", CoroutineState.Active, 0))
+        state.refresh(InspectorTab.Coroutines)
+
+        assertEquals("c2", state.selectedId)
+        assertEquals("sync", state.lastSeenSelection?.node?.name)
+    }
+
+    @Test
+    fun `a detail that arrives after another coroutine was selected is dropped`() {
+        val gate = CompletableDeferred<Unit>()
+        val slowDetail = object : CoroutineInspectorClient by client {
+            override suspend fun coroutineDetail(id: String): CoroutineDetail {
+                if (id == "c1") gate.await()
+                return client.coroutineDetail(id)
+            }
+        }
+        val selectingState = CoroutineInspectorState(slowDetail, CoroutineScope(Dispatchers.Unconfined))
+
+        selectingState.select("c1")
+        selectingState.select("c2")
+        gate.complete(Unit)
+
+        assertEquals("c2", selectingState.detail?.id)
+    }
+
+    @Test
+    fun `clearing the selection forgets the detail`() {
+        state.select("c2")
+
+        state.select(null)
+
+        assertNull(state.detail)
+        assertNull(state.lastSeenSelection)
     }
 
     @Test

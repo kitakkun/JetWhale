@@ -13,15 +13,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.ui.JwCodeBlock
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwSegmentedButtons
 import com.kitakkun.jetwhale.host.ui.JwSpacing
+import com.kitakkun.jetwhale.host.ui.JwSplitPane
 import com.kitakkun.jetwhale.host.ui.JwTag
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
-import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.JwTooltip
 import com.kitakkun.jetwhale.host.ui.JwTreeRow
+import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDetail
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineState
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineTree
 
@@ -42,11 +46,17 @@ private enum class AgeFilter(val label: String, val minObservedMillis: Long?) {
 
 private val FilterFieldWidth = 180.dp
 
+/** The tree gets most of the width; the detail of the selected coroutine reads fine in the rest. */
+private const val TREE_FRACTION = 0.6f
+
 @Composable
 internal fun CoroutinesPane(
     tree: CoroutineTree?,
     collapsed: Set<String>,
     filter: CoroutineFilter,
+    selectedId: String?,
+    lastSeenSelection: CoroutineLocation?,
+    detail: CoroutineDetail?,
     actions: CoroutineInspectorActions,
     onFilterChange: (CoroutineFilter) -> Unit,
     modifier: Modifier = Modifier,
@@ -58,23 +68,51 @@ internal fun CoroutinesPane(
 
             tree.roots.isEmpty() -> JwEmptyState(
                 title = "No scopes registered",
-                description = "The app shows its coroutines by registering scopes: inspector.register(applicationScope, name = \"Application\").",
+                description = "The inspector shows the coroutines below the scopes the app registers. Register the scopes you want to watch where the app creates them:",
+                action = { JwCodeBlock(text = REGISTER_SNIPPET, copyLabel = "Copy") },
             )
 
-            else -> {
-                JwText(
-                    text = buildString {
-                        append("${tree.coroutineCount} coroutines")
-                        if (tree.truncated) append(" — the app has more; only the first ${tree.coroutineCount} are shown")
-                    },
-                    style = JwTheme.textStyles.labelSmall,
-                    color = JwTheme.colors.textSecondary,
-                    modifier = Modifier.padding(horizontal = JwSpacing.large, vertical = JwSpacing.small),
+            else -> JwSplitPane(
+                state = rememberJwSplitPaneState(TREE_FRACTION),
+                first = { CoroutineTreeList(tree = tree, collapsed = collapsed, filter = filter, selectedId = selectedId, actions = actions) },
+                second = {
+                    CoroutineDetailPane(
+                        current = selectedId?.let { findCoroutine(tree.roots, it) },
+                        lastSeen = lastSeenSelection,
+                        detail = detail,
+                        onReloadStack = actions::reloadDetail,
+                    )
+                },
+            )
+        }
+    }
+}
+
+private const val REGISTER_SNIPPET = """inspector.register(applicationScope, name = "Application")
+inspector.register(viewModelScope, name = "HomeViewModel")"""
+
+@Composable
+private fun CoroutineTreeList(tree: CoroutineTree, collapsed: Set<String>, filter: CoroutineFilter, selectedId: String?, actions: CoroutineInspectorActions) {
+    Column(Modifier.fillMaxSize()) {
+        JwText(
+            text = buildString {
+                append("${tree.coroutineCount} coroutines")
+                if (tree.truncated) append(" — the app has more; only the first ${tree.coroutineCount} are shown")
+                append(" · Click one for its details")
+            },
+            style = JwTheme.textStyles.labelSmall,
+            color = JwTheme.colors.textSecondary,
+            modifier = Modifier.padding(horizontal = JwSpacing.large, vertical = JwSpacing.small),
+        )
+        val rows = flattenCoroutineTree(filterCoroutineTree(tree.roots, filter), collapsed)
+        LazyColumn(Modifier.fillMaxSize()) {
+            items(rows, key = CoroutineRow::rowId) { row ->
+                CoroutineTreeRow(
+                    row = row,
+                    selected = row.node.id == selectedId,
+                    onSelect = { actions.select(row.node.id) },
+                    onToggle = { actions.toggleCollapsed(row.rowId) },
                 )
-                val rows = flattenCoroutineTree(filterCoroutineTree(tree.roots, filter), collapsed)
-                LazyColumn(Modifier.fillMaxSize()) {
-                    items(rows, key = CoroutineRow::rowId) { row -> CoroutineTreeRow(row = row, onToggle = { actions.toggleCollapsed(row.rowId) }) }
-                }
             }
         }
     }
@@ -115,29 +153,23 @@ private fun FilterBar(filter: CoroutineFilter, onFilterChange: (CoroutineFilter)
 }
 
 @Composable
-private fun CoroutineTreeRow(row: CoroutineRow, onToggle: () -> Unit) {
+private fun CoroutineTreeRow(row: CoroutineRow, selected: Boolean, onSelect: () -> Unit, onToggle: () -> Unit) {
     val node = row.node
     JwTreeRow(
         text = node.name ?: node.description,
         depth = row.depth,
         expandable = node.children.isNotEmpty(),
         expanded = row.expanded,
-        selected = false,
-        onClick = onToggle,
+        selected = selected,
+        onClick = onSelect,
         onToggleExpanded = onToggle,
         muted = node.name == null,
         trailingContent = {
             node.dispatcher?.let { JwText(text = it, style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary, maxLines = 1) }
             JwText(text = formatObserved(node.observedMillis), style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
-            JwTag(text = node.state.name, tone = node.state.tone())
+            JwTooltip(text = node.state.explanation) {
+                JwTag(text = node.state.label, tone = node.state.tone)
+            }
         },
     )
-}
-
-private fun CoroutineState.tone(): JwTone = when (this) {
-    CoroutineState.Active -> JwTone.Success
-    CoroutineState.New -> JwTone.Info
-    CoroutineState.Cancelling -> JwTone.Warning
-    CoroutineState.Cancelled -> JwTone.Error
-    CoroutineState.Completed -> JwTone.Neutral
 }

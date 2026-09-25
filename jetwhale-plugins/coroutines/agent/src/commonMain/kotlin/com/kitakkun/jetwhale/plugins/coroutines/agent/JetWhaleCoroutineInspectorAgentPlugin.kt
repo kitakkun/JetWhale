@@ -4,9 +4,11 @@ import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.COROUTINES_PLUGIN_ID
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.ClearLongRuns
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.ClearedLongRuns
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDetail
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineTree
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStatsReport
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.DumpCoroutines
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.GetCoroutineDetail
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.GetCoroutineTree
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.GetDispatcherStats
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.GetTrackedFlows
@@ -127,6 +129,13 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
         walker.walk(live, capturedAtEpochMillis = nowEpochMillis())
     }
 
+    /** What can be told about the coroutine the last tree gave [id]; see [GetCoroutineDetail]. */
+    internal suspend fun coroutineDetail(id: String): CoroutineDetail {
+        val job = walkLock.withLock { walker.find(id) }
+            ?: return CoroutineDetail(id = id, found = false, debugState = null, suspensionStack = emptyList(), creationStack = emptyList(), stackUnavailableReason = null)
+        return describeCoroutine(id, job)
+    }
+
     override fun JetWhaleMessageHandlers.configure() {
         onRequest { _: GetCoroutineTree ->
             reply(coroutineTree())
@@ -138,6 +147,7 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
             reply(TrackedFlowReport(flows.load().values.map(FlowRecorder::snapshot).sortedBy(TrackedFlowInfo::name), capturedAtEpochMillis = nowEpochMillis()))
         }
         onRequest { _: DumpCoroutines -> reply(dumpCoroutines()) }
+        onRequest { request: GetCoroutineDetail -> reply(coroutineDetail(request.id)) }
         onRequest { _: ClearLongRuns -> reply(ClearedLongRuns(dispatchers.load().sumOf(DispatcherRecorder::clearLongRuns))) }
     }
 }

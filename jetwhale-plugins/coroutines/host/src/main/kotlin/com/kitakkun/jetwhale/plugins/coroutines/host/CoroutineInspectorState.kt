@@ -4,7 +4,9 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDetail
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDump
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineNode
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineTree
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStatsReport
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.TrackedFlowReport
@@ -29,6 +31,12 @@ internal interface CoroutineInspectorActions {
 
     /** Collapses or expands the row with [rowId], a [CoroutineRow.rowId]. */
     fun toggleCollapsed(rowId: String)
+
+    /** Shows the coroutine with [id], a [CoroutineNode.id], in the detail pane, or nothing when null. */
+    fun select(id: String?)
+
+    /** Reads the selected coroutine's stacks from the app again. */
+    fun reloadDetail()
 
     fun clearLongRuns()
 }
@@ -60,6 +68,20 @@ internal class CoroutineInspectorState(
     var status: InspectorStatus? by mutableStateOf(null)
         private set
 
+    var selectedId: String? by mutableStateOf(null)
+        private set
+
+    /**
+     * Where the selected coroutine was in the latest tree that had it: kept after it disappears, so
+     * the detail pane can still say what it was.
+     */
+    var lastSeenSelection: CoroutineLocation? by mutableStateOf(null)
+        private set
+
+    /** The selected coroutine's stacks, read when it is selected rather than on the tree's timer. */
+    var detail: CoroutineDetail? by mutableStateOf(null)
+        private set
+
     private val refreshes = mutableMapOf<InspectorTab, Job>()
 
     // Bumped when the dispatcher report changes under a read already in flight (clearing long
@@ -75,7 +97,11 @@ internal class CoroutineInspectorState(
 
     private suspend fun read(tab: InspectorTab) {
         when (tab) {
-            InspectorTab.Coroutines -> tree = client.coroutineTree()
+            InspectorTab.Coroutines -> {
+                val read = client.coroutineTree()
+                tree = read
+                selectedId?.let { findCoroutine(read.roots, it) }?.let { lastSeenSelection = it }
+            }
 
             InspectorTab.Dispatchers -> {
                 val generation = dispatcherGeneration
@@ -93,6 +119,25 @@ internal class CoroutineInspectorState(
 
     override fun toggleCollapsed(rowId: String) {
         collapsed = if (rowId in collapsed) collapsed - rowId else collapsed + rowId
+    }
+
+    override fun select(id: String?) {
+        selectedId = id
+        detail = null
+        lastSeenSelection = id?.let { tree?.let { current -> findCoroutine(current.roots, it) } }
+        id?.let(::readDetail)
+    }
+
+    override fun reloadDetail() {
+        selectedId?.let(::readDetail)
+    }
+
+    private fun readDetail(id: String) {
+        launchReporting {
+            val read = client.coroutineDetail(id)
+            // Another coroutine may have been selected while this one was read.
+            if (selectedId == id) detail = read
+        }
     }
 
     override fun clearLongRuns() {

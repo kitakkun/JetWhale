@@ -51,6 +51,49 @@ final class com.kitakkun.jetwhale.plugins.coroutines.protocol/ClearedLongRuns { 
     }
 }
 
+final class com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail { // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail|null[0]
+    constructor <init>(kotlin/String, kotlin/Boolean, kotlin/String?, kotlin.collections/List<kotlin/String>, kotlin.collections/List<kotlin/String>, kotlin/String?) // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.<init>|<init>(kotlin.String;kotlin.Boolean;kotlin.String?;kotlin.collections.List<kotlin.String>;kotlin.collections.List<kotlin.String>;kotlin.String?){}[0]
+
+    final val creationStack // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.creationStack|{}creationStack[0]
+        final fun <get-creationStack>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.creationStack.<get-creationStack>|<get-creationStack>(){}[0]
+    final val debugState // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.debugState|{}debugState[0]
+        final fun <get-debugState>(): kotlin/String? // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.debugState.<get-debugState>|<get-debugState>(){}[0]
+    final val found // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.found|{}found[0]
+        final fun <get-found>(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.found.<get-found>|<get-found>(){}[0]
+    final val id // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.id|{}id[0]
+        final fun <get-id>(): kotlin/String // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.id.<get-id>|<get-id>(){}[0]
+    final val stackUnavailableReason // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.stackUnavailableReason|{}stackUnavailableReason[0]
+        final fun <get-stackUnavailableReason>(): kotlin/String? // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.stackUnavailableReason.<get-stackUnavailableReason>|<get-stackUnavailableReason>(){}[0]
+    final val suspensionStack // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.suspensionStack|{}suspensionStack[0]
+        final fun <get-suspensionStack>(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.suspensionStack.<get-suspensionStack>|<get-suspensionStack>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.component1|component1(){}[0]
+    final fun component2(): kotlin/Boolean // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.component2|component2(){}[0]
+    final fun component3(): kotlin/String? // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.component3|component3(){}[0]
+    final fun component4(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.component4|component4(){}[0]
+    final fun component5(): kotlin.collections/List<kotlin/String> // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.component5|component5(){}[0]
+    final fun component6(): kotlin/String? // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.component6|component6(){}[0]
+    final fun copy(kotlin/String = ..., kotlin/Boolean = ..., kotlin/String? = ..., kotlin.collections/List<kotlin/String> = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/String? = ...): com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.copy|copy(kotlin.String;kotlin.Boolean;kotlin.String?;kotlin.collections.List<kotlin.String>;kotlin.collections.List<kotlin.String>;kotlin.String?){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail> { // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail) // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDetail){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail> // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail.Companion.serializer|serializer(){}[0]
+    }
+}
+
 final class com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDump { // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDump|null[0]
     constructor <init>(kotlin/String, kotlin/String?) // com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDump.<init>|<init>(kotlin.String;kotlin.String?){}[0]
 
@@ -275,6 +318,32 @@ final class com.kitakkun.jetwhale.plugins.coroutines.protocol/FlowValue { // com
 
     final object Companion { // com.kitakkun.jetwhale.plugins.coroutines.protocol/FlowValue.Companion|null[0]
         final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.coroutines.protocol/FlowValue> // com.kitakkun.jetwhale.plugins.coroutines.protocol/FlowValue.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail : com.kitakkun.jetwhale.protocol.messaging/JetWhaleRequest<com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineDetail> { // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail|null[0]
+    constructor <init>(kotlin/String) // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.<init>|<init>(kotlin.String){}[0]
+
+    final val id // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.id|{}id[0]
+        final fun <get-id>(): kotlin/String // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.id.<get-id>|<get-id>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.component1|component1(){}[0]
+    final fun copy(kotlin/String = ...): com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.copy|copy(kotlin.String){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail> { // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail) // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.coroutines.protocol.GetCoroutineDetail){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.Companion|null[0]
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail> // com.kitakkun.jetwhale.plugins.coroutines.protocol/GetCoroutineDetail.Companion.serializer|serializer(){}[0]
     }
 }
 

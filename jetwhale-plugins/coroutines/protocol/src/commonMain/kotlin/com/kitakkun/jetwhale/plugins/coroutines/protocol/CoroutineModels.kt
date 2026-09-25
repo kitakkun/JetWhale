@@ -137,3 +137,27 @@ data class CoroutineDump(
     val text: String,
     val unavailableReason: String?,
 )
+
+/**
+ * What the agent can tell about one coroutine beyond the tree.
+ *
+ * @property found False when the agent no longer knows [id]: the coroutine finished, or its scope
+ *   was dropped, since the tree was read.
+ * @property debugState DebugProbes' view of it — `CREATED`, `RUNNING` or `SUSPENDED` — which tells
+ *   apart what [CoroutineState.Active] cannot; null when there are no stacks.
+ * @property suspensionStack The frames it was last seen at, innermost first: where it is suspended,
+ *   or where it was when it last suspended if it is running now.
+ * @property creationStack The frames that created it, innermost first; empty when DebugProbes do
+ *   not record creation stacks.
+ * @property stackUnavailableReason Why there are no stacks, or null when there are.
+ */
+@SerialName("coroutines/detail")
+@Serializable
+data class CoroutineDetail(
+    val id: String,
+    val found: Boolean,
+    val debugState: String?,
+    val suspensionStack: List<String>,
+    val creationStack: List<String>,
+    val stackUnavailableReason: String?,
+)

@@ -34,6 +34,9 @@ internal class JobTreeWalker(private val nodeLimit: Int) {
         return CoroutineTree(roots = nodes, coroutineCount = walk.count, truncated = walk.truncated, capturedAtEpochMillis = capturedAtEpochMillis)
     }
 
+    /** The job the last walk gave [id], while it is still reachable. */
+    fun find(id: String): Job? = seen.firstNotNullOfOrNull { (reference, sighting) -> if (sighting.id == id) reference.get() else null }
+
     private inner class Walk(private val previous: Map<Job, Sighting>) {
         val sightings = mutableMapOf<Job, Sighting>()
         var count = 0
