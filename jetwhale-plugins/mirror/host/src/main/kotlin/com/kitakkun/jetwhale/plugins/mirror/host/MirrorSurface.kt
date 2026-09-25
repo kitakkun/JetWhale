@@ -43,9 +43,10 @@ internal class MirrorSurface : AutoCloseable {
     // Set by [close]; a decoder still finishing its last frame then writes nothing.
     private var closed = false
 
-    // True while [drawFrame] runs its draw outside the lock; [close] then leaves `front` for the
-    // draw to close when it ends.
-    private var drawing = false
+    // The bitmap [drawFrame] is drawing outside the lock. Whatever retires it meanwhile — a
+    // [clear], a [close] — sets [closeWhenDrawn] and leaves the closing to the draw's end.
+    private var drawn: Bitmap? = null
+    private var closeWhenDrawn = false
 
     /** The size the frames are drawn at, in pixels; the decoder shrinks frames to it. Set by the view. */
     @Volatile
@@ -112,17 +113,15 @@ internal class MirrorSurface : AutoCloseable {
                 readyIsNewer = false
                 window.recordDisplayed()
             }
-            front?.also { drawing = true }
+            front?.also { drawn = it }
         } ?: return
         try {
             draw(bitmap)
         } finally {
             synchronized(lock) {
-                drawing = false
-                if (closed) {
-                    front?.close()
-                    front = null
-                }
+                if (closeWhenDrawn) bitmap.close()
+                closeWhenDrawn = false
+                drawn = null
             }
         }
     }
@@ -134,7 +133,7 @@ internal class MirrorSurface : AutoCloseable {
         synchronized(lock) {
             back?.close()
             ready?.close()
-            retired?.close()
+            retired?.closeUnlessDrawn()
             retired = front
             back = null
             ready = null
@@ -154,16 +153,21 @@ internal class MirrorSurface : AutoCloseable {
             closed = true
             back?.close()
             ready?.close()
-            retired?.close()
-            if (!drawing) front?.close()
+            retired?.closeUnlessDrawn()
+            front?.closeUnlessDrawn()
             back = null
             ready = null
             retired = null
-            if (!drawing) front = null
+            front = null
             readyIsNewer = false
         }
         stats = MirrorStats.Empty
         frameCounter++
+    }
+
+    // Call with [lock] held.
+    private fun Bitmap.closeUnlessDrawn() {
+        if (this === drawn) closeWhenDrawn = true else close()
     }
 
     private fun publishStatsIfDue() {
