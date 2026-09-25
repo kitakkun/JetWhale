@@ -7,20 +7,24 @@ import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineState
  * Which coroutines to show. A condition left null does not filter; [states] empty shows every state.
  *
  * @property minObservedMillis Only coroutines seen at least this long: the ones that may be stuck.
+ * @property namedOnly Only coroutines given a `CoroutineName`. Libraries rarely name theirs, so this
+ *   hides framework coroutines, e.g. the many a Compose UI runs.
  */
 internal data class CoroutineFilter(
     val states: Set<CoroutineState>,
     val nameContains: String?,
     val dispatcherContains: String?,
     val minObservedMillis: Long?,
+    val namedOnly: Boolean,
 ) {
     fun matches(node: CoroutineNode): Boolean = (states.isEmpty() || node.state in states) &&
         (nameContains.isNullOrBlank() || node.name.orEmpty().contains(nameContains, ignoreCase = true) || node.description.contains(nameContains, ignoreCase = true)) &&
         (dispatcherContains.isNullOrBlank() || node.dispatcher.orEmpty().contains(dispatcherContains, ignoreCase = true)) &&
-        (minObservedMillis == null || node.observedMillis >= minObservedMillis)
+        (minObservedMillis == null || node.observedMillis >= minObservedMillis) &&
+        (!namedOnly || node.name != null)
 
     companion object {
-        val None: CoroutineFilter = CoroutineFilter(states = emptySet(), nameContains = null, dispatcherContains = null, minObservedMillis = null)
+        val None: CoroutineFilter = CoroutineFilter(states = emptySet(), nameContains = null, dispatcherContains = null, minObservedMillis = null, namedOnly = false)
     }
 }
 
@@ -36,6 +40,12 @@ internal fun filterCoroutineTree(roots: List<CoroutineNode>, filter: CoroutineFi
         return if (children.isNotEmpty() || filter.matches(node)) node.copy(children = children) else null
     }
     return roots.map { root -> root.copy(children = root.children.mapNotNull(::prune)) }
+}
+
+/** How many coroutines below [roots], the roots included, [filter] matches: the "N" of "N of M". */
+internal fun countMatchingCoroutines(roots: List<CoroutineNode>, filter: CoroutineFilter): Int {
+    fun count(node: CoroutineNode): Int = (if (filter.matches(node)) 1 else 0) + node.children.sumOf(::count)
+    return roots.sumOf(::count)
 }
 
 /**

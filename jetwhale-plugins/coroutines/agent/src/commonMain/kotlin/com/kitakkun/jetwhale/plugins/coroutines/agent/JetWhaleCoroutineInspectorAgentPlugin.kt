@@ -123,11 +123,18 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     }
 
     internal suspend fun coroutineTree(): CoroutineTree = walkLock.withLock {
-        val live = roots.updateAndGet { current -> current.filterValues { it.get() != null } }
-            .mapNotNull { (name, reference) -> reference.get()?.let { name to it } }
-            .toMap()
-        walker.walk(live, capturedAtEpochMillis = nowEpochMillis())
+        walker.walk(liveRoots(), capturedAtEpochMillis = nowEpochMillis())
     }
+
+    internal fun dispatcherStats(): DispatcherStatsReport = DispatcherStatsReport(
+        dispatchers = dispatchers.load().map(DispatcherRecorder::snapshot),
+        untracked = untrackedDispatchers(liveRoots().values, nodeLimit = MAX_TREE_NODES),
+        capturedAtEpochMillis = nowEpochMillis(),
+    )
+
+    private fun liveRoots(): Map<String, Job> = roots.updateAndGet { current -> current.filterValues { it.get() != null } }
+        .mapNotNull { (name, reference) -> reference.get()?.let { name to it } }
+        .toMap()
 
     /** What can be told about the coroutine the last tree gave [id]; see [GetCoroutineDetail]. */
     internal suspend fun coroutineDetail(id: String): CoroutineDetail {
@@ -141,7 +148,7 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
             reply(coroutineTree())
         }
         onRequest { _: GetDispatcherStats ->
-            reply(DispatcherStatsReport(dispatchers.load().map(DispatcherRecorder::snapshot), capturedAtEpochMillis = nowEpochMillis()))
+            reply(dispatcherStats())
         }
         onRequest { _: GetTrackedFlows ->
             reply(TrackedFlowReport(flows.load().values.map(FlowRecorder::snapshot).sortedBy(TrackedFlowInfo::name), capturedAtEpochMillis = nowEpochMillis()))

@@ -262,16 +262,19 @@ final class com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStats { 
 }
 
 final class com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport { // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport|null[0]
-    constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStats>, kotlin/Long) // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStats>;kotlin.Long){}[0]
+    constructor <init>(kotlin.collections/List<com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStats>, kotlin.collections/List<com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher>, kotlin/Long) // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.<init>|<init>(kotlin.collections.List<com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStats>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.coroutines.protocol.UntrackedDispatcher>;kotlin.Long){}[0]
 
     final val capturedAtEpochMillis // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.capturedAtEpochMillis|{}capturedAtEpochMillis[0]
         final fun <get-capturedAtEpochMillis>(): kotlin/Long // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.capturedAtEpochMillis.<get-capturedAtEpochMillis>|<get-capturedAtEpochMillis>(){}[0]
     final val dispatchers // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.dispatchers|{}dispatchers[0]
         final fun <get-dispatchers>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStats> // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.dispatchers.<get-dispatchers>|<get-dispatchers>(){}[0]
+    final val untracked // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.untracked|{}untracked[0]
+        final fun <get-untracked>(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher> // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.untracked.<get-untracked>|<get-untracked>(){}[0]
 
     final fun component1(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStats> // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.component1|component1(){}[0]
-    final fun component2(): kotlin/Long // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.component2|component2(){}[0]
-    final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStats> = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStats>;kotlin.Long){}[0]
+    final fun component2(): kotlin.collections/List<com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher> // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.component2|component2(){}[0]
+    final fun component3(): kotlin/Long // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.component3|component3(){}[0]
+    final fun copy(kotlin.collections/List<com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStats> = ..., kotlin.collections/List<com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher> = ..., kotlin/Long = ...): com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.copy|copy(kotlin.collections.List<com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStats>;kotlin.collections.List<com.kitakkun.jetwhale.plugins.coroutines.protocol.UntrackedDispatcher>;kotlin.Long){}[0]
     final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.equals|equals(kotlin.Any?){}[0]
     final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.hashCode|hashCode(){}[0]
     final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.coroutines.protocol/DispatcherStatsReport.toString|toString(){}[0]
@@ -459,6 +462,37 @@ final class com.kitakkun.jetwhale.plugins.coroutines.protocol/TrackedFlowReport 
         final val $childSerializers // com.kitakkun.jetwhale.plugins.coroutines.protocol/TrackedFlowReport.Companion.$childSerializers|{}$childSerializers[0]
 
         final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.coroutines.protocol/TrackedFlowReport> // com.kitakkun.jetwhale.plugins.coroutines.protocol/TrackedFlowReport.Companion.serializer|serializer(){}[0]
+    }
+}
+
+final class com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher { // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher|null[0]
+    constructor <init>(kotlin/String, kotlin.collections/Map<com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineState, kotlin/Int>) // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.<init>|<init>(kotlin.String;kotlin.collections.Map<com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineState,kotlin.Int>){}[0]
+
+    final val coroutinesByState // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.coroutinesByState|{}coroutinesByState[0]
+        final fun <get-coroutinesByState>(): kotlin.collections/Map<com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineState, kotlin/Int> // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.coroutinesByState.<get-coroutinesByState>|<get-coroutinesByState>(){}[0]
+    final val name // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.name|{}name[0]
+        final fun <get-name>(): kotlin/String // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.name.<get-name>|<get-name>(){}[0]
+
+    final fun component1(): kotlin/String // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.component1|component1(){}[0]
+    final fun component2(): kotlin.collections/Map<com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineState, kotlin/Int> // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.component2|component2(){}[0]
+    final fun copy(kotlin/String = ..., kotlin.collections/Map<com.kitakkun.jetwhale.plugins.coroutines.protocol/CoroutineState, kotlin/Int> = ...): com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.copy|copy(kotlin.String;kotlin.collections.Map<com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineState,kotlin.Int>){}[0]
+    final fun equals(kotlin/Any?): kotlin/Boolean // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.toString|toString(){}[0]
+
+    final object $serializer : kotlinx.serialization.internal/GeneratedSerializer<com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher> { // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.$serializer|null[0]
+        final val descriptor // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.$serializer.descriptor|{}descriptor[0]
+            final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.$serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+        final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.$serializer.childSerializers|childSerializers(){}[0]
+        final fun deserialize(kotlinx.serialization.encoding/Decoder): com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.$serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+        final fun serialize(kotlinx.serialization.encoding/Encoder, com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher) // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.$serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;com.kitakkun.jetwhale.plugins.coroutines.protocol.UntrackedDispatcher){}[0]
+    }
+
+    final object Companion { // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.Companion|null[0]
+        final val $childSerializers // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.Companion.$childSerializers|{}$childSerializers[0]
+
+        final fun serializer(): kotlinx.serialization/KSerializer<com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher> // com.kitakkun.jetwhale.plugins.coroutines.protocol/UntrackedDispatcher.Companion.serializer|serializer(){}[0]
     }
 }
 

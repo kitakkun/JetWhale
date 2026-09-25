@@ -55,11 +55,30 @@ data class CoroutineNode(
     val children: List<CoroutineNode>,
 )
 
+/**
+ * @property dispatchers The dispatchers the app tracks, with their timings.
+ * @property untracked The other dispatchers the coroutines in the registered scopes run on.
+ */
 @SerialName("coroutines/dispatcher_stats")
 @Serializable
 data class DispatcherStatsReport(
     val dispatchers: List<DispatcherStats>,
+    val untracked: List<UntrackedDispatcher>,
     val capturedAtEpochMillis: Long,
+)
+
+/**
+ * A dispatcher that coroutines in the registered scopes run on but the app does not track. The
+ * inspector sees those coroutines, not the dispatcher's tasks, so it can count them but not time
+ * them.
+ *
+ * @property name The dispatcher as it prints itself, e.g. `Dispatchers.Default`.
+ * @property coroutinesByState How many of those coroutines are in each state.
+ */
+@Serializable
+data class UntrackedDispatcher(
+    val name: String,
+    val coroutinesByState: Map<CoroutineState, Int>,
 )
 
 /**

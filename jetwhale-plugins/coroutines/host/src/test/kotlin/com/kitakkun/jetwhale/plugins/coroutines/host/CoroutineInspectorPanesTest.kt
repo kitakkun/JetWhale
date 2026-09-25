@@ -1,6 +1,8 @@
 package com.kitakkun.jetwhale.plugins.coroutines.host
 
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineState
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.LongRun
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.UntrackedDispatcher
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -50,5 +52,28 @@ class CoroutineInspectorPanesTest {
         assertEquals(2, countDumpedCoroutines(dump))
         assertEquals(true, filtered.startsWith("Coroutines dump"))
         assertEquals(true, "CoroutineDemo.kt:43" in filtered)
+    }
+
+    @Test
+    fun `the tracking snippet names the well-known dispatchers the app runs untracked`() {
+        val untracked = listOf(
+            UntrackedDispatcher(name = "Dispatchers.Default", coroutinesByState = mapOf(CoroutineState.Active to 5)),
+            UntrackedDispatcher(name = "Dispatchers.IO", coroutinesByState = mapOf(CoroutineState.Active to 1)),
+            UntrackedDispatcher(name = "Dispatchers.Unconfined", coroutinesByState = mapOf(CoroutineState.Active to 1)),
+        )
+
+        assertEquals(
+            """
+            val default = inspector.track(Dispatchers.Default, name = "Default", longRunThreshold = 100.milliseconds)
+            val io = inspector.track(Dispatchers.IO, name = "IO", longRunThreshold = 500.milliseconds)
+            // Use default and io where the app used Dispatchers.Default and Dispatchers.IO.
+            """.trimIndent(),
+            trackingSnippet(untracked),
+        )
+    }
+
+    @Test
+    fun `untracked coroutines read as counts per state in lifecycle order`() {
+        assertEquals("5 active · 1 cancelling", formatStateCounts(mapOf(CoroutineState.Cancelling to 1, CoroutineState.Active to 5), separator = " · "))
     }
 }

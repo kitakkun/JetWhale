@@ -22,6 +22,7 @@ internal class GetCoroutineTreeCommand(
     private val nameContains by stringOrNull("Only coroutines whose name or Job description contains this text, ignoring case.")
     private val dispatcherContains by stringOrNull("Only coroutines whose dispatcher contains this text, ignoring case.")
     private val minObservedSeconds by longOrNull("Only coroutines the agent has seen for at least this many seconds.")
+    private val namedOnly by booleanOrNull("Only coroutines given a CoroutineName; hides the unnamed ones libraries such as Compose start.")
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val tree = client.coroutineTree()
@@ -30,9 +31,11 @@ internal class GetCoroutineTreeCommand(
             nameContains = arguments[nameContains],
             dispatcherContains = arguments[dispatcherContains],
             minObservedMillis = arguments[minObservedSeconds]?.times(1_000),
+            namedOnly = arguments[namedOnly] == true,
         )
         return buildJsonObject {
             put("coroutineCount", tree.coroutineCount)
+            if (filter != CoroutineFilter.None) put("matchingCount", countMatchingCoroutines(tree.roots, filter))
             put("truncated", tree.truncated)
             put("roots", McpJson.encodeToJsonElement(ListSerializer(CoroutineNode.serializer()), filterCoroutineTree(tree.roots, filter)))
             if (tree.roots.isEmpty()) {

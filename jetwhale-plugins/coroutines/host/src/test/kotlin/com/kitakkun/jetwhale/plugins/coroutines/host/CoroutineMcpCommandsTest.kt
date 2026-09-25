@@ -29,7 +29,7 @@ class CoroutineMcpCommandsTest {
     private class FakeClient(private val tree: CoroutineTree) : CoroutineInspectorClient {
         override suspend fun coroutineTree(): CoroutineTree = tree
 
-        override suspend fun dispatcherStats(): DispatcherStatsReport = DispatcherStatsReport(dispatchers = emptyList(), capturedAtEpochMillis = 0)
+        override suspend fun dispatcherStats(): DispatcherStatsReport = DispatcherStatsReport(dispatchers = emptyList(), untracked = emptyList(), capturedAtEpochMillis = 0)
 
         override suspend fun trackedFlows(): TrackedFlowReport = TrackedFlowReport(flows = emptyList(), capturedAtEpochMillis = 0)
 
@@ -62,6 +62,16 @@ class CoroutineMcpCommandsTest {
 
         val children = result.getValue("roots").jsonArray.single().jsonObject.getValue("children").jsonArray
         assertEquals(listOf("stuck"), children.map { it.jsonObject.getValue("name").jsonPrimitive.content })
+    }
+
+    @Test
+    fun `getCoroutineTree with named only counts the matches next to the total`() {
+        val unnamed = tree.copy(roots = listOf(tree.roots.single().copy(children = tree.roots.single().children + node("anon", null, CoroutineState.Active, observed = 0))), coroutineCount = 4)
+
+        val result = GetCoroutineTreeCommand(FakeClient(unnamed)).run(buildJsonObject { put("namedOnly", true) })
+
+        assertEquals(3, result.getValue("matchingCount").jsonPrimitive.int)
+        assertEquals(4, result.getValue("coroutineCount").jsonPrimitive.int)
     }
 
     @Test

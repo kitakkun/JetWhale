@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.ui.JwCheckbox
 import com.kitakkun.jetwhale.host.ui.JwCodeBlock
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwSegmentedButtons
@@ -97,7 +98,11 @@ private fun CoroutineTreeList(tree: CoroutineTree, collapsed: Set<String>, filte
     Column(Modifier.fillMaxSize()) {
         JwText(
             text = buildString {
-                append("${tree.coroutineCount} coroutines")
+                if (filter == CoroutineFilter.None) {
+                    append("${tree.coroutineCount} coroutines")
+                } else {
+                    append("${countMatchingCoroutines(tree.roots, filter)} of ${tree.coroutineCount} coroutines match")
+                }
                 if (tree.truncated) append(" — the app has more; only the first ${tree.coroutineCount} are shown")
                 append(" · Click one for its details")
             },
@@ -150,6 +155,9 @@ private fun FilterBar(filter: CoroutineFilter, onFilterChange: (CoroutineFilter)
             placeholder = "Dispatcher",
             modifier = Modifier.width(FilterFieldWidth),
         )
+        JwTooltip(text = "Hide coroutines without a CoroutineName. Libraries rarely name theirs, so this leaves the app's own; the unnamed ones that lead to a named one stay as its path.") {
+            JwCheckbox(checked = filter.namedOnly, label = "Named only", onCheckedChange = { onFilterChange(filter.copy(namedOnly = it)) })
+        }
     }
 }
 

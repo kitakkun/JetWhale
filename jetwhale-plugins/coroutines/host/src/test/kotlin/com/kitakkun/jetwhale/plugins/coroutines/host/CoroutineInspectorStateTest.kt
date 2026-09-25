@@ -30,7 +30,7 @@ class CoroutineInspectorStateTest {
 
         override suspend fun dispatcherStats(): DispatcherStatsReport {
             calls += "dispatchers"
-            return DispatcherStatsReport(dispatchers = emptyList(), capturedAtEpochMillis = 0)
+            return DispatcherStatsReport(dispatchers = emptyList(), untracked = emptyList(), capturedAtEpochMillis = 0)
         }
 
         override suspend fun trackedFlows(): TrackedFlowReport {
@@ -105,7 +105,7 @@ class CoroutineInspectorStateTest {
             override suspend fun dispatcherStats(): DispatcherStatsReport {
                 val read = ++reads
                 if (read == 1) gate.await()
-                return DispatcherStatsReport(dispatchers = emptyList(), capturedAtEpochMillis = read.toLong())
+                return DispatcherStatsReport(dispatchers = emptyList(), untracked = emptyList(), capturedAtEpochMillis = read.toLong())
             }
         }
         val clearingState = CoroutineInspectorState(slowFirstRead, CoroutineScope(Dispatchers.Unconfined))

@@ -132,8 +132,7 @@ internal fun firstAppFrame(frames: List<String>): String? = frames.firstOrNull {
 private fun describeDescendants(children: Int, descendants: Map<CoroutineState, Int>): String {
     if (children == 0) return "No coroutines run below it."
     val total = descendants.values.sum()
-    val byState = CoroutineState.entries.mapNotNull { state -> descendants[state]?.let { "$it ${state.label.lowercase()}" } }.joinToString(", ")
-    return "$children direct ${if (children == 1) "child" else "children"}, $total in all: $byState."
+    return "$children direct ${if (children == 1) "child" else "children"}, $total in all: ${formatStateCounts(descendants, separator = ", ")}."
 }
 
 private fun debugStateLabel(debugState: String): String = when (debugState) {
@@ -158,6 +157,9 @@ internal val CoroutineState.label: String
         CoroutineState.Completed -> "Completed"
         CoroutineState.Cancelled -> "Cancelled"
     }
+
+/** "3 active, 1 cancelling": [counts] in the order a coroutine goes through its states. */
+internal fun formatStateCounts(counts: Map<CoroutineState, Int>, separator: String): String = CoroutineState.entries.mapNotNull { state -> counts[state]?.let { "$it ${state.label.lowercase()}" } }.joinToString(separator)
 
 internal val CoroutineState.tone: JwTone
     get() = when (this) {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,11 +21,13 @@ import com.kitakkun.jetwhale.host.ui.JwColumnWidth
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
 import com.kitakkun.jetwhale.host.ui.JwSegmentedButtons
+import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwTable
 import com.kitakkun.jetwhale.host.ui.JwTableColumn
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStats
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStatsReport
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.LongRun
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.UntrackedDispatcher
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -50,16 +53,63 @@ internal fun DispatchersPane(report: DispatcherStatsReport?, actions: CoroutineI
         when {
             report == null -> JwEmptyState(title = "Reading dispatchers…")
 
-            report.dispatchers.isEmpty() -> JwEmptyState(
+            report.dispatchers.isEmpty() && report.untracked.isEmpty() -> JwEmptyState(
                 title = "No dispatchers tracked",
                 description = "Wrap a dispatcher to see how long tasks wait for it and which ones hold it too long, then use the returned dispatcher where the app used the original:",
                 action = { JwCodeBlock(text = TRACK_DISPATCHER_SNIPPET, copyLabel = "Copy") },
             )
 
-            else -> DispatcherTables(report.dispatchers, actions)
+            report.dispatchers.isEmpty() -> Column(Modifier.fillMaxSize()) {
+                MetricsLegend("No dispatcher is tracked yet, so nothing is timed.")
+                UntrackedDispatchers(report.untracked)
+            }
+
+            else -> DispatcherTables(report.dispatchers, report.untracked, actions)
         }
     }
 }
+
+/**
+ * The dispatchers the app's coroutines run on without being tracked. The inspector sees coroutines,
+ * not a dispatcher's tasks, so these get counts and a way to start timing them, not timings.
+ */
+@Composable
+private fun UntrackedDispatchers(untracked: List<UntrackedDispatcher>) {
+    JwSectionHeader(title = "Not tracked · counted, not timed", count = untracked.size)
+    JwTable(
+        items = untracked,
+        columns = listOf(
+            JwTableColumn.text(header = "Dispatcher", width = JwColumnWidth.Weight(1f), text = UntrackedDispatcher::name),
+            JwTableColumn.text(header = "Coroutines on it", width = JwColumnWidth.Weight(1f)) { formatStateCounts(it.coroutinesByState, separator = " · ") },
+        ),
+        key = UntrackedDispatcher::name,
+        modifier = Modifier.fillMaxWidth().height((DispatcherRowHeight * (untracked.size + 1)).coerceAtMost(DispatcherTableMaxHeight)),
+    )
+    MetricsLegend("Coroutines in the registered scopes run on these, but the app has not tracked them, so there are no wait or run times: timing needs every task to pass through the inspector, and a dispatcher such as Dispatchers.Default has no statistics to read from outside. To time one, track it once and use the returned dispatcher where the app used the original:")
+    JwCodeBlock(text = trackingSnippet(untracked), copyLabel = "Copy", modifier = Modifier.padding(horizontal = JwSpacing.large))
+}
+
+/**
+ * The code that tracks [untracked]: one line per well-known dispatcher, with a threshold that suits
+ * it, or a template when none is. `Dispatchers.Unconfined` has no dispatch to time and is left out.
+ */
+internal fun trackingSnippet(untracked: List<UntrackedDispatcher>): String {
+    val known = untracked.mapNotNull { WellKnownDispatchers[it.name] }
+    if (known.isEmpty()) return TRACK_DISPATCHER_SNIPPET
+    return buildString {
+        known.forEach { appendLine("val ${it.variable} = inspector.track(${it.expression}, name = \"${it.trackedName}\", longRunThreshold = ${it.thresholdMillis}.milliseconds)") }
+        append("// Use ${known.joinToString(" and ", transform = WellKnownDispatcher::variable)} where the app used ${known.joinToString(" and ", transform = WellKnownDispatcher::expression)}.")
+    }
+}
+
+private class WellKnownDispatcher(val expression: String, val variable: String, val trackedName: String, val thresholdMillis: Int)
+
+/** Keyed by how each dispatcher prints itself, which is what the agent reports. */
+private val WellKnownDispatchers = listOf(
+    WellKnownDispatcher(expression = "Dispatchers.Main", variable = "main", trackedName = "Main", thresholdMillis = 16),
+    WellKnownDispatcher(expression = "Dispatchers.Default", variable = "default", trackedName = "Default", thresholdMillis = 100),
+    WellKnownDispatcher(expression = "Dispatchers.IO", variable = "io", trackedName = "IO", thresholdMillis = 500),
+).associateBy(WellKnownDispatcher::expression)
 
 /** How the long runs are listed: who held a thread, or every run in order. */
 private enum class LongRunView(val label: String) {
@@ -68,7 +118,7 @@ private enum class LongRunView(val label: String) {
 }
 
 @Composable
-private fun DispatcherTables(dispatchers: List<DispatcherStats>, actions: CoroutineInspectorActions) {
+private fun DispatcherTables(dispatchers: List<DispatcherStats>, untracked: List<UntrackedDispatcher>, actions: CoroutineInspectorActions) {
     val longRuns = dispatchers.flatMap { stats -> stats.longRuns.map { DispatcherLongRun(stats.name, it) } }.sortedByDescending { it.run.atEpochMillis }
     var view by remember { mutableStateOf(LongRunView.ByCoroutine) }
     Column(Modifier.fillMaxSize()) {
@@ -90,6 +140,7 @@ private fun DispatcherTables(dispatchers: List<DispatcherStats>, actions: Corout
             modifier = Modifier.fillMaxWidth().height((DispatcherRowHeight * (dispatchers.size + 1)).coerceAtMost(DispatcherTableMaxHeight)),
         )
         MetricsLegend("Wait: from dispatch until a thread picks the task up — a long wait means the dispatcher is saturated. Run: how long a task held the thread before it suspended or finished. A long run held it at least the threshold; on Main, one past 16 ms drops a frame. The app keeps only its most recent long runs, so Times counts those.")
+        if (untracked.isNotEmpty()) UntrackedDispatchers(untracked)
         JwSectionHeader(
             title = "Long runs",
             count = longRuns.size,
