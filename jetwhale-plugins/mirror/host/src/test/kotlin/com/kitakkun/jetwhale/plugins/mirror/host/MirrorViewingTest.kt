@@ -164,6 +164,26 @@ class MirrorViewingTest {
     }
 
     @Test
+    fun `a device switch and a close during a draw leave the drawn frame open until the draw ends`() {
+        val surface = MirrorSurface()
+        surface.writeFrame(width = 4, height = 4, write = fill(Color.RED))
+        var openAfterClose = false
+        var drawn: Bitmap? = null
+
+        surface.drawFrame { bitmap ->
+            drawn = bitmap
+            thread {
+                surface.clear()
+                surface.close()
+            }.join()
+            openAfterClose = !bitmap.isClosed
+        }
+
+        assertTrue(openAfterClose)
+        assertTrue(drawn?.isClosed ?: false)
+    }
+
+    @Test
     fun `every bitmap a decoder writes is freed however its last frame races the close`() {
         repeat(CLOSE_RACE_ROUNDS) {
             val surface = MirrorSurface()
