@@ -1,7 +1,6 @@
 package com.kitakkun.jetwhale.plugins.coroutines.host
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,7 +12,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwCodeBlock
@@ -48,12 +46,6 @@ private enum class AgeFilter(val label: String, val minObservedMillis: Long?) {
 }
 
 private val FilterFieldWidth = 180.dp
-
-private val DispatcherColumnWidth = 180.dp
-
-private val AgeColumnWidth = 72.dp
-
-private val StateColumnWidth = 96.dp
 
 /** The tree gets most of the width; the detail of the selected coroutine reads fine in the rest. */
 private const val TREE_FRACTION = 0.6f
@@ -173,31 +165,14 @@ private fun CoroutineTreeRow(row: CoroutineRow, selected: Boolean, onSelect: () 
         onClick = onSelect,
         onToggleExpanded = onToggle,
         muted = node.name == null,
-        // Fixed-width columns in a row that takes the right half, so dispatcher, age and state line
-        // up down the tree whatever the name's length and depth.
+        // State first: it is what a reader scans the tree for. The dispatcher, often the same down
+        // a whole scope, comes last.
         trailingContent = {
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
-                JwText(
-                    text = node.dispatcher.orEmpty(),
-                    style = JwTheme.textStyles.labelSmall,
-                    color = JwTheme.colors.textSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.width(DispatcherColumnWidth),
-                )
-                JwText(
-                    text = formatObserved(node.observedMillis),
-                    style = JwTheme.textStyles.labelSmall,
-                    color = JwTheme.colors.textSecondary,
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.width(AgeColumnWidth),
-                )
-                Box(Modifier.width(StateColumnWidth), contentAlignment = Alignment.CenterEnd) {
-                    JwTooltip(text = node.state.explanation) {
-                        JwTag(text = node.state.label, tone = node.state.tone)
-                    }
-                }
+            JwTooltip(text = node.state.explanation) {
+                JwTag(text = node.state.label, tone = node.state.tone)
             }
+            JwText(text = formatObserved(node.observedMillis), style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
+            node.dispatcher?.let { JwText(text = it, style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         },
     )
 }
