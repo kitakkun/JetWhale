@@ -46,6 +46,8 @@ internal fun CoroutineTestScreen() {
                 OutlinedButton(onClick = demo::stopAll, enabled = running.values.any(Set<*>::isNotEmpty)) { Text("Stop everything") }
             }
         }
+        // First, so that it is composed — and its panel's coroutines run — without scrolling to it.
+        item { ScreenWorkCard() }
         items(CoroutineScenario.entries) { scenario ->
             ScenarioCard(
                 scenario = scenario,
@@ -54,7 +56,6 @@ internal fun CoroutineTestScreen() {
                 onStop = { demo.stop(scenario) },
             )
         }
-        item { ScreenWorkCard() }
     }
 }
 
