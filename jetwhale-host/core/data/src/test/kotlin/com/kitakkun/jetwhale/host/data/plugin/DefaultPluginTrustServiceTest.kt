@@ -267,6 +267,17 @@ class DefaultPluginTrustServiceTest {
     }
 
     @Test
+    fun `an approved jar that fails to load stays offered with the reason`() = runBlocking {
+        val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
+        factoryRepository.failingJars[jar.absolutePath] = "a declared dependency is missing"
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+
+        service.trustAndLoad(jar.absolutePath)
+
+        assertEquals("a declared dependency is missing", service.arrivedJarsFlow.value.single().loadFailure)
+    }
+
+    @Test
     fun `an offered jar that changes again is offered once with its new content`() = runBlocking {
         val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
         service.onPluginJarsChanged(setOf(jar.absolutePath))
@@ -331,10 +342,14 @@ class DefaultPluginTrustServiceTest {
         override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(emptyMap())
         override val loadedPlugins: Map<String, LoadedHostPlugin>
             get() = runningPluginsByJar.values.flatten().associate { it.pluginId to LoadedHostPlugin(it, UnusedFactory) }
-        override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
+
+        /** Jars whose load the test makes fail, with the reason recorded. */
+        val failingJars = mutableMapOf<String, String>()
+        override val failedJarsFlow = MutableStateFlow(emptyList<FailedPluginJar>())
 
         override suspend fun loadPlugin(pluginJarPath: String) {
             loadedJarPaths.add(pluginJarPath)
+            failingJars[pluginJarPath]?.let { reason -> failedJarsFlow.value += FailedPluginJar(pluginJarPath, reason) }
         }
 
         override suspend fun unloadPluginJar(pluginJarPath: String) = Unit

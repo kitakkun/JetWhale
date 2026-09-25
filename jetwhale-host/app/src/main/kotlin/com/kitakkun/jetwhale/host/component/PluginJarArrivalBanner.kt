@@ -2,11 +2,18 @@ package com.kitakkun.jetwhale.host.component
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.Res
+import com.kitakkun.jetwhale.host.close
 import com.kitakkun.jetwhale.host.model.ArrivedPluginJar
 import com.kitakkun.jetwhale.host.model.DeclaredPlugin
+import com.kitakkun.jetwhale.host.plugin_arrived_failed
 import com.kitakkun.jetwhale.host.plugin_arrived_later
 import com.kitakkun.jetwhale.host.plugin_arrived_load
 import com.kitakkun.jetwhale.host.plugin_arrived_more
@@ -38,20 +45,44 @@ fun PluginJarArrivalBanner(
     onReviewInSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Acting on a strip removes it and moves the next one up under the pointer; a double click must
+    // not approve a jar the user never read.
+    var listChangedAtMillis by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(arrivedJars.map(ArrivedPluginJar::jarPath)) {
+        listChangedAtMillis = System.currentTimeMillis()
+    }
+    val guarded = { action: () -> Unit ->
+        if (System.currentTimeMillis() - listChangedAtMillis >= REFLOW_GUARD_MILLIS) action()
+    }
     Column(modifier = modifier) {
         arrivedJars.take(MAX_LISTED_JARS).forEach { jar ->
+            val loadFailure = jar.loadFailure
+            if (loadFailure != null) {
+                JwBanner(
+                    text = stringResource(Res.string.plugin_arrived_failed, jar.declaredPlugins.joinToString(transform = DeclaredPlugin::pluginName).ifEmpty { jar.fileName }, loadFailure),
+                    tone = JwTone.Error,
+                    actions = {
+                        JwButton(
+                            text = stringResource(Res.string.close),
+                            onClick = { guarded { onPostpone(jar.jarPath) } },
+                            style = JwButtonStyle.Text,
+                        )
+                    },
+                )
+                return@forEach
+            }
             JwBanner(
                 text = jar.headline(),
                 tone = JwTone.Warning,
                 actions = {
                     JwButton(
                         text = stringResource(if (jar.replacedPlugins.isEmpty()) Res.string.plugin_arrived_load else Res.string.plugin_arrived_update_action),
-                        onClick = { onLoad(jar.jarPath) },
+                        onClick = { guarded { onLoad(jar.jarPath) } },
                         style = JwButtonStyle.Text,
                     )
                     JwButton(
                         text = stringResource(Res.string.plugin_arrived_later),
-                        onClick = { onPostpone(jar.jarPath) },
+                        onClick = { guarded { onPostpone(jar.jarPath) } },
                         style = JwButtonStyle.Text,
                     )
                 },
@@ -99,6 +130,8 @@ private fun formatSize(bytes: Long): String = when {
     else -> String.format(Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024.0))
 }
 
+private const val REFLOW_GUARD_MILLIS = 600L
+
 /** More strips than this would push the window's content out of view; the rest are in the settings. */
 private const val MAX_LISTED_JARS = 3
 
@@ -117,6 +150,7 @@ private fun PluginJarArrivalBannerPreview() {
                 declaredPlugins = listOf(network),
                 unreadableReason = null,
                 replacedPlugins = listOf(DeclaredPlugin(pluginId = "com.example.network", pluginName = "Network Inspector", version = "1.2.0")),
+                loadFailure = null,
             ),
             ArrivedPluginJar(
                 jarPath = "/plugins/storage.jar",
@@ -125,6 +159,7 @@ private fun PluginJarArrivalBannerPreview() {
                 declaredPlugins = listOf(DeclaredPlugin(pluginId = "com.example.storage", pluginName = "Storage", version = "0.4.0")),
                 unreadableReason = null,
                 replacedPlugins = emptyList(),
+                loadFailure = "Declared dependency io.ktor:ktor-client-core:3.2.0 is missing",
             ),
         ),
         onLoad = {},

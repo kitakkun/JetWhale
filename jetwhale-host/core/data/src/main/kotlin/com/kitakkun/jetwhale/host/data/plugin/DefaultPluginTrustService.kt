@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -99,11 +100,20 @@ class DefaultPluginTrustService(
             // trust() signs the registry iff a key exists, so no signing flag is threaded through here.
             pluginTrustRepository.trust(jarPath, computeSha256(jarPath))
             untrustedJarPathsFlow.update { it - jarPath }
-            arrivedJarsFlow.update { arrived -> arrived.filterNot { it.jarPath == jarPath } }
             if (pluginFactoryRepository.findPluginIdsByJarPath(jarPath).isEmpty()) {
                 pluginFactoryRepository.loadPlugin(jarPath)
             } else {
                 pluginJarSwapService.reload(jarPath)
+            }
+            // An offered jar that fails to load stays offered with the reason, rather than vanishing
+            // as if it had loaded.
+            val loadFailure = pluginFactoryRepository.failedJarsFlow.first().firstOrNull { it.jarPath == jarPath }?.reason
+            arrivedJarsFlow.update { arrived ->
+                if (loadFailure == null) {
+                    arrived.filterNot { it.jarPath == jarPath }
+                } else {
+                    arrived.map { if (it.jarPath == jarPath) it.copy(loadFailure = loadFailure) else it }
+                }
             }
         }
     }
@@ -163,6 +173,7 @@ class DefaultPluginTrustService(
             sha256 = computeSha256(jarPath),
             declaredPlugins = manifest?.plugins.orEmpty().map(JetWhaleHostPluginManifest::toDeclaredPlugin),
             unreadableReason = unreadableReason,
+            loadFailure = null,
             replacedPlugins = pluginFactoryRepository.findPluginIdsByJarPath(jarPath).mapNotNull { pluginId ->
                 pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.toDeclaredPlugin()
             },

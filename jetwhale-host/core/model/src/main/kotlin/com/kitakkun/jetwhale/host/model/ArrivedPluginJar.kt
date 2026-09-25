@@ -8,6 +8,8 @@ package com.kitakkun.jetwhale.host.model
  *   read, in which case [unreadableReason] says why.
  * @property replacedPlugins the plugins currently running from the jar this one overwrote; empty for
  *   a jar that is new to the directory.
+ * @property loadFailure why the jar did not load after the user approved it; it stays offered so
+ *   the failure is seen.
  */
 data class ArrivedPluginJar(
     val jarPath: String,
@@ -16,6 +18,7 @@ data class ArrivedPluginJar(
     val declaredPlugins: List<DeclaredPlugin>,
     val unreadableReason: String?,
     val replacedPlugins: List<DeclaredPlugin>,
+    val loadFailure: String?,
 ) {
     val fileName: String get() = jarPath.substringAfterLast('/').substringAfterLast('\\')
 }
