@@ -3,9 +3,9 @@
     <string name="version_format">バージョン %1$s</string>
     <string name="update_banner_message">新しいバージョン %1$s が利用可能です</string>
     <string name="update_banner_open_settings">設定で確認</string>
-    <string name="plugin_arrived_new">プラグインフォルダに新しいプラグインがあります: %1$s (%2$s)</string>
-    <string name="plugin_arrived_update">プラグインフォルダに新しいバージョンがあります: %1$s → %2$s (%3$s)</string>
-    <string name="plugin_arrived_unreadable">プラグインフォルダに plugin manifest を読めない JAR があります (%1$s)</string>
+    <string name="plugin_arrived_new">新しいプラグイン: %1$s · %2$s</string>
+    <string name="plugin_arrived_update">新しいバージョン: %1$s · %2$s</string>
+    <string name="plugin_arrived_unreadable">plugin manifest を読めない JAR · %1$s</string>
     <string name="plugin_arrived_load">読み込む</string>
     <string name="plugin_arrived_update_action">更新する</string>
     <string name="plugin_arrived_later">後で</string>

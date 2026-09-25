@@ -257,28 +257,14 @@ class DefaultPluginFactoryRepository(
         }
     }
 
-    override suspend fun unloadPlugin(pluginId: String): Unit = loadMutex.withLock {
-        unloadPluginUnderLock(pluginId)
-    }
-
-    private fun unloadPluginUnderLock(pluginId: String) {
+    override suspend fun unloadPluginJar(pluginJarPath: String): Unit = loadMutex.withLock {
+        val pluginIds = jarPathToPluginIds.remove(pluginJarPath).orEmpty()
         mutablePluginsFlow.update { current ->
-            current.toMutableMap().apply { remove(pluginId) }.toPersistentMap()
+            current.toMutableMap().apply { pluginIds.forEach(::remove) }.toPersistentMap()
         }
-        // Drop the plugin from its jar; close the jar's shared classloader only once its last plugin
-        // is gone (other plugins from the same jar must keep working).
-        val jarPath = jarPathToPluginIds.entries.firstOrNull { pluginId in it.value }?.key
-        if (jarPath != null) {
-            val remaining = jarPathToPluginIds.getValue(jarPath).filterNot { it == pluginId }
-            if (remaining.isEmpty()) {
-                jarPathToPluginIds.remove(jarPath)
-                classLoaders.remove(jarPath)?.close()
-                runtimeJars.remove(jarPath)
-            } else {
-                jarPathToPluginIds[jarPath] = remaining
-            }
-        }
-        println("Unloaded plugin: $pluginId")
+        classLoaders.remove(pluginJarPath)?.close()
+        runtimeJars.remove(pluginJarPath)
+        pluginIds.forEach { println("Unloaded plugin: $it") }
     }
 
     override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = jarPathToPluginIds[pluginJarPath].orEmpty()

@@ -74,17 +74,24 @@ fun PluginJarArrivalBanner(
     }
 }
 
+/** Size and hash first: the file name can be long enough to push them out of the one line. */
 @Composable
 private fun ArrivedPluginJar.headline(): String {
-    val details = "$fileName · ${formatSize(sizeBytes)} · SHA-256 ${sha256.take(SHORT_HASH_LENGTH)}"
+    val details = "${formatSize(sizeBytes)} · SHA-256 ${sha256.take(SHORT_HASH_LENGTH)} · $fileName"
     return when {
         declaredPlugins.isEmpty() -> stringResource(Res.string.plugin_arrived_unreadable, details)
-        replacedPlugins.isEmpty() -> stringResource(Res.string.plugin_arrived_new, declaredPlugins.describe(), details)
-        else -> stringResource(Res.string.plugin_arrived_update, replacedPlugins.describe(), declaredPlugins.describe(), details)
+        replacedPlugins.isEmpty() -> stringResource(Res.string.plugin_arrived_new, declaredPlugins.joinToString { "${it.pluginName} ${it.version}" }, details)
+        else -> stringResource(Res.string.plugin_arrived_update, describeUpdate(replaced = replacedPlugins, declared = declaredPlugins), details)
     }
 }
 
-private fun List<DeclaredPlugin>.describe(): String = joinToString { "${it.pluginName} ${it.version}" }
+/** "Network Inspector 1.2.0 → 1.3.0" for the usual one-plugin jar, each side in full otherwise. */
+private fun describeUpdate(replaced: List<DeclaredPlugin>, declared: List<DeclaredPlugin>): String {
+    val old = replaced.singleOrNull()
+    val new = declared.singleOrNull()
+    if (old != null && new != null && old.pluginId == new.pluginId) return "${new.pluginName} ${old.version} → ${new.version}"
+    return "${replaced.joinToString { "${it.pluginName} ${it.version}" }} → ${declared.joinToString { "${it.pluginName} ${it.version}" }}"
+}
 
 private fun formatSize(bytes: Long): String = when {
     bytes < 1024 -> "$bytes B"

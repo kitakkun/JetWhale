@@ -15,7 +15,12 @@ interface PluginFactoryRepository {
     val failedJarsFlow: Flow<List<FailedPluginJar>>
 
     suspend fun loadPlugin(pluginJarPath: String)
-    suspend fun unloadPlugin(pluginId: String)
+
+    /**
+     * Unloads every plugin loaded from [pluginJarPath] in one step and closes the jar's classloader,
+     * so no observer sees some of a jar's plugins while the classloader they need is being closed.
+     */
+    suspend fun unloadPluginJar(pluginJarPath: String)
 
     /**
      * Returns the `pluginId`s currently loaded from [pluginJarPath] (a single jar may provide several

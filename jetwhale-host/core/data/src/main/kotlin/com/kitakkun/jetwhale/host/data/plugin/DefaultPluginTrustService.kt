@@ -173,7 +173,7 @@ class DefaultPluginTrustService(
         pluginTrustRepository.revoke(jarPath)
         // Unload everything this jar provided so revoking trust takes effect immediately, without a
         // restart. The jar file itself stays in the directory, so it becomes untrusted-but-present.
-        pluginFactoryRepository.findPluginIdsByJarPath(jarPath).forEach { pluginFactoryRepository.unloadPlugin(it) }
+        pluginFactoryRepository.unloadPluginJar(jarPath)
         if (File(jarPath).exists()) {
             untrustedJarPathsFlow.update { if (jarPath in it) it else it + jarPath }
         }
