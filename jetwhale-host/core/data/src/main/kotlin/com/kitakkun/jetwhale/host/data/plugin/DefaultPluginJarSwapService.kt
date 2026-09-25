@@ -62,18 +62,18 @@ class DefaultPluginJarSwapService(
             redefinedPluginIds.forEach { pluginReloadedFlow.emit(it) }
             return
         }
-        reload(jarPath)
+        reload(jarPath, expectedSha256 = null)
     }
 
-    override suspend fun reload(jarPath: String) {
+    override suspend fun reload(jarPath: String, expectedSha256: String?) {
         if (!File(jarPath).exists()) return
 
         // Plugin instance state is lost. Capture the plugin ids currently served by this jar so that
         // we can dispose their running instances and scenes before swapping in the new code.
         val previousPluginIds = pluginFactoryRepository.findPluginIdsByJarPath(jarPath)
-        previousPluginIds.forEach(::disposePlugin)
+        previousPluginIds.forEach { disposePlugin(it) }
 
-        val reloadedPluginIds = pluginFactoryRepository.reloadPlugin(jarPath)
+        val reloadedPluginIds = pluginFactoryRepository.reloadPlugin(jarPath, expectedSha256)
         if (reloadedPluginIds.isEmpty()) {
             logger.warning("Failed to reload plugin from $jarPath")
             // A failed reload (e.g. a compile error in the rebuilt jar) leaves the previously loaded
@@ -88,7 +88,7 @@ class DefaultPluginJarSwapService(
 
         // Some plugin ids may have disappeared if the jar's manifest changed across the rebuild
         // (a plugin removed/renamed); make sure their previously loaded instances are gone too.
-        (previousPluginIds - reloadedPluginIds.toSet()).forEach(::disposePlugin)
+        (previousPluginIds - reloadedPluginIds.toSet()).forEach { disposePlugin(it) }
 
         reloadedPluginIds.forEach { reinitializeInstances(it) }
 
@@ -97,11 +97,12 @@ class DefaultPluginJarSwapService(
     }
 
     override suspend fun remove(jarPath: String) {
-        pluginFactoryRepository.findPluginIdsByJarPath(jarPath).forEach(::disposePlugin)
+        pluginFactoryRepository.findPluginIdsByJarPath(jarPath).forEach { disposePlugin(it) }
         pluginFactoryRepository.unloadPluginJar(jarPath)
     }
 
-    private fun disposePlugin(pluginId: String) {
+    // The scene service keeps its scenes on the main thread; the directory watchers call in from IO.
+    private suspend fun disposePlugin(pluginId: String) = withContext(Dispatchers.Main) {
         pluginInstanceService.unloadPluginInstancesForPlugin(pluginId)
         pluginComposeSceneService.disposePluginScenesForPlugin(pluginId)
     }

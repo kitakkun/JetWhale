@@ -23,9 +23,10 @@ interface PluginJarSwapService {
 
     /**
      * Replaces the running plugins of [jarPath] with the jar's current content through a fresh
-     * classloader; their instances are re-created.
+     * classloader; their instances are re-created. [expectedSha256] is checked as in
+     * [PluginFactoryRepository.loadPlugin].
      */
-    suspend fun reload(jarPath: String)
+    suspend fun reload(jarPath: String, expectedSha256: String?)
 
     /** Disposes the instances and scenes of the plugins loaded from [jarPath] and unloads them. */
     suspend fun remove(jarPath: String)

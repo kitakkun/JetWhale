@@ -60,7 +60,7 @@ class DefaultPluginHotReloadService(
 
         // Initial load of any jars already present in the dev directory.
         appDataDirectoryProvider.getDevPluginJarFilePaths().forEach { jarPath ->
-            pluginFactoryRepository.loadPlugin(jarPath)
+            pluginFactoryRepository.loadPlugin(jarPath, expectedSha256 = null)
         }
 
         startWatching(Path(devDir))

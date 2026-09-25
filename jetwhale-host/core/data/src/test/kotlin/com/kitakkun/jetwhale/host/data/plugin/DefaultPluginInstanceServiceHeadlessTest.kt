@@ -106,10 +106,10 @@ class DefaultPluginInstanceServiceHeadlessTest {
         override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(loadedPlugins)
         override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
 
-        override suspend fun loadPlugin(pluginJarPath: String) = Unit
+        override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) = Unit
         override suspend fun unloadPluginJar(pluginJarPath: String) = Unit
         override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = emptyList()
-        override suspend fun reloadPlugin(pluginJarPath: String): List<String> = emptyList()
+        override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = emptyList()
         override fun tryRedefinePlugin(pluginJarPath: String): List<String> = emptyList()
     }
 }
