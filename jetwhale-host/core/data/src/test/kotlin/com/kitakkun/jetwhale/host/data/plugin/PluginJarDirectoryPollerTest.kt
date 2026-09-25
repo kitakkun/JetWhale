@@ -60,6 +60,21 @@ class PluginJarDirectoryPollerTest {
     }
 
     @Test
+    fun `a directory that cannot be listed is not taken as empty`() {
+        val installed = jar("installed.jar", byteArrayOf(1), modifiedAt = 1_000)
+        val poller = PluginJarDirectoryPoller(directory)
+        val hidden = File(directory.parentFile, "${directory.name}-hidden")
+        check(directory.renameTo(hidden))
+
+        assertEquals(emptySet(), poller.poll())
+        assertEquals(emptySet(), poller.poll())
+
+        check(hidden.renameTo(directory))
+        assertEquals(emptySet(), poller.poll())
+        assertEquals(true, installed.exists())
+    }
+
+    @Test
     fun `a jar still being written is not reported until it stops changing`() {
         val poller = PluginJarDirectoryPoller(directory)
         val growing = jar("growing.jar", byteArrayOf(1), modifiedAt = 1_000)

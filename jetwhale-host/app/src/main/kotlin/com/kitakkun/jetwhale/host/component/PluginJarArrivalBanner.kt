@@ -41,7 +41,7 @@ import java.util.Locale
 @Composable
 fun PluginJarArrivalBanner(
     arrivedJars: ImmutableList<ArrivedPluginJar>,
-    onLoad: (jarPath: String) -> Unit,
+    onLoad: (jar: ArrivedPluginJar) -> Unit,
     onPostpone: (jarPath: String) -> Unit,
     onReviewInSettings: () -> Unit,
     modifier: Modifier = Modifier,
@@ -78,7 +78,7 @@ fun PluginJarArrivalBanner(
                 actions = {
                     JwButton(
                         text = stringResource(if (jar.replacedPlugins.isEmpty()) Res.string.plugin_arrived_load else Res.string.plugin_arrived_update_action),
-                        onClick = { guarded { onLoad(jar.jarPath) } },
+                        onClick = { guarded { onLoad(jar) } },
                         style = JwButtonStyle.Text,
                     )
                     JwButton(

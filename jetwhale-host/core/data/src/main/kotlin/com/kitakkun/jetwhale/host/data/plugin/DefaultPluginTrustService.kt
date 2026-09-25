@@ -93,26 +93,26 @@ class DefaultPluginTrustService(
         }
     }
 
-    override suspend fun trustAndLoad(jarPath: String) {
+    override suspend fun trustAndLoad(jarPath: String, approvedSha256: String?) {
         require(appDataDirectoryProvider.isManagedPluginJarPath(jarPath)) {
             "Refusing to trust a jar outside the managed plugins directory: $jarPath"
         }
         jarStateMutex.withLock {
-            // Approving an offered jar approves the bytes the user was shown, not whatever is at the
-            // path by now; the load then refuses a jar that no longer has that hash.
-            val approvedSha256 = arrivedJarsFlow.value.firstOrNull { it.jarPath == jarPath }?.sha256 ?: computeSha256(jarPath)
+            // The load refuses a jar that no longer has the approved hash, so approving what a banner
+            // showed never loads what replaced it.
+            val pinnedSha256 = approvedSha256 ?: computeSha256(jarPath)
             // trust() signs the registry iff a key exists, so no signing flag is threaded through here.
-            pluginTrustRepository.trust(jarPath, approvedSha256)
+            pluginTrustRepository.trust(jarPath, pinnedSha256)
             untrustedJarPathsFlow.update { it - jarPath }
             if (pluginFactoryRepository.findPluginIdsByJarPath(jarPath).isEmpty()) {
-                pluginFactoryRepository.loadPlugin(jarPath, approvedSha256)
+                pluginFactoryRepository.loadPlugin(jarPath, pinnedSha256)
             } else {
-                pluginJarSwapService.reload(jarPath, approvedSha256)
+                pluginJarSwapService.reload(jarPath, pinnedSha256)
             }
             // An offered jar that fails to load stays offered with the reason, rather than vanishing
             // as if it had loaded.
             val loadFailure = pluginFactoryRepository.failedJarsFlow.first().firstOrNull { it.jarPath == jarPath }?.reason
-            if (loadFailure != null && computeSha256(jarPath) != approvedSha256) {
+            if (loadFailure != null && computeSha256(jarPath) != pinnedSha256) {
                 // The jar changed after it was shown: what is there now was never approved, and the
                 // watcher may already have reported it, so it is offered again here.
                 pluginTrustRepository.revoke(jarPath)
