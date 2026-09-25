@@ -14,6 +14,7 @@ kotlinx.coroutines API.
 | Coroutine tree | `Job.children`, walked on request from each registered `Job` | `register(scope, name)` |
 | Coroutine name, dispatcher | a `launch`/`async` coroutine's `Job` is also its `CoroutineScope`, so its `coroutineContext` gives `CoroutineName` and the `ContinuationInterceptor` | name coroutines with `CoroutineName` |
 | Dispatcher load | a `CoroutineDispatcher` wrapper timing each task from `dispatch` to start and from start to end | use the dispatcher `track(...)` returns |
+| Untracked dispatchers | the same `Job.children` walk, counting coroutines per `ContinuationInterceptor` that is not a tracked wrapper, done by the agent when dispatcher stats are asked for so it does not depend on the tree tab having been read | nothing; tracking one turns its counts into timings |
 | Flow activity | a `flow { }` wrapper counting collections, outcomes and emissions | use the flow `track(...)` returns |
 | Suspension stacks | `kotlinx-coroutines-debug`'s `DebugProbes.dumpCoroutines`, a `compileOnly` dependency on the JVM | add the library and `DebugProbes.install()` |
 

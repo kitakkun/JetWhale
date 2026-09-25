@@ -60,7 +60,9 @@ no `java.lang.management` to attach with, so it throws. iOS and the web have no 
 
 - **Coroutines** — a tree per registered scope: each coroutine's name, state, how long the inspector
   has seen it and its dispatcher. Filter by state, by age (a coroutine alive for minutes where you
-  expected seconds is a leak or a stall), by name and by dispatcher. **Click a coroutine** for its
+  expected seconds is a leak or a stall), by name and by dispatcher; **Named only** hides coroutines
+  without a `CoroutineName`, which is most of what libraries such as Compose start, and the count
+  then reads "N of M". **Click a coroutine** for its
   detail: what its state means, where it waits (on the JVM with DebugProbes: running or suspended,
   its stack with the first frame of your own code called out, and where it was created), its path
   from the registered scope, and how many coroutines below it are in each state. The selection
@@ -68,7 +70,11 @@ no `java.lang.management` to attach with, so it throws. iOS and the web have no 
 - **Dispatchers** — for each tracked dispatcher: tasks waiting and running, average and maximum wait
   before a task starts, average and maximum time a task holds the thread, and its long-run
   threshold. **Long runs** are grouped by the coroutine that held the thread — how often, the
-  longest, the total — or listed one by one.
+  longest, the total — or listed one by one. **Untracked dispatchers** — `Dispatchers.Default`,
+  `Dispatchers.IO` and any other the coroutines in the registered scopes run on without being
+  tracked — are listed below with how many coroutines are on each, and a snippet that tracks them.
+  They have no times: timing needs every task to go through the tracked wrapper, and these
+  dispatchers publish no statistics of their own.
 - **Flows** — for each tracked flow: collectors running now, how collections ended (completed,
   cancelled, failed), emissions per second and the most recent values. A cold flow collected twice
   shows every value twice.
@@ -83,9 +89,9 @@ running. **Refresh now** reads once either way.
 
 | Tool | What it does |
 |------|--------------|
-| `com.kitakkun.jetwhale.coroutines.getCoroutineTree` | The tree, optionally filtered by state, name, dispatcher and minimum age |
+| `com.kitakkun.jetwhale.coroutines.getCoroutineTree` | The tree, optionally filtered by state, name, dispatcher, minimum age and named-only, with the match count when filtered |
 | `com.kitakkun.jetwhale.coroutines.getCoroutineDetail` | One coroutine by id: path, descendants by state, and — with DebugProbes — running or suspended and its stack |
-| `com.kitakkun.jetwhale.coroutines.getDispatcherStats` | Queue and run times per tracked dispatcher, with the long runs |
+| `com.kitakkun.jetwhale.coroutines.getDispatcherStats` | Queue and run times per tracked dispatcher, with the long runs, and coroutine counts per untracked dispatcher |
 | `com.kitakkun.jetwhale.coroutines.getTrackedFlows` | Collectors, outcomes, rate and recent values per tracked flow |
 | `com.kitakkun.jetwhale.coroutines.dumpCoroutines` | Every coroutine with its suspension stack, where the app can produce one |
 
@@ -93,6 +99,9 @@ running. **Refresh now** reads once either way.
 
 - **Only what you register.** Coroutines outside registered scopes, and `GlobalScope`, are not in
   the tree.
+- **A registered scope is held weakly**, so the inspector never keeps a tree alive the app has let
+  go of. A scope the app registers and then keeps no reference to disappears from the tree once it
+  is collected, coroutines and all; keep the scope where the app uses it, as it normally would.
 - **Age is observed, not exact.** A `Job` does not record when it started, so the age counts from
   the first time the inspector saw the coroutine.
 - **"Completing" reads as Active.** `Job`'s public API cannot tell a coroutine still running its
