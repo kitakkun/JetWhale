@@ -166,6 +166,19 @@ class PlatformFileSystemTest {
     }
 
     @Test
+    fun `a dangling symbolic link planted at the staging path is refused without creating its target`() {
+        val outside = File(Files.createTempDirectory("storage-outside").toFile(), "planted.bin")
+        val staging = File(directory, ".settings.bin.jetwhale-upload-1")
+        Files.createSymbolicLink(staging.toPath(), outside.toPath())
+
+        assertFailsWith<IllegalArgumentException> {
+            receiveUploadChunk(staging.path, "${directory.path}/settings.bin", offset = 0, bytes = byteArrayOf(1, 2, 3), isLast = false)
+        }
+
+        assertFalse(outside.exists())
+    }
+
+    @Test
     fun `a directory already at the staging path is refused and left as it was`() {
         val staging = File(directory, ".settings.bin.jetwhale-upload-1").apply { mkdir() }
         File(staging, "keep.txt").writeText("keep")

@@ -92,5 +92,9 @@ private fun deleteWithoutFollowingLinks(file: File) {
 private fun File.isSymbolicLink(): Boolean {
     val parent = absoluteFile.parentFile?.canonicalFile ?: return false
     val inCanonicalParent = File(parent, name)
-    return inCanonicalParent.canonicalFile != inCanonicalParent.absoluteFile
+    if (inCanonicalParent.canonicalFile != inCanonicalParent.absoluteFile) return true
+    // Canonicalization leaves a link whose target is missing unresolved, and exists() follows it;
+    // java.nio's no-follow checks are out of reach below Android API 26. An entry the directory
+    // lists but that does not exist can only be such a link.
+    return !exists() && parent.list().orEmpty().contains(name)
 }
