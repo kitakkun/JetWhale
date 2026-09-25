@@ -75,7 +75,7 @@ internal fun DispatchersPane(report: DispatcherStatsReport?, actions: CoroutineI
  */
 @Composable
 private fun UntrackedDispatchers(untracked: List<UntrackedDispatcher>) {
-    JwSectionHeader(title = "Not tracked · counted, not timed", count = untracked.size)
+    JwSectionHeader(title = "Untracked dispatchers", count = untracked.size)
     JwTable(
         items = untracked,
         columns = listOf(
@@ -85,8 +85,8 @@ private fun UntrackedDispatchers(untracked: List<UntrackedDispatcher>) {
         key = UntrackedDispatcher::name,
         modifier = Modifier.fillMaxWidth().height((DispatcherRowHeight * (untracked.size + 1)).coerceAtMost(DispatcherTableMaxHeight)),
     )
-    MetricsLegend("Coroutines in the registered scopes run on these, but the app has not tracked them, so there are no wait or run times: timing needs every task to pass through the inspector, and a dispatcher such as Dispatchers.Default has no statistics to read from outside. To time one, track it once and use the returned dispatcher where the app used the original:")
-    JwCodeBlock(text = trackingSnippet(untracked), copyLabel = "Copy", modifier = Modifier.padding(horizontal = JwSpacing.large))
+    MetricsLegend("Coroutines in the registered scopes run on these, so they are counted here, but the app has not tracked them, so they have no wait or run times: timing needs every task to pass through the inspector, and a dispatcher such as Dispatchers.Default has no statistics to read from outside. To time one, track it once and use the returned dispatcher where the app used the original:")
+    JwCodeBlock(text = trackingSnippet(untracked), copyLabel = "Copy", modifier = Modifier.padding(start = JwSpacing.large, end = JwSpacing.large, bottom = JwSpacing.large))
 }
 
 /**
@@ -140,7 +140,6 @@ private fun DispatcherTables(dispatchers: List<DispatcherStats>, untracked: List
             modifier = Modifier.fillMaxWidth().height((DispatcherRowHeight * (dispatchers.size + 1)).coerceAtMost(DispatcherTableMaxHeight)),
         )
         MetricsLegend("Wait: from dispatch until a thread picks the task up — a long wait means the dispatcher is saturated. Run: how long a task held the thread before it suspended or finished. A long run held it at least the threshold; on Main, one past 16 ms drops a frame. The app keeps only its most recent long runs, so Times counts those.")
-        if (untracked.isNotEmpty()) UntrackedDispatchers(untracked)
         JwSectionHeader(
             title = "Long runs",
             count = longRuns.size,
@@ -177,6 +176,8 @@ private fun DispatcherTables(dispatchers: List<DispatcherStats>, untracked: List
                 emptyContent = emptyContent,
             )
         }
+        // Last, so the long runs stay next to the tracked dispatchers they belong to.
+        if (untracked.isNotEmpty()) UntrackedDispatchers(untracked)
     }
 }
 
