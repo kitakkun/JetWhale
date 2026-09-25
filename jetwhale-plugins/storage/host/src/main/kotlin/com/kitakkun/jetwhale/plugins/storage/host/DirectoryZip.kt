@@ -29,9 +29,14 @@ private class DirectoryZipper(
         listing.error?.let { return "$entryName: $it" }
         zip.putNextEntry(ZipEntry(entryName))
         zip.closeEntry()
+        // Distinct names can sanitize to the same segment ("a:b" and "a_b"), and a ZIP refuses a
+        // repeated entry, so a later one is numbered instead.
+        val usedNames = mutableSetOf<String>()
         for (entry in listing.entries.filterNot(FileEntry::isSymbolicLink)) {
             val child = location.child(entry.name)
-            val name = zipSafeSegment(entry.name)
+            val name = zipSafeSegment(entry.name).let { safeName ->
+                generateSequence(1, Int::inc).map { n -> if (n == 1) safeName else "$safeName ($n)" }.first(usedNames::add)
+            }
             val error = if (entry.isDirectory) write(child, "$entryName$name/") else writeFile(child, "$entryName$name", entry)
             if (error != null) return error
         }

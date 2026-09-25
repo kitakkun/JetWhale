@@ -176,6 +176,16 @@ class StorageBrowserTest {
         assertEquals(true, failingBrowser.status?.isError)
     }
 
+    @Test
+    fun `a zip whose destination folder is missing reports the write failure`() {
+        val zipBrowser = StorageBrowser(readableApp(), CoroutineScope(Dispatchers.Unconfined))
+        val target = File(createTempDirectory("storage-zip").toFile(), "missing/files.zip")
+
+        zipBrowser.requestZipDownload(location("Files"), target)
+
+        assertEquals(true, zipBrowser.status?.isError)
+    }
+
     /** An app whose every listed file has content, so a ZIP of it can complete. */
     private fun readableApp() = FakeStorageClient(
         directories = mutableMapOf(location("Files") to listOf(fileEntry("notes.txt", sizeBytes = 5))),

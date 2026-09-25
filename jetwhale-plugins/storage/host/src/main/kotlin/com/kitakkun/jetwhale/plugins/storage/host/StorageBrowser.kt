@@ -351,9 +351,10 @@ internal class StorageBrowser(
      * and a file the user chose to overwrite stays as it was until then.
      */
     private suspend fun zipTo(location: FileLocation, target: File) {
-        val partial = File.createTempFile(".${target.name}.", ".part", target.absoluteFile.parentFile)
+        var partial: File? = null
         var finished = false
         try {
+            partial = File.createTempFile(".${target.name}.", ".part", target.absoluteFile.parentFile)
             // The measured file count includes symbolic links, which the ZIP leaves out, so it
             // cannot serve as the denominator of the progress.
             val error = ZipOutputStream(partial.outputStream()).use { zip ->
@@ -372,7 +373,7 @@ internal class StorageBrowser(
         } catch (e: IOException) {
             status = StorageStatus(message = "Could not write ${target.absolutePath}: ${e.message}", isError = true)
         } finally {
-            if (!finished) partial.delete()
+            if (!finished) partial?.delete()
         }
     }
 
