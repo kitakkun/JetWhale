@@ -54,12 +54,14 @@ interface PluginTrustService {
     suspend fun loadTrustedPlugins()
 
     /**
-     * Approves [jarPath]: pins its current content hash in the trust registry and loads it. This is
-     * the consent point — call it only in response to an explicit user action (installing a jar via
-     * the file picker, or approving a surfaced untrusted jar). When plugins from [jarPath] are
-     * already running, they are replaced by the approved content.
+     * Approves [jarPath]: pins a content hash in the trust registry and loads the jar only if it still
+     * has that content. This is the consent point — call it only in response to an explicit user
+     * action (installing a jar via the file picker or by coordinates, or approving a surfaced
+     * untrusted jar). [approvedSha256] is the hash the user was shown, as in an arrival banner; null
+     * approves the jar's current content, for an install the user just made. When plugins from
+     * [jarPath] are already running, they are replaced by the approved content.
      */
-    suspend fun trustAndLoad(jarPath: String)
+    suspend fun trustAndLoad(jarPath: String, approvedSha256: String?)
 
     /**
      * Brings the host in line with the jars at [jarPaths], which changed in the plugins directory

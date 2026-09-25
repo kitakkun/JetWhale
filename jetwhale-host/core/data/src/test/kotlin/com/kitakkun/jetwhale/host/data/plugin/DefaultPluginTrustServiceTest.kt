@@ -68,7 +68,7 @@ class DefaultPluginTrustServiceTest {
     fun `trustAndLoad accepts a jar inside the plugins directory`() = runBlocking {
         val jar = File(pluginsDir, "plugin.jar").apply { writeBytes(byteArrayOf(1, 2, 3)) }
 
-        service.trustAndLoad(jar.absolutePath)
+        service.trustAndLoad(jar.absolutePath, approvedSha256 = null)
 
         assertEquals(listOf(jar.absolutePath), factoryRepository.loadedJarPaths)
         assertEquals(setOf(jar.absolutePath), trustRepository.entries.keys)
@@ -78,7 +78,7 @@ class DefaultPluginTrustServiceTest {
     fun `trustAndLoad rejects a jar outside the plugins directory`() = runBlocking {
         val outsideJar = File(tempHome, "evil.jar").apply { writeBytes(byteArrayOf(1)) }
 
-        assertFailsWith<IllegalArgumentException> { service.trustAndLoad(outsideJar.absolutePath) }
+        assertFailsWith<IllegalArgumentException> { service.trustAndLoad(outsideJar.absolutePath, approvedSha256 = null) }
         assertEquals(emptyList(), factoryRepository.loadedJarPaths)
         assertEquals(emptySet(), trustRepository.entries.keys)
     }
@@ -88,7 +88,7 @@ class DefaultPluginTrustServiceTest {
         val outsideJar = File(tempHome, "evil.jar").apply { writeBytes(byteArrayOf(1)) }
         val sneakyPath = "${pluginsDir.absolutePath}/../../${outsideJar.name}"
 
-        assertFailsWith<IllegalArgumentException> { service.trustAndLoad(sneakyPath) }
+        assertFailsWith<IllegalArgumentException> { service.trustAndLoad(sneakyPath, approvedSha256 = null) }
         assertEquals(emptyList(), factoryRepository.loadedJarPaths)
     }
 
@@ -96,14 +96,14 @@ class DefaultPluginTrustServiceTest {
     fun `trustAndLoad rejects a non-jar file`() = runBlocking {
         val notAJar = File(pluginsDir, "plugin.zip").apply { writeBytes(byteArrayOf(1)) }
 
-        assertFailsWith<IllegalArgumentException> { service.trustAndLoad(notAJar.absolutePath) }
+        assertFailsWith<IllegalArgumentException> { service.trustAndLoad(notAJar.absolutePath, approvedSha256 = null) }
         assertEquals(emptyList(), factoryRepository.loadedJarPaths)
     }
 
     @Test
     fun `loadTrustedPlugins treats an unhashable jar as untrusted instead of aborting`() = runBlocking {
         val readable = File(pluginsDir, "good.jar").apply { writeBytes(byteArrayOf(1, 2, 3)) }
-        service.trustAndLoad(readable.absolutePath)
+        service.trustAndLoad(readable.absolutePath, approvedSha256 = null)
         factoryRepository.loadedJarPaths.clear()
 
         // A directory named *.jar is enumerated as a plugin jar but cannot be opened as a stream,
@@ -163,7 +163,7 @@ class DefaultPluginTrustServiceTest {
         val diskFactory = FakePluginFactoryRepository()
         val diskService = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskRepository, diskFactory, FakePluginJarSwapService(), diskSigner)
 
-        diskService.trustAndLoad(jar.absolutePath)
+        diskService.trustAndLoad(jar.absolutePath, approvedSha256 = null)
         diskService.setSigningEnabled(true)
 
         // Fresh start with the same (now-present) key. Without the re-sign the unsigned registry would
@@ -221,7 +221,7 @@ class DefaultPluginTrustServiceTest {
         val shownSha256 = service.arrivedJarsFlow.value.single().sha256
 
         pluginJar("network.jar", networkManifest(version = "6.6.6"))
-        service.trustAndLoad(jar.absolutePath)
+        service.trustAndLoad(jar.absolutePath, shownSha256)
 
         assertEquals(shownSha256, factoryRepository.expectedSha256ByJar.getValue(jar.absolutePath))
         val offeredAgain = service.arrivedJarsFlow.value.single()
@@ -229,6 +229,19 @@ class DefaultPluginTrustServiceTest {
         assertEquals(null, offeredAgain.loadFailure)
         assertEquals(listOf(jar.absolutePath), service.untrustedJarPathsFlow.first())
         assertFalse(jar.absolutePath in trustRepository.entries)
+    }
+
+    @Test
+    fun `an explicit install over a jar still on offer approves and loads the installed content`() = runBlocking {
+        val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+
+        pluginJar("network.jar", networkManifest(version = "1.4.0"))
+        service.trustAndLoad(jar.absolutePath, approvedSha256 = null)
+
+        assertEquals(sha256Of(jar), trustRepository.entries.getValue(jar.absolutePath).sha256)
+        assertEquals(sha256Of(jar), factoryRepository.expectedSha256ByJar.getValue(jar.absolutePath))
+        assertEquals(emptyList(), service.arrivedJarsFlow.value)
     }
 
     @Test
@@ -250,7 +263,7 @@ class DefaultPluginTrustServiceTest {
         val shownSha256 = service.arrivedJarsFlow.value.single().sha256
 
         pluginJar("network.jar", networkManifest(version = "6.6.6"))
-        service.trustAndLoad(jar.absolutePath)
+        service.trustAndLoad(jar.absolutePath, shownSha256)
 
         assertEquals(shownSha256, swapService.expectedSha256ByJar.getValue(jar.absolutePath))
     }
@@ -275,7 +288,7 @@ class DefaultPluginTrustServiceTest {
         factoryRepository.runningPluginsByJar[jar.absolutePath] = listOf(runningNetwork(version = "1.2.0"))
         service.onPluginJarsChanged(setOf(jar.absolutePath))
 
-        service.trustAndLoad(jar.absolutePath)
+        service.trustAndLoad(jar.absolutePath, approvedSha256 = null)
 
         assertEquals(listOf(jar.absolutePath), swapService.reloadedJarPaths)
         assertEquals(emptyList(), factoryRepository.loadedJarPaths)
@@ -314,7 +327,7 @@ class DefaultPluginTrustServiceTest {
         factoryRepository.failingJars[jar.absolutePath] = "a declared dependency is missing"
         service.onPluginJarsChanged(setOf(jar.absolutePath))
 
-        service.trustAndLoad(jar.absolutePath)
+        service.trustAndLoad(jar.absolutePath, approvedSha256 = null)
 
         assertEquals("a declared dependency is missing", service.arrivedJarsFlow.value.single().loadFailure)
     }

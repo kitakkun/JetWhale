@@ -12,12 +12,16 @@ import java.io.File
  * The jars present on construction are the baseline and are not reported.
  */
 internal class PluginJarDirectoryPoller(private val directory: File) {
-    private var reported: Map<String, JarStamp> = stamps()
+    private var reported: Map<String, JarStamp> = stamps().orEmpty()
     private var lastSeen: Map<String, JarStamp> = reported
 
-    /** Absolute paths of the jars whose settled state differs from the one last reported. */
+    /**
+     * Absolute paths of the jars whose settled state differs from the one last reported. A poll
+     * whose listing fails reports nothing and leaves the state as it was: an unreadable directory is
+     * not an empty one, and taking it for empty would unload every plugin.
+     */
     fun poll(): Set<String> {
-        val current = stamps()
+        val current = stamps() ?: return emptySet()
         val settledChanges = (current.keys + lastSeen.keys + reported.keys)
             .filter { path -> current[path] == lastSeen[path] && current[path] != reported[path] }
             .toSet()
@@ -34,9 +38,9 @@ internal class PluginJarDirectoryPoller(private val directory: File) {
         reported = reported + (jarPath to UNHANDLED)
     }
 
-    private fun stamps(): Map<String, JarStamp> = directory.listFiles { file -> file.isFile && file.extension == "jar" }
-        .orEmpty()
-        .associate { it.absolutePath to JarStamp(sizeBytes = it.length(), lastModifiedMillis = it.lastModified()) }
+    /** The jars in [directory], or null when it cannot be listed. */
+    private fun stamps(): Map<String, JarStamp>? = directory.listFiles { file -> file.isFile && file.extension == "jar" }
+        ?.associate { it.absolutePath to JarStamp(sizeBytes = it.length(), lastModifiedMillis = it.lastModified()) }
 
     private data class JarStamp(val sizeBytes: Long, val lastModifiedMillis: Long)
 

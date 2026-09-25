@@ -77,7 +77,7 @@ class MavenPluginInstallService(
         try {
             // Requesting an install by coordinates is the user's explicit consent, exactly like the
             // file picker: approve (pin the content hash) and load.
-            pluginTrustService.trustAndLoad(installedJar.absolutePath)
+            pluginTrustService.trustAndLoad(installedJar.absolutePath, approvedSha256 = null)
         } catch (e: Exception) {
             installedJar.delete()
             throw PluginInstallationException("Failed to load plugin from $coordinates: ${e.message}", e)

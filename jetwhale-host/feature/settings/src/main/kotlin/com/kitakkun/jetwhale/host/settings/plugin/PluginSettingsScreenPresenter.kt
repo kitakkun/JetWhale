@@ -45,7 +45,7 @@ fun pluginSettingsScreenPresenter(
             }
 
             is PluginSettingsScreenAction.UntrustedJarApproved -> {
-                trustPluginMutation.mutateAsync(TrustPluginRequest(action.path))
+                trustPluginMutation.mutateAsync(TrustPluginRequest(action.path, approvedSha256 = null))
             }
 
             is PluginSettingsScreenAction.ChangeSignPluginTrustRegistry -> {
