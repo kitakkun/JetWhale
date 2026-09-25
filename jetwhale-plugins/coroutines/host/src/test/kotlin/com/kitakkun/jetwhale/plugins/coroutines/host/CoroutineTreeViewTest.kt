@@ -56,6 +56,15 @@ class CoroutineTreeViewTest {
     }
 
     @Test
+    fun `a job registered under two names gets a distinct row id for each root`() {
+        val job = node("job", "Application", CoroutineState.Active, 0, node("child", "Child", CoroutineState.Active, 0))
+
+        val rowIds = flattenCoroutineTree(listOf(job, job.copy(name = "App")), collapsed = emptySet()).map(CoroutineRow::rowId)
+
+        assertEquals(listOf("job", "job/child", "job#1", "job#1/child"), rowIds)
+    }
+
+    @Test
     fun `observed times read at the precision a person needs`() {
         assertEquals("850 ms", formatObserved(850))
         assertEquals("4.2 s", formatObserved(4_250))
