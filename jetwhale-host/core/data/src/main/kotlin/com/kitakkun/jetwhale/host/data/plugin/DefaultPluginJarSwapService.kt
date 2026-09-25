@@ -97,10 +97,8 @@ class DefaultPluginJarSwapService(
     }
 
     override suspend fun remove(jarPath: String) {
-        pluginFactoryRepository.findPluginIdsByJarPath(jarPath).forEach { pluginId ->
-            disposePlugin(pluginId)
-            pluginFactoryRepository.unloadPlugin(pluginId)
-        }
+        pluginFactoryRepository.findPluginIdsByJarPath(jarPath).forEach(::disposePlugin)
+        pluginFactoryRepository.unloadPluginJar(jarPath)
     }
 
     private fun disposePlugin(pluginId: String) {

@@ -337,7 +337,7 @@ class DefaultPluginTrustServiceTest {
             loadedJarPaths.add(pluginJarPath)
         }
 
-        override suspend fun unloadPlugin(pluginId: String) = Unit
+        override suspend fun unloadPluginJar(pluginJarPath: String) = Unit
 
         override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = runningPluginsByJar[pluginJarPath].orEmpty().map(JetWhaleHostPluginManifest::pluginId)
 

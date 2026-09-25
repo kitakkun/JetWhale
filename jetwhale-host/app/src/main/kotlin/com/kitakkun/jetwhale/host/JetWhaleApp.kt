@@ -252,7 +252,7 @@ private fun ThemedHostWindow(
                                 backStack.addSingleTop(SettingsNavKey())
                             },
                             onClickReviewArrivedPlugins = {
-                                backStack.addSingleTop(SettingsNavKey(initialPage = SettingsScreenPage.InstalledPlugins))
+                                backStack.addSingleTop(SettingsNavKey(initialPage = SettingsScreenPage.PluginSecurity))
                             },
                         )
                     }

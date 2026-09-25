@@ -3,9 +3,9 @@
     <string name="version_format">Version %1$s</string>
     <string name="update_banner_message">New version %1$s is available</string>
     <string name="update_banner_open_settings">View in Settings</string>
-    <string name="plugin_arrived_new">New plugin in the plugins folder: %1$s (%2$s)</string>
-    <string name="plugin_arrived_update">New version in the plugins folder: %1$s → %2$s (%3$s)</string>
-    <string name="plugin_arrived_unreadable">JAR without a readable plugin manifest in the plugins folder (%1$s)</string>
+    <string name="plugin_arrived_new">New plugin: %1$s · %2$s</string>
+    <string name="plugin_arrived_update">New version: %1$s · %2$s</string>
+    <string name="plugin_arrived_unreadable">JAR without a readable plugin manifest · %1$s</string>
     <string name="plugin_arrived_load">Load</string>
     <string name="plugin_arrived_update_action">Update</string>
     <string name="plugin_arrived_later">Later</string>
