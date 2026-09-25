@@ -44,8 +44,14 @@ class KtorWebSocketServerTest {
             negotiationStrategy = mock(),
             sslCertificateManager = mock(),
         )
+        val port = freePort()
         runBlocking {
-            server.start("localhost", freePort(), wssPort = null)
+            server.start("localhost", port, wssPort = null)
+            val status = withTimeout(10_000) {
+                server.statusFlow.first { it is DebugWebSocketServerStatus.Started }
+            }
+            assertEquals(port, (status as DebugWebSocketServerStatus.Started).port)
+            assertEquals(null, status.wssPort)
             server.stop()
         }
     }

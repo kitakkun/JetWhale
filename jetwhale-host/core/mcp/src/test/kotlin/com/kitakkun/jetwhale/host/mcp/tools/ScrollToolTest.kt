@@ -38,6 +38,8 @@ import kotlin.test.assertTrue
 @OptIn(InternalComposeUiApi::class)
 class ScrollToolTest {
 
+    // A scene with no content has nothing to observe; the point is only that the scroll completes.
+    @Suppress("KOTRAIL_TEST_WITHOUT_ASSERTION")
     @Test
     fun `dispatchScroll does not throw on empty scene`() = runBlocking {
         val scene = createTestScene()
@@ -47,19 +49,30 @@ class ScrollToolTest {
     }
 
     @Test
-    fun `dispatchScroll does not throw with negative delta (scroll up)`() = runBlocking {
-        val scene = createTestScene()
+    fun `dispatchScroll sends an upward scroll for a negative delta`() = runBlocking {
+        val receivedDeltas = mutableListOf<Offset>()
+        val scene = scrollRecordingScene(receivedDeltas)
+
         withContext(Dispatchers.Main) {
-            dispatchScroll(scene, x = 100f, y = 200f, deltaX = 0f, deltaY = -50f)
+            dispatchScroll(scene, x = 100f, y = 100f, deltaX = 0f, deltaY = -50f)
         }
+
+        assertEquals(1, receivedDeltas.size)
+        assertTrue(receivedDeltas.single().y < 0, "Expected an upward scroll, but deltaY was ${receivedDeltas.single().y}")
     }
 
     @Test
-    fun `dispatchScroll does not throw with horizontal delta`() = runBlocking {
-        val scene = createTestScene()
+    fun `dispatchScroll sends a horizontal scroll for a horizontal delta`() = runBlocking {
+        val receivedDeltas = mutableListOf<Offset>()
+        val scene = scrollRecordingScene(receivedDeltas)
+
         withContext(Dispatchers.Main) {
-            dispatchScroll(scene, x = 100f, y = 200f, deltaX = 30f, deltaY = 0f)
+            dispatchScroll(scene, x = 100f, y = 100f, deltaX = 30f, deltaY = 0f)
         }
+
+        assertEquals(1, receivedDeltas.size)
+        assertTrue(receivedDeltas.single().x > 0, "Expected a horizontal scroll, but deltaX was ${receivedDeltas.single().x}")
+        assertEquals(0f, receivedDeltas.single().y)
     }
 
     @Test
@@ -89,23 +102,7 @@ class ScrollToolTest {
     @Test
     fun `dispatchScroll dispatches scroll events with correct delta direction`() = runBlocking {
         val receivedDeltas = mutableListOf<Offset>()
-        val scene = createTestScene {
-            Box(
-                modifier = Modifier
-                    .size(200.dp)
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                if (event.type == PointerEventType.Scroll) {
-                                    event.changes.firstOrNull()?.scrollDelta?.let { receivedDeltas += it }
-                                }
-                            }
-                        }
-                    },
-            )
-        }
-        renderTestScene(scene)
+        val scene = scrollRecordingScene(receivedDeltas)
 
         withContext(Dispatchers.Main) {
             dispatchScroll(scene, x = 100f, y = 100f, deltaX = 0f, deltaY = 50f)
@@ -122,23 +119,7 @@ class ScrollToolTest {
     @Test
     fun `scroll defaults the omitted axis to zero`() = runBlocking {
         val receivedDeltas = mutableListOf<Offset>()
-        val scene = createTestScene {
-            Box(
-                modifier = Modifier
-                    .size(200.dp)
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                if (event.type == PointerEventType.Scroll) {
-                                    event.changes.firstOrNull()?.scrollDelta?.let { receivedDeltas += it }
-                                }
-                            }
-                        }
-                    },
-            )
-        }
-        renderTestScene(scene)
+        val scene = scrollRecordingScene(receivedDeltas)
 
         val server = Server(
             serverInfo = Implementation(name = "test", version = "1.0.0"),
@@ -172,23 +153,7 @@ class ScrollToolTest {
     @Test
     fun `scroll returns an error when a delta is present but not a number`() = runBlocking {
         val receivedDeltas = mutableListOf<Offset>()
-        val scene = createTestScene {
-            Box(
-                modifier = Modifier
-                    .size(200.dp)
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                if (event.type == PointerEventType.Scroll) {
-                                    event.changes.firstOrNull()?.scrollDelta?.let { receivedDeltas += it }
-                                }
-                            }
-                        }
-                    },
-            )
-        }
-        renderTestScene(scene)
+        val scene = scrollRecordingScene(receivedDeltas)
 
         val server = Server(
             serverInfo = Implementation(name = "test", version = "1.0.0"),
@@ -233,4 +198,26 @@ class ScrollToolTest {
         ClientConnection::class.java.classLoader,
         arrayOf(ClientConnection::class.java),
     ) { _, method, _ -> throw UnsupportedOperationException(method.name) } as ClientConnection
+
+    /** A 200 dp box, rendered, that records the delta of every scroll event it receives. */
+    private fun scrollRecordingScene(receivedDeltas: MutableList<Offset>): PluginComposeScene {
+        val scene = createTestScene {
+            Box(
+                modifier = Modifier
+                    .size(200.dp)
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                if (event.type == PointerEventType.Scroll) {
+                                    event.changes.firstOrNull()?.scrollDelta?.let { receivedDeltas += it }
+                                }
+                            }
+                        }
+                    },
+            )
+        }
+        renderTestScene(scene)
+        return scene
+    }
 }

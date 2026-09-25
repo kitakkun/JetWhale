@@ -19,6 +19,8 @@ import kotlin.test.assertTrue
 @OptIn(InternalComposeUiApi::class)
 class DragToolTest {
 
+    // A scene with no content has nothing to observe; the point is only that the drag completes.
+    @Suppress("KOTRAIL_TEST_WITHOUT_ASSERTION")
     @Test
     fun `dispatchDrag does not throw on empty scene`() = runBlocking {
         val scene = createTestScene()
@@ -28,48 +30,29 @@ class DragToolTest {
     }
 
     @Test
-    fun `dispatchDrag sends events with steps = 1`() = runBlocking {
-        val scene = createTestScene()
-        withContext(Dispatchers.Main) {
-            dispatchDrag(scene, startX = 0f, startY = 0f, endX = 100f, endY = 100f, steps = 1)
-        }
+    fun `dispatchDrag with one step presses at the start and releases at the end`() = runBlocking {
+        val events = dragAndRecord(start = Offset(0f, 0f), end = Offset(100f, 100f), steps = 1)
+
+        // The one Move lands where the Release does, and Compose may fold it into the Release.
+        assertEquals(
+            listOf(PointerEventType.Press to Offset(0f, 0f), PointerEventType.Release to Offset(100f, 100f)),
+            events.filter { it.type != PointerEventType.Move }.map { it.type to it.position },
+        )
     }
 
     @Test
-    fun `dispatchDrag clamps steps to at least 1`() = runBlocking {
-        val scene = createTestScene()
-        withContext(Dispatchers.Main) {
-            // steps = 0 should not throw (coerced to 1 internally)
-            dispatchDrag(scene, startX = 0f, startY = 0f, endX = 200f, endY = 400f, steps = 0)
-        }
+    fun `dispatchDrag with zero steps still ends the drag at the end position`() = runBlocking {
+        val events = dragAndRecord(start = Offset(0f, 0f), end = Offset(200f, 400f), steps = 0)
+
+        assertEquals(
+            listOf(PointerEventType.Press to Offset(0f, 0f), PointerEventType.Release to Offset(200f, 400f)),
+            events.filter { it.type != PointerEventType.Move }.map { it.type to it.position },
+        )
     }
 
     @Test
     fun `dispatchDrag sends Press at start and Release at end`() = runBlocking {
-        data class ReceivedEvent(val type: PointerEventType, val position: Offset)
-
-        val receivedEvents = mutableListOf<ReceivedEvent>()
-        val scene = createTestScene {
-            Box(
-                modifier = Modifier
-                    .size(500.dp)
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                if (event.type !in listOf(PointerEventType.Press, PointerEventType.Move, PointerEventType.Release)) continue
-                                val pos = event.changes.firstOrNull()?.position ?: continue
-                                receivedEvents += ReceivedEvent(event.type, pos)
-                            }
-                        }
-                    },
-            )
-        }
-        renderTestScene(scene)
-
-        withContext(Dispatchers.Main) {
-            dispatchDrag(scene, startX = 10f, startY = 20f, endX = 300f, endY = 400f, steps = 3)
-        }
+        val receivedEvents = dragAndRecord(start = Offset(10f, 20f), end = Offset(300f, 400f), steps = 3)
 
         val pressEvents = receivedEvents.filter { it.type == PointerEventType.Press }
         val releaseEvents = receivedEvents.filter { it.type == PointerEventType.Release }
@@ -125,4 +108,32 @@ class DragToolTest {
         assertEquals(expected = 400f, actual = dragPositions.last().x, absoluteTolerance = 0.01f, message = "Last drag position X should be at endX")
         assertEquals(expected = 400f, actual = dragPositions.last().y, absoluteTolerance = 0.01f, message = "Last drag position Y should be at endY")
     }
+
+    /** Drags across a box that records every press, move and release it receives. */
+    private suspend fun dragAndRecord(start: Offset, end: Offset, steps: Int): List<ReceivedEvent> {
+        val receivedEvents = mutableListOf<ReceivedEvent>()
+        val scene = createTestScene {
+            Box(
+                modifier = Modifier
+                    .size(500.dp)
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                if (event.type !in listOf(PointerEventType.Press, PointerEventType.Move, PointerEventType.Release)) continue
+                                val pos = event.changes.firstOrNull()?.position ?: continue
+                                receivedEvents += ReceivedEvent(event.type, pos)
+                            }
+                        }
+                    },
+            )
+        }
+        renderTestScene(scene)
+        withContext(Dispatchers.Main) {
+            dispatchDrag(scene, startX = start.x, startY = start.y, endX = end.x, endY = end.y, steps = steps)
+        }
+        return receivedEvents
+    }
 }
+
+private data class ReceivedEvent(val type: PointerEventType, val position: Offset)

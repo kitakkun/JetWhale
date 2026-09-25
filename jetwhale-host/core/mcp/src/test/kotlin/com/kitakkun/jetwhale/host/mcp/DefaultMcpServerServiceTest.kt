@@ -115,8 +115,11 @@ class DefaultMcpServerServiceTest {
     fun `start and stop can be called multiple times safely`() = runBlocking {
         service.start(host, port)
         service.start(host, port) // second call should be no-op
+        assertEquals(McpServerStatus.Running(host, port), service.statusFlow.value)
+
         service.stop()
         service.stop() // second call should be no-op
+        assertEquals(McpServerStatus.Stopped, service.statusFlow.value)
     }
 
     @Test
