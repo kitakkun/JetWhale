@@ -9,8 +9,6 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 
 /**
  * Installs a plugin from a Maven repository: downloads the plugin jar and the external
@@ -69,7 +67,7 @@ class MavenPluginInstallService(
         val installedJar = File(appDataDirectoryProvider.getPluginDirectory(), stagedJar.name)
         pluginInstallProgressRepository.update(PluginInstallProgress.LoadingPlugin)
         try {
-            Files.move(stagedJar.toPath(), installedJar.toPath(), StandardCopyOption.ATOMIC_MOVE)
+            appDataDirectoryProvider.moveStagedJarIntoPluginDirectory(stagedJar, installedJar)
         } catch (e: Exception) {
             // The move did not happen, so a jar of the same name already installed is still the
             // working one and stays.

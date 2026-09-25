@@ -215,7 +215,7 @@ class DefaultPluginTrustServiceTest {
     }
 
     @Test
-    fun `approving an offered jar trusts and loads the content that was shown even if the file changed since`() = runBlocking {
+    fun `approving an offered jar loads only the content that was shown and offers what replaced it`() = runBlocking {
         val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
         service.onPluginJarsChanged(setOf(jar.absolutePath))
         val shownSha256 = service.arrivedJarsFlow.value.single().sha256
@@ -223,8 +223,23 @@ class DefaultPluginTrustServiceTest {
         pluginJar("network.jar", networkManifest(version = "6.6.6"))
         service.trustAndLoad(jar.absolutePath)
 
-        assertEquals(shownSha256, trustRepository.entries.getValue(jar.absolutePath).sha256)
         assertEquals(shownSha256, factoryRepository.expectedSha256ByJar.getValue(jar.absolutePath))
+        val offeredAgain = service.arrivedJarsFlow.value.single()
+        assertEquals("6.6.6", offeredAgain.declaredPlugins.single().version)
+        assertEquals(null, offeredAgain.loadFailure)
+        assertEquals(listOf(jar.absolutePath), service.untrustedJarPathsFlow.first())
+        assertFalse(jar.absolutePath in trustRepository.entries)
+    }
+
+    @Test
+    fun `a manifest too large to be real is reported as unreadable without being read whole`() = runBlocking {
+        val jar = pluginJar("huge.jar", " ".repeat(MAX_PLUGIN_MANIFEST_BYTES + 1))
+
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+
+        val offered = service.arrivedJarsFlow.value.single()
+        assertEquals(emptyList(), offered.declaredPlugins)
+        assertTrue(offered.unreadableReason.orEmpty().contains("larger than"))
     }
 
     @Test
@@ -380,6 +395,9 @@ class DefaultPluginTrustServiceTest {
         override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) {
             loadedJarPaths.add(pluginJarPath)
             expectedSha256ByJar[pluginJarPath] = expectedSha256
+            if (expectedSha256 != null && File(pluginJarPath).sha256Hex() != expectedSha256) {
+                failedJarsFlow.value += FailedPluginJar(pluginJarPath, "the jar changed after it was approved")
+            }
             failingJars[pluginJarPath]?.let { reason -> failedJarsFlow.value += FailedPluginJar(pluginJarPath, reason) }
         }
 

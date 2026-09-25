@@ -8,6 +8,7 @@ import okio.Path
 import okio.Path.Companion.toPath
 import java.io.File
 import java.io.IOException
+import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
@@ -127,11 +128,24 @@ class AppDataDirectoryProvider(
         val staged = File.createTempFile("$jarFileName.", ".part", File(pluginStagingDir))
         try {
             File(jarFilePath).copyTo(staged, overwrite = true)
-            Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE)
+            moveStagedJarIntoPluginDirectory(staged, destination)
         } finally {
             staged.delete()
         }
         return destination.path
+    }
+
+    /**
+     * Moves a complete jar from the staging directory to [destination] in the plugins directory,
+     * replacing a jar of the same name. Atomic where the file system supports it, so the watcher sees
+     * either the old jar or the new one; a replacing move otherwise.
+     */
+    fun moveStagedJarIntoPluginDirectory(staged: File, destination: File) {
+        try {
+            Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 
     fun getAllPluginJarFilePaths(): List<String> {
