@@ -6,9 +6,11 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runCurrent
@@ -17,6 +19,7 @@ import kotlinx.coroutines.withContext
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class JobTreeWalkerTest {
@@ -102,4 +105,36 @@ class JobTreeWalkerTest {
         assertEquals(CoroutineState.Cancelling, cancelling.coroutineState())
         gate.complete(Unit)
     }
+
+    @Test
+    fun `a registered root is as old as its registration when the tree is first asked for`() = runTest {
+        val root = Job()
+        val walker = JobTreeWalker(nodeLimit = 100)
+        walker.registered(root)
+
+        withContext(Dispatchers.Default) { delay(AGE_WAIT) }
+        val age = walker.walk(mapOf("app" to root), capturedAtEpochMillis = 0).roots.single().observedMillis
+
+        assertTrue(age >= AGE_WAIT.inWholeMilliseconds, "age was $age ms")
+        root.cancel()
+    }
+
+    @Test
+    fun `a coroutine noted by a sighting keeps that age when the tree is first asked for`() = runTest {
+        val root = Job()
+        val gate = CompletableDeferred<Unit>()
+        CoroutineScope(root + StandardTestDispatcher(testScheduler)).launch(CoroutineName("worker")) { gate.await() }
+        runCurrent()
+        val walker = JobTreeWalker(nodeLimit = 100)
+
+        walker.sight(listOf(root))
+        withContext(Dispatchers.Default) { delay(AGE_WAIT) }
+        val age = walker.walk(mapOf("app" to root), capturedAtEpochMillis = 0).roots.single().children.single().observedMillis
+
+        assertTrue(age >= AGE_WAIT.inWholeMilliseconds, "age was $age ms")
+        gate.complete(Unit)
+        root.cancel()
+    }
 }
+
+private val AGE_WAIT = 50.milliseconds

@@ -62,11 +62,7 @@ internal class FlowRecorder(val name: String) {
         val value = FlowValue(atEpochMillis = now, text = text.take(MAX_VALUE_TEXT))
         recentValues.updateAndGet { (listOf(value) + it).take(MAX_RECENT_VALUES) }
         val second = now / 1000
-        rateBuckets.updateAndGet { buckets ->
-            val last = buckets.lastOrNull()
-            val counted = if (last?.second == second) buckets.dropLast(1) + last.copy(count = last.count + 1) else buckets + RateBucket(second, 1)
-            counted.filter { it.second > second - RATE_WINDOW_SECONDS }
-        }
+        rateBuckets.updateAndGet { it.countingEmissionAt(second) }
     }
 
     fun onCompleted() {
@@ -100,4 +96,18 @@ internal class FlowRecorder(val name: String) {
     }
 }
 
-private data class RateBucket(val second: Long, val count: Long)
+internal data class RateBucket(val second: Long, val count: Long)
+
+/**
+ * These buckets with one more emission in [second], and those older than the rate window dropped.
+ * Collectors on different threads can commit out of order, so the bucket is found by its second
+ * rather than assumed to be the last one; there is never more than one bucket per second.
+ */
+internal fun List<RateBucket>.countingEmissionAt(second: Long): List<RateBucket> {
+    val counted = if (any { it.second == second }) {
+        map { if (it.second == second) it.copy(count = it.count + 1) else it }
+    } else {
+        this + RateBucket(second, 1)
+    }
+    return counted.filter { it.second > second - RATE_WINDOW_SECONDS }
+}

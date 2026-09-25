@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.coroutines.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.ClearedLongRuns
@@ -22,6 +23,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
@@ -62,6 +64,15 @@ class CoroutineMcpCommandsTest {
 
         val children = result.getValue("roots").jsonArray.single().jsonObject.getValue("children").jsonArray
         assertEquals(listOf("stuck"), children.map { it.jsonObject.getValue("name").jsonPrimitive.content })
+    }
+
+    @Test
+    fun `getCoroutineTree refuses an age that is negative or would overflow in milliseconds`() {
+        listOf(-1L, Long.MAX_VALUE).forEach { seconds ->
+            assertFailsWith<JetWhaleMcpArgumentException> {
+                GetCoroutineTreeCommand(FakeClient(tree)).run(buildJsonObject { put("minObservedSeconds", seconds) })
+            }
+        }
     }
 
     @Test

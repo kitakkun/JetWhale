@@ -64,6 +64,11 @@ A `Job` records no start time. The walker remembers each `Job` it has seen (and 
 finds any more) and reports how long it has been seen. Ids stay stable across walks for the same
 reason.
 
+So that an age means something the moment the tree is opened, two things start the clock earlier
+than the first tree request: a registered root counts from its registration, and while a host has
+the plugin active, a sighting pass notes new coroutines every two seconds without building a tree.
+That pass is the one piece of work the agent does unasked; it stops when the plugin is deactivated.
+
 ### States
 
 `New`, `Active`, `Cancelling`, `Completed`, `Cancelled` come from `isActive`, `isCompleted` and
