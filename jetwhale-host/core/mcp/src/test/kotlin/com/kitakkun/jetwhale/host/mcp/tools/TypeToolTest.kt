@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.mcp.tools
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldState
@@ -114,6 +115,28 @@ class TypeToolTest {
 
     @OptIn(InternalComposeUiApi::class)
     @Test
+    fun `dispatchTyping types into the focused field rather than the first one`() {
+        val first = TextFieldState()
+        val second = TextFieldState()
+        val scene = createTestScene {
+            Column {
+                BasicTextField(state = first, modifier = Modifier.size(200.dp, 40.dp))
+                BasicTextField(state = second, modifier = Modifier.size(200.dp, 40.dp))
+            }
+        }
+        renderTestScene(scene)
+        val fields = scene.semanticsOwners.map(SemanticsOwner::rootSemanticsNode).flatMap(::editableNodes)
+        fields[1].config.getOrNull(SemanticsActions.RequestFocus)?.action?.invoke()
+        renderTestScene(scene)
+
+        dispatchTyping(scene, "hello")
+
+        assertEquals("", first.text.toString())
+        assertEquals("hello", second.text.toString())
+    }
+
+    @OptIn(InternalComposeUiApi::class)
+    @Test
     fun `dispatchTyping appends text on successive calls`() {
         val textState = TextFieldState()
         val scene = createTestScene {
@@ -154,3 +177,5 @@ class TypeToolTest {
         assertEquals("hell", textState.text.toString())
     }
 }
+
+private fun editableNodes(node: SemanticsNode): List<SemanticsNode> = node.children.flatMap(::editableNodes) + listOfNotNull(node.takeIf { it.config.getOrNull(SemanticsActions.InsertTextAtCursor) != null })
