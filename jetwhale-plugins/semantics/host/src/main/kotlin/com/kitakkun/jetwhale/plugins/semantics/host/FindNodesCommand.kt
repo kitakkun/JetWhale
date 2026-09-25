@@ -44,11 +44,10 @@ internal class FindNodesCommand(
     private val merged by booleanOrNull("Search the merged tree (default true). See getNodeTree.")
     private val includeInvisible by booleanOrNull("Include nodes that are not laid out or fully clipped away. Defaults to false.")
     private val limit by intOrNull("Maximum number of nodes to return, in tree order. Returns all matches if omitted.")
-    private val format by enumOrNull(
-        "\"Json\" (default) returns the JSON described above. \"Text\" returns one line per node for reading rather than parsing — " +
+    private val format by serializableOrNull<NodeOutputFormat>(
+        "\"json\" (default) returns the JSON described above. \"text\" returns one line per node for reading rather than parsing — " +
             "`- <role or class> #<id> root=<rootId> \"<text>\" key=value… [flags] actions=… tap=x,y`, without bounds — " +
             "followed by a `… N more matches` line when limit cut the list short.",
-        NodeOutputFormat.entries,
     )
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {

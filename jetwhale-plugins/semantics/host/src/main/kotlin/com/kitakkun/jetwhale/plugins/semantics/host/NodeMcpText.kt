@@ -5,11 +5,23 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.math.roundToInt
 
-/** How a tool returns nodes: the JSON every caller gets by default, or the compact outline. */
-internal enum class NodeOutputFormat { Json, Text }
+/**
+ * How a tool returns nodes: the JSON every caller gets by default, or the compact outline. The
+ * serial names are what the tool's schema advertises and what a caller passes.
+ */
+@Serializable
+internal enum class NodeOutputFormat {
+    @SerialName("json")
+    Json,
+
+    @SerialName("text")
+    Text,
+}
 
 /**
  * Renders a snapshot as an indented outline, one line per node, for an agent that reads the tree

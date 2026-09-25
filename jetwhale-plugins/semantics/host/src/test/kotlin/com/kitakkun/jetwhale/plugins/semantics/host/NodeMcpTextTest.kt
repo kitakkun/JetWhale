@@ -7,7 +7,9 @@ import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeRef
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -78,6 +80,15 @@ class NodeMcpTextTest {
     }
 
     @Test
+    fun `both tools advertise the format values a caller passes`() {
+        val advertised = listOf(GetNodeTreeCommand(capture = { screen }), FindNodesCommand(capture = { screen })).map { command ->
+            command.toDescriptor().parameters.getValue("format").schema["enum"]?.jsonArray?.map { it.jsonPrimitive.content }
+        }
+
+        assertEquals(listOf(listOf("json", "text"), listOf("json", "text")), advertised)
+    }
+
+    @Test
     fun `findNodes in text addresses each node by root and says how many the limit left out`() {
         val command = FindNodesCommand(capture = { screen })
 
@@ -85,7 +96,7 @@ class NodeMcpTextTest {
             command.execute(
                 JetWhaleMcpArguments(
                     buildJsonObject {
-                        put("format", "Text")
+                        put("format", "text")
                         put("interactiveOnly", false)
                         put("limit", 1)
                     },
