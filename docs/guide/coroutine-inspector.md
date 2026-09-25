@@ -103,7 +103,9 @@ running. **Refresh now** reads once either way.
   go of. A scope the app registers and then keeps no reference to disappears from the tree once it
   is collected, coroutines and all; keep the scope where the app uses it, as it normally would.
 - **Age is observed, not exact.** A `Job` does not record when it started, so the age counts from
-  the first time the inspector saw the coroutine.
+  the first time the inspector saw the coroutine: a registered scope from its registration, and a
+  coroutine from the first sighting after it started. While the host has the plugin active, the
+  agent looks every two seconds, so an age can be up to two seconds short.
 - **"Completing" reads as Active.** `Job`'s public API cannot tell a coroutine still running its
   body from one waiting for its children.
 - **A tracked dispatcher dispatches every task**, so each one is timed: `Dispatchers.Main.immediate`

@@ -83,4 +83,15 @@ class FlowRecorderTest {
 
         assertEquals(200, recorder.snapshot().recentValues.single().text.length)
     }
+
+    @Test
+    fun `an emission committed out of order joins its own second instead of adding a bucket`() {
+        val buckets = emptyList<RateBucket>()
+            .countingEmissionAt(100)
+            .countingEmissionAt(101)
+            .countingEmissionAt(100)
+            .countingEmissionAt(101)
+
+        assertEquals(listOf(RateBucket(100, 2), RateBucket(101, 2)), buckets)
+    }
 }
