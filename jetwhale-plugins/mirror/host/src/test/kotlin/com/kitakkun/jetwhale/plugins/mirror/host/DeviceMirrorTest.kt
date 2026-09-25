@@ -72,6 +72,15 @@ class DeviceMirrorTest {
     }
 
     @Test
+    fun `a recording running when the mirror is disposed is kept in the library`() = runBlocking {
+        mirror.startRecording(device)
+
+        mirror.dispose()
+
+        assertEquals(listOf(CaptureKind.Recording), mirror.listCaptures(deviceId = null, kind = null, sinceEpochMillis = null).map { it.info.kind })
+    }
+
+    @Test
     fun `a stream that ends without a resize lets the mirror move on`() = runBlocking {
         val controller = EndingStream()
         val streaming = MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)
