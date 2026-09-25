@@ -54,6 +54,7 @@ class DirectoryZipTest {
     fun `names that could climb out of the extraction folder are made into plain segments`() {
         assertEquals(".._outside", zipSafeSegment("../outside"))
         assertEquals("a_b", zipSafeSegment("a\\b"))
+        assertEquals("C_", zipSafeSegment("C:"))
         assertEquals("_", zipSafeSegment(".."))
         assertEquals("_", zipSafeSegment(""))
         assertEquals("cache", zipSafeSegment("cache"))
