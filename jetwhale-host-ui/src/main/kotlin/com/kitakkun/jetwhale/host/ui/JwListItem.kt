@@ -125,6 +125,7 @@ public fun JwListItem(
             .jwFocusRing(interactionSource, JwShapes.small)
             .clip(JwShapes.small)
             .background(background)
+            .jwListRowKeys(onSelect = onClick, onKey = { false })
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

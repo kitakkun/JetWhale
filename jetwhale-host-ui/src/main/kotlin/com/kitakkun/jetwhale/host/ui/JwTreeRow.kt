@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.collapse
@@ -109,6 +110,7 @@ public fun JwTreeRow(
             .height(JwTreeRowDefaults.height)
             .jwFocusRing(interactionSource, JwShapes.small)
             .background(background)
+            .jwListRowKeys(onSelect = onClick, onKey = expandCollapseKeys(expandable && enabled, expanded, onToggleExpanded))
             .clickable(interactionSource = interactionSource, indication = null, enabled = enabled, onClick = onClick)
             .semantics { this.selected = selected }
             .padding(
@@ -177,4 +179,11 @@ public fun JwTreeRow(
             trailingContent?.invoke(this)
         }
     }
+}
+
+/** → expands a collapsed row and ← collapses an expanded one; any other key passes on. */
+private fun expandCollapseKeys(toggleable: Boolean, expanded: Boolean, onToggleExpanded: () -> Unit): (Key) -> Boolean = { key ->
+    val toggles = toggleable && key == if (expanded) Key.DirectionLeft else Key.DirectionRight
+    if (toggles) onToggleExpanded()
+    toggles
 }
