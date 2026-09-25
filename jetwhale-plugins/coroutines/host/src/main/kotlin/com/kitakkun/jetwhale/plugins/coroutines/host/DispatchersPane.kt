@@ -89,7 +89,7 @@ private fun DispatcherTables(dispatchers: List<DispatcherStats>, actions: Corout
             // Sized to its rows rather than half the pane: an app tracks a handful of dispatchers.
             modifier = Modifier.fillMaxWidth().height((DispatcherRowHeight * (dispatchers.size + 1)).coerceAtMost(DispatcherTableMaxHeight)),
         )
-        MetricsLegend("Wait: from dispatch until a thread picks the task up — a long wait means the dispatcher is saturated. Run: how long a task held the thread before it suspended or finished. A long run held it at least the threshold; on Main, one past 16 ms drops a frame.")
+        MetricsLegend("Wait: from dispatch until a thread picks the task up — a long wait means the dispatcher is saturated. Run: how long a task held the thread before it suspended or finished. A long run held it at least the threshold; on Main, one past 16 ms drops a frame. The app keeps only its most recent long runs, so Times counts those.")
         JwSectionHeader(
             title = "Long runs",
             count = longRuns.size,
