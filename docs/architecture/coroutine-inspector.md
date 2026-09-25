@@ -30,6 +30,19 @@ counter updates per dispatch or emission.
   200 characters. The emission rate counts emissions in one-second buckets over the last ten
   seconds, so a flow keeps at most ten buckets however fast it emits, and the rate has no ceiling.
 
+### References
+
+The inspector holds registered jobs, and the jobs its last walk saw, through weak references. A
+scope the app drops without cancelling it leaves coroutines that only its `Job` still reaches; if
+the inspector held that `Job`, it would keep the whole tree — and whatever its coroutines capture,
+such as an Activity — alive, creating the very leak it is there to reveal. On the JVM, Android and
+Kotlin/Native such a scope disappears once it is collected. Kotlin/JS and Kotlin/Wasm hold the jobs
+strongly until they complete: JavaScript's `WeakRef` takes a Kotlin object directly on Kotlin/JS but
+only as a `JsReference` on Kotlin/Wasm, so one shared web implementation cannot use it.
+
+Dispatcher and flow records are kept for the life of the plugin and are keyed by name, so a name is
+meant to stand for a purpose rather than an instance.
+
 ### Ages
 
 A `Job` records no start time. The walker remembers each `Job` it has seen (and forgets one no walk

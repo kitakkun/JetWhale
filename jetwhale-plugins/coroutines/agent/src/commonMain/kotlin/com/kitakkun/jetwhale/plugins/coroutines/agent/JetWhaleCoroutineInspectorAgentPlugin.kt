@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.agent.sdk.JetWhaleAgentPlugin
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.COROUTINES_PLUGIN_ID
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.ClearLongRuns
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.ClearedLongRuns
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineTree
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.DispatcherStatsReport
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.DumpCoroutines
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.GetCoroutineTree
@@ -47,7 +48,9 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     override val pluginId: String get() = COROUTINES_PLUGIN_ID
     override val pluginVersion: String get() = "1.0.0"
 
-    private val roots = AtomicReference(emptyMap<String, Job>())
+    // Held weakly: a scope dropped without being cancelled leaves coroutines that only its Job
+    // still reaches, and the inspector must not be what keeps them — and all they capture — alive.
+    private val roots = AtomicReference(emptyMap<String, WeakReference<Job>>())
     private val dispatchers = AtomicReference(emptyList<DispatcherRecorder>())
     private val flows = AtomicReference(emptyMap<String, FlowRecorder>())
     private val walker = JobTreeWalker(nodeLimit = MAX_TREE_NODES)
@@ -55,7 +58,9 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
 
     /**
      * Shows the coroutines of [scope] under [name]. A scope whose job completes is dropped by
-     * itself; one registered again under the same name replaces the previous one.
+     * itself; one registered again under the same name replaces the previous one. The inspector
+     * does not keep the scope alive: one the app drops without cancelling it disappears once it is
+     * garbage-collected (on Kotlin/JS and Kotlin/Wasm, once it completes).
      *
      * @throws IllegalArgumentException when [scope] has no `Job`, e.g. `GlobalScope`.
      */
@@ -66,8 +71,8 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
 
     /** Shows the coroutines below [job] under [name]; see the scope overload. */
     fun register(job: Job, name: String) {
-        roots.updateAndGet { it + (name to job) }
-        job.invokeOnCompletion { roots.updateAndGet { current -> if (current[name] === job) current - name else current } }
+        roots.updateAndGet { it + (name to WeakReference(job)) }
+        job.invokeOnCompletion { roots.updateAndGet { current -> if (current[name]?.get() === job) current - name else current } }
     }
 
     fun unregister(name: String) {
@@ -85,6 +90,9 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
      * timer for `delay` is not carried over, so delays are timed by the coroutines library's
      * default timer and then dispatched here.
      *
+     * A tracked dispatcher's record is kept for the life of the plugin, so track each dispatcher
+     * once, under a name for its purpose.
+     *
      * @throws IllegalArgumentException when [name] is already tracked, or [dispatcher] is
      *   `Dispatchers.Unconfined`, which runs tasks in place and has nothing to time.
      */
@@ -101,7 +109,8 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     /**
      * Returns [flow] recording each collection of it under [name]: when it starts and how it
      * ends, how many run at once, and its recent values as text. Flows tracked under one name
-     * share one record. A `StateFlow` or `SharedFlow` comes back as a plain `Flow`, so track it
+     * share one record, and a record is never dropped, so name a flow for its purpose rather than
+     * for the instance that exposes it. A `StateFlow` or `SharedFlow` comes back as a plain `Flow`, so track it
      * where it is collected rather than where it is exposed.
      */
     fun <T> track(flow: Flow<T>, name: String): Flow<T> {
@@ -111,9 +120,16 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
         return trackedFlow(flow, recorder)
     }
 
+    internal suspend fun coroutineTree(): CoroutineTree = walkLock.withLock {
+        val live = roots.updateAndGet { current -> current.filterValues { it.get() != null } }
+            .mapNotNull { (name, reference) -> reference.get()?.let { name to it } }
+            .toMap()
+        walker.walk(live, capturedAtEpochMillis = nowEpochMillis())
+    }
+
     override fun JetWhaleMessageHandlers.configure() {
         onRequest { _: GetCoroutineTree ->
-            reply(walkLock.withLock { walker.walk(roots.load(), capturedAtEpochMillis = nowEpochMillis()) })
+            reply(coroutineTree())
         }
         onRequest { _: GetDispatcherStats ->
             reply(DispatcherStatsReport(dispatchers.load().map(DispatcherRecorder::snapshot), capturedAtEpochMillis = nowEpochMillis()))

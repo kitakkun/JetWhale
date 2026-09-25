@@ -13,14 +13,15 @@ import kotlin.time.TimeSource
 /**
  * Walks the coroutines below the registered jobs through `Job.children`. It remembers each job
  * it has seen so that ids stay stable and an observed age can be told; a job no walk finds any
- * more is forgotten. Not thread-safe: callers walk one at a time.
+ * more is forgotten. Between walks it holds the jobs weakly, so a tree the app has let go of can
+ * be collected. Not thread-safe: callers walk one at a time.
  */
 internal class JobTreeWalker(private val nodeLimit: Int) {
-    private var seen: Map<Job, Sighting> = emptyMap()
+    private var seen: List<Pair<WeakReference<Job>, Sighting>> = emptyList()
     private var nextId = 1L
 
     fun walk(roots: Map<String, Job>, capturedAtEpochMillis: Long): CoroutineTree {
-        val walk = Walk()
+        val walk = Walk(previous = seen.mapNotNull { (reference, sighting) -> reference.get()?.let { it to sighting } }.toMap())
         val nodes = mutableListOf<CoroutineNode>()
         for ((name, job) in roots) {
             if (walk.count >= nodeLimit) {
@@ -29,11 +30,11 @@ internal class JobTreeWalker(private val nodeLimit: Int) {
             }
             nodes += walk.node(job, rootName = name)
         }
-        seen = walk.sightings
+        seen = walk.sightings.map { (job, sighting) -> WeakReference(job) to sighting }
         return CoroutineTree(roots = nodes, coroutineCount = walk.count, truncated = walk.truncated, capturedAtEpochMillis = capturedAtEpochMillis)
     }
 
-    private inner class Walk {
+    private inner class Walk(private val previous: Map<Job, Sighting>) {
         val sightings = mutableMapOf<Job, Sighting>()
         var count = 0
         var truncated = false
@@ -41,7 +42,7 @@ internal class JobTreeWalker(private val nodeLimit: Int) {
         fun node(job: Job, rootName: String?): CoroutineNode {
             count++
             val sighting = sightings.getOrPut(job) {
-                seen[job] ?: Sighting(id = "c${nextId++}", firstSeen = TimeSource.Monotonic.markNow())
+                previous[job] ?: Sighting(id = "c${nextId++}", firstSeen = TimeSource.Monotonic.markNow())
             }
             // A coroutine started by launch or async is its own CoroutineScope, which is how its
             // context — name and dispatcher — is reachable from the Job.
