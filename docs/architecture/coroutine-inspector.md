@@ -23,6 +23,20 @@ The agent pushes nothing. The host asks for the visible tab once a second while 
 app no one is inspecting pays only for what tracking itself costs: a clock read and a few atomic
 counter updates per dispatch or emission.
 
+### Detail on request
+
+A selected coroutine's stacks come from a request of their own, `GetCoroutineDetail(id)`, sent when
+it is selected and when the user asks again — not on the tree's timer. Answering takes a DebugProbes
+snapshot of every coroutine, which is the cost the Dump tab already pays only on request. The agent
+resolves the id through the jobs its last walk saw, so an id is good for as long as that coroutine
+is still found; one that is gone is answered as not found rather than with an error. DebugProbes'
+own state (`CREATED` / `RUNNING` / `SUSPENDED`) is passed along, because it tells apart what the
+`Job` state `Active` cannot. A scope's own `Job` is not a coroutine, so DebugProbes have no stack for
+it, and the reply says so.
+
+The host keeps where the selected coroutine was in the last tree that had it, so the detail pane can
+still show what a coroutine that just finished looked like instead of going blank.
+
 ### Bounds
 
 - A tree walk stops at 5,000 coroutines and says it was cut short.

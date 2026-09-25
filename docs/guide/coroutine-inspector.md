@@ -49,31 +49,42 @@ Name your coroutines with `CoroutineName` — the tree and the long-run list sho
 #### Dumps with suspension stacks (JVM desktop)
 
 Add `org.jetbrains.kotlinx:kotlinx-coroutines-debug` to a desktop app and call
-`DebugProbes.install()` at startup; the **Dump** tab then lists every coroutine with the stack it is
-suspended at. The agent does not bring the library along itself.
+`DebugProbes.install()` at startup. A selected coroutine's detail then shows whether it is running or
+suspended and the stack it waits at, and the **Dump** tab lists every coroutine with its stack. The
+agent does not bring the library along itself.
 
 Android cannot do this: `DebugProbes.install()` attaches a JVM agent through ByteBuddy, and ART has
 no `java.lang.management` to attach with, so it throws. iOS and the web have no DebugProbes.
 
 ## What you get in the host
 
-- **Coroutines** — a tree per registered scope: each coroutine's name, dispatcher, state and how
-  long the inspector has seen it. Filter by state, by age (a coroutine alive for minutes where you
-  expected seconds is a leak or a stall), by name and by dispatcher.
-- **Dispatchers** — for each tracked dispatcher: tasks queued and running, average and maximum wait
-  before a task starts, average and maximum time a task holds the thread, and the recent **long
-  runs** with the coroutine that ran.
+- **Coroutines** — a tree per registered scope: each coroutine's name, state, how long the inspector
+  has seen it and its dispatcher. Filter by state, by age (a coroutine alive for minutes where you
+  expected seconds is a leak or a stall), by name and by dispatcher. **Click a coroutine** for its
+  detail: what its state means, where it waits (on the JVM with DebugProbes: running or suspended,
+  its stack with the first frame of your own code called out, and where it was created), its path
+  from the registered scope, and how many coroutines below it are in each state. The selection
+  stays across refreshes; a coroutine that finishes is shown as gone, as it last looked.
+- **Dispatchers** — for each tracked dispatcher: tasks waiting and running, average and maximum wait
+  before a task starts, average and maximum time a task holds the thread, and its long-run
+  threshold. **Long runs** are grouped by the coroutine that held the thread — how often, the
+  longest, the total — or listed one by one.
 - **Flows** — for each tracked flow: collectors running now, how collections ended (completed,
-  cancelled, failed), emissions per second and the most recent values.
-- **Dump** — the full dump, on request.
+  cancelled, failed), emissions per second and the most recent values. A cold flow collected twice
+  shows every value twice.
+- **Dump** — the full dump, on request, with a filter that keeps only the coroutines whose stack
+  mentions a text, such as your package or class name.
 
-The visible tab refreshes once a second while it is shown; **Pause** freezes it.
+**Auto-refresh** reads the visible tab from the app once a second while it is shown. Turn it off to
+freeze what you see — the toolbar says the view is paused and when it was read; the app itself keeps
+running. **Refresh now** reads once either way.
 
 ## MCP tools
 
 | Tool | What it does |
 |------|--------------|
 | `com.kitakkun.jetwhale.coroutines.getCoroutineTree` | The tree, optionally filtered by state, name, dispatcher and minimum age |
+| `com.kitakkun.jetwhale.coroutines.getCoroutineDetail` | One coroutine by id: path, descendants by state, and — with DebugProbes — running or suspended and its stack |
 | `com.kitakkun.jetwhale.coroutines.getDispatcherStats` | Queue and run times per tracked dispatcher, with the long runs |
 | `com.kitakkun.jetwhale.coroutines.getTrackedFlows` | Collectors, outcomes, rate and recent values per tracked flow |
 | `com.kitakkun.jetwhale.coroutines.dumpCoroutines` | Every coroutine with its suspension stack, where the app can produce one |
