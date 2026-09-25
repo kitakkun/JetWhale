@@ -69,6 +69,37 @@ class JetWhaleCoroutineInspectorAgentPluginTest {
     }
 
     @Test
+    fun `with DebugProbes a parent whose body has returned is said to wait for its children`() {
+        DebugProbes.install()
+        val inspector = JetWhaleCoroutineInspectorAgentPlugin()
+        val scope = CoroutineScope(Job() + Dispatchers.Default)
+        val childStarted = CompletableDeferred<Unit>()
+        scope.launch(CoroutineName("sync")) {
+            launch {
+                childStarted.complete(Unit)
+                awaitCancellation()
+            }
+        }
+        try {
+            inspector.register(scope, name = "Application")
+            runBlocking { childStarted.await() }
+            val parent = runBlocking { inspector.coroutineTree() }.roots.single().children.single()
+
+            // The parent's body returns right after launching the child, on another thread.
+            val deadline = TimeSource.Monotonic.markNow() + 5.seconds
+            var detail = runBlocking { inspector.coroutineDetail(parent.id) }
+            while (detail.stackUnavailableReason == null && deadline.hasNotPassedNow()) {
+                detail = runBlocking { inspector.coroutineDetail(parent.id) }
+            }
+
+            assertTrue(detail.stackUnavailableReason.orEmpty().contains("waiting for its children"), detail.stackUnavailableReason)
+        } finally {
+            scope.cancel()
+            DebugProbes.uninstall()
+        }
+    }
+
+    @Test
     fun `without DebugProbes a coroutine's detail says how to get its stack`() {
         if (DebugProbes.isInstalled) DebugProbes.uninstall()
         val inspector = JetWhaleCoroutineInspectorAgentPlugin()
