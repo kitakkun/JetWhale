@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.plugins.coroutines.protocol.FlowValue
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.LongRun
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.TrackedFlowInfo
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.TrackedFlowReport
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.UntrackedDispatcher
 
 private val previewTree = CoroutineTree(
     roots = listOf(
@@ -47,6 +48,10 @@ private val previewDispatchers = DispatcherStatsReport(
             longRunThresholdMillis = 16,
             longRuns = listOf(LongRun(atEpochMillis = 1_760_000_000_000, durationMillis = 152.3, coroutineName = "parse-feed")),
         ),
+    ),
+    untracked = listOf(
+        UntrackedDispatcher(name = "Dispatchers.Default", coroutinesByState = mapOf(CoroutineState.Active to 5, CoroutineState.Cancelling to 1)),
+        UntrackedDispatcher(name = "Dispatchers.IO", coroutinesByState = mapOf(CoroutineState.Active to 2)),
     ),
     capturedAtEpochMillis = 1_760_000_000_000,
 )

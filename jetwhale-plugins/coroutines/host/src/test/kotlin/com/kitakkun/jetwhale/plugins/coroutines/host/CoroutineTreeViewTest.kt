@@ -39,6 +39,33 @@ class CoroutineTreeViewTest {
     }
 
     @Test
+    fun `named only hides unnamed coroutines but keeps an unnamed one that leads to a named one`() {
+        val compose = listOf(
+            node(
+                "root",
+                "Compose",
+                CoroutineState.Active,
+                observed = 0,
+                node("ripple", null, CoroutineState.Active, observed = 0),
+                node("effect", null, CoroutineState.Active, observed = 0, node("poll", "panel-poll", CoroutineState.Active, observed = 0)),
+            ),
+        )
+
+        val filtered = filterCoroutineTree(compose, CoroutineFilter.None.copy(namedOnly = true))
+
+        assertEquals(listOf("root", "effect", "poll"), flattenCoroutineTree(filtered, collapsed = emptySet()).map { it.node.id })
+        assertEquals(2, countMatchingCoroutines(compose, CoroutineFilter.None.copy(namedOnly = true)))
+    }
+
+    @Test
+    fun `the match count leaves out the ancestors shown only as the path to a match`() {
+        val filter = CoroutineFilter.None.copy(states = setOf(CoroutineState.Cancelling))
+
+        assertEquals(1, countMatchingCoroutines(tree, filter))
+        assertEquals(4, countMatchingCoroutines(tree, CoroutineFilter.None))
+    }
+
+    @Test
     fun `a collapsed node hides its descendants but keeps its depth`() {
         val rows = flattenCoroutineTree(tree, collapsed = setOf("root/sync"))
 

@@ -7,7 +7,7 @@ public final class com/kitakkun/jetwhale/plugins/coroutines/host/ComposableSingl
 public final class com/kitakkun/jetwhale/plugins/coroutines/host/ComposableSingletons$DispatchersPaneKt {
 	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/coroutines/host/ComposableSingletons$DispatchersPaneKt;
 	public fun <init> ()V
-	public final fun getLambda$2096871508$com_kitakkun_jetwhale_plugins_coroutines_host ()Lkotlin/jvm/functions/Function2;
+	public final fun getLambda$-987218566$com_kitakkun_jetwhale_plugins_coroutines_host ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda$524331984$com_kitakkun_jetwhale_plugins_coroutines_host ()Lkotlin/jvm/functions/Function2;
 }
 
