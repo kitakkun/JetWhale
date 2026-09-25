@@ -11,7 +11,8 @@ internal class GetDispatcherStatsCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.getDispatcherStats"
     override val description =
-        "Returns every dispatcher the app tracks: tasks waiting and running, completed tasks, average and maximum wait before a task starts and time a task runs, and the recent long runs — tasks that held the dispatcher's thread past its threshold — with the name of the coroutine that ran. A long run on a main dispatcher is a frozen UI."
+        "Returns every dispatcher the app tracks: tasks waiting and running, completed tasks, average and maximum wait before a task starts and time a task runs, and the recent long runs — tasks that held the dispatcher's thread past its threshold — with the name of the coroutine that ran. A long run on a main dispatcher is a frozen UI. " +
+            "`untracked` lists the other dispatchers the coroutines in the registered scopes run on (e.g. Dispatchers.Default or Dispatchers.IO) with how many coroutines are on each by state. Those are counts only: the inspector times a dispatcher only when the app wraps it with inspector.track(dispatcher, name, longRunThreshold) and uses the returned dispatcher in its place."
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String = McpJson.encodeToString(DispatcherStatsReport.serializer(), client.dispatcherStats())
 }
