@@ -52,6 +52,8 @@ public fun <T> rememberPersistent(
         )
     val state = remember(key) { mutableStateOf(default) }
 
+    // The serializer is fixed by T at the call site, so it cannot change under a running effect.
+    @Suppress("KOTRAIL_EFFECT_KEY_MISSING")
     LaunchedEffect(key, storage) {
         // Load the persisted value (if any) before observing writes, so the initial emission of
         // snapshotFlow below carries the loaded value, which drop(1) then skips.
