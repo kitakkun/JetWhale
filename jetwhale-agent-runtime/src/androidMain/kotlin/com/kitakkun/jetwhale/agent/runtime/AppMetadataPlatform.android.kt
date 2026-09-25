@@ -31,6 +31,8 @@ private fun currentApplicationOrNull(): Context? = try {
     method.invoke(null) as? Application
 } catch (_: ReflectiveOperationException) {
     null
+} catch (_: SecurityException) {
+    null
 }
 
 internal actual fun resolveDefaultAppName(): String? {

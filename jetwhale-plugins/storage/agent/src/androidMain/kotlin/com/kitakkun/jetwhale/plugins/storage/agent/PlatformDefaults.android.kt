@@ -58,4 +58,6 @@ private fun currentApplicationOrNull(): Context? = try {
     Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null) as? Application
 } catch (_: ReflectiveOperationException) {
     null
+} catch (_: SecurityException) {
+    null
 }

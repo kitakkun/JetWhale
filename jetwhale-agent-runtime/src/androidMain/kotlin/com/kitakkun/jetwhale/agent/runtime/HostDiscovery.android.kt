@@ -109,6 +109,9 @@ private fun currentApplicationContext(): Context? = try {
 } catch (e: ReflectiveOperationException) {
     JetWhaleLogger.d("Reflective Context lookup failed", e)
     null
+} catch (e: SecurityException) {
+    JetWhaleLogger.d("Reflective Context lookup was refused", e)
+    null
 }
 
 /**

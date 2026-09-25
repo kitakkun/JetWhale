@@ -225,6 +225,9 @@ private fun captureResponseBodySafely(response: Response, maxChars: Int, maxImag
             encodeImage(response.peekBody(maxImageBytes + 1L).bytes(), mediaType, maxImageBytes)
         } catch (_: IOException) {
             BodyCapture(null, false)
+        } catch (_: IllegalStateException) {
+            // Another interceptor returned a response whose body is already closed.
+            BodyCapture(null, false)
         }
     }
     return try {
@@ -234,6 +237,8 @@ private fun captureResponseBodySafely(response: Response, maxChars: Int, maxImag
         // byte cap while still decoding to fewer than maxChars chars — flag it truncated anyway.
         if (peeked.contentLength() > maxChars && !capture.truncated) capture.copy(truncated = true) else capture
     } catch (_: IOException) {
+        BodyCapture(null, false)
+    } catch (_: IllegalStateException) {
         BodyCapture(null, false)
     }
 }

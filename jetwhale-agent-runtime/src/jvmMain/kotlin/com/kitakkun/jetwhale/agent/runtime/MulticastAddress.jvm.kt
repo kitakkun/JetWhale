@@ -44,4 +44,7 @@ private fun routedSourceAddress(): InetAddress? = try {
 } catch (e: IOException) {
     JetWhaleLogger.d("Could not determine the routed source address", e)
     null
+} catch (e: SecurityException) {
+    JetWhaleLogger.d("Not allowed to probe the routed source address", e)
+    null
 }

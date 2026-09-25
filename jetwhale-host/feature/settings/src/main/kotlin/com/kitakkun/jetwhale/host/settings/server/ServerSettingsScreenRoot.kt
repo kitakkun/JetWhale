@@ -62,6 +62,8 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
                     logger.warning("Could not open $MCP_GUIDE_URL: ${e.message}")
                 } catch (e: UnsupportedOperationException) {
                     logger.warning("This desktop cannot open links: ${e.message}")
+                } catch (e: SecurityException) {
+                    logger.warning("Not allowed to open $MCP_GUIDE_URL: ${e.message}")
                 }
             },
             onSetHostGroupAllowed = { group, allowed -> screenChannel.send(ServerSettingsScreenAction.SetHostGroupAllowed(group, allowed)) },

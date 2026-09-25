@@ -94,6 +94,9 @@ class DefaultHostDiscoveryAdvertiser(
     } catch (e: UnknownHostException) {
         logger.debug("Could not resolve local hostname for mDNS instance name; using default", e)
         DEFAULT_INSTANCE_NAME
+    } catch (e: SecurityException) {
+        logger.debug("Not allowed to read the local hostname for mDNS instance name; using default", e)
+        DEFAULT_INSTANCE_NAME
     }
 
     private companion object {

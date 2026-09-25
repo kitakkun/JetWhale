@@ -12,6 +12,7 @@ import java.awt.Desktop
 import java.io.File
 import java.io.IOException
 import java.net.URI
+import java.net.URISyntaxException
 import java.util.logging.Logger
 
 @Composable
@@ -62,6 +63,10 @@ fun GeneralSettingsScreenRoot(
                     logger.warning("Could not open $path: ${e.message}")
                 } catch (e: UnsupportedOperationException) {
                     logger.warning("This desktop cannot open folders: ${e.message}")
+                } catch (e: IllegalArgumentException) {
+                    logger.warning("$path does not exist: ${e.message}")
+                } catch (e: SecurityException) {
+                    logger.warning("Not allowed to open $path: ${e.message}")
                 }
             },
             onClickOpenLogViewer = onOpenLogViewer,
@@ -84,6 +89,10 @@ fun GeneralSettingsScreenRoot(
                     logger.warning("Could not open $url: ${e.message}")
                 } catch (e: UnsupportedOperationException) {
                     logger.warning("This desktop cannot open links: ${e.message}")
+                } catch (e: URISyntaxException) {
+                    logger.warning("$url is not a valid link: ${e.message}")
+                } catch (e: SecurityException) {
+                    logger.warning("Not allowed to open $url: ${e.message}")
                 }
             },
         )
