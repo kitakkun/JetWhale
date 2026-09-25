@@ -67,6 +67,12 @@ class DefaultPluginJarSwapService(
 
     override suspend fun reload(jarPath: String, expectedSha256: String?) {
         if (!File(jarPath).exists()) return
+        if (expectedSha256 != null && withContext(Dispatchers.IO) { File(jarPath).sha256Hex() } != expectedSha256) {
+            // Not the approved content: the repository refuses it (and records why) without touching
+            // what is running, so the running instances are not disposed for nothing.
+            pluginFactoryRepository.reloadPlugin(jarPath, expectedSha256)
+            return
+        }
 
         // Plugin instance state is lost. Capture the plugin ids currently served by this jar so that
         // we can dispose their running instances and scenes before swapping in the new code.

@@ -121,7 +121,7 @@ class AppDataDirectoryProvider(
     }
 
     fun copyJarFileToAppDataDirectory(jarFilePath: String): String {
-        val jarFileName = jarFilePath.substringAfterLast('/')
+        val jarFileName = File(jarFilePath).name
         val destination = File(pluginDir, jarFileName)
         // Copied into the staging directory and moved in whole: the plugins directory is watched, and
         // a copy that pauses long enough would be offered half-written.

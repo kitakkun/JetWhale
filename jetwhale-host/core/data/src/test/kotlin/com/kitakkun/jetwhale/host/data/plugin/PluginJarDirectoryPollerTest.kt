@@ -34,6 +34,32 @@ class PluginJarDirectoryPollerTest {
     }
 
     @Test
+    fun `a change the caller could not handle is reported again`() {
+        val poller = PluginJarDirectoryPoller(directory)
+        val added = jar("added.jar", byteArrayOf(1, 2), modifiedAt = 1_000)
+        poller.poll()
+        poller.poll()
+
+        poller.redeliver(added.absolutePath)
+
+        assertEquals(setOf(added.absolutePath), poller.poll())
+        assertEquals(emptySet(), poller.poll())
+    }
+
+    @Test
+    fun `a removal the caller could not handle is reported again`() {
+        val removed = jar("removed.jar", byteArrayOf(1), modifiedAt = 1_000)
+        val poller = PluginJarDirectoryPoller(directory)
+        removed.delete()
+        poller.poll()
+        poller.poll()
+
+        poller.redeliver(removed.absolutePath)
+
+        assertEquals(setOf(removed.absolutePath), poller.poll())
+    }
+
+    @Test
     fun `a jar still being written is not reported until it stops changing`() {
         val poller = PluginJarDirectoryPoller(directory)
         val growing = jar("growing.jar", byteArrayOf(1), modifiedAt = 1_000)

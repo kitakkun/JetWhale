@@ -39,15 +39,17 @@ class DefaultPluginDirectoryWatchService(
         watchJob = coroutineScope.launch {
             while (isActive) {
                 delay(POLL_INTERVAL)
-                val changedJarPaths = poller.poll()
-                if (changedJarPaths.isEmpty()) continue
-                try {
-                    pluginTrustService.onPluginJarsChanged(changedJarPaths)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    // One unreadable jar must not stop the host from noticing the next one.
-                    logger.warning("Failed to handle changed plugin jars $changedJarPaths: ${e.message}")
+                // One jar at a time: a jar that cannot be handled must not stop the host from noticing
+                // the others, and is retried at the next poll instead of being taken as handled.
+                poller.poll().forEach { jarPath ->
+                    try {
+                        pluginTrustService.onPluginJarsChanged(setOf(jarPath))
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        logger.warning("Failed to handle changed plugin jar $jarPath, retrying: ${e.message}")
+                        poller.redeliver(jarPath)
+                    }
                 }
             }
         }
