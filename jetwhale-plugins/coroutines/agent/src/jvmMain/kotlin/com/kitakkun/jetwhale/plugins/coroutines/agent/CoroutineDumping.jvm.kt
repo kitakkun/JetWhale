@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.coroutines.agent
 
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDetail
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDump
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.debug.DebugProbes
@@ -36,7 +37,15 @@ internal actual fun describeCoroutine(id: String, job: Job): CoroutineDetail {
         return unavailable(NOT_ON_CLASSPATH)
     }
     val info = coroutines.firstOrNull { it.job === job }
-        ?: return unavailable("DebugProbes do not track this one: it is a scope's Job rather than a coroutine, or it started before DebugProbes were installed")
+        ?: return unavailable(
+            // DebugProbes follow a coroutine's own body, so they drop one whose body has returned
+            // while its children still run. Only a coroutine is its own CoroutineScope.
+            if (job is CoroutineScope) {
+                "its own body has finished and it is waiting for its children, which have stacks of their own (or it started before DebugProbes were installed)"
+            } else {
+                "it is a scope's Job rather than a coroutine, so it never runs code of its own; its children have stacks"
+            },
+        )
     return CoroutineDetail(
         id = id,
         found = true,
