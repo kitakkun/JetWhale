@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwCodeBlock
 import com.kitakkun.jetwhale.host.ui.JwColumnWidth
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
@@ -38,7 +39,8 @@ internal fun DispatchersPane(report: DispatcherStatsReport?, actions: CoroutineI
 
             report.dispatchers.isEmpty() -> JwEmptyState(
                 title = "No dispatchers tracked",
-                description = "Wrap a dispatcher to see its queue and long runs: inspector.track(Dispatchers.Main, name = \"Main\", longRunThreshold = 16.milliseconds).",
+                description = "Wrap a dispatcher to see how long tasks wait for it and which ones hold it too long, then use the returned dispatcher where the app used the original:",
+                action = { JwCodeBlock(text = TRACK_DISPATCHER_SNIPPET, copyLabel = "Copy") },
             )
 
             else -> DispatcherTables(report.dispatchers, actions)
@@ -54,17 +56,19 @@ private fun DispatcherTables(dispatchers: List<DispatcherStats>, actions: Corout
             items = dispatchers,
             columns = listOf(
                 JwTableColumn.text(header = "Dispatcher", width = JwColumnWidth.Weight(1f), text = DispatcherStats::name),
-                number("Queued") { it.queued.toString() },
+                number("Waiting") { it.queued.toString() },
                 number("Running") { it.running.toString() },
-                number("Done") { it.completedTasks.toString() },
+                number("Finished") { it.completedTasks.toString() },
                 number("Wait avg") { millis(it.averageQueueLatencyMillis) },
                 number("Wait max") { millis(it.maxQueueLatencyMillis) },
                 number("Run avg") { millis(it.averageRunMillis) },
                 number("Run max") { millis(it.maxRunMillis) },
+                number("Long if ≥") { "${it.longRunThresholdMillis} ms" },
             ),
             key = DispatcherStats::name,
             modifier = Modifier.fillMaxWidth().weight(1f),
         )
+        MetricsLegend("Wait: from dispatch until a thread picks the task up — a long wait means the dispatcher is saturated. Run: how long a task held the thread before it suspended or finished. A long run held it at least the threshold; on Main, one past 16 ms drops a frame.")
         JwSectionHeader(
             title = "Long runs",
             count = longRuns.size,
@@ -87,3 +91,6 @@ private fun DispatcherTables(dispatchers: List<DispatcherStats>, actions: Corout
 private fun <T> number(header: String, text: (T) -> String): JwTableColumn<T> = JwTableColumn.text(header = header, width = JwColumnWidth.Fixed(NumberColumnWidth), alignment = Alignment.End, text = text)
 
 private fun millis(value: Double): String = String.format(Locale.ROOT, "%.1f ms", value)
+
+private const val TRACK_DISPATCHER_SNIPPET = """val main = inspector.track(Dispatchers.Main, name = "Main", longRunThreshold = 16.milliseconds)
+val io = inspector.track(Dispatchers.IO, name = "IO", longRunThreshold = 500.milliseconds)"""

@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.coroutines.host
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.ui.JwTheme
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDetail
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDump
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineNode
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineState
@@ -67,10 +68,23 @@ private val previewFlows = TrackedFlowReport(
     capturedAtEpochMillis = 1_760_000_000_000,
 )
 
+private val previewDetail = CoroutineDetail(
+    id = "c3",
+    found = true,
+    debugState = "SUSPENDED",
+    suspensionStack = listOf("com.example.sync.Downloader.fetch(Downloader.kt:42)", "com.example.sync.SyncWorker${'$'}run${'$'}1.invokeSuspend(SyncWorker.kt:17)"),
+    creationStack = emptyList(),
+    stackUnavailableReason = null,
+)
+
 private object NoActions : CoroutineInspectorActions {
     override fun refresh(tab: InspectorTab) = Unit
 
     override fun toggleCollapsed(rowId: String) = Unit
+
+    override fun select(id: String?) = Unit
+
+    override fun reloadDetail() = Unit
 
     override fun clearLongRuns() = Unit
 }
@@ -81,17 +95,20 @@ private fun CoroutineInspectorScreenPreview() {
     JwTheme(darkTheme = false) {
         CoroutineInspectorScreen(
             tab = InspectorTab.Coroutines,
-            live = true,
+            autoRefresh = false,
             filter = CoroutineFilter.None,
             tree = previewTree,
             collapsed = emptySet(),
+            selectedId = "c3",
+            lastSeenSelection = null,
+            detail = previewDetail,
             dispatchers = previewDispatchers,
             flows = previewFlows,
             dump = null,
             status = null,
             actions = NoActions,
             onSelectTab = {},
-            onLiveChange = {},
+            onAutoRefreshChange = {},
             onFilterChange = {},
         )
     }
@@ -101,7 +118,16 @@ private fun CoroutineInspectorScreenPreview() {
 @Composable
 private fun CoroutinesPanePreview() {
     JwTheme(darkTheme = true) {
-        CoroutinesPane(tree = previewTree, collapsed = setOf("c1/c2"), filter = CoroutineFilter.None, actions = NoActions, onFilterChange = {})
+        CoroutinesPane(
+            tree = previewTree,
+            collapsed = setOf("c1/c2"),
+            filter = CoroutineFilter.None,
+            selectedId = null,
+            lastSeenSelection = null,
+            detail = null,
+            actions = NoActions,
+            onFilterChange = {},
+        )
     }
 }
 
@@ -118,6 +144,35 @@ private fun DispatchersPanePreview() {
 private fun FlowsPanePreview() {
     JwTheme(darkTheme = false) {
         FlowsPane(report = previewFlows)
+    }
+}
+
+@Preview
+@Composable
+private fun CoroutineDetailPanePreview() {
+    JwTheme(darkTheme = false) {
+        CoroutineDetailPane(current = findCoroutine(previewTree.roots, "c3"), lastSeen = null, detail = previewDetail, onReloadStack = {})
+    }
+}
+
+@Preview
+@Composable
+private fun GoneCoroutineDetailPanePreview() {
+    JwTheme(darkTheme = true) {
+        CoroutineDetailPane(
+            current = null,
+            lastSeen = findCoroutine(previewTree.roots, "c4"),
+            detail = CoroutineDetail(id = "c4", found = false, debugState = null, suspensionStack = emptyList(), creationStack = emptyList(), stackUnavailableReason = null),
+            onReloadStack = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun MetricsLegendPreview() {
+    JwTheme(darkTheme = false) {
+        MetricsLegend("Wait: from dispatch until a thread picks the task up.")
     }
 }
 
