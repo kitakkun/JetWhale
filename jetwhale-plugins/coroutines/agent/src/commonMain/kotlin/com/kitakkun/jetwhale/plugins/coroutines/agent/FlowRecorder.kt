@@ -99,7 +99,8 @@ internal class FlowRecorder(val name: String) {
 internal data class RateBucket(val second: Long, val count: Long)
 
 /**
- * These buckets with one more emission in [second], and those older than the rate window dropped.
+ * These buckets with one more emission in [second], and those older than the rate window, which
+ * ends at the newest second seen, dropped.
  * Collectors on different threads can commit out of order, so the bucket is found by its second
  * rather than assumed to be the last one; there is never more than one bucket per second.
  */
@@ -109,5 +110,8 @@ internal fun List<RateBucket>.countingEmissionAt(second: Long): List<RateBucket>
     } else {
         this + RateBucket(second, 1)
     }
-    return counted.filter { it.second > second - RATE_WINDOW_SECONDS }
+    // The window ends at the newest second seen, so a late commit for an old second cannot keep
+    // the list from shrinking.
+    val newest = maxOf(second, maxOfOrNull(RateBucket::second) ?: second)
+    return counted.filter { it.second > newest - RATE_WINDOW_SECONDS }
 }

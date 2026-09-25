@@ -56,7 +56,7 @@ internal class JobTreeWalker(private val nodeLimit: Int) {
     fun sight(roots: Collection<Job>) {
         val previous = previousSightings()
         val sightings = mutableMapOf<Job, Sighting>()
-        val pending = ArrayDeque(roots)
+        val pending = ArrayDeque(roots.take(nodeLimit))
         while (pending.isNotEmpty() && sightings.size < nodeLimit) {
             val job = pending.removeFirst()
             if (job in sightings) continue
