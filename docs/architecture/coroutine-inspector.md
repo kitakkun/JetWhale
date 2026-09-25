@@ -75,6 +75,17 @@ That pass is the one piece of work the agent does unasked; it stops when the plu
 `isCancelled`. "Completing" (body finished, children still running) is indistinguishable from
 `Active` through public API.
 
+### Compositions
+
+`TrackCompositionCoroutines` (in `agent-compose`, so the core agent stays free of the Compose
+runtime) registers a composition's effect job. `LaunchedEffect`, `produceState`, `collectAsState`
+and the jobs of `rememberCoroutineScope` are all its children: the Recomposer creates the effect job
+once, a `CompositionContext` hands the same context to its subcompositions, and every effect launches
+in it. The Compose runtime exposes that context only as `@InternalComposeApi`, so the adapter reads it from a
+`LaunchedEffect`'s own job through `Job.parent` (`@ExperimentalCoroutinesApi`) and returns at once;
+the probing coroutine completes and leaves no node behind. The effect job belongs to the Recomposer
+and outlives the call, so it is unregistered when the call leaves composition.
+
 ## Findings
 
 - **DebugProbes on Android — verified not possible in-process.** On an API 37 emulator,

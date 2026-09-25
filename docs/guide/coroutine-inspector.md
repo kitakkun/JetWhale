@@ -46,6 +46,48 @@ val prices = inspector.track(repository.prices, name = "prices")
 
 Name your coroutines with `CoroutineName` — the tree and the long-run list show that name.
 
+#### Coroutines your Composables start
+
+`LaunchedEffect`, `produceState`, `collectAsState` and the scopes `rememberCoroutineScope` returns
+all run as children of their composition's effect job. Add the Compose adapter and call it once at
+the root of each window or `ComposeView`; every Composable below it, lazy list items and other
+subcompositions included, then shows under that name:
+
+```kotlin
+dependencies {
+    implementation("com.kitakkun.jetwhale:jetwhale-coroutine-inspector-agent-compose:<version>")
+}
+```
+
+```kotlin
+@Composable
+fun App() {
+    inspector.TrackCompositionCoroutines(name = "Compose")
+    // ...
+}
+```
+
+A coroutine leaves the tree when its Composable leaves composition, so navigating away from a screen
+shows at once whether its work stopped with it. The root goes away when `TrackCompositionCoroutines`
+itself leaves composition.
+
+These coroutines have no name of their own and are listed as `StandaloneCoroutine`. Name the ones
+you want to recognize:
+
+```kotlin
+LaunchedEffect(userId) {
+    withContext(CoroutineName("profile-poll")) {
+        while (true) { refresh(userId); delay(5.seconds) }
+    }
+}
+
+val scope = rememberCoroutineScope()
+Button(onClick = { scope.launch(CoroutineName("save-draft")) { save() } }) { Text("Save") }
+```
+
+Naming each effect by hand is the price of doing this without a compiler plugin; naming them after
+their call site automatically would need one.
+
 #### Dumps with suspension stacks (JVM desktop)
 
 Add `org.jetbrains.kotlinx:kotlinx-coroutines-debug` to a desktop app and call
