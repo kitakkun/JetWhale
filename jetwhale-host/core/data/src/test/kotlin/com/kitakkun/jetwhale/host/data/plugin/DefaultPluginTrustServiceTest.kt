@@ -2,16 +2,26 @@ package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
 import com.kitakkun.jetwhale.host.model.AdditionalPluginDirectories
+import com.kitakkun.jetwhale.host.model.DeclaredPlugin
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.model.PluginJarSwapService
 import com.kitakkun.jetwhale.host.model.PluginTrustRepository
 import com.kitakkun.jetwhale.host.model.TrustedPluginEntry
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.security.MessageDigest
+import java.util.jar.JarEntry
+import java.util.jar.JarOutputStream
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -27,6 +37,7 @@ class DefaultPluginTrustServiceTest {
 
     private lateinit var trustRepository: FakePluginTrustRepository
     private lateinit var factoryRepository: FakePluginFactoryRepository
+    private lateinit var swapService: FakePluginJarSwapService
     private lateinit var signer: FakeTrustRegistrySigner
     private lateinit var service: DefaultPluginTrustService
 
@@ -42,8 +53,9 @@ class DefaultPluginTrustServiceTest {
 
         trustRepository = FakePluginTrustRepository()
         factoryRepository = FakePluginFactoryRepository()
+        swapService = FakePluginJarSwapService()
         signer = FakeTrustRegistrySigner(keyPresent = false)
-        service = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), trustRepository, factoryRepository, signer)
+        service = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), trustRepository, factoryRepository, swapService, signer)
     }
 
     @AfterTest
@@ -149,7 +161,7 @@ class DefaultPluginTrustServiceTest {
 
         val diskRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskSigner)
         val diskFactory = FakePluginFactoryRepository()
-        val diskService = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskRepository, diskFactory, diskSigner)
+        val diskService = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskRepository, diskFactory, FakePluginJarSwapService(), diskSigner)
 
         diskService.trustAndLoad(jar.absolutePath)
         diskService.setSigningEnabled(true)
@@ -158,11 +170,134 @@ class DefaultPluginTrustServiceTest {
         // verify INVALID and drop every plugin; re-signing lets it verify and load.
         val reloadedRepository = DefaultPluginTrustRepository(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), diskSigner)
         val reloadedFactory = FakePluginFactoryRepository()
-        val reloadedService = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), reloadedRepository, reloadedFactory, diskSigner)
+        val reloadedService = DefaultPluginTrustService(AppDataDirectoryProvider(AdditionalPluginDirectories(emptyList())), reloadedRepository, reloadedFactory, FakePluginJarSwapService(), diskSigner)
         reloadedService.loadTrustedPlugins()
 
         assertEquals(listOf(jar.absolutePath), reloadedFactory.loadedJarPaths)
     }
+
+    @Test
+    fun `a jar that appears at runtime is offered and listed as untrusted without being loaded`() = runBlocking {
+        val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
+
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+
+        val offered = service.arrivedJarsFlow.value.single()
+        assertEquals(listOf(networkPlugin(version = "1.3.0")), offered.declaredPlugins)
+        assertEquals(emptyList(), offered.replacedPlugins)
+        assertEquals(jar.length(), offered.sizeBytes)
+        assertEquals(sha256Of(jar), offered.sha256)
+        assertEquals(listOf(jar.absolutePath), service.untrustedJarPathsFlow.first())
+        assertEquals(emptyList(), factoryRepository.loadedJarPaths)
+    }
+
+    @Test
+    fun `a jar without a readable manifest is still offered with the reason`() = runBlocking {
+        val jar = File(pluginsDir, "mystery.jar").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+
+        val offered = service.arrivedJarsFlow.value.single()
+        assertEquals(emptyList(), offered.declaredPlugins)
+        assertTrue(offered.unreadableReason != null)
+    }
+
+    @Test
+    fun `a trusted jar put back into the directory is loaded without asking`() = runBlocking {
+        val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
+        trustRepository.entries[jar.absolutePath] = TrustedPluginEntry(jar.absolutePath, sha256Of(jar), 0L)
+
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+
+        assertEquals(listOf(jar.absolutePath), factoryRepository.loadedJarPaths)
+        assertEquals(emptyList(), service.arrivedJarsFlow.value)
+    }
+
+    @Test
+    fun `a jar written over a running one is offered as an update while the old code keeps running`() = runBlocking {
+        val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
+        trustRepository.entries[jar.absolutePath] = TrustedPluginEntry(jar.absolutePath, "hash of 1.2.0", 0L)
+        factoryRepository.runningPluginsByJar[jar.absolutePath] = listOf(runningNetwork(version = "1.2.0"))
+
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+
+        assertEquals(listOf(networkPlugin(version = "1.2.0")), service.arrivedJarsFlow.value.single().replacedPlugins)
+        assertEquals(emptyList(), swapService.reloadedJarPaths)
+        assertEquals(emptyList(), swapService.removedJarPaths)
+        assertEquals(emptyList(), factoryRepository.loadedJarPaths)
+    }
+
+    @Test
+    fun `approving an update reloads the running plugins rather than loading the jar again`() = runBlocking {
+        val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
+        factoryRepository.runningPluginsByJar[jar.absolutePath] = listOf(runningNetwork(version = "1.2.0"))
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+
+        service.trustAndLoad(jar.absolutePath)
+
+        assertEquals(listOf(jar.absolutePath), swapService.reloadedJarPaths)
+        assertEquals(emptyList(), factoryRepository.loadedJarPaths)
+        assertEquals(sha256Of(jar), trustRepository.entries.getValue(jar.absolutePath).sha256)
+        assertEquals(emptyList(), service.arrivedJarsFlow.value)
+        assertEquals(emptyList(), service.untrustedJarPathsFlow.first())
+    }
+
+    @Test
+    fun `a removed jar has its plugins removed and leaves both lists`() = runBlocking {
+        val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+
+        jar.delete()
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+
+        assertEquals(listOf(jar.absolutePath), swapService.removedJarPaths)
+        assertEquals(emptyList(), service.arrivedJarsFlow.value)
+        assertEquals(emptyList(), service.untrustedJarPathsFlow.first())
+    }
+
+    @Test
+    fun `a postponed jar is no longer offered but stays untrusted`() = runBlocking {
+        val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+
+        service.postponeArrivedJar(jar.absolutePath)
+
+        assertEquals(emptyList(), service.arrivedJarsFlow.value)
+        assertEquals(listOf(jar.absolutePath), service.untrustedJarPathsFlow.first())
+    }
+
+    @Test
+    fun `an offered jar that changes again is offered once with its new content`() = runBlocking {
+        val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+
+        pluginJar("network.jar", networkManifest(version = "1.3.1"))
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+
+        assertEquals("1.3.1", service.arrivedJarsFlow.value.single().declaredPlugins.single().version)
+        assertEquals(listOf(jar.absolutePath), service.untrustedJarPathsFlow.first())
+    }
+
+    private fun pluginJar(name: String, manifestJson: String): File = File(pluginsDir, name).apply {
+        JarOutputStream(outputStream()).use { jar ->
+            jar.putNextEntry(JarEntry(PLUGIN_MANIFEST_PATH))
+            jar.write(manifestJson.toByteArray())
+            jar.closeEntry()
+        }
+    }
+
+    private fun networkManifest(version: String): String = """{"plugins":[{"pluginId":"com.example.network","pluginName":"Network Inspector","version":"$version","factoryClass":"com.example.Factory"}]}"""
+
+    private fun networkPlugin(version: String) = DeclaredPlugin(pluginId = "com.example.network", pluginName = "Network Inspector", version = version)
+
+    private fun runningNetwork(version: String) = JetWhaleHostPluginManifest(
+        pluginId = "com.example.network",
+        pluginName = "Network Inspector",
+        version = version,
+        factoryClass = "com.example.Factory",
+    )
+
+    private fun sha256Of(file: File): String = MessageDigest.getInstance("SHA-256").digest(file.readBytes()).joinToString("") { "%02x".format(it) }
 
     private class FakePluginTrustRepository : PluginTrustRepository {
         val entries = mutableMapOf<String, TrustedPluginEntry>()
@@ -190,8 +325,12 @@ class DefaultPluginTrustServiceTest {
 
     private class FakePluginFactoryRepository : PluginFactoryRepository {
         val loadedJarPaths = mutableListOf<String>()
+
+        /** Plugins the test treats as already running, by the jar they came from. */
+        val runningPluginsByJar = mutableMapOf<String, List<JetWhaleHostPluginManifest>>()
         override val loadedPluginsFlow: Flow<Map<String, LoadedHostPlugin>> = MutableStateFlow(emptyMap())
-        override val loadedPlugins: Map<String, LoadedHostPlugin> = emptyMap()
+        override val loadedPlugins: Map<String, LoadedHostPlugin>
+            get() = runningPluginsByJar.values.flatten().associate { it.pluginId to LoadedHostPlugin(it, UnusedFactory) }
         override val failedJarsFlow: Flow<List<FailedPluginJar>> = MutableStateFlow(emptyList())
 
         override suspend fun loadPlugin(pluginJarPath: String) {
@@ -200,11 +339,31 @@ class DefaultPluginTrustServiceTest {
 
         override suspend fun unloadPlugin(pluginId: String) = Unit
 
-        override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = emptyList()
+        override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = runningPluginsByJar[pluginJarPath].orEmpty().map(JetWhaleHostPluginManifest::pluginId)
 
         override suspend fun reloadPlugin(pluginJarPath: String): List<String> = emptyList()
 
         override fun tryRedefinePlugin(pluginJarPath: String): List<String> = emptyList()
+    }
+
+    private object UnusedFactory : JetWhaleHostPluginFactory {
+        override fun createPlugin(): JetWhaleHostPlugin = error("the trust service never creates plugins")
+    }
+
+    private class FakePluginJarSwapService : PluginJarSwapService {
+        val reloadedJarPaths = mutableListOf<String>()
+        val removedJarPaths = mutableListOf<String>()
+        override val pluginReloadedFlow: SharedFlow<String> = MutableSharedFlow()
+
+        override suspend fun hotSwap(jarPath: String) = error("the trust service never hot-swaps")
+
+        override suspend fun reload(jarPath: String) {
+            reloadedJarPaths += jarPath
+        }
+
+        override suspend fun remove(jarPath: String) {
+            removedJarPaths += jarPath
+        }
     }
 
     /**

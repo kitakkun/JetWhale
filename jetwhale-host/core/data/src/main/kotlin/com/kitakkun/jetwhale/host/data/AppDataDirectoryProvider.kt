@@ -26,6 +26,7 @@ class AppDataDirectoryProvider(
     private val isAppDataDirOverridden = System.getProperty(APP_DATA_DIR_PROPERTY)?.isNotBlank() == true
     private val pluginDir = "$appDataDir/plugins"
     private val pluginLibsDir = "$pluginDir/libs"
+    private val pluginStagingDir = "$pluginDir/staging"
     private val dataStoreFilesDir = "$appDataDir/dataStorePreferences"
     private val pluginDataDir = "$appDataDir/plugin-data"
     private val sslDir = "$appDataDir/ssl"
@@ -110,6 +111,10 @@ class AppDataDirectoryProvider(
         if (!pluginLibsDirectory.exists()) {
             pluginLibsDirectory.mkdirs()
         }
+        val pluginStagingDirectory = File(pluginStagingDir)
+        if (!pluginStagingDirectory.exists()) {
+            pluginStagingDirectory.mkdirs()
+        }
     }
 
     fun copyJarFileToAppDataDirectory(jarFilePath: String): String {
@@ -134,6 +139,12 @@ class AppDataDirectoryProvider(
      * directory so the jars are not themselves picked up as plugins by [getAllPluginJarFilePaths].
      */
     fun getPluginLibsDirectory(): File = File(pluginLibsDir)
+
+    /**
+     * Directory an install downloads a plugin jar into before moving it into the plugins directory,
+     * so the jar enters that watched directory complete and only right before it is approved.
+     */
+    fun getPluginStagingDirectory(): File = File(pluginStagingDir)
 
     /**
      * The development-only "dev plugins directory" supplied by a plugin developer via the

@@ -3,6 +3,17 @@
     <string name="version_format">Version %1$s</string>
     <string name="update_banner_message">New version %1$s is available</string>
     <string name="update_banner_open_settings">View in Settings</string>
+    <string name="plugin_arrived_new">New plugin in the plugins folder: %1$s (%2$s)</string>
+    <string name="plugin_arrived_update">New version in the plugins folder: %1$s → %2$s (%3$s)</string>
+    <string name="plugin_arrived_unreadable">JAR without a readable plugin manifest in the plugins folder (%1$s)</string>
+    <string name="plugin_arrived_load">Load</string>
+    <string name="plugin_arrived_update_action">Update</string>
+    <string name="plugin_arrived_later">Later</string>
+    <string name="plugin_arrived_review">Review in Settings</string>
+    <plurals name="plugin_arrived_more">
+        <item quantity="one">%1$d more new plugin JAR</item>
+        <item quantity="other">%1$d more new plugin JARs</item>
+    </plurals>
     <string name="developed_by">Developed by kitakkun</string>
     <string name="github_url">GitHub: https://github.com/kitakkun/JetWhale</string>
     <string name="oss_licenses">OSS Licenses</string>

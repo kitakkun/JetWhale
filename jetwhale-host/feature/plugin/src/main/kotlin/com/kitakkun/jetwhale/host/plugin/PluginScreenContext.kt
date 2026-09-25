@@ -4,7 +4,7 @@ import com.kitakkun.jetwhale.host.architecture.ScreenContext
 import com.kitakkun.jetwhale.host.model.HeadlessPluginsSubscriptionKey
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneQueryKey
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneQueryKeyFactory
-import com.kitakkun.jetwhale.host.model.PluginHotReloadService
+import com.kitakkun.jetwhale.host.model.PluginJarSwapService
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
@@ -21,17 +21,17 @@ class PluginScreenContext(
     @Assisted val pluginId: String,
     @Assisted val sessionId: String,
     pluginComposeSceneQueryKeyFactory: PluginComposeSceneQueryKeyFactory,
-    pluginHotReloadService: PluginHotReloadService,
+    pluginJarSwapService: PluginJarSwapService,
     val headlessPluginsSubscriptionKey: HeadlessPluginsSubscriptionKey,
 ) : ScreenContext {
     val pluginComposeSceneQueryKey: PluginComposeSceneQueryKey =
         pluginComposeSceneQueryKeyFactory.create(pluginId, sessionId)
 
     /**
-     * Emits whenever this screen's plugin is hot-reloaded, so the screen can re-create its compose
-     * scene from the freshly loaded code. Inert in production (no dev plugins directory configured).
+     * Emits whenever this screen's plugin gets new code — a dev hot reload, or an approved update of
+     * its jar — so the screen can re-create its compose scene from it.
      */
-    val pluginReloadedFlow: Flow<String> = pluginHotReloadService.pluginReloadedFlow
+    val pluginReloadedFlow: Flow<String> = pluginJarSwapService.pluginReloadedFlow
         .filter { reloadedPluginId -> reloadedPluginId == pluginId }
 
     @AssistedFactory

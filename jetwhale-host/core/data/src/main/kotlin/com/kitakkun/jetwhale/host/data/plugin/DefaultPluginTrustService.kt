@@ -1,9 +1,13 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
+import com.kitakkun.jetwhale.host.model.ArrivedPluginJar
+import com.kitakkun.jetwhale.host.model.DeclaredPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.model.PluginJarSwapService
 import com.kitakkun.jetwhale.host.model.PluginTrustRepository
 import com.kitakkun.jetwhale.host.model.PluginTrustService
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -14,6 +18,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.security.MessageDigest
@@ -26,12 +32,22 @@ class DefaultPluginTrustService(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
     private val pluginTrustRepository: PluginTrustRepository,
     private val pluginFactoryRepository: PluginFactoryRepository,
+    private val pluginJarSwapService: PluginJarSwapService,
     private val trustRegistrySigner: TrustRegistrySigner,
 ) : PluginTrustService {
     private val logger = Logger.getLogger(DefaultPluginTrustService::class.java.name)
 
     override val untrustedJarPathsFlow: Flow<List<String>>
         field = MutableStateFlow(emptyList())
+
+    override val arrivedJarsFlow: StateFlow<List<ArrivedPluginJar>>
+        field = MutableStateFlow(emptyList())
+
+    /**
+     * Serializes approval with the directory watcher's reconciliation, so that a jar being approved
+     * is not recorded as untrusted by a reconciliation that read it just before.
+     */
+    private val jarStateMutex = Mutex()
 
     override val verifyingTrustRegistryFlow: StateFlow<Boolean>
         field = MutableStateFlow(false)
@@ -79,10 +95,78 @@ class DefaultPluginTrustService(
         require(appDataDirectoryProvider.isManagedPluginJarPath(jarPath)) {
             "Refusing to trust a jar outside the managed plugins directory: $jarPath"
         }
-        // trust() signs the registry iff a key exists, so no signing flag is threaded through here.
-        pluginTrustRepository.trust(jarPath, computeSha256(jarPath))
+        jarStateMutex.withLock {
+            // trust() signs the registry iff a key exists, so no signing flag is threaded through here.
+            pluginTrustRepository.trust(jarPath, computeSha256(jarPath))
+            untrustedJarPathsFlow.update { it - jarPath }
+            arrivedJarsFlow.update { arrived -> arrived.filterNot { it.jarPath == jarPath } }
+            if (pluginFactoryRepository.findPluginIdsByJarPath(jarPath).isEmpty()) {
+                pluginFactoryRepository.loadPlugin(jarPath)
+            } else {
+                pluginJarSwapService.reload(jarPath)
+            }
+        }
+    }
+
+    override suspend fun onPluginJarsChanged(jarPaths: Set<String>): Unit = jarStateMutex.withLock {
+        jarPaths.forEach { jarPath ->
+            when {
+                !File(jarPath).isFile -> {
+                    forget(jarPath)
+                    pluginJarSwapService.remove(jarPath)
+                }
+
+                isTrusted(jarPath) -> {
+                    forget(jarPath)
+                    // The install flows load what they approve; this is a trusted jar put back by hand.
+                    if (pluginFactoryRepository.findPluginIdsByJarPath(jarPath).isEmpty()) {
+                        pluginFactoryRepository.loadPlugin(jarPath)
+                    }
+                }
+
+                else -> {
+                    logger.warning("Found an untrusted plugin jar at runtime: $jarPath")
+                    untrustedJarPathsFlow.update { if (jarPath in it) it else it + jarPath }
+                    val arrivedJar = describeArrivedJar(jarPath)
+                    arrivedJarsFlow.update { arrived -> arrived.filterNot { it.jarPath == jarPath } + arrivedJar }
+                }
+            }
+        }
+    }
+
+    override fun postponeArrivedJar(jarPath: String) {
+        arrivedJarsFlow.update { arrived -> arrived.filterNot { it.jarPath == jarPath } }
+    }
+
+    private fun forget(jarPath: String) {
         untrustedJarPathsFlow.update { it - jarPath }
-        pluginFactoryRepository.loadPlugin(jarPath)
+        arrivedJarsFlow.update { arrived -> arrived.filterNot { it.jarPath == jarPath } }
+    }
+
+    /** Describes [jarPath] from its bytes and manifest alone; none of its classes are loaded. */
+    private suspend fun describeArrivedJar(jarPath: String): ArrivedPluginJar {
+        val jar = File(jarPath)
+        var unreadableReason: String? = null
+        val manifest = withContext(Dispatchers.IO) {
+            try {
+                readJetWhaleHostPluginManifestFile(jar)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                unreadableReason = e.message ?: e.javaClass.simpleName
+                null
+            }
+        }
+        return ArrivedPluginJar(
+            jarPath = jarPath,
+            sizeBytes = jar.length(),
+            sha256 = computeSha256(jarPath),
+            declaredPlugins = manifest?.plugins.orEmpty().map(JetWhaleHostPluginManifest::toDeclaredPlugin),
+            unreadableReason = unreadableReason,
+            replacedPlugins = pluginFactoryRepository.findPluginIdsByJarPath(jarPath).mapNotNull { pluginId ->
+                pluginFactoryRepository.loadedPlugins[pluginId]?.manifest?.toDeclaredPlugin()
+            },
+        )
     }
 
     override suspend fun revokeTrust(jarPath: String) {
@@ -141,3 +225,5 @@ class DefaultPluginTrustService(
         digest.digest().joinToString("") { "%02x".format(it) }
     }
 }
+
+private fun JetWhaleHostPluginManifest.toDeclaredPlugin(): DeclaredPlugin = DeclaredPlugin(pluginId = pluginId, pluginName = pluginName, version = version)
