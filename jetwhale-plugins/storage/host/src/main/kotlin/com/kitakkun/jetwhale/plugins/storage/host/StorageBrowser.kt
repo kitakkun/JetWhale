@@ -346,11 +346,12 @@ internal class StorageBrowser(
     /**
      * Writes the ZIP, reporting progress in [status]. Only the status is touched, never the selection
      * or the previews, so selecting something else meanwhile is safe. The ZIP is written beside
-     * [target] and moved over it only once complete, so a failed download removes its own partial
-     * file and leaves a file the user chose to overwrite as it was.
+     * [target] under a name of its own and moved over it only once complete, so a failed download
+     * removes only its own partial file, two downloads to the same target cannot touch each other's,
+     * and a file the user chose to overwrite stays as it was until then.
      */
     private suspend fun zipTo(location: FileLocation, target: File) {
-        val partial = File(target.absoluteFile.parentFile, ".${target.name}.part")
+        val partial = File.createTempFile(".${target.name}.", ".part", target.absoluteFile.parentFile)
         var finished = false
         try {
             // The measured file count includes symbolic links, which the ZIP leaves out, so it

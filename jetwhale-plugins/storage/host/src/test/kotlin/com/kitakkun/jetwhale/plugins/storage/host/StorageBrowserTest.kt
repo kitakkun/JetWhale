@@ -13,6 +13,7 @@ import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
+import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -158,20 +159,20 @@ class StorageBrowserTest {
     }
 
     @Test
-    fun `a zip that fails partway leaves the file it would have replaced and no partial file`() {
+    fun `a zip that fails partway leaves the file it would have replaced and no partial file of its own`() {
         val failingRead = object : StorageClient by client {
             override suspend fun readFile(location: FileLocation, offset: Long, maxBytes: Int): FileContent = FileContent(contentBase64 = "", totalSizeBytes = 0, error = "permission denied")
         }
         val failingBrowser = StorageBrowser(failingRead, CoroutineScope(Dispatchers.Unconfined))
-        val target = File.createTempFile("storage-zip", ".zip").apply {
-            deleteOnExit()
-            writeText("previous archive")
-        }
+        val directory = createTempDirectory("storage-zip").toFile().apply { deleteOnExit() }
+        val target = File(directory, "files.zip").apply { writeText("previous archive") }
+        val unrelated = File(directory, ".files.zip.part").apply { writeText("someone else's") }
 
         failingBrowser.requestZipDownload(location("Files"), target)
 
         assertEquals("previous archive", target.readText())
-        assertFalse(File(target.parentFile, ".${target.name}.part").exists())
+        assertEquals("someone else's", unrelated.readText())
+        assertEquals(setOf(target, unrelated), directory.listFiles().orEmpty().toSet())
         assertEquals(true, failingBrowser.status?.isError)
     }
 

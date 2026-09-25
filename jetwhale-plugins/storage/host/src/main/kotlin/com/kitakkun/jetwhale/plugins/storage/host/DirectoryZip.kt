@@ -53,6 +53,6 @@ private class DirectoryZipper(
  * the destination.
  */
 internal fun zipSafeSegment(name: String): String {
-    val replaced = name.replace('/', '_').replace('\\', '_')
+    val replaced = name.replace('/', '_').replace('\\', '_').replace(':', '_')
     return if (replaced.isBlank() || replaced == "." || replaced == "..") "_" else replaced
 }
