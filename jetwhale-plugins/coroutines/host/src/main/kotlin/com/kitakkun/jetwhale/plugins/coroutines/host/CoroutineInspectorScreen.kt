@@ -48,12 +48,16 @@ internal fun CoroutineInspectorScreenRoot(state: CoroutineInspectorState, modifi
     var tab by rememberPersistent("tab", default = InspectorTab.Coroutines)
     var autoRefresh by rememberPersistent("autoRefresh", default = true)
     var filter by remember { mutableStateOf(CoroutineFilter.None) }
+    // Turning auto-refresh off must not read once more: the view would change right after the
+    // user froze it. A tab opened while it is off is read once, so it shows something current.
+    LaunchedEffect(tab) {
+        if (tab != InspectorTab.Dump && !autoRefresh) state.refresh(tab)
+    }
     LaunchedEffect(tab, autoRefresh) {
-        if (tab == InspectorTab.Dump) return@LaunchedEffect
-        state.refresh(tab)
-        while (autoRefresh) {
-            delay(RefreshInterval)
+        if (tab == InspectorTab.Dump || !autoRefresh) return@LaunchedEffect
+        while (true) {
             state.refresh(tab)
+            delay(RefreshInterval)
         }
     }
     CoroutineInspectorScreen(
@@ -110,7 +114,11 @@ internal fun CoroutineInspectorScreen(
                 if (tab == InspectorTab.Dump) {
                     JwText(text = "A dump is taken only when you ask for one", style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
                 } else {
-                    JwText(text = refreshStatus(autoRefresh, capturedAtEpochMillis), style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
+                    JwText(
+                        text = refreshStatus(autoRefresh, capturedAtEpochMillis),
+                        style = JwTheme.textStyles.labelSmall,
+                        color = if (autoRefresh) JwTheme.colors.textSecondary else JwTone.Warning.color,
+                    )
                     JwTooltip(text = "Reads this tab from the app again every second while it is open. Turning it off freezes what you see here; the app itself keeps running.") {
                         Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small), verticalAlignment = Alignment.CenterVertically) {
                             JwText(text = "Auto-refresh", style = JwTheme.textStyles.label)
@@ -153,5 +161,5 @@ private val SnapshotTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPatte
 private fun refreshStatus(autoRefresh: Boolean, capturedAtEpochMillis: Long?): String = when {
     capturedAtEpochMillis == null -> "Reading from the app…"
     autoRefresh -> "Live — updated every second"
-    else -> "Paused — showing the app as of ${SnapshotTimeFormatter.format(Instant.ofEpochMilli(capturedAtEpochMillis))}"
+    else -> "Paused — showing the app as of ${SnapshotTimeFormatter.format(Instant.ofEpochMilli(capturedAtEpochMillis))}; the app keeps running"
 }
