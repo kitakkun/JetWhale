@@ -41,6 +41,7 @@ import com.kitakkun.jetwhale.host.ui.JwSplitPaneState
 import com.kitakkun.jetwhale.host.ui.JwTab
 import com.kitakkun.jetwhale.host.ui.JwTabRow
 import com.kitakkun.jetwhale.host.ui.JwTable
+import com.kitakkun.jetwhale.host.ui.JwTableCellText
 import com.kitakkun.jetwhale.host.ui.JwTableColumn
 import com.kitakkun.jetwhale.host.ui.JwTableColumnState
 import com.kitakkun.jetwhale.host.ui.JwTag
@@ -57,7 +58,7 @@ private val ListMinWidth = 240.dp
 private val DetailMinWidth = 280.dp
 
 /** Fits "DELETE" so the URL column starts at the same x on every row. */
-private val MethodColumnWidth = 44.dp
+private val MethodColumnWidth = 52.dp
 
 /** Fits a three-digit status so the method column lines up. */
 private val StatusTagWidth = 36.dp
@@ -199,7 +200,7 @@ private fun rememberTrafficColumns(): List<JwTableColumn<HttpTransaction>> {
         listOf(
             JwTableColumn<HttpTransaction>(header = "Status", width = JwColumnWidth.Fixed(StatusTagWidth)) { StatusBadge(it) },
             JwTableColumn(header = "Method", width = JwColumnWidth.Fixed(MethodColumnWidth)) {
-                JwText(text = it.request.method, style = JwTheme.textStyles.label)
+                JwTableCellText(text = it.request.method, style = JwTheme.textStyles.label)
             },
             // The list pane is narrow, so long URLs are read by scrolling the text sideways rather
             // than by selecting the row.
