@@ -23,6 +23,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerializationException
 import net.bytebuddy.agent.ByteBuddyAgent
 import java.io.File
+import java.io.InputStream
 import java.lang.instrument.ClassDefinition
 import java.lang.instrument.Instrumentation
 import java.net.URLClassLoader
@@ -190,7 +191,7 @@ class DefaultPluginFactoryRepository(
      * [JetWhaleHostPluginFactory]). The caller owns [classLoader]'s lifecycle.
      */
     private fun loadDeclaredPlugins(pluginJarPath: String, classLoader: ClassLoader): List<LoadedHostPlugin> {
-        val manifestJson = classLoader.getResourceAsStream(PLUGIN_MANIFEST_PATH)?.bufferedReader()?.use { it.readText() }
+        val manifestJson = classLoader.getResourceAsStream(PLUGIN_MANIFEST_PATH)?.use(InputStream::readPluginManifestJson)
             ?: error("$PLUGIN_MANIFEST_PATH not found in $pluginJarPath")
 
         val manifests = try {
