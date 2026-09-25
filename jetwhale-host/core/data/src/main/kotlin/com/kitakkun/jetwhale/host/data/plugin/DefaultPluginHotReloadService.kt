@@ -1,14 +1,9 @@
 package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.data.AppDataDirectoryProvider
-import com.kitakkun.jetwhale.host.model.DebugSession
-import com.kitakkun.jetwhale.host.model.DebugSessionRepository
-import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
-import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginHotReloadService
-import com.kitakkun.jetwhale.host.model.PluginInstanceService
-import com.kitakkun.jetwhale.host.model.PluginSessionReconciliationService
+import com.kitakkun.jetwhale.host.model.PluginJarSwapService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -18,13 +13,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.nio.file.FileSystems
 import java.nio.file.Path
@@ -37,15 +27,8 @@ import kotlin.io.path.extension
 import kotlin.io.path.name
 
 /**
- * Watches the configured dev plugins directory and hot-reloads plugin jars on change.
- *
- * Reload sequence for a changed jar:
- * 1. dispose the affected plugin's running instances ([PluginInstanceService.unloadPluginInstancesForPlugin],
- *    which calls each instance's `onDispose`) and close its compose scenes,
- * 2. reload the factory from a fresh classloader (the old classloader is dropped — see
- *    [PluginFactoryRepository.reloadPlugin]),
- * 3. re-create instances for active sessions that have the plugin installed, and
- * 4. emit [pluginReloadedFlow] so the open plugin screen re-creates its scene from the new code.
+ * Watches the configured dev plugins directory and hot-reloads plugin jars on change through
+ * [PluginJarSwapService].
  *
  * The whole feature is gated on [AppDataDirectoryProvider.getDevPluginsDir]; with no dev directory
  * configured, [start] returns immediately and nothing is watched.
@@ -56,17 +39,10 @@ import kotlin.io.path.name
 class DefaultPluginHotReloadService(
     private val appDataDirectoryProvider: AppDataDirectoryProvider,
     private val pluginFactoryRepository: PluginFactoryRepository,
-    private val pluginInstanceService: PluginInstanceService,
-    private val pluginComposeSceneService: PluginComposeSceneService,
-    private val debugSessionRepository: DebugSessionRepository,
-    private val enabledPluginsRepository: EnabledPluginsRepository,
-    private val reconciliationService: PluginSessionReconciliationService,
+    private val pluginJarSwapService: PluginJarSwapService,
 ) : PluginHotReloadService {
     private val logger = Logger.getLogger(DefaultPluginHotReloadService::class.java.name)
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
-
-    private val mutablePluginReloadedFlow: MutableSharedFlow<String> = MutableSharedFlow(extraBufferCapacity = 16)
-    override val pluginReloadedFlow: SharedFlow<String> = mutablePluginReloadedFlow.asSharedFlow()
 
     private var watchJob: Job? = null
     private var watchService: WatchService? = null
@@ -135,7 +111,7 @@ class DefaultPluginHotReloadService(
     private suspend fun reloadChangedJars(devDirPath: Path, service: WatchService, changedJarNames: Set<String>) {
         delay(DEBOUNCE_MILLIS)
         (changedJarNames + drainPendingJarNames(service)).forEach { jarName ->
-            reloadJar(devDirPath.resolve(jarName).toAbsolutePath().toString())
+            pluginJarSwapService.hotSwap(devDirPath.resolve(jarName).toAbsolutePath().toString())
         }
     }
 
@@ -149,80 +125,6 @@ class DefaultPluginHotReloadService(
             pending = service.poll()
         }
         return names
-    }
-
-    private suspend fun reloadJar(jarPath: String) {
-        if (!File(jarPath).exists()) return
-
-        // Try an in-place class redefinition first: it keeps the plugins' classloader and instances
-        // (so instance state survives) and recreates only their compose scenes, so the redefined
-        // Content runs against that state. Composable-local `remember` is reset with the scene, so
-        // state that must survive a reload belongs in the plugin instance. Unlike Compose Hot
-        // Reload, this reaches the classes in the plugins' child classloader.
-        val redefinedPluginIds = pluginFactoryRepository.tryRedefinePlugin(jarPath)
-        if (redefinedPluginIds.isNotEmpty()) {
-            withContext(Dispatchers.Main) {
-                redefinedPluginIds.forEach(pluginComposeSceneService::disposePluginScenesForPlugin)
-            }
-            logger.info("Hot reloaded plugin(s) in place (instance state preserved): ${redefinedPluginIds.joinToString()}")
-            redefinedPluginIds.forEach { mutablePluginReloadedFlow.emit(it) }
-            return
-        }
-
-        // Fallback: full reload via a fresh classloader (plugin instance state is lost).
-        // Capture the plugin ids currently served by this jar so that we can dispose their running
-        // instances and scenes before swapping in the new code.
-        val previousPluginIds = pluginFactoryRepository.findPluginIdsByJarPath(jarPath)
-        previousPluginIds.forEach(::disposePlugin)
-
-        val reloadedPluginIds = pluginFactoryRepository.reloadPlugin(jarPath)
-        if (reloadedPluginIds.isEmpty()) {
-            logger.warning("Failed to reload plugin from $jarPath")
-            // A failed reload (e.g. a compile error in the rebuilt jar) leaves the previously loaded
-            // code intact in the repository, so restore the instances/scenes we disposed above instead
-            // of leaving active sessions without the plugin until the next successful build.
-            previousPluginIds.forEach {
-                reinitializeInstances(it)
-                mutablePluginReloadedFlow.emit(it)
-            }
-            return
-        }
-
-        // Some plugin ids may have disappeared if the jar's manifest changed across the rebuild
-        // (a plugin removed/renamed); make sure their previously loaded instances are gone too.
-        (previousPluginIds - reloadedPluginIds.toSet()).forEach(::disposePlugin)
-
-        reloadedPluginIds.forEach { reinitializeInstances(it) }
-
-        logger.info("Hot reloaded plugin(s): ${reloadedPluginIds.joinToString()}")
-        reloadedPluginIds.forEach { mutablePluginReloadedFlow.emit(it) }
-    }
-
-    private fun disposePlugin(pluginId: String) {
-        pluginInstanceService.unloadPluginInstancesForPlugin(pluginId)
-        pluginComposeSceneService.disposePluginScenesForPlugin(pluginId)
-    }
-
-    /**
-     * Recreates plugin instances for the active sessions that have the plugin installed, so that the
-     * UI can immediately render the freshly loaded code. Only runs when the plugin is enabled.
-     */
-    private suspend fun reinitializeInstances(pluginId: String) {
-        if (!enabledPluginsRepository.isPluginEnabled(pluginId)) return
-
-        // The target-session rule (host-only vs agent-backed) lives in the reconciliation service.
-        val activeSessions = debugSessionRepository.debugSessionsFlow.first().filter(DebugSession::isActive)
-        val activeSessionIds = reconciliationService.targetSessionIds(pluginId, activeSessions)
-
-        if (activeSessionIds.isEmpty()) return
-
-        // Instance creation drives compose, so do it on the main dispatcher to match the scene service.
-        withContext(Dispatchers.Main) {
-            pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
-                pluginId = pluginId,
-                sessionIds = activeSessionIds,
-            )
-        }
     }
 
     override fun stop() {

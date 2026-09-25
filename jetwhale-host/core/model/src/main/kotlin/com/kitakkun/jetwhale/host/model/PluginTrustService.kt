@@ -27,6 +27,12 @@ interface PluginTrustService {
     val untrustedJarPathsFlow: Flow<List<String>>
 
     /**
+     * The untrusted jars that appeared in the plugins directory while the host was running and that
+     * the user has neither loaded nor put off yet. Each is also in [untrustedJarPathsFlow].
+     */
+    val arrivedJarsFlow: StateFlow<List<ArrivedPluginJar>>
+
+    /**
      * True while [loadTrustedPlugins] is reading the OS credential store to verify the signed trust
      * registry. Only ever true when registry signing is enabled — on macOS the read raises a blocking
      * Keychain prompt, and the UI observes this flag to show that prompt with visible context. When
@@ -50,9 +56,21 @@ interface PluginTrustService {
     /**
      * Approves [jarPath]: pins its current content hash in the trust registry and loads it. This is
      * the consent point — call it only in response to an explicit user action (installing a jar via
-     * the file picker, or approving a surfaced untrusted jar).
+     * the file picker, or approving a surfaced untrusted jar). When plugins from [jarPath] are
+     * already running, they are replaced by the approved content.
      */
     suspend fun trustAndLoad(jarPath: String)
+
+    /**
+     * Brings the host in line with the jars at [jarPaths], which changed in the plugins directory
+     * while it ran. A trusted jar that is not loaded is loaded; an untrusted one is recorded and
+     * offered in [arrivedJarsFlow], and a jar that overwrote a loaded one leaves the old code running
+     * until it is approved; a jar that is gone has its plugins unloaded.
+     */
+    suspend fun onPluginJarsChanged(jarPaths: Set<String>)
+
+    /** Removes [jarPath] from [arrivedJarsFlow]; it stays untrusted and can be approved later. */
+    fun postponeArrivedJar(jarPath: String)
 
     /** Revokes approval for [jarPath], unloads the plugins it provided, and re-flags it as untrusted. */
     suspend fun revokeTrust(jarPath: String)

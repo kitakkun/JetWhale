@@ -9,6 +9,8 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 /**
  * Installs a plugin from a Maven repository: downloads the plugin jar and the external
@@ -49,19 +51,31 @@ class MavenPluginInstallService(
 
     private suspend fun install(coordinates: MavenCoordinates) {
         pluginInstallProgressRepository.update(PluginInstallProgress.DownloadingPlugin)
-        val downloadedJarPath = try {
-            mavenArtifactResolver.downloadJar(coordinates, appDataDirectoryProvider.getPluginDirectory())
+        // Downloaded outside the plugins directory and moved in only once complete: the directory is
+        // watched, and a jar sitting there unapproved while its dependencies download would be offered
+        // to the user as a jar that appeared by other means.
+        val stagedJar = try {
+            File(mavenArtifactResolver.downloadJar(coordinates, appDataDirectoryProvider.getPluginStagingDirectory()))
         } catch (e: Exception) {
             throw PluginInstallationException("Failed to download plugin $coordinates: ${e.message}", e)
         }
         try {
-            downloadDeclaredDependencies(File(downloadedJarPath), coordinates)
+            downloadDeclaredDependencies(stagedJar, coordinates)
+        } catch (e: Exception) {
+            // A jar of the same name already installed stays as it was.
+            stagedJar.delete()
+            throw PluginInstallationException("Failed to load plugin from $coordinates: ${e.message}", e)
+        }
+        val installedJar = File(appDataDirectoryProvider.getPluginDirectory(), stagedJar.name)
+        try {
             pluginInstallProgressRepository.update(PluginInstallProgress.LoadingPlugin)
+            Files.move(stagedJar.toPath(), installedJar.toPath(), StandardCopyOption.ATOMIC_MOVE)
             // Requesting an install by coordinates is the user's explicit consent, exactly like the
             // file picker: approve (pin the content hash) and load.
-            pluginTrustService.trustAndLoad(downloadedJarPath)
+            pluginTrustService.trustAndLoad(installedJar.absolutePath)
         } catch (e: Exception) {
-            File(downloadedJarPath).delete()
+            stagedJar.delete()
+            installedJar.delete()
             throw PluginInstallationException("Failed to load plugin from $coordinates: ${e.message}", e)
         }
     }

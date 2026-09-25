@@ -6,7 +6,6 @@ import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
-import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifestFile
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -22,7 +21,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
 import net.bytebuddy.agent.ByteBuddyAgent
 import java.io.File
 import java.lang.instrument.ClassDefinition
@@ -58,8 +56,8 @@ class DefaultPluginFactoryRepository(
 
     /**
      * Private per-jar copy of the jar that each classloader actually opens, keyed by absolute jar path.
-     * Loading from a copy lets the source (dev) jar be overwritten without corrupting the running
-     * classloader's open zip handle. Replaced copies are NOT deleted eagerly (cached resource URLs
+     * Loading from a copy lets the source jar (a dev jar, or an installed one) be overwritten without
+     * corrupting the running classloader's open zip handle. Replaced copies are NOT deleted eagerly (cached resource URLs
      * such as plugin icons may still point at them — deleting would throw NoSuchFileException); they
      * are cleaned up on JVM exit via deleteOnExit.
      */
@@ -79,10 +77,11 @@ class DefaultPluginFactoryRepository(
 
     private fun loadPluginUnderLock(pluginJarPath: String) {
         // Open the classloader on a private copy of the jar so the source jar can be overwritten
-        // (e.g. by dev hot-reload restaging) without corrupting this classloader's open zip handle —
+        // (dev hot-reload restaging, or a new version dropped over an installed jar that keeps running
+        // until the user approves it) without corrupting this classloader's open zip handle —
         // which otherwise throws ZipException on later resource/class reads. Every plugin declared by
         // the jar shares this single classloader.
-        val runtimeJar = createRuntimeCopyIfDevJar(pluginJarPath)
+        val runtimeJar = createRuntimeCopyIfReplaceable(pluginJarPath)
         val openedJar = runtimeJar ?: File(pluginJarPath)
 
         // Maven-installed plugins declare their external dependencies in a manifest instead of
@@ -186,22 +185,22 @@ class DefaultPluginFactoryRepository(
      * [JetWhaleHostPluginFactory]). The caller owns [classLoader]'s lifecycle.
      */
     private fun loadDeclaredPlugins(pluginJarPath: String, classLoader: ClassLoader): List<LoadedHostPlugin> {
-        val manifestJson = classLoader.getResourceAsStream(MANIFEST_PATH)?.bufferedReader()?.use { it.readText() }
-            ?: error("$MANIFEST_PATH not found in $pluginJarPath")
+        val manifestJson = classLoader.getResourceAsStream(PLUGIN_MANIFEST_PATH)?.bufferedReader()?.use { it.readText() }
+            ?: error("$PLUGIN_MANIFEST_PATH not found in $pluginJarPath")
 
         val manifests = try {
-            pluginManifestJson.decodeFromString<JetWhaleHostPluginManifestFile>(manifestJson).plugins
+            decodeJetWhaleHostPluginManifestFile(manifestJson).plugins
         } catch (e: SerializationException) {
             throw PluginManifestParseException(
-                "$MANIFEST_PATH in $pluginJarPath is not a valid plugin manifest — it may follow an " +
+                "$PLUGIN_MANIFEST_PATH in $pluginJarPath is not a valid plugin manifest — it may follow an " +
                     "older manifest format or target a different JetWhale version (${e.message})",
                 e,
             )
         }
-        require(manifests.isNotEmpty()) { "$MANIFEST_PATH in $pluginJarPath declares no plugins" }
+        require(manifests.isNotEmpty()) { "$PLUGIN_MANIFEST_PATH in $pluginJarPath declares no plugins" }
         val duplicateIds = manifests.groupingBy(JetWhaleHostPluginManifest::pluginId).eachCount().filterValues { it > 1 }.keys
         require(duplicateIds.isEmpty()) {
-            "$MANIFEST_PATH in $pluginJarPath declares duplicate pluginId(s): ${duplicateIds.joinToString()}"
+            "$PLUGIN_MANIFEST_PATH in $pluginJarPath declares duplicate pluginId(s): ${duplicateIds.joinToString()}"
         }
 
         return manifests.map { manifest ->
@@ -245,16 +244,16 @@ class DefaultPluginFactoryRepository(
     }
 
     /**
-     * Returns a private temp copy of [pluginJarPath] when it lives under the dev plugins directory
-     * (so the dev jar can be restaged without corrupting the running classloader's open zip handle),
-     * or `null` for stable installed jars, which are loaded directly without an extra copy.
+     * Returns a private temp copy of [pluginJarPath] when it lives where the host watches for new
+     * content — the dev plugins directory or the managed plugins directory — or `null` for a jar from
+     * a `--plugin-dir` directory, which is loaded directly without an extra copy.
      */
-    private fun createRuntimeCopyIfDevJar(pluginJarPath: String): File? {
-        val devDir = appDataDirectoryProvider.getDevPluginsDir() ?: return null
-        val underDevDir = runCatching {
+    private fun createRuntimeCopyIfReplaceable(pluginJarPath: String): File? {
+        val devDir = appDataDirectoryProvider.getDevPluginsDir()
+        val underDevDir = devDir != null && runCatching {
             File(pluginJarPath).canonicalFile.toPath().startsWith(File(devDir).canonicalFile.toPath())
         }.getOrDefault(false)
-        if (!underDevDir) return null
+        if (!underDevDir && !appDataDirectoryProvider.isManagedPluginJarPath(pluginJarPath)) return null
         return File.createTempFile("jetwhale-plugin-", ".jar").also {
             it.deleteOnExit()
             File(pluginJarPath).copyTo(it, overwrite = true)
@@ -346,11 +345,6 @@ class DefaultPluginFactoryRepository(
      */
     private val instrumentation: Instrumentation? by lazy {
         runCatching { ByteBuddyAgent.install() }.getOrNull()
-    }
-
-    companion object {
-        private const val MANIFEST_PATH = "META-INF/jetwhale/plugin-manifest.json"
-        private val pluginManifestJson = Json { ignoreUnknownKeys = true }
     }
 }
 
