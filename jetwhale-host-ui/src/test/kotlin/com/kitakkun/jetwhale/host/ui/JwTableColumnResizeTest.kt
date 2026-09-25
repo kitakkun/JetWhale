@@ -63,6 +63,7 @@ class JwTableColumnResizeTest {
         drag("Name", by = 1_000f)
 
         assertClose(JwTableDefaults.minColumnWidth, state.laidOutWidths.getValue("Value"))
+        assertClose(state.laidOutWidths.getValue("Name"), state.widths.getValue("Name"), "nothing past the edge is stored, so dragging back moves at once")
     }
 
     @Test
@@ -138,8 +139,8 @@ class JwTableColumnResizeTest {
 
     private fun textColumn(header: String, width: JwColumnWidth) = JwTableColumn.text<String>(header = header, width = width, text = { it })
 
-    private fun assertClose(expected: Dp, actual: Dp) {
-        assertTrue(actual in (expected - 2.dp)..(expected + 2.dp), "expected about $expected, was $actual")
+    private fun assertClose(expected: Dp, actual: Dp, message: String? = null) {
+        assertTrue(actual in (expected - 2.dp)..(expected + 2.dp), "${message?.let { "$it: " }.orEmpty()}expected about $expected, was $actual")
     }
 }
 

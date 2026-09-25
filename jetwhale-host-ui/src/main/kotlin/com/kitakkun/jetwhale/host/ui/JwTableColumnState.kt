@@ -30,9 +30,6 @@ public class JwTableColumnState(initialWidths: Map<String, Dp>) {
     /** The width each column was last laid out at, by header; what a drag starts from. */
     internal val laidOutWidths = mutableStateMapOf<String, Dp>()
 
-    /** The header row's width inside its padding, which bounds how far a column can grow. */
-    internal var rowWidth: Dp by mutableStateOf(0.dp)
-
     /** The header whose content is being measured for a double-click fit, if any. */
     internal var fitting: String? by mutableStateOf(null)
 
