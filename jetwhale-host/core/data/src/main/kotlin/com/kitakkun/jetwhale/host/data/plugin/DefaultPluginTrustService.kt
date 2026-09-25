@@ -111,6 +111,15 @@ class DefaultPluginTrustService(
             // An offered jar that fails to load stays offered with the reason, rather than vanishing
             // as if it had loaded.
             val loadFailure = pluginFactoryRepository.failedJarsFlow.first().firstOrNull { it.jarPath == jarPath }?.reason
+            if (loadFailure != null && computeSha256(jarPath) != approvedSha256) {
+                // The jar changed after it was shown: what is there now was never approved, and the
+                // watcher may already have reported it, so it is offered again here.
+                pluginTrustRepository.revoke(jarPath)
+                untrustedJarPathsFlow.update { if (jarPath in it) it else it + jarPath }
+                val arrivedJar = describeArrivedJar(jarPath)
+                arrivedJarsFlow.update { arrived -> arrived.filterNot { it.jarPath == jarPath } + arrivedJar }
+                return@withLock
+            }
             arrivedJarsFlow.update { arrived ->
                 if (loadFailure == null) {
                     arrived.filterNot { it.jarPath == jarPath }
@@ -180,7 +189,7 @@ class DefaultPluginTrustService(
         )
     }
 
-    override suspend fun revokeTrust(jarPath: String) {
+    override suspend fun revokeTrust(jarPath: String): Unit = jarStateMutex.withLock {
         pluginTrustRepository.revoke(jarPath)
         // Unload everything this jar provided so revoking trust takes effect immediately, without a
         // restart. The jar file itself stays in the directory, so it becomes untrusted-but-present.
