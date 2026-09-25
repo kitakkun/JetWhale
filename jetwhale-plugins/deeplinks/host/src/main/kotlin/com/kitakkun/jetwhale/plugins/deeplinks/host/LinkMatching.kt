@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.deeplinks.host
 
 import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeclaredDeepLink
+import com.kitakkun.jetwhale.plugins.deeplinks.protocol.DeepLinkHost
 import com.kitakkun.jetwhale.plugins.deeplinks.protocol.PathMatchKind
 import com.kitakkun.jetwhale.plugins.deeplinks.protocol.PathMatcher
 import java.net.URI
@@ -88,21 +89,62 @@ private fun StringBuilder.appendLiteral(char: Char) {
 }
 
 /**
- * A link to start editing from for [link]: its first scheme, host and path, with a pattern's
- * wildcard left for the user to fill in.
+ * A link that [link] matches, to start editing from: its first scheme, a concrete host for its
+ * first host, and a path for the first path matcher a sample can be built for. Null when no
+ * matching sample can be built, e.g. for an advanced pattern that starts with a character class.
  */
-internal fun sampleUrlOf(link: DeclaredDeepLink): String {
+internal fun sampleUrlOf(link: DeclaredDeepLink): String? {
     val scheme = link.schemes.first()
-    val host = link.hosts.firstOrNull()?.let { host -> host.host.removePrefix("*.") + (host.port?.let { ":$it" } ?: "") }.orEmpty()
-    val path = link.paths.firstOrNull()?.let { matcher ->
-        when (matcher.kind) {
-            PathMatchKind.Exact, PathMatchKind.Prefix -> matcher.value
-            PathMatchKind.Suffix -> "/" + matcher.value.removePrefix("/")
-            PathMatchKind.Pattern, PathMatchKind.AdvancedPattern -> matcher.value.takeWhile { it !in PATTERN_SYNTAX }.ifEmpty { "/" }
+    // A declaration without hosts accepts any, but a link still needs one to be a link.
+    val host = link.hosts.firstOrNull()?.let { it.concreteHost() + (it.port?.let { port -> ":$port" } ?: "") } ?: "example"
+    val paths = if (link.paths.isEmpty()) listOf("") else link.paths.mapNotNull(::samplePathOf)
+    // Every candidate is checked against the declaration itself, so a sample is never shown that
+    // the declaration rejects.
+    return paths.map { "$scheme://$host$it" }.firstOrNull { candidate ->
+        try {
+            link in declarationsMatching(candidate, listOf(link))
+        } catch (_: IllegalArgumentException) {
+            false
         }
-    }.orEmpty()
-    return "$scheme://$host$path"
+    }
 }
 
-/** Characters with a meaning in a path pattern; a sample link keeps only the literal text before them. */
-private const val PATTERN_SYNTAX = ".*+?\\[](){}|^$"
+// `*` matches any host and `*.example.com` only its subdomains, so neither can stand for itself.
+private fun DeepLinkHost.concreteHost(): String = when {
+    host == "*" -> "example.com"
+    host.startsWith("*.") -> "www" + host.removePrefix("*")
+    host.startsWith("*") -> host.removePrefix("*")
+    else -> host
+}
+
+private fun samplePathOf(matcher: PathMatcher): String? = when (matcher.kind) {
+    PathMatchKind.Exact, PathMatchKind.Prefix -> matcher.value
+
+    PathMatchKind.Suffix -> "/" + matcher.value.removePrefix("/")
+
+    PathMatchKind.Pattern -> sampleOfGlob(matcher.value)
+
+    // A regular expression has no general sample; its literal start is tried and kept only if it matches.
+    PathMatchKind.AdvancedPattern -> matcher.value.takeWhile { it.isLetterOrDigit() || it in "/-_~" }.takeIf { pathMatches(matcher, it) }
+}
+
+/**
+ * A path that Android's `pathPattern` [pattern] matches: every repeated character is taken zero
+ * times, every other `.` becomes a letter, and literals are kept.
+ */
+private fun sampleOfGlob(pattern: String): String {
+    val sample = StringBuilder()
+    var index = 0
+    while (index < pattern.length) {
+        val char = pattern[index]
+        val escaped = char == '\\' && index + 1 < pattern.length
+        val literal = if (escaped) pattern[index + 1] else char
+        val width = if (escaped) 2 else 1
+        when {
+            pattern.getOrNull(index + width) == '*' -> index += width + 1
+            !escaped && char == '.' -> sample.append('x').also { index++ }
+            else -> sample.append(literal).also { index += width }
+        }
+    }
+    return sample.toString()
+}

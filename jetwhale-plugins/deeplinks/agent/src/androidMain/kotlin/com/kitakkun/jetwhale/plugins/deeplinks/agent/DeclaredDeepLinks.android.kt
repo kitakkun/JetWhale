@@ -15,12 +15,10 @@ internal actual fun discoverDeclaredDeepLinks(): DeclaredDeepLinks {
     val context = currentApplicationOrNull()
         ?: return DeclaredDeepLinks(links = emptyList(), notes = listOf("The app's Context was not reachable, so its manifest could not be read."))
     val verification = appLinkVerificationStates(context)
-    // XmlResourceParser is AutoCloseable only from API 24, and minSdk is 23.
-    val parser = context.assets.openXmlResourceParser("AndroidManifest.xml")
-    val links = try {
+    // openXmlResourceParser(String) is API 1 and XmlResourceParser is AutoCloseable from API 19, both
+    // within minSdk 23.
+    val links = context.assets.openXmlResourceParser("AndroidManifest.xml").use { parser ->
         declaredDeepLinksOf(context.packageName, manifestEvents(parser, context), verificationOf = verification::get)
-    } finally {
-        parser.close()
     }
     val notes = buildList {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) add("App Links verification states are reported from Android 12.")

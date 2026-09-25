@@ -72,7 +72,7 @@ class DeepLinkBrowserTest {
     fun `listDeepLinks gives every declaration a sample link`() {
         val result = ListDeepLinksCommand(client).run()
 
-        assertEquals("demo://", result.getValue("declared").jsonArray.single().jsonObject.getValue("sampleUrl").jsonPrimitive.content)
+        assertEquals("demo://example", result.getValue("declared").jsonArray.single().jsonObject.getValue("sampleUrl").jsonPrimitive.content)
         assertEquals("Item", result.getValue("templates").jsonArray.single().jsonObject.getValue("name").jsonPrimitive.content)
     }
 

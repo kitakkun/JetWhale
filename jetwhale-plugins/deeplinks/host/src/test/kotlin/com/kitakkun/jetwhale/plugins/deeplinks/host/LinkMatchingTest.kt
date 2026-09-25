@@ -60,11 +60,45 @@ class LinkMatchingTest {
     }
 
     @Test
-    fun `a sample link from an advanced pattern is a valid link`() {
+    fun `every sample link is matched by its own declaration or there is none`() {
+        val hosts = listOf(emptyList(), listOf("example.com"), listOf("*.example.com"), listOf("*"))
+        val paths = listOf(
+            emptyList(),
+            listOf(PathMatcher(PathMatchKind.Exact, "/about")),
+            listOf(PathMatcher(PathMatchKind.Prefix, "/item/")),
+            listOf(PathMatcher(PathMatchKind.Suffix, ".json")),
+            listOf(PathMatcher(PathMatchKind.Pattern, "/shop/.*/detail")),
+            listOf(PathMatcher(PathMatchKind.Pattern, "/a*b")),
+            listOf(PathMatcher(PathMatchKind.Pattern, "/file\\.txt")),
+            listOf(PathMatcher(PathMatchKind.AdvancedPattern, "/item/[0-9]+")),
+            listOf(PathMatcher(PathMatchKind.AdvancedPattern, "/user/me")),
+        )
+        hosts.forEach { hostList ->
+            paths.forEach { pathList ->
+                val link = declared(schemes = listOf("https"), hosts = hostList, paths = pathList)
+                val sample = sampleUrlOf(link) ?: return@forEach
+                assertEquals(listOf(link), declarationsMatching(sample, listOf(link)), "sample $sample for $link")
+            }
+        }
+    }
+
+    @Test
+    fun `a wildcard host gets a concrete subdomain in its sample`() {
+        val wildcard = declared(schemes = listOf("https"), hosts = listOf("*.example.com"), paths = emptyList())
+
+        assertEquals("https://www.example.com", sampleUrlOf(wildcard))
+    }
+
+    @Test
+    fun `a pattern sample takes repeated characters zero times`() {
+        assertEquals("https://example.com/b", sampleUrlOf(declared(schemes = listOf("https"), hosts = listOf("example.com"), paths = listOf(PathMatcher(PathMatchKind.Pattern, "/a*b")))))
+    }
+
+    @Test
+    fun `an advanced pattern with no literal match has no sample`() {
         val advanced = declared(schemes = listOf("https"), hosts = listOf("example.com"), paths = listOf(PathMatcher(PathMatchKind.AdvancedPattern, "/item/[0-9]+")))
 
-        assertEquals("https://example.com/item/", sampleUrlOf(advanced))
-        declarationsMatching(sampleUrlOf(advanced), listOf(advanced))
+        assertEquals(null, sampleUrlOf(advanced))
     }
 
     @Test
@@ -86,7 +120,7 @@ class LinkMatchingTest {
     @Test
     fun `a sample link starts from the first scheme host and path`() {
         assertEquals("https://example.com/item/", sampleUrlOf(itemLink))
-        assertEquals("demo://", sampleUrlOf(customScheme))
+        assertEquals("demo://example", sampleUrlOf(customScheme))
     }
 }
 

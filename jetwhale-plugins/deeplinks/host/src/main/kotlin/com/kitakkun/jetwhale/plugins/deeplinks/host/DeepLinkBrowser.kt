@@ -93,7 +93,8 @@ internal class DeepLinkBrowser(
 
     override fun startFrom(link: DeclaredDeepLink) {
         template = null
-        draftUrl = sampleUrlOf(link)
+        // With no sample to offer, the scheme is still a start the user can finish.
+        draftUrl = sampleUrlOf(link) ?: "${link.schemes.first()}://"
     }
 
     override fun startFrom(template: DeepLinkTemplate) {
