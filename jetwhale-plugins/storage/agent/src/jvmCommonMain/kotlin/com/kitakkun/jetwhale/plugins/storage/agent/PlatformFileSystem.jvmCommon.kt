@@ -60,7 +60,7 @@ internal actual fun moveReplacing(source: String, target: String) {
     val backup = File("$source.replaced")
     if (!targetFile.renameTo(backup)) throw IOException("'$target' could not be replaced")
     if (!File(source).renameTo(targetFile)) {
-        backup.renameTo(targetFile)
+        if (!backup.renameTo(targetFile)) throw IOException("'$target' could not be replaced, and its previous content could not be put back; it is at '${backup.path}'")
         throw IOException("'$target' could not be replaced")
     }
     backup.delete()
