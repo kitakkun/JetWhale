@@ -245,6 +245,18 @@ class DefaultPluginTrustServiceTest {
     }
 
     @Test
+    fun `approving a jar that takes over plugins another jar runs goes through the swap service`() = runBlocking {
+        val oldJar = File(pluginsDir, "network-1.2.0.jar")
+        factoryRepository.runningPluginsByJar[oldJar.absolutePath] = listOf(runningNetwork(version = "1.2.0"))
+        val newJar = pluginJar("network-1.3.0.jar", networkManifest(version = "1.3.0"))
+
+        service.trustAndLoad(newJar.absolutePath, approvedSha256 = null)
+
+        assertEquals(listOf(newJar.absolutePath), swapService.reloadedJarPaths)
+        assertEquals(emptyList(), factoryRepository.loadedJarPaths)
+    }
+
+    @Test
     fun `revoking trust disposes the jar's running plugins as a deletion does`() = runBlocking {
         val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
         trustRepository.entries[jar.absolutePath] = TrustedPluginEntry(jar.absolutePath, sha256Of(jar), 0L)

@@ -103,11 +103,7 @@ class DefaultPluginTrustService(
             // trust() signs the registry iff a key exists, so no signing flag is threaded through here.
             pluginTrustRepository.trust(jarPath, pinnedSha256)
             untrustedJarPathsFlow.update { it - jarPath }
-            if (pluginFactoryRepository.findPluginIdsByJarPath(jarPath).isEmpty()) {
-                pluginFactoryRepository.loadPlugin(jarPath, pinnedSha256)
-            } else {
-                pluginJarSwapService.reload(jarPath, pinnedSha256)
-            }
+            loadApproved(jarPath, pinnedSha256)
             // An offered jar that fails to load stays offered with the reason, rather than vanishing
             // as if it had loaded.
             val loadFailure = pluginFactoryRepository.failedJarsFlow.first().firstOrNull { it.jarPath == jarPath }?.reason
@@ -142,7 +138,7 @@ class DefaultPluginTrustService(
                 forget(jarPath)
                 // The install flows load what they approve; this is a trusted jar put back by hand.
                 if (pluginFactoryRepository.findPluginIdsByJarPath(jarPath).isEmpty()) {
-                    pluginFactoryRepository.loadPlugin(jarPath, trustedSha256)
+                    loadApproved(jarPath, trustedSha256)
                 }
             } else {
                 logger.warning("Found an untrusted plugin jar at runtime: $jarPath")
@@ -150,6 +146,22 @@ class DefaultPluginTrustService(
                 val arrivedJar = describeArrivedJar(jarPath)
                 arrivedJarsFlow.update { arrived -> arrived.filterNot { it.jarPath == jarPath } + arrivedJar }
             }
+        }
+    }
+
+    /**
+     * Loads [jarPath] against [approvedSha256]. A jar whose plugins already run, from this path or
+     * from another jar it takes over, goes through the swap service, which disposes their instances
+     * and scenes before their classloader is closed.
+     */
+    private suspend fun loadApproved(jarPath: String, approvedSha256: String) {
+        val declared = withContext(Dispatchers.IO) { declaredPluginIds(File(jarPath)) }
+        val replacesRunningPlugins = pluginFactoryRepository.findPluginIdsByJarPath(jarPath).isNotEmpty() ||
+            declared.any { it in pluginFactoryRepository.loadedPlugins }
+        if (replacesRunningPlugins) {
+            pluginJarSwapService.reload(jarPath, approvedSha256)
+        } else {
+            pluginFactoryRepository.loadPlugin(jarPath, approvedSha256)
         }
     }
 
