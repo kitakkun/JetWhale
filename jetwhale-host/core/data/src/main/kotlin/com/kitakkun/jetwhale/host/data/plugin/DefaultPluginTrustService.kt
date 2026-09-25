@@ -163,24 +163,34 @@ class DefaultPluginTrustService(
         arrivedJarsFlow.update { arrived -> arrived.filterNot { it.jarPath == jarPath } }
     }
 
-    /** Describes [jarPath] from its bytes and manifest alone; none of its classes are loaded. */
+    /**
+     * Describes [jarPath] from its bytes and manifest alone; none of its classes are loaded. Size,
+     * hash and manifest all come from one snapshot, so what the banner names is what its hash pins
+     * even if the file is replaced meanwhile.
+     */
     private suspend fun describeArrivedJar(jarPath: String): ArrivedPluginJar {
-        val jar = File(jarPath)
         var unreadableReason: String? = null
-        val manifest = withContext(Dispatchers.IO) {
-            try {
-                readJetWhaleHostPluginManifestFile(jar)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                unreadableReason = e.message ?: e.javaClass.simpleName
-                null
+        val snapshot = withContext(Dispatchers.IO) { File.createTempFile("jetwhale-arrived-", ".jar") }
+        val (manifest, sha256, sizeBytes) = try {
+            withContext(Dispatchers.IO) {
+                File(jarPath).copyTo(snapshot, overwrite = true)
+                val manifest = try {
+                    readJetWhaleHostPluginManifestFile(snapshot)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    unreadableReason = e.message ?: e.javaClass.simpleName
+                    null
+                }
+                Triple(manifest, snapshot.sha256Hex(), snapshot.length())
             }
+        } finally {
+            snapshot.delete()
         }
         return ArrivedPluginJar(
             jarPath = jarPath,
-            sizeBytes = jar.length(),
-            sha256 = computeSha256(jarPath),
+            sizeBytes = sizeBytes,
+            sha256 = sha256,
             declaredPlugins = manifest?.plugins.orEmpty().map(JetWhaleHostPluginManifest::toDeclaredPlugin),
             unreadableReason = unreadableReason,
             loadFailure = null,

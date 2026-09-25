@@ -26,9 +26,22 @@ internal class PluginJarDirectoryPoller(private val directory: File) {
         return settledChanges
     }
 
+    /**
+     * Makes [jarPath] be reported again at the next poll where it has settled, for a change the caller
+     * could not handle; otherwise the change would count as reported and never be retried.
+     */
+    fun redeliver(jarPath: String) {
+        reported = reported + (jarPath to UNHANDLED)
+    }
+
     private fun stamps(): Map<String, JarStamp> = directory.listFiles { file -> file.isFile && file.extension == "jar" }
         .orEmpty()
         .associate { it.absolutePath to JarStamp(sizeBytes = it.length(), lastModifiedMillis = it.lastModified()) }
 
     private data class JarStamp(val sizeBytes: Long, val lastModifiedMillis: Long)
+
+    private companion object {
+        /** Differs from every real stamp and from absence, so the path always reads as changed. */
+        val UNHANDLED = JarStamp(sizeBytes = -1, lastModifiedMillis = -1)
+    }
 }
