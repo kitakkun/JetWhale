@@ -16,6 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /** Enough to scroll back through a session's work without the list growing without bound. */
 private const val HISTORY_LIMIT = 100
@@ -151,7 +152,7 @@ internal class ActionsBrowser(
         return choices
     }
 
-    private val latestOptionsRequest = mutableMapOf<String, Any>()
+    private val latestOptionsRequest = ConcurrentHashMap<String, Any>()
 
     private fun launchReporting(block: suspend () -> Unit) {
         scope.launch {
