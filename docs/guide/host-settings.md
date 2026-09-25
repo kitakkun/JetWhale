@@ -212,6 +212,21 @@ Installing a plugin through the file picker, the Maven dialog, or the official c
 approval; jars dropped into the directory by anything else must be approved manually. Revoking
 trust unloads the plugin immediately.
 
+While the host is running it also watches the plugins directory, so a jar copied in does not wait
+for the next launch:
+
+- A **new** jar appears in a banner at the top of the window, showing the plugins its manifest
+  declares, its size and the start of its SHA-256, with **Load** and **Later**. Nothing in the jar
+  runs before **Load**. **Later** leaves it under **Unverified Plugins**, where it can still be
+  approved.
+- A jar **written over** an approved one is offered as **Update**. The previous version keeps
+  running until you approve it; approving it reloads the plugin in every session.
+- A jar that is **deleted** has its plugins unloaded.
+- An approved jar that fails to load stays in the banner with the reason.
+
+A jar is picked up once it has stopped changing for about a second, so one that is still being
+copied is not read half-written.
+
 #### Registry signing (opt-in)
 
 The trust registry can additionally be protected by an HMAC-SHA256 signature. Whether it is signed is
