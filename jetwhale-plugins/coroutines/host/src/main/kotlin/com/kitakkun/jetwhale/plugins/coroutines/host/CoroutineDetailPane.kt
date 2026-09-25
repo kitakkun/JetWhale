@@ -11,6 +11,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
@@ -51,6 +55,7 @@ internal fun CoroutineDetailPane(
 @Composable
 private fun DetailContent(location: CoroutineLocation, gone: Boolean, detail: CoroutineDetail?, onReloadStack: () -> Unit) {
     val node = location.node
+    val stacks = detail?.takeIf { it.found && it.stackUnavailableReason == null }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(JwSpacing.large), verticalArrangement = Arrangement.spacedBy(JwSpacing.medium)) {
         if (gone) {
             JwBanner(
@@ -58,29 +63,27 @@ private fun DetailContent(location: CoroutineLocation, gone: Boolean, detail: Co
                 tone = JwTone.Warning,
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium), verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small), verticalAlignment = Alignment.CenterVertically) {
             JwText(text = node.name ?: "Unnamed coroutine", style = JwTheme.textStyles.subtitle)
             JwTag(text = node.state.label, tone = node.state.tone)
+            stacks?.debugState?.let { JwTag(text = debugStateLabel(it), tone = JwTone.Neutral) }
         }
-        JwText(text = node.state.explanation, color = JwTheme.colors.textSecondary)
+        // With DebugProbes' own state at hand, the stack says more than the Job state's caveats.
+        JwText(text = stacks?.debugState?.let(::debugStateExplanation) ?: node.state.explanation, color = JwTheme.colors.textSecondary)
+
+        JwSectionHeader(
+            title = "Where it waits",
+            trailing = { JwButton(text = "Read again", onClick = onReloadStack, style = JwButtonStyle.Text, enabled = !gone) },
+        )
+        StackSection(detail)
 
         JwSectionHeader(title = "Where it lives")
         JwKeyValueRow(key = "Path", value = (location.ancestors + node).joinToString(" › ") { it.name ?: it.id })
         JwKeyValueRow(key = "Dispatcher", value = node.dispatcher ?: "None — a plain Job rather than a coroutine", monospace = node.dispatcher != null)
-        JwKeyValueRow(key = "Seen for", value = "${formatObserved(node.observedMillis)} (since the inspector first found it; a Job keeps no start time)")
+        JwKeyValueRow(key = "Seen for", value = "${formatObserved(node.observedMillis)}, since the inspector first saw it")
+        JwKeyValueRow(key = "Below it", value = describeDescendants(node.children.size, node.descendantStates()))
+        JwKeyValueRow(key = "Job", value = node.description, monospace = true)
         JwKeyValueRow(key = "Id", value = node.id, monospace = true)
-
-        JwSectionHeader(title = "Below it")
-        JwText(text = describeDescendants(node.children.size, node.descendantStates()))
-
-        JwSectionHeader(title = "Job")
-        JwCodeBlock(text = node.description, wrap = true, copyLabel = "Copy")
-
-        JwSectionHeader(
-            title = "Stack",
-            trailing = { JwButton(text = "Read again", onClick = onReloadStack, style = JwButtonStyle.Text, enabled = !gone) },
-        )
-        StackSection(detail)
     }
 }
 
@@ -93,16 +96,38 @@ private fun StackSection(detail: CoroutineDetail?) {
 
         detail.stackUnavailableReason != null -> JwText(text = "No stack: ${detail.stackUnavailableReason}.", color = JwTheme.colors.textSecondary)
 
+        detail.suspensionStack.isEmpty() -> JwText(text = "DebugProbes recorded no frames for it.", color = JwTheme.colors.textSecondary)
+
         else -> {
-            detail.debugState?.let { JwText(text = debugStateExplanation(it)) }
-            JwCodeBlock(text = detail.suspensionStack.joinToString("\n").ifEmpty { "(no frames recorded)" }, copyLabel = "Copy stack")
+            firstAppFrame(detail.suspensionStack)?.let { JwKeyValueRow(key = "In app code", value = it, monospace = true) }
+            JwCodeBlock(text = frameText(detail.suspensionStack), wrap = true, copyLabel = "Copy stack")
             if (detail.creationStack.isNotEmpty()) {
                 JwText(text = "Created at", style = JwTheme.textStyles.label)
-                JwCodeBlock(text = detail.creationStack.joinToString("\n"), copyLabel = "Copy stack")
+                JwCodeBlock(text = frameText(detail.creationStack), wrap = true, copyLabel = "Copy stack")
             }
         }
     }
 }
+
+/** The frames one per line, the coroutines library's and the platform's dimmed so the app's own stand out. */
+@Composable
+private fun frameText(frames: List<String>): AnnotatedString {
+    val dimmed = JwTheme.colors.textSecondary
+    return buildAnnotatedString {
+        frames.forEachIndexed { index, frame ->
+            if (index > 0) append("\n")
+            if (isLibraryFrame(frame)) withStyle(SpanStyle(color = dimmed)) { append(frame) } else append(frame)
+        }
+    }
+}
+
+/** Packages whose frames say how a coroutine suspends rather than where the app made it wait. */
+private val LibraryFramePrefixes = listOf("kotlin.", "kotlinx.coroutines.", "java.", "javax.", "jdk.", "sun.", "android.", "androidx.")
+
+internal fun isLibraryFrame(frame: String): Boolean = LibraryFramePrefixes.any(frame::startsWith)
+
+/** The innermost frame of the app's own code: the line to open first. */
+internal fun firstAppFrame(frames: List<String>): String? = frames.firstOrNull { !isLibraryFrame(it) }
 
 private fun describeDescendants(children: Int, descendants: Map<CoroutineState, Int>): String {
     if (children == 0) return "No coroutines run below it."
@@ -111,9 +136,16 @@ private fun describeDescendants(children: Int, descendants: Map<CoroutineState, 
     return "$children direct ${if (children == 1) "child" else "children"}, $total in all: $byState."
 }
 
+private fun debugStateLabel(debugState: String): String = when (debugState) {
+    "SUSPENDED" -> "Suspended"
+    "RUNNING" -> "Running"
+    "CREATED" -> "Not started"
+    else -> debugState
+}
+
 private fun debugStateExplanation(debugState: String): String = when (debugState) {
-    "SUSPENDED" -> "Suspended — waiting to be resumed. The frames below are where it waits."
-    "RUNNING" -> "Running on a thread right now. The frames below are where it last suspended."
+    "SUSPENDED" -> "Suspended: waiting for something to resume it. The stack below is where it waits."
+    "RUNNING" -> "Running on a thread right now. The stack below is where it last suspended."
     "CREATED" -> "Created and not started yet."
     else -> debugState
 }
