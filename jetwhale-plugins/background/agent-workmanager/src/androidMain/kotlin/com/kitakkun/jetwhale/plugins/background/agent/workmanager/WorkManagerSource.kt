@@ -90,9 +90,12 @@ private fun parseWorkId(id: String): UUID = try {
     throw IllegalArgumentException("'$id' is not a WorkManager work id", e)
 }
 
-/** WorkManager tags every request with its worker's class name; this finds that tag. */
+/**
+ * WorkManager tags every request with its worker's class name; this finds that tag. The class is
+ * looked up without being initialized, so listing work never runs an app class's static code.
+ */
 private fun isWorkerClass(tag: String): Boolean = try {
-    ListenableWorker::class.java.isAssignableFrom(Class.forName(tag))
+    ListenableWorker::class.java.isAssignableFrom(Class.forName(tag, false, ListenableWorker::class.java.classLoader))
 } catch (_: ClassNotFoundException) {
     false
 } catch (_: LinkageError) {

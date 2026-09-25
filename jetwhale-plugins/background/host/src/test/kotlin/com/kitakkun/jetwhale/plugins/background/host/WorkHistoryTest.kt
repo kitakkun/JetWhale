@@ -3,6 +3,8 @@ package com.kitakkun.jetwhale.plugins.background.host
 import com.kitakkun.jetwhale.plugins.background.protocol.WorkState
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class WorkHistoryTest {
     private val sync = workItem("WorkManager", "sync", WorkState.Enqueued, tags = emptyList(), canRunNow = true)
@@ -43,5 +45,19 @@ class WorkHistoryTest {
         val kept = history.getValue(sync.key)
         assertEquals(MAX_TRANSITIONS_PER_WORK, kept.size)
         assertEquals(MAX_TRANSITIONS_PER_WORK * 2L - 1, kept.last().atEpochMillis)
+    }
+
+    @Test
+    fun `an app that keeps creating one-off work keeps only the most recent departed histories`() {
+        var history = emptyMap<WorkKey, List<StateTransition>>()
+        repeat(MAX_DEPARTED_WORK + 10) { n ->
+            history = recordTransitions(history, listOf(sync.copy(id = "once-$n")), nowEpochMillis = n.toLong())
+        }
+        history = recordTransitions(history, listOf(sync), nowEpochMillis = MAX_DEPARTED_WORK + 10L)
+
+        assertEquals(MAX_DEPARTED_WORK + 1, history.size)
+        assertFalse(WorkKey("WorkManager", "once-9") in history)
+        assertTrue(WorkKey("WorkManager", "once-10") in history)
+        assertTrue(sync.key in history)
     }
 }
