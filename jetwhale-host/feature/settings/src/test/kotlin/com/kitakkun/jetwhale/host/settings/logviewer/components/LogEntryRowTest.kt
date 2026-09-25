@@ -26,7 +26,7 @@ class LogEntryRowTest {
                     }
                 }
 
-                onNodeWithText("01:30:43").assertExists()
+                onNodeWithText("09-25 01:30:43.497").assertExists()
             }
         } finally {
             JavaTimeZone.setDefault(previous)
@@ -34,7 +34,7 @@ class LogEntryRowTest {
     }
 
     @Test
-    fun `a time on the whole second keeps its seconds`() {
-        assertEquals("09:05:00", Instant.parse("2026-09-24T09:05:00Z").timeOfDayIn(TimeZone.UTC))
+    fun `a time on the whole second keeps its zero milliseconds`() {
+        assertEquals("01-02 09:05:00.000", Instant.parse("2026-01-02T09:05:00Z").logTimestampIn(TimeZone.UTC))
     }
 }

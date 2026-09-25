@@ -16,7 +16,9 @@ import com.kitakkun.jetwhale.host.model.LogEntry
 import com.kitakkun.jetwhale.host.model.LogLevel
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -39,7 +41,7 @@ fun LogEntryRow(
                 .padding(horizontal = 12.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            LogTimestamp(timestamp = logEntry.timestamp.timeOfDayIn(TimeZone.currentSystemDefault()))
+            LogTimestamp(timestamp = logEntry.timestamp.logTimestampIn(TimeZone.currentSystemDefault()))
 
             LogLevelBadge(
                 level = logEntry.level,
@@ -55,10 +57,21 @@ fun LogEntryRow(
     }
 }
 
-/** The wall-clock time of [this] in [zone], to the second, as the host's own log lines print it. */
-internal fun Instant.timeOfDayIn(zone: TimeZone): String {
-    val time = toLocalDateTime(zone).time
-    return listOf(time.hour, time.minute, time.second).joinToString(":") { it.toString().padStart(2, '0') }
+/** [this] in [zone] as logcat's default format prints it: `MM-dd HH:mm:ss.SSS`, with no year. */
+internal fun Instant.logTimestampIn(zone: TimeZone): String = LOGCAT_TIMESTAMP_FORMAT.format(toLocalDateTime(zone))
+
+private val LOGCAT_TIMESTAMP_FORMAT = LocalDateTime.Format {
+    monthNumber()
+    char('-')
+    day()
+    char(' ')
+    hour()
+    char(':')
+    minute()
+    char(':')
+    second()
+    char('.')
+    secondFraction(3)
 }
 
 @Composable
