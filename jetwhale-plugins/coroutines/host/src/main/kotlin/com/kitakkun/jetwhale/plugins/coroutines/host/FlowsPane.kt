@@ -67,7 +67,7 @@ internal fun FlowsPane(report: TrackedFlowReport?, modifier: Modifier = Modifier
                             onClick = { selectedName = it.name },
                             modifier = Modifier.weight(1f),
                         )
-                        MetricsLegend("Collectors: collections running now. Per sec: emissions over the last 10 s. Done, Cancelled and Failed count how finished collections ended — a collector count that only grows is a leak.")
+                        MetricsLegend("Collectors: collections running now — each runs a cold flow anew, so every value shows up once per collector. Emitted and Per sec (over the last 10 s) count every collector's emissions. Done, Cancelled and Failed count how finished collections ended; a collector count that only grows is a leak.")
                     }
                 },
                 second = {
