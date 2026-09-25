@@ -12,6 +12,7 @@ import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -216,23 +217,51 @@ public fun <T> JwTable(
 ) {
     FitColumnEffect(columns, columnState)
     val density = LocalDensity.current
-    Column(modifier = modifier.fillMaxSize()) {
+    // The row's width is read from the constraints, in the same composition that sizes the cells:
+    // one recorded after layout would lag a resize by a frame, and header and rows would disagree.
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val columnLayout = TableColumnLayout(columns = columns, state = columnState, rowWidth = maxWidth - JwSpacing.medium * 2)
+        TableContent(
+            items = items,
+            columnLayout = columnLayout,
+            key = key,
+            isSelected = isSelected,
+            onClick = onClick,
+            state = state,
+            contentPadding = contentPadding,
+            emptyContent = emptyContent,
+            onHeaderCellSized = { header, width -> columnState.laidOutWidths[header] = with(density) { width.toDp() } },
+        )
+    }
+}
+
+@Composable
+private fun <T> TableContent(
+    items: List<T>,
+    columnLayout: TableColumnLayout<T>,
+    state: LazyListState,
+    contentPadding: PaddingValues,
+    key: ((item: T) -> Any)?,
+    isSelected: (item: T) -> Boolean,
+    onClick: ((item: T) -> Unit)?,
+    emptyContent: (@Composable () -> Unit)?,
+    onHeaderCellSized: (header: String, widthPx: Int) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(JwTableDefaults.headerHeight)
                 .background(JwTheme.colors.sidebarBackground)
-                .padding(horizontal = JwSpacing.medium)
-                .onSizeChanged { columnState.rowWidth = with(density) { it.width.toDp() } },
+                .padding(horizontal = JwSpacing.medium),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
         ) {
-            columns.forEach { column ->
+            columnLayout.columns.forEach { column ->
                 Cell(
                     column = column,
-                    columns = columns,
-                    columnState = columnState,
-                    modifier = Modifier.onSizeChanged { columnState.laidOutWidths[column.header] = with(density) { it.width.toDp() } },
+                    columnLayout = columnLayout,
+                    modifier = Modifier.onSizeChanged { onHeaderCellSized(column.header, it.width) },
                 ) {
                     // The handle overlaps the header's end rather than taking width from it: it is
                     // invisible until hovered, and a narrow column needs every dp for its name.
@@ -244,7 +273,7 @@ public fun <T> JwTable(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        ResizeHandle(column = column, columns = columns, columnState = columnState, modifier = Modifier.align(Alignment.CenterEnd))
+                        ResizeHandle(column = column, columnLayout = columnLayout, modifier = Modifier.align(Alignment.CenterEnd))
                     }
                 }
             }
@@ -261,8 +290,8 @@ public fun <T> JwTable(
         ) {
             items(items = items, key = key) { item ->
                 val cells: @Composable RowScope.() -> Unit = {
-                    columns.forEach { column ->
-                        Cell(column = column, columns = columns, columnState = columnState) { column.cell(item) }
+                    columnLayout.columns.forEach { column ->
+                        Cell(column = column, columnLayout = columnLayout) { column.cell(item) }
                     }
                 }
                 if (onClick == null) {
@@ -304,19 +333,19 @@ private fun ReadOnlyRow(selected: Boolean, content: @Composable RowScope.() -> U
 @Composable
 private fun <T> ResizeHandle(
     column: JwTableColumn<T>,
-    columns: List<JwTableColumn<T>>,
-    columnState: JwTableColumnState,
+    columnLayout: TableColumnLayout<T>,
     modifier: Modifier,
 ) {
+    val columnState = columnLayout.state
     val density = LocalDensity.current
     val interactionSource = remember(calculation = ::MutableInteractionSource)
     val hovered by interactionSource.collectIsHoveredAsState()
     val dragged by interactionSource.collectIsDraggedAsState()
     val dragState = rememberDraggableState(
         onDelta = onDelta@{ deltaPx ->
-            val current = columnState.shownWidth(column, columns) ?: columnState.laidOutWidths[column.header] ?: return@onDelta
+            val current = columnLayout.shownWidth(column) ?: columnState.laidOutWidths[column.header] ?: return@onDelta
             val growth = with(density) { deltaPx.toDp() }
-            val widest = columnState.widest(column, columns).coerceAtLeast(column.minWidth)
+            val widest = columnLayout.widest(column).coerceAtLeast(column.minWidth)
             columnState.widths += column.header to (current + growth).coerceIn(column.minWidth, widest)
         },
     )
@@ -343,28 +372,34 @@ private fun <T> ResizeHandle(
 }
 
 /**
- * The widest [column] can be dragged to: the row, less the gaps and what every other column keeps.
- * A column the user sized or declared fixed keeps its width; one still sharing by weight keeps only
- * its minimum. Computed from declarations rather than the last layout, which lags a fast drag.
+ * The columns of one [JwTable] in a row [rowWidth] wide, with the widths the user set in [state]:
+ * what the cells, the header and the resize handles all size themselves from.
  */
-private fun <T> JwTableColumnState.widest(column: JwTableColumn<T>, columns: List<JwTableColumn<T>>): Dp {
-    val gaps = JwSpacing.medium * (columns.size - 1).coerceAtLeast(0)
-    val kept = columns.filter { it !== column }.fold(0.dp) { sum, other ->
-        sum + (widths[other.header] ?: (other.width as? JwColumnWidth.Fixed)?.width ?: other.minWidth)
+private class TableColumnLayout<T>(
+    val columns: List<JwTableColumn<T>>,
+    val state: JwTableColumnState,
+    private val rowWidth: Dp,
+) {
+    /**
+     * The widest [column] can be: the row, less the gaps and what every other column keeps. A
+     * column the user sized or declared fixed keeps its width; one still sharing by weight keeps
+     * only its minimum. Computed from declarations rather than the last layout, which lags a fast
+     * drag.
+     */
+    fun widest(column: JwTableColumn<T>): Dp {
+        val gaps = JwSpacing.medium * (columns.size - 1).coerceAtLeast(0)
+        val kept = columns.filter { it !== column }.fold(0.dp) { sum, other ->
+            sum + (state.widths[other.header] ?: (other.width as? JwColumnWidth.Fixed)?.width ?: other.minWidth)
+        }
+        return rowWidth - gaps - kept
     }
-    return rowWidth - gaps - kept
-}
 
-/**
- * The width a user-sized [column] is laid out at: what the user set, but no wider than the row now
- * allows, so a width dragged in a wide window does not push the other columns out of a narrow one.
- * Null for a column the user has not sized.
- */
-private fun <T> JwTableColumnState.shownWidth(column: JwTableColumn<T>, columns: List<JwTableColumn<T>>): Dp? {
-    val set = widths[column.header] ?: return null
-    // Before the header row is measured there is nothing to fit into yet.
-    if (rowWidth == 0.dp) return set
-    return set.coerceAtMost(widest(column, columns).coerceAtLeast(column.minWidth))
+    /**
+     * The width a user-sized [column] is laid out at: what the user set, but no wider than the row
+     * now allows, so a width dragged in a wide window does not push the other columns out of a
+     * narrow one. Null for a column the user has not sized.
+     */
+    fun shownWidth(column: JwTableColumn<T>): Dp? = state.widths[column.header]?.coerceAtMost(widest(column).coerceAtLeast(column.minWidth))
 }
 
 /**
@@ -388,17 +423,17 @@ private fun <T> FitColumnEffect(columns: List<JwTableColumn<T>>, columnState: Jw
 @Composable
 private fun <T> RowScope.Cell(
     column: JwTableColumn<T>,
-    columns: List<JwTableColumn<T>>,
-    columnState: JwTableColumnState,
+    columnLayout: TableColumnLayout<T>,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val sizing = when (val width = columnState.shownWidth(column, columns)?.let(JwColumnWidth::Fixed) ?: column.width) {
+    val sizing = when (val width = columnLayout.shownWidth(column)?.let(JwColumnWidth::Fixed) ?: column.width) {
         is JwColumnWidth.Fixed -> Modifier.width(width.width)
         is JwColumnWidth.Weight -> Modifier.weight(width.weight)
     }
     // Reads the content's natural width only while this column is being fitted, so ordinary layout
     // pays nothing for it.
+    val columnState = columnLayout.state
     val fitProbe = Modifier.layout { measurable, constraints ->
         if (columnState.fitting == column.header) {
             val natural = measurable.maxIntrinsicWidth(constraints.maxHeight).toDp()
