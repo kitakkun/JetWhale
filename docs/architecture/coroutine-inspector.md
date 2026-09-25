@@ -27,7 +27,8 @@ counter updates per dispatch or emission.
 
 - A tree walk stops at 5,000 coroutines and says it was cut short.
 - A dispatcher keeps its 50 most recent long runs; a flow its 20 most recent values, each cut to
-  200 characters, and at most 2,000 timestamps for the rate.
+  200 characters. The emission rate counts emissions in one-second buckets over the last ten
+  seconds, so a flow keeps at most ten buckets however fast it emits, and the rate has no ceiling.
 
 ### Ages
 

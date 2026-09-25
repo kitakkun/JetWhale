@@ -72,6 +72,18 @@ class TrackedDispatcherTest {
     }
 
     @Test
+    fun `a task the delegate refuses is not left counted as queued`() {
+        val refusing = object : CoroutineDispatcher() {
+            override fun dispatch(context: CoroutineContext, block: Runnable): Unit = throw IllegalStateException("closed")
+        }
+        val recorder = DispatcherRecorder(name = "Closed", longRunThreshold = 1.hours)
+
+        assertFailsWith<IllegalStateException> { TrackedDispatcher(refusing, recorder).dispatch(EmptyCoroutineContext, Runnable {}) }
+
+        assertEquals(0, recorder.snapshot().queued)
+    }
+
+    @Test
     fun `a task counts as running while it runs`() {
         val delegate = ManualDispatcher()
         val recorder = DispatcherRecorder(name = "Main", longRunThreshold = 1.hours)
