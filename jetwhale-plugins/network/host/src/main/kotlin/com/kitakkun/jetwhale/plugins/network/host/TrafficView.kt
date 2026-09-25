@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.plugins.network.host
 
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -17,15 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwColumnOverflow
@@ -49,7 +41,6 @@ import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.mediaType
-import kotlinx.coroutines.launch
 import java.net.URLDecoder
 
 private val ListMinWidth = 240.dp
@@ -143,46 +134,13 @@ private fun TrafficList(
     onSelectTx: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
-
-    fun moveSelection(delta: Int) {
-        if (transactions.isEmpty()) return
-        val current = transactions.indexOfFirst { it.txId == selectedTxId }
-        val next = (if (current < 0) 0 else current + delta).coerceIn(0, transactions.lastIndex)
-        onSelectTx(transactions[next].txId)
-        scope.launch { listState.animateScrollToItem(next) }
-    }
-
     JwTable(
         items = transactions,
         columns = rememberTrafficColumns(),
         key = HttpTransaction::txId,
         isSelected = { it.txId == selectedTxId },
         onClick = { onSelectTx(it.txId) },
-        state = listState,
-        modifier = modifier
-            .fillMaxSize()
-            .focusable()
-            .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown) {
-                    false
-                } else {
-                    when (event.key) {
-                        Key.DirectionDown -> {
-                            moveSelection(1)
-                            true
-                        }
-
-                        Key.DirectionUp -> {
-                            moveSelection(-1)
-                            true
-                        }
-
-                        else -> false
-                    }
-                }
-            },
+        modifier = modifier.fillMaxSize(),
     )
 }
 
