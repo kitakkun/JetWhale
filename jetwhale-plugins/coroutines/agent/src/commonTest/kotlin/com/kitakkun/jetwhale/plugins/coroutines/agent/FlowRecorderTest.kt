@@ -94,4 +94,13 @@ class FlowRecorderTest {
 
         assertEquals(listOf(RateBucket(100, 2), RateBucket(101, 2)), buckets)
     }
+
+    @Test
+    fun `a late emission for an old second does not keep buckets outside the window`() {
+        val buckets = emptyList<RateBucket>()
+            .countingEmissionAt(100)
+            .countingEmissionAt(80)
+
+        assertEquals(listOf(RateBucket(100, 1)), buckets)
+    }
 }

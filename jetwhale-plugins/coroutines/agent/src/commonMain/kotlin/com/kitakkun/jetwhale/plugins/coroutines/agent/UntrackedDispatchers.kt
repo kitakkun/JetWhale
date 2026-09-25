@@ -14,7 +14,7 @@ import kotlin.coroutines.ContinuationInterceptor
 internal fun untrackedDispatchers(roots: Collection<Job>, nodeLimit: Int): List<UntrackedDispatcher> {
     val visited = mutableSetOf<Job>()
     val statesByDispatcher = mutableMapOf<String, MutableList<CoroutineState>>()
-    val pending = ArrayDeque(roots)
+    val pending = ArrayDeque(roots.take(nodeLimit))
     while (pending.isNotEmpty() && visited.size < nodeLimit) {
         val job = pending.removeFirst()
         if (!visited.add(job)) continue
