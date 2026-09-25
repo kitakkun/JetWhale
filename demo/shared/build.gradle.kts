@@ -60,6 +60,7 @@ kotlin {
             implementation(projects.jetwhalePlugins.semantics.agent)
             implementation(projects.jetwhalePlugins.storage.agent)
             implementation(projects.jetwhalePlugins.coroutines.agent)
+            implementation(projects.jetwhalePlugins.coroutines.agentCompose)
             implementation(libs.ktorClientCio)
         }
 
