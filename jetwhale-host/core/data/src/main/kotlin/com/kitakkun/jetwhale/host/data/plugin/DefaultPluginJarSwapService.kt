@@ -74,9 +74,13 @@ class DefaultPluginJarSwapService(
             return
         }
 
-        // Plugin instance state is lost. Capture the plugin ids currently served by this jar so that
-        // we can dispose their running instances and scenes before swapping in the new code.
-        val previousPluginIds = pluginFactoryRepository.findPluginIdsByJarPath(jarPath)
+        // Plugin instance state is lost. Capture the plugin ids currently served by this jar, and those
+        // it declares that another jar serves now (a new version under a new file name takes them
+        // over, closing that jar's classloader), so their running instances and scenes are disposed
+        // before the code under them goes away.
+        val takenOverPluginIds = withContext(Dispatchers.IO) { declaredPluginIds(File(jarPath)) }
+            .filter { it in pluginFactoryRepository.loadedPlugins }
+        val previousPluginIds = (pluginFactoryRepository.findPluginIdsByJarPath(jarPath) + takenOverPluginIds).distinct()
         previousPluginIds.forEach { disposePlugin(it) }
 
         val reloadedPluginIds = pluginFactoryRepository.reloadPlugin(jarPath, expectedSha256)

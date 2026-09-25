@@ -66,12 +66,18 @@ class MavenPluginInstallService(
         }
         val installedJar = File(appDataDirectoryProvider.getPluginDirectory(), stagedJar.name)
         pluginInstallProgressRepository.update(PluginInstallProgress.LoadingPlugin)
+        // A copy, not a move: the installed jar stays in place until the new one replaces it in one
+        // step, so the watcher never sees the plugin removed.
+        val previousJar = installedJar.takeIf(File::isFile)?.let { installed ->
+            File.createTempFile("${installed.name}.", ".previous", appDataDirectoryProvider.getPluginStagingDirectory()).also { installed.copyTo(it, overwrite = true) }
+        }
         try {
             appDataDirectoryProvider.moveStagedJarIntoPluginDirectory(stagedJar, installedJar)
         } catch (e: Exception) {
             // The move did not happen, so a jar of the same name already installed is still the
             // working one and stays.
             stagedJar.delete()
+            previousJar?.delete()
             throw PluginInstallationException("Failed to install plugin $coordinates: ${e.message}", e)
         }
         try {
@@ -79,8 +85,11 @@ class MavenPluginInstallService(
             // file picker: approve (pin the content hash) and load.
             pluginTrustService.trustAndLoad(installedJar.absolutePath, approvedSha256 = null)
         } catch (e: Exception) {
-            installedJar.delete()
+            // Put back the jar this install replaced, or remove the new one if it replaced nothing.
+            if (previousJar != null) appDataDirectoryProvider.moveStagedJarIntoPluginDirectory(previousJar, installedJar) else installedJar.delete()
             throw PluginInstallationException("Failed to load plugin from $coordinates: ${e.message}", e)
+        } finally {
+            previousJar?.delete()
         }
     }
 
