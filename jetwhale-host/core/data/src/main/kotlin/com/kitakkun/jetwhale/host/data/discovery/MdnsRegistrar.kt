@@ -51,6 +51,8 @@ private fun routedSourceAddress(): InetAddress? = try {
     }
 } catch (_: IOException) {
     null
+} catch (_: SecurityException) {
+    null
 }
 
 /**

@@ -125,6 +125,9 @@ class DefaultPluginTrustService(
             // letting an IO error abort loading of every other plugin.
             logger.warning("Failed to hash plugin jar, treating as untrusted: $jarPath (${e.message})")
             return false
+        } catch (e: SecurityException) {
+            logger.warning("Not allowed to read plugin jar, treating as untrusted: $jarPath (${e.message})")
+            return false
         }
         return entry.sha256 == currentSha256
     }
