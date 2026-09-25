@@ -54,6 +54,7 @@ internal fun CoroutineTestScreen() {
                 onStop = { demo.stop(scenario) },
             )
         }
+        item { ScreenWorkCard() }
     }
 }
 

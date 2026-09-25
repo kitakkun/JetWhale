@@ -18,12 +18,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.kitakkun.jetwhale.plugins.coroutines.agent.compose.TrackCompositionCoroutines
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun App() {
     var selectedTab by remember { mutableStateOf(0) }
     val nav3BackStack = rememberTrackedDemoNavBackStack()
+    DIModule.coroutineInspectorAgentPlugin.TrackCompositionCoroutines(name = "Compose")
     MaterialTheme {
         Surface {
             Scaffold(
