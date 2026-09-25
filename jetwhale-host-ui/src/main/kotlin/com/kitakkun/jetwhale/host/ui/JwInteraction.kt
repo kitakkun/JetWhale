@@ -97,6 +97,10 @@ public fun Modifier.jwFocusRing(
 /**
  * True only while [jwListRowKeys] moves focus to the next row, so the row that receives it can tell
  * a keyboard move from a click (which selects through its own `onClick`) or a focus restore.
+ *
+ * File-level rather than per list: the move and the focus callbacks it triggers all run
+ * synchronously on the UI thread, which every Compose scene of the host shares, so no other move
+ * can start in between.
  */
 private var focusMovingByArrowKey = false
 
@@ -129,6 +133,9 @@ public fun Modifier.jwListRowKeys(
     return focusRequester(focusRequester).onFocusChanged { state ->
         focused = state.isFocused
         if (state.isFocused && focusMovingByArrowKey) {
+            // Taken by the first row to receive the move, so an onSelect that moves focus itself
+            // does not make another row select as well.
+            focusMovingByArrowKey = false
             arrowKeyMoveReachedRow = true
             currentOnSelect()
         }
