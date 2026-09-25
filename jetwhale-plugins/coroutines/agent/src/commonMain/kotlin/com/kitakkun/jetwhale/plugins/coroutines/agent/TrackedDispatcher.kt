@@ -28,18 +28,26 @@ internal class TrackedDispatcher(
     override fun dispatch(context: CoroutineContext, block: Runnable) {
         val queuedAt = TimeSource.Monotonic.markNow()
         recorder.onQueued()
-        delegate.dispatch(
-            context,
-            Runnable {
-                recorder.onStarted(queuedAt.elapsedNow())
-                val startedAt = TimeSource.Monotonic.markNow()
-                try {
-                    block.run()
-                } finally {
-                    recorder.onFinished(startedAt.elapsedNow(), context[CoroutineName]?.name)
-                }
-            },
-        )
+        try {
+            delegate.dispatch(
+                context,
+                Runnable {
+                    recorder.onStarted(queuedAt.elapsedNow())
+                    val startedAt = TimeSource.Monotonic.markNow()
+                    try {
+                        block.run()
+                    } finally {
+                        recorder.onFinished(startedAt.elapsedNow(), context[CoroutineName]?.name)
+                    }
+                },
+            )
+        } catch (e: Throwable) {
+            // A task the delegate refused was never queued. (An executor-backed dispatcher that
+            // rejects a task does not throw: the coroutines library runs it elsewhere, which still
+            // goes through the wrapped task and is counted as started.)
+            recorder.onRejected()
+            throw e
+        }
     }
 
     override fun toString(): String = "${recorder.name} (tracked $delegate)"
@@ -63,6 +71,10 @@ internal class DispatcherRecorder(
 
     fun onQueued() {
         queued.incrementAndFetch()
+    }
+
+    fun onRejected() {
+        queued.decrementAndFetch()
     }
 
     fun onStarted(waited: Duration) {

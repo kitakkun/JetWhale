@@ -62,6 +62,10 @@ internal class CoroutineInspectorState(
 
     private val refreshes = mutableMapOf<InspectorTab, Job>()
 
+    // Bumped when the dispatcher report changes under a read already in flight (clearing long
+    // runs), so that read's older answer is dropped instead of undoing the change.
+    private var dispatcherGeneration = 0
+
     override fun refresh(tab: InspectorTab) {
         // A read slower than the refresh timer is left to finish rather than joined by another;
         // queued reads could only land out of order.
@@ -72,8 +76,15 @@ internal class CoroutineInspectorState(
     private suspend fun read(tab: InspectorTab) {
         when (tab) {
             InspectorTab.Coroutines -> tree = client.coroutineTree()
-            InspectorTab.Dispatchers -> dispatchers = client.dispatcherStats()
+
+            InspectorTab.Dispatchers -> {
+                val generation = dispatcherGeneration
+                val report = client.dispatcherStats()
+                if (generation == dispatcherGeneration) dispatchers = report
+            }
+
             InspectorTab.Flows -> flows = client.trackedFlows()
+
             InspectorTab.Dump -> dump = client.dump()
         }
         // A read that succeeds clears an earlier connection error rather than leaving it up.
@@ -87,6 +98,7 @@ internal class CoroutineInspectorState(
     override fun clearLongRuns() {
         launchReporting {
             val cleared = client.clearLongRuns().cleared
+            dispatcherGeneration++
             dispatchers = client.dispatcherStats()
             status = InspectorStatus(message = "Cleared $cleared long runs.", isError = false)
         }

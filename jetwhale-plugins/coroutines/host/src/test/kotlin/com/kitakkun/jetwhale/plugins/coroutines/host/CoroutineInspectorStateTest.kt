@@ -88,6 +88,26 @@ class CoroutineInspectorStateTest {
     }
 
     @Test
+    fun `a dispatcher read started before clearing long runs does not undo the clear`() {
+        val gate = CompletableDeferred<Unit>()
+        var reads = 0
+        val slowFirstRead = object : CoroutineInspectorClient by client {
+            override suspend fun dispatcherStats(): DispatcherStatsReport {
+                val read = ++reads
+                if (read == 1) gate.await()
+                return DispatcherStatsReport(dispatchers = emptyList(), capturedAtEpochMillis = read.toLong())
+            }
+        }
+        val clearingState = CoroutineInspectorState(slowFirstRead, CoroutineScope(Dispatchers.Unconfined))
+
+        clearingState.refresh(InspectorTab.Dispatchers)
+        clearingState.clearLongRuns()
+        gate.complete(Unit)
+
+        assertEquals(2, clearingState.dispatchers?.capturedAtEpochMillis)
+    }
+
+    @Test
     fun `collapsing twice expands again`() {
         state.toggleCollapsed("c1")
         state.toggleCollapsed("c1")
