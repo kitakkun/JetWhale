@@ -215,6 +215,7 @@ private class RunningServicesSource(private val context: Context) : BackgroundWo
     override suspend fun cancel(target: CancelTarget): String {
         val id = (target as? CancelTarget.ById)?.id ?: throw IllegalArgumentException("services are stopped by their id")
         val component = ComponentName.unflattenFromString(id) ?: throw IllegalArgumentException("'$id' is not a service component")
+        require(component.packageName == context.packageName) { "'$id' belongs to another app; only this app's services can be stopped" }
         val stopped = context.stopService(Intent().setComponent(component))
         return if (stopped) "Stopped ${component.className}." else "${component.className} was not running."
     }
