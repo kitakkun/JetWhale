@@ -32,6 +32,16 @@ data object GetTrackedFlows : JetWhaleRequest<TrackedFlowReport>
 @Serializable
 data object DumpCoroutines : JetWhaleRequest<CoroutineDump>
 
+/**
+ * Asks what the agent can tell about the coroutine with [id], a [CoroutineNode.id] from a recent
+ * tree, beyond what the tree says: on the JVM with DebugProbes installed, whether it is running or
+ * suspended and the stack it is at. Read on request, not on the tree's timer, since DebugProbes
+ * snapshot every coroutine to answer.
+ */
+@SerialName("coroutines/get_detail")
+@Serializable
+data class GetCoroutineDetail(val id: String) : JetWhaleRequest<CoroutineDetail>
+
 /** Forgets the long runs recorded so far, so the next report shows only what happens from now on. */
 @SerialName("coroutines/clear_long_runs")
 @Serializable

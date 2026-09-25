@@ -4,6 +4,7 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.ClearedLongRuns
+import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDetail
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineDump
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineState
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineTree
@@ -12,7 +13,9 @@ import com.kitakkun.jetwhale.plugins.coroutines.protocol.TrackedFlowReport
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -33,6 +36,15 @@ class CoroutineMcpCommandsTest {
         override suspend fun dump(): CoroutineDump = CoroutineDump(text = "", unavailableReason = "no probes")
 
         override suspend fun clearLongRuns(): ClearedLongRuns = ClearedLongRuns(cleared = 0)
+
+        override suspend fun coroutineDetail(id: String): CoroutineDetail = CoroutineDetail(
+            id = id,
+            found = true,
+            debugState = "SUSPENDED",
+            suspensionStack = listOf("com.example.Poller.poll(Poller.kt:12)"),
+            creationStack = emptyList(),
+            stackUnavailableReason = null,
+        )
     }
 
     private val tree = CoroutineTree(
@@ -57,6 +69,29 @@ class CoroutineMcpCommandsTest {
         val result = GetCoroutineTreeCommand(FakeClient(tree.copy(roots = emptyList(), coroutineCount = 0))).run(buildJsonObject { })
 
         assertTrue("note" in result)
+    }
+
+    @Test
+    fun `getCoroutineDetail combines where the coroutine lives with the stack the app reports`() {
+        val result = GetCoroutineDetailCommand(FakeClient(tree)).run(buildJsonObject { put("id", "stuck") })
+
+        assertEquals(listOf("Application"), result.getValue("path").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals("SUSPENDED", result.getValue("debugState").jsonPrimitive.content)
+        assertEquals(listOf("com.example.Poller.poll(Poller.kt:12)"), result.getValue("suspensionStack").jsonArray.map { it.jsonPrimitive.content })
+    }
+
+    @Test
+    fun `getCoroutineDetail counts what runs below a coroutine by state`() {
+        val result = GetCoroutineDetailCommand(FakeClient(tree)).run(buildJsonObject { put("id", "root") })
+
+        assertEquals(2, result.getValue("descendantsByState").jsonObject.getValue("Active").jsonPrimitive.int)
+    }
+
+    @Test
+    fun `getCoroutineDetail reports an id that is no longer in the tree as gone`() {
+        val result = GetCoroutineDetailCommand(FakeClient(tree)).run(buildJsonObject { put("id", "c404") })
+
+        assertEquals(false, result.getValue("found").jsonPrimitive.boolean)
     }
 
     @Test

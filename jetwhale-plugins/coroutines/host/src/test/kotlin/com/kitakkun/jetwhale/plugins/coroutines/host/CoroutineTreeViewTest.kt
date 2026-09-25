@@ -65,6 +65,19 @@ class CoroutineTreeViewTest {
     }
 
     @Test
+    fun `a coroutine is found with the coroutines from its root down to its parent`() {
+        val location = findCoroutine(tree, "download")
+
+        assertEquals(listOf("root", "sync"), location?.ancestors?.map(CoroutineNode::id))
+        assertEquals(null, findCoroutine(tree, "gone"))
+    }
+
+    @Test
+    fun `the coroutines below one are counted by state at every depth`() {
+        assertEquals(mapOf(CoroutineState.Active to 2, CoroutineState.Cancelling to 1), tree.single().descendantStates())
+    }
+
+    @Test
     fun `observed times read at the precision a person needs`() {
         assertEquals("850 ms", formatObserved(850))
         assertEquals("4.2 s", formatObserved(4_250))

@@ -78,3 +78,30 @@ internal fun formatObserved(millis: Long): String = when {
     millis < 3_600_000 -> "${millis / 60_000} min ${millis / 1_000 % 60} s"
     else -> "${millis / 3_600_000} h ${millis / 60_000 % 60} min"
 }
+
+/** A coroutine as the tree has it: the coroutine, and the ones from its registered root down to its parent. */
+internal data class CoroutineLocation(val node: CoroutineNode, val ancestors: List<CoroutineNode>)
+
+/**
+ * Where the coroutine with [id] is in the tree, or null when it is not there. A coroutine below two
+ * overlapping registered scopes is found under the first.
+ */
+internal fun findCoroutine(roots: List<CoroutineNode>, id: String): CoroutineLocation? {
+    fun search(node: CoroutineNode, ancestors: List<CoroutineNode>): CoroutineLocation? {
+        if (node.id == id) return CoroutineLocation(node, ancestors)
+        val path = ancestors + node
+        return node.children.firstNotNullOfOrNull { search(it, path) }
+    }
+    return roots.firstNotNullOfOrNull { search(it, emptyList()) }
+}
+
+/** How many coroutines below this one — children, theirs, and so on — are in each state. */
+internal fun CoroutineNode.descendantStates(): Map<CoroutineState, Int> = buildMap {
+    fun count(node: CoroutineNode) {
+        node.children.forEach { child ->
+            put(child.state, getOrElse(child.state) { 0 } + 1)
+            count(child)
+        }
+    }
+    count(this@descendantStates)
+}
