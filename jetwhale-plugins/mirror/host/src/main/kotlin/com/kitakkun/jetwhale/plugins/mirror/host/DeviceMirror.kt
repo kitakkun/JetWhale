@@ -225,8 +225,9 @@ internal class DeviceMirror(
                 }
                 // Decoding blocks inside ffmpeg and ignores cancellation: only the stream closing
                 // lets it return, and this scope waits for it, so the stream is closed here the
-                // moment the body ends or is cancelled.
-                screen?.let { launch { reopenWhenResized(it, outputSize, process) } }
+                // moment the body ends or is cancelled. The resize watch only ends on a resize, so
+                // it is cancelled there too, or this scope would wait for it after the stream ended.
+                val resizing = screen?.let { launch { reopenWhenResized(it, outputSize, process) } }
                 try {
                     if (device.kind.platform == DevicePlatform.Android) {
                         state = MirrorState.Streaming
@@ -238,6 +239,7 @@ internal class DeviceMirror(
                         decoding.await()
                     }
                 } finally {
+                    resizing?.cancel()
                     process.destroyForcibly()
                 }
             }
