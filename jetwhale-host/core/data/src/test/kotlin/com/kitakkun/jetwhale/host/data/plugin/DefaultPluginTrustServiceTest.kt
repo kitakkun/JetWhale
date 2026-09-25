@@ -210,7 +210,34 @@ class DefaultPluginTrustServiceTest {
         service.onPluginJarsChanged(setOf(jar.absolutePath))
 
         assertEquals(listOf(jar.absolutePath), factoryRepository.loadedJarPaths)
+        assertEquals(sha256Of(jar), factoryRepository.expectedSha256ByJar.getValue(jar.absolutePath))
         assertEquals(emptyList(), service.arrivedJarsFlow.value)
+    }
+
+    @Test
+    fun `approving an offered jar trusts and loads the content that was shown even if the file changed since`() = runBlocking {
+        val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+        val shownSha256 = service.arrivedJarsFlow.value.single().sha256
+
+        pluginJar("network.jar", networkManifest(version = "6.6.6"))
+        service.trustAndLoad(jar.absolutePath)
+
+        assertEquals(shownSha256, trustRepository.entries.getValue(jar.absolutePath).sha256)
+        assertEquals(shownSha256, factoryRepository.expectedSha256ByJar.getValue(jar.absolutePath))
+    }
+
+    @Test
+    fun `approving an offered update reloads it against the content that was shown`() = runBlocking {
+        val jar = pluginJar("network.jar", networkManifest(version = "1.3.0"))
+        factoryRepository.runningPluginsByJar[jar.absolutePath] = listOf(runningNetwork(version = "1.2.0"))
+        service.onPluginJarsChanged(setOf(jar.absolutePath))
+        val shownSha256 = service.arrivedJarsFlow.value.single().sha256
+
+        pluginJar("network.jar", networkManifest(version = "6.6.6"))
+        service.trustAndLoad(jar.absolutePath)
+
+        assertEquals(shownSha256, swapService.expectedSha256ByJar.getValue(jar.absolutePath))
     }
 
     @Test
@@ -347,8 +374,12 @@ class DefaultPluginTrustServiceTest {
         val failingJars = mutableMapOf<String, String>()
         override val failedJarsFlow = MutableStateFlow(emptyList<FailedPluginJar>())
 
-        override suspend fun loadPlugin(pluginJarPath: String) {
+        /** The hash each load was asked to check the opened jar against, by jar path. */
+        val expectedSha256ByJar = mutableMapOf<String, String?>()
+
+        override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) {
             loadedJarPaths.add(pluginJarPath)
+            expectedSha256ByJar[pluginJarPath] = expectedSha256
             failingJars[pluginJarPath]?.let { reason -> failedJarsFlow.value += FailedPluginJar(pluginJarPath, reason) }
         }
 
@@ -356,7 +387,7 @@ class DefaultPluginTrustServiceTest {
 
         override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = runningPluginsByJar[pluginJarPath].orEmpty().map(JetWhaleHostPluginManifest::pluginId)
 
-        override suspend fun reloadPlugin(pluginJarPath: String): List<String> = emptyList()
+        override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = emptyList()
 
         override fun tryRedefinePlugin(pluginJarPath: String): List<String> = emptyList()
     }
@@ -372,8 +403,11 @@ class DefaultPluginTrustServiceTest {
 
         override suspend fun hotSwap(jarPath: String) = error("the trust service never hot-swaps")
 
-        override suspend fun reload(jarPath: String) {
+        val expectedSha256ByJar = mutableMapOf<String, String?>()
+
+        override suspend fun reload(jarPath: String, expectedSha256: String?) {
             reloadedJarPaths += jarPath
+            expectedSha256ByJar[jarPath] = expectedSha256
         }
 
         override suspend fun remove(jarPath: String) {

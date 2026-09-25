@@ -24,7 +24,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
-import java.security.MessageDigest
 import java.util.logging.Logger
 
 @SingleIn(AppScope::class)
@@ -74,8 +73,9 @@ class DefaultPluginTrustService(
         }
         val untrusted = mutableListOf<String>()
         for (jarPath in appDataDirectoryProvider.getAllPluginJarFilePaths()) {
-            if (isTrusted(jarPath)) {
-                pluginFactoryRepository.loadPlugin(jarPath)
+            val trustedSha256 = trustedSha256(jarPath)
+            if (trustedSha256 != null) {
+                pluginFactoryRepository.loadPlugin(jarPath, trustedSha256)
             } else {
                 logger.warning("Skipping untrusted plugin jar (not approved or content changed): $jarPath")
                 untrusted += jarPath
@@ -89,7 +89,7 @@ class DefaultPluginTrustService(
         // there is also no UI path to approve them, since trusting is defined over the managed
         // directory alone.
         for (jarPath in appDataDirectoryProvider.getAdditionalPluginJarFilePaths()) {
-            pluginFactoryRepository.loadPlugin(jarPath)
+            pluginFactoryRepository.loadPlugin(jarPath, expectedSha256 = null)
         }
     }
 
@@ -98,13 +98,16 @@ class DefaultPluginTrustService(
             "Refusing to trust a jar outside the managed plugins directory: $jarPath"
         }
         jarStateMutex.withLock {
+            // Approving an offered jar approves the bytes the user was shown, not whatever is at the
+            // path by now; the load then refuses a jar that no longer has that hash.
+            val approvedSha256 = arrivedJarsFlow.value.firstOrNull { it.jarPath == jarPath }?.sha256 ?: computeSha256(jarPath)
             // trust() signs the registry iff a key exists, so no signing flag is threaded through here.
-            pluginTrustRepository.trust(jarPath, computeSha256(jarPath))
+            pluginTrustRepository.trust(jarPath, approvedSha256)
             untrustedJarPathsFlow.update { it - jarPath }
             if (pluginFactoryRepository.findPluginIdsByJarPath(jarPath).isEmpty()) {
-                pluginFactoryRepository.loadPlugin(jarPath)
+                pluginFactoryRepository.loadPlugin(jarPath, approvedSha256)
             } else {
-                pluginJarSwapService.reload(jarPath)
+                pluginJarSwapService.reload(jarPath, approvedSha256)
             }
             // An offered jar that fails to load stays offered with the reason, rather than vanishing
             // as if it had loaded.
@@ -121,26 +124,23 @@ class DefaultPluginTrustService(
 
     override suspend fun onPluginJarsChanged(jarPaths: Set<String>): Unit = jarStateMutex.withLock {
         jarPaths.forEach { jarPath ->
-            when {
-                !File(jarPath).isFile -> {
-                    forget(jarPath)
-                    pluginJarSwapService.remove(jarPath)
+            if (!File(jarPath).isFile) {
+                forget(jarPath)
+                pluginJarSwapService.remove(jarPath)
+                return@forEach
+            }
+            val trustedSha256 = trustedSha256(jarPath)
+            if (trustedSha256 != null) {
+                forget(jarPath)
+                // The install flows load what they approve; this is a trusted jar put back by hand.
+                if (pluginFactoryRepository.findPluginIdsByJarPath(jarPath).isEmpty()) {
+                    pluginFactoryRepository.loadPlugin(jarPath, trustedSha256)
                 }
-
-                isTrusted(jarPath) -> {
-                    forget(jarPath)
-                    // The install flows load what they approve; this is a trusted jar put back by hand.
-                    if (pluginFactoryRepository.findPluginIdsByJarPath(jarPath).isEmpty()) {
-                        pluginFactoryRepository.loadPlugin(jarPath)
-                    }
-                }
-
-                else -> {
-                    logger.warning("Found an untrusted plugin jar at runtime: $jarPath")
-                    untrustedJarPathsFlow.update { if (jarPath in it) it else it + jarPath }
-                    val arrivedJar = describeArrivedJar(jarPath)
-                    arrivedJarsFlow.update { arrived -> arrived.filterNot { it.jarPath == jarPath } + arrivedJar }
-                }
+            } else {
+                logger.warning("Found an untrusted plugin jar at runtime: $jarPath")
+                untrustedJarPathsFlow.update { if (jarPath in it) it else it + jarPath }
+                val arrivedJar = describeArrivedJar(jarPath)
+                arrivedJarsFlow.update { arrived -> arrived.filterNot { it.jarPath == jarPath } + arrivedJar }
             }
         }
     }
@@ -208,9 +208,12 @@ class DefaultPluginTrustService(
         signingEnabledFlow.value = trustRegistrySigner.hasKey()
     }
 
-    /** True only if [jarPath] has a trusted entry whose pinned hash matches the jar's current bytes. */
-    private suspend fun isTrusted(jarPath: String): Boolean {
-        val entry = pluginTrustRepository.trustedEntry(jarPath) ?: return false
+    /**
+     * The pinned hash of [jarPath] when it has a trusted entry that matches the jar's current bytes,
+     * or null. Loading passes it on, so the copy the classloader opens is checked against it too.
+     */
+    private suspend fun trustedSha256(jarPath: String): String? {
+        val entry = pluginTrustRepository.trustedEntry(jarPath) ?: return null
         val currentSha256 = try {
             computeSha256(jarPath)
         } catch (e: CancellationException) {
@@ -219,26 +222,15 @@ class DefaultPluginTrustService(
             // A jar we cannot read is a jar we cannot verify: fail safe as untrusted instead of
             // letting an IO error abort loading of every other plugin.
             logger.warning("Failed to hash plugin jar, treating as untrusted: $jarPath (${e.message})")
-            return false
+            return null
         } catch (e: SecurityException) {
             logger.warning("Not allowed to read plugin jar, treating as untrusted: $jarPath (${e.message})")
-            return false
+            return null
         }
-        return entry.sha256 == currentSha256
+        return entry.sha256.takeIf { it == currentSha256 }
     }
 
-    private suspend fun computeSha256(jarPath: String): String = withContext(Dispatchers.IO) {
-        val digest = MessageDigest.getInstance("SHA-256")
-        File(jarPath).inputStream().use { stream ->
-            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-            while (true) {
-                val read = stream.read(buffer)
-                if (read < 0) break
-                digest.update(buffer, 0, read)
-            }
-        }
-        digest.digest().joinToString("") { "%02x".format(it) }
-    }
+    private suspend fun computeSha256(jarPath: String): String = withContext(Dispatchers.IO) { File(jarPath).sha256Hex() }
 }
 
 private fun JetWhaleHostPluginManifest.toDeclaredPlugin(): DeclaredPlugin = DeclaredPlugin(pluginId = pluginId, pluginName = pluginName, version = version)

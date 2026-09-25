@@ -71,11 +71,11 @@ class DefaultPluginFactoryRepository(
      */
     private val loadMutex = Mutex()
 
-    override suspend fun loadPlugin(pluginJarPath: String): Unit = loadMutex.withLock {
-        loadPluginUnderLock(pluginJarPath)
+    override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?): Unit = loadMutex.withLock {
+        loadPluginUnderLock(pluginJarPath, expectedSha256)
     }
 
-    private fun loadPluginUnderLock(pluginJarPath: String) {
+    private fun loadPluginUnderLock(pluginJarPath: String, expectedSha256: String?) {
         // Open the classloader on a private copy of the jar so the source jar can be overwritten
         // (dev hot-reload restaging, or a new version dropped over an installed jar that keeps running
         // until the user approves it) without corrupting this classloader's open zip handle —
@@ -83,6 +83,11 @@ class DefaultPluginFactoryRepository(
         // the jar shares this single classloader.
         val runtimeJar = createRuntimeCopyIfReplaceable(pluginJarPath)
         val openedJar = runtimeJar ?: File(pluginJarPath)
+        if (expectedSha256 != null && openedJar.sha256Hex() != expectedSha256) {
+            recordFailedJar(pluginJarPath, "the jar changed after it was approved; approve it again")
+            runtimeJar?.delete()
+            return
+        }
 
         // Maven-installed plugins declare their external dependencies in a manifest instead of
         // bundling them; those jars were downloaded into the plugin libs directory at install time
@@ -267,16 +272,17 @@ class DefaultPluginFactoryRepository(
         }
         classLoaders.remove(pluginJarPath)?.close()
         runtimeJars.remove(pluginJarPath)
+        mutableFailedJarsFlow.update { failed -> failed.filterNot { it.jarPath == pluginJarPath } }
         pluginIds.forEach { println("Unloaded plugin: $it") }
     }
 
     override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = jarPathToPluginIds[pluginJarPath].orEmpty()
 
-    override suspend fun reloadPlugin(pluginJarPath: String): List<String> = loadMutex.withLock {
+    override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = loadMutex.withLock {
         // loadPlugin already closes and replaces the previous classloader for this jar, dropping the
         // stale classes. We simply re-run it (under the same lock, so the result read below is
         // consistent with it) and report the resulting plugin ids.
-        loadPluginUnderLock(pluginJarPath)
+        loadPluginUnderLock(pluginJarPath, expectedSha256)
         // loadPlugin records the path in failedJarPaths on failure; treat that as an unsuccessful
         // reload (don't report stale success from a leftover jarPathToPluginIds mapping).
         if (mutableFailedJarsFlow.value.any { it.jarPath == pluginJarPath }) {
