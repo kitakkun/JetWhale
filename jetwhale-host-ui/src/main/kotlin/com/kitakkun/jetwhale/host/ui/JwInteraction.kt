@@ -11,6 +11,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Shape
@@ -98,14 +100,18 @@ public fun Modifier.jwFocusRing(
  */
 private var focusMovingByArrowKey = false
 
+/** Set by the row that receives an arrow-key move; still false afterwards when the move left the rows. */
+private var arrowKeyMoveReachedRow = false
+
 /**
  * Lets the arrow keys walk a list of rows: ↑/↓ move focus to the row above or below, and the row
  * that receives focus that way calls [onSelect], so the selection follows the keyboard. A lazy list
  * composes and scrolls to the next row when it is off screen.
  *
  * Keys are handled only while the row itself holds focus, so a text field inside it keeps its
- * arrows, and a key the row does not use — or ↑ on the first row — passes on to its ancestors.
- * Place it before the row's `clickable` in the modifier chain.
+ * arrows, and a key the row does not use passes on to its ancestors. So does ↑ on the first row and
+ * ↓ on the last: focus stays on the row rather than jumping to whatever control sits beyond the
+ * list. Place it before the row's `clickable` in the modifier chain.
  *
  * @param onSelect what selecting the row does; the same action as its click.
  * @param onKey any further key the row handles, such as ←/→ on a tree row; true when consumed.
@@ -119,9 +125,13 @@ public fun Modifier.jwListRowKeys(
     val currentOnSelect by rememberUpdatedState(onSelect)
     val currentOnKey by rememberUpdatedState(onKey)
     var focused by remember { mutableStateOf(false) }
-    return onFocusChanged { state ->
+    val focusRequester = remember(calculation = ::FocusRequester)
+    return focusRequester(focusRequester).onFocusChanged { state ->
         focused = state.isFocused
-        if (state.isFocused && focusMovingByArrowKey) currentOnSelect()
+        if (state.isFocused && focusMovingByArrowKey) {
+            arrowKeyMoveReachedRow = true
+            currentOnSelect()
+        }
     }.onKeyEvent { event ->
         if (!focused || event.type != KeyEventType.KeyDown) return@onKeyEvent false
         val direction = when (event.key) {
@@ -130,10 +140,15 @@ public fun Modifier.jwListRowKeys(
             else -> return@onKeyEvent currentOnKey(event.key)
         }
         focusMovingByArrowKey = true
-        try {
+        arrowKeyMoveReachedRow = false
+        val moved = try {
             focusManager.moveFocus(direction)
         } finally {
             focusMovingByArrowKey = false
         }
+        // The focus search spans the whole screen, not just this list: past its first or last row
+        // it lands on a neighboring control, such as a filter field above a table.
+        if (moved && !arrowKeyMoveReachedRow) focusRequester.requestFocus()
+        moved && arrowKeyMoveReachedRow
     }
 }

@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.ui
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -126,6 +127,37 @@ class JwListRowKeysTest {
 
         assertEquals("child", selected)
         onNodeWithText("child").assertIsFocused()
+    }
+
+    @Test
+    fun `up on the first row and down on the last stay in the list instead of reaching the controls around it`() = runComposeUiTest {
+        var selected by mutableStateOf<String?>(null)
+        var filter by mutableStateOf("")
+        setContent {
+            JwTheme(darkTheme = false) {
+                Column {
+                    JwTextField(value = filter, onValueChange = { filter = it }, placeholder = "Filter")
+                    JwTable(
+                        items = rows.take(3),
+                        columns = listOf(JwTableColumn.text(header = "Name", width = JwColumnWidth.Weight(1f)) { it }),
+                        key = { it },
+                        isSelected = { it == selected },
+                        onClick = { selected = it },
+                        modifier = Modifier.height(200.dp),
+                    )
+                    JwButton(text = "Below", onClick = {})
+                }
+            }
+        }
+
+        onNodeWithText("row 0").performClick()
+        press(Key.DirectionUp)
+        onNodeWithText("row 0").assertIsFocused()
+
+        onNodeWithText("row 2").performClick()
+        press(Key.DirectionDown)
+        onNodeWithText("row 2").assertIsFocused()
+        assertEquals("row 2", selected)
     }
 
     private fun ComposeUiTest.press(key: Key) {
