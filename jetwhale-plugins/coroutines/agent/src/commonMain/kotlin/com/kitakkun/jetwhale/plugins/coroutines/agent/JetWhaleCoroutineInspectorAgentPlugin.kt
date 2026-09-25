@@ -20,13 +20,16 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Agent plugin that shows the host what the app's coroutines are doing: the coroutines below the
@@ -43,7 +46,9 @@ import kotlin.time.Duration
  * ```
  *
  * The host asks for everything while someone is looking; when no one is, tracking costs a clock
- * read and a few counter updates per dispatch or emission.
+ * read and a few counter updates per dispatch or emission. While a host has the plugin active, the
+ * plugin also notes new coroutines every couple of seconds, so their ages are right by the time
+ * someone opens the tree.
  */
 @OptIn(ExperimentalAtomicApi::class)
 class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
@@ -57,6 +62,7 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
     private val flows = AtomicReference(emptyMap<String, FlowRecorder>())
     private val walker = JobTreeWalker(nodeLimit = MAX_TREE_NODES)
     private val walkLock = Mutex()
+    private var sighting: Job? = null
 
     /**
      * Shows the coroutines of [scope] under [name]. A scope whose job completes is dropped by
@@ -73,6 +79,7 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
 
     /** Shows the coroutines below [job] under [name]; see the scope overload. */
     fun register(job: Job, name: String) {
+        walker.registered(job)
         roots.updateAndGet { it + (name to WeakReference(job)) }
         job.invokeOnCompletion { roots.updateAndGet { current -> if (current[name]?.get() === job) current - name else current } }
     }
@@ -122,6 +129,20 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
         return trackedFlow(flow, recorder)
     }
 
+    override fun onActivate() {
+        sighting = CoroutineScope(Dispatchers.Default).launch {
+            while (true) {
+                walkLock.withLock { walker.sight(liveRoots().values) }
+                delay(SIGHTING_INTERVAL)
+            }
+        }
+    }
+
+    override fun onDeactivate() {
+        sighting?.cancel()
+        sighting = null
+    }
+
     internal suspend fun coroutineTree(): CoroutineTree = walkLock.withLock {
         walker.walk(liveRoots(), capturedAtEpochMillis = nowEpochMillis())
     }
@@ -161,6 +182,9 @@ class JetWhaleCoroutineInspectorAgentPlugin : JetWhaleAgentPlugin() {
 
 /** Enough to show every coroutine of an ordinary app, few enough that a runaway leak cannot flood the connection. */
 private const val MAX_TREE_NODES = 5_000
+
+/** Often enough that an age is off by at most this much; rare enough to cost next to nothing. */
+private val SIGHTING_INTERVAL = 2.seconds
 
 internal fun nowEpochMillis(): Long = Clock.System.now().toEpochMilliseconds()
 

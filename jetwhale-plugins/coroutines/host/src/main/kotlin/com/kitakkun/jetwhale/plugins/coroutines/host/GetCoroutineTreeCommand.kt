@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.coroutines.host
 
 import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
+import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpCommand
 import com.kitakkun.jetwhale.plugins.coroutines.protocol.CoroutineNode
@@ -30,7 +31,10 @@ internal class GetCoroutineTreeCommand(
             states = setOfNotNull(arguments[state]),
             nameContains = arguments[nameContains],
             dispatcherContains = arguments[dispatcherContains],
-            minObservedMillis = arguments[minObservedSeconds]?.times(1_000),
+            minObservedMillis = arguments[minObservedSeconds]?.let { seconds ->
+                if (seconds !in 0..MAX_MIN_OBSERVED_SECONDS) throw JetWhaleMcpArgumentException("minObservedSeconds must be between 0 and $MAX_MIN_OBSERVED_SECONDS; got $seconds")
+                seconds * 1_000
+            },
             namedOnly = arguments[namedOnly] == true,
         )
         return buildJsonObject {
@@ -44,3 +48,6 @@ internal class GetCoroutineTreeCommand(
         }.toString()
     }
 }
+
+/** A year: longer than any coroutine an app keeps, and far from overflowing once in milliseconds. */
+private const val MAX_MIN_OBSERVED_SECONDS = 365L * 24 * 60 * 60

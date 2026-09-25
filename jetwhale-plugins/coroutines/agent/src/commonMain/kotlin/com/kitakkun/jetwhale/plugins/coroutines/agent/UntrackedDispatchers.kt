@@ -18,7 +18,12 @@ internal fun untrackedDispatchers(roots: Collection<Job>, nodeLimit: Int): List<
     while (pending.isNotEmpty() && visited.size < nodeLimit) {
         val job = pending.removeFirst()
         if (!visited.add(job)) continue
-        pending.addAll(job.children)
+        // Children are queued only up to the limit, so a scope with a huge fan-out cannot make
+        // the queue itself unbounded.
+        for (child in job.children) {
+            if (visited.size + pending.size >= nodeLimit) break
+            pending.addLast(child)
+        }
         // Only a coroutine started by launch or async is a CoroutineScope with a dispatcher; a
         // registered scope's own Job is walked through but is not a coroutine.
         val interceptor = (job as? CoroutineScope)?.coroutineContext?.get(ContinuationInterceptor) ?: continue
