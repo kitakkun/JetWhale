@@ -79,6 +79,36 @@ class EmulatorScreensTest {
     }
 
     @Test
+    fun `a frame announcing more pixels than it carries is refused before anything is allocated`() {
+        val header = Buffer().writeByte(0x22).writeVarint(Int.MAX_VALUE).readByteArray()
+        val message = Buffer().writeByte(0).writeInt(header.size + 4).write(header).write(ByteArray(4)).readByteArray()
+
+        assertFailsWith<DeviceControlException> { EmulatorImageReader(ByteArrayInputStream(message)).next() }
+    }
+
+    @Test
+    fun `a stream cut off inside a frame ends after the frames that came whole`() {
+        val whole = imageMessage(2, 1, ByteArray(8) { 5 }, seq = 1)
+        val cut = imageMessage(2, 1, ByteArray(8), seq = 2).let { it.copyOf(it.size - 3) }
+        MirrorSurface().use { surface ->
+            var count = 0
+
+            readEmulatorFramesInto(surface, ByteArrayInputStream(whole + cut)) { count++ }
+
+            assertEquals(1, count)
+        }
+    }
+
+    @Test
+    fun `a discovery entry that cannot be read is passed over`() {
+        val directory = Files.createTempDirectory("avd-running").toFile().apply { deleteOnExit() }
+        File(directory, "pid_1.ini").mkdir()
+        File(directory, "pid_2.ini").writeText("port.serial=5554\ngrpc.port=8554\n")
+
+        assertEquals(8554, findEmulatorEndpoint("emulator-5554", listOf(directory))?.port)
+    }
+
+    @Test
     fun `frames reach the surface as they arrive`() {
         val frames = imageMessage(2, 1, ByteArray(8) { 7 }, seq = 1) + imageMessage(2, 1, ByteArray(8) { 9 }, seq = 2)
         MirrorSurface().use { surface ->
