@@ -6,6 +6,7 @@ on:
     branches:
       - main
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths-ignore:
       - 'docs/**'
       - 'docs-site/**'
@@ -20,6 +21,7 @@ concurrency:
 
 jobs:
   test:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
     steps:
@@ -37,6 +39,7 @@ jobs:
   # rather than after it keeps two Gradle daemons and the compiler test framework off one runner's
   # memory, and the two finish in parallel.
   agent-plugin:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
     steps:
@@ -56,6 +59,7 @@ jobs:
   # macOS runners bill at a multiple of Linux ones, so this compiles and tests rather than running the
   # whole `check` the Linux job already covers. Warm, it is well under a minute.
   apple:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: macos-latest
 
     steps:
