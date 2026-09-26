@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.plugins.semantics.host
 
 import com.kitakkun.jetwhale.plugins.semantics.protocol.AppleNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ComposeNode
+import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeAction
 import com.kitakkun.jetwhale.plugins.semantics.protocol.NodeTreeSnapshot
 import com.kitakkun.jetwhale.plugins.semantics.protocol.UiNode
 import com.kitakkun.jetwhale.plugins.semantics.protocol.ViewNode
@@ -32,7 +33,7 @@ internal enum class NodeOutputFormat {
  * ```
  * root compose-root-1f2e "MainActivity" unit=px density=2.0
  * - node #1
- *   - Button #7 "Send" tag=send-button [clickable] actions=OnClick tap=60,40
+ *   - Button #7 "Send" tag=send-button [clickable] actions=Click tap=60,40
  * ```
  */
 internal fun NodeTreeSnapshot.toMcpText(): String = buildString {
@@ -87,7 +88,7 @@ internal fun UiNode.toMcpTextLine(rootId: String?): String = buildList {
     }
     addAll(flags())
     obscuredBy?.let { add("obscuredBy=${it.rootId}#${it.nodeId}") }
-    if (actions.isNotEmpty()) add("actions=${actions.joinToString(",")}")
+    performableActions().takeIf { it.isNotEmpty() }?.let { performable -> add("actions=${performable.joinToString(",", transform = NodeAction::name)}") }
     if (!boundsInScreen.isEmpty) add("tap=${boundsInScreen.centerX.roundToInt()},${boundsInScreen.centerY.roundToInt()}")
 }.joinToString(" ")
 

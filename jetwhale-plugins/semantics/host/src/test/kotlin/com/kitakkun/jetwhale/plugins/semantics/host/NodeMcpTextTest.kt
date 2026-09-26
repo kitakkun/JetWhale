@@ -35,7 +35,7 @@ class NodeMcpTextTest {
             root window "MainActivity" unit=px density=2.0
             - node #1 tap=50,20
               - node #2 "Hello" tap=50,20
-              - Button #7 "Send" tag=send-button [clickable] actions=OnClick tap=60,40
+              - Button #7 "Send" tag=send-button [clickable] actions=Click tap=60,40
             """.trimIndent(),
             screen.toMcpText(),
         )
@@ -51,6 +51,18 @@ class NodeMcpTextTest {
     @Test
     fun `quotes and line breaks in app text stay inside one line`() {
         assertEquals("- node #3 \"say \\\"hi\\\"\\nbye\" tap=50,20", node(id = 3, text = "say \"hi\"\nbye").toMcpTextLine(rootId = null))
+    }
+
+    @Test
+    fun `actions are the names performNodeAction accepts and leave out platform actions it cannot run`() {
+        val line = node(id = 5, actions = listOf("SetTextSubstitution", "OnClick", "PerformImeAction")).toMcpTextLine(rootId = null)
+
+        assertEquals("- node #5 actions=Click,ImeAction tap=50,20", line)
+    }
+
+    @Test
+    fun `a node exposing only actions nothing can perform lists no actions`() {
+        assertEquals("- node #5 tap=50,20", node(id = 5, actions = listOf("SetTextSubstitution")).toMcpTextLine(rootId = null))
     }
 
     @Test
