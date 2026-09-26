@@ -1,8 +1,12 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -12,6 +16,7 @@ import java.net.ServerSocket
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
+import kotlin.time.Duration
 
 /** How long a companion gets to report its port; a device that needs pairing never does. */
 private const val COMPANION_START_TIMEOUT_MILLIS = 20_000L
@@ -19,8 +24,9 @@ private const val COMPANION_START_TIMEOUT_MILLIS = 20_000L
 /**
  * The idb companions of physical iOS devices. idb reaches a simulator by itself, but a device needs
  * a companion process of its own, which idb is then told about. Each device's companion is started
- * by the first user and stopped when the last one releases it, so a companion never outlives the
- * streams and tools that needed it.
+ * by the first user. When the last one releases it, it is kept for [idleTimeout] before it stops:
+ * starting one and connecting idb takes seconds, and switching away from a device and back is the
+ * common case. A device that disappears has its companion stopped at once.
  */
 internal class IdbCompanions(
     private val idbCompanion: String,
@@ -28,8 +34,12 @@ internal class IdbCompanions(
     private val launcher: ProcessLauncher,
     private val commands: CommandRunner,
     private val ports: PortSource,
+    private val idleTimeout: Duration,
+    private val scope: CoroutineScope,
 ) {
-    private class Running(val process: Process, val port: Int, var users: Int)
+    private class Running(val process: Process, val port: Int, var users: Int) {
+        var idleStop: Job? = null
+    }
 
     private val mutex = Mutex()
     private val running = ConcurrentHashMap<String, Running>()
@@ -37,6 +47,8 @@ internal class IdbCompanions(
     /** Starts the companion of [udid] if it is not running yet; pair every call with [release]. */
     suspend fun acquire(udid: String): Unit = mutex.withLock {
         running[udid]?.let {
+            it.idleStop?.cancel()
+            it.idleStop = null
             it.users++
             return@withLock
         }
@@ -56,13 +68,29 @@ internal class IdbCompanions(
         val companion = running[udid] ?: return@withLock
         companion.users--
         if (companion.users > 0) return@withLock
-        running.remove(udid)
+        companion.idleStop = scope.launch {
+            delay(idleTimeout)
+            mutex.withLock {
+                if (companion.users > 0 || running[udid] !== companion) return@withLock
+                running.remove(udid)
+                stop(companion)
+            }
+        }
+    }
+
+    /** Stops the companion of a device that is gone, whoever still uses it: it has nothing left to reach. */
+    suspend fun forget(udid: String): Unit = mutex.withLock {
+        val companion = running.remove(udid) ?: return@withLock
+        companion.idleStop?.cancel()
         stop(companion)
     }
 
     /** Stops every companion, whoever still uses it; for when the plugin goes away. */
     suspend fun releaseAll(): Unit = mutex.withLock {
-        running.values.forEach { stop(it) }
+        running.values.forEach {
+            it.idleStop?.cancel()
+            stop(it)
+        }
         running.clear()
     }
 
