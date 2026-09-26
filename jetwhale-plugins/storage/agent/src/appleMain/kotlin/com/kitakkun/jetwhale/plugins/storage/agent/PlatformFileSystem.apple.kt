@@ -9,8 +9,10 @@ import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
+import kotlinx.cinterop.toKString
 import kotlinx.cinterop.usePinned
 import kotlinx.cinterop.value
+import platform.Foundation.NSData
 import platform.Foundation.NSDate
 import platform.Foundation.NSError
 import platform.Foundation.NSFileCreationDate
@@ -20,16 +22,24 @@ import platform.Foundation.NSFileModificationDate
 import platform.Foundation.NSFileSize
 import platform.Foundation.NSFileType
 import platform.Foundation.NSFileTypeDirectory
+import platform.Foundation.NSFileTypeRegular
 import platform.Foundation.NSFileTypeSymbolicLink
 import platform.Foundation.NSNumber
 import platform.Foundation.NSString
 import platform.Foundation.closeFile
+import platform.Foundation.create
 import platform.Foundation.fileHandleForReadingAtPath
+import platform.Foundation.fileHandleForWritingAtPath
 import platform.Foundation.readDataOfLength
+import platform.Foundation.seekToEndOfFile
 import platform.Foundation.seekToFileOffset
 import platform.Foundation.stringByResolvingSymlinksInPath
 import platform.Foundation.timeIntervalSince1970
+import platform.Foundation.writeData
+import platform.posix.errno
 import platform.posix.memcpy
+import platform.posix.rename
+import platform.posix.strerror
 
 @OptIn(ExperimentalForeignApi::class)
 internal actual fun listDirectoryEntries(path: String): List<FileEntry> {
@@ -78,6 +88,28 @@ internal actual fun fileSize(path: String): Long {
     return (attributes?.get(NSFileSize) as? NSNumber)?.longLongValue ?: 0
 }
 
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+internal actual fun writeFileBytes(path: String, bytes: ByteArray, append: Boolean) {
+    val data = if (bytes.isEmpty()) NSData() else bytes.usePinned { NSData.create(bytes = it.addressOf(0), length = bytes.size.toULong()) }
+    if (!append) {
+        check(NSFileManager.defaultManager.createFileAtPath(path, contents = data, attributes = null)) { "'$path' could not be written" }
+        return
+    }
+    val handle = NSFileHandle.fileHandleForWritingAtPath(path) ?: throw IllegalStateException("'$path' cannot be opened for writing")
+    try {
+        handle.seekToEndOfFile()
+        handle.writeData(data)
+    } finally {
+        handle.closeFile()
+    }
+}
+
+// rename(2) replaces a file atomically and refuses to put a file over a directory.
+@OptIn(ExperimentalForeignApi::class)
+internal actual fun moveReplacing(source: String, target: String) {
+    check(rename(source, target) == 0) { "'$target' could not be replaced: ${strerror(errno)?.toKString()}" }
+}
+
 // removeItemAtPath deletes a symbolic link itself, never what it points to.
 @OptIn(ExperimentalForeignApi::class)
 internal actual fun deleteRecursively(path: String) {
@@ -87,6 +119,12 @@ internal actual fun deleteRecursively(path: String) {
 // attributesOfItemAtPath describes a link itself rather than its target.
 @OptIn(ExperimentalForeignApi::class)
 internal actual fun isSymbolicLink(path: String): Boolean = NSFileManager.defaultManager.attributesOfItemAtPath(path, null)?.get(NSFileType) == NSFileTypeSymbolicLink
+
+@OptIn(ExperimentalForeignApi::class)
+internal actual fun existsAsNonRegularFile(path: String): Boolean {
+    val type = NSFileManager.defaultManager.attributesOfItemAtPath(path, null)?.get(NSFileType) ?: return false
+    return type != NSFileTypeRegular
+}
 
 // stringByResolvingSymlinksInPath also drops a leading "/private", which is harmless: the root and
 // the path are both resolved the same way before they are compared.

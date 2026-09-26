@@ -38,6 +38,7 @@ internal fun StorageInspectorScreenRoot(browser: StorageBrowser, modifier: Modif
         selectedStore = browser.selectedStore,
         storeContent = browser.storeContent,
         status = browser.status,
+        pendingUpload = browser.pendingUpload,
         actions = browser,
         onSelectTab = { tab = it },
         modifier = modifier,
@@ -56,6 +57,7 @@ internal fun StorageInspectorScreen(
     selectedStore: String?,
     storeContent: KeyValueStoreContent?,
     status: StorageStatus?,
+    pendingUpload: PendingUpload?,
     actions: StorageInspectorActions,
     onSelectTab: (StorageTab) -> Unit,
     modifier: Modifier = Modifier,
@@ -97,5 +99,14 @@ internal fun StorageInspectorScreen(
                 actions = actions,
             )
         }
+    }
+    pendingUpload?.let { upload ->
+        ConfirmDialog(
+            title = "Replace ${upload.target.name}?",
+            message = "The file in the app is replaced with ${upload.source.name}. This cannot be undone.",
+            confirmLabel = "Replace",
+            onConfirm = actions::confirmUpload,
+            onDismiss = actions::cancelUpload,
+        )
     }
 }

@@ -165,9 +165,11 @@ private fun EntryDetail(
             JwText(text = row.location.name, style = JwTheme.textStyles.title, modifier = Modifier.weight(1f))
             if (row.isDirectory) {
                 JwButton(text = "Calculate size", onClick = { actions.measureDirectory(row.location) })
+                JwButton(text = "Upload…", onClick = { chooseUploadSource("Upload into ${row.location.name}") { actions.requestUpload(row.location.child(it.name), it) } })
             } else {
                 JwButton(text = "Compute SHA-256", onClick = { actions.computeSha256(row.location) })
                 JwButton(text = "Save…", onClick = { chooseSaveTarget(row.location.name) { actions.saveFile(row.location, it) } })
+                JwButton(text = "Replace…", onClick = { chooseUploadSource("Replace ${row.location.name}") { actions.requestUpload(row.location, it) } })
             }
             // A root is where the app keeps things, not a thing it keeps: there is nothing to delete.
             if (row.location.path.isNotEmpty()) {
@@ -178,13 +180,14 @@ private fun EntryDetail(
         facts.loadedFile?.takeUnless { row.isDirectory }?.let { FilePreview(it, Modifier.weight(1f)) }
     }
     if (confirmingDelete) {
-        ConfirmDeleteDialog(
+        ConfirmDialog(
             title = "Delete ${row.location.name}?",
             message = if (row.isDirectory) {
                 "The directory and everything in it is removed from the app's storage. This cannot be undone."
             } else {
                 "The file is removed from the app's storage. This cannot be undone."
             },
+            confirmLabel = "Delete",
             onConfirm = {
                 confirmingDelete = false
                 actions.delete(row.location)
@@ -298,6 +301,17 @@ private fun chooseSaveTarget(suggestedName: String, onChosen: (File) -> Unit) {
     SwingUtilities.invokeLater {
         val dialog = FileDialog(null as Frame?, "Save $suggestedName", FileDialog.SAVE)
         dialog.file = suggestedName
+        dialog.isVisible = true
+        val directory = dialog.directory ?: return@invokeLater
+        val fileName = dialog.file ?: return@invokeLater
+        onChosen(File(directory, fileName))
+    }
+}
+
+/** Asks which local file to send to the app and hands it to [onChosen]; a cancelled dialog calls nothing. */
+private fun chooseUploadSource(title: String, onChosen: (File) -> Unit) {
+    SwingUtilities.invokeLater {
+        val dialog = FileDialog(null as Frame?, title, FileDialog.LOAD)
         dialog.isVisible = true
         val directory = dialog.directory ?: return@invokeLater
         val fileName = dialog.file ?: return@invokeLater

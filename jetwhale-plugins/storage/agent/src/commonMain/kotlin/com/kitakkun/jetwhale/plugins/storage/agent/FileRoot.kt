@@ -36,6 +36,25 @@ internal fun FileRoot.resolve(segments: List<String>): String {
     return resolved
 }
 
+/** Where an upload is collected, and the file it replaces once complete. */
+internal class UploadPaths(val staging: String, val target: String)
+
+/**
+ * The paths an upload named [uploadId] writes to for the file at [segments]: the target, and a
+ * staging file beside it, so the final move stays on one file system. Both go through [resolve].
+ *
+ * @throws IllegalArgumentException for the root itself, an [uploadId] that is not letters, digits
+ *   and `-`, or a path [resolve] refuses.
+ */
+internal fun FileRoot.uploadPaths(segments: List<String>, uploadId: String): UploadPaths {
+    require(segments.isNotEmpty()) { "a file root cannot be written over, only a file inside it" }
+    require(UPLOAD_ID.matches(uploadId)) { "'$uploadId' is not an upload id; use letters, digits and '-'" }
+    val staging = segments.dropLast(1) + ".${segments.last()}.jetwhale-upload-$uploadId"
+    return UploadPaths(staging = resolve(staging), target = resolve(segments))
+}
+
+private val UPLOAD_ID = Regex("[A-Za-z0-9-]{1,64}")
+
 /**
  * The app's own directories on this platform: on Android its data, files and cache directories; on
  * iOS and macOS its home, Documents, Caches and temporary directories; on the JVM the working and

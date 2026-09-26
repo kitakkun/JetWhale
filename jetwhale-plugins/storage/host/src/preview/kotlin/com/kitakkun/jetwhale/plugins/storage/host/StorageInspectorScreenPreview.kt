@@ -58,6 +58,12 @@ private object NoActions : StorageInspectorActions {
 
     override fun saveFile(location: FileLocation, target: File) = Unit
 
+    override fun requestUpload(target: FileLocation, source: File) = Unit
+
+    override fun confirmUpload() = Unit
+
+    override fun cancelUpload() = Unit
+
     override fun measureDirectory(location: FileLocation) = Unit
 
     override fun computeSha256(location: FileLocation) = Unit
@@ -82,6 +88,7 @@ private fun StorageInspectorScreenPreview() {
             selectedStore = "settings",
             storeContent = KeyValueStoreContent(entries = previewEntries, error = null),
             status = StorageStatus(message = "Reloaded from the app.", isError = false),
+            pendingUpload = null,
             actions = NoActions,
             onSelectTab = {},
         )
@@ -127,11 +134,12 @@ private fun KeyValueTablePreview() {
 
 @Preview
 @Composable
-private fun ConfirmDeleteDialogPreview() {
+private fun ConfirmDialogPreview() {
     JwTheme(darkTheme = false) {
-        ConfirmDeleteDialog(
+        ConfirmDialog(
             title = "Delete onboarded?",
             message = "The entry is removed from settings. This cannot be undone.",
+            confirmLabel = "Delete",
             onConfirm = {},
             onDismiss = {},
         )

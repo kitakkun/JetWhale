@@ -16,6 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
+import java.io.RandomAccessFile
 import kotlin.io.encoding.Base64
 
 /** How much of a file the UI reads to preview it; the rest is left to a tool that pages through it. */
@@ -45,6 +46,16 @@ internal interface StorageInspectorActions {
 
     /** Reads the whole file at [location], not just the previewed part, and writes it to [target]. */
     fun saveFile(location: FileLocation, target: File)
+
+    /**
+     * Writes [source] to [target] in the app. Replacing a file that is already there waits for
+     * [confirmUpload]; see `StorageBrowser.pendingUpload`.
+     */
+    fun requestUpload(target: FileLocation, source: File)
+
+    fun confirmUpload()
+
+    fun cancelUpload()
 
     /** Adds up the size of the directory at [location] and everything below it. */
     fun measureDirectory(location: FileLocation)
@@ -100,6 +111,10 @@ internal class StorageBrowser(
         private set
 
     var status: StorageStatus? by mutableStateOf(null)
+        private set
+
+    /** An upload that would replace an existing file, waiting for the user to confirm it. */
+    var pendingUpload: PendingUpload? by mutableStateOf(null)
         private set
 
     /** Loads the locations, then everything the user had open, so a reconnect restores the view. */
@@ -214,6 +229,59 @@ internal class StorageBrowser(
         return error
     }
 
+    override fun requestUpload(target: FileLocation, source: File) = launchReporting {
+        val parent = FileLocation(target.rootName, target.path.dropLast(1))
+        val listing = client.listDirectory(parent)
+        // Without a listing there is no telling whether the upload would replace a file unasked.
+        listing.error?.let { error ->
+            status = StorageStatus(message = error, isError = true)
+            return@launchReporting
+        }
+        val exists = listing.entries.any { it.name == target.name }
+        if (exists) pendingUpload = PendingUpload(target, source) else upload(target, source)
+    }
+
+    override fun confirmUpload() {
+        val upload = pendingUpload ?: return
+        pendingUpload = null
+        launchReporting { upload(upload.target, upload.source) }
+    }
+
+    override fun cancelUpload() {
+        pendingUpload = null
+    }
+
+    private suspend fun upload(target: FileLocation, source: File) {
+        val error = try {
+            RandomAccessFile(source, "r").use { input ->
+                val total = input.length()
+                client.writeWholeFile(
+                    location = target,
+                    totalSizeBytes = total,
+                    readChunk = { offset, size ->
+                        input.seek(offset)
+                        ByteArray(size).also(input::readFully)
+                    },
+                    onProgress = { sent ->
+                        if (sent < total) status = StorageStatus(message = "Uploading ${source.name}… $sent of $total bytes", isError = false)
+                    },
+                )
+            }
+        } catch (e: IOException) {
+            "Could not read ${source.absolutePath}: ${e.message}"
+        }
+        if (error != null) {
+            status = StorageStatus(message = error, isError = true)
+            return
+        }
+        loadDirectory(FileLocation(target.rootName, target.path.dropLast(1)))
+        if (selectedLocation == target) loadFile(target)
+        status = StorageStatus(
+            message = "Uploaded ${source.name} as ${target.name}. Apps that keep the file open (DataStore, SQLite) may not see the change until they restart.",
+            isError = false,
+        )
+    }
+
     override fun measureDirectory(location: FileLocation) = launchReporting {
         val measurement = client.measureDirectory(location)
         // The user may have picked another entry while the walk was running; its outcome, failure
@@ -283,3 +351,6 @@ internal class StorageBrowser(
         }
     }
 }
+
+/** An upload of [source] that would replace the existing file at [target]. */
+internal data class PendingUpload(val target: FileLocation, val source: File)

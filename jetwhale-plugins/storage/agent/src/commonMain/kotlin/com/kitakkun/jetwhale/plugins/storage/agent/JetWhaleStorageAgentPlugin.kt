@@ -20,6 +20,7 @@ import com.kitakkun.jetwhale.plugins.storage.protocol.RemoveKeyValue
 import com.kitakkun.jetwhale.plugins.storage.protocol.STORAGE_PLUGIN_ID
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageLocations
 import com.kitakkun.jetwhale.plugins.storage.protocol.StorageOperationResult
+import com.kitakkun.jetwhale.plugins.storage.protocol.WriteFileChunk
 import com.kitakkun.jetwhale.protocol.messaging.JetWhaleMessageHandlers
 import com.kitakkun.jetwhale.protocol.messaging.reply
 import kotlin.coroutines.cancellation.CancellationException
@@ -65,6 +66,7 @@ class JetWhaleStorageAgentPlugin(
         onRequest { request: ListDirectory -> reply(listDirectory(request)) }
         onRequest { request: ReadFile -> reply(readFile(request)) }
         onRequest { request: DeleteFileEntry -> reply(deleteFileEntry(request)) }
+        onRequest { request: WriteFileChunk -> reply(writeFileChunk(request)) }
         onRequest { request: MeasureDirectory -> reply(measureDirectory(request)) }
         onRequest { request: ReadKeyValueStore -> reply(readKeyValueStore(request)) }
         onRequest { request: RemoveKeyValue -> reply(removeKeyValue(request)) }
@@ -105,6 +107,23 @@ class JetWhaleStorageAgentPlugin(
     }
 
     @Suppress("KOTRAIL_CATCH_TOO_BROAD")
+    private fun writeFileChunk(request: WriteFileChunk): StorageOperationResult = try {
+        // Checked on the encoded text, so an oversized chunk is refused before it is decoded.
+        require(request.contentBase64.length <= MAX_CHUNK_BASE64_LENGTH) { "a chunk may carry at most $MAX_FILE_READ_BYTES bytes" }
+        val paths = fileRoot(request.rootName).uploadPaths(request.path, request.uploadId)
+        receiveUploadChunk(
+            stagingPath = paths.staging,
+            targetPath = paths.target,
+            offset = request.offset,
+            bytes = Base64.decode(request.contentBase64),
+            isLast = request.isLast,
+        )
+        StorageOperationResult(error = null)
+    } catch (e: Exception) {
+        StorageOperationResult(error = e.describe())
+    }
+
+    @Suppress("KOTRAIL_CATCH_TOO_BROAD")
     private fun measureDirectory(request: MeasureDirectory): DirectoryMeasurement = try {
         measureDirectoryTree(resolve(request.rootName, request.path), entryLimit = MEASURED_ENTRY_LIMIT)
     } catch (e: Exception) {
@@ -130,11 +149,10 @@ class JetWhaleStorageAgentPlugin(
         StorageOperationResult(error = e.describe())
     }
 
-    private fun resolve(rootName: String, segments: List<String>): String {
-        val root = fileRoots().firstOrNull { it.name == rootName }
-            ?: throw IllegalArgumentException("no file root is named '$rootName'")
-        return root.resolve(segments)
-    }
+    private fun resolve(rootName: String, segments: List<String>): String = fileRoot(rootName).resolve(segments)
+
+    private fun fileRoot(name: String): FileRoot = fileRoots().firstOrNull { it.name == name }
+        ?: throw IllegalArgumentException("no file root is named '$name'")
 
     private fun keyValueStore(name: String): KeyValueStore = keyValueStores().firstOrNull { it.name == name }
         ?: throw IllegalArgumentException("no key-value store is named '$name'")
@@ -149,3 +167,5 @@ class JetWhaleStorageAgentPlugin(
 }
 
 private fun Exception.describe(): String = message ?: this::class.simpleName ?: "unknown error"
+
+private const val MAX_CHUNK_BASE64_LENGTH = (MAX_FILE_READ_BYTES + 2) / 3 * 4
