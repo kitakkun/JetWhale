@@ -68,6 +68,8 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifie
         status = mirror.status,
         screenPower = mirror.screenPower,
         recording = mirror.recordingDeviceId != null && mirror.recordingDeviceId == mirror.selectedId,
+        // One recording runs at a time, and Record stops it wherever it runs.
+        recordingElsewhere = mirror.devices.firstOrNull { it.id == mirror.recordingDeviceId && it.id != mirror.selectedId }?.listing?.name,
         surface = mirror.surface,
         actions = mirror,
         showCaptures = showCaptures,
@@ -98,6 +100,7 @@ internal fun MirrorScreen(
     status: MirrorStatus?,
     screenPower: ScreenPower?,
     recording: Boolean,
+    recordingElsewhere: String?,
     surface: MirrorSurface,
     actions: MirrorActions,
     showCaptures: Boolean,
@@ -119,7 +122,7 @@ internal fun MirrorScreen(
             } else {
                 // While switching, the screen state still describes the previous device.
                 val ownScreenPower = screenPower.takeIf { surface.deviceId == device.id }
-                val pane = DevicePaneState(device, capabilities, state, status, ownScreenPower, recording)
+                val pane = DevicePaneState(device, capabilities, state, status, ownScreenPower, recording, recordingElsewhere)
                 DevicePane(pane, surface, actions, showCaptures, onToggleCaptures, capturesPanel)
             }
         },
@@ -166,6 +169,7 @@ private class DevicePaneState(
     val status: MirrorStatus?,
     val screenPower: ScreenPower?,
     val recording: Boolean,
+    val recordingElsewhere: String?,
 )
 
 @Composable
@@ -190,7 +194,7 @@ private fun DevicePane(
                     modifier = Modifier.weight(1f).padding(horizontal = JwSpacing.extraSmall),
                 )
                 DeviceButtons(pane.device.kind, pane.capabilities, pane.screenPower, actions, Modifier.weight(1f, fill = false))
-                CaptureActions(pane.capabilities, pane.recording, actions)
+                CaptureActions(pane.capabilities, pane.recording, pane.recordingElsewhere, actions)
                 JwButton(text = "Captures", onClick = onToggleCaptures, style = if (showCaptures) JwButtonStyle.Primary else JwButtonStyle.Secondary)
             },
         )
@@ -258,9 +262,11 @@ private fun DeviceButtons(kind: DeviceKind, capabilities: DeviceCapabilities, sc
 }
 
 @Composable
-private fun CaptureActions(capabilities: DeviceCapabilities, recording: Boolean, actions: MirrorActions) {
-    if (capabilities.recording) {
-        JwButton(text = if (recording) "Stop recording" else "Record", onClick = actions::toggleRecording, tone = if (recording) JwTone.Error else JwTone.Accent)
+private fun CaptureActions(capabilities: DeviceCapabilities, recording: Boolean, recordingElsewhere: String?, actions: MirrorActions) {
+    when {
+        recordingElsewhere != null -> JwButton(text = "Stop recording on $recordingElsewhere", onClick = actions::toggleRecording, tone = JwTone.Error)
+        capabilities.recording -> JwButton(text = if (recording) "Stop recording" else "Record", onClick = actions::toggleRecording, tone = if (recording) JwTone.Error else JwTone.Accent)
+        else -> Unit
     }
     JwButton(text = "Screenshot", onClick = actions::saveScreenshot)
 }
