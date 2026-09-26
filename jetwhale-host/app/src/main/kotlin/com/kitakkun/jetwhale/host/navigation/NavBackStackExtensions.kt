@@ -104,3 +104,19 @@ fun NavBackStack<NavKey>.openEnabledPlugin(navKey: DisabledPluginNavKey) {
     remove(navKey)
     navKey.sessionId?.let { addSingleTop(PluginNavKey(navKey.pluginId, it)) }
 }
+
+/**
+ * Removes the screens and popouts of plugins that are no longer installed. No new instance can be
+ * created for them, so a screen left open could at best keep showing an instance that is on its way
+ * out, and a disabled plugin's screen would offer to enable something that is not there.
+ */
+fun NavBackStack<NavKey>.removeEntriesOfUninstalledPlugins(installedPluginIds: Set<String>) {
+    removeAll { navKey ->
+        when (navKey) {
+            is PluginNavKey -> navKey.pluginId !in installedPluginIds
+            is PluginPopoutNavKey -> navKey.pluginId !in installedPluginIds
+            is DisabledPluginNavKey -> navKey.pluginId !in installedPluginIds
+            else -> false
+        }
+    }
+}

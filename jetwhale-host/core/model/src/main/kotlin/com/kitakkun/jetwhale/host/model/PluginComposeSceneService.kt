@@ -15,11 +15,16 @@ interface PluginComposeSceneService {
      */
     fun updateHostDensity(density: Density)
 
+    /**
+     * The scene composing [pluginId]'s instance in [sessionId], or null while there is no such
+     * instance (the plugin is disabled, not installed for that session, or not created yet) or it
+     * keeps being replaced while its scene is built.
+     */
     @OptIn(InternalComposeUiApi::class)
     suspend fun getOrCreatePluginScene(
         pluginId: String,
         sessionId: String,
-    ): PluginComposeScene
+    ): PluginComposeScene?
 
     fun disposePluginSceneForSession(sessionId: String)
 

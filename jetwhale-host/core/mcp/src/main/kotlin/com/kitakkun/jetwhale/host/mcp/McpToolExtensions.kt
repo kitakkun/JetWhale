@@ -34,6 +34,15 @@ fun errorResult(message: String): CallToolResult = CallToolResult(
     isError = true,
 )
 
+/**
+ * The answer to a UI tool aimed at a plugin that has no instance in the session: disabled, not
+ * installed for that session, or not started yet. Nothing is there to draw or drive.
+ */
+fun noRunningPluginResult(pluginId: String, sessionId: String): CallToolResult = errorResult(
+    "No running instance of '$pluginId' in session '$sessionId': the plugin is disabled, not installed for that session, " +
+        "or still starting. Check jetwhale.listPlugins, enable it with jetwhale.setPluginEnabled if it is off, and retry.",
+)
+
 fun successResult(): CallToolResult = CallToolResult(
     content = listOf(TextContent(buildJsonObject { put("success", true) }.toString())),
 )

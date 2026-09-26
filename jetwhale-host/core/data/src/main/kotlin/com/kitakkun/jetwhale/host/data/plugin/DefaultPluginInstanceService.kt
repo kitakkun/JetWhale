@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.model.PluginInstanceState
 import com.kitakkun.jetwhale.host.sdk.InternalJetWhaleHostApi
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
@@ -30,11 +31,14 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
@@ -83,11 +87,22 @@ class DefaultPluginInstanceService(
     override val headlessPluginsFlow: StateFlow<HeadlessPlugins>
         field = MutableStateFlow(HeadlessPlugins.Empty)
 
+    /** The last creation failure of each key that has no instance, until an attempt succeeds or it is unloaded. */
+    private val creationFailures: ConcurrentHashMap<PluginInstanceKey, Throwable> = ConcurrentHashMap()
+
+    /** A snapshot of [loadedPlugins] and [creationFailures], republished on every change so a caller can wait for an instance. */
+    private val instanceStatesFlow = MutableStateFlow<Map<PluginInstanceKey, PluginInstanceState>>(emptyMap())
+    private val publicationLock = Any()
+
     override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = loadedPlugins.entries.map { (key, instance) ->
         LoadedPluginInstance(pluginId = key.pluginId, sessionId = key.sessionId, plugin = instance.plugin)
     }
 
     override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = loadedPlugins[PluginInstanceKey(pluginId, sessionId)]?.plugin
+
+    override fun pluginInstanceStateFlow(pluginId: String, sessionId: String): Flow<PluginInstanceState> = instanceStatesFlow
+        .map { it[PluginInstanceKey(pluginId, sessionId)] ?: PluginInstanceState.Absent }
+        .distinctUntilChanged()
 
     override fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String> {
         val loaded = pluginFactoryRepository.loadedPlugins[pluginId] ?: return emptySet()
@@ -105,7 +120,7 @@ class DefaultPluginInstanceService(
             if (createInstanceIfAbsent(pluginId, sessionId, loaded)) newlyInitializedSessions += sessionId
         }
 
-        publishHeadlessPlugins()
+        publishInstances()
         newlyInitializedSessions.forEach { sessionId ->
             emitEvent(PluginInstanceEvent.Ready(pluginId, sessionId))
         }
@@ -124,12 +139,14 @@ class DefaultPluginInstanceService(
                 created = true
                 createInstance(pluginId, sessionId, loaded)
             }
+            creationFailures.remove(key)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
             // A factory (or plugin constructor) that throws must not abort the caller's
             // reconciliation loop — every other plugin and session still needs its instance.
             logger.log(Level.WARNING, "Creating an instance of plugin '$pluginId' for session '$sessionId' failed", e)
+            creationFailures[key] = e
             return false
         }
         return created
@@ -239,19 +256,28 @@ class DefaultPluginInstanceService(
     }
 
     override fun unloadPluginInstanceForSession(sessionId: String) {
+        creationFailures.keys.removeIf { it.sessionId == sessionId }
         loadedPlugins.keys.filter { it.sessionId == sessionId }.forEach { disposeInstance(it) }
+        publishInstances()
     }
 
     override fun unloadPluginInstancesForPlugin(pluginId: String) {
+        creationFailures.keys.removeIf { it.pluginId == pluginId }
         loadedPlugins.keys.filter { it.pluginId == pluginId }.forEach { disposeInstance(it) }
+        publishInstances()
     }
 
     override fun clearAppSessionPluginInstances() {
+        creationFailures.keys.removeIf { !HostSession.isHost(it.sessionId) }
         loadedPlugins.keys.filterNot { HostSession.isHost(it.sessionId) }.forEach { disposeInstance(it, emitEvent = false) }
+        publishInstances()
     }
 
     private fun disposeInstance(key: PluginInstanceKey, emitEvent: Boolean = true) {
         val removed = loadedPlugins.remove(key) ?: return
+        // Published before onDispose runs plugin code, so a caller waiting on the instance stops
+        // seeing it as soon as it is unreachable.
+        publishInstances()
         @Suppress("KOTRAIL_CATCH_TOO_BROAD")
         try {
             removed.plugin.dispatchDispose()
@@ -271,22 +297,30 @@ class DefaultPluginInstanceService(
                 }
             }
         }
-        publishHeadlessPlugins()
         if (emitEvent) emitEvent(PluginInstanceEvent.Disposed(key.pluginId, key.sessionId))
     }
 
     /**
-     * Recomputes the headless set from the live instances. Republishing the whole set (rather than
-     * patching it) is what keeps it correct across a reload, where the same pluginId is replaced by
-     * an instance from a new classloader that may not answer the same way.
+     * Recomputes the published instances and the headless set from the live instances. Republishing
+     * the whole set (rather than patching it) is what keeps it correct across a reload, where the same
+     * pluginId is replaced by an instance from a new classloader that may not answer the same way.
+     *
+     * Both are derived from one read and published under [publicationLock]: two threads publishing
+     * at once would otherwise let the one that read the instances first overwrite the other's newer
+     * state, and the two flows could each end up describing a different moment.
      */
-    private fun publishHeadlessPlugins() {
+    private fun publishInstances() = synchronized(publicationLock) {
+        val instances = loadedPlugins.mapValues { (_, instance) -> instance.plugin }
+        // The headless set goes first, so a screen that sees the instance already knows not to
+        // build a scene for it.
         headlessPluginsFlow.value = HeadlessPlugins(
-            loadedPlugins.entries
-                .filter { (_, instance) -> instance.plugin !is JetWhaleHostPluginUi }
+            instances.entries
+                .filter { (_, plugin) -> plugin !is JetWhaleHostPluginUi }
                 .groupBy({ it.key.sessionId }, { it.key.pluginId })
                 .mapValues { (_, pluginIds) -> pluginIds.toSet() },
         )
+        instanceStatesFlow.value = creationFailures.mapValues { (_, cause) -> PluginInstanceState.FailedToStart(cause) } +
+            instances.mapValues { (_, plugin) -> PluginInstanceState.Running(plugin) }
     }
 
     private fun emitEvent(event: PluginInstanceEvent) {

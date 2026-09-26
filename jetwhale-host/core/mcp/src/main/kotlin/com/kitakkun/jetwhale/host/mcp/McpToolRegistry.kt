@@ -78,7 +78,7 @@ class McpToolRegistry(private val pluginInstanceService: PluginInstanceService) 
      * The [arguments] map must contain a `sessionId` key that identifies the target session.
      * That key is stripped before forwarding to the plugin.
      *
-     * @return The result string, or null if not found or plugin returned null.
+     * @return The result string, or null when no live instance in that session offers [toolName].
      */
     suspend fun dispatch(toolName: String, arguments: Map<String, JsonElement>): String? {
         val sessionId = (arguments["sessionId"] as? JsonPrimitive)?.content ?: return null

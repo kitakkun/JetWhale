@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.model
 
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -27,6 +28,9 @@ interface PluginInstanceService {
 
     fun unloadPluginInstanceForSession(sessionId: String)
     fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin?
+
+    /** The instance of [pluginId] in [sessionId] as it comes, goes, or fails to start. */
+    fun pluginInstanceStateFlow(pluginId: String, sessionId: String): Flow<PluginInstanceState>
 
     fun unloadPluginInstancesForPlugin(pluginId: String)
 

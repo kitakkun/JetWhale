@@ -5,10 +5,15 @@ import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
+import com.kitakkun.jetwhale.host.model.HostSession
+import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PoppedOutPlugin
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import dev.mokkery.MockMode
+import dev.mokkery.answering.calls
 import dev.mokkery.answering.returns
 import dev.mokkery.every
+import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -31,10 +36,20 @@ class DefaultFollowAiOperationServiceTest {
         every { followAiOperationEnabledFlow } returns this@DefaultFollowAiOperationServiceTest.followEnabled
     }
 
+    /** The (pluginId, sessionId) pairs that have a live instance; a call to any other plugin fails. */
+    private val runningInstances = setOf("plugin-1" to "session-1", "plugin-1" to "session-2", "plugin-2" to "session-1", "host-plugin" to HostSession.ID)
+    private val runningPlugin = object : JetWhaleHostPlugin() {}
+    private val pluginInstanceService = mock<PluginInstanceService> {
+        every { getPluginInstanceForSession(any(), any()) } calls { args ->
+            runningPlugin.takeIf { (args.args[0] as String to args.args[1] as String) in runningInstances }
+        }
+    }
+
     private val service = DefaultFollowAiOperationService(
         mcpActivityRepository = activityRepository,
         debuggerSettingsRepository = settingsRepository,
         hostNavigationService = navigationService,
+        pluginInstanceService = pluginInstanceService,
     )
 
     @Test
@@ -149,6 +164,80 @@ class DefaultFollowAiOperationServiceTest {
         startCall("jetwhale.click", pluginId = "plugin-1", sessionId = "session-1")
 
         assertNull(awaitNoRequest())
+        following.cancel()
+    }
+
+    @Test
+    fun `a call to a plugin with nothing running is not followed`() = runBlocking {
+        val following = startFollowing()
+
+        startCall("jetwhale.click", pluginId = "plugin-off", sessionId = "session-1")
+
+        assertNull(awaitNoRequest())
+        following.cancel()
+    }
+
+    @Test
+    fun `a call to a plugin that runs only in another session is not followed into this one`() = runBlocking {
+        val following = startFollowing()
+
+        startCall("jetwhale.click", pluginId = "plugin-2", sessionId = "session-2")
+
+        assertNull(awaitNoRequest())
+        following.cancel()
+    }
+
+    @Test
+    fun `a call that names no session is followed in the selected app when the plugin runs there`() = runBlocking {
+        navigationService.updateDestination(HostDestination(kind = HostDestinationKind.HOME))
+        navigationService.updateSelection(selectedSessionId = "session-1", selectedPluginId = null)
+        val following = startFollowing()
+
+        startCall("jetwhale.click", pluginId = "plugin-2", sessionId = null)
+
+        assertEquals(HostNavigationRequest.Plugin("plugin-2", "session-1", followsAgent = true), awaitRequest())
+        following.cancel()
+    }
+
+    @Test
+    fun `a call that names no session is not followed when the plugin runs only outside the selected app`() = runBlocking {
+        navigationService.updateDestination(HostDestination(kind = HostDestinationKind.HOME))
+        navigationService.updateSelection(selectedSessionId = "session-2", selectedPluginId = null)
+        val following = startFollowing()
+
+        startCall("jetwhale.click", pluginId = "plugin-2", sessionId = null)
+
+        assertNull(awaitNoRequest())
+        following.cancel()
+    }
+
+    @Test
+    fun `a call that names no session follows a plugin that needs no app into the host session`() = runBlocking {
+        navigationService.updateDestination(HostDestination(kind = HostDestinationKind.HOME))
+        navigationService.updateSelection(selectedSessionId = "session-1", selectedPluginId = null)
+        val following = startFollowing()
+
+        startCall("jetwhale.click", pluginId = "host-plugin", sessionId = null)
+
+        assertEquals(HostNavigationRequest.Plugin("host-plugin", HostSession.ID, followsAgent = true), awaitRequest())
+        following.cancel()
+    }
+
+    @Test
+    fun `a call that names no session is followed when the plugin is shown only for another app`() = runBlocking {
+        navigationService.updateDestination(
+            HostDestination(
+                kind = HostDestinationKind.PLUGIN,
+                pluginId = "plugin-1",
+                sessionId = "session-2",
+            ),
+        )
+        navigationService.updateSelection(selectedSessionId = "session-1", selectedPluginId = null)
+        val following = startFollowing()
+
+        startCall("jetwhale.click", pluginId = "plugin-1", sessionId = null)
+
+        assertEquals(HostNavigationRequest.Plugin("plugin-1", "session-1", followsAgent = true), awaitRequest())
         following.cancel()
     }
 }

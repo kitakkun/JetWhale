@@ -9,6 +9,7 @@ import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
 import com.kitakkun.jetwhale.host.mcp.jsonFloat
+import com.kitakkun.jetwhale.host.mcp.noRunningPluginResult
 import com.kitakkun.jetwhale.host.mcp.numberProperty
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.successResult
@@ -66,6 +67,7 @@ class DragMcpTool(
             val steps = request.arguments?.get("steps")?.jsonFloat?.toInt() ?: 10
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
+                ?: return@addTool noRunningPluginResult(pluginId, sessionId)
             withContext(Dispatchers.Main) { dispatchDrag(scene = scene, startX = startX, startY = startY, endX = endX, endY = endY, steps = steps) }
             successResult()
         }

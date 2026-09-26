@@ -15,6 +15,7 @@ import com.kitakkun.jetwhale.host.mcp.JetWhaleMcpTool
 import com.kitakkun.jetwhale.host.mcp.McpToolRegistrar
 import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.jsonContent
+import com.kitakkun.jetwhale.host.mcp.noRunningPluginResult
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.mcp.successResult
 import com.kitakkun.jetwhale.host.mcp.viewport.ensureSceneRendered
@@ -68,6 +69,7 @@ class TypeMcpTool(
             }
 
             val scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId, sessionId)
+                ?: return@addTool noRunningPluginResult(pluginId, sessionId)
             when {
                 text != null -> {
                     val success = withContext(Dispatchers.Main) {

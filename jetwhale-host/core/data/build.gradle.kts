@@ -46,4 +46,5 @@ dependencies {
     implementation(libs.jmdns)
     implementation(libs.kotlinTest)
     testImplementation(libs.ktorClientMock)
+    testImplementation(libs.kotlinxCoroutinesTest)
 }
