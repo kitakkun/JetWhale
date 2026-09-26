@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.tools.qaagent
 
-import com.kitakkun.jetwhale.agent.sdk.messaging.OfflineSendPolicy
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -22,7 +21,6 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
@@ -64,101 +62,6 @@ import kotlin.time.Duration.Companion.milliseconds
  * ```
  */
 private const val BODY_PREVIEW_LIMIT = 2000
-
-/** @param app which app's session to act on. Optional while only one app is running. */
-@Serializable
-private data class FireRequest(
-    val app: String? = null,
-    val url: String,
-    val method: String = "GET",
-    val headers: Map<String, String> = emptyMap(),
-    val body: String? = null,
-    val contentType: String? = null,
-)
-
-@Serializable
-private data class FireResponse(
-    val status: Int,
-    val durationMs: Long,
-    val bodyPreview: String,
-)
-
-/**
- * @property app which app's session to send from. Optional while only one app is running.
- * @property policy Offline behaviour: DROP (default), QUEUE or FAIL.
- */
-@Serializable
-private data class SendRequest(
-    val app: String? = null,
-    val pluginId: String,
-    val messageType: String,
-    val payload: JsonElement,
-    val policy: OfflineSendPolicy = OfflineSendPolicy.DROP,
-)
-
-/** @param hint why a `false` send was dropped, when the agent can tell. */
-@Serializable
-private data class SendResponse(val sent: Boolean, val hint: String? = null)
-
-/** @param app which app's session to request from. Optional while only one app is running. */
-@Serializable
-private data class RequestMessage(
-    val app: String? = null,
-    val pluginId: String,
-    val messageType: String,
-    val payload: JsonElement,
-    val timeoutMs: Long? = null,
-)
-
-@Serializable
-private data class RequestResponse(
-    val durationMs: Long,
-    val reply: JsonElement,
-)
-
-/** @param app which app to disconnect. Optional while only one app is running. */
-@Serializable
-private data class DisconnectRequest(val app: String? = null)
-
-/** @param disconnected false when that app had already given its session up. */
-@Serializable
-private data class DisconnectResponse(val app: String, val disconnected: Boolean)
-
-@Serializable
-private data class ErrorResponse(val error: String)
-
-/**
- * @param ready whether every still-connected app can reach the host right now. False once every app
- *   has been disconnected: nothing is left to drive.
- * @param apps per-app breakdown, so a run with several apps can tell which one is holding things up.
- */
-@Serializable
-private data class HealthResponse(
-    val status: String,
-    val ready: Boolean,
-    val apps: Map<String, AppHealth>,
-)
-
-/** @param connected false once this app gave its session up via `/disconnect`. */
-@Serializable
-private data class AppHealth(val connected: Boolean, val ready: Boolean)
-
-/**
- * @param activated the host enabled this plugin id in every connected app. False means it is
- *   disabled there, and waiting will not help.
- * @param ready a message sent now would reach the host from every connected app.
- * @param apps the same two flags per app, for a run holding more than one.
- */
-@Serializable
-private data class PluginStatus(
-    val version: String,
-    val activated: Boolean,
-    val ready: Boolean,
-    val apps: Map<String, AppPluginStatus>,
-)
-
-@Serializable
-private data class AppPluginStatus(val activated: Boolean, val ready: Boolean)
 
 fun main(args: Array<String>) {
     val options = try {
