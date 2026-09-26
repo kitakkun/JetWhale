@@ -16,6 +16,7 @@ import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.drawer.McpToolsScreenRoot
 import com.kitakkun.jetwhale.host.log_viewer_window_title
 import com.kitakkun.jetwhale.host.plugin.PluginScreenRoot
+import com.kitakkun.jetwhale.host.screen.DisabledPluginScreenRoot
 import com.kitakkun.jetwhale.host.screen.EmptyPluginScreen
 import com.kitakkun.jetwhale.host.screen.InfoScreen
 import com.kitakkun.jetwhale.host.settings.SettingsScreenRoot
@@ -97,15 +98,11 @@ fun EntryProviderScope<NavKey>.pluginEntries(
     }
 }
 
-fun EntryProviderScope<NavKey>.disabledPluginEntry() {
-    entry<DisabledPluginNavKey> {
-        JwSurface(modifier = Modifier.fillMaxSize()) {
-            Box(
-                Modifier.fillMaxSize(),
-                Alignment.Center,
-            ) {
-                JwText("This plugin is disabled.")
-            }
+context(appGraph: JetWhaleAppGraph)
+fun EntryProviderScope<NavKey>.disabledPluginEntry(onEnabled: (DisabledPluginNavKey) -> Unit) {
+    entry<DisabledPluginNavKey> { navKey ->
+        context(retain { appGraph.disabledPluginScreenContext }) {
+            DisabledPluginScreenRoot(navKey = navKey, onEnabled = { onEnabled(navKey) })
         }
     }
 }

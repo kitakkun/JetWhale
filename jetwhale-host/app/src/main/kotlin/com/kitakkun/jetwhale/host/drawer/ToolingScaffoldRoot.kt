@@ -12,6 +12,8 @@ import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
+import com.kitakkun.jetwhale.host.model.HostSession
+import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.navigation.toPage
 import com.kitakkun.jetwhale.host.session_connected_message
 import com.kitakkun.jetwhale.host.session_disconnected_message
@@ -31,6 +33,7 @@ fun ToolingScaffoldRoot(
     onClickPluginSettings: () -> Unit,
     onClickInfo: () -> Unit,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
+    onClickInactivePlugin: (pluginId: String, pluginName: String, sessionId: String?, notInApp: Boolean) -> Unit,
     onOpenMcpTools: (pluginId: String?, sessionId: String?) -> Unit,
     onClickPopout: (pluginId: String, pluginName: String, sessionId: String) -> Unit,
     isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
@@ -93,8 +96,7 @@ fun ToolingScaffoldRoot(
                 onNavigateSettings = onNavigateSettings,
                 onNavigateLogViewer = onNavigateLogViewer,
                 sessions = debugSessions,
-                selectedSession = uiState.selectedSession,
-                selectedSessionId = uiState.selectedSessionId,
+                uiState = uiState,
             )
 
             ToolingScaffoldWithActions(
@@ -104,6 +106,7 @@ fun ToolingScaffoldRoot(
                 onClickPluginSettings = onClickPluginSettings,
                 onClickInfo = onClickInfo,
                 onClickPlugin = onClickPlugin,
+                onClickInactivePlugin = onClickInactivePlugin,
                 onOpenMcpTools = onOpenMcpTools,
                 onClickPopout = onClickPopout,
                 isPoppedOut = isPoppedOut,
@@ -117,8 +120,8 @@ fun ToolingScaffoldRoot(
 
 /**
  * The scaffold wired up: every UI event either goes to [screenChannel] as an action or out to the
- * host's navigation callbacks, with the drawer's selected session supplying the session id that the
- * scaffold's own callbacks leave out.
+ * host's navigation callbacks, with [ToolingScaffoldUiState.sessionIdFor] supplying the session id
+ * that the scaffold's own callbacks leave out.
  */
 @Composable
 context(screenContext: ToolingScaffoldScreenContext)
@@ -130,6 +133,7 @@ private fun ToolingScaffoldWithActions(
     onClickPluginSettings: () -> Unit,
     onClickInfo: () -> Unit,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
+    onClickInactivePlugin: (pluginId: String, pluginName: String, sessionId: String?, notInApp: Boolean) -> Unit,
     onOpenMcpTools: (pluginId: String?, sessionId: String?) -> Unit,
     onClickPopout: (pluginId: String, pluginName: String, sessionId: String) -> Unit,
     isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
@@ -142,26 +146,29 @@ private fun ToolingScaffoldWithActions(
         onClickPluginSettings = onClickPluginSettings,
         onClickInfo = onClickInfo,
         onClickPlugin = {
-            val selectedSession = uiState.selectedSession ?: return@ToolingScaffold
+            val sessionId = uiState.sessionIdFor(it) ?: return@ToolingScaffold
             screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it))
-            onClickPlugin(it, selectedSession.id)
+            onClickPlugin(it, sessionId)
+        },
+        onClickInactivePlugin = {
+            onClickInactivePlugin(it.id, it.name, uiState.sessionIdFor(it.id), it.pluginAvailability == PluginAvailability.Unavailable)
         },
         // The browser tolerates a missing session, so the badge stays usable while no session
         // is selected: it simply opens with the session filter on "All".
-        onOpenMcpTools = { onOpenMcpTools(it, uiState.selectedSession?.id) },
+        onOpenMcpTools = { onOpenMcpTools(it, uiState.sessionIdFor(it)) },
         onOpenAllMcpTools = { onOpenMcpTools(null, null) },
         onClickPopout = {
-            val selectedSession = uiState.selectedSession ?: return@ToolingScaffold
-            onClickPopout(it.id, it.name, selectedSession.id)
+            val sessionId = uiState.sessionIdFor(it.id) ?: return@ToolingScaffold
+            onClickPopout(it.id, it.name, sessionId)
         },
         isPoppedOut = { pluginId ->
-            val selectedSession = uiState.selectedSession ?: return@ToolingScaffold false
-            isPoppedOut(pluginId, selectedSession.id)
+            val sessionId = uiState.sessionIdFor(pluginId) ?: return@ToolingScaffold false
+            isPoppedOut(pluginId, sessionId)
         },
         onClickBringBack = {
-            val selectedSession = uiState.selectedSession ?: return@ToolingScaffold
+            val sessionId = uiState.sessionIdFor(it.id) ?: return@ToolingScaffold
             screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it.id))
-            onClickBringBack(it.id, selectedSession.id)
+            onClickBringBack(it.id, sessionId)
         },
         onSelectSession = { screenChannel.send(ToolingScaffoldScreenAction.SelectSession(it)) },
         onSetPluginEnabled = { pluginId, enabled ->
@@ -209,8 +216,7 @@ context(screenContext: ToolingScaffoldScreenContext)
 private fun HostNavigationRequestEffect(
     screenChannel: ScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>,
     sessions: ImmutableList<DebugSession>,
-    selectedSession: DebugSession?,
-    selectedSessionId: String,
+    uiState: ToolingScaffoldUiState,
     onClickPlugin: (pluginId: String, sessionId: String) -> Unit,
     onClickInfo: () -> Unit,
     onNavigateHome: () -> Unit,
@@ -220,8 +226,7 @@ private fun HostNavigationRequestEffect(
     // The collector outlives every recomposition, so it must not close over the sessions, the
     // selection or the callbacks of the composition that started it.
     val currentSessions by rememberUpdatedState(sessions)
-    val currentSelectedSession by rememberUpdatedState(selectedSession)
-    val currentSelectedSessionId by rememberUpdatedState(selectedSessionId)
+    val currentUiState by rememberUpdatedState(uiState)
     val currentOnClickPlugin by rememberUpdatedState(onClickPlugin)
     val currentOnClickInfo by rememberUpdatedState(onClickInfo)
     val currentOnNavigateHome by rememberUpdatedState(onNavigateHome)
@@ -240,16 +245,23 @@ private fun HostNavigationRequestEffect(
                 is HostNavigationRequest.Settings -> currentOnNavigateSettings(request.section.toPage())
 
                 is HostNavigationRequest.Plugin -> {
+                    // A plugin that needs no app opens in the host session and leaves the app
+                    // selection alone, whether or not the request named that session.
+                    if (HostSession.isHost(currentUiState.sessionIdFor(request.pluginId))) {
+                        screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
+                        currentOnClickPlugin(request.pluginId, HostSession.ID)
+                        return@collect
+                    }
                     // Only a request that named no session falls back to the drawer's selection.
                     // A named session that has gone away since the request was validated must
                     // drop the request rather than navigate to some other app.
                     val targetSession = when (val requestedSessionId = request.sessionId) {
-                        null -> currentSelectedSession
+                        null -> currentUiState.selectedSession
                         else -> currentSessions.firstOrNull { it.id == requestedSessionId }
                     } ?: return@collect
                     // Drive the same path a drawer click takes, so an MCP-driven navigation and a
                     // click are indistinguishable downstream.
-                    if (targetSession.id != currentSelectedSessionId) {
+                    if (targetSession.id != currentUiState.selectedSessionId) {
                         screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
                     }
                     screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))

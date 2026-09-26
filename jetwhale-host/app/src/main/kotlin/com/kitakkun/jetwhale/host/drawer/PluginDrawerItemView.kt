@@ -38,9 +38,13 @@ private val AiRingCornerRadius = 4.dp
 /** Shrinks the "opens elsewhere" glyph to the tag's height. */
 private val BadgeIconInset = 3.dp
 
+/**
+ * One plugin in the drawer. An inactive plugin — switched off, or not usable right now — is drawn
+ * greyed out but stays clickable, so clicking it can explain why.
+ */
 @Composable
 fun PluginDrawerItemView(
-    enabled: Boolean,
+    active: Boolean,
     name: String,
     selected: Boolean,
     underAiControl: Boolean,
@@ -56,12 +60,12 @@ fun PluginDrawerItemView(
         JwListItem(
             text = name,
             selected = selected,
-            enabled = enabled,
+            muted = !active,
             onClick = onClick,
             leadingContent = {
                 JwIcon(
                     painter = when {
-                        selected && enabled -> rememberPluginIconSvgPainter(activeIconResource)
+                        selected && active -> rememberPluginIconSvgPainter(activeIconResource)
                             ?: painterResource(Res.drawable.puzzle_filled)
 
                         else -> rememberPluginIconSvgPainter(inactiveIconResource)
@@ -141,7 +145,7 @@ private fun McpBadge(
 @Composable
 private fun PluginDrawerItemViewPreview() {
     PluginDrawerItemView(
-        enabled = true,
+        active = true,
         name = "Inspector",
         selected = true,
         underAiControl = true,

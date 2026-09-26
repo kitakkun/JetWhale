@@ -26,6 +26,7 @@ import com.kitakkun.jetwhale.host.model.ThemeSubscriptionKey
 import com.kitakkun.jetwhale.host.model.UpdateCheckMutationKey
 import com.kitakkun.jetwhale.host.model.WindowStateRepository
 import com.kitakkun.jetwhale.host.plugin.PluginScreenContext
+import com.kitakkun.jetwhale.host.screen.DisabledPluginScreenContext
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 import com.kitakkun.jetwhale.host.settings.licenses.LicensesScreenContext
 import com.kitakkun.jetwhale.protocol.serialization.JetWhaleJson
@@ -48,6 +49,7 @@ interface JetWhaleAppGraph : ScreenContext {
 
     val toolingScaffoldScreenContext: ToolingScaffoldScreenContext
     val mcpToolsScreenContext: McpToolsScreenContext
+    val disabledPluginScreenContext: DisabledPluginScreenContext
     val licensesScreenContext: LicensesScreenContext
     val settingsScreenContext: SettingsScreenContext
     val pluginScreenContextFactory: PluginScreenContext.Factory

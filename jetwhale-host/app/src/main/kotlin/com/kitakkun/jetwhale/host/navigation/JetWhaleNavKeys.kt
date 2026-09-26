@@ -31,8 +31,18 @@ data class PluginPopoutNavKey(
     val pluginName: String,
 ) : NavKey
 
+/**
+ * A plugin the drawer lists greyed out, opened to say why it can't run: switched off, with a way to
+ * switch it on, or [notInApp] — the selected app doesn't include it, which nothing here can change.
+ * [sessionId] is where the plugin opens once enabled.
+ */
 @Serializable
-data object DisabledPluginNavKey : NavKey
+data class DisabledPluginNavKey(
+    val pluginId: String,
+    val pluginName: String,
+    val sessionId: String?,
+    val notInApp: Boolean,
+) : NavKey
 
 @Serializable
 data object LogViewerNavKey : NavKey

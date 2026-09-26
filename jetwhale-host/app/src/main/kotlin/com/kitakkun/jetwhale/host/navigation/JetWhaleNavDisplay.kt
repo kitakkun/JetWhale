@@ -70,7 +70,7 @@ fun JetWhaleNavDisplay(
                 isOpenedOnPopout = backStack::isPluginPoppedOut,
                 onBringbackToMainWindow = backStack::bringPluginBackToMainWindow,
             )
-            disabledPluginEntry()
+            disabledPluginEntry(onEnabled = backStack::openEnabledPlugin)
         },
         modifier = modifier.fillMaxSize(),
     )

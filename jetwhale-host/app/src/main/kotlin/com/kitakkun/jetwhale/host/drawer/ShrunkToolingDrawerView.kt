@@ -109,13 +109,15 @@ fun ShrunkToolingDrawerView(
             verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
         ) {
             items(
-                items = plugins.filter { it.pluginAvailability == PluginAvailability.Enabled },
+                // The plugins that need no app first, as in the expanded sidebar.
+                items = plugins.filter { it.pluginAvailability == PluginAvailability.Enabled }.sortedBy(DrawerPluginItemUiState::needsApp),
                 key = DrawerPluginItemUiState::id,
             ) {
-                val selected = selectedPluginId == it.id && selectedSessionId != null
+                val usable = selectedSessionId != null || !it.needsApp
+                val selected = selectedPluginId == it.id && usable
                 Box {
                     JwIconButton(
-                        enabled = selectedSessionId != null,
+                        enabled = usable,
                         selected = selected,
                         onClick = { onClickPlugin(it.id) },
                         tooltip = it.name,
@@ -258,6 +260,7 @@ private fun ShrunkToolingDrawerViewPreview() {
                 underAiControl = false,
                 exposesMcpTools = true,
                 isHeadless = false,
+                needsApp = true,
             ),
         ),
         sessions = persistentListOf(),

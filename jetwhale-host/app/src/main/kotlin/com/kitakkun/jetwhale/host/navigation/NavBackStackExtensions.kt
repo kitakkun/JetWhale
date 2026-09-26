@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.navigation
 
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import com.kitakkun.jetwhale.host.model.HostSession
 
 fun <T : NavKey> NavBackStack<T>.addSingleTop(navKey: T) {
     removeIf { it == navKey }
@@ -54,6 +55,20 @@ fun NavBackStack<NavKey>.bringPluginBackToMainWindow(pluginId: String, sessionId
 }
 
 /**
+ * Removes every plugin screen and popout that belongs to an app, for when the server stops and takes
+ * every app with it. Those of [HostSession] stay: they need no app and are still running.
+ */
+fun NavBackStack<NavKey>.removeAppPluginEntries() {
+    removeAll { navKey ->
+        when (navKey) {
+            is PluginNavKey -> !HostSession.isHost(navKey.sessionId)
+            is PluginPopoutNavKey -> !HostSession.isHost(navKey.sessionId)
+            else -> false
+        }
+    }
+}
+
+/**
  * Makes the plugin screen currently on top of the back stack follow a session switch.
  *
  * If the top entry is a [PluginNavKey] targeting a different session, it is replaced with a
@@ -62,14 +77,15 @@ fun NavBackStack<NavKey>.bringPluginBackToMainWindow(pluginId: String, sessionId
  * plugin entry is simply popped so the underlying (e.g. empty) screen is shown instead of a dead
  * plugin screen.
  *
- * No-op when the top entry is not a [PluginNavKey] or already targets [newSessionId].
+ * No-op when the top entry is not a [PluginNavKey], already targets [newSessionId], or is a plugin
+ * of [HostSession], which belongs to no app and so stays put while the user switches apps.
  */
 fun NavBackStack<NavKey>.followPluginToSession(
     newSessionId: String,
     isPluginAvailableOnNewSession: (pluginId: String) -> Boolean,
 ) {
     val top = lastOrNull() as? PluginNavKey ?: return
-    if (top.sessionId == newSessionId) return
+    if (top.sessionId == newSessionId || HostSession.isHost(top.sessionId)) return
 
     removeLastOrNull()
     if (isPluginAvailableOnNewSession(top.pluginId)) {
@@ -77,4 +93,13 @@ fun NavBackStack<NavKey>.followPluginToSession(
         // same plugin/session deeper in the back stack must be left intact.
         add(PluginNavKey(pluginId = top.pluginId, sessionId = newSessionId))
     }
+}
+
+/**
+ * Replaces the screen of a plugin that was just switched on with the plugin itself. A plugin with no
+ * session to open in only leaves its screen.
+ */
+fun NavBackStack<NavKey>.openEnabledPlugin(navKey: DisabledPluginNavKey) {
+    remove(navKey)
+    navKey.sessionId?.let { addSingleTop(PluginNavKey(navKey.pluginId, it)) }
 }

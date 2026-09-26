@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.component.rememberAiOperating
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HeadlessPlugins
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.McpActivity
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
@@ -122,13 +123,9 @@ fun toolingScaffoldPresenter(
 
     val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, activeInvocation) {
         derivedStateOf {
-            // Attribute the operation only when it targets the session the drawer is showing;
-            // highlighting a plugin for some other device would be misleading.
-            val aiControlledPluginId = activeInvocation
-                ?.takeIf { it.sessionId != null && it.sessionId == selectedSession?.id }
-                ?.pluginId
-
             loadedPlugins.map { metaData ->
+                // A plugin that needs no app lives in the host session, whatever app is selected.
+                val sessionId = if (metaData.requiresAgent) selectedSession?.id else HostSession.ID
                 val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
                 val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
 
@@ -138,19 +135,19 @@ fun toolingScaffoldPresenter(
                     activeIconResource = metaData.activeIconResource,
                     inactiveIconResource = metaData.inactiveIconResource,
                     pluginAvailability = when {
-                        selectedSession == null -> PluginAvailability.Unavailable
-
-                        // Host-only plugins (no agent) are available for any active session; agent-backed
-                        // plugins are only available where the session's agent advertised them.
+                        // An app plugin runs only where the selected app's agent advertised it.
                         metaData.requiresAgent && !isInstalledOnAgent -> PluginAvailability.Unavailable
 
                         isEnabledInSettings -> PluginAvailability.Enabled
 
                         else -> PluginAvailability.Disabled
                     },
-                    underAiControl = aiControlledPluginId == metaData.id,
-                    exposesMcpTools = mcpCapablePlugins.toolsFor(selectedSession?.id, metaData.id).isNotEmpty(),
-                    isHeadless = headlessPlugins.isHeadless(selectedSession?.id, metaData.id),
+                    // Attributed only when the operation targets the session this row opens in;
+                    // highlighting a plugin for some other device would be misleading.
+                    underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
+                    exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
+                    isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
+                    needsApp = metaData.requiresAgent,
                 )
             }.toImmutableList()
         }

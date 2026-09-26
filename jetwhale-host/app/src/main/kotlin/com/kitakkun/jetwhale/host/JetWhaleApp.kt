@@ -30,6 +30,7 @@ import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldRoot
 import com.kitakkun.jetwhale.host.model.AppLanguage
 import com.kitakkun.jetwhale.host.model.JetWhaleColorScheme
 import com.kitakkun.jetwhale.host.model.UpdateCheckResult
+import com.kitakkun.jetwhale.host.navigation.DisabledPluginNavKey
 import com.kitakkun.jetwhale.host.navigation.EmptyPluginNavKey
 import com.kitakkun.jetwhale.host.navigation.InfoNavKey
 import com.kitakkun.jetwhale.host.navigation.JetWhaleNavDisplay
@@ -43,6 +44,7 @@ import com.kitakkun.jetwhale.host.navigation.bringPluginBackToMainWindow
 import com.kitakkun.jetwhale.host.navigation.followPluginToSession
 import com.kitakkun.jetwhale.host.navigation.isPluginPoppedOut
 import com.kitakkun.jetwhale.host.navigation.openMcpTools
+import com.kitakkun.jetwhale.host.navigation.removeAppPluginEntries
 import com.kitakkun.jetwhale.host.navigation.toHostDestination
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
 import com.kitakkun.jetwhale.host.theme.AppEnvironment
@@ -138,11 +140,8 @@ private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
 
     LaunchedEffect(Unit) {
         appGraph.debugWebSocketServer.serverStoppedFlow.collect {
-            backStack.removeAll { navKey ->
-                navKey is PluginNavKey || navKey is PluginPopoutNavKey
-            }
-
-            appGraph.pluginComposeSceneService.disposeAllPluginScenes()
+            backStack.removeAppPluginEntries()
+            appGraph.pluginComposeSceneService.disposeAppSessionPluginScenes()
         }
     }
 
@@ -193,6 +192,9 @@ private fun ThemedHostWindow(
                             )
                         },
                         onClickInfo = { backStack.addSingleTop(InfoNavKey) },
+                        onClickInactivePlugin = { pluginId, pluginName, sessionId, notInApp ->
+                            backStack.addSingleTop(DisabledPluginNavKey(pluginId, pluginName, sessionId, notInApp))
+                        },
                         onClickPlugin = { pluginId, sessionId ->
                             backStack.addSingleTop(PluginNavKey(pluginId, sessionId))
                         },

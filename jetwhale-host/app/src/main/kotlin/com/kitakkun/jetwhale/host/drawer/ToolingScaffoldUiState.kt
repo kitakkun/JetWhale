@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.host.drawer
 
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.HostSession
 import kotlinx.collections.immutable.ImmutableList
 
 /**
@@ -50,4 +51,13 @@ data class ToolingScaffoldUiState(
     val aiActivity: AiActivityUiState,
 ) {
     val selectedSession: DebugSession? get() = sessions.find { it.id == selectedSessionId }
+
+    /**
+     * The session the drawer's plugin [pluginId] opens in: [HostSession] for a plugin that needs no
+     * app, otherwise the selected app, or null while no app is selected.
+     */
+    fun sessionIdFor(pluginId: String): String? = when (plugins.find { it.id == pluginId }?.needsApp) {
+        false -> HostSession.ID
+        else -> selectedSession?.id
+    }
 }

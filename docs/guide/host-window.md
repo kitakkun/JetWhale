@@ -8,10 +8,21 @@ Everything below is the host itself — the plugins it shows are documented on t
 [Compose Semantics Inspector](/guide/compose-semantics-inspector),
 [Storage Inspector](/guide/storage-inspector)).
 
-## Choosing a session
+## Plugins that need no app
 
-Sessions are picked with **two dropdowns**, because one host commonly holds several apps from the
-same device:
+Plugins that need no app (`"requiresAgent": false` — Device Mirror, for one) are listed at the top of
+the sidebar, above the app picker and apart from it by a divider. They are usable as soon as the host
+starts, with nothing connected, and stay one click away whatever app is selected below: switching
+apps never moves one that is on screen, and the debug server restarting does not close it. Each of
+these plugins runs once, not once per connected app.
+
+Over [MCP](/guide/mcp-server) they live in a session of their own, `host`, which
+`jetwhale.listSessions` always lists first, named *Host*.
+
+## Choosing an app
+
+Below the divider, sessions are picked with **two dropdowns**, because one host commonly
+holds several apps from the same device:
 
 1. **Select Device** — one entry per device, keyed by the `deviceId` the agent reported. Sessions
    that share a device are grouped under it.
@@ -21,28 +32,31 @@ same device:
 
 Each entry carries a small lock icon for how its transport is secured — see
 [Session security indicator](/guide/what-is-jetwhale#session-security-indicator). When nothing is
-connected the device row reads *No session available*.
+connected the device row reads *No app connected*.
 
 When a session goes away the host says so (*&lt;device&gt; · &lt;app&gt; disconnected*, or
 *N sessions disconnected* when several drop at once, e.g. after a debug-server restart).
 
 ## The plugin list
 
-Below the session selector, the installed plugins are grouped into three collapsible sections. The
-grouping is computed against the **selected session**, so it changes as you switch apps:
+Under the picker are the selected app's plugins; the plugins that need no app, above it, are listed
+the same way. Enabled plugins come first; the rest follow greyed out in the same list:
 
-| Section | What lands there |
-|---------|------------------|
-| **Enabled Plugins** | Enabled in settings **and** available for this session. |
-| **Disabled Plugins** | Available for this session, but switched off. |
-| **Unavailable Plugins** | No session is selected, or the session's agent never advertised this plugin id. Host-only plugins (`"requiresAgent": false`) are available for every active session, so once a session is selected they never land here. |
+- **Disabled** — installed but switched off. Hovering says *Disabled — click to enable*; clicking
+  opens a screen with an **Enable** button, and the plugin opens as soon as it is enabled.
+- **Not in this app** — the selected app's agent never advertised this plugin id. Hovering (or
+  clicking) says *This app doesn't include this plugin*; there is nothing to enable.
 
-Click a plugin to open it. Enabled and disabled rows also carry an overflow (**⋯**) menu — an
-unavailable row has none, since there is nothing to do with it:
+When more than two plugins are greyed out, they fold behind one *N more* row at the end of the list,
+which expands in place. With no app connected, the lower list says *Connect an app to see its
+plugins.* instead.
+
+Click an enabled plugin to open it. Every row except a "not in this app" one carries an overflow
+(**⋯**) menu:
 
 - **Disable** / **Enable** — the same toggle as `jetwhale.setPluginEnabled` over
   [MCP](/guide/mcp-server), applied host-wide rather than per session. This is the only entry a
-  disabled row offers.
+  disabled row's menu offers.
 - **Pop out** — moves the plugin into a window of its own. The main window shows *This plugin is
   popped out. Please check the separate window.* with a **Bring back to main window** button, and
   the sidebar entry's menu switches to **Bring back**. Popping out is how you watch two plugins (or
@@ -62,7 +76,7 @@ the session currently selected.
 
 While an AI agent is actually calling one of that plugin's tools, the badge fills with the accent
 color and the whole row takes an accent-colored rotating ring, so the plugin being driven is
-unmistakable even if the label has scrolled out of view. A strip under the session picker reports
+unmistakable even if the label has scrolled out of view. A strip under the app picker reports
 the connection itself — *AI agent connected* — and names the tool running underneath it while a call
 is in flight.
 

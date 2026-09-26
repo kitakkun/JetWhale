@@ -120,7 +120,7 @@ class HeadlessHostRunner(
         }
         launch {
             debugWebSocketServer.serverStoppedFlow.collect {
-                pluginComposeSceneService.disposeAllPluginScenes()
+                pluginComposeSceneService.disposeAppSessionPluginScenes()
             }
         }
         launch {

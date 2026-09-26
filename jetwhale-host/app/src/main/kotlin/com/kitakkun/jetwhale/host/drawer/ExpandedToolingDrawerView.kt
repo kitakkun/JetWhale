@@ -22,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material.icons.filled.Settings
@@ -44,15 +46,18 @@ import com.kitakkun.jetwhale.host.app_short_name
 import com.kitakkun.jetwhale.host.bring_back_from_popout
 import com.kitakkun.jetwhale.host.collapse_sidebar
 import com.kitakkun.jetwhale.host.disable
-import com.kitakkun.jetwhale.host.disabled_plugins
 import com.kitakkun.jetwhale.host.enable
-import com.kitakkun.jetwhale.host.enabled_plugins
 import com.kitakkun.jetwhale.host.info
 import com.kitakkun.jetwhale.host.mcp_tools_open_all
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.PluginAvailability
+import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
+import com.kitakkun.jetwhale.host.no_app_connected
 import com.kitakkun.jetwhale.host.no_plugins_installed
+import com.kitakkun.jetwhale.host.plugin_disabled_tooltip
 import com.kitakkun.jetwhale.host.plugin_load_error_hint
+import com.kitakkun.jetwhale.host.plugin_not_in_app
+import com.kitakkun.jetwhale.host.plugins_folded
 import com.kitakkun.jetwhale.host.popout
 import com.kitakkun.jetwhale.host.puzzle_outlined
 import com.kitakkun.jetwhale.host.settings
@@ -64,6 +69,7 @@ import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwIconButton
+import com.kitakkun.jetwhale.host.ui.JwListItem
 import com.kitakkun.jetwhale.host.ui.JwMenuItem
 import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
@@ -71,7 +77,8 @@ import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
-import com.kitakkun.jetwhale.host.unavailable_plugins
+import com.kitakkun.jetwhale.host.ui.JwTooltip
+import com.kitakkun.jetwhale.protocol.negotiation.JetWhalePluginInfo
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.painterResource
@@ -84,9 +91,9 @@ private val AppMarkSize = 18.dp
 private val EmptyStateIconSize = 28.dp
 
 /**
- * The sidebar at full width: a header with the app mark and the collapse control, the session
- * picker, the AI-activity strip, the plugin list grouped by availability, and a footer of the
- * host-wide entry points (MCP tools, settings, about).
+ * The sidebar at full width: a header with the app mark and the collapse control, the plugins that
+ * need no app (first, so they stay one click away whatever app is selected), the app picker, the
+ * selected app's plugins, and a footer of the host-wide entry points (MCP tools, settings, about).
  */
 @Composable
 fun ExpandedToolingDrawerView(
@@ -103,6 +110,7 @@ fun ExpandedToolingDrawerView(
     onOpenMcpTools: (pluginId: String) -> Unit,
     onOpenAllMcpTools: () -> Unit,
     onClickPlugin: (DrawerPluginItemUiState) -> Unit,
+    onClickInactivePlugin: (DrawerPluginItemUiState) -> Unit,
     onSelectSession: (DebugSession) -> Unit,
     onClickPopout: (DrawerPluginItemUiState) -> Unit,
     isPoppedOut: (pluginId: String) -> Boolean,
@@ -110,6 +118,7 @@ fun ExpandedToolingDrawerView(
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val (appPlugins, hostPlugins) = remember(plugins) { plugins.partition(DrawerPluginItemUiState::needsApp) }
     Column(
         modifier = modifier
             .fillMaxHeight()
@@ -118,6 +127,22 @@ fun ExpandedToolingDrawerView(
     ) {
         SidebarHeader(onClickShrinkDrawer = onClickShrinkDrawer)
         JwHorizontalDivider()
+        // The plugins that need no app come first, with no heading: the divider and the app picker
+        // below are what set the app's plugins apart.
+        if (hostPlugins.isNotEmpty()) {
+            PluginList(
+                plugins = hostPlugins,
+                selectedPluginId = selectedPluginId,
+                onOpenMcpTools = onOpenMcpTools,
+                onClickPlugin = onClickPlugin,
+                onClickInactivePlugin = onClickInactivePlugin,
+                onClickPopout = onClickPopout,
+                isPoppedOut = isPoppedOut,
+                onClickBringBack = onClickBringBack,
+                onSetPluginEnabled = onSetPluginEnabled,
+            )
+            JwHorizontalDivider()
+        }
         Column(
             modifier = Modifier.padding(JwSpacing.medium),
             verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
@@ -130,18 +155,26 @@ fun ExpandedToolingDrawerView(
             AiActivityIndicatorView(uiState = aiActivity)
         }
         JwHorizontalDivider()
-        if (plugins.isEmpty()) {
-            NoPluginsView(
+        when {
+            plugins.isEmpty() -> NoPluginsView(
                 hasFailedJars = hasFailedJars,
                 onClickPluginSettings = onClickPluginSettings,
                 modifier = Modifier.weight(1f),
             )
-        } else {
-            PluginList(
+
+            // With no app selected every app plugin would be greyed, which reads as broken; say what
+            // brings them instead.
+            selectedSession == null -> JwEmptyState(
+                title = stringResource(Res.string.no_app_connected),
+                modifier = Modifier.weight(1f),
+            )
+
+            else -> PluginList(
+                plugins = appPlugins,
                 selectedPluginId = selectedPluginId,
-                plugins = plugins,
                 onOpenMcpTools = onOpenMcpTools,
                 onClickPlugin = onClickPlugin,
+                onClickInactivePlugin = onClickInactivePlugin,
                 onClickPopout = onClickPopout,
                 isPoppedOut = isPoppedOut,
                 onClickBringBack = onClickBringBack,
@@ -264,99 +297,84 @@ private fun NoPluginsView(
     )
 }
 
+/** How many greyed-out plugins a list shows before it folds the rest behind one row. */
+private const val INACTIVE_PLUGINS_SHOWN_UNFOLDED = 2
+
+/**
+ * One area's plugins: the enabled ones, then the rest greyed out in the same list — switched off
+ * (enabled again from the row's menu) or not in the selected app (with the reason on hover). A long
+ * greyed tail folds behind one row, whose state each area keeps for itself.
+ */
 @Composable
 private fun PluginList(
+    plugins: List<DrawerPluginItemUiState>,
     selectedPluginId: String,
-    plugins: ImmutableList<DrawerPluginItemUiState>,
     onOpenMcpTools: (pluginId: String) -> Unit,
     onClickPlugin: (DrawerPluginItemUiState) -> Unit,
+    onClickInactivePlugin: (DrawerPluginItemUiState) -> Unit,
     onClickPopout: (DrawerPluginItemUiState) -> Unit,
     isPoppedOut: (pluginId: String) -> Boolean,
     onClickBringBack: (DrawerPluginItemUiState) -> Unit,
     onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var enabledPluginsExpanded by retain { mutableStateOf(true) }
-    var disabledPluginsExpanded by retain { mutableStateOf(true) }
-    var unavailablePluginsExpanded by retain { mutableStateOf(true) }
-
+    val actions = PluginActions(
+        onOpenMcpTools = onOpenMcpTools,
+        onClickPlugin = onClickPlugin,
+        onClickInactivePlugin = onClickInactivePlugin,
+        onClickPopout = onClickPopout,
+        isPoppedOut = isPoppedOut,
+        onClickBringBack = onClickBringBack,
+        onSetPluginEnabled = onSetPluginEnabled,
+    )
     val enabledPlugins = remember(plugins) { plugins.filter { it.pluginAvailability == PluginAvailability.Enabled } }
-    val disabledPlugins = remember(plugins) { plugins.filter { it.pluginAvailability == PluginAvailability.Disabled } }
-    val unavailablePlugins = remember(plugins) { plugins.filter { it.pluginAvailability == PluginAvailability.Unavailable } }
-    val enabledTitle = stringResource(Res.string.enabled_plugins)
-    val disabledTitle = stringResource(Res.string.disabled_plugins)
-    val unavailableTitle = stringResource(Res.string.unavailable_plugins)
-
+    val inactivePlugins = remember(plugins) { plugins.filterNot { it.pluginAvailability == PluginAvailability.Enabled } }
+    var inactiveExpanded by retain { mutableStateOf(false) }
+    val folds = inactivePlugins.size > INACTIVE_PLUGINS_SHOWN_UNFOLDED
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(JwSpacing.extraSmall),
     ) {
-        enabledPluginSection(
-            title = enabledTitle,
-            plugins = enabledPlugins,
-            expanded = enabledPluginsExpanded,
-            selectedPluginId = selectedPluginId,
-            onToggleExpanded = { enabledPluginsExpanded = !enabledPluginsExpanded },
-            actions = EnabledPluginActions(
-                onOpenMcpTools = onOpenMcpTools,
-                onClickPlugin = onClickPlugin,
-                onClickPopout = onClickPopout,
-                isPoppedOut = isPoppedOut,
-                onClickBringBack = onClickBringBack,
-                onSetPluginEnabled = onSetPluginEnabled,
-            ),
-        )
-        disabledPluginSection(
-            title = disabledTitle,
-            plugins = disabledPlugins,
-            expanded = disabledPluginsExpanded,
-            onToggleExpanded = { disabledPluginsExpanded = !disabledPluginsExpanded },
-            onOpenMcpTools = onOpenMcpTools,
-            onSetPluginEnabled = onSetPluginEnabled,
-        )
-        unavailablePluginSection(
-            title = unavailableTitle,
-            plugins = unavailablePlugins,
-            expanded = unavailablePluginsExpanded,
-            onToggleExpanded = { unavailablePluginsExpanded = !unavailablePluginsExpanded },
-            onOpenMcpTools = onOpenMcpTools,
-        )
+        enabledPluginRows(plugins = enabledPlugins, selectedPluginId = selectedPluginId, actions = actions)
+        if (folds) {
+            item(key = "fold") {
+                InactivePluginsFoldRow(
+                    count = inactivePlugins.size,
+                    expanded = inactiveExpanded,
+                    onToggle = { inactiveExpanded = !inactiveExpanded },
+                    modifier = Modifier.animateItem(),
+                )
+            }
+        }
+        if (!folds || inactiveExpanded) inactivePluginRows(plugins = inactivePlugins, actions = actions)
     }
 }
 
 /**
- * Everything the drawer offers on a live plugin, as one value.
+ * Everything the drawer offers on a plugin, as one value.
  *
- * The section and the row it draws for each plugin carry the same set, and the row is the only place
- * any of them is called: passing them one by one made the section's signature longer than the body
- * that forwards them.
+ * The lists and the rows they draw for each plugin carry the same set, and the row is the only place
+ * any of them is called: passing them one by one made the lists' signatures longer than the bodies
+ * that forward them.
  */
-private data class EnabledPluginActions(
+private data class PluginActions(
     val onOpenMcpTools: (pluginId: String) -> Unit,
     val onClickPlugin: (DrawerPluginItemUiState) -> Unit,
+    val onClickInactivePlugin: (DrawerPluginItemUiState) -> Unit,
     val onClickPopout: (DrawerPluginItemUiState) -> Unit,
     val isPoppedOut: (pluginId: String) -> Boolean,
     val onClickBringBack: (DrawerPluginItemUiState) -> Unit,
     val onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
 )
 
-/** The plugins that are on: selectable, and each offering the actions that apply to a live plugin. */
-private fun LazyListScope.enabledPluginSection(
-    title: String,
+private fun LazyListScope.enabledPluginRows(
     plugins: List<DrawerPluginItemUiState>,
-    expanded: Boolean,
     selectedPluginId: String,
-    actions: EnabledPluginActions,
-    onToggleExpanded: () -> Unit,
+    actions: PluginActions,
 ) {
-    pluginSection(
-        title = title,
-        plugins = plugins,
-        expanded = expanded,
-        onToggleExpanded = onToggleExpanded,
-    ) { plugin ->
+    items(items = plugins, key = DrawerPluginItemUiState::id) { plugin ->
         PluginDrawerItemView(
-            enabled = true,
+            active = true,
             name = plugin.name,
             activeIconResource = plugin.activeIconResource,
             inactiveIconResource = plugin.inactiveIconResource,
@@ -401,110 +419,101 @@ private fun LazyListScope.enabledPluginSection(
     }
 }
 
-/** The plugins that are installed but switched off: not selectable, and offering only "enable". */
-private fun LazyListScope.disabledPluginSection(
-    title: String,
-    plugins: List<DrawerPluginItemUiState>,
-    expanded: Boolean,
-    onToggleExpanded: () -> Unit,
-    onOpenMcpTools: (pluginId: String) -> Unit,
-    onSetPluginEnabled: (pluginId: String, enabled: Boolean) -> Unit,
-) {
-    pluginSection(
-        title = title,
-        plugins = plugins,
-        expanded = expanded,
-        onToggleExpanded = onToggleExpanded,
-    ) { plugin ->
-        PluginDrawerItemView(
-            enabled = false,
-            name = plugin.name,
-            activeIconResource = plugin.activeIconResource,
-            inactiveIconResource = plugin.inactiveIconResource,
-            selected = false,
-            underAiControl = plugin.underAiControl,
-            exposesMcpTools = plugin.exposesMcpTools,
-            onClickMcpBadge = { onOpenMcpTools(plugin.id) },
-            onClick = {},
-            popupMenuContent = { dismiss ->
-                JwMenuItem(
-                    text = stringResource(Res.string.enable),
-                    leadingIcon = { JwIcon(imageVector = Icons.Default.AddCircle, contentDescription = null) },
-                    onClick = {
-                        onSetPluginEnabled(plugin.id, true)
-                        dismiss()
-                    },
-                )
-            },
-            modifier = Modifier.animateItem(),
-        )
-    }
-}
-
 /**
- * The plugins the selected session cannot run. They are listed so the user can see they exist, with
- * no actions: switching one on would change nothing until a session that has it connects.
+ * Greyed-out rows. Clicking one opens a screen that says why it can't run: a switched-off plugin can
+ * be switched on there as well as from its menu; one the selected app doesn't include offers nothing,
+ * since enabling it would change nothing until an app that has it connects.
  */
-private fun LazyListScope.unavailablePluginSection(
-    title: String,
+private fun LazyListScope.inactivePluginRows(
     plugins: List<DrawerPluginItemUiState>,
-    expanded: Boolean,
-    onToggleExpanded: () -> Unit,
-    onOpenMcpTools: (pluginId: String) -> Unit,
+    actions: PluginActions,
 ) {
-    pluginSection(
-        title = title,
-        plugins = plugins,
-        expanded = expanded,
-        onToggleExpanded = onToggleExpanded,
-    ) { plugin ->
-        PluginDrawerItemView(
-            enabled = false,
-            name = plugin.name,
-            activeIconResource = plugin.activeIconResource,
-            inactiveIconResource = plugin.inactiveIconResource,
-            selected = false,
-            underAiControl = plugin.underAiControl,
-            exposesMcpTools = plugin.exposesMcpTools,
-            onClickMcpBadge = { onOpenMcpTools(plugin.id) },
-            onClick = {},
-            modifier = Modifier.animateItem(),
-        )
-    }
-}
-
-/**
- * One collapsible group of the plugin list. An empty group emits nothing, not even its header.
- */
-private fun LazyListScope.pluginSection(
-    title: String,
-    plugins: List<DrawerPluginItemUiState>,
-    expanded: Boolean,
-    onToggleExpanded: () -> Unit,
-    itemContent: @Composable LazyItemScope.(DrawerPluginItemUiState) -> Unit,
-) {
-    if (plugins.isEmpty()) return
-    item(key = "header:${plugins.first().pluginAvailability}") {
-        JwSectionHeader(
-            title = title,
-            count = plugins.size,
-            expanded = expanded,
-            onToggleExpanded = onToggleExpanded,
-            modifier = Modifier.animateItem(),
-        )
-    }
-    if (!expanded) return
     items(items = plugins, key = DrawerPluginItemUiState::id) { plugin ->
-        itemContent(plugin)
+        val notInApp = plugin.pluginAvailability == PluginAvailability.Unavailable
+        JwTooltip(
+            text = stringResource(if (notInApp) Res.string.plugin_not_in_app else Res.string.plugin_disabled_tooltip),
+            modifier = Modifier.animateItem(),
+        ) {
+            PluginDrawerItemView(
+                active = false,
+                name = plugin.name,
+                activeIconResource = plugin.activeIconResource,
+                inactiveIconResource = plugin.inactiveIconResource,
+                selected = false,
+                underAiControl = plugin.underAiControl,
+                exposesMcpTools = plugin.exposesMcpTools,
+                onClickMcpBadge = { actions.onOpenMcpTools(plugin.id) },
+                onClick = { actions.onClickInactivePlugin(plugin) },
+                popupMenuContent = if (notInApp) {
+                    null
+                } else {
+                    { dismiss ->
+                        JwMenuItem(
+                            text = stringResource(Res.string.enable),
+                            leadingIcon = { JwIcon(imageVector = Icons.Default.AddCircle, contentDescription = null) },
+                            onClick = {
+                                actions.onSetPluginEnabled(plugin.id, true)
+                                dismiss()
+                            },
+                        )
+                    }
+                },
+            )
+        }
     }
+}
+
+/** The light row that folds a long greyed-out tail away, and brings it back in place. */
+@Composable
+private fun InactivePluginsFoldRow(
+    count: Int,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    JwListItem(
+        text = stringResource(Res.string.plugins_folded, count),
+        selected = false,
+        muted = true,
+        onClick = onToggle,
+        leadingContent = {
+            JwIcon(
+                imageVector = if (expanded) Icons.Default.ExpandMore else Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = JwTheme.colors.textSecondary,
+            )
+        },
+        modifier = modifier,
+    )
 }
 
 @Preview
 @Composable
 private fun ExpandedToolingDrawerViewPreview() {
+    val session = DebugSession(
+        id = "session-1",
+        name = "Sample app",
+        isActive = true,
+        transportSecurity = SessionTransportSecurity.LOOPBACK,
+        installedPlugins = persistentListOf(JetWhalePluginInfo(pluginId = "com.example.inspector", pluginVersion = "1.0.0")),
+        appName = "Sample app",
+        deviceId = "device-1",
+        deviceName = "Pixel 9",
+    )
     ExpandedToolingDrawerView(
         selectedPluginId = "com.example.inspector",
         plugins = persistentListOf(
+            DrawerPluginItemUiState(
+                name = "Device tool",
+                id = "com.example.device",
+                activeIconResource = null,
+                inactiveIconResource = null,
+                pluginAvailability = PluginAvailability.Enabled,
+                underAiControl = false,
+                exposesMcpTools = false,
+                isHeadless = false,
+                needsApp = false,
+            ),
             DrawerPluginItemUiState(
                 name = "Inspector",
                 id = "com.example.inspector",
@@ -514,6 +523,7 @@ private fun ExpandedToolingDrawerViewPreview() {
                 underAiControl = false,
                 exposesMcpTools = true,
                 isHeadless = false,
+                needsApp = true,
             ),
             DrawerPluginItemUiState(
                 name = "Recorder",
@@ -524,11 +534,12 @@ private fun ExpandedToolingDrawerViewPreview() {
                 underAiControl = false,
                 exposesMcpTools = false,
                 isHeadless = false,
+                needsApp = true,
             ),
         ),
         hasFailedJars = false,
-        selectedSession = null,
-        sessions = persistentListOf(),
+        selectedSession = session,
+        sessions = persistentListOf(session),
         aiActivity = AiActivityUiState.Idle,
         onClickShrinkDrawer = {},
         onClickSettings = {},
@@ -537,6 +548,7 @@ private fun ExpandedToolingDrawerViewPreview() {
         onOpenMcpTools = {},
         onOpenAllMcpTools = {},
         onClickPlugin = {},
+        onClickInactivePlugin = {},
         onSelectSession = {},
         onClickPopout = {},
         isPoppedOut = { false },
