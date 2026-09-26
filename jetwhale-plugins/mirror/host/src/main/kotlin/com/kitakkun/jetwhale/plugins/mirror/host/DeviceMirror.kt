@@ -153,6 +153,7 @@ internal class DeviceMirror(
     override suspend fun refresh(): List<MirrorDevice> {
         val found = discovery.discover()
         devices = found.devices
+        surface.keepFramesOf(found.devices.map(MirrorDevice::id).toSet())
         missingTools = found.missingTools
         if (devices.none { it.id == selectedId }) selectedId = devices.firstOrNull()?.id
         return found.devices
@@ -160,7 +161,7 @@ internal class DeviceMirror(
 
     /** Mirrors [device] into [surface] until the caller is cancelled. */
     suspend fun mirror(device: MirrorDevice) = sessions.withLock {
-        surface.clear()
+        surface.switchTo(device.id)
         try {
             coroutineScope {
                 if (device.controller.capabilities.screenPower) launch { watchScreenPower(device) }

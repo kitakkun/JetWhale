@@ -11,6 +11,9 @@ import org.jetbrains.skia.ColorAlphaType
 import org.jetbrains.skia.ColorType
 import org.jetbrains.skia.ImageInfo
 
+/** Devices whose last frame is kept for switching back; a frame is the size of the view. */
+private const val MAX_KEPT_FRAMES = 4
+
 /** How often the stats shown under the mirror are recomputed. */
 private const val STATS_WINDOW_NANOS = 1_000_000_000L
 
@@ -44,9 +47,18 @@ internal class MirrorSurface : AutoCloseable {
     private var closed = false
 
     // The bitmap [drawFrame] is drawing outside the lock. Whatever retires it meanwhile — a
-    // [clear], a [close] — sets [closeWhenDrawn] and leaves the closing to the draw's end.
+    // [switchTo], a [close] — sets [closeWhenDrawn] and leaves the closing to the draw's end.
     private var drawn: Bitmap? = null
     private var closeWhenDrawn = false
+
+    // The last frame of each device mirrored recently, least recently shown first, so switching
+    // back shows it at once instead of nothing while the new stream starts.
+    private val lastFrames = LinkedHashMap<String, Bitmap>()
+    private var deviceId: String? = null
+
+    /** True while the frame on screen is the one kept from the device's last visit, not a live one. */
+    var showingKeptFrame: Boolean by mutableStateOf(false)
+        private set
 
     /** The size the frames are drawn at, in pixels; the decoder shrinks frames to it. Set by the view. */
     @Volatile
@@ -86,6 +98,7 @@ internal class MirrorSurface : AutoCloseable {
             ready = target
             readyIsNewer = true
         }
+        showingKeptFrame = false
         window.recordCopy(System.nanoTime() - started)
         frameCounter++
     }
@@ -131,20 +144,51 @@ internal class MirrorSurface : AutoCloseable {
 
     fun recordDraw(nanos: Long) = window.recordDraw(nanos)
 
-    /** Forgets every frame, for when the mirror switches to another device or stops. */
-    fun clear() {
-        synchronized(lock) {
+    /**
+     * Starts showing [nextDeviceId]: the frame of the device shown until now is kept for when it is
+     * shown again, and [nextDeviceId]'s own kept frame, if any, is shown until its stream sends one.
+     * At most [MAX_KEPT_FRAMES] frames are kept; the device shown longest ago loses its frame first.
+     */
+    fun switchTo(nextDeviceId: String) {
+        val kept = synchronized(lock) {
             back?.close()
             ready?.close()
-            retired?.closeUnlessDrawn()
-            retired = front
             back = null
             ready = null
-            front = null
             readyIsNewer = false
+            val previous = deviceId
+            if (previous != nextDeviceId) {
+                val shown = front
+                when {
+                    shown == null -> Unit
+
+                    previous == null -> retire(shown)
+
+                    else -> {
+                        lastFrames.remove(previous)?.closeUnlessDrawn()
+                        lastFrames[previous] = shown
+                    }
+                }
+                front = lastFrames.remove(nextDeviceId)
+                deviceId = nextDeviceId
+            }
+            while (lastFrames.size > MAX_KEPT_FRAMES) {
+                val oldest = lastFrames.keys.first()
+                lastFrames.remove(oldest)?.closeUnlessDrawn()
+            }
+            front != null
         }
+        showingKeptFrame = kept
         stats = MirrorStats.Empty
         frameCounter++
+    }
+
+    /** Drops the kept frames of devices other than [present], which are no longer connected. */
+    fun keepFramesOf(present: Set<String>) {
+        synchronized(lock) {
+            val gone = lastFrames.keys - present
+            gone.forEach { lastFrames.remove(it)?.closeUnlessDrawn() }
+        }
     }
 
     /**
@@ -158,14 +202,23 @@ internal class MirrorSurface : AutoCloseable {
             ready?.close()
             retired?.closeUnlessDrawn()
             front?.closeUnlessDrawn()
+            lastFrames.values.forEach { it.closeUnlessDrawn() }
+            lastFrames.clear()
             back = null
             ready = null
             retired = null
             front = null
             readyIsNewer = false
         }
+        showingKeptFrame = false
         stats = MirrorStats.Empty
         frameCounter++
+    }
+
+    // Call with [lock] held. The draw may still be using [bitmap], so the next draw closes it.
+    private fun retire(bitmap: Bitmap) {
+        retired?.closeUnlessDrawn()
+        retired = bitmap
     }
 
     // Call with [lock] held.
