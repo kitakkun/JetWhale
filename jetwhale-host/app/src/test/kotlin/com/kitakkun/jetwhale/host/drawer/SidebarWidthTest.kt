@@ -104,6 +104,7 @@ class SidebarWidthTest {
                         width = 280.dp,
                         onResize = {},
                         onResizeFinished = {},
+                        onFollowAiOperationChange = {},
                         onClickShrinkDrawer = {},
                         onClickSettings = {},
                         onClickPluginSettings = {},
