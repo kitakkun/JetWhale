@@ -42,6 +42,7 @@ class DefaultPluginDirectoryWatchService(
                 // One jar at a time: a jar that cannot be handled must not stop the host from noticing
                 // the others, and is retried at the next poll instead of being taken as handled.
                 poller.poll().forEach { jarPath ->
+                    @Suppress("KOTRAIL_CATCH_TOO_BROAD")
                     try {
                         pluginTrustService.onPluginJarsChanged(setOf(jarPath))
                     } catch (e: CancellationException) {
