@@ -95,7 +95,7 @@ class HostNavigationCommand(
                 ?: throw JetWhaleMcpArgumentException("missing required argument: pluginId is required when destination is PLUGIN")
             validatePlugin(targetPluginId, this[sessionId])
             val targetSessionId = if (reconciliationService.requiresAgent(targetPluginId)) this[sessionId] else HostSession.ID
-            HostNavigationRequest.Plugin(targetPluginId, targetSessionId)
+            HostNavigationRequest.Plugin(targetPluginId, targetSessionId, followsAgent = false)
         }
     }
 

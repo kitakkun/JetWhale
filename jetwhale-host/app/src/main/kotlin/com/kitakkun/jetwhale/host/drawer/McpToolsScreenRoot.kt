@@ -10,7 +10,9 @@ import androidx.compose.runtime.setValue
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.mcp_tools_filter_session_disconnected
+import com.kitakkun.jetwhale.host.mcp_tools_filter_session_host
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.McpCallRecord
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpToolSummary
@@ -104,7 +106,10 @@ private fun rememberMcpToolsUiState(
     runningToolName: String?,
 ): McpToolsScreenUiState {
     val disconnectedLabel = stringResource(Res.string.mcp_tools_filter_session_disconnected)
-    val sessionOptions = remember(debugSessions, disconnectedLabel) { sessionFilterOptions(debugSessions, disconnectedLabel) }
+    val hostLabel = stringResource(Res.string.mcp_tools_filter_session_host)
+    val sessionOptions = remember(key1 = debugSessions, key2 = hostLabel, key3 = disconnectedLabel) {
+        sessionFilterOptions(sessions = debugSessions, hostLabel = hostLabel, disconnectedLabel = disconnectedLabel)
+    }
 
     // Built from every session so the list of plugins does not shift under the user when they narrow
     // the session filter, which would make their own plugin selection disappear.
@@ -163,14 +168,17 @@ private fun rememberMcpToolsUiState(
 }
 
 /**
- * The session filter's options. Disconnected sessions stay listed, since calls made through them are
- * still in the history, but they come after the connected ones and say so: listed like the rest,
- * a session that went away reads as one that is still there.
+ * The session filter's options: [HostSession], labeled [hostLabel], then the apps. Disconnected
+ * sessions stay listed, since calls made through them are still in the history, but they come after
+ * the connected ones and say so: listed like the rest, a session that went away reads as one that is
+ * still there.
  */
-internal fun sessionFilterOptions(sessions: List<DebugSession>, disconnectedLabel: String): ImmutableList<McpFilterOption> = sessions
-    .sortedByDescending(DebugSession::isActive)
-    .map { session ->
-        val label = "${session.deviceDisplayName} · ${session.appDisplayName}"
-        McpFilterOption(id = session.id, label = if (session.isActive) label else "$label · $disconnectedLabel")
-    }
-    .toImmutableList()
+internal fun sessionFilterOptions(sessions: List<DebugSession>, hostLabel: String, disconnectedLabel: String): ImmutableList<McpFilterOption> {
+    val appOptions = sessions
+        .sortedByDescending(DebugSession::isActive)
+        .map { session ->
+            val label = "${session.deviceDisplayName} · ${session.appDisplayName}"
+            McpFilterOption(id = session.id, label = if (session.isActive) label else "$label · $disconnectedLabel")
+        }
+    return (listOf(McpFilterOption(id = HostSession.ID, label = hostLabel)) + appOptions).toImmutableList()
+}

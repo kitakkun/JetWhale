@@ -1,6 +1,5 @@
 package com.kitakkun.jetwhale.host.drawer
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -53,8 +51,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.app_has_no_plugins
-import com.kitakkun.jetwhale.host.app_icon
-import com.kitakkun.jetwhale.host.app_short_name
 import com.kitakkun.jetwhale.host.bring_back_from_popout
 import com.kitakkun.jetwhale.host.collapse_sidebar
 import com.kitakkun.jetwhale.host.disable
@@ -75,7 +71,6 @@ import com.kitakkun.jetwhale.host.popout
 import com.kitakkun.jetwhale.host.puzzle_outlined
 import com.kitakkun.jetwhale.host.settings
 import com.kitakkun.jetwhale.host.sidebar_unfold
-import com.kitakkun.jetwhale.host.theme.LocalEmbeddedInIde
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
@@ -99,16 +94,14 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import java.awt.Cursor
 
-/** The app mark in the sidebar header: a little larger than a glyph, since it is the brand. */
-private val AppMarkSize = 18.dp
-
 /** The puzzle icon of the "no plugins" state. */
 private val EmptyStateIconSize = 28.dp
 
 /**
- * The sidebar at full width: a header with the app mark and the collapse control, the plugins that
- * need no app (first, so they stay one click away whatever app is selected), the app picker, the
- * selected app's plugins, and a footer of the host-wide entry points (MCP tools, settings, about).
+ * The sidebar at full width: a header with the AI agent indicator and the collapse control, the
+ * plugins that need no app (first, so they stay one click away whatever app is selected), the app
+ * picker, the selected app's plugins, and a footer of the host-wide entry points (MCP tools,
+ * settings, about).
  */
 @Composable
 fun ExpandedToolingDrawerView(
@@ -121,6 +114,7 @@ fun ExpandedToolingDrawerView(
     width: Dp,
     onResize: (Dp) -> Unit,
     onResizeFinished: () -> Unit,
+    onFollowAiOperationChange: (Boolean) -> Unit,
     onClickShrinkDrawer: () -> Unit,
     onClickSettings: () -> Unit,
     onClickPluginSettings: () -> Unit,
@@ -144,7 +138,11 @@ fun ExpandedToolingDrawerView(
                 .fillMaxSize()
                 .background(JwTheme.colors.sidebarBackground),
         ) {
-            SidebarHeader(onClickShrinkDrawer = onClickShrinkDrawer)
+            SidebarHeader(
+                aiActivity = aiActivity,
+                onFollowAiOperationChange = onFollowAiOperationChange,
+                onClickShrinkDrawer = onClickShrinkDrawer,
+            )
             JwHorizontalDivider()
             // The plugins that need no app come first, with no heading: the divider and the app picker
             // below are what set the app's plugins apart.
@@ -166,17 +164,12 @@ fun ExpandedToolingDrawerView(
                 )
                 JwHorizontalDivider()
             }
-            Column(
+            SessionSelectorView(
+                selectedSession = selectedSession,
+                sessions = sessions,
+                onSelectSession = onSelectSession,
                 modifier = Modifier.padding(JwSpacing.medium),
-                verticalArrangement = Arrangement.spacedBy(JwSpacing.medium),
-            ) {
-                SessionSelectorView(
-                    selectedSession = selectedSession,
-                    sessions = sessions,
-                    onSelectSession = onSelectSession,
-                )
-                AiActivityIndicatorView(uiState = aiActivity)
-            }
+            )
             JwHorizontalDivider()
             when {
                 plugins.isEmpty() -> NoPluginsView(
@@ -261,28 +254,24 @@ private fun SidebarResizeHandle(
 }
 
 @Composable
-private fun SidebarHeader(onClickShrinkDrawer: () -> Unit, modifier: Modifier = Modifier) {
+private fun SidebarHeader(
+    aiActivity: AiActivityUiState,
+    onFollowAiOperationChange: (Boolean) -> Unit,
+    onClickShrinkDrawer: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(JwMetrics.toolbarHeight)
-            .padding(start = JwSpacing.large, end = JwSpacing.extraSmall),
+            .padding(start = JwSpacing.small, end = JwSpacing.extraSmall),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(JwSpacing.medium),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
     ) {
-        if (LocalEmbeddedInIde.current) {
-            Spacer(modifier = Modifier.weight(1f))
-        } else {
-            Image(
-                painter = painterResource(Res.drawable.app_icon),
-                contentDescription = null,
-                modifier = Modifier.size(AppMarkSize),
-            )
-            JwText(
-                text = stringResource(Res.string.app_short_name),
-                style = JwTheme.textStyles.subtitle,
-                modifier = Modifier.weight(1f),
-            )
+        // The row keeps its height with or without an agent, so nothing below it moves as the banner
+        // comes and goes.
+        Box(modifier = Modifier.weight(1f)) {
+            AiActivityBanner(uiState = aiActivity, onFollowChange = onFollowAiOperationChange)
         }
         JwIconButton(
             onClick = onClickShrinkDrawer,
@@ -643,6 +632,7 @@ private fun ExpandedToolingDrawerViewPreview() {
         width = JwMetrics.sidebarWidth,
         onResize = {},
         onResizeFinished = {},
+        onFollowAiOperationChange = {},
         onClickShrinkDrawer = {},
         onClickSettings = {},
         onClickPluginSettings = {},

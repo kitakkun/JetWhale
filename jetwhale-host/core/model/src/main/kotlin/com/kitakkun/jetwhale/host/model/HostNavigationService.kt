@@ -7,8 +7,12 @@ import kotlinx.coroutines.flow.StateFlow
 sealed interface HostNavigationRequest {
     data object Home : HostNavigationRequest
 
-    /** Opens [pluginId]; a null [sessionId] means "whichever session the drawer already has selected". */
-    data class Plugin(val pluginId: String, val sessionId: String?) : HostNavigationRequest
+    /**
+     * Opens [pluginId]; a null [sessionId] means "whichever session the drawer already has selected".
+     * [followsAgent] marks a move the window makes on its own to follow an AI agent, which the window
+     * announces so that a screen change nobody asked for is explained.
+     */
+    data class Plugin(val pluginId: String, val sessionId: String?, val followsAgent: Boolean) : HostNavigationRequest
 
     data class Settings(val section: HostSettingsSection) : HostNavigationRequest
 

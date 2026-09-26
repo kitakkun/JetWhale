@@ -36,14 +36,14 @@ sealed interface ToolingScaffoldScreenAction {
 
     data class SetPluginEnabled(val pluginId: String, val enabled: Boolean) : ToolingScaffoldScreenAction
 
-    /** Turns the follow mode off from the banner it puts on screen, without a trip to the settings. */
-    data object StopFollowingAiOperation : ToolingScaffoldScreenAction
-
     /** The sidebar's edge was dragged to [width]; kept in memory until [SaveSidebarWidth]. */
     data class ResizeSidebar(val width: Dp) : ToolingScaffoldScreenAction
 
     /** The drag ended: the width the sidebar has now is stored for the next launch. */
     data object SaveSidebarWidth : ToolingScaffoldScreenAction
+
+    /** Switches the follow mode from the AI indicator, without a trip to the settings. */
+    data class SetFollowAiOperation(val enabled: Boolean) : ToolingScaffoldScreenAction
 }
 
 sealed interface ToolingScaffoldScreenActionResult {
@@ -86,25 +86,6 @@ internal fun newlyConnectedSessions(
     return current.filter { it.isActive && it.id !in alreadyConnected }
 }
 
-/**
- * Whether this call puts the agent's work on the main window's screen.
- *
- * Deliberately wider than what [com.kitakkun.jetwhale.host.model.FollowAiOperationService] navigates
- * on: the service skips a plugin the window already shows, but the banner should still say the
- * agent is driving what the user is looking at — a burst of calls to one plugin moves the window
- * once and keeps operating it. Only a popped-out plugin is excluded, as it is watched in its own
- * window. A call that named no session is judged against the drawer's own selection, which is where
- * [selectedSessionId] comes in.
- */
-internal fun McpToolInvocation?.movesTheWindow(
-    selectedSessionId: String,
-    isPluginPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
-): Boolean {
-    val pluginId = this?.pluginId ?: return false
-    val sessionId = this.sessionId ?: selectedSessionId
-    return !isPluginPoppedOut(pluginId, sessionId)
-}
-
 @Composable
 context(presenterContext: ToolingScaffoldPresenterContext)
 fun toolingScaffoldPresenter(
@@ -118,7 +99,6 @@ fun toolingScaffoldPresenter(
     headlessPlugins: HeadlessPlugins,
     followAiOperationEnabled: Boolean,
     persistedSidebarWidth: SidebarWidth,
-    isPluginPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
 ): ToolingScaffoldUiState {
     var selectedSessionId by retain { mutableStateOf("") }
     var selectedPluginId by retain { mutableStateOf("") }
@@ -205,8 +185,8 @@ fun toolingScaffoldPresenter(
                 setPluginEnabledMutation.mutateAsync(SetPluginEnabledParams(action.pluginId, action.enabled))
             }
 
-            is ToolingScaffoldScreenAction.StopFollowingAiOperation -> {
-                followAiOperationMutation.mutateAsync(false)
+            is ToolingScaffoldScreenAction.SetFollowAiOperation -> {
+                followAiOperationMutation.mutateAsync(action.enabled)
             }
 
             is ToolingScaffoldScreenAction.ResizeSidebar -> {
@@ -233,10 +213,10 @@ fun toolingScaffoldPresenter(
         aiActivity = AiActivityUiState(
             isAgentConnected = mcpActivity.hasConnectedClient,
             operatingToolName = activeInvocation?.toolName,
+            operatingToolShortName = activeInvocation?.shortToolName(),
+            operatingPluginName = activeInvocation?.pluginId?.let { pluginId -> loadedPlugins.find { it.id == pluginId }?.name },
+            operatingAppName = activeInvocation?.sessionId?.let { sessionId -> debugSessions.find { it.id == sessionId }?.deviceAndAppDisplayName },
             isFollowModeOn = followAiOperationEnabled,
-            // Announce only what the window actually does: a call that names no plugin never moves
-            // it, and a plugin popped out into its own window is watched there, not here.
-            isFollowingOperation = followAiOperationEnabled && activeInvocation.movesTheWindow(selectedSessionId, isPluginPoppedOut),
         ),
         sidebarWidth = sidebarWidth,
     )
@@ -250,3 +230,13 @@ private val MAX_SIDEBAR_WIDTH = 480.dp
 
 /** [width] kept within what the sidebar can usefully be; a stored width is clamped the same way. */
 internal fun clampSidebarWidth(width: Dp): Dp = width.coerceIn(MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH)
+
+/**
+ * The tool's name without its plugin id's package: `com.kitakkun.jetwhale.mirror.tap` reads as
+ * `mirror.tap`. A host tool, which belongs to no plugin, keeps its own short name (`jetwhale.click`).
+ */
+internal fun McpToolInvocation.shortToolName(): String {
+    val pluginId = pluginId ?: return toolName
+    if (!toolName.startsWith("$pluginId.")) return toolName
+    return "${pluginId.substringAfterLast('.')}.${toolName.removePrefix("$pluginId.")}"
+}

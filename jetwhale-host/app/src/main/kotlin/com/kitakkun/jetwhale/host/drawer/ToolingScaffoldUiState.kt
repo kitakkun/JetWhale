@@ -11,34 +11,33 @@ import kotlinx.collections.immutable.ImmutableList
  * [operatingToolName] is the MCP tool currently being executed. It lingers briefly past the actual
  * call, because most calls finish too quickly to be seen otherwise.
  *
+ * @property operatingToolShortName [operatingToolName] short enough for one line: a plugin's tool
+ *   prefixed with the last segment of its plugin id (`mirror.tap`), a host tool as it is
+ *   (`jetwhale.click`).
+ * @property operatingPluginName The name of the plugin [operatingToolName] belongs to, or `null` for a
+ *   host tool, which targets no plugin.
+ * @property operatingAppName The app the call targets, or `null` when it targets none or a tool that
+ *   needs no app.
  * @property isFollowModeOn Whether the window is set to move to whatever plugin an agent operates.
- * @property isFollowingOperation Whether what is on the main window's screen is there under the
- * agent's direction right now — the mode is on and the call in flight names a plugin that this
- * window shows or has just moved to. The follow banner turns to its warning state and names the
- * tool for as long as this holds. A plugin popped out into its own window is watched there, so a
- * call to it does not count.
  */
 data class AiActivityUiState(
     val isAgentConnected: Boolean,
     val operatingToolName: String?,
+    val operatingToolShortName: String?,
+    val operatingPluginName: String?,
+    val operatingAppName: String?,
     val isFollowModeOn: Boolean,
-    val isFollowingOperation: Boolean,
 ) {
     val isOperating: Boolean get() = operatingToolName != null
-
-    /**
-     * Whether the strip that announces a follow is on screen. It stays up for as long as a follow
-     * could happen — the mode is on and an agent is connected — rather than for each call, so the
-     * plugin under it keeps its place through a burst of operations instead of jumping at every one.
-     */
-    val showsFollowBanner: Boolean get() = isFollowModeOn && isAgentConnected
 
     companion object {
         val Idle = AiActivityUiState(
             isAgentConnected = false,
             operatingToolName = null,
+            operatingToolShortName = null,
+            operatingPluginName = null,
+            operatingAppName = null,
             isFollowModeOn = false,
-            isFollowingOperation = false,
         )
     }
 }
