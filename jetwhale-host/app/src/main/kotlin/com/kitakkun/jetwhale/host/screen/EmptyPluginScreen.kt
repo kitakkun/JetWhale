@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.no_plugin_selected_hint
 import com.kitakkun.jetwhale.host.puzzle_outlined
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -35,5 +36,7 @@ fun EmptyPluginScreen() {
 @Preview
 @Composable
 private fun EmptyPluginScreenPreview() {
-    EmptyPluginScreen()
+    JwTheme(darkTheme = false) {
+        EmptyPluginScreen()
+    }
 }

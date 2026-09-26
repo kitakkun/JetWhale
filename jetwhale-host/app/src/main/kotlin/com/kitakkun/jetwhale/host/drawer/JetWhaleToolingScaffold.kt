@@ -97,34 +97,36 @@ fun ToolingScaffold(
 @Preview
 @Composable
 private fun ToolingScaffoldPreview() {
-    ToolingScaffold(
-        uiState = ToolingScaffoldUiState(
-            selectedSessionId = "",
-            selectedPluginId = "",
-            sessions = persistentListOf(),
-            plugins = persistentListOf(),
-            hasFailedJars = false,
-            aiActivity = AiActivityUiState.Idle,
-            sidebarWidth = JwMetrics.sidebarWidth,
-        ),
-        onClickSettings = {},
-        onClickPluginSettings = {},
-        onClickInfo = {},
-        onClickPlugin = {},
-        onClickInactivePlugin = {},
-        onOpenMcpTools = {},
-        onOpenAllMcpTools = {},
-        onSelectSession = {},
-        onClickPopout = {},
-        isPoppedOut = { false },
-        onClickBringBack = {},
-        onSetPluginEnabled = { _, _ -> },
-        onResizeSidebar = {},
-        onSidebarResizeFinished = {},
-        onFollowAiOperationChange = {},
-        onOpenMcpSettings = {},
-        snackbarHostState = remember { JwSnackbarHostState() },
-    ) {
-        JwText("Hello, World!")
+    JwTheme(darkTheme = false) {
+        ToolingScaffold(
+            uiState = ToolingScaffoldUiState(
+                selectedSessionId = "",
+                selectedPluginId = "",
+                sessions = persistentListOf(),
+                plugins = persistentListOf(),
+                hasFailedJars = false,
+                aiActivity = AiActivityUiState.Idle,
+                sidebarWidth = JwMetrics.sidebarWidth,
+            ),
+            onClickSettings = {},
+            onClickPluginSettings = {},
+            onClickInfo = {},
+            onClickPlugin = {},
+            onClickInactivePlugin = {},
+            onOpenMcpTools = {},
+            onOpenAllMcpTools = {},
+            onSelectSession = {},
+            onClickPopout = {},
+            isPoppedOut = { false },
+            onClickBringBack = {},
+            onSetPluginEnabled = { _, _ -> },
+            onResizeSidebar = {},
+            onSidebarResizeFinished = {},
+            onFollowAiOperationChange = {},
+            onOpenMcpSettings = {},
+            snackbarHostState = remember { JwSnackbarHostState() },
+        ) {
+            JwText("Hello, World!")
+        }
     }
 }

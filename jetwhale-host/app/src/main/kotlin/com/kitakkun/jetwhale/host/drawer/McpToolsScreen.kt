@@ -892,46 +892,50 @@ private fun McpParameterRow(param: McpToolParameterSummary) {
 @Preview
 @Composable
 private fun McpToolsScreenPreview() {
-    McpToolsScreen(
-        uiState = McpToolsScreenUiState(
-            pluginOptions = persistentListOf(McpFilterOption(id = "com.example.inspector", label = "Inspector")),
-            sessionOptions = persistentListOf(McpFilterOption(id = "session-1", label = "Sample app")),
-            selectedPluginIds = persistentSetOf(),
-            selectedSessionIds = persistentSetOf(),
-            toolRows = persistentListOf(
-                McpToolRowUiState(
-                    pluginId = "com.example.inspector",
-                    pluginName = "Inspector",
-                    tool = McpToolSummary(
-                        name = "inspector.dump",
-                        description = "Dumps the current view tree",
-                        parameters = emptyList(),
+    JwTheme(darkTheme = false) {
+        McpToolsScreen(
+            uiState = McpToolsScreenUiState(
+                pluginOptions = persistentListOf(McpFilterOption(id = "com.example.inspector", label = "Inspector")),
+                sessionOptions = persistentListOf(McpFilterOption(id = "session-1", label = "Sample app")),
+                selectedPluginIds = persistentSetOf(),
+                selectedSessionIds = persistentSetOf(),
+                toolRows = persistentListOf(
+                    McpToolRowUiState(
+                        pluginId = "com.example.inspector",
+                        pluginName = "Inspector",
+                        tool = McpToolSummary(
+                            name = "inspector.dump",
+                            description = "Dumps the current view tree",
+                            parameters = emptyList(),
+                        ),
+                        callCount = 3,
+                        running = false,
                     ),
-                    callCount = 3,
-                    running = false,
                 ),
-            ),
-            callHistory = persistentListOf(
-                McpCallRecord(
-                    id = 1,
-                    toolName = "inspector.dump",
-                    pluginId = "com.example.inspector",
-                    sessionId = "session-1",
-                    succeeded = true,
-                    finishedAtEpochMillis = 0,
-                    arguments = persistentListOf(),
-                    response = "{}",
+                callHistory = persistentListOf(
+                    McpCallRecord(
+                        id = 1,
+                        toolName = "inspector.dump",
+                        pluginId = "com.example.inspector",
+                        sessionId = "session-1",
+                        succeeded = true,
+                        finishedAtEpochMillis = 0,
+                        arguments = persistentListOf(),
+                        response = "{}",
+                    ),
                 ),
+                runningToolName = null,
             ),
-            runningToolName = null,
-        ),
-        onSelectPluginFilters = {},
-        onSelectSessionFilters = {},
-    )
+            onSelectPluginFilters = {},
+            onSelectSessionFilters = {},
+        )
+    }
 }
 
 @Preview
 @Composable
 private fun McpToolCallCountBadgePreview() {
-    McpToolCallCountBadge(count = 3, running = true)
+    JwTheme(darkTheme = false) {
+        McpToolCallCountBadge(count = 3, running = true)
+    }
 }

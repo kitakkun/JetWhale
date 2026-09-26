@@ -27,6 +27,7 @@ import com.kitakkun.jetwhale.host.ui.JwMenuItem
 import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwStatusDot
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.unnamed_app
 import kotlinx.collections.immutable.ImmutableList
@@ -181,21 +182,23 @@ internal fun AppIcon(session: DebugSession?) {
 @Preview
 @Composable
 private fun SessionSelectorViewPreview() {
-    val session = DebugSession(
-        id = "session-1",
-        name = "Sample app",
-        isActive = true,
-        transportSecurity = SessionTransportSecurity.TLS,
-        installedPlugins = persistentListOf(),
-        appName = "Sample app",
-        deviceId = "device-1",
-        deviceName = "Pixel 9",
-    )
-    SessionSelectorView(
-        selectedSession = session,
-        sessions = persistentListOf(session),
-        onSelectSession = {},
-    )
+    JwTheme(darkTheme = false) {
+        val session = DebugSession(
+            id = "session-1",
+            name = "Sample app",
+            isActive = true,
+            transportSecurity = SessionTransportSecurity.TLS,
+            installedPlugins = persistentListOf(),
+            appName = "Sample app",
+            deviceId = "device-1",
+            deviceName = "Pixel 9",
+        )
+        SessionSelectorView(
+            selectedSession = session,
+            sessions = persistentListOf(session),
+            onSelectSession = {},
+        )
+    }
 }
 
 @Preview

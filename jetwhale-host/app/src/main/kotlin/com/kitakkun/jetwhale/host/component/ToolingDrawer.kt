@@ -14,6 +14,7 @@ import com.kitakkun.jetwhale.host.drawer.ExpandedToolingDrawerView
 import com.kitakkun.jetwhale.host.drawer.ShrunkToolingDrawerView
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.ui.JwMetrics
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
@@ -102,29 +103,31 @@ fun ToolingDrawer(
 @Preview
 @Composable
 private fun ToolingDrawerPreview() {
-    ToolingDrawer(
-        plugins = persistentListOf(),
-        hasFailedJars = false,
-        sessions = persistentListOf(),
-        selectedSession = null,
-        selectedPluginId = "",
-        aiActivity = AiActivityUiState.Idle,
-        sidebarWidth = JwMetrics.sidebarWidth,
-        onResizeSidebar = {},
-        onSidebarResizeFinished = {},
-        onFollowAiOperationChange = {},
-        onOpenMcpSettings = {},
-        onClickSettings = {},
-        onClickPluginSettings = {},
-        onClickInfo = {},
-        onClickPlugin = {},
-        onClickInactivePlugin = {},
-        onOpenMcpTools = {},
-        onOpenAllMcpTools = {},
-        onSelectSession = {},
-        onClickPopout = {},
-        isPoppedOut = { false },
-        onClickBringBack = {},
-        onSetPluginEnabled = { _, _ -> },
-    )
+    JwTheme(darkTheme = false) {
+        ToolingDrawer(
+            plugins = persistentListOf(),
+            hasFailedJars = false,
+            sessions = persistentListOf(),
+            selectedSession = null,
+            selectedPluginId = "",
+            aiActivity = AiActivityUiState.Idle,
+            sidebarWidth = JwMetrics.sidebarWidth,
+            onResizeSidebar = {},
+            onSidebarResizeFinished = {},
+            onFollowAiOperationChange = {},
+            onOpenMcpSettings = {},
+            onClickSettings = {},
+            onClickPluginSettings = {},
+            onClickInfo = {},
+            onClickPlugin = {},
+            onClickInactivePlugin = {},
+            onOpenMcpTools = {},
+            onOpenAllMcpTools = {},
+            onSelectSession = {},
+            onClickPopout = {},
+            isPoppedOut = { false },
+            onClickBringBack = {},
+            onSetPluginEnabled = { _, _ -> },
+        )
+    }
 }

@@ -47,5 +47,7 @@ fun InitializingDialog(verifyingTrustRegistry: Boolean) {
 @Preview
 @Composable
 private fun InitializingDialogPreview() {
-    InitializingDialog(verifyingTrustRegistry = true)
+    JwTheme(darkTheme = false) {
+        InitializingDialog(verifyingTrustRegistry = true)
+    }
 }
