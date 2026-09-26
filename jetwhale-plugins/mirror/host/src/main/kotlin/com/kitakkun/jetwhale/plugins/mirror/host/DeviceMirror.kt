@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.skia.Image
 import java.io.File
 import java.io.InputStream
@@ -51,6 +52,11 @@ private const val SCREEN_POWER_POLL_MILLIS = 2_000L
 
 /** How fast the still-image fallback polls, for a device whose stream never started. */
 private const val SCREENSHOT_POLL_MILLIS = 250L
+
+/** How long a stream waits for its view to be laid out; a first layout takes a frame or two. */
+private const val VIEW_SIZE_WAIT_MILLIS = 1_500L
+
+private const val VIEW_SIZE_POLL_MILLIS = 20L
 
 /** What the mirror is doing with the selected device. */
 internal sealed interface MirrorState {
@@ -233,6 +239,11 @@ internal class DeviceMirror(
             null
         }
         surface.deviceSize = screen
+        // Frames are sized to the view, so a stream opened before the view has a size would come at
+        // the device's full size. A mirror no view shows opens anyway, once the wait is over.
+        withTimeoutOrNull(VIEW_SIZE_WAIT_MILLIS) {
+            while (surface.viewSize == IntSize.Zero) delay(VIEW_SIZE_POLL_MILLIS)
+        }
         val outputSize = screen?.let { decodingSize(it, surface.viewSize) }
         val stream = try {
             device.controller.openVideoStream(outputSize)

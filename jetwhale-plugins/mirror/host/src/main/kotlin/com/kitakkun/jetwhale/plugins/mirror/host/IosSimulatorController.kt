@@ -28,9 +28,12 @@ internal class IosSimulatorController(
     private var screen: IdbScreen? = null
 
     // Lowered each time a stream falls behind, for instance while another tool streams this
-    // simulator too; it stays lowered for as long as the simulator is listed.
+    // simulator too; they stay lowered for as long as the simulator is listed.
     @Volatile
     private var fpsCap = MAX_RAW_FPS
+
+    @Volatile
+    private var widthCap = Int.MAX_VALUE
 
     override suspend fun captureScreenshot(): ByteArray {
         val file = createTempFile(prefix = "jetwhale-mirror-", suffix = ".png")
@@ -75,14 +78,17 @@ internal class IosSimulatorController(
     // paced by --fps instead, and scaled to the view by the simulator, so there is nothing to decode;
     // see rawBgraLayout for the size and rate.
     override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
-        val layout = rawBgraLayout(screenSize(), wanted, maxFps = fpsCap)
+        val layout = rawBgraLayout(screenSize(), wanted, maxFps = fpsCap, maxWidth = widthCap)
         val process = withContext(Dispatchers.IO) {
             SystemProcessLauncher.start(
                 listOf(requireIdb(), "video-stream", "--udid", udid, "--format", "rbga", "--fps", "${layout.fps}", "--scale-factor", "${layout.scale}"),
             )
         }
         return VideoStream.RawBgra(process, layout.frameSize, layout.rowBytes, layout.fps) { arrivedFps ->
-            fpsCap = maxOf(MIN_RAW_FPS, arrivedFps * 3 / 4)
+            val caps = lighterThan(layout, arrivedFps) ?: return@RawBgra false
+            fpsCap = caps.maxFps
+            widthCap = caps.maxWidth
+            true
         }
     }
 
