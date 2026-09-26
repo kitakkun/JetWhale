@@ -70,6 +70,8 @@
     <string name="plugin_actions">プラグインの操作</string>
     <string name="mcp_tools_search_clear">検索をクリア</string>
     <string name="no_app_connected">アプリを接続すると、そのプラグインが表示されます。</string>
+    <string name="app_has_no_plugins">このアプリにはまだプラグインがありません。</string>
+    <string name="unnamed_app">名前のないアプリ (%1$s)</string>
     <string name="plugin_not_in_app">このアプリにはこのプラグインが含まれていません</string>
     <string name="plugin_disabled_tooltip">無効 — クリックして有効化</string>
     <string name="plugin_disabled_title">%1$s は無効です</string>

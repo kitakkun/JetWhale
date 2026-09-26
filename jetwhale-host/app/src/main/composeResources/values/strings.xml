@@ -70,6 +70,8 @@
     <string name="plugin_actions">Plugin actions</string>
     <string name="mcp_tools_search_clear">Clear search</string>
     <string name="no_app_connected">Connect an app to see its plugins.</string>
+    <string name="app_has_no_plugins">This app has no plugins yet.</string>
+    <string name="unnamed_app">Unnamed app (%1$s)</string>
     <string name="plugin_not_in_app">This app doesn't include this plugin</string>
     <string name="plugin_disabled_tooltip">Disabled — click to enable</string>
     <string name="plugin_disabled_title">%1$s is disabled</string>

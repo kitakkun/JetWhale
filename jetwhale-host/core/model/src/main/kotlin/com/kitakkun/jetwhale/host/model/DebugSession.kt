@@ -17,7 +17,8 @@ data class DebugSession(
     val deviceName: String? = null,
     val appIconPngBase64: String? = null,
 ) {
-    private val shortId: String
+    /** The first characters of [id], enough to tell sessions apart on screen. */
+    val shortId: String
         get() = id.take(6)
 
     val displayName: String
@@ -37,10 +38,16 @@ data class DebugSession(
         get() = deviceName ?: name ?: shortId
 
     /**
-     * Human-readable application label. Prefers the negotiated app name, then the session display name.
+     * The app's own name: the negotiated app name, else the session name when it says something the
+     * device name does not. Null when neither names the app; a desktop agent reports no app name by
+     * default and names the session after the machine, which would read as the device twice.
      */
+    val appLabel: String?
+        get() = appName ?: name?.takeIf { it != deviceDisplayName }
+
+    /** Human-readable application label: [appLabel], else [shortId] to tell unnamed apps apart. */
     val appDisplayName: String
-        get() = appName ?: displayName
+        get() = appLabel ?: shortId
 
     /** Device and app labels joined, for places that identify a session on a single line. */
     val deviceAndAppDisplayName: String
