@@ -67,6 +67,7 @@ public fun JwTheme(
         LocalJwContentColor provides colors.onSurface,
         LocalJwTextStyle provides textStyles.body,
         LocalContextMenuRepresentation provides contextMenuRepresentation,
+        LocalArrowKeyRowMove provides remember(calculation = ::ArrowKeyRowMove),
         content = content,
     )
 }
