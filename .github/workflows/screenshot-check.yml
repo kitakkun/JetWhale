@@ -20,7 +20,7 @@ on:
       - 'gradle/libs.versions.toml'
       - '.github/workflows/screenshot-check.yml'
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, closed]
     paths:
       - 'jetwhale-host-ui/**'
       - 'gradle/libs.versions.toml'
@@ -60,7 +60,7 @@ jobs:
         run: .github/scripts/publish-screenshots.sh screenshots-main "$SCREENSHOT_DIR"
 
   compare:
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
