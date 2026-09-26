@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +61,7 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifie
         selectedId = mirror.selectedId,
         state = mirror.state,
         status = mirror.status,
+        screenPower = mirror.screenPower,
         recording = mirror.recordingDeviceId != null && mirror.recordingDeviceId == mirror.selectedId,
         surface = mirror.surface,
         actions = mirror,
@@ -89,6 +91,7 @@ internal fun MirrorScreen(
     selectedId: String?,
     state: MirrorState,
     status: MirrorStatus?,
+    screenPower: ScreenPower?,
     recording: Boolean,
     surface: MirrorSurface,
     actions: MirrorActions,
@@ -109,7 +112,7 @@ internal fun MirrorScreen(
                     description = "Start an Android emulator, boot an iOS simulator, or connect a device by USB. It appears here within a few seconds.",
                 )
             } else {
-                val pane = DevicePaneState(device, capabilities, state, status, recording)
+                val pane = DevicePaneState(device, capabilities, state, status, screenPower, recording)
                 DevicePane(pane, surface, actions, showCaptures, onToggleCaptures, capturesPanel)
             }
         },
@@ -154,6 +157,7 @@ private class DevicePaneState(
     val capabilities: DeviceCapabilities,
     val state: MirrorState,
     val status: MirrorStatus?,
+    val screenPower: ScreenPower?,
     val recording: Boolean,
 )
 
@@ -170,7 +174,7 @@ private fun DevicePane(
         JwToolbar(
             title = pane.device.name,
             actions = {
-                DeviceActions(pane.capabilities, pane.recording, actions)
+                DeviceActions(pane.capabilities, pane.screenPower, pane.recording, actions)
                 JwButton(text = "Captures", onClick = onToggleCaptures, style = if (showCaptures) JwButtonStyle.Primary else JwButtonStyle.Secondary)
             },
         )
@@ -194,6 +198,8 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
         Box(Modifier.weight(1f).fillMaxWidth()) {
             MirrorVideo(surface = surface, interactive = pane.capabilities.input, onTap = actions::tap, onSwipe = actions::swipe, modifier = Modifier.fillMaxSize())
             StateOverlay(pane.device, pane.state)
+            // A screen that is off streams nothing, so the mirror would otherwise just stay black.
+            if (pane.screenPower?.awake == false) ScreenOffOverlay(onWake = actions::wake)
         }
         if (pane.capabilities.input) TextInput(onSend = actions::inputText)
         MirrorStatsLine(surface = surface, state = pane.state)
@@ -201,8 +207,13 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
 }
 
 @Composable
-private fun DeviceActions(capabilities: DeviceCapabilities, recording: Boolean, actions: MirrorActions) {
+private fun DeviceActions(capabilities: DeviceCapabilities, screenPower: ScreenPower?, recording: Boolean, actions: MirrorActions) {
     Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall), verticalAlignment = Alignment.CenterVertically) {
+        when (screenPower?.awake) {
+            true -> JwButton(text = "Screen off", onClick = actions::sleep, style = JwButtonStyle.Text)
+            false -> JwButton(text = "Wake", onClick = actions::wake, style = JwButtonStyle.Text)
+            null -> Unit
+        }
         capabilities.buttons.forEach { button ->
             JwButton(text = button.label, onClick = { actions.pressButton(button) }, style = JwButtonStyle.Text)
         }
@@ -227,6 +238,17 @@ private fun StateOverlay(device: DeviceListing, state: MirrorState) {
         )
 
         is MirrorState.Failed -> JwEmptyState(title = "Cannot mirror ${device.name}", description = state.message)
+    }
+}
+
+@Composable
+private fun ScreenOffOverlay(onWake: () -> Unit) {
+    Box(Modifier.fillMaxSize().background(JwTheme.colors.panelBackground)) {
+        JwEmptyState(
+            title = "The device's screen is off",
+            description = "Nothing reaches the mirror until it is on again.",
+            action = { JwButton(text = "Wake", onClick = onWake, style = JwButtonStyle.Primary) },
+        )
     }
 }
 

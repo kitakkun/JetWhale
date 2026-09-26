@@ -20,6 +20,7 @@ private val androidCapabilities = DeviceCapabilities(
     input = true,
     buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Power),
     recording = true,
+    screenPower = true,
 )
 
 private val previewCaptures = listOf(CaptureKind.Screenshot, CaptureKind.Recording).mapIndexed { index, kind ->
@@ -84,6 +85,10 @@ private object NoActions : MirrorActions {
     override fun saveScreenshot() = Unit
 
     override fun toggleRecording() = Unit
+
+    override fun wake() = Unit
+
+    override fun sleep() = Unit
 }
 
 @Preview
@@ -97,6 +102,29 @@ private fun MirrorScreenStreamingPreview() {
             selectedId = "emulator-5554",
             state = MirrorState.Streaming,
             status = null,
+            screenPower = ScreenPower(awake = true, locked = false),
+            recording = false,
+            surface = rememberPreviewSurface(),
+            actions = NoActions,
+            showCaptures = false,
+            onToggleCaptures = {},
+            capturesPanel = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun MirrorScreenScreenOffPreview() {
+    JwTheme(darkTheme = true) {
+        MirrorScreen(
+            devices = previewDevices,
+            capabilities = androidCapabilities,
+            missingTools = emptyList(),
+            selectedId = "emulator-5554",
+            state = MirrorState.Streaming,
+            status = null,
+            screenPower = ScreenPower(awake = false, locked = true),
             recording = false,
             surface = rememberPreviewSurface(),
             actions = NoActions,
@@ -113,11 +141,12 @@ private fun MirrorScreenNoFramesPreview() {
     JwTheme(darkTheme = false) {
         MirrorScreen(
             devices = previewDevices,
-            capabilities = DeviceCapabilities(input = false, buttons = emptyList(), recording = false),
+            capabilities = DeviceCapabilities(input = false, buttons = emptyList(), recording = false, screenPower = false),
             missingTools = listOf("adb was not found, so Android devices are not listed. Install the Android SDK platform tools."),
             selectedId = "00008110-DEVICE",
             state = MirrorState.NoFrames(noFramesHints(DeviceKind.IosDevice)),
             status = null,
+            screenPower = null,
             recording = false,
             surface = remember(::MirrorSurface),
             actions = NoActions,
@@ -139,6 +168,7 @@ private fun MirrorScreenEmptyPreview() {
             selectedId = null,
             state = MirrorState.Idle,
             status = null,
+            screenPower = null,
             recording = false,
             surface = remember(::MirrorSurface),
             actions = NoActions,
@@ -160,6 +190,7 @@ private fun MirrorScreenWithCapturesPreview() {
             selectedId = "emulator-5554",
             state = MirrorState.Streaming,
             status = null,
+            screenPower = ScreenPower(awake = true, locked = false),
             recording = true,
             surface = rememberPreviewSurface(),
             actions = NoActions,

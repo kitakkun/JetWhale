@@ -46,6 +46,9 @@ private const val RESIZE_SETTLE_MILLIS = 500L
 /** The share by which the view must change before a stream is reopened for it. */
 private const val RESIZE_THRESHOLD = 0.15f
 
+/** How often a mirrored Android device's screen state is read; a screen turned off shows as black. */
+private const val SCREEN_POWER_POLL_MILLIS = 2_000L
+
 /** How fast the still-image fallback polls, for a device whose stream never started. */
 private const val SCREENSHOT_POLL_MILLIS = 250L
 
@@ -83,6 +86,10 @@ internal interface MirrorActions {
     fun saveScreenshot()
 
     fun toggleRecording()
+
+    fun wake()
+
+    fun sleep()
 }
 
 /**
@@ -113,6 +120,10 @@ internal class DeviceMirror(
         private set
 
     var recordingDeviceId: String? by mutableStateOf(null)
+        private set
+
+    /** The mirrored device's screen state, for a device whose [DeviceCapabilities.screenPower] is true. */
+    var screenPower: ScreenPower? by mutableStateOf(null)
         private set
 
     private var recording: ActiveRecording? = null
@@ -151,31 +162,51 @@ internal class DeviceMirror(
     suspend fun mirror(device: MirrorDevice) = sessions.withLock {
         surface.clear()
         try {
-            while (coroutineContext.isActive) {
-                state = MirrorState.Connecting
-                when (val outcome = streamOnce(device)) {
-                    is StreamOutcome.Ended -> Unit
-
-                    // A physical iOS device has nothing to fall back on, so the mirror says why it
-                    // is blank and tries again; the others still show something through screenshots.
-                    is StreamOutcome.Silent -> if (device.kind == DeviceKind.IosDevice) {
-                        state = MirrorState.NoFrames(noFramesHints(device.kind))
-                        delay(STREAM_RETRY_MILLIS)
-                    } else {
-                        pollScreenshots(device)
-                    }
-
-                    is StreamOutcome.Unavailable -> if (device.kind == DeviceKind.IosDevice) {
-                        state = MirrorState.Failed(outcome.message)
-                        delay(STREAM_RETRY_MILLIS)
-                    } else {
-                        pollScreenshots(device)
-                    }
-                }
+            coroutineScope {
+                if (device.controller.capabilities.screenPower) launch { watchScreenPower(device) }
+                streamUntilCancelled(device)
             }
         } finally {
             withContext(NonCancellable) { device.controller.release() }
             state = MirrorState.Idle
+            screenPower = null
+        }
+    }
+
+    private suspend fun streamUntilCancelled(device: MirrorDevice) {
+        while (coroutineContext.isActive) {
+            state = MirrorState.Connecting
+            when (val outcome = streamOnce(device)) {
+                is StreamOutcome.Ended -> Unit
+
+                // A physical iOS device has nothing to fall back on, so the mirror says why it
+                // is blank and tries again; the others still show something through screenshots.
+                is StreamOutcome.Silent -> if (device.kind == DeviceKind.IosDevice) {
+                    state = MirrorState.NoFrames(noFramesHints(device.kind))
+                    delay(STREAM_RETRY_MILLIS)
+                } else {
+                    pollScreenshots(device)
+                }
+
+                is StreamOutcome.Unavailable -> if (device.kind == DeviceKind.IosDevice) {
+                    state = MirrorState.Failed(outcome.message)
+                    delay(STREAM_RETRY_MILLIS)
+                } else {
+                    pollScreenshots(device)
+                }
+            }
+        }
+    }
+
+    private suspend fun watchScreenPower(device: MirrorDevice) {
+        while (coroutineContext.isActive) {
+            // An unreadable state hides the screen-off notice rather than showing a stale one.
+            screenPower = try {
+                device.controller.screenPower()
+            } catch (_: DeviceControlException) {
+                null
+            }
+            delay(SCREEN_POWER_POLL_MILLIS)
         }
     }
 
@@ -337,6 +368,18 @@ internal class DeviceMirror(
                 startRecordingOf(checkNotNull(selectedDevice))
             }
         }
+    }
+
+    override fun wake() = control { controller ->
+        controller.wake()
+        val power = controller.screenPower()
+        screenPower = power
+        if (power.locked) status = MirrorStatus("The device is still locked. Unlock it to continue.", isError = false)
+    }
+
+    override fun sleep() = control { controller ->
+        controller.sleep()
+        screenPower = controller.screenPower()
     }
 
     override fun resolve(deviceId: String?): MirrorDevice {

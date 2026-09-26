@@ -17,7 +17,7 @@ internal class IosDeviceController(
     private val idb: String,
     private val companions: IdbCompanions,
 ) : DeviceController {
-    override val capabilities = DeviceCapabilities(input = false, buttons = emptyList(), recording = false)
+    override val capabilities = DeviceCapabilities(input = false, buttons = emptyList(), recording = false, screenPower = false)
 
     private var streaming = false
 
@@ -47,6 +47,12 @@ internal class IosDeviceController(
     override suspend fun pressButton(button: DeviceButton) = throw deviceControlError(VIEW_ONLY)
 
     override suspend fun inputText(text: String) = throw deviceControlError(VIEW_ONLY)
+
+    override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
+
+    override suspend fun wake() = throw deviceControlError(NO_SCREEN_POWER)
+
+    override suspend fun sleep() = throw deviceControlError(NO_SCREEN_POWER)
 
     override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("recording is not available for a physical iOS device")
 

@@ -66,6 +66,7 @@ private class MirrorHostPlugin :
             TapCommand(mirror),
             SwipeCommand(mirror),
             PressButtonCommand(mirror),
+            SetScreenCommand(mirror),
             InputTextCommand(mirror),
             StartRecordingCommand(mirror),
             StopRecordingCommand(mirror),

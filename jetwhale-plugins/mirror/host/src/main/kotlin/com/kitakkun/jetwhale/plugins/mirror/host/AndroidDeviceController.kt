@@ -16,6 +16,7 @@ internal class AndroidDeviceController(
         input = true,
         buttons = listOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Power, DeviceButton.VolumeUp, DeviceButton.VolumeDown),
         recording = true,
+        screenPower = true,
     )
 
     // exec-out keeps the PNG binary-safe; `shell` would pass it through a pty that rewrites line ends.
@@ -45,6 +46,24 @@ internal class AndroidDeviceController(
 
     override suspend fun inputText(text: String) {
         runCommandChecked(adb, "-s", serial, "shell", "input", "text", escapeForAdbInputText(text))
+    }
+
+    override suspend fun screenPower(): ScreenPower {
+        // One round trip for both; `dumpsys window` is large, so the device filters it. A grep that
+        // matches nothing exits non-zero, which is why the exit code is not checked.
+        val result = runCommand(adb, "-s", serial, "shell", "dumpsys power | grep mWakefulness=; dumpsys window | grep isKeyguardShowing=")
+        return parseScreenPower(result.stdoutText)
+            ?: throw deviceControlError("could not read the screen state of $serial: ${result.stderr.ifBlank { result.stdoutText }.trim().take(200)}")
+    }
+
+    override suspend fun wake() {
+        runCommandChecked(adb, "-s", serial, "shell", "input", "keyevent", "KEYCODE_WAKEUP")
+        // Dismisses only a lock screen without a PIN, pattern or password; one with them stays.
+        runCommandChecked(adb, "-s", serial, "shell", "wm", "dismiss-keyguard")
+    }
+
+    override suspend fun sleep() {
+        runCommandChecked(adb, "-s", serial, "shell", "input", "keyevent", "KEYCODE_SLEEP")
     }
 
     // screenrecord ends a session after 180 seconds; the mirror opens a new stream when it does.
@@ -88,3 +107,14 @@ internal fun escapeForAdbInputText(text: String): String = text
     .replace(Regex("""([\\'"`$&*()\[\]{}+|<>;?~#!])"""), """\\$1""")
     .replace("%", "\\%")
     .replace(" ", "%s")
+
+/**
+ * The screen state in the output of `dumpsys power` and `dumpsys window`, or null when it has no
+ * wakefulness line. `Awake` and `Dreaming` (a screensaver) have the screen on; `Asleep` and
+ * `Dozing` (an always-on display) show nothing the mirror can use.
+ */
+internal fun parseScreenPower(output: String): ScreenPower? {
+    val wakefulness = Regex("""mWakefulness=(\w+)""").find(output)?.groupValues?.get(1) ?: return null
+    val locked = Regex("""isKeyguardShowing=(\w+)""").find(output)?.groupValues?.get(1) == "true"
+    return ScreenPower(awake = wakefulness == "Awake" || wakefulness == "Dreaming", locked = locked)
+}

@@ -25,8 +25,8 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalJetWhaleApi::class)
 class MirrorMcpCommandsTest {
-    private val emulator = FakeController(DeviceCapabilities(input = true, buttons = listOf(DeviceButton.Home, DeviceButton.Back), recording = true))
-    private val iphone = FakeController(DeviceCapabilities(input = false, buttons = emptyList(), recording = false), refusal = VIEW_ONLY)
+    private val emulator = FakeController(DeviceCapabilities(input = true, buttons = listOf(DeviceButton.Home, DeviceButton.Back), recording = true, screenPower = true))
+    private val iphone = FakeController(DeviceCapabilities(input = false, buttons = emptyList(), recording = false, screenPower = false), refusal = VIEW_ONLY)
     private val mirror = FakeMirrorDevices(
         listOf(
             MirrorDevice(DeviceListing("emulator-5554", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), emulator),
@@ -42,6 +42,40 @@ class MirrorMcpCommandsTest {
         assertEquals("iOS", phone.getValue("platform").jsonPrimitive.content)
         assertFalse(phone.getValue("input").jsonPrimitive.boolean)
         assertTrue(devices.single { it.getValue("deviceId").jsonPrimitive.content == "emulator-5554" }.getValue("input").jsonPrimitive.boolean)
+    }
+
+    @Test
+    fun `listDevices reports whether an Android screen is on and says nothing of an iPhone's`() {
+        emulator.power = ScreenPower(awake = false, locked = true)
+
+        val devices = ListDevicesCommand(mirror).run().getValue("devices").jsonArray.map(JsonElement::jsonObject)
+
+        val android = devices.single { it.getValue("deviceId").jsonPrimitive.content == "emulator-5554" }
+        assertFalse(android.getValue("screenOn").jsonPrimitive.boolean)
+        assertTrue(android.getValue("locked").jsonPrimitive.boolean)
+        assertFalse("screenOn" in devices.single { it.getValue("deviceId").jsonPrimitive.content == "00008110" })
+    }
+
+    @Test
+    fun `setScreen turns an Android screen off and answers the state it leaves`() {
+        val answer = SetScreenCommand(mirror).run(buildJsonObject { put("on", false) })
+
+        assertEquals(listOf("sleep"), emulator.calls)
+        assertFalse(answer.getValue("screenOn").jsonPrimitive.boolean)
+    }
+
+    @Test
+    fun `setScreen on an iPhone is refused with the reason`() {
+        val failure = assertFailsWith<JetWhaleMcpArgumentException> {
+            SetScreenCommand(mirror).run(
+                buildJsonObject {
+                    put("deviceId", "00008110")
+                    put("on", true)
+                },
+            )
+        }
+
+        assertEquals(NO_SCREEN_POWER, failure.message)
     }
 
     @Test
@@ -255,6 +289,25 @@ private class FakeController(
     override suspend fun pressButton(button: DeviceButton) = record("press $button")
 
     override suspend fun inputText(text: String) = record("type $text")
+
+    var power = ScreenPower(awake = true, locked = false)
+
+    override suspend fun screenPower(): ScreenPower {
+        if (!capabilities.screenPower) throw deviceControlError(NO_SCREEN_POWER)
+        return power
+    }
+
+    override suspend fun wake() {
+        if (!capabilities.screenPower) throw deviceControlError(NO_SCREEN_POWER)
+        record("wake")
+        power = ScreenPower(awake = true, locked = false)
+    }
+
+    override suspend fun sleep() {
+        if (!capabilities.screenPower) throw deviceControlError(NO_SCREEN_POWER)
+        record("sleep")
+        power = ScreenPower(awake = false, locked = true)
+    }
 
     override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("not recording in tests")
 
