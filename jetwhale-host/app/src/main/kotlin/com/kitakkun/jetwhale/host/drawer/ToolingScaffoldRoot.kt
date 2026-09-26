@@ -62,7 +62,8 @@ fun ToolingScaffoldRoot(
             state1 = rememberSubscription(screenContext.settingsSubscriptionKey),
             state2 = rememberSubscription(screenContext.headlessPluginsSubscriptionKey),
             state3 = rememberSubscription(screenContext.sidebarWidthSubscriptionKey),
-        ) { debuggerSettings, headlessPlugins, persistedSidebarWidth ->
+            state4 = rememberSubscription(screenContext.mcpServerStatusSubscriptionKey),
+        ) { debuggerSettings, headlessPlugins, persistedSidebarWidth, mcpServerStatus ->
             val screenChannel = rememberScreenChannel<ToolingScaffoldScreenAction, ToolingScaffoldScreenActionResult>()
             val snackbarHostState = remember { JwSnackbarHostState() }
             ActionResultEffect(screenChannel) { result ->
@@ -82,6 +83,7 @@ fun ToolingScaffoldRoot(
                     headlessPlugins = headlessPlugins,
                     followAiOperationEnabled = debuggerSettings.followAiOperationEnabled,
                     persistedSidebarWidth = persistedSidebarWidth,
+                    mcpServerStatus = mcpServerStatus,
                 )
             }
 
@@ -123,6 +125,7 @@ fun ToolingScaffoldRoot(
                 onClickPopout = onClickPopout,
                 isPoppedOut = isPoppedOut,
                 onClickBringBack = onClickBringBack,
+                onNavigateSettings = onNavigateSettings,
                 snackbarHostState = snackbarHostState,
                 content = content,
             )
@@ -150,6 +153,7 @@ private fun ToolingScaffoldWithActions(
     onClickPopout: (pluginId: String, pluginName: String, sessionId: String) -> Unit,
     isPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
     onClickBringBack: (pluginId: String, sessionId: String) -> Unit,
+    onNavigateSettings: (SettingsScreenPage) -> Unit,
     content: @Composable () -> Unit,
 ) {
     ToolingScaffold(
@@ -190,6 +194,7 @@ private fun ToolingScaffoldWithActions(
         onFollowAiOperationChange = { enabled ->
             screenChannel.send(ToolingScaffoldScreenAction.SetFollowAiOperation(enabled))
         },
+        onOpenMcpSettings = { onNavigateSettings(SettingsScreenPage.McpServer) },
         onResizeSidebar = { screenChannel.send(ToolingScaffoldScreenAction.ResizeSidebar(it)) },
         onSidebarResizeFinished = { screenChannel.send(ToolingScaffoldScreenAction.SaveSidebarWidth) },
         snackbarHostState = snackbarHostState,

@@ -12,7 +12,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,8 +24,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,6 +49,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -52,11 +59,27 @@ import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.ai_agent_connected
 import com.kitakkun.jetwhale.host.ai_agent_idle
 import com.kitakkun.jetwhale.host.ai_agent_operating_tooltip
+import com.kitakkun.jetwhale.host.ai_connect_agent
+import com.kitakkun.jetwhale.host.ai_connect_agent_description
+import com.kitakkun.jetwhale.host.ai_mcp_claude_code
+import com.kitakkun.jetwhale.host.ai_mcp_copy
+import com.kitakkun.jetwhale.host.ai_mcp_endpoint
+import com.kitakkun.jetwhale.host.ai_mcp_failed_description
+import com.kitakkun.jetwhale.host.ai_mcp_off
+import com.kitakkun.jetwhale.host.ai_mcp_off_description
+import com.kitakkun.jetwhale.host.ai_mcp_open_guide
+import com.kitakkun.jetwhale.host.ai_mcp_open_settings
+import com.kitakkun.jetwhale.host.ai_mcp_other_clients
+import com.kitakkun.jetwhale.host.ai_mcp_starting
 import com.kitakkun.jetwhale.host.ai_operating_app
 import com.kitakkun.jetwhale.host.ai_operating_plugin
 import com.kitakkun.jetwhale.host.ai_operating_tool
 import com.kitakkun.jetwhale.host.follow_ai_description
 import com.kitakkun.jetwhale.host.follow_ai_title
+import com.kitakkun.jetwhale.host.model.McpClientSetup
+import com.kitakkun.jetwhale.host.ui.JwButton
+import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwCodeBlock
 import com.kitakkun.jetwhale.host.ui.JwDropdownMenu
 import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwIcon
@@ -71,6 +94,7 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTooltip
+import com.kitakkun.jetwhale.host.ui.jwFocusRing
 import org.jetbrains.compose.resources.stringResource
 
 private const val PULSE_PERIOD_MILLIS = 1100
@@ -165,140 +189,203 @@ fun aiActivityPulseAlpha(operating: Boolean): Float {
 /** The popover is a short status card, not a menu, so it is kept to a readable measure. */
 private val AiDetailsMaxWidth = 280.dp
 
-/** The ring's corner on the header banner, matching the small shape of the surface it rings. */
+/** Wide enough for the endpoint and the Claude Code command to read on few lines. */
+private val AiConnectHelpWidth = 360.dp
+
+/** The ring's corner on the header card, matching the small shape of the card it rings. */
 private val AiBannerRingCornerRadius = 6.dp
 
 /**
- * The sidebar header's AI banner, the window's one sign of an AI agent attached over MCP. It fills
- * the header row while an agent is connected — the AI mark and *AI agent connected*, or the tool with
- * the sweeping ring while a call runs — and leaves the row empty otherwise. The row's height never
- * changes, so nothing below it moves as agents come and go. Clicking it opens the details and the
- * follow switch. Which plugin is being operated stays marked by that plugin's own ring.
+ * The sidebar header's AI card, the window's one place for an AI agent over MCP. It is always there,
+ * so the header row never changes, and says what the agent side is at now: MCP off, waiting for a
+ * client, an agent connected, or the tool a call runs with the sweeping ring. Clicking it opens what
+ * fits: how to start MCP, how to connect a client, or the details and the follow switch. Which plugin
+ * is being operated stays marked by that plugin's own ring.
  */
 @Composable
 fun AiActivityBanner(
     uiState: AiActivityUiState,
     onFollowChange: (Boolean) -> Unit,
+    onOpenMcpSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AnimatedVisibility(
-        visible = uiState.isAgentConnected,
-        enter = fadeIn(),
-        exit = fadeOut(),
-        modifier = modifier,
-    ) {
-        var detailsShown by remember { mutableStateOf(false) }
-        Box {
-            JwTooltip(text = uiState.operatingToolName?.let { stringResource(Res.string.ai_agent_operating_tooltip, it) }) {
-                AiActivityBannerSurface(
-                    operatingToolName = uiState.operatingToolName,
-                    operatingToolShortName = uiState.operatingToolShortName,
-                    onClick = { detailsShown = true },
-                )
-            }
-            JwDropdownMenu(expanded = detailsShown, onDismissRequest = { detailsShown = false }) {
-                AiActivityDetails(uiState = uiState, onFollowChange = onFollowChange)
-            }
+    var detailsShown by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        JwTooltip(text = uiState.operatingToolName?.let { stringResource(Res.string.ai_agent_operating_tooltip, it) }) {
+            AiActivityCard(uiState = uiState, onClick = { detailsShown = true })
+        }
+        JwDropdownMenu(expanded = detailsShown, onDismissRequest = { detailsShown = false }) {
+            AiActivityPopover(
+                uiState = uiState,
+                onFollowChange = onFollowChange,
+                onOpenMcpSettings = {
+                    detailsShown = false
+                    onOpenMcpSettings()
+                },
+            )
         }
     }
 }
 
 @Composable
-private fun AiActivityBannerSurface(
-    operatingToolName: String?,
-    operatingToolShortName: String?,
+private fun AiActivityCard(
+    uiState: AiActivityUiState,
     onClick: () -> Unit,
 ) {
-    val operating = operatingToolName != null
+    val operating = uiState.isOperating
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
+    val hovered by interactionSource.collectIsHoveredAsState()
     JwSurface(
-        color = if (operating) JwTone.Warning.containerColor else JwTheme.colors.elevatedBackground,
+        color = aiCardColor(connected = uiState.isAgentConnected, operating = uiState.isOperating),
         shape = JwShapes.small,
+        border = BorderStroke(JwMetrics.borderWidth, JwTheme.colors.border),
         modifier = Modifier
             .fillMaxWidth()
+            .jwFocusRing(interactionSource, JwShapes.small)
             .clip(JwShapes.small)
-            .clickable(role = Role.Button, onClick = onClick)
-            .then(
-                if (operating) {
-                    Modifier.aiOperatingBorder(color = JwTheme.colors.aiAccent, width = JwMetrics.focusStrokeWidth, cornerRadius = AiBannerRingCornerRadius)
-                } else {
-                    Modifier
-                },
-            ),
+            .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = onClick)
+            .then(if (operating) Modifier.aiOperatingBorder(color = JwTheme.colors.aiAccent, width = JwMetrics.focusStrokeWidth, cornerRadius = AiBannerRingCornerRadius) else Modifier),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = JwSpacing.medium, vertical = JwSpacing.small),
+            modifier = Modifier
+                .background(if (hovered) JwTheme.colors.hover else Color.Transparent)
+                .padding(horizontal = JwSpacing.medium, vertical = JwSpacing.small),
             horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             JwIcon(
                 imageVector = Icons.Default.SmartToy,
-                contentDescription = operatingToolName?.let { stringResource(Res.string.ai_operating_tool, it) },
-                tint = if (operating) JwTheme.colors.aiAccent else JwTheme.colors.textSecondary,
+                contentDescription = uiState.operatingToolName?.let { stringResource(Res.string.ai_operating_tool, it) },
+                tint = aiIconTint(connected = uiState.isAgentConnected, operating = uiState.isOperating),
                 modifier = Modifier.alpha(aiActivityPulseAlpha(operating)),
             )
             JwText(
                 // The ring already says a call is running; the line only has to say which.
-                text = operatingToolShortName ?: stringResource(Res.string.ai_agent_connected),
+                text = uiState.operatingToolShortName ?: aiCardLabel(connected = uiState.isAgentConnected, mcpServer = uiState.mcpServer),
                 style = JwTheme.textStyles.label,
+                color = if (uiState.isAgentConnected) JwTheme.colors.onSurface else JwTheme.colors.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
+            if (uiState.isAgentConnected && !operating) JwStatusDot(tone = JwTone.Success)
+            JwIcon(imageVector = Icons.Default.ExpandMore, contentDescription = null, tint = JwTheme.colors.textSecondary)
         }
     }
 }
 
 /**
- * The collapsed rail's form of [AiActivityBanner]: the AI mark alone, with the ring while a call
- * runs, the state and tool in its tooltip, and the same details on click. Its slot is kept while no
- * agent is connected, so the rail below it never moves.
+ * The collapsed rail's form of [AiActivityBanner]: the AI mark alone in a small card, muted until an
+ * agent connects, with the ring while a call runs, the state in its tooltip, and the same popover on
+ * click.
  */
 @Composable
 fun AiActivityIndicator(
     uiState: AiActivityUiState,
     onFollowChange: (Boolean) -> Unit,
+    onOpenMcpSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier.size(JwMetrics.controlHeight), contentAlignment = Alignment.Center) {
-        AnimatedVisibility(
-            visible = uiState.isAgentConnected,
-            enter = fadeIn() + scaleIn(initialScale = 0.6f),
-            exit = fadeOut() + scaleOut(targetScale = 0.6f),
-        ) {
-            var detailsShown by remember { mutableStateOf(false) }
-            val description = uiState.operatingToolName
-                ?.let { stringResource(Res.string.ai_agent_operating_tooltip, it) }
-                ?: stringResource(Res.string.ai_agent_connected)
-            Box {
-                JwIconButton(
-                    onClick = { detailsShown = true },
-                    tooltip = description,
-                    modifier = if (uiState.isOperating) {
-                        Modifier.aiOperatingBorder(color = JwTheme.colors.aiAccent, width = JwMetrics.focusStrokeWidth, cornerRadius = AiBannerRingCornerRadius)
-                    } else {
-                        Modifier
-                    },
-                ) {
-                    // The button's tooltip already describes it; a description here would be read twice.
-                    JwIcon(
-                        imageVector = Icons.Default.SmartToy,
-                        contentDescription = null,
-                        tint = if (uiState.isOperating) JwTheme.colors.aiAccent else JwTheme.colors.textSecondary,
-                        modifier = Modifier.alpha(aiActivityPulseAlpha(uiState.isOperating)),
-                    )
-                }
-                JwStatusDot(tone = JwTone.Success, modifier = Modifier.align(Alignment.BottomEnd))
-                JwDropdownMenu(expanded = detailsShown, onDismissRequest = { detailsShown = false }) {
-                    AiActivityDetails(uiState = uiState, onFollowChange = onFollowChange)
-                }
+    var detailsShown by remember { mutableStateOf(false) }
+    val interactionSource = remember(calculation = ::MutableInteractionSource)
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val description = uiState.operatingToolName?.let { stringResource(Res.string.ai_agent_operating_tooltip, it) } ?: aiCardLabel(connected = uiState.isAgentConnected, mcpServer = uiState.mcpServer)
+    Box(modifier = modifier) {
+        JwTooltip(text = description) {
+            JwSurface(
+                color = if (hovered) JwTheme.colors.hover else aiCardColor(connected = uiState.isAgentConnected, operating = uiState.isOperating),
+                shape = JwShapes.small,
+                border = BorderStroke(JwMetrics.borderWidth, JwTheme.colors.border),
+                modifier = Modifier
+                    .size(JwMetrics.controlHeight)
+                    .jwFocusRing(interactionSource, JwShapes.small)
+                    .clip(JwShapes.small)
+                    .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClickLabel = description, onClick = { detailsShown = true })
+                    .then(if (uiState.isOperating) Modifier.aiOperatingBorder(color = JwTheme.colors.aiAccent, width = JwMetrics.focusStrokeWidth, cornerRadius = AiBannerRingCornerRadius) else Modifier),
+            ) {
+                JwIcon(
+                    imageVector = Icons.Default.SmartToy,
+                    contentDescription = description,
+                    tint = aiIconTint(connected = uiState.isAgentConnected, operating = uiState.isOperating),
+                    modifier = Modifier.align(Alignment.Center).alpha(aiActivityPulseAlpha(uiState.isOperating)),
+                )
             }
         }
+        if (uiState.isAgentConnected) JwStatusDot(tone = JwTone.Success, modifier = Modifier.align(Alignment.BottomEnd))
+        JwDropdownMenu(expanded = detailsShown, onDismissRequest = { detailsShown = false }) {
+            AiActivityPopover(
+                uiState = uiState,
+                onFollowChange = onFollowChange,
+                onOpenMcpSettings = {
+                    detailsShown = false
+                    onOpenMcpSettings()
+                },
+            )
+        }
+    }
+}
+
+/** A connected agent's card stands out; until one connects the card stays in the background. */
+@Composable
+private fun aiCardColor(connected: Boolean, operating: Boolean): Color = when {
+    operating -> JwTone.Warning.containerColor
+    connected -> JwTheme.colors.elevatedBackground
+    else -> Color.Transparent
+}
+
+@Composable
+private fun aiIconTint(connected: Boolean, operating: Boolean): Color = when {
+    operating -> JwTheme.colors.aiAccent
+    connected -> JwTheme.colors.onSurface
+    else -> JwTheme.colors.textSecondary
+}
+
+@Composable
+private fun aiCardLabel(connected: Boolean, mcpServer: McpServerAvailability): String = when {
+    connected -> stringResource(Res.string.ai_agent_connected)
+
+    else -> when (mcpServer) {
+        is McpServerAvailability.Ready -> stringResource(Res.string.ai_connect_agent)
+        is McpServerAvailability.Starting -> stringResource(Res.string.ai_mcp_starting)
+        is McpServerAvailability.Off -> stringResource(Res.string.ai_mcp_off)
+    }
+}
+
+@Composable
+private fun AiActivityPopover(
+    uiState: AiActivityUiState,
+    onFollowChange: (Boolean) -> Unit,
+    onOpenMcpSettings: () -> Unit,
+) {
+    if (uiState.isAgentConnected) {
+        AiActivityDetails(
+            operatingToolName = uiState.operatingToolName,
+            operatingPluginName = uiState.operatingPluginName,
+            operatingAppName = uiState.operatingAppName,
+            isFollowModeOn = uiState.isFollowModeOn,
+            onFollowChange = onFollowChange,
+        )
+        return
+    }
+    when (val server = uiState.mcpServer) {
+        is McpServerAvailability.Ready -> McpConnectHelp(setup = server.setup, onOpenMcpSettings = onOpenMcpSettings)
+
+        is McpServerAvailability.Starting -> McpOffHelp(title = stringResource(Res.string.ai_mcp_starting), description = null, onOpenMcpSettings = onOpenMcpSettings)
+
+        is McpServerAvailability.Off -> McpOffHelp(
+            title = stringResource(Res.string.ai_mcp_off),
+            description = server.reason?.let { stringResource(Res.string.ai_mcp_failed_description, it) } ?: stringResource(Res.string.ai_mcp_off_description),
+            onOpenMcpSettings = onOpenMcpSettings,
+        )
     }
 }
 
 @Composable
 private fun AiActivityDetails(
-    uiState: AiActivityUiState,
+    operatingToolName: String?,
+    operatingPluginName: String?,
+    operatingAppName: String?,
+    isFollowModeOn: Boolean,
     onFollowChange: (Boolean) -> Unit,
 ) {
     Column(modifier = Modifier.widthIn(max = AiDetailsMaxWidth)) {
@@ -307,15 +394,15 @@ private fun AiActivityDetails(
             verticalArrangement = Arrangement.spacedBy(JwSpacing.tiny),
         ) {
             JwText(text = stringResource(Res.string.ai_agent_connected), style = JwTheme.textStyles.subtitle)
-            when (val toolName = uiState.operatingToolName) {
+            when (val toolName = operatingToolName) {
                 null -> JwText(text = stringResource(Res.string.ai_agent_idle), style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary)
 
                 else -> {
                     JwText(text = stringResource(Res.string.ai_operating_tool, toolName), style = JwTheme.textStyles.code)
-                    uiState.operatingPluginName?.let {
+                    operatingPluginName?.let {
                         JwText(text = stringResource(Res.string.ai_operating_plugin, it), style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary)
                     }
-                    uiState.operatingAppName?.let {
+                    operatingAppName?.let {
                         JwText(text = stringResource(Res.string.ai_operating_app, it), style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary)
                     }
                 }
@@ -332,57 +419,138 @@ private fun AiActivityDetails(
                 JwText(text = title, style = JwTheme.textStyles.label)
                 JwText(text = stringResource(Res.string.follow_ai_description), style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary)
             }
-            JwSwitch(checked = uiState.isFollowModeOn, contentDescription = title, onCheckedChange = onFollowChange)
+            JwSwitch(checked = isFollowModeOn, contentDescription = title, onCheckedChange = onFollowChange)
         }
+    }
+}
+
+/** How to point a client at the running server: the endpoint and ready-to-paste setups. */
+@Composable
+private fun McpConnectHelp(
+    setup: McpClientSetup,
+    onOpenMcpSettings: () -> Unit,
+) {
+    val uriHandler = LocalUriHandler.current
+    val copy = stringResource(Res.string.ai_mcp_copy)
+    Column(
+        modifier = Modifier.width(AiConnectHelpWidth).padding(horizontal = JwSpacing.medium, vertical = JwSpacing.small),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.small),
+    ) {
+        JwText(text = stringResource(Res.string.ai_connect_agent), style = JwTheme.textStyles.subtitle)
+        JwText(text = stringResource(Res.string.ai_connect_agent_description), style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary)
+        // The menu scrolls past its max height; the ways out stay above the snippets that push it there.
+        Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
+            JwButton(text = stringResource(Res.string.ai_mcp_open_guide), onClick = { uriHandler.openUri(McpClientSetup.GUIDE_URL) }, style = JwButtonStyle.Text)
+            JwButton(text = stringResource(Res.string.ai_mcp_open_settings), onClick = onOpenMcpSettings, style = JwButtonStyle.Text)
+        }
+        JwText(text = stringResource(Res.string.ai_mcp_endpoint), style = JwTheme.textStyles.label)
+        JwCodeBlock(text = setup.endpointUrl, copyLabel = copy)
+        JwText(text = stringResource(Res.string.ai_mcp_claude_code), style = JwTheme.textStyles.label)
+        JwCodeBlock(text = setup.claudeCodeCommand, wrap = true, copyLabel = copy)
+        JwText(text = stringResource(Res.string.ai_mcp_other_clients), style = JwTheme.textStyles.label)
+        JwCodeBlock(text = setup.jsonConfig, copyLabel = copy)
+    }
+}
+
+/** Why no agent can connect now, and the way to the settings that change it. */
+@Composable
+private fun McpOffHelp(
+    title: String,
+    description: String?,
+    onOpenMcpSettings: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.widthIn(max = AiDetailsMaxWidth).padding(horizontal = JwSpacing.medium, vertical = JwSpacing.small),
+        verticalArrangement = Arrangement.spacedBy(JwSpacing.small),
+    ) {
+        JwText(text = title, style = JwTheme.textStyles.subtitle)
+        description?.let { JwText(text = it, style = JwTheme.textStyles.bodySmall, color = JwTheme.colors.textSecondary) }
+        JwButton(text = stringResource(Res.string.ai_mcp_open_settings), onClick = onOpenMcpSettings)
+    }
+}
+
+private val PreviewSetup = McpClientSetup.forServer(host = "localhost", port = 7080)
+
+private val PreviewConnected = AiActivityUiState.Idle.copy(isAgentConnected = true, isFollowModeOn = true, mcpServer = McpServerAvailability.Ready(PreviewSetup))
+
+private val PreviewOperating = PreviewConnected.copy(
+    operatingToolName = "com.kitakkun.jetwhale.mirror.tap",
+    operatingToolShortName = "mirror.tap",
+    operatingPluginName = "Device Mirror",
+)
+
+/** MCP off, waiting for a client, connected, operating: the card's four states from quiet to busy. */
+private val PreviewStates = listOf(
+    AiActivityUiState.Idle,
+    AiActivityUiState.Idle.copy(mcpServer = McpServerAvailability.Ready(PreviewSetup)),
+    PreviewConnected,
+    PreviewOperating,
+)
+
+@Preview
+@Composable
+private fun AiActivityBannerLightPreview() {
+    AiActivityPreviewColumn(darkTheme = false) {
+        PreviewStates.forEach { AiActivityBanner(uiState = it, onFollowChange = {}, onOpenMcpSettings = {}) }
     }
 }
 
 @Preview
 @Composable
-private fun AiActivityBannerConnectedPreview() {
-    AiActivityBanner(
-        uiState = AiActivityUiState(isAgentConnected = true, operatingToolName = null, operatingToolShortName = null, operatingPluginName = null, operatingAppName = null, isFollowModeOn = true),
-        onFollowChange = {},
-    )
+private fun AiActivityBannerDarkPreview() {
+    AiActivityPreviewColumn(darkTheme = true) {
+        PreviewStates.forEach { AiActivityBanner(uiState = it, onFollowChange = {}, onOpenMcpSettings = {}) }
+    }
 }
 
 @Preview
 @Composable
-private fun AiActivityBannerOperatingPreview() {
-    AiActivityBanner(
-        uiState = AiActivityUiState(isAgentConnected = true, operatingToolName = "com.kitakkun.jetwhale.mirror.tap", operatingToolShortName = "mirror.tap", operatingPluginName = "Device Mirror", operatingAppName = null, isFollowModeOn = true),
-        onFollowChange = {},
-    )
+private fun AiActivityIndicatorLightPreview() {
+    AiActivityPreviewColumn(darkTheme = false) {
+        PreviewStates.forEach { AiActivityIndicator(uiState = it, onFollowChange = {}, onOpenMcpSettings = {}) }
+    }
 }
 
 @Preview
 @Composable
-private fun AiActivityIndicatorOperatingPreview() {
-    AiActivityIndicator(
-        uiState = AiActivityUiState(
-            isAgentConnected = true,
-            operatingToolName = "com.kitakkun.jetwhale.mirror.tap",
-            operatingToolShortName = "mirror.tap",
-            operatingPluginName = "Device Mirror",
-            operatingAppName = null,
-            isFollowModeOn = true,
-        ),
-        onFollowChange = {},
-    )
+private fun AiActivityIndicatorDarkPreview() {
+    AiActivityPreviewColumn(darkTheme = true) {
+        PreviewStates.forEach { AiActivityIndicator(uiState = it, onFollowChange = {}, onOpenMcpSettings = {}) }
+    }
 }
 
 @Preview
 @Composable
 private fun AiActivityDetailsPreview() {
-    AiActivityDetails(
-        uiState = AiActivityUiState(
-            isAgentConnected = true,
-            operatingToolName = "com.kitakkun.jetwhale.mirror.tap",
-            operatingToolShortName = "mirror.tap",
-            operatingPluginName = "Device Mirror",
-            operatingAppName = null,
-            isFollowModeOn = true,
-        ),
-        onFollowChange = {},
-    )
+    JwTheme(darkTheme = false) {
+        AiActivityDetails(operatingToolName = "com.kitakkun.jetwhale.mirror.tap", operatingPluginName = "Device Mirror", operatingAppName = null, isFollowModeOn = true, onFollowChange = {})
+    }
+}
+
+@Preview
+@Composable
+private fun McpConnectHelpPreview() {
+    JwTheme(darkTheme = true) {
+        McpConnectHelp(setup = PreviewSetup, onOpenMcpSettings = {})
+    }
+}
+
+@Preview
+@Composable
+private fun McpOffHelpPreview() {
+    JwTheme(darkTheme = false) {
+        McpOffHelp(title = "MCP is off", description = "The MCP server couldn't start: port 7080 is in use", onOpenMcpSettings = {})
+    }
+}
+
+@Composable
+private fun AiActivityPreviewColumn(darkTheme: Boolean, content: @Composable () -> Unit) {
+    JwTheme(darkTheme = darkTheme) {
+        Column(
+            modifier = Modifier.width(260.dp).background(JwTheme.colors.sidebarBackground).padding(JwSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(JwSpacing.small),
+        ) {
+            content()
+        }
+    }
 }

@@ -45,6 +45,7 @@ fun ToolingScaffold(
     onResizeSidebar: (Dp) -> Unit,
     onSidebarResizeFinished: () -> Unit,
     onFollowAiOperationChange: (Boolean) -> Unit,
+    onOpenMcpSettings: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -64,6 +65,7 @@ fun ToolingScaffold(
             onResizeSidebar = onResizeSidebar,
             onSidebarResizeFinished = onSidebarResizeFinished,
             onFollowAiOperationChange = onFollowAiOperationChange,
+            onOpenMcpSettings = onOpenMcpSettings,
             onClickSettings = onClickSettings,
             onClickPluginSettings = onClickPluginSettings,
             onClickInfo = onClickInfo,
@@ -120,6 +122,7 @@ private fun ToolingScaffoldPreview() {
         onResizeSidebar = {},
         onSidebarResizeFinished = {},
         onFollowAiOperationChange = {},
+        onOpenMcpSettings = {},
         snackbarHostState = remember { JwSnackbarHostState() },
     ) {
         JwText("Hello, World!")

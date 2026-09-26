@@ -19,6 +19,8 @@ import com.kitakkun.jetwhale.host.model.HeadlessPlugins
 import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.McpActivity
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
+import com.kitakkun.jetwhale.host.model.McpClientSetup
+import com.kitakkun.jetwhale.host.model.McpServerStatus
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginMetaData
@@ -99,6 +101,7 @@ fun toolingScaffoldPresenter(
     headlessPlugins: HeadlessPlugins,
     followAiOperationEnabled: Boolean,
     persistedSidebarWidth: SidebarWidth,
+    mcpServerStatus: McpServerStatus,
 ): ToolingScaffoldUiState {
     var selectedSessionId by retain { mutableStateOf("") }
     var selectedPluginId by retain { mutableStateOf("") }
@@ -217,9 +220,17 @@ fun toolingScaffoldPresenter(
             operatingPluginName = activeInvocation?.pluginId?.let { pluginId -> loadedPlugins.find { it.id == pluginId }?.name },
             operatingAppName = activeInvocation?.sessionId?.let { sessionId -> debugSessions.find { it.id == sessionId }?.deviceAndAppDisplayName },
             isFollowModeOn = followAiOperationEnabled,
+            mcpServer = mcpServerStatus.toAvailability(),
         ),
         sidebarWidth = sidebarWidth,
     )
+}
+
+private fun McpServerStatus.toAvailability(): McpServerAvailability = when (this) {
+    is McpServerStatus.Running -> McpServerAvailability.Ready(McpClientSetup.forServer(host = host, port = port))
+    is McpServerStatus.Starting -> McpServerAvailability.Starting
+    is McpServerStatus.Error -> McpServerAvailability.Off(reason = message)
+    is McpServerStatus.Stopped, is McpServerStatus.Stopping -> McpServerAvailability.Off(reason = null)
 }
 
 /** Narrow enough to leave the plugin room in a small window, wide enough to read a plugin's name. */
