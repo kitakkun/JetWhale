@@ -1,0 +1,3 @@
+# The previews of this plugin live in the `preview` compilation, not beside the screens.
+rules:
+  compose.previewRequired: off
