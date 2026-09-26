@@ -75,9 +75,16 @@ internal fun findEmulatorEndpoint(serial: String, directories: List<File>): Emul
     val consolePort = serial.removePrefix("emulator-").toIntOrNull() ?: return null
     return directories.asSequence()
         .flatMap { it.listFiles { file -> file.name.startsWith("pid_") && file.name.endsWith(".ini") }.orEmpty().asSequence() }
-        .mapNotNull { parseEmulatorDiscovery(it.readText()) }
+        // An emulator that is shutting down removes its file between the listing and the read.
+        .mapNotNull { file -> file.readTextOrNull()?.let(::parseEmulatorDiscovery) }
         .firstOrNull { it.first == consolePort }
         ?.second
+}
+
+private fun File.readTextOrNull(): String? = try {
+    readText()
+} catch (_: IOException) {
+    null
 }
 
 /** The console port and gRPC endpoint in the text of an emulator's discovery file, or null without a gRPC port. */
@@ -111,10 +118,15 @@ internal fun grpcMessage(message: ByteArray): ByteArray = Buffer().writeByte(0).
 internal fun readEmulatorFramesInto(surface: MirrorSurface, frames: InputStream, onFrame: () -> Unit) {
     val timed = WaitTimingInputStream(frames)
     val reader = EmulatorImageReader(timed)
-    while (true) {
-        val image = timed.timingWork(surface::recordDecode, reader::next) ?: return
-        surface.writeRgbaFrame(reader.pixels, image)
-        onFrame()
+    try {
+        while (true) {
+            val image = timed.timingWork(surface::recordDecode, reader::next) ?: return
+            surface.writeRgbaFrame(reader.pixels, image)
+            onFrame()
+        }
+    } catch (_: IOException) {
+        // A call cut off mid-frame, or cancelled because the mirror closed it, ends the stream like
+        // any other end: the mirror opens the next one.
     }
 }
 
@@ -144,35 +156,28 @@ internal class EmulatorImageReader(private val input: InputStream) {
         if (compressed == -1) return null
         if (compressed != 0) throw deviceControlError("the emulator sent a compressed frame, which the mirror cannot read")
         val message = BoundedReader(input, readFixedInt())
-        var width = 0
-        var height = 0
+        var size = IntSize.Zero
         var pixelBytes = 0
         while (message.hasMore()) {
-            val key = message.readVarint()
-            when {
-                key == KEY_FORMAT -> {
-                    val format = BoundedReader(message, message.readVarint().toInt())
-                    while (format.hasMore()) {
-                        val formatKey = format.readVarint()
-                        when (formatKey) {
-                            KEY_FORMAT_WIDTH -> width = format.readVarint().toInt()
-                            KEY_FORMAT_HEIGHT -> height = format.readVarint().toInt()
-                            else -> format.skipField(formatKey)
-                        }
-                    }
-                }
-
-                key == KEY_IMAGE -> {
-                    pixelBytes = message.readVarint().toInt()
-                    if (pixels.size < pixelBytes) pixels = ByteArray(pixelBytes)
-                    message.readFully(pixels, pixelBytes)
-                }
-
+            when (val key = message.readVarint()) {
+                KEY_FORMAT -> size = message.readFrameSize()
+                KEY_IMAGE -> pixelBytes = readPixels(message)
                 else -> message.skipField(key)
             }
         }
-        if (width <= 0 || height <= 0 || pixelBytes < width * height * 4) throw deviceControlError("the emulator sent a frame of ${width}x$height with $pixelBytes bytes of pixels")
-        return EmulatorImage(width, height)
+        if (size.width <= 0 || size.height <= 0 || pixelBytes < size.width.toLong() * size.height * 4) throw deviceControlError("the emulator sent a frame of ${size.width}x${size.height} with $pixelBytes bytes of pixels")
+        return EmulatorImage(size.width, size.height)
+    }
+
+    /** Reads an `Image.image` field's pixels into [pixels]; returns how many bytes they took. */
+    private fun readPixels(message: BoundedReader): Int {
+        val length = message.readVarint()
+        // Checked before anything is allocated: a garbled length must not ask for gigabytes.
+        if (length > message.remaining() || length > MAX_FRAME_BYTES) throw deviceControlError("the emulator sent a frame of $length bytes, more than the mirror accepts")
+        val bytes = length.toInt()
+        if (pixels.size < bytes) pixels = ByteArray(bytes)
+        message.readFully(pixels, bytes)
+        return bytes
     }
 
     private fun readFixedInt(): Int = (0 until 4).fold(0) { value, _ -> (value shl 8) or input.readByteOrThrow() }
@@ -181,6 +186,8 @@ internal class EmulatorImageReader(private val input: InputStream) {
 /** Reads at most [limit] bytes of [source], for one protobuf message or field. */
 private class BoundedReader(private val source: InputStream, private var limit: Int) : InputStream() {
     fun hasMore(): Boolean = limit > 0
+
+    fun remaining(): Long = limit.toLong()
 
     override fun read(): Int {
         if (limit == 0) return -1
@@ -230,6 +237,23 @@ private class BoundedReader(private val source: InputStream, private var limit: 
     }
 }
 
+/** The frame size inside an `Image.format` field: `ImageFormat.width` and `.height`. */
+private fun BoundedReader.readFrameSize(): IntSize {
+    val length = readVarint()
+    if (length > remaining()) throw deviceControlError("the emulator sent a frame the mirror cannot parse")
+    val format = BoundedReader(this, length.toInt())
+    var width = 0
+    var height = 0
+    while (format.hasMore()) {
+        when (val key = format.readVarint()) {
+            KEY_FORMAT_WIDTH -> width = format.readVarint().toInt()
+            KEY_FORMAT_HEIGHT -> height = format.readVarint().toInt()
+            else -> format.skipField(key)
+        }
+    }
+    return IntSize(width, height)
+}
+
 private fun InputStream.readByteOrThrow(): Int {
     val byte = read()
     if (byte == -1) throw EOFException("the emulator's frame ended early")
@@ -251,6 +275,9 @@ private fun Buffer.writeVarint(value: Long) {
 }
 
 private val GRPC_MEDIA_TYPE = "application/grpc".toMediaType()
+
+/** The largest frame the mirror reads, 4096 by 4096 RGBA; an emulator asked for its shown size sends far less. */
+private const val MAX_FRAME_BYTES = 4096L * 4096 * 4
 
 private const val IMAGE_FORMAT_RGBA8888 = 1L
 
