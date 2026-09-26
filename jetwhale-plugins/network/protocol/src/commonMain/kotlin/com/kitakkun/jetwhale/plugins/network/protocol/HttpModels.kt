@@ -30,6 +30,8 @@ data class CapturedHttpRequest(
 
 /**
  * Transport-agnostic representation of an HTTP response captured for a request [txId].
+ *
+ * @property condition The network condition that shaped this exchange; null when none applied.
  */
 @Serializable
 data class CapturedHttpResponse(
@@ -42,16 +44,21 @@ data class CapturedHttpResponse(
     val bodyEncoding: BodyEncoding = BodyEncoding.TEXT,
     val durationMs: Long,
     val fromMock: Boolean = false,
+    val condition: AppliedNetworkCondition? = null,
 )
 
 /**
  * A request that failed before a response was produced (network error, cancellation, ...).
+ *
+ * @property condition The network condition that applied, including a failure it injected; null
+ *   when none applied.
  */
 @Serializable
 data class HttpRequestFailure(
     val txId: String,
     val message: String,
     val durationMs: Long,
+    val condition: AppliedNetworkCondition? = null,
 )
 
 /** The `Content-Type` media type of these headers, without parameters and lowercased. */

@@ -17,6 +17,7 @@ public final class com/kitakkun/jetwhale/plugins/network/host/HttpTransaction {
 	public final fun copy (Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;)Lcom/kitakkun/jetwhale/plugins/network/host/HttpTransaction;
 	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/network/host/HttpTransaction;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/network/host/HttpTransaction;
 	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCondition ()Lcom/kitakkun/jetwhale/plugins/network/protocol/AppliedNetworkCondition;
 	public final fun getFailure ()Lcom/kitakkun/jetwhale/plugins/network/protocol/HttpRequestFailure;
 	public final fun getRequest ()Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpRequest;
 	public final fun getResponse ()Lcom/kitakkun/jetwhale/plugins/network/protocol/CapturedHttpResponse;
@@ -32,10 +33,10 @@ public final class com/kitakkun/jetwhale/plugins/network/host/NetworkHostPluginF
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/host/NetworkInspectorScreenKt {
-	public static final fun NetworkInspectorScreen (Ljava/util/List;Ljava/util/List;ZLcom/kitakkun/jetwhale/host/ui/JwSplitPaneState;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+	public static final fun NetworkInspectorScreen (Ljava/util/List;Ljava/util/List;ZLjava/util/List;Lcom/kitakkun/jetwhale/host/ui/JwSplitPaneState;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/kitakkun/jetwhale/plugins/network/host/NetworkInspectorScreenRootKt {
-	public static final fun NetworkInspectorScreenRoot (Ljava/util/List;Ljava/util/List;ZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
+	public static final fun NetworkInspectorScreenRoot (Ljava/util/List;Ljava/util/List;ZLjava/util/List;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 }
 

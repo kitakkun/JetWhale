@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.network.agent.ktor
 
 import com.kitakkun.jetwhale.plugins.network.agent.JetWhaleNetworkAgentPlugin
+import com.kitakkun.jetwhale.plugins.network.agent.NetworkConditionPlan
 import com.kitakkun.jetwhale.plugins.network.protocol.BodyEncoding
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpRequest
 import com.kitakkun.jetwhale.plugins.network.protocol.CapturedHttpResponse
@@ -44,8 +45,9 @@ import kotlin.time.TimeSource
 internal data class BodyCaptureLimits(val maxBodyChars: Int, val maxImageBytes: Int)
 
 /**
- * Runs one request/response round trip through the agent: records the request, serves a matching
- * mock instead of hitting the network, and records the response or failure.
+ * Runs one request/response round trip through the agent: records the request, applies the
+ * matching network condition, serves a matching mock instead of hitting the network, and records
+ * the response or failure.
  *
  * Shared by both entry points of this module. [proceed] is the caller's way to continue the send —
  * `Send.Sender.proceed` for the client plugin, `Sender.execute` for the [io.ktor.client.plugins.HttpSend]
@@ -60,37 +62,77 @@ internal suspend fun JetWhaleNetworkAgentPlugin.monitorSend(
 ): HttpClientCall {
     val txId = newTransactionId()
     val started = TimeSource.Monotonic.markNow()
-    val mock = recordRequestAndFindMock(request, txId, limits)
+    val exchange = recordRequestAndPlanExchange(request, txId, limits)
+    val call = performExchange(client, request, exchange, txId, started, proceed)
 
-    val call = sendOrServeMock(client, request, mock, txId, started, proceed)
-
-    val (callToReturn, body) = captureResponseBodySafely(call, limits)
+    val (capturedCall, body) = captureResponseBodySafely(call, limits)
     recordResponse(
         CapturedHttpResponse(
             txId = txId,
-            statusCode = callToReturn.response.status.value,
-            statusDescription = callToReturn.response.status.description,
-            headers = callToReturn.response.headers.toCapturedMap(),
+            statusCode = capturedCall.response.status.value,
+            statusDescription = capturedCall.response.status.description,
+            headers = capturedCall.response.headers.toCapturedMap(),
             body = body.text,
             bodyTruncated = body.truncated,
             bodyEncoding = body.encoding,
             durationMs = started.elapsedNow().inWholeMilliseconds,
-            fromMock = mock != null,
+            fromMock = exchange.mock != null,
+            condition = exchange.condition?.applied(),
         ),
     )
-    return callToReturn
+    // Paced only now: capture buffers the body with save(), so a call paced before it would reach
+    // the app already buffered. The transaction's duration therefore ends at capture, not at the
+    // app's last paced byte.
+    return exchange.condition?.downloadBytesPerSecond?.let(capturedCall::withResponseBodyPacedTo) ?: capturedCall
 }
 
-/** Records the outgoing request, then answers with the mock registered for it, if any. */
-private fun JetWhaleNetworkAgentPlugin.recordRequestAndFindMock(
-    request: HttpRequestBuilder,
-    txId: String,
-    limits: BodyCaptureLimits,
-): MockResponseSpec? {
+/**
+ * How one request is to be answered.
+ *
+ * @property condition The network condition the request travels through; null when none applies.
+ * @property mock The response that stands in for the server; null when the request is really sent.
+ */
+private class PlannedExchange(val url: String, val condition: NetworkConditionPlan?, val mock: MockResponseSpec?)
+
+/**
+ * Records the outgoing request and decides how it is answered. The condition shapes the network and
+ * the mock stands in for the server, so a mocked response still travels through the simulated
+ * network.
+ */
+private fun JetWhaleNetworkAgentPlugin.recordRequestAndPlanExchange(request: HttpRequestBuilder, txId: String, limits: BodyCaptureLimits): PlannedExchange {
     val method = request.method.value
     val url = request.url.buildString()
     recordRequest(request, txId = txId, method = method, url = url, limits = limits)
-    return findMock(method, url)
+    return PlannedExchange(url = url, condition = planNetworkCondition(method, url), mock = findMock(method, url))
+}
+
+/**
+ * Carries out [exchange]: the simulated network, then the mock or the real send. A failure, real or
+ * injected, is recorded before it is rethrown.
+ */
+private suspend fun JetWhaleNetworkAgentPlugin.performExchange(
+    client: HttpClient,
+    request: HttpRequestBuilder,
+    exchange: PlannedExchange,
+    txId: String,
+    started: TimeMark,
+    proceed: suspend (HttpRequestBuilder) -> HttpClientCall,
+): HttpClientCall {
+    val condition = exchange.condition
+    return try {
+        condition?.let { simulateNetworkBeforeExchange(it, request, exchange.url, mocked = exchange.mock != null) }
+        if (exchange.mock != null) serveMock(client, request, exchange.mock) else proceed(request)
+    } catch (e: Throwable) {
+        recordFailure(
+            HttpRequestFailure(
+                txId = txId,
+                message = e.message ?: e.toString(),
+                durationMs = started.elapsedNow().inWholeMilliseconds,
+                condition = condition?.applied(),
+            ),
+        )
+        throw e
+    }
 }
 
 private fun JetWhaleNetworkAgentPlugin.recordRequest(request: HttpRequestBuilder, txId: String, method: String, url: String, limits: BodyCaptureLimits) {
@@ -107,33 +149,6 @@ private fun JetWhaleNetworkAgentPlugin.recordRequest(request: HttpRequestBuilder
             timestampMs = GMTDate().timestamp,
         ),
     )
-}
-
-/**
- * Serves [mock] when there is one; otherwise continues the send, recording a thrown failure
- * before rethrowing it.
- */
-private suspend fun JetWhaleNetworkAgentPlugin.sendOrServeMock(
-    client: HttpClient,
-    request: HttpRequestBuilder,
-    mock: MockResponseSpec?,
-    txId: String,
-    started: TimeMark,
-    proceed: suspend (HttpRequestBuilder) -> HttpClientCall,
-): HttpClientCall {
-    if (mock != null) return serveMock(client, request, mock)
-    return try {
-        proceed(request)
-    } catch (e: Throwable) {
-        recordFailure(
-            HttpRequestFailure(
-                txId = txId,
-                message = e.message ?: e.toString(),
-                durationMs = started.elapsedNow().inWholeMilliseconds,
-            ),
-        )
-        throw e
-    }
 }
 
 @OptIn(InternalAPI::class) // HttpClientCall's constructor is needed to synthesize mock responses.
@@ -237,7 +252,7 @@ private suspend fun captureResponseBodySafely(call: HttpClientCall, limits: Body
 private fun StringValues.toCapturedMap(): Map<String, List<String>> = entries().associate { it.key to it.value }
 
 /** True for a successful WebSocket upgrade response (101 Switching Protocols + `Upgrade: websocket`). */
-private fun HttpResponse.isWebSocketUpgrade(): Boolean = status == HttpStatusCode.SwitchingProtocols && headers[HttpHeaders.Upgrade]?.equals("websocket", ignoreCase = true) == true
+internal fun HttpResponse.isWebSocketUpgrade(): Boolean = status == HttpStatusCode.SwitchingProtocols && headers[HttpHeaders.Upgrade]?.equals("websocket", ignoreCase = true) == true
 
 /**
  * Captures the request headers visible at the send phase, enriched with the body's

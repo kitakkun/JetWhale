@@ -16,6 +16,7 @@ import com.kitakkun.jetwhale.plugins.network.protocol.MockMatchType
 import com.kitakkun.jetwhale.plugins.network.protocol.MockMatcher
 import com.kitakkun.jetwhale.plugins.network.protocol.MockResponseSpec
 import com.kitakkun.jetwhale.plugins.network.protocol.MockRule
+import com.kitakkun.jetwhale.plugins.network.protocol.NetworkConditionRule
 import java.util.UUID
 
 @Composable
@@ -23,10 +24,12 @@ fun NetworkInspectorScreen(
     transactions: List<HttpTransaction>,
     mockRules: List<MockRule>,
     mockingEnabled: Boolean,
+    conditionRules: List<NetworkConditionRule>,
     trafficSplitPaneState: JwSplitPaneState,
     onClearTransactions: () -> Unit,
     onToggleMocking: (Boolean) -> Unit,
     onMockRulesChanged: (List<MockRule>) -> Unit,
+    onConditionRulesChanged: (List<NetworkConditionRule>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -47,6 +50,12 @@ fun NetworkInspectorScreen(
                 selected = selectedTab == 1,
                 onClick = { selectedTab = 1 },
             )
+            JwTab(
+                text = "Conditions",
+                count = conditionRules.count(NetworkConditionRule::enabled),
+                selected = selectedTab == 2,
+                onClick = { selectedTab = 2 },
+            )
         }
         when (selectedTab) {
             0 -> TrafficTab(
@@ -63,12 +72,14 @@ fun NetworkInspectorScreen(
                 },
             )
 
-            else -> MocksTab(
+            1 -> MocksTab(
                 rules = mockRules,
                 mockingEnabled = mockingEnabled,
                 onToggleMocking = onToggleMocking,
                 onChanged = onMockRulesChanged,
             )
+
+            else -> ConditionsTab(rules = conditionRules, onChanged = onConditionRulesChanged)
         }
     }
 }
