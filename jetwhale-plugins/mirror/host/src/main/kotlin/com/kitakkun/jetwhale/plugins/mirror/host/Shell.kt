@@ -36,7 +36,7 @@ internal class CommandResult(
 internal suspend fun runCommand(vararg command: String): CommandResult = withContext(Dispatchers.IO) {
     val process = SystemProcessLauncher.start(command.toList())
     // Both pipes are drained at once so neither can fill up and stall the process.
-    val stderr = async { process.errorStream.bufferedReader().readText() }
+    val stderr = async { process.errorStream.bufferedReader().use { it.readText() } }
     val stdout = process.inputStream.readBytes()
     CommandResult(exitCode = process.waitFor(), stdout = stdout, stderr = stderr.await())
 }
