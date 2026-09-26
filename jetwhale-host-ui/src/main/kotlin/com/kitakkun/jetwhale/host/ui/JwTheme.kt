@@ -5,6 +5,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -52,6 +53,7 @@ public fun JwTheme(
         LocalJetWhaleDarkTheme provides colors.isDark,
         LocalJwContentColor provides colors.onSurface,
         LocalJwTextStyle provides textStyles.body,
+        LocalArrowKeyRowMove provides remember(calculation = ::ArrowKeyRowMove),
         content = content,
     )
 }

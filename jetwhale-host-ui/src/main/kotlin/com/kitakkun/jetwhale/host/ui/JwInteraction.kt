@@ -4,13 +4,28 @@ import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 
 /** Space between a control's edge and its focus ring. */
@@ -77,5 +92,75 @@ public fun Modifier.jwFocusRing(
         translate(translation, translation) {
             drawOutline(outline = outline, color = color, style = Stroke(width = stroke))
         }
+    }
+}
+
+/**
+ * The arrow-key move [jwListRowKeys] is making, so the row that receives focus can tell a keyboard
+ * move from a click (which selects through its own `onClick`) or a focus restore. [JwTheme]
+ * provides one per themed tree; the move and the focus callbacks it triggers run synchronously
+ * within that tree's scene, so no other move can start in between.
+ */
+internal class ArrowKeyRowMove {
+    /** True only while a row moves focus to its neighbor. */
+    var inProgress = false
+
+    /** Set by the row that receives the move; still false afterwards when the move left the rows. */
+    var reachedRow = false
+}
+
+internal val LocalArrowKeyRowMove = staticCompositionLocalOf<ArrowKeyRowMove> { error("JwTheme is not applied above this composable") }
+
+/**
+ * Lets the arrow keys walk a list of rows: ↑/↓ move focus to the row above or below, and the row
+ * that receives focus that way calls [onSelect], so the selection follows the keyboard. A lazy list
+ * composes and scrolls to the next row when it is off screen.
+ *
+ * Keys are handled only while the row itself holds focus, so a text field inside it keeps its
+ * arrows, and a key the row does not use passes on to its ancestors. So does ↑ on the first row and
+ * ↓ on the last: focus stays on the row rather than jumping to whatever control sits beyond the
+ * list. Place it before the row's `clickable` in the modifier chain.
+ *
+ * @param onSelect what selecting the row does; the same action as its click.
+ * @param onKey any further key the row handles, such as ←/→ on a tree row; true when consumed.
+ */
+@Composable
+public fun Modifier.jwListRowKeys(
+    onSelect: () -> Unit,
+    onKey: (Key) -> Boolean,
+): Modifier {
+    val currentOnSelect by rememberUpdatedState(onSelect)
+    val currentOnKey by rememberUpdatedState(onKey)
+    var focused by remember { mutableStateOf(false) }
+    val focusRequester = remember(calculation = ::FocusRequester)
+    val move = LocalArrowKeyRowMove.current
+    val focusManager = LocalFocusManager.current
+    return focusRequester(focusRequester).onFocusChanged { state ->
+        focused = state.isFocused
+        if (state.isFocused && move.inProgress) {
+            // Taken by the first row to receive the move, so an onSelect that moves focus itself
+            // does not make another row select as well.
+            move.inProgress = false
+            move.reachedRow = true
+            currentOnSelect()
+        }
+    }.onKeyEvent { event ->
+        if (!focused || event.type != KeyEventType.KeyDown) return@onKeyEvent false
+        val direction = when (event.key) {
+            Key.DirectionDown -> FocusDirection.Down
+            Key.DirectionUp -> FocusDirection.Up
+            else -> return@onKeyEvent currentOnKey(event.key)
+        }
+        move.inProgress = true
+        move.reachedRow = false
+        val moved = try {
+            focusManager.moveFocus(direction)
+        } finally {
+            move.inProgress = false
+        }
+        // The focus search spans the whole screen, not just this list: past its first or last row
+        // it lands on a neighboring control, such as a filter field above a table.
+        if (moved && !move.reachedRow) focusRequester.requestFocus()
+        moved && move.reachedRow
     }
 }
