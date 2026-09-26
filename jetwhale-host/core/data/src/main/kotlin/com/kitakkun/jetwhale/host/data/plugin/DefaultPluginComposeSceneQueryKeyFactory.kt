@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.model.PluginComposeSceneQueryKeyFactory
 import com.kitakkun.jetwhale.host.model.PluginComposeSceneService
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginInstanceState
+import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginUi
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -29,22 +30,25 @@ class DefaultPluginComposeSceneQueryKeyFactory(
         // A screen can be opened before its instance exists (a no-app plugin at startup, a plugin
         // just switched on) or while it is being replaced, so the scene waits for an instance and
         // waits again for a different one if the one it saw is gone by the time the scene is built.
-        // An instance that failed to start, or never comes, ends the wait with an error instead.
+        // A headless instance is never built for: the screen shows it without a scene. Only the
+        // wait is bounded, so a slow first composition is not mistaken for a plugin that never came.
         fetch = {
-            withTimeoutOrNull(PLUGIN_START_TIMEOUT) {
-                var sceneBuiltFor: PluginInstanceState? = null
-                var scene: PluginComposeScene? = null
-                while (scene == null) {
-                    val state = pluginInstanceService.pluginInstanceStateFlow(pluginId, sessionId)
-                        .first { it != PluginInstanceState.Absent && it != sceneBuiltFor }
-                    if (state is PluginInstanceState.FailedToStart) {
-                        throw IllegalStateException("The plugin failed to start: ${state.cause.message}", state.cause)
+            var sceneBuiltFor: PluginInstanceState? = null
+            var scene: PluginComposeScene? = null
+            while (scene == null) {
+                val state = withTimeoutOrNull(PLUGIN_START_TIMEOUT) {
+                    pluginInstanceService.pluginInstanceStateFlow(pluginId, sessionId).first { state ->
+                        state is PluginInstanceState.FailedToStart ||
+                            (state is PluginInstanceState.Running && state != sceneBuiltFor && state.plugin is JetWhaleHostPluginUi)
                     }
-                    sceneBuiltFor = state
-                    scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId = pluginId, sessionId = sessionId)
+                } ?: error("The plugin didn't start within $PLUGIN_START_TIMEOUT: it is not installed for this session, or its startup is stuck. Press Reload once it has started.")
+                if (state is PluginInstanceState.FailedToStart) {
+                    throw IllegalStateException("The plugin failed to start: ${state.cause.message}. Press Reload once it has started.", state.cause)
                 }
-                scene
-            } ?: error("The plugin didn't start within $PLUGIN_START_TIMEOUT: it is not installed for this session, or its startup is stuck.")
+                sceneBuiltFor = state
+                scene = pluginComposeSceneService.getOrCreatePluginScene(pluginId = pluginId, sessionId = sessionId)
+            }
+            scene
         },
     ) {
         override val contentCacheable: QueryContentCacheable<PluginComposeScene>

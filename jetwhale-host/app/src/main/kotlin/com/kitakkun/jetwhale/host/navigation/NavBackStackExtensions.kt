@@ -106,9 +106,9 @@ fun NavBackStack<NavKey>.openEnabledPlugin(navKey: DisabledPluginNavKey) {
 }
 
 /**
- * Removes the screens and popouts of plugins that are no longer installed. Their instances are gone
- * and will not come back, so a screen left open could only fail to start them, and a disabled
- * plugin's screen would offer to enable something that is not there.
+ * Removes the screens and popouts of plugins that are no longer installed. No new instance can be
+ * created for them, so a screen left open could at best keep showing an instance that is on its way
+ * out, and a disabled plugin's screen would offer to enable something that is not there.
  */
 fun NavBackStack<NavKey>.removeEntriesOfUninstalledPlugins(installedPluginIds: Set<String>) {
     removeAll { navKey ->
