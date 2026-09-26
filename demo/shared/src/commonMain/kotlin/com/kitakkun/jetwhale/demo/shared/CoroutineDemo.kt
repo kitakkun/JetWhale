@@ -158,5 +158,5 @@ class CoroutineDemo(private val inspector: JetWhaleCoroutineInspectorAgentPlugin
 /** Busy work on purpose: the point is a task that holds its thread, as a heavy parse would. */
 private fun busyFor(duration: Duration) {
     val start = TimeSource.Monotonic.markNow()
-    while (start.elapsedNow() < duration) Unit
+    while (start.elapsedNow() < duration) {}
 }
