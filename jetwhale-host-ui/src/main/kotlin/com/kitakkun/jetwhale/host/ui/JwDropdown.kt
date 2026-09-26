@@ -48,8 +48,11 @@ public object JwMenuDefaults {
     public val minWidth: Dp = 160.dp
 }
 
-/** Shadow under an open [JwDropdownMenu]. */
-private val MenuShadowElevation = 6.dp
+/**
+ * Shadow under an open [JwDropdownMenu]: deep enough to show under a white menu on the light
+ * scheme's grey chrome. On the dark scheme [JwColors.popupBorder] carries the edge instead.
+ */
+private val MenuShadowElevation = 10.dp
 
 /**
  * A select-style trigger of [JwMetrics.controlHeight]: [leading] icon, the current [text], a
@@ -162,8 +165,8 @@ public fun JwDropdownMenu(
                 .widthIn(min = JwMenuDefaults.minWidth)
                 .heightIn(max = JwDropdownMenuDefaults.maxHeight)
                 .shadow(MenuShadowElevation, JwShapes.medium)
-                .background(JwTheme.colors.elevatedBackground, JwShapes.medium)
-                .border(JwMetrics.borderWidth, JwTheme.colors.border, JwShapes.medium)
+                .background(JwTheme.colors.popupBackground, JwShapes.medium)
+                .border(JwMetrics.borderWidth, JwTheme.colors.popupBorder, JwShapes.medium)
                 .padding(JwSpacing.extraSmall)
                 .verticalScroll(rememberScrollState()),
             content = content,

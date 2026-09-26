@@ -29,6 +29,16 @@ private fun JwDropdownMenuPreview() {
 
 @Preview
 @Composable
+private fun JwDropdownMenuDarkPreview() {
+    JwTheme(darkTheme = true) {
+        JwDropdownMenu(expanded = true, onDismissRequest = {}) {
+            JwMenuItem(text = "Copy as cURL", onClick = {})
+        }
+    }
+}
+
+@Preview
+@Composable
 private fun JwMenuItemPreview() {
     JwTheme(darkTheme = false) {
         JwMenuItem(text = "Clear session", onClick = {}, selected = true, tone = JwTone.Error)
