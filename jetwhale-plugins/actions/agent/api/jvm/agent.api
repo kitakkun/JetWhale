@@ -1,0 +1,40 @@
+public final class com/kitakkun/jetwhale/plugins/actions/agent/BuiltInDebugActions_jvmKt {
+	public static final fun platformBuiltInActions (Lcom/kitakkun/jetwhale/plugins/actions/agent/DebugActionsBuilder;)V
+}
+
+public final class com/kitakkun/jetwhale/plugins/actions/agent/DebugActionBuilder {
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getDestructive ()Z
+	public final fun getRunsOnMainThread ()Z
+	public final fun getTimeout-UwyO8pc ()J
+	public final fun options (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public final fun run (Lkotlin/jvm/functions/Function2;)V
+	public final fun setDescription (Ljava/lang/String;)V
+	public final fun setDestructive (Z)V
+	public final fun setRunsOnMainThread (Z)V
+	public final fun setTimeout-LRDsOJo (J)V
+}
+
+public final class com/kitakkun/jetwhale/plugins/actions/agent/DebugActionsBuilder {
+	public final fun action (Ljava/lang/String;Lkotlinx/serialization/KSerializer;Lkotlin/jvm/functions/Function1;)V
+	public final fun actionWithoutArguments (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public final fun group (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+}
+
+public abstract interface annotation class com/kitakkun/jetwhale/plugins/actions/agent/DebugActionsDsl : java/lang/annotation/Annotation {
+}
+
+public abstract interface class com/kitakkun/jetwhale/plugins/actions/agent/DebugActionsRegistration {
+	public abstract fun unregister ()V
+}
+
+public final class com/kitakkun/jetwhale/plugins/actions/agent/JetWhaleDebugActionsAgentPlugin : com/kitakkun/jetwhale/agent/sdk/JetWhaleAgentPlugin {
+	public fun <init> ()V
+	public final fun catalog ()Lcom/kitakkun/jetwhale/plugins/actions/protocol/ActionCatalog;
+	public fun getPluginId ()Ljava/lang/String;
+	public fun getPluginVersion ()Ljava/lang/String;
+	public final fun register (Lkotlin/jvm/functions/Function1;)Lcom/kitakkun/jetwhale/plugins/actions/agent/DebugActionsRegistration;
+	public final fun registerScoped (Lkotlin/jvm/functions/Function1;)Lcom/kitakkun/jetwhale/plugins/actions/agent/DebugActionsRegistration;
+	public final fun runAction (Lcom/kitakkun/jetwhale/plugins/actions/protocol/RunAction;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
