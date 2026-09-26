@@ -101,12 +101,17 @@ internal class AndroidDeviceController(
 /**
  * [text] as `adb shell input text` needs it: the device shell parses the argument again, so its
  * metacharacters are escaped, and `input text` reads `%` as an escape (a space is `%s`), so a
- * literal percent sign is escaped before spaces are encoded.
+ * literal percent sign is escaped before spaces are encoded. A line break would end the command
+ * in that shell and start another, and no escape carries it through, so control characters are
+ * refused.
  */
-internal fun escapeForAdbInputText(text: String): String = text
-    .replace(Regex("""([\\'"`$&*()\[\]{}+|<>;?~#!])"""), """\\$1""")
-    .replace("%", "\\%")
-    .replace(" ", "%s")
+internal fun escapeForAdbInputText(text: String): String {
+    if (text.any(Char::isISOControl)) throw deviceControlError("text with a line break, tab or other control character cannot be typed on an Android device; type each line separately")
+    return text
+        .replace(Regex("""([\\'"`$&*()\[\]{}+|<>;?~#!])"""), """\\$1""")
+        .replace("%", "\\%")
+        .replace(" ", "%s")
+}
 
 /**
  * The screen state in the output of `dumpsys power` and `dumpsys window`, or null when it has no

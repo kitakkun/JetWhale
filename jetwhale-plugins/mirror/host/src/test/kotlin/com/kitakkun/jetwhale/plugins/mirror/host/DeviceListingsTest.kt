@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.plugins.mirror.host
 import androidx.compose.ui.unit.IntSize
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class DeviceListingsTest {
@@ -80,5 +81,11 @@ class DeviceListingsTest {
     @Test
     fun `text for adb input text has its shell characters and spaces escaped`() {
         assertEquals("""a%sb\&c\%d""", escapeForAdbInputText("a b&c%d"))
+    }
+
+    @Test
+    fun `text with a line break is refused rather than passed to the device shell`() {
+        assertFailsWith<DeviceControlException> { escapeForAdbInputText("hello\nreboot") }
+        assertFailsWith<DeviceControlException> { escapeForAdbInputText("a\rb") }
     }
 }

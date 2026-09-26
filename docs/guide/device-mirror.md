@@ -45,7 +45,12 @@ When a tool is missing, the device list says which one and what it would enable.
   on the device.
 - **Hardware buttons.** Android has Home, Back, Power, Volume up and Volume down; a simulator has
   Home and Power.
-- **Text.** The field under the screen types into whatever has focus on the device.
+- **Text.** The field under the screen types into whatever has focus on the device. On Android,
+  text with a line break is refused; type each line separately.
+- **Screen off and Wake (Android).** A device whose screen is off sends nothing, so the live view
+  says so and offers **Wake**, which turns the screen on and lifts a lock screen that has no PIN,
+  pattern or password. The toolbar has **Screen off** or **Wake** after the hardware buttons.
+  iOS devices have neither.
 - **Screenshot and Record.** Both save into the device's captures (below). Only one recording
   runs at a time. Android stops recording on its own after 180 seconds.
 - **Stats.** The line under the screen shows frames received and shown per second, and how long
@@ -119,12 +124,13 @@ can be left out to use the device selected in the mirror.
 
 | Tool | What it does |
 |------|--------------|
-| `com.kitakkun.jetwhale.mirror.listDevices` | The devices, with their ids, platform, kind, OS version, and what they accept: input, buttons, recording |
+| `com.kitakkun.jetwhale.mirror.listDevices` | The devices, with their ids, platform, kind, OS version, and what they accept: input, buttons, recording. An Android device also reports `screenOn` and `locked` |
 | `com.kitakkun.jetwhale.mirror.captureScreenshot` | Saves a screenshot among the device's captures; returns its path and size in pixels |
 | `com.kitakkun.jetwhale.mirror.tap` | Taps at a point, in the pixels of a screenshot |
 | `com.kitakkun.jetwhale.mirror.swipe` | Swipes between two points over a duration |
 | `com.kitakkun.jetwhale.mirror.pressButton` | Presses a hardware button the device has |
 | `com.kitakkun.jetwhale.mirror.inputText` | Types text into the focused field |
+| `com.kitakkun.jetwhale.mirror.setScreen` | Turns an Android device's screen on (`on: true`, also lifting a lock screen without a credential) or off; returns `screenOn` and `locked` afterwards, where `locked: true` means the device still needs unlocking |
 | `com.kitakkun.jetwhale.mirror.startRecording` | Starts recording the screen |
 | `com.kitakkun.jetwhale.mirror.stopRecording` | Stops it; returns the video's path and length |
 | `com.kitakkun.jetwhale.mirror.listCaptures` | Saved captures, newest first, optionally only one `deviceId`, one `kind` (`Screenshot` or `Recording`), or those taken at or after `since` (epoch milliseconds) |
