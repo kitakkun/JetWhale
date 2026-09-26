@@ -65,6 +65,7 @@ fun ShrunkToolingDrawerView(
     selectedPluginId: String,
     aiActivity: AiActivityUiState,
     onFollowAiOperationChange: (Boolean) -> Unit,
+    onOpenMcpSettings: () -> Unit,
     onClickExpandMenu: () -> Unit,
     onClickSettings: () -> Unit,
     onClickPlugin: (String) -> Unit,
@@ -89,9 +90,13 @@ fun ShrunkToolingDrawerView(
                 JwIcon(painter = painterResource(Res.drawable.sidebar_unfold), contentDescription = null)
             }
         }
-        // The rail's form of the header's AI banner. Its slot is kept while no agent is connected, so
-        // the rail below never moves.
-        AiActivityIndicator(uiState = aiActivity, onFollowChange = onFollowAiOperationChange)
+        // The rail's form of the header's AI card, always there so the rail below never moves.
+        AiActivityIndicator(
+            uiState = aiActivity,
+            onFollowChange = onFollowAiOperationChange,
+            onOpenMcpSettings = onOpenMcpSettings,
+            modifier = Modifier.padding(bottom = JwSpacing.extraSmall),
+        )
         JwHorizontalDivider()
         Column(
             modifier = Modifier.padding(vertical = JwSpacing.extraSmall),
@@ -271,6 +276,7 @@ private fun ShrunkToolingDrawerViewPreview() {
         selectedPluginId = "com.example.inspector",
         aiActivity = AiActivityUiState.Idle,
         onFollowAiOperationChange = {},
+        onOpenMcpSettings = {},
         onClickExpandMenu = {},
         onClickSettings = {},
         onClickPlugin = {},

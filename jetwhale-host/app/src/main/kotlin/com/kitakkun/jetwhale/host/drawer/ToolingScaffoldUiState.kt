@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.drawer
 import androidx.compose.ui.unit.Dp
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HostSession
+import com.kitakkun.jetwhale.host.model.McpClientSetup
 import kotlinx.collections.immutable.ImmutableList
 
 /**
@@ -19,6 +20,8 @@ import kotlinx.collections.immutable.ImmutableList
  * @property operatingAppName The app the call targets, or `null` when it targets none or a tool that
  *   needs no app.
  * @property isFollowModeOn Whether the window is set to move to whatever plugin an agent operates.
+ * @property mcpServer Whether an agent could connect at all, and how, for the indicator to say while
+ *   none is connected.
  */
 data class AiActivityUiState(
     val isAgentConnected: Boolean,
@@ -27,6 +30,7 @@ data class AiActivityUiState(
     val operatingPluginName: String?,
     val operatingAppName: String?,
     val isFollowModeOn: Boolean,
+    val mcpServer: McpServerAvailability,
 ) {
     val isOperating: Boolean get() = operatingToolName != null
 
@@ -38,8 +42,20 @@ data class AiActivityUiState(
             operatingPluginName = null,
             operatingAppName = null,
             isFollowModeOn = false,
+            mcpServer = McpServerAvailability.Off(reason = null),
         )
     }
+}
+
+/** Whether the host's MCP server is there for an agent to connect to. */
+sealed interface McpServerAvailability {
+    /** Not running: stopped, or failed to start with [reason]. */
+    data class Off(val reason: String?) : McpServerAvailability
+
+    data object Starting : McpServerAvailability
+
+    /** Running, reachable as [setup] describes. */
+    data class Ready(val setup: McpClientSetup) : McpServerAvailability
 }
 
 data class ToolingScaffoldUiState(

@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
+import com.kitakkun.jetwhale.host.model.McpClientSetup
 import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwSnackbarDuration
 import com.kitakkun.jetwhale.host.ui.JwSnackbarHostState
@@ -34,7 +35,7 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class)
 class PluginContentSizeTest {
     @Test
-    fun `the plugin keeps its size and place whatever the AI agent does and while the follow notice shows`() = runComposeUiTest {
+    fun `the plugin keeps its size and place whatever the AI card shows and while the follow notice shows`() = runComposeUiTest {
         var aiActivity by mutableStateOf(AiActivityUiState.Idle)
         val snackbarHostState = JwSnackbarHostState()
         lateinit var scope: CoroutineScope
@@ -51,6 +52,10 @@ class PluginContentSizeTest {
             bounds += onNodeWithTag(PLUGIN_CONTENT).getBoundsInRoot()
         }
 
+        measure()
+        aiActivity = AiActivityUiState.Idle.copy(mcpServer = McpServerAvailability.Starting)
+        measure()
+        aiActivity = AiActivityUiState.Idle.copy(mcpServer = McpServerAvailability.Ready(McpClientSetup.forServer(host = "localhost", port = 7080)))
         measure()
         aiActivity = connected
         measure()
@@ -95,6 +100,7 @@ private fun ScaffoldAroundPlugin(aiActivity: AiActivityUiState, snackbarHostStat
             onResizeSidebar = {},
             onSidebarResizeFinished = {},
             onFollowAiOperationChange = {},
+            onOpenMcpSettings = {},
         ) {
             Box(Modifier.fillMaxSize().testTag(PLUGIN_CONTENT))
         }

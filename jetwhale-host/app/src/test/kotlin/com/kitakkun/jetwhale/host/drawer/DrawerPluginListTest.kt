@@ -121,6 +121,7 @@ class DrawerPluginListTest {
                     onResize = {},
                     onResizeFinished = {},
                     onFollowAiOperationChange = {},
+                    onOpenMcpSettings = {},
                     onClickShrinkDrawer = {},
                     onClickSettings = {},
                     onClickPluginSettings = {},

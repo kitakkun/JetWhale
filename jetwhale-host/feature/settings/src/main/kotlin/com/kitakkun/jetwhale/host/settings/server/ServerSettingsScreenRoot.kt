@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.rememberScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugServerSettings
+import com.kitakkun.jetwhale.host.model.McpClientSetup
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.settings.SettingsScreenContext
 import com.kitakkun.jetwhale.host.settings.SettingsScreenPage
@@ -12,8 +13,6 @@ import java.awt.Desktop
 import java.io.IOException
 import java.net.URI
 import java.util.logging.Logger
-
-private const val MCP_GUIDE_URL = "https://kitakkun.github.io/JetWhale/guide/mcp-server"
 
 @Composable
 context(screenContext: SettingsScreenContext)
@@ -57,13 +56,13 @@ fun ServerSettingsScreenRoot(page: SettingsScreenPage) {
             onDismissApplyMcpPortDialog = { screenChannel.send(ServerSettingsScreenAction.DismissApplyMcpPortDialog) },
             onClickOpenMcpGuide = {
                 try {
-                    Desktop.getDesktop().browse(URI(MCP_GUIDE_URL))
+                    Desktop.getDesktop().browse(URI(McpClientSetup.GUIDE_URL))
                 } catch (e: IOException) {
-                    logger.warning("Could not open $MCP_GUIDE_URL: ${e.message}")
+                    logger.warning("Could not open $McpClientSetup.GUIDE_URL: ${e.message}")
                 } catch (e: UnsupportedOperationException) {
                     logger.warning("This desktop cannot open links: ${e.message}")
                 } catch (e: SecurityException) {
-                    logger.warning("Not allowed to open $MCP_GUIDE_URL: ${e.message}")
+                    logger.warning("Not allowed to open $McpClientSetup.GUIDE_URL: ${e.message}")
                 }
             },
             onSetHostGroupAllowed = { group, allowed -> screenChannel.send(ServerSettingsScreenAction.SetHostGroupAllowed(group, allowed)) },

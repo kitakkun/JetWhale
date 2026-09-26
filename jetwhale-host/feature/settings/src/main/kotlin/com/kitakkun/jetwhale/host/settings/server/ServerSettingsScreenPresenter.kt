@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.DebugServerSettings
 import com.kitakkun.jetwhale.host.model.DebugWebSocketServerStatus
+import com.kitakkun.jetwhale.host.model.McpClientSetup
 import com.kitakkun.jetwhale.host.model.McpHostGroupPermissionParams
 import com.kitakkun.jetwhale.host.model.McpPermissionsSnapshot
 import com.kitakkun.jetwhale.host.model.McpPluginPermissionParams
@@ -233,8 +234,7 @@ private class ServerSettingsEditingState(
     fun toUiState(mcpPermissionsSnapshot: McpPermissionsSnapshot): ServerSettingsScreenUiState {
         // The snippets must describe the endpoint an agent can actually reach right now, so they
         // follow the running server rather than the (possibly unapplied) port text field.
-        val runningMcpStatus = mcpServerStatus as? McpServerStatus.Running
-        val mcpEndpointUrl = "http://${runningMcpStatus?.host ?: "localhost"}:${runningMcpStatus?.port ?: savedMcpServerPort}/sse"
+        val mcpClientSetup = McpClientSetup.of(mcpServerStatus, fallbackPort = savedMcpServerPort)
         return ServerSettingsScreenUiState(
             debugServerState = serverStatus.toServerState(),
             mcpServerState = mcpServerStatus.toServerState(),
@@ -245,8 +245,8 @@ private class ServerSettingsEditingState(
             // configuration they cannot be in the middle of mistyping.
             debugServerSettingsError = debugServerSettingsError.takeIf { isDebugDirty },
             editingMcpPortText = mcpPortText,
-            mcpClaudeCodeCommand = "claude mcp add --transport sse jetwhale $mcpEndpointUrl",
-            mcpJsonConfig = mcpJsonConfig(mcpEndpointUrl),
+            mcpClaudeCodeCommand = mcpClientSetup.claudeCodeCommand,
+            mcpJsonConfig = mcpClientSetup.jsonConfig,
             mcpPermissions = mcpPermissionsSnapshot.toMcpPermissionsUiState(),
             isDebugApplyVisible = isDebugDirty || isDebugStartFailed,
             isMcpApplyVisible = isMcpDirty || isMcpStartFailed,
@@ -324,14 +324,3 @@ private fun McpPermissionsSnapshot.toMcpPermissionsUiState(): McpPermissionsUiSt
     },
     isOverriddenForLaunch = isOverriddenForLaunch,
 )
-
-private fun mcpJsonConfig(endpointUrl: String): String = """
-    {
-      "mcpServers": {
-        "jetwhale": {
-          "type": "sse",
-          "url": "$endpointUrl"
-        }
-      }
-    }
-""".trimIndent()

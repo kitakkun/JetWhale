@@ -115,6 +115,7 @@ fun ExpandedToolingDrawerView(
     onResize: (Dp) -> Unit,
     onResizeFinished: () -> Unit,
     onFollowAiOperationChange: (Boolean) -> Unit,
+    onOpenMcpSettings: () -> Unit,
     onClickShrinkDrawer: () -> Unit,
     onClickSettings: () -> Unit,
     onClickPluginSettings: () -> Unit,
@@ -141,6 +142,7 @@ fun ExpandedToolingDrawerView(
             SidebarHeader(
                 aiActivity = aiActivity,
                 onFollowAiOperationChange = onFollowAiOperationChange,
+                onOpenMcpSettings = onOpenMcpSettings,
                 onClickShrinkDrawer = onClickShrinkDrawer,
             )
             JwHorizontalDivider()
@@ -257,6 +259,7 @@ private fun SidebarResizeHandle(
 private fun SidebarHeader(
     aiActivity: AiActivityUiState,
     onFollowAiOperationChange: (Boolean) -> Unit,
+    onOpenMcpSettings: () -> Unit,
     onClickShrinkDrawer: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -268,10 +271,9 @@ private fun SidebarHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
     ) {
-        // The row keeps its height with or without an agent, so nothing below it moves as the banner
-        // comes and goes.
+        // The row's height is fixed, so nothing below it moves as the AI card changes state.
         Box(modifier = Modifier.weight(1f)) {
-            AiActivityBanner(uiState = aiActivity, onFollowChange = onFollowAiOperationChange)
+            AiActivityBanner(uiState = aiActivity, onFollowChange = onFollowAiOperationChange, onOpenMcpSettings = onOpenMcpSettings)
         }
         JwIconButton(
             onClick = onClickShrinkDrawer,
@@ -633,6 +635,7 @@ private fun ExpandedToolingDrawerViewPreview() {
         onResize = {},
         onResizeFinished = {},
         onFollowAiOperationChange = {},
+        onOpenMcpSettings = {},
         onClickShrinkDrawer = {},
         onClickSettings = {},
         onClickPluginSettings = {},

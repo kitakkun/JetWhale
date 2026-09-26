@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.model.HostNavigationService
 import com.kitakkun.jetwhale.host.model.LoadedPluginsMetaDataSubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpActivitySubscriptionKey
 import com.kitakkun.jetwhale.host.model.McpCapablePluginsSubscriptionKey
+import com.kitakkun.jetwhale.host.model.McpServerStatusSubscriptionKey
 import com.kitakkun.jetwhale.host.model.SaveSidebarWidthMutationKey
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledMutationKey
 import com.kitakkun.jetwhale.host.model.SettingsSubscriptionKey
@@ -42,6 +43,7 @@ class ToolingScaffoldScreenContext(
     val settingsSubscriptionKey: SettingsSubscriptionKey,
     val headlessPluginsSubscriptionKey: HeadlessPluginsSubscriptionKey,
     val sidebarWidthSubscriptionKey: SidebarWidthSubscriptionKey,
+    val mcpServerStatusSubscriptionKey: McpServerStatusSubscriptionKey,
     val hostNavigationService: HostNavigationService,
     val presenterContext: ToolingScaffoldPresenterContext,
 ) : ScreenContext
