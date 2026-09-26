@@ -117,7 +117,9 @@ internal fun MirrorScreen(
                     description = "Start an Android emulator, boot an iOS simulator, or connect a device by USB. It appears here within a few seconds.",
                 )
             } else {
-                val pane = DevicePaneState(device, capabilities, state, status, screenPower, recording)
+                // While switching, the screen state still describes the previous device.
+                val ownScreenPower = screenPower.takeIf { surface.deviceId == device.id }
+                val pane = DevicePaneState(device, capabilities, state, status, ownScreenPower, recording)
                 DevicePane(pane, surface, actions, showCaptures, onToggleCaptures, capturesPanel)
             }
         },
@@ -187,9 +189,7 @@ private fun DevicePane(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).padding(horizontal = JwSpacing.extraSmall),
                 )
-                // While switching, the screen state still describes the previous device.
-                val screenPower = pane.screenPower.takeIf { surface.deviceId == pane.device.id }
-                DeviceButtons(pane.device.kind, pane.capabilities, screenPower, actions, Modifier.weight(1f, fill = false))
+                DeviceButtons(pane.device.kind, pane.capabilities, pane.screenPower, actions, Modifier.weight(1f, fill = false))
                 CaptureActions(pane.capabilities, pane.recording, actions)
                 JwButton(text = "Captures", onClick = onToggleCaptures, style = if (showCaptures) JwButtonStyle.Primary else JwButtonStyle.Secondary)
             },
