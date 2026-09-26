@@ -42,9 +42,15 @@ When a tool is missing, the device list says which one and what it would enable.
   appears once it is booted or connected.
 - **Live view.** The mirrored screen fills the pane at its own aspect ratio, and the video is
   decoded at the size it is shown. A click is a tap and a drag is a swipe, at the matching point
-  on the device.
-- **Hardware buttons.** Android has Home, Back, Power, Volume up and Volume down; a simulator has
-  Home and Power.
+  on the device. An iOS simulator streams uncompressed frames at up to 60 per second, scaled by the
+  simulator to the size shown. When no live video is available, the mirror falls back to
+  screenshots and says why above the text field.
+- **Switching devices.** Switching back to a device shows its last frame at once, dimmed, until
+  its stream reconnects. The last frames of the four devices shown most recently are kept.
+- **Hardware buttons.** Icon buttons in the toolbar, with the name in a tooltip; in a narrow window
+  the row scrolls sideways, and Record, Screenshot and Captures stay in view. Android has Home,
+  Back, Power, Volume up and Volume down; a simulator has Home and Power, and shows its volume
+  buttons disabled because idb cannot press them.
 - **Text.** The field under the screen types into whatever has focus on the device. On Android,
   text with a line break is refused; type each line separately.
 - **Screen off and Wake (Android).** A device whose screen is off sends nothing, so the live view
@@ -53,8 +59,9 @@ When a tool is missing, the device list says which one and what it would enable.
   iOS devices have neither.
 - **Screenshot and Record.** Both save into the device's captures (below). Only one recording
   runs at a time. Android stops recording on its own after 180 seconds.
-- **Stats.** The line under the screen shows frames received and shown per second, and how long
-  reading and decoding, copying and drawing each take.
+- **Stats.** **Stats** under the screen shows frames received and shown per second, the longest
+  gap between two shown frames, and how long decoding, copying and drawing each take. Time spent
+  waiting for a still screen, which sends nothing, is not counted as decoding.
 
 ### A physical iPhone is view-only
 
