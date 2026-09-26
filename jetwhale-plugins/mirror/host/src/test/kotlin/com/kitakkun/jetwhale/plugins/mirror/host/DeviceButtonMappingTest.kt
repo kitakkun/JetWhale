@@ -43,4 +43,12 @@ class DeviceButtonMappingTest {
         assertTrue(DeviceButton.Recents in offered)
         assertTrue(offered.all { iosSimulatorPressesOf(it) != null })
     }
+
+    @Test
+    fun `a recording's elapsed time reads as minutes and seconds, with hours once past one`() {
+        assertEquals("0:00", recordingElapsed(0))
+        assertEquals("0:12", recordingElapsed(12_400))
+        assertEquals("10:05", recordingElapsed(605_000))
+        assertEquals("1:02:03", recordingElapsed(3_723_000))
+    }
 }

@@ -48,6 +48,49 @@ internal val WakeIcon: ImageVector = outlineIcon("Wake") {
     lineTo(14f, 16f)
 }
 
+/** A ring: start recording. */
+internal val RecordIcon: ImageVector = outlineIcon("Record") {
+    moveTo(12f, 5f)
+    arcTo(horizontalEllipseRadius = 7f, verticalEllipseRadius = 7f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 19f)
+    arcTo(horizontalEllipseRadius = 7f, verticalEllipseRadius = 7f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 5f)
+    moveTo(12f, 10f)
+    arcTo(horizontalEllipseRadius = 2f, verticalEllipseRadius = 2f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 14f)
+    arcTo(horizontalEllipseRadius = 2f, verticalEllipseRadius = 2f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 10f)
+}
+
+/** A camera: take a screenshot. */
+internal val ScreenshotIcon: ImageVector = outlineIcon("Screenshot") {
+    moveTo(4f, 8f)
+    lineTo(8f, 8f)
+    lineTo(10f, 5f)
+    lineTo(14f, 5f)
+    lineTo(16f, 8f)
+    lineTo(20f, 8f)
+    lineTo(20f, 19f)
+    lineTo(4f, 19f)
+    close()
+    moveTo(12f, 10f)
+    arcTo(horizontalEllipseRadius = 3f, verticalEllipseRadius = 3f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 16f)
+    arcTo(horizontalEllipseRadius = 3f, verticalEllipseRadius = 3f, theta = 0f, isMoreThanHalf = true, isPositiveArc = true, x1 = 12f, y1 = 10f)
+}
+
+/** A stack of pictures: the capture library. */
+internal val CapturesIcon: ImageVector = outlineIcon("Captures") {
+    moveTo(7f, 4f)
+    lineTo(20f, 4f)
+    lineTo(20f, 16f)
+    moveTo(4f, 7f)
+    lineTo(17f, 7f)
+    lineTo(17f, 20f)
+    lineTo(4f, 20f)
+    close()
+    moveTo(4f, 17f)
+    lineTo(8f, 13f)
+    lineTo(11f, 16f)
+    lineTo(13f, 14f)
+    lineTo(17f, 18f)
+}
+
 private val HomeIcon: ImageVector = outlineIcon("Home") {
     moveTo(4f, 11f)
     lineTo(12f, 4f)

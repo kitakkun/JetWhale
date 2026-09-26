@@ -9,18 +9,24 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
@@ -40,7 +46,10 @@ import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTextField
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.JwTooltip
+import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
+import kotlinx.coroutines.delay
 
 /** The live screen keeps most of the pane while the captures sit beside it. */
 private const val VIDEO_FRACTION = 0.55f
@@ -69,7 +78,7 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifie
         state = mirror.state,
         status = mirror.status,
         screenPower = mirror.screenPower,
-        recording = mirror.recordingDeviceId != null && mirror.recordingDeviceId == mirror.selectedId,
+        recordingSinceMillis = mirror.recordingStartedAtMillis.takeIf { mirror.recordingDeviceId == mirror.selectedId },
         // One recording runs at a time, and Record stops it wherever it runs.
         recordingElsewhere = mirror.devices.firstOrNull { it.id == mirror.recordingDeviceId && it.id != mirror.selectedId }?.listing?.name,
         surface = mirror.surface,
@@ -101,7 +110,7 @@ internal fun MirrorScreen(
     state: MirrorState,
     status: MirrorStatus?,
     screenPower: ScreenPower?,
-    recording: Boolean,
+    recordingSinceMillis: Long?,
     recordingElsewhere: String?,
     surface: MirrorSurface,
     actions: MirrorActions,
@@ -124,7 +133,7 @@ internal fun MirrorScreen(
             } else {
                 // While switching, the screen state still describes the previous device.
                 val ownScreenPower = screenPower.takeIf { surface.deviceId == device.id }
-                val pane = DevicePaneState(device, capabilities, state, status, ownScreenPower, recording, recordingElsewhere)
+                val pane = DevicePaneState(device, capabilities, state, status, ownScreenPower, recordingSinceMillis, recordingElsewhere)
                 DevicePane(pane, surface, actions, showCaptures, onToggleCaptures, capturesPanel)
             }
         },
@@ -163,14 +172,18 @@ private fun DeviceList(
     }
 }
 
-/** What the device pane shows about the selected device. */
+/**
+ * What the device pane shows about the selected device.
+ *
+ * @property recordingSinceMillis when the selected device's recording started; null while it is not recording.
+ */
 private class DevicePaneState(
     val device: DeviceListing,
     val capabilities: DeviceCapabilities,
     val state: MirrorState,
     val status: MirrorStatus?,
     val screenPower: ScreenPower?,
-    val recording: Boolean,
+    val recordingSinceMillis: Long?,
     val recordingElsewhere: String?,
 )
 
@@ -250,16 +263,17 @@ private fun DeviceToolbar(pane: DevicePaneState, actions: MirrorActions, showCap
             ButtonGroup(pane.capabilities.buttons.filter(NAVIGATION_BUTTONS::contains), actions)
             VolumeGroup(pane.device.kind, pane.capabilities, actions)
             ScreenPowerButton(pane.screenPower, actions)
-            // The one group allowed to break: in a window narrower than all three buttons it would
-            // otherwise run off the edge.
-            FlowRow(
+            // Pushed to the line's end, and wrapped to a line of its own only as a whole.
+            Row(
                 modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall, Alignment.End),
-                verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
-                itemVerticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                CaptureActions(pane.capabilities, pane.recording, pane.recordingElsewhere, actions)
-                JwButton(text = "Captures", onClick = onToggleCaptures, style = if (showCaptures) JwButtonStyle.Primary else JwButtonStyle.Secondary)
+                JwVerticalDivider(Modifier.height(CAPTURE_DIVIDER_HEIGHT).padding(end = JwSpacing.extraSmall))
+                CaptureActions(pane.capabilities, pane.recordingSinceMillis, pane.recordingElsewhere, actions)
+                JwIconButton(tooltip = if (showCaptures) "Hide captures" else "Captures", onClick = onToggleCaptures, selected = showCaptures) {
+                    JwIcon(imageVector = CapturesIcon, contentDescription = null)
+                }
             }
         }
         JwHorizontalDivider()
@@ -313,13 +327,64 @@ private fun ScreenPowerButton(screenPower: ScreenPower?, actions: MirrorActions)
 }
 
 @Composable
-private fun CaptureActions(capabilities: DeviceCapabilities, recording: Boolean, recordingElsewhere: String?, actions: MirrorActions) {
+private fun CaptureActions(capabilities: DeviceCapabilities, recordingSinceMillis: Long?, recordingElsewhere: String?, actions: MirrorActions) {
     when {
-        recordingElsewhere != null -> JwButton(text = "Stop recording on $recordingElsewhere", onClick = actions::toggleRecording, tone = JwTone.Error)
-        capabilities.recording -> JwButton(text = if (recording) "Stop recording" else "Record", onClick = actions::toggleRecording, tone = if (recording) JwTone.Error else JwTone.Accent)
+        recordingElsewhere != null -> JwButton(
+            text = "Stop recording on $recordingElsewhere",
+            onClick = actions::toggleRecording,
+            tone = JwTone.Error,
+            leadingIcon = { RecordingDot() },
+        )
+
+        recordingSinceMillis != null -> RecordingButton(recordingSinceMillis, onStop = actions::toggleRecording)
+
+        capabilities.recording -> JwIconButton(tooltip = "Record", onClick = actions::toggleRecording) {
+            JwIcon(imageVector = RecordIcon, contentDescription = null)
+        }
+
         else -> Unit
     }
-    JwButton(text = "Screenshot", onClick = actions::saveScreenshot)
+    JwIconButton(tooltip = "Screenshot", onClick = actions::saveScreenshot) {
+        JwIcon(imageVector = ScreenshotIcon, contentDescription = null)
+    }
+}
+
+/** A running recording can't be missed: red, counting, and a click away from stopping. */
+@Composable
+private fun RecordingButton(sinceMillis: Long, onStop: () -> Unit) {
+    val elapsed by produceState(recordingElapsed(System.currentTimeMillis() - sinceMillis), sinceMillis) {
+        while (true) {
+            delay(RECORDING_TICK_MILLIS)
+            value = recordingElapsed(System.currentTimeMillis() - sinceMillis)
+        }
+    }
+    JwTooltip(text = "Stop recording") {
+        JwButton(
+            text = elapsed,
+            onClick = onStop,
+            tone = JwTone.Error,
+            leadingIcon = { RecordingDot() },
+            modifier = Modifier.semantics { contentDescription = "Stop recording, $elapsed recorded" },
+        )
+    }
+}
+
+@Composable
+private fun RecordingDot() {
+    Box(Modifier.size(RECORDING_DOT_SIZE).background(JwTheme.colors.error, CircleShape))
+}
+
+private val RECORDING_DOT_SIZE = 8.dp
+private val CAPTURE_DIVIDER_HEIGHT = 20.dp
+private const val RECORDING_TICK_MILLIS = 1_000L
+
+/** "0:12", or "1:02:03" past an hour. */
+internal fun recordingElapsed(millis: Long): String {
+    val seconds = (millis / 1_000).coerceAtLeast(0)
+    val hours = seconds / 3_600
+    val minutes = seconds / 60 % 60
+    val rest = seconds % 60
+    return if (hours > 0) "%d:%02d:%02d".format(hours, minutes, rest) else "%d:%02d".format(minutes, rest)
 }
 
 /** What the mirror has to say in place of a picture: connecting, or why nothing arrives. */
