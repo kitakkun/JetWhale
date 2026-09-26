@@ -148,7 +148,11 @@ private fun HostWindowEffects(backStack: NavBackStack<NavKey>) {
     LaunchedEffect(backStack) {
         appGraph.debugWebSocketServer.sessionClosedFlow.collect {
             backStack.removeAll { navKey ->
-                navKey is PluginNavKey && navKey.sessionId == it
+                when (navKey) {
+                    is PluginNavKey -> navKey.sessionId == it
+                    is DisabledPluginNavKey -> navKey.sessionId == it
+                    else -> false
+                }
             }
             // Not done inside debugWebSocketServer itself: that would be a dependency cycle.
             appGraph.pluginComposeSceneService.disposePluginSceneForSession(it)

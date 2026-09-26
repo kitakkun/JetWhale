@@ -131,6 +131,8 @@ fun ExpandedToolingDrawerView(
         // The plugins that need no app come first, with no heading: the divider and the app picker
         // below are what set the app's plugins apart.
         if (hostPlugins.isNotEmpty()) {
+            // Weighted but not filled: it takes what it needs, yet never more than the app area's
+            // share, so a long list scrolls instead of pushing the picker out of view.
             PluginList(
                 plugins = hostPlugins,
                 selectedPluginId = selectedPluginId,
@@ -141,6 +143,7 @@ fun ExpandedToolingDrawerView(
                 isPoppedOut = isPoppedOut,
                 onClickBringBack = onClickBringBack,
                 onSetPluginEnabled = onSetPluginEnabled,
+                modifier = Modifier.weight(1f, fill = false),
             )
             JwHorizontalDivider()
         }
@@ -345,6 +348,7 @@ private fun PluginList(
             key = "fold:disabled",
             label = disabledLabel,
             plugins = disabledPlugins,
+            selectedPluginId = selectedPluginId,
             expanded = disabledExpanded,
             actions = actions,
             onToggle = { disabledExpanded = !disabledExpanded },
@@ -353,6 +357,7 @@ private fun PluginList(
             key = "fold:not-in-app",
             label = notInAppLabel,
             plugins = notInAppPlugins,
+            selectedPluginId = selectedPluginId,
             expanded = notInAppExpanded,
             actions = actions,
             onToggle = { notInAppExpanded = !notInAppExpanded },
@@ -365,6 +370,7 @@ private fun LazyListScope.foldedPluginRows(
     key: String,
     label: String,
     plugins: List<DrawerPluginItemUiState>,
+    selectedPluginId: String,
     expanded: Boolean,
     actions: PluginActions,
     onToggle: () -> Unit,
@@ -373,7 +379,7 @@ private fun LazyListScope.foldedPluginRows(
     item(key = key) {
         InactivePluginsFoldRow(label = label, expanded = expanded, onToggle = onToggle, modifier = Modifier.animateItem())
     }
-    if (expanded) inactivePluginRows(plugins = plugins, actions = actions)
+    if (expanded) inactivePluginRows(plugins = plugins, selectedPluginId = selectedPluginId, actions = actions)
 }
 
 /**
@@ -452,6 +458,7 @@ private fun LazyListScope.enabledPluginRows(
  */
 private fun LazyListScope.inactivePluginRows(
     plugins: List<DrawerPluginItemUiState>,
+    selectedPluginId: String,
     actions: PluginActions,
 ) {
     items(items = plugins, key = DrawerPluginItemUiState::id) { plugin ->
@@ -465,7 +472,8 @@ private fun LazyListScope.inactivePluginRows(
                 name = plugin.name,
                 activeIconResource = plugin.activeIconResource,
                 inactiveIconResource = plugin.inactiveIconResource,
-                selected = false,
+                // Selected while its screen, which explains why it can't run, is the one shown.
+                selected = plugin.id == selectedPluginId,
                 underAiControl = plugin.underAiControl,
                 exposesMcpTools = plugin.exposesMcpTools,
                 onClickMcpBadge = { actions.onOpenMcpTools(plugin.id) },

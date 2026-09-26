@@ -9,7 +9,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.kitakkun.jetwhale.host.Res
 import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.ActionResultEffect
-import com.kitakkun.jetwhale.host.architecture.MutationErrorEffect
 import com.kitakkun.jetwhale.host.architecture.PresenterContext
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.architecture.ScreenContext
@@ -25,6 +24,7 @@ import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import dev.zacsweers.metro.Inject
+import kotlinx.coroutines.CancellationException
 import org.jetbrains.compose.resources.stringResource
 import soil.query.compose.rememberMutation
 
@@ -96,13 +96,19 @@ private fun DisabledPluginPresenter(
     ActionEffect(screenChannel) { action ->
         when (action) {
             is DisabledPluginScreenAction.Enable -> {
-                setPluginEnabledMutation.mutateAsync(SetPluginEnabledParams(pluginId, enabled = true))
-                screenChannel.emit(DisabledPluginScreenActionResult.Enabled)
+                // mutate, not mutateAsync: it waits until the setting is stored, so the plugin opens
+                // only once it is on, and a failure is reported here instead of after navigating away.
+                val result = try {
+                    setPluginEnabledMutation.mutate(SetPluginEnabledParams(pluginId, enabled = true))
+                    DisabledPluginScreenActionResult.Enabled
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    DisabledPluginScreenActionResult.EnableFailed
+                }
+                screenChannel.emit(result)
             }
         }
-    }
-    MutationErrorEffect(setPluginEnabledMutation) {
-        screenChannel.emit(DisabledPluginScreenActionResult.EnableFailed)
     }
 }
 

@@ -63,6 +63,7 @@ fun NavBackStack<NavKey>.removeAppPluginEntries() {
         when (navKey) {
             is PluginNavKey -> !HostSession.isHost(navKey.sessionId)
             is PluginPopoutNavKey -> !HostSession.isHost(navKey.sessionId)
+            is DisabledPluginNavKey -> !HostSession.isHost(navKey.sessionId)
             else -> false
         }
     }

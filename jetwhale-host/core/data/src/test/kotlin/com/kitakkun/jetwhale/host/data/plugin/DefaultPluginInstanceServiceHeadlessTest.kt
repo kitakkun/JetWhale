@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.data.plugin
 import androidx.compose.runtime.Composable
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 /**
  * Whether a plugin renders a UI is only knowable from the instantiated plugin, so the service that
@@ -60,6 +62,17 @@ class DefaultPluginInstanceServiceHeadlessTest {
         service.unloadPluginInstanceForSession(sessionId)
 
         assertEquals(emptyMap(), service.headlessPluginsFlow.value.pluginIdsBySession)
+    }
+
+    @Test
+    fun `the server stopping disposes the apps' instances and keeps the host session's`() {
+        val service = serviceWith { object : JetWhaleHostPlugin() {} }
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId, HostSession.ID))
+
+        service.clearAppSessionPluginInstances()
+
+        assertEquals(null, service.getPluginInstanceForSession(pluginId, sessionId))
+        assertNotNull(service.getPluginInstanceForSession(pluginId, HostSession.ID))
     }
 
     private fun serviceWith(createPlugin: () -> JetWhaleHostPlugin) = DefaultPluginInstanceService(

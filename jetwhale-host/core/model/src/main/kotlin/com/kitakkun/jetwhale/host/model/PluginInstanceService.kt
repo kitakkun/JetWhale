@@ -29,7 +29,12 @@ interface PluginInstanceService {
     fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin?
 
     fun unloadPluginInstancesForPlugin(pluginId: String)
-    fun clearAllPluginInstances()
+
+    /**
+     * Disposes every instance that belongs to an app, for when the server stops and takes every app
+     * with it. The instances of [HostSession] stay: they need no app and keep running.
+     */
+    fun clearAppSessionPluginInstances()
 
     /**
      * Initializes plugin instances for the specified plugin and sessions if they don't already exist.
