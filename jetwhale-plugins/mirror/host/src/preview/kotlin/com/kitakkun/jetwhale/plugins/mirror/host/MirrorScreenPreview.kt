@@ -222,13 +222,14 @@ private fun CapturesPanelPreview() {
 @Composable
 private fun MirrorVideoPreview() {
     JwTheme(darkTheme = true) {
-        MirrorVideo(surface = rememberPreviewSurface(), interactive = true, onTap = { _, _ -> }, onSwipe = { _, _, _, _ -> }, modifier = Modifier.fillMaxSize())
+        MirrorVideo(surface = rememberPreviewSurface(), deviceId = "emulator-5554", interactive = true, onTap = { _, _ -> }, onSwipe = { _, _, _, _ -> }, modifier = Modifier.fillMaxSize())
     }
 }
 
 @Composable
 private fun rememberPreviewSurface(): MirrorSurface = remember {
     MirrorSurface().apply {
+        switchTo("emulator-5554")
         writeFrame(width = 108, height = 240) { bitmap ->
             bitmap.erase(Color.makeRGB(r = 0x3D, g = 0x5A, b = 0xFE))
             true

@@ -12,6 +12,7 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
+import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.FilterMipmap
 import org.jetbrains.skia.FilterMode
 import org.jetbrains.skia.Image
@@ -28,6 +29,7 @@ import org.jetbrains.skia.SamplingMode
 @Composable
 internal fun MirrorVideo(
     surface: MirrorSurface,
+    deviceId: String,
     interactive: Boolean,
     onTap: (x: Int, y: Int) -> Unit,
     onSwipe: (fromX: Int, fromY: Int, toX: Int, toY: Int) -> Unit,
@@ -61,7 +63,10 @@ internal fun MirrorVideo(
     Canvas(modifier.then(input).onSizeChanged { surface.viewSize = it }) {
         surface.frameCounter
         val started = System.nanoTime()
-        surface.drawFrame { bitmap ->
+        // Until the surface has switched to the selected device, the previous one's stream is still
+        // shutting down: its frames must not appear under this device's name.
+        val drawFrame: ((Bitmap) -> Unit) -> Unit = if (surface.deviceId == deviceId) surface::drawFrame else { draw -> surface.drawKeptFrame(deviceId, draw) }
+        drawFrame { bitmap ->
             val fitted = FittedFrame(bitmap.width, bitmap.height, size.width, size.height)
             drawn.fitted = fitted
             drawn.frameSize = IntSize(bitmap.width, bitmap.height)

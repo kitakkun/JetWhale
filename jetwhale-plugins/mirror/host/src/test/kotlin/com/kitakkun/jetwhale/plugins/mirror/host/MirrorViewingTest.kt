@@ -244,6 +244,21 @@ class MirrorViewingTest {
     }
 
     @Test
+    fun `a device selected before its stream starts shows its own kept frame and never the previous device's`() {
+        MirrorSurface().use { surface ->
+            surface.showLive("phone", Color.RED)
+            surface.showLive("tablet", Color.BLUE)
+
+            var kept: Int? = null
+            surface.drawKeptFrame("phone") { kept = it.getColor(0, 0) }
+
+            assertEquals(Color.RED, kept)
+            assertTrue(surface.hasKeptFrame("phone"))
+            assertFalse(surface.hasKeptFrame("tablet"))
+        }
+    }
+
+    @Test
     fun `only the devices shown most recently keep a frame`() {
         MirrorSurface().use { surface ->
             listOf("a", "b", "c", "d", "e", "f").forEach { surface.showLive(it, Color.RED) }
