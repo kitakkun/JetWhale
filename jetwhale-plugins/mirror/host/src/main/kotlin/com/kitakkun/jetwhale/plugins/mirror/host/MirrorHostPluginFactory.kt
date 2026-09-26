@@ -52,9 +52,11 @@ private class MirrorHostPlugin :
     JetWhaleMcpCapablePlugin {
 
     private val mirror by lazy {
+        val notices = MirrorNotices(pluginScope)
         DeviceMirror(
             discovery = DeviceDiscovery(tools, companions),
-            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault()),
+            captures = MirrorCaptures(defaultCapturesRoot(), storage, pluginScope, ZoneId.systemDefault(), notices),
+            notices = notices,
             scope = pluginScope,
         )
     }

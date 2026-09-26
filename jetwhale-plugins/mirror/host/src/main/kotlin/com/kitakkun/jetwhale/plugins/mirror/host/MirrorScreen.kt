@@ -13,15 +13,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,8 +37,6 @@ import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwHorizontalDivider
 import com.kitakkun.jetwhale.host.ui.JwIcon
 import com.kitakkun.jetwhale.host.ui.JwIconButton
-import com.kitakkun.jetwhale.host.ui.JwListItem
-import com.kitakkun.jetwhale.host.ui.JwSectionHeader
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwSplitPane
 import com.kitakkun.jetwhale.host.ui.JwTag
@@ -49,13 +47,24 @@ import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.ui.JwTooltip
 import com.kitakkun.jetwhale.host.ui.JwVerticalDivider
 import com.kitakkun.jetwhale.host.ui.rememberJwSplitPaneState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.io.IOException
+import kotlin.time.Clock
 
 /** The live screen keeps most of the pane while the captures sit beside it. */
 private const val VIDEO_FRACTION = 0.55f
 
-/** The device list is a column of names; the screen beside it needs the room. */
-private const val DEVICE_LIST_FRACTION = 0.24f
+/** Wide enough for a name like "iPhone 15 Pro"; a longer one is cut, with the full name in the list. */
+internal val PICKER_MAX_WIDTH = 200.dp
+
+/** Often enough to follow what a device is doing, rarely enough that a screenshot per device stays cheap. */
+private const val THUMBNAIL_REFRESH_MILLIS = 1_500L
+
+/** A screenshot runs adb or simctl; a few at a time keep the grid from flooding the machine. */
+private const val MAX_CONCURRENT_THUMBNAIL_CAPTURES = 2
 
 /**
  * Binds the mirror to the screen, and keeps it working only while the screen is shown: the device
@@ -64,19 +73,110 @@ private const val DEVICE_LIST_FRACTION = 0.24f
 @Composable
 internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifier) {
     LaunchedEffect(mirror) { mirror.keepDevicesCurrent() }
+    // Both views save captures, so the saved folder is restored whichever one opens first.
+    LaunchedEffect(mirror.captures) { mirror.captures.restoreFolder() }
+    var showGrid by rememberPersistent("showGrid", default = false)
+    var showCaptures by rememberPersistent("showCaptures", default = false)
+    // Kept across both views: the grid fills it, and the single view's device picker reads it.
+    val thumbnails = remember { DeviceThumbnails(refreshIntervalMillis = THUMBNAIL_REFRESH_MILLIS, maxConcurrentCaptures = MAX_CONCURRENT_THUMBNAIL_CAPTURES, decodeDispatcher = Dispatchers.IO, clock = Clock.System) }
+    DisposableEffect(thumbnails) { onDispose(thumbnails::close) }
+    val devices = mirror.devices
+    LaunchedEffect(devices) { thumbnails.retainOnly(devices.map(MirrorDevice::id).toSet()) }
+    val scope = rememberCoroutineScope()
+    val notices = object : MirrorNoticeActions {
+        override val notice: MirrorNotice? get() = mirror.notices.current
+
+        override fun perform(action: NoticeAction) {
+            mirror.notices.dismiss()
+            when (action) {
+                is NoticeAction.OpenCapture -> openCapture(action.capture, mirror) {
+                    showGrid = false
+                    showCaptures = true
+                }
+
+                is NoticeAction.OpenCaptures -> {
+                    mirror.captures.showAllDevices(true)
+                    if (mirror.selectedDevice == null) mirror.devices.firstOrNull()?.let { mirror.select(it.id) }
+                    showGrid = false
+                    showCaptures = true
+                }
+
+                is NoticeAction.RetryScreenshots -> saveScreenshots(mirror.devices.filter { it.id in action.deviceIds }, mirror, thumbnails, scope)
+
+                is NoticeAction.RetryRecording -> mirror.retryRecording(action.deviceId)
+            }
+        }
+
+        override fun dismiss() = mirror.notices.dismiss()
+
+        override fun hold(held: Boolean) = mirror.notices.hold(held)
+    }
+    // Leaving the single view stops the selected device's stream: the grid captures by screenshot.
+    Box(modifier.fillMaxSize()) {
+        if (showGrid) {
+            DeviceGridRoot(mirror, thumbnails, notices, onShowSingle = { showGrid = false })
+        } else {
+            SingleMirrorRoot(mirror, thumbnails, notices, showCaptures, onToggleCaptures = { showCaptures = !showCaptures }, onShowGrid = { showGrid = true })
+        }
+    }
+}
+
+/** Where Open takes a capture. */
+internal enum class CaptureDestination {
+    /** Its device's captures panel, with the capture selected. */
+    Panel,
+
+    /** Its file in its folder, since its device is not connected and the panel cannot show it. */
+    Folder,
+
+    /** Nowhere: its file is gone. */
+    Missing,
+}
+
+internal fun destinationOf(capture: Capture, connectedDeviceIds: Set<String>): CaptureDestination = when {
+    !capture.file.exists() -> CaptureDestination.Missing
+    capture.info.deviceId in connectedDeviceIds -> CaptureDestination.Panel
+    else -> CaptureDestination.Folder
+}
+
+/** Shows [capture] where [destinationOf] says; for the panel, [showPanel] brings it up. */
+private fun openCapture(capture: Capture, mirror: DeviceMirror, showPanel: () -> Unit) {
+    when (destinationOf(capture, mirror.devices.map(MirrorDevice::id).toSet())) {
+        CaptureDestination.Panel -> {
+            mirror.select(capture.info.deviceId)
+            showPanel()
+            mirror.captures.select(capture)
+        }
+
+        CaptureDestination.Folder -> {
+            mirror.captures.reveal(capture)
+            mirror.notices.show(MirrorNotice.info("${capture.info.deviceName} is not connected, so ${capture.file.name} is shown in its folder instead"))
+        }
+
+        CaptureDestination.Missing -> mirror.notices.show(MirrorNotice.failure("${capture.file.name} is no longer in the captures folder", retry = null))
+    }
+}
+
+@Composable
+private fun SingleMirrorRoot(
+    mirror: DeviceMirror,
+    thumbnails: DeviceThumbnails,
+    notices: MirrorNoticeActions,
+    showCaptures: Boolean,
+    onToggleCaptures: () -> Unit,
+    onShowGrid: () -> Unit,
+) {
     val device = mirror.selectedDevice
     LaunchedEffect(device?.id) { device?.let { mirror.mirror(it) } }
     val captures = mirror.captures
-    LaunchedEffect(captures) { captures.restoreFolder() }
     LaunchedEffect(captures.library, device?.listing) { captures.showDevice(device?.listing) }
-    var showCaptures by rememberPersistent("showCaptures", default = false)
     MirrorScreen(
         devices = mirror.devices.map(MirrorDevice::listing),
         capabilities = device?.controller?.capabilities,
         missingTools = mirror.missingTools,
         selectedId = mirror.selectedId,
         state = mirror.state,
-        status = mirror.status,
+        notices = notices,
         screenPower = mirror.screenPower,
         recordingSinceMillis = mirror.recordingStartedAtMillis.takeIf { mirror.recordingDeviceId == mirror.selectedId },
         // One recording runs at a time, and Record stops it wherever it runs.
@@ -84,7 +184,9 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifie
         surface = mirror.surface,
         actions = mirror,
         showCaptures = showCaptures,
-        onToggleCaptures = { showCaptures = !showCaptures },
+        livenessOf = { id -> livenessOf(id, mirror, thumbnails, streaming = true) },
+        onToggleCaptures = onToggleCaptures,
+        onShowGrid = onShowGrid,
         capturesPanel = {
             CapturesPanel(
                 captures = captures.captures,
@@ -92,13 +194,32 @@ internal fun MirrorScreenRoot(mirror: DeviceMirror, modifier: Modifier = Modifie
                 kind = captures.kind,
                 day = captures.day,
                 selected = captures.selected,
-                status = captures.status,
                 thumbnails = captures,
                 actions = captures,
             )
         },
-        modifier = modifier,
     )
+}
+
+/**
+ * While the selected device [streaming], its liveness comes from its stream; every other device's,
+ * and every device's while the grid is shown, from the grid's last look at it, which is nothing
+ * until the grid has been shown.
+ */
+private fun livenessOf(deviceId: String, mirror: DeviceMirror, thumbnails: DeviceThumbnails, streaming: Boolean): DeviceLiveness {
+    if (!streaming || deviceId != mirror.selectedId) {
+        return when (thumbnails.thumbnailOf(deviceId).state) {
+            is ThumbnailState.Live -> DeviceLiveness.Live
+            is ThumbnailState.ScreenOff -> DeviceLiveness.ScreenOff
+            is ThumbnailState.Failed -> DeviceLiveness.Unavailable
+            is ThumbnailState.Loading -> DeviceLiveness.Unknown
+        }
+    }
+    return when (mirror.state) {
+        is MirrorState.Streaming, is MirrorState.Polling -> if (mirror.screenPower?.awake == false) DeviceLiveness.ScreenOff else DeviceLiveness.Live
+        is MirrorState.Failed, is MirrorState.NoFrames -> DeviceLiveness.Unavailable
+        is MirrorState.Idle, is MirrorState.Connecting -> DeviceLiveness.Unknown
+    }
 }
 
 @Composable
@@ -108,66 +229,32 @@ internal fun MirrorScreen(
     missingTools: List<String>,
     selectedId: String?,
     state: MirrorState,
-    status: MirrorStatus?,
+    notices: MirrorNoticeActions,
     screenPower: ScreenPower?,
     recordingSinceMillis: Long?,
     recordingElsewhere: String?,
     surface: MirrorSurface,
     actions: MirrorActions,
     showCaptures: Boolean,
+    livenessOf: (String) -> DeviceLiveness,
     onToggleCaptures: () -> Unit,
+    onShowGrid: () -> Unit,
     capturesPanel: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    JwSplitPane(
-        modifier = modifier.fillMaxSize(),
-        state = rememberJwSplitPaneState(DEVICE_LIST_FRACTION),
-        first = { DeviceList(devices = devices, missingTools = missingTools, selectedId = selectedId, onSelect = actions::select) },
-        second = {
-            val device = devices.firstOrNull { it.id == selectedId }
-            if (device == null || capabilities == null) {
-                JwEmptyState(
-                    title = "No device",
-                    description = "Start an Android emulator, boot an iOS simulator, or connect a device by USB. It appears here within a few seconds.",
-                )
-            } else {
-                // While switching, the screen state still describes the previous device.
-                val ownScreenPower = screenPower.takeIf { surface.deviceId == device.id }
-                val pane = DevicePaneState(device, capabilities, state, status, ownScreenPower, recordingSinceMillis, recordingElsewhere)
-                DevicePane(pane, surface, actions, showCaptures, onToggleCaptures, capturesPanel)
-            }
-        },
-    )
-}
-
-@Composable
-private fun DeviceList(
-    devices: List<DeviceListing>,
-    missingTools: List<String>,
-    selectedId: String?,
-    onSelect: (String) -> Unit,
-) {
-    Column(Modifier.fillMaxSize()) {
+    Column(modifier.fillMaxSize()) {
         missingTools.forEach { JwBanner(text = it, tone = JwTone.Warning) }
-        LazyColumn(Modifier.fillMaxSize()) {
-            DevicePlatform.entries.forEach { platform ->
-                val onPlatform = devices.filter { it.kind.platform == platform }
-                if (onPlatform.isEmpty()) return@forEach
-                item(key = platform) { JwSectionHeader(title = platform.label, count = onPlatform.size) }
-                items(onPlatform, key = DeviceListing::id) { device ->
-                    JwListItem(
-                        text = device.name,
-                        supportingText = listOfNotNull(device.kind.label, device.osVersion).joinToString(" · "),
-                        selected = device.id == selectedId,
-                        onClick = { onSelect(device.id) },
-                        trailingContent = if (device.kind == DeviceKind.IosDevice) {
-                            { JwTag(text = "View only") }
-                        } else {
-                            null
-                        },
-                    )
-                }
-            }
+        val device = devices.firstOrNull { it.id == selectedId }
+        if (device == null || capabilities == null) {
+            JwEmptyState(
+                title = "No device",
+                description = "Start an Android emulator, boot an iOS simulator, or connect a device by USB. It appears here within a few seconds.",
+            )
+        } else {
+            // While switching, the screen state still describes the previous device.
+            val ownScreenPower = screenPower.takeIf { surface.deviceId == device.id }
+            val pane = DevicePaneState(devices, device, capabilities, state, ownScreenPower, recordingSinceMillis, recordingElsewhere)
+            DevicePane(pane, surface, actions, notices, showCaptures, livenessOf, onToggleCaptures, onShowGrid, capturesPanel)
         }
     }
 }
@@ -178,10 +265,10 @@ private fun DeviceList(
  * @property recordingSinceMillis when the selected device's recording started; null while it is not recording.
  */
 private class DevicePaneState(
+    val devices: List<DeviceListing>,
     val device: DeviceListing,
     val capabilities: DeviceCapabilities,
     val state: MirrorState,
-    val status: MirrorStatus?,
     val screenPower: ScreenPower?,
     val recordingSinceMillis: Long?,
     val recordingElsewhere: String?,
@@ -192,28 +279,30 @@ private fun DevicePane(
     pane: DevicePaneState,
     surface: MirrorSurface,
     actions: MirrorActions,
+    notices: MirrorNoticeActions,
     showCaptures: Boolean,
+    livenessOf: (String) -> DeviceLiveness,
     onToggleCaptures: () -> Unit,
+    onShowGrid: () -> Unit,
     capturesPanel: @Composable () -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
-        DeviceToolbar(pane, actions, showCaptures, onToggleCaptures)
-        pane.status?.let { JwBanner(text = it.message, tone = if (it.isError) JwTone.Error else JwTone.Neutral) }
+        DeviceToolbar(pane, actions, showCaptures, livenessOf, onToggleCaptures, onShowGrid)
         if (showCaptures) {
             JwSplitPane(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 state = rememberJwSplitPaneState(VIDEO_FRACTION),
-                first = { LiveView(pane, surface, actions) },
+                first = { LiveView(pane, surface, actions, notices) },
                 second = capturesPanel,
             )
         } else {
-            Box(Modifier.weight(1f).fillMaxWidth()) { LiveView(pane, surface, actions) }
+            Box(Modifier.weight(1f).fillMaxWidth()) { LiveView(pane, surface, actions, notices) }
         }
     }
 }
 
 @Composable
-private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: MirrorActions) {
+private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: MirrorActions, notices: MirrorNoticeActions) {
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             MirrorVideo(surface = surface, deviceId = pane.device.id, interactive = pane.capabilities.input, onTap = actions::tap, onSwipe = actions::swipe, modifier = Modifier.fillMaxSize())
@@ -228,6 +317,8 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
             }
             // A screen that is off streams nothing, so the mirror would otherwise just stay black.
             if (pane.screenPower?.awake == false) ScreenOffOverlay(onWake = actions::wake)
+            // Over the video rather than above it, so a notice never moves the picture.
+            MirrorNoticeHost(notices, Modifier.align(Alignment.BottomCenter).padding(JwSpacing.large))
         }
         // Screenshots move a few times a second; say so, or the mirror just looks broken.
         (pane.state as? MirrorState.Polling)?.let { JwBanner(text = "Showing screenshots, since live video is unavailable: ${it.reason}", tone = JwTone.Warning) }
@@ -237,12 +328,19 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
 }
 
 /**
- * The device's name and controls, in groups that wrap to another line as a whole when the window is
+ * The device picker and the device's controls, in groups that wrap to another line as a whole when the window is
  * too narrow for one: every control stays visible, and the capture group keeps to the line's end.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DeviceToolbar(pane: DevicePaneState, actions: MirrorActions, showCaptures: Boolean, onToggleCaptures: () -> Unit) {
+private fun DeviceToolbar(
+    pane: DevicePaneState,
+    actions: MirrorActions,
+    showCaptures: Boolean,
+    livenessOf: (String) -> DeviceLiveness,
+    onToggleCaptures: () -> Unit,
+    onShowGrid: () -> Unit,
+) {
     Column(Modifier.fillMaxWidth()) {
         FlowRow(
             modifier = Modifier
@@ -253,13 +351,7 @@ private fun DeviceToolbar(pane: DevicePaneState, actions: MirrorActions, showCap
             verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall),
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            JwText(
-                text = pane.device.name,
-                style = JwTheme.textStyles.subtitle,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = DEVICE_NAME_MAX_WIDTH),
-            )
+            DevicePicker(pane.devices, pane.device, livenessOf, onSelect = actions::select, onShowAll = onShowGrid, modifier = Modifier.widthIn(max = PICKER_MAX_WIDTH))
             ButtonGroup(pane.capabilities.buttons.filter(NAVIGATION_BUTTONS::contains), actions)
             VolumeGroup(pane.device.kind, pane.capabilities, actions)
             ScreenPowerButton(pane.screenPower, actions)
@@ -279,9 +371,6 @@ private fun DeviceToolbar(pane: DevicePaneState, actions: MirrorActions, showCap
         JwHorizontalDivider()
     }
 }
-
-/** Past this the name gives way to the controls; its full text is in the device list. */
-private val DEVICE_NAME_MAX_WIDTH = 220.dp
 
 private val NAVIGATION_BUTTONS = setOf(DeviceButton.Home, DeviceButton.Back, DeviceButton.Recents, DeviceButton.Power)
 
@@ -477,4 +566,43 @@ private fun statsText(source: String, stats: MirrorStats): String {
     if (stats.receivedFps == 0) return "$source · the screen is not changing, so the device sends no frames"
     return "$source · ${stats.receivedFps} fps in, ${stats.displayedFps} shown · longest gap ${"%.0f".format(stats.longestGapMillis)} ms · " +
         "decode ${"%.1f".format(stats.decodeMillis)} ms · copy ${"%.1f".format(stats.copyMillis)} ms · draw ${"%.1f".format(stats.drawMillis)} ms"
+}
+
+/**
+ * The grid, wired to the mirror: its tiles capture through the mirror's devices, and opening one
+ * selects it in the single view.
+ */
+@Composable
+private fun DeviceGridRoot(mirror: DeviceMirror, thumbnails: DeviceThumbnails, notices: MirrorNoticeActions, onShowSingle: () -> Unit) {
+    val devices = mirror.devices
+    val scope = rememberCoroutineScope()
+    DeviceGrid(
+        devices = devices.map(MirrorDevice::listing),
+        selectedId = mirror.selectedId,
+        missingTools = mirror.missingTools,
+        notices = notices,
+        thumbnailOf = thumbnails::thumbnailOf,
+        poll = { deviceId, heightPx -> thumbnails.keepFresh(heightPx) { mirror.devices.firstOrNull { it.id == deviceId } } },
+        livenessOf = { id -> livenessOf(id, mirror, thumbnails, streaming = false) },
+        onOpen = { deviceId ->
+            mirror.select(deviceId)
+            onShowSingle()
+        },
+        onScreenshot = { deviceId ->
+            val device = mirror.devices.firstOrNull { it.id == deviceId } ?: return@DeviceGrid
+            saveScreenshots(listOf(device), mirror, thumbnails, scope)
+        },
+        onScreenshotAll = { saveScreenshots(mirror.devices, mirror, thumbnails, scope) },
+    )
+}
+
+/**
+ * Saves one screenshot of each of [devices] into the capture library, and says how that went. The
+ * captures share the tiles' limit, so they never add to the processes the grid already runs.
+ */
+private fun saveScreenshots(devices: List<MirrorDevice>, mirror: DeviceMirror, thumbnails: DeviceThumbnails, scope: CoroutineScope) {
+    scope.launch {
+        val results = devices.map { device -> thumbnails.withCapturePermit(device.id) { mirror.screenshotResultOf(device) } }
+        mirror.notices.show(MirrorNotice.screenshotsSaved(results))
+    }
 }

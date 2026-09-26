@@ -57,6 +57,7 @@ dependencies {
     testImplementation(libs.kotlinTest)
     testImplementation(libs.kotlinxSerializationJson)
     testImplementation(libs.kotlinxCoroutinesTest)
+    testImplementation(libs.jetbrainsComposeUiTestJUnit4)
     testImplementation(compose.desktop.currentOs)
     testImplementation(libs.material3)
 }

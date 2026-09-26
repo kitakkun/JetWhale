@@ -48,6 +48,14 @@ internal val WakeIcon: ImageVector = outlineIcon("Wake") {
     lineTo(14f, 16f)
 }
 
+/** A cross: dismiss. */
+internal val CloseIcon: ImageVector = outlineIcon("Close") {
+    moveTo(6f, 6f)
+    lineTo(18f, 18f)
+    moveTo(18f, 6f)
+    lineTo(6f, 18f)
+}
+
 /** A ring: start recording. */
 internal val RecordIcon: ImageVector = outlineIcon("Record") {
     moveTo(12f, 5f)
@@ -89,6 +97,22 @@ internal val CapturesIcon: ImageVector = outlineIcon("Captures") {
     lineTo(11f, 16f)
     lineTo(13f, 14f)
     lineTo(17f, 18f)
+}
+
+/** Corners pointing outward: show this device on its own, at full size. */
+internal val OpenFullIcon: ImageVector = outlineIcon("OpenFull") {
+    moveTo(4f, 9f)
+    lineTo(4f, 4f)
+    lineTo(9f, 4f)
+    moveTo(15f, 4f)
+    lineTo(20f, 4f)
+    lineTo(20f, 9f)
+    moveTo(20f, 15f)
+    lineTo(20f, 20f)
+    lineTo(15f, 20f)
+    moveTo(9f, 20f)
+    lineTo(4f, 20f)
+    lineTo(4f, 15f)
 }
 
 private val HomeIcon: ImageVector = outlineIcon("Home") {

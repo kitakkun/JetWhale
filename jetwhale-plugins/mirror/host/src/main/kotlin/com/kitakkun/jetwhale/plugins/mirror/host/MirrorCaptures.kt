@@ -70,6 +70,7 @@ internal class MirrorCaptures(
     private val storage: JetWhalePluginStorage?,
     private val scope: CoroutineScope,
     private val zone: ZoneId,
+    private val notices: MirrorNotices,
 ) : CapturesActions,
     ThumbnailSource {
     var library: CaptureLibrary by mutableStateOf(CaptureLibrary(defaultRoot, zone))
@@ -88,9 +89,6 @@ internal class MirrorCaptures(
         private set
 
     var selected: Capture? by mutableStateOf(null)
-        private set
-
-    var status: MirrorStatus? by mutableStateOf(null)
         private set
 
     private var device: DeviceListing? = null
@@ -167,13 +165,13 @@ internal class MirrorCaptures(
         scope.launch(Dispatchers.IO) {
             val image = ImageIO.read(capture.file) ?: return@launch
             Toolkit.getDefaultToolkit().systemClipboard.setContents(ImageSelection(image), null)
-            status = MirrorStatus("Copied ${capture.file.name} to the clipboard", isError = false)
+            notices.show(MirrorNotice.info("Copied ${capture.file.name} to the clipboard"))
         }
     }
 
     override fun copyPath(capture: Capture) {
         Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(capture.file.absolutePath), null)
-        status = MirrorStatus("Copied the path of ${capture.file.name}", isError = false)
+        notices.show(MirrorNotice.info("Copied the path of ${capture.file.name}"))
     }
 
     override fun delete(capture: Capture) {
@@ -216,9 +214,9 @@ internal class MirrorCaptures(
         try {
             action(Desktop.getDesktop())
         } catch (e: IOException) {
-            status = MirrorStatus("Could not open it: ${e.message}", isError = true)
+            notices.show(MirrorNotice.failure("Could not open it: ${e.message}", retry = null))
         } catch (e: UnsupportedOperationException) {
-            status = MirrorStatus("This desktop cannot open files from here: ${e.message}", isError = true)
+            notices.show(MirrorNotice.failure("This desktop cannot open files from here: ${e.message}", retry = null))
         }
     }
 }

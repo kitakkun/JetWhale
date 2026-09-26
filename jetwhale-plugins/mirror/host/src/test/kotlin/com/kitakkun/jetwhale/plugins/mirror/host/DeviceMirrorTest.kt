@@ -22,15 +22,18 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class DeviceMirrorTest {
     private val root: File = Files.createTempDirectory("mirror-recordings").toFile()
     private val scope = CoroutineScope(Dispatchers.Default)
     private val recorder = SlowRecorder()
     private val device = MirrorDevice(DeviceListing("emulator-5554", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), recorder)
+    private val notices = MirrorNotices(scope)
     private val mirror = DeviceMirror(
         discovery = DeviceDiscovery(MirrorTools(adb = null, idb = null, idbCompanion = null, xcrun = null), companions = null),
-        captures = MirrorCaptures(root, storage = null, scope = scope, zone = ZoneOffset.UTC),
+        captures = MirrorCaptures(root, storage = null, scope = scope, zone = ZoneOffset.UTC, notices = notices),
+        notices = notices,
         scope = scope,
     )
 
@@ -38,6 +41,14 @@ class DeviceMirrorTest {
     fun cleanUp() {
         scope.cancel()
         root.deleteRecursively()
+    }
+
+    @Test
+    fun `a screenshot that fails becomes a notice that retries that device`() = runBlocking {
+        val notice = MirrorNotice.screenshotsSaved(listOf(mirror.screenshotResultOf(device)))
+
+        assertTrue(notice.isError)
+        assertEquals(listOf<NoticeAction>(NoticeAction.RetryScreenshots(listOf("emulator-5554"))), notice.actions)
     }
 
     @Test

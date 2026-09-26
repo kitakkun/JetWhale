@@ -38,8 +38,20 @@ When a tool is missing, the device list says which one and what it would enable.
 
 ## What you get in the host
 
-- **Devices.** Android and iOS devices in two groups, refreshed every few seconds. A device
-  appears once it is booted or connected.
+- **Device picker.** The device's name at the top left opens every device, Android and iOS in
+  two groups, with its kind, OS version and a dot for what the mirror last saw: showing its
+  screen, screen off, unavailable, or (hollow) not watched yet. The list refreshes every few
+  seconds; a device appears once it is booted or connected. The picker's first entry, **All
+  devices**, opens the grid.
+- **All devices (grid).** Every device as a tile with a screenshot refreshed every 1.5 seconds,
+  its status dot, name, kind and OS version, and how long ago the picture was taken; **Screen off**
+  or **Unavailable** (with the reason) says why a picture is old. The tiles are sized so that all
+  of them fit the pane and are centered in it, each at its device's own shape; with more devices
+  than fit at a readable size they scroll. The device open in the single view has an accent
+  outline. Only tiles on screen are captured, two captures at a time at most, and nothing streams
+  meanwhile. Tiles are view-only: click one, or press Enter on it, to open that device. Hovering a
+  tile offers **Open** and **Screenshot** for that device, and the camera button in the toolbar
+  saves one screenshot per device into the captures; what was saved shows briefly at the bottom.
 - **Live view.** The mirrored screen fills the pane at its own aspect ratio, and the video is
   decoded at the size it is shown. A click is a tap and a drag is a swipe, at the matching point
   on the device. An iOS simulator streams uncompressed frames at up to 60 per second, scaled by the
