@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostNavigationService
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.McpActivityRepository
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
@@ -43,22 +44,28 @@ class DefaultFollowAiOperationService(
         if (!debuggerSettingsRepository.followAiOperationEnabledFlow.value) return
         // Host tools (navigation, settings, status) name no plugin, and there is nothing to follow.
         val pluginId = invocation.pluginId ?: return
-        // A call can name a plugin that has nothing running (switched off, not installed for that
-        // session, not started yet): its tool fails, and there is no screen to bring up for it.
-        if (!hasRunningInstance(pluginId, invocation.sessionId)) return
-
-        val currentView = hostNavigationService.currentView.value
         // Null until the window reports its first destination; navigating then is still right,
         // because the request waits in the channel until the window is there to take it.
+        val currentView = hostNavigationService.currentView.value
+        // The request names the session explicitly, so the window opens exactly the one checked
+        // here: left unnamed, it would fall back to whatever the drawer selects by the time it runs.
+        val targetSessionId = invocation.sessionId ?: sessionForUnnamedCall(pluginId, currentView?.selectedSessionId) ?: return
+        // A call can name a plugin that has nothing running (switched off, not installed for that
+        // session, not started yet): its tool fails, and there is no screen to bring up for it.
+        if (pluginInstanceService.getPluginInstanceForSession(pluginId, targetSessionId) == null) return
+
         if (currentView != null && currentView.destination.alreadyShows(invocation, pluginId)) return
 
-        hostNavigationService.navigate(HostNavigationRequest.Plugin(pluginId, invocation.sessionId, followsAgent = true))
+        hostNavigationService.navigate(HostNavigationRequest.Plugin(pluginId, targetSessionId, followsAgent = true))
     }
 
-    /** A call that names no session is followed in the drawer's session, so any instance counts. */
-    private fun hasRunningInstance(pluginId: String, sessionId: String?): Boolean = when (sessionId) {
-        null -> pluginInstanceService.getLoadedPluginInstances().any { it.pluginId == pluginId }
-        else -> pluginInstanceService.getPluginInstanceForSession(pluginId, sessionId) != null
+    /**
+     * The session a call that names none is followed in: the host session for a plugin that needs no
+     * app, otherwise the app the drawer has selected, which is where the window would open it.
+     */
+    private fun sessionForUnnamedCall(pluginId: String, selectedSessionId: String?): String? = when {
+        pluginInstanceService.getPluginInstanceForSession(pluginId, HostSession.ID) != null -> HostSession.ID
+        else -> selectedSessionId
     }
 }
 
