@@ -187,7 +187,9 @@ private fun DevicePane(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).padding(horizontal = JwSpacing.extraSmall),
                 )
-                DeviceButtons(pane.capabilities, pane.screenPower, actions, Modifier.weight(1f, fill = false))
+                // While switching, the screen state still describes the previous device.
+                val screenPower = pane.screenPower.takeIf { surface.deviceId == pane.device.id }
+                DeviceButtons(pane.capabilities, screenPower, actions, Modifier.weight(1f, fill = false))
                 CaptureActions(pane.capabilities, pane.recording, actions)
                 JwButton(text = "Captures", onClick = onToggleCaptures, style = if (showCaptures) JwButtonStyle.Primary else JwButtonStyle.Secondary)
             },
@@ -210,8 +212,16 @@ private fun DevicePane(
 private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: MirrorActions) {
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            MirrorVideo(surface = surface, interactive = pane.capabilities.input, onTap = actions::tap, onSwipe = actions::swipe, modifier = Modifier.fillMaxSize())
-            StateOverlay(pane.device, pane.state, showingKeptFrame = surface.showingKeptFrame)
+            MirrorVideo(surface = surface, deviceId = pane.device.id, interactive = pane.capabilities.input, onTap = actions::tap, onSwipe = actions::swipe, modifier = Modifier.fillMaxSize())
+            val switching = surface.deviceId != pane.device.id
+            when {
+                // A frame kept from the last visit stays up, dimmed, until the new stream sends one.
+                surface.showingKeptFrame || (switching && surface.hasKeptFrame(pane.device.id)) -> ReconnectingScrim()
+
+                switching -> JwEmptyState(title = "Connecting to ${pane.device.name}…")
+
+                else -> StateOverlay(pane.device, pane.state)
+            }
             // A screen that is off streams nothing, so the mirror would otherwise just stay black.
             if (pane.screenPower?.awake == false) ScreenOffOverlay(onWake = actions::wake)
         }
@@ -247,12 +257,11 @@ private fun CaptureActions(capabilities: DeviceCapabilities, recording: Boolean,
 
 /** What the mirror has to say in place of a picture: connecting, or why nothing arrives. */
 @Composable
-private fun StateOverlay(device: DeviceListing, state: MirrorState, showingKeptFrame: Boolean) {
+private fun StateOverlay(device: DeviceListing, state: MirrorState) {
     when (state) {
         is MirrorState.Idle, is MirrorState.Streaming, is MirrorState.Polling -> Unit
 
-        // The frame kept from the last visit stays up, dimmed, until the new stream sends one.
-        is MirrorState.Connecting -> if (showingKeptFrame) ReconnectingScrim() else JwEmptyState(title = "Connecting to ${device.name}…")
+        is MirrorState.Connecting -> JwEmptyState(title = "Connecting to ${device.name}…")
 
         is MirrorState.NoFrames -> JwEmptyState(
             title = "No picture from ${device.name}",

@@ -54,7 +54,10 @@ internal class MirrorSurface : AutoCloseable {
     // The last frame of each device mirrored recently, least recently shown first, so switching
     // back shows it at once instead of nothing while the new stream starts.
     private val lastFrames = LinkedHashMap<String, Bitmap>()
-    private var deviceId: String? = null
+
+    /** The device whose frames this surface holds now; set by [switchTo]. */
+    var deviceId: String? by mutableStateOf(null)
+        private set
 
     /** True while the frame on screen is the one kept from the device's last visit, not a live one. */
     var showingKeptFrame: Boolean by mutableStateOf(false)
@@ -141,6 +144,28 @@ internal class MirrorSurface : AutoCloseable {
             }
         }
     }
+
+    /**
+     * Runs [draw] with the frame kept from [keptDeviceId]'s last visit, for while the view already
+     * shows that device and this surface still holds another one's; does nothing without such a frame.
+     */
+    fun drawKeptFrame(keptDeviceId: String, draw: (Bitmap) -> Unit) {
+        val bitmap = synchronized(lock) {
+            if (closed) return
+            lastFrames[keptDeviceId]?.also { drawn = it }
+        } ?: return
+        try {
+            draw(bitmap)
+        } finally {
+            synchronized(lock) {
+                if (closeWhenDrawn) bitmap.close()
+                closeWhenDrawn = false
+                drawn = null
+            }
+        }
+    }
+
+    fun hasKeptFrame(keptDeviceId: String): Boolean = synchronized(lock) { keptDeviceId in lastFrames }
 
     fun recordDraw(nanos: Long) = window.recordDraw(nanos)
 
