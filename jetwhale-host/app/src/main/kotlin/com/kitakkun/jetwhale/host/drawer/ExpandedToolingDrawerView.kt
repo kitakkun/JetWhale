@@ -98,10 +98,10 @@ import java.awt.Cursor
 private val EmptyStateIconSize = 28.dp
 
 /**
- * The sidebar at full width: a header with the app mark and the collapse control, the tools that
- * need no app (pinned, so they stay one click away whatever app is selected), the app picker, the
- * selected app's plugins grouped by availability, and a footer of the host-wide entry points (MCP
- * tools, settings, about).
+ * The sidebar at full width: a header with the AI agent indicator and the collapse control, the
+ * plugins that need no app (first, so they stay one click away whatever app is selected), the app
+ * picker, the selected app's plugins, and a footer of the host-wide entry points (MCP tools,
+ * settings, about).
  */
 @Composable
 fun ExpandedToolingDrawerView(

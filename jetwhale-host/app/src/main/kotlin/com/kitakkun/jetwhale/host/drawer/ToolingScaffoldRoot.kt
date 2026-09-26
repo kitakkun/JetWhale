@@ -262,14 +262,18 @@ private fun HostNavigationRequestEffect(
                 is HostNavigationRequest.Settings -> currentOnNavigateSettings(request.section.toPage())
 
                 is HostNavigationRequest.Plugin -> {
-                    if (request.followsAgent) {
-                        currentOnFollowAgent(currentUiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId)
+                    // Announced only on the paths that actually move the window, below.
+                    val announceFollow = {
+                        if (request.followsAgent) {
+                            currentOnFollowAgent(currentUiState.plugins.find { it.id == request.pluginId }?.name ?: request.pluginId)
+                        }
                     }
                     // A plugin that needs no app opens in the host session and leaves the app
                     // selection alone, whether or not the request named that session.
                     if (HostSession.isHost(currentUiState.sessionIdFor(request.pluginId))) {
                         screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
                         currentOnClickPlugin(request.pluginId, HostSession.ID)
+                        announceFollow()
                         return@collect
                     }
                     // Only a request that named no session falls back to the drawer's selection.
@@ -286,6 +290,7 @@ private fun HostNavigationRequestEffect(
                     }
                     screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
                     currentOnClickPlugin(request.pluginId, targetSession.id)
+                    announceFollow()
                 }
             }
         }

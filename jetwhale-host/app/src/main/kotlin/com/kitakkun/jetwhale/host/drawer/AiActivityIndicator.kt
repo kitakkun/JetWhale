@@ -279,9 +279,10 @@ fun AiActivityIndicator(
                         Modifier
                     },
                 ) {
+                    // The button's tooltip already describes it; a description here would be read twice.
                     JwIcon(
                         imageVector = Icons.Default.SmartToy,
-                        contentDescription = description,
+                        contentDescription = null,
                         tint = if (uiState.isOperating) JwTheme.colors.aiAccent else JwTheme.colors.textSecondary,
                         modifier = Modifier.alpha(aiActivityPulseAlpha(uiState.isOperating)),
                     )
