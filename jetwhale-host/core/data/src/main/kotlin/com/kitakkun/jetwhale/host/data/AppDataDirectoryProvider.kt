@@ -37,25 +37,29 @@ class AppDataDirectoryProvider(
     fun resolveDataStoreFilePath(fileName: String): Path = "$dataStoreFilesDir/$fileName".toPath()
 
     /**
-     * Resolves the persistent store file for a single plugin. Each plugin gets its own directory so
-     * plugins cannot reach each other's data. [pluginId] is sanitized first so a crafted id (e.g.
-     * one containing path separators or `..`) cannot escape [pluginDataDir].
+     * Resolves the data directory of a single plugin, which holds one subdirectory per version (see
+     * [resolvePluginVersionDataDir]). Each plugin gets its own directory so plugins cannot reach each
+     * other's data. [pluginId] is sanitized first so a crafted id (e.g. one containing path
+     * separators or `..`) cannot escape [pluginDataDir].
      */
-    fun resolvePluginDataFilePath(pluginId: String): Path = "$pluginDataDir/${sanitizePluginId(pluginId)}/store.json".toPath()
+    fun resolvePluginDataDir(pluginId: String): Path = "$pluginDataDir/${sanitizePathSegment(pluginId)}".toPath()
 
-    private fun sanitizePluginId(pluginId: String): String {
+    /** Resolves the data directory of [version] of [pluginId]; [version] is sanitized like the id. */
+    fun resolvePluginVersionDataDir(pluginId: String, version: String): Path = resolvePluginDataDir(pluginId) / sanitizePathSegment(version)
+
+    private fun sanitizePathSegment(segment: String): String {
         val sanitized = buildString {
-            for (c in pluginId) {
+            for (c in segment) {
                 append(if (c.isLetterOrDigit() || c == '.' || c == '-' || c == '_') c else '_')
             }
         }
         // Sanitization is lossy: distinct ids like "a/b" and "a_b" would otherwise collapse into the
         // same directory (breaking isolation and DataStore's single-instance-per-file rule). When any
-        // character was replaced, a hash of the original id is appended to keep the name unique.
-        val hashSuffix = "_" + pluginId.hashCode().toUInt().toString(16)
+        // character was replaced, a hash of the original is appended to keep the name unique.
+        val hashSuffix = "_" + segment.hashCode().toUInt().toString(16)
         return when {
             sanitized.isEmpty() || sanitized == "." || sanitized == ".." -> "plugin$hashSuffix"
-            sanitized != pluginId -> sanitized + hashSuffix
+            sanitized != segment -> sanitized + hashSuffix
             else -> sanitized
         }
     }

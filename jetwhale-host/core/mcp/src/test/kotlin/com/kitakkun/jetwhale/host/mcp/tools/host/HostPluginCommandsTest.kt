@@ -15,6 +15,7 @@ import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArgumentException
 import com.kitakkun.jetwhale.host.sdk.JetWhaleMcpArguments
 import dev.mokkery.MockMode
+import dev.mokkery.answering.calls
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.mock
@@ -47,6 +48,7 @@ class HostPluginCommandsTest {
 
     private val pluginFactoryRepository = mock<PluginFactoryRepository> {
         every { this@mock.loadedPlugins } returns this@HostPluginCommandsTest.loadedPlugins
+        every { loadedPluginVersions } calls { this@HostPluginCommandsTest.loadedPlugins.mapValues { (_, plugin) -> listOf(plugin) } }
         every { failedJarsFlow } returns failedJars
     }
     private val enabledPluginsRepository = mock<EnabledPluginsRepository>(MockMode.autoUnit) {
@@ -162,6 +164,7 @@ class HostPluginCommandsTest {
 }
 
 private fun loadedPlugin(pluginId: String, name: String, requiresAgent: Boolean) = LoadedHostPlugin(
+    jarPath = "/plugins/plugin.jar",
     manifest = JetWhaleHostPluginManifest(
         pluginId = pluginId,
         pluginName = name,

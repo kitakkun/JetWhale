@@ -163,7 +163,7 @@ class DefaultMcpServerServiceTest {
         val testPluginId = "com.example.test"
         val testSessionId = "test-session-failed-start"
         every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
-            LoadedPluginInstance(testPluginId, testSessionId, FakeMcpCapablePlugin()),
+            LoadedPluginInstance(testPluginId, testSessionId, FakeMcpCapablePlugin(), version = "1.0.0"),
         )
 
         occupyPort().use { occupied ->
@@ -196,7 +196,7 @@ class DefaultMcpServerServiceTest {
         val fakePlugin = FakeMcpCapablePlugin()
 
         every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
-            LoadedPluginInstance(testPluginId, testSessionId, fakePlugin),
+            LoadedPluginInstance(testPluginId, testSessionId, fakePlugin, version = "1.0.0"),
         )
         every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns fakePlugin
 
@@ -237,7 +237,7 @@ class DefaultMcpServerServiceTest {
 
         service.start(host, port)
         try {
-            eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId))
+            eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId, version = "1.0.0"))
 
             awaitCapableFor(testSessionId) { testPluginId in it }
 
@@ -258,7 +258,7 @@ class DefaultMcpServerServiceTest {
 
         service.start(host, port)
         try {
-            eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId))
+            eventFlow.emit(PluginInstanceEvent.Ready(testPluginId, testSessionId, version = "1.0.0"))
 
             awaitCapableFor(testSessionId) { testPluginId in it }
             assertTrue("com.example.test.greet" in servedToolNames())
@@ -310,8 +310,8 @@ class DefaultMcpServerServiceTest {
 
         service.start(host, port)
         try {
-            eventFlow.emit(PluginInstanceEvent.Ready(pluginA, sessionId))
-            eventFlow.emit(PluginInstanceEvent.Ready(pluginB, sessionId))
+            eventFlow.emit(PluginInstanceEvent.Ready(pluginA, sessionId, version = "1.0.0"))
+            eventFlow.emit(PluginInstanceEvent.Ready(pluginB, sessionId, version = "1.0.0"))
 
             // Registration is handled asynchronously, so wait for the flow to settle on both.
             val capable = withTimeout(5.seconds) {
@@ -567,7 +567,7 @@ class DefaultMcpServerServiceTest {
         val fakePlugin = FakeMcpCapablePlugin()
 
         every { pluginInstanceService.getLoadedPluginInstances() } returns listOf(
-            LoadedPluginInstance(testPluginId, testSessionId, fakePlugin),
+            LoadedPluginInstance(testPluginId, testSessionId, fakePlugin, version = "1.0.0"),
         )
         every { pluginInstanceService.getPluginInstanceForSession(testPluginId, testSessionId) } returns fakePlugin
 

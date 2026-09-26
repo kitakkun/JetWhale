@@ -11,6 +11,9 @@
     <string name="plugin_arrived_load">読み込む</string>
     <string name="plugin_arrived_update_action">更新する</string>
     <string name="plugin_arrived_later">後で</string>
+    <string name="plugin_arrived_alongside">新しいバージョン: %1$s（インストール済み: %2$s）· %3$s</string>
+    <string name="plugin_arrived_load_alongside">並べて読み込む</string>
+    <string name="plugin_arrived_replace">%1$s を置き換える</string>
     <string name="plugin_arrived_review">設定で確認</string>
     <plurals name="plugin_arrived_more">
         <item quantity="other">ほかに新しいプラグイン JAR が %1$d 件あります</item>

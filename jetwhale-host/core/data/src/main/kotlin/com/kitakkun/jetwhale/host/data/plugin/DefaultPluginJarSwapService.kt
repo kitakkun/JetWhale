@@ -22,11 +22,12 @@ import java.util.logging.Logger
 
 /**
  * Reload sequence for a changed jar:
- * 1. dispose the affected plugin's running instances ([PluginInstanceService.unloadPluginInstancesForPlugin],
- *    which calls each instance's `onDispose`) and close its compose scenes,
+ * 1. dispose the running instances of the jar's plugin versions ([PluginInstanceService.unloadPluginInstancesForJar],
+ *    which calls each instance's `onDispose`) and close their plugins' compose scenes,
  * 2. reload the factory from a fresh classloader (the old classloader is dropped — see
  *    [PluginFactoryRepository.reloadPlugin]),
- * 3. re-create instances for active sessions that have the plugin installed, and
+ * 3. re-create instances for active sessions that have the plugin installed, each bound to a version
+ *    that fits it, and
  * 4. emit [pluginReloadedFlow] so the open plugin screen re-creates its scene from the new code.
  */
 @Inject
@@ -74,14 +75,19 @@ class DefaultPluginJarSwapService(
             return
         }
 
-        // Plugin instance state is lost. Capture the plugin ids currently served by this jar, and those
-        // it declares that another jar serves now (a new version under a new file name takes them
-        // over, closing that jar's classloader), so their running instances and scenes are disposed
-        // before the code under them goes away.
-        val takenOverPluginIds = withContext(Dispatchers.IO) { declaredPluginIds(File(jarPath)) }
-            .filter { it in pluginFactoryRepository.loadedPlugins }
-        val previousPluginIds = (pluginFactoryRepository.findPluginIdsByJarPath(jarPath) + takenOverPluginIds).distinct()
-        previousPluginIds.forEach { disposePlugin(it) }
+        // Plugin instance state is lost. Capture the plugins currently served by this jar, and the
+        // versions it declares that another jar serves now (the same version under a new file name
+        // takes them over, closing that jar's classloader), so the instances bound to them and their
+        // scenes are disposed before the code under them goes away. Other versions of the same
+        // plugins keep running.
+        val takenOverJarPaths = withContext(Dispatchers.IO) { declaredPlugins(File(jarPath)) }.mapNotNull { declared ->
+            pluginFactoryRepository.loadedPluginVersions[declared.pluginId]
+                ?.firstOrNull { it.manifest.version == declared.version }
+                ?.jarPath
+        }
+        val replacedJarPaths = (takenOverJarPaths + jarPath).distinct()
+        val previousPluginIds = replacedJarPaths.flatMap(pluginFactoryRepository::findPluginIdsByJarPath).distinct()
+        disposeJars(replacedJarPaths, previousPluginIds)
 
         val reloadedPluginIds = pluginFactoryRepository.reloadPlugin(jarPath, expectedSha256)
         if (reloadedPluginIds.isEmpty()) {
@@ -96,25 +102,31 @@ class DefaultPluginJarSwapService(
             return
         }
 
-        // Some plugin ids may have disappeared if the jar's manifest changed across the rebuild
-        // (a plugin removed/renamed); make sure their previously loaded instances are gone too.
-        (previousPluginIds - reloadedPluginIds.toSet()).forEach { disposePlugin(it) }
-
-        reloadedPluginIds.forEach { reinitializeInstances(it) }
+        // A plugin the jar no longer declares (removed or renamed across the rebuild) is rebound too:
+        // its sessions move to another loaded version of it, or lose it when none is left.
+        val affectedPluginIds = (previousPluginIds + reloadedPluginIds).distinct()
+        affectedPluginIds.forEach { reinitializeInstances(it) }
 
         logger.info("Reloaded plugin(s): ${reloadedPluginIds.joinToString()}")
-        reloadedPluginIds.forEach { pluginReloadedFlow.emit(it) }
+        affectedPluginIds.forEach { pluginReloadedFlow.emit(it) }
     }
 
     override suspend fun remove(jarPath: String) {
-        pluginFactoryRepository.findPluginIdsByJarPath(jarPath).forEach { disposePlugin(it) }
+        val pluginIds = pluginFactoryRepository.findPluginIdsByJarPath(jarPath)
+        disposeJars(listOf(jarPath), pluginIds)
         pluginFactoryRepository.unloadPluginJar(jarPath)
+        // Sessions bound to the removed version move to another loaded version that fits them.
+        pluginIds.forEach {
+            reinitializeInstances(it)
+            pluginReloadedFlow.emit(it)
+        }
     }
 
     // The scene service keeps its scenes on the main thread; the directory watchers call in from IO.
-    private suspend fun disposePlugin(pluginId: String) = withContext(Dispatchers.Main) {
-        pluginInstanceService.unloadPluginInstancesForPlugin(pluginId)
-        pluginComposeSceneService.disposePluginScenesForPlugin(pluginId)
+    // Scenes are kept per plugin rather than per version, so every scene of [pluginIds] is recreated.
+    private suspend fun disposeJars(jarPaths: List<String>, pluginIds: List<String>) = withContext(Dispatchers.Main) {
+        jarPaths.forEach(pluginInstanceService::unloadPluginInstancesForJar)
+        pluginIds.forEach(pluginComposeSceneService::disposePluginScenesForPlugin)
     }
 
     /**
@@ -126,15 +138,15 @@ class DefaultPluginJarSwapService(
 
         // The target-session rule (host-only vs agent-backed) lives in the reconciliation service.
         val activeSessions = debugSessionRepository.debugSessionsFlow.first().filter(DebugSession::isActive)
-        val activeSessionIds = reconciliationService.targetSessionIds(pluginId, activeSessions)
+        val targetSessions = reconciliationService.targetSessions(pluginId, activeSessions)
 
-        if (activeSessionIds.isEmpty()) return
+        if (targetSessions.isEmpty()) return
 
         // Instance creation drives compose, so do it on the main dispatcher to match the scene service.
         withContext(Dispatchers.Main) {
             pluginInstanceService.initializePluginInstancesForSessionsIfNeeded(
                 pluginId = pluginId,
-                sessionIds = activeSessionIds,
+                sessions = targetSessions,
             )
         }
     }

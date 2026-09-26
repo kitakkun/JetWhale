@@ -54,7 +54,7 @@ class AppDataDirectoryProviderTest {
         assertTrue(provider.getPluginLibsDirectory().path.startsWith(sandbox))
         assertTrue(provider.getTrustRegistryFile().path.startsWith(sandbox))
         assertTrue(provider.resolveDataStoreFilePath("prefs.preferences_pb").toString().startsWith(sandbox))
-        assertTrue(provider.resolvePluginDataFilePath("plugin.a").toString().startsWith(sandbox))
+        assertTrue(provider.resolvePluginDataDir("plugin.a").toString().startsWith(sandbox))
 
         provider.createAppDataDirectoriesIfNeeded()
         assertTrue(provider.getPluginDirectory().exists())

@@ -59,9 +59,14 @@ interface PluginTrustService {
      * action (installing a jar via the file picker or by coordinates, or approving a surfaced
      * untrusted jar). [approvedSha256] is the hash the user was shown, as in an arrival banner; null
      * approves the jar's current content, for an install the user just made. When plugins from
-     * [jarPath] are already running, they are replaced by the approved content.
+     * [jarPath] are already running, they are replaced by the approved content. Other versions of its
+     * plugins keep running alongside it, unless [replaceOtherVersions] asks for their jars to be
+     * removed once it has loaded.
      */
-    suspend fun trustAndLoad(jarPath: String, approvedSha256: String?)
+    suspend fun trustAndLoad(jarPath: String, approvedSha256: String?, replaceOtherVersions: Boolean)
+
+    /** Unloads the plugins of [jarPath], a jar in the managed plugins directory, revokes it and deletes it. */
+    suspend fun removePluginJar(jarPath: String)
 
     /**
      * Brings the host in line with the jars at [jarPaths], which changed in the plugins directory

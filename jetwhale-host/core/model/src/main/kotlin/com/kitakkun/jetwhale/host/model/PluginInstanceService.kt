@@ -5,10 +5,12 @@ import com.kitakkun.jetwhale.protocol.messaging.PluginFrame
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
+/** @property version The version of the plugin the instance was created from. */
 data class LoadedPluginInstance(
     val pluginId: String,
     val sessionId: String,
     val plugin: JetWhaleHostPlugin,
+    val version: String,
 )
 
 interface PluginInstanceService {
@@ -22,6 +24,12 @@ interface PluginInstanceService {
      */
     val headlessPluginsFlow: StateFlow<HeadlessPlugins>
 
+    /**
+     * The version each instance was created from. A session keeps the version it was bound to while
+     * that version stays loaded.
+     */
+    val boundVersionsFlow: StateFlow<BoundPluginVersions>
+
     /** Returns all currently loaded plugin instances. */
     fun getLoadedPluginInstances(): List<LoadedPluginInstance>
 
@@ -29,6 +37,9 @@ interface PluginInstanceService {
     fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin?
 
     fun unloadPluginInstancesForPlugin(pluginId: String)
+
+    /** Disposes the instances created from the plugin versions [jarPath] provides. */
+    fun unloadPluginInstancesForJar(jarPath: String)
 
     /**
      * Disposes every instance that belongs to an app, for when the server stops and takes every app
@@ -38,10 +49,14 @@ interface PluginInstanceService {
 
     /**
      * Initializes plugin instances for the specified plugin and sessions if they don't already exist.
-     * Each new instance is wired to its own messaging peer.
+     * [sessions] maps each target session id to the version of the plugin its agent advertised, or to
+     * null for [HostSession]; each session gets the newest loaded version that version accepts (see
+     * [newestFor]). A session keeps a version it is already bound to while that version stays loaded,
+     * and gets no instance when no loaded version fits it. Each new instance is wired to its own
+     * messaging peer.
      * @return The set of session IDs for which new plugin instances were initialized.
      */
-    fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessionIds: Set<String>): Set<String>
+    fun initializePluginInstancesForSessionsIfNeeded(pluginId: String, sessions: Map<String, String?>): Set<String>
 
     /** Routes an inbound plugin [frame] to the peer of the matching plugin instance in [sessionId]. */
     suspend fun routeFrame(sessionId: String, frame: PluginFrame)
