@@ -1,0 +1,349 @@
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats$Companion;
+	public fun <init> (IIDDDDDLjava/util/List;)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()D
+	public final fun component4 ()D
+	public final fun component5 ()D
+	public final fun component6 ()D
+	public final fun component7 ()D
+	public final fun component8 ()Ljava/util/List;
+	public final fun copy (IIDDDDDLjava/util/List;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats;IIDDDDDLjava/util/List;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getJankyFrames ()I
+	public final fun getP50Millis ()D
+	public final fun getP90Millis ()D
+	public final fun getP99Millis ()D
+	public final fun getRecentJankyFrames ()Ljava/util/List;
+	public final fun getRefreshIntervalMillis ()D
+	public final fun getSlowestMillis ()D
+	public final fun getTotalFrames ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/GetMainThreadReport : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/GetMainThreadReport;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/Hotspot {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/Hotspot$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/util/List;IJI)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()I
+	public final fun component4 ()J
+	public final fun component5 ()I
+	public final fun copy (Ljava/lang/String;Ljava/util/List;IJI)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/Hotspot;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/Hotspot;Ljava/lang/String;Ljava/util/List;IJIILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/Hotspot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBlockedMillis ()J
+	public final fun getFrames ()Ljava/util/List;
+	public final fun getSampleCount ()I
+	public final fun getSignature ()Ljava/lang/String;
+	public final fun getTaskCount ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/mainthread/protocol/Hotspot$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/Hotspot$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/Hotspot;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/Hotspot;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/Hotspot$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/JankyFrame {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/JankyFrame$Companion;
+	public fun <init> (JD)V
+	public final fun component1 ()J
+	public final fun component2 ()D
+	public final fun copy (JD)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/JankyFrame;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/JankyFrame;JDILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/JankyFrame;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDurationMillis ()D
+	public final fun getEndEpochMillis ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/mainthread/protocol/JankyFrame$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/JankyFrame$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/JankyFrame;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/JankyFrame;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/JankyFrame$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/LongTask {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/LongTask$Companion;
+	public fun <init> (JJLjava/lang/String;IZ)V
+	public final fun component1 ()J
+	public final fun component2 ()J
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()I
+	public final fun component5 ()Z
+	public final fun copy (JJLjava/lang/String;IZ)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/LongTask;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/LongTask;JJLjava/lang/String;IZILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/LongTask;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDurationMillis ()J
+	public final fun getLabel ()Ljava/lang/String;
+	public final fun getSampleCount ()I
+	public final fun getStartEpochMillis ()J
+	public final fun getUnresponsive ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/mainthread/protocol/LongTask$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/LongTask$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/LongTask;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/LongTask;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/LongTask$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/MainThreadMessagesKt {
+	public static final field MAIN_THREAD_PLUGIN_ID Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/MainThreadReport {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MainThreadReport$Companion;
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;JLjava/util/List;Ljava/util/List;Ljava/util/List;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats;)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities;
+	public final fun component2 ()Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;
+	public final fun component3 ()J
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats;
+	public final fun copy (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;JLjava/util/List;Ljava/util/List;Ljava/util/List;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MainThreadReport;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MainThreadReport;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;JLjava/util/List;Ljava/util/List;Ljava/util/List;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MainThreadReport;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCapabilities ()Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities;
+	public final fun getFrames ()Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/FrameStats;
+	public final fun getHotspots ()Ljava/util/List;
+	public final fun getLongTasks ()Ljava/util/List;
+	public final fun getRecordingSinceEpochMillis ()J
+	public final fun getSettings ()Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;
+	public final fun getViolations ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/mainthread/protocol/MainThreadReport$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MainThreadReport$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MainThreadReport;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MainThreadReport;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/MainThreadReport$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities$Companion;
+	public fun <init> (Ljava/lang/String;ZZZZLjava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Z
+	public final fun component3 ()Z
+	public final fun component4 ()Z
+	public final fun component5 ()Z
+	public final fun component6 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;ZZZZLjava/lang/String;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities;Ljava/lang/String;ZZZZLjava/lang/String;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFrameTiming ()Z
+	public final fun getNote ()Ljava/lang/String;
+	public final fun getPlatform ()Ljava/lang/String;
+	public final fun getStackSampling ()Z
+	public final fun getStrictMode ()Z
+	public final fun getTaskTiming ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorCapabilities$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings$Companion;
+	public fun <init> (JJJ)V
+	public final fun component1 ()J
+	public final fun component2 ()J
+	public final fun component3 ()J
+	public final fun copy (JJJ)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;JJJILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLongTaskThresholdMillis ()J
+	public final fun getSampleIntervalMillis ()J
+	public final fun getUnresponsiveThresholdMillis ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/ResetMainThreadStats : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ResetMainThreadStats;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/UpdateMonitorSettings : com/kitakkun/jetwhale/protocol/messaging/JetWhaleRequest {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/UpdateMonitorSettings$Companion;
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;
+	public final fun copy (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/UpdateMonitorSettings;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/UpdateMonitorSettings;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;ILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/UpdateMonitorSettings;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSettings ()Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/MonitorSettings;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/mainthread/protocol/UpdateMonitorSettings$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/UpdateMonitorSettings$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/UpdateMonitorSettings;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/UpdateMonitorSettings;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/UpdateMonitorSettings$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationGroup {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationGroup$Companion;
+	public fun <init> (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;IJ)V
+	public final fun component1 ()Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()I
+	public final fun component6 ()J
+	public final fun copy (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;IJ)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationGroup;
+	public static synthetic fun copy$default (Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationGroup;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;IJILjava/lang/Object;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationGroup;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCallSite ()Ljava/lang/String;
+	public final fun getCount ()I
+	public final fun getKind ()Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;
+	public final fun getLastEpochMillis ()J
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getStack ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class com/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationGroup$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationGroup$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationGroup;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationGroup;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationGroup$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind : java/lang/Enum {
+	public static final field Companion Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind$Companion;
+	public static final field CustomSlowCall Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;
+	public static final field DiskRead Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;
+	public static final field DiskWrite Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;
+	public static final field Network Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;
+	public static final field Other Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;
+	public static final field ResourceMismatch Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;
+	public static final field UnbufferedIo Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;
+	public static fun values ()[Lcom/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind;
+}
+
+public final class com/kitakkun/jetwhale/plugins/mainthread/protocol/ViolationKind$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+

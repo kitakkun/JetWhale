@@ -99,6 +99,9 @@ include(":jetwhale-plugins:storage:protocol")
 include(":jetwhale-plugins:storage:agent")
 include(":jetwhale-plugins:storage:agent-datastore")
 include(":jetwhale-plugins:storage:host")
+include(":jetwhale-plugins:mainthread:protocol")
+include(":jetwhale-plugins:mainthread:agent")
+include(":jetwhale-plugins:mainthread:host")
 
 include(":test-annotations")
 

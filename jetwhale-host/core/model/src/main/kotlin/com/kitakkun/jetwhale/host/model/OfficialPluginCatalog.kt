@@ -99,5 +99,14 @@ object OfficialPluginCatalog {
             agentRegistration = "JetWhaleStorageAgentPlugin.platformDefaults()",
             guidePath = "storage-inspector",
         ),
+        OfficialPlugin(
+            pluginId = "com.kitakkun.jetwhale.mainthread",
+            displayName = "Main Thread Monitor",
+            description = "Find what blocks the main thread of connected debug sessions.",
+            artifactId = "jetwhale-main-thread-monitor",
+            agentArtifactId = "jetwhale-main-thread-monitor-agent",
+            agentRegistration = "JetWhaleMainThreadAgentPlugin()",
+            guidePath = "main-thread-monitor",
+        ),
     )
 }
