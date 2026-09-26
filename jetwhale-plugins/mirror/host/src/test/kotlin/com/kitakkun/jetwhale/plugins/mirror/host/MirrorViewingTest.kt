@@ -136,7 +136,7 @@ class MirrorViewingTest {
         val cleared = CountDownLatch(1)
         var closedDuringWrite = true
         var clearedDuringWrite = true
-        surface.writeFrame(width = 4, height = 4, ColorType.BGRA_8888) { target ->
+        surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888) { target ->
             thread {
                 clearStarted.countDown()
                 surface.switchTo("device-2")
@@ -233,7 +233,7 @@ class MirrorViewingTest {
         val written = mutableListOf<Any>()
 
         repeat(3) {
-            surface.writeFrame(width = 4, height = 4, ColorType.BGRA_8888) { bitmap ->
+            surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888) { bitmap ->
                 written += bitmap
                 fill(Color.GREEN)(bitmap)
             }
@@ -320,7 +320,7 @@ class MirrorViewingTest {
         val written = mutableListOf<Bitmap>()
         listOf("a", "b", "c").forEach { device ->
             surface.switchTo(device)
-            surface.writeFrame(width = 4, height = 4, ColorType.BGRA_8888) { bitmap ->
+            surface.writeFrame(width = 4, height = 4, colorType = ColorType.BGRA_8888) { bitmap ->
                 written += bitmap
                 true
             }
