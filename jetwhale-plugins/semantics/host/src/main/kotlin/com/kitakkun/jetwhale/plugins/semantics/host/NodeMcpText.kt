@@ -39,7 +39,10 @@ internal enum class NodeOutputFormat {
 internal fun NodeTreeSnapshot.toMcpText(): String = buildString {
     warnings.forEach { appendLine("! $it") }
     roots.forEach { root ->
-        append("root ${root.rootId} ${quoted(root.label)} unit=${if (root.node is AppleNode) "pt" else "px"} density=${root.density}")
+        // The unit is known only from the root's node, and a root without one has no coordinates to qualify.
+        append("root ${root.rootId} ${quoted(root.label)}")
+        root.node?.let { append(" unit=${if (it is AppleNode) "pt" else "px"}") }
+        append(" density=${root.density}")
         if (root.windowOffsetX != 0f || root.windowOffsetY != 0f) append(" offset=${root.windowOffsetX.roundToInt()},${root.windowOffsetY.roundToInt()}")
         appendLine()
         root.node?.let { appendOutline(it, depth = 1) }

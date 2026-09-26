@@ -66,6 +66,11 @@ class NodeMcpTextTest {
     }
 
     @Test
+    fun `a root without content claims no unit`() {
+        assertEquals("root window \"Empty\" density=2.0", snapshot(root("window", label = "Empty", node = null)).toMcpText().trim())
+    }
+
+    @Test
     fun `a node with no bounds on screen has no tap point`() {
         assertEquals("- node #3", node(id = 3, bounds = NodeBounds(left = 0f, top = 0f, right = 0f, bottom = 0f)).toMcpTextLine(rootId = null))
     }
