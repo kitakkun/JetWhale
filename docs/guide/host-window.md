@@ -6,7 +6,7 @@ and *which tool you are looking at*, and the selected plugin's own UI filling th
 Everything below is the host itself — the plugins it shows are documented on their own pages
 ([Network Inspector](/guide/network-inspector), [Nav3 Navigator](/guide/nav3-navigator),
 [Compose Semantics Inspector](/guide/compose-semantics-inspector),
-[Storage Inspector](/guide/storage-inspector)).
+[Storage Inspector](/guide/storage-inspector), [Coroutine Inspector](/guide/coroutine-inspector)).
 
 ## Plugins that need no app
 

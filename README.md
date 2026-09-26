@@ -86,6 +86,8 @@ from its plugin catalog, add the matching artifact to your app, and register it 
   back stack, and pushing or popping entries from the host
 - **[Storage Inspector](https://kitakkun.github.io/JetWhale/guide/storage-inspector)** — the app's
   files, caches and key-value stores, with previews and deletion
+- **[Coroutine Inspector](https://kitakkun.github.io/JetWhale/guide/coroutine-inspector)** — the
+  app's live coroutines, how long its dispatchers keep the main thread busy, and what its flows emit
 
 ## Developing plugins
 
