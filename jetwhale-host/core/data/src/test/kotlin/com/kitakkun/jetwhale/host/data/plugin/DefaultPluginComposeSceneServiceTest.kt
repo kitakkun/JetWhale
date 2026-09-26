@@ -36,12 +36,12 @@ class DefaultPluginComposeSceneServiceTest {
     }
 
     @Test
-    fun `a scene whose instance is replaced while it is being built is not handed out`() = runBlocking<Unit> {
+    fun `an instance replaced while its scene is built is followed by the replacement's scene`() = runBlocking<Unit> {
         val replaced = boundPlugin()
         val replacement = boundPlugin()
         var lookups = 0
         val instanceService = mock<PluginInstanceService> {
-            // The first lookup sees the instance the scene is built for; every later one sees the
+            // The first lookup sees the instance a scene is built for; every later one sees the
             // replacement that landed while it was being composed.
             every { getPluginInstanceForSession(any(), any()) } calls { if (lookups++ == 0) replaced else replacement }
         }
@@ -50,8 +50,22 @@ class DefaultPluginComposeSceneServiceTest {
             pluginInstanceService = instanceService,
         )
 
-        assertNull(service.getOrCreatePluginScene(pluginId = "com.example.replaced", sessionId = "host"))
         assertNotNull(service.getOrCreatePluginScene(pluginId = "com.example.replaced", sessionId = "host"))
+    }
+
+    @Test
+    fun `an instance replaced during every attempt to build its scene yields no scene`() = runBlocking {
+        val plugins = listOf(boundPlugin(), boundPlugin())
+        var lookups = 0
+        val instanceService = mock<PluginInstanceService> {
+            every { getPluginInstanceForSession(any(), any()) } calls { plugins[lookups++ % 2] }
+        }
+        val service = DefaultPluginComposeSceneService(
+            pluginBridgeProvider = passThroughBridge,
+            pluginInstanceService = instanceService,
+        )
+
+        assertNull(service.getOrCreatePluginScene(pluginId = "com.example.churning", sessionId = "host"))
     }
 
     @OptIn(InternalJetWhaleHostApi::class)

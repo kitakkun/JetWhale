@@ -62,13 +62,21 @@ class DefaultPluginComposeSceneService(
         pluginId: String,
         sessionId: String,
     ): PluginComposeScene? = withContext(Dispatchers.Main) {
-        val pluginInstance = pluginInstanceService.getPluginInstanceForSession(
-            pluginId = pluginId,
-            sessionId = sessionId,
-        ) ?: return@withContext null
         val sceneKey = SceneKey(pluginId, sessionId)
+        // Instances are replaced off the main thread, so one can land while a scene is being
+        // composed. A second attempt absorbs a single replacement; a caller that meets null after
+        // that decides for itself whether to wait.
+        getOrCreateCurrentScene(sceneKey) ?: getOrCreateCurrentScene(sceneKey)
+    }
+
+    /** The scene of the instance that is live for [sceneKey] both before and after it is composed. */
+    private fun getOrCreateCurrentScene(sceneKey: SceneKey): PluginComposeScene? {
+        val pluginInstance = pluginInstanceService.getPluginInstanceForSession(
+            pluginId = sceneKey.pluginId,
+            sessionId = sceneKey.sessionId,
+        ) ?: return null
         val cached = pluginScenes[sceneKey]
-        if (cached != null && cached.pluginInstance === pluginInstance) return@withContext cached.scene
+        if (cached != null && cached.pluginInstance === pluginInstance) return cached.scene
         // A reinstalled or reloaded plugin is served by a new instance from a new classloader; a
         // scene still composing the previous one would keep rendering discarded code.
         cached?.scene?.composeScene?.close()
@@ -101,10 +109,13 @@ class DefaultPluginComposeSceneService(
             isMcpCapture = isMcpCapture,
             pointerIcon = windowUpdatableContext.pointerIcon,
         )
+        if (pluginInstanceService.getPluginInstanceForSession(pluginId = sceneKey.pluginId, sessionId = sceneKey.sessionId) !== pluginInstance) {
+            composeScene.close()
+            pluginScenes.remove(sceneKey)
+            return null
+        }
         pluginScenes[sceneKey] = CachedScene(pluginInstance, scene)
-        // Instances are replaced off the main thread, so one can land while this scene is being
-        // composed. Answering null makes the caller ask again and get the replacement's scene.
-        scene.takeIf { pluginInstanceService.getPluginInstanceForSession(pluginId = sceneKey.pluginId, sessionId = sceneKey.sessionId) === pluginInstance }
+        return scene
     }
 
     override fun disposePluginSceneForSession(sessionId: String) {
