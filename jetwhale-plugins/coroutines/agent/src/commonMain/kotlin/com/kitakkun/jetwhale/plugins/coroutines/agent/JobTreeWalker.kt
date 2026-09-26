@@ -20,7 +20,7 @@ import kotlin.time.TimeSource
  * any thread.
  */
 @OptIn(ExperimentalAtomicApi::class)
-internal class JobTreeWalker(private val nodeLimit: Int) {
+internal class JobTreeWalker(private val nodeLimit: Int, private val timeSource: TimeSource) {
     private var seen: List<Pair<WeakReference<Job>, Sighting>> = emptyList()
     private var nextId = 1L
 
@@ -30,7 +30,7 @@ internal class JobTreeWalker(private val nodeLimit: Int) {
 
     /** Remembers that [job] was registered now, so its age counts from here. */
     fun registered(job: Job) {
-        val registeredAt = TimeSource.Monotonic.markNow()
+        val registeredAt = timeSource.markNow()
         registrations.updateAndGet { it + (WeakReference(job) to registeredAt) }
     }
 
@@ -81,7 +81,7 @@ internal class JobTreeWalker(private val nodeLimit: Int) {
 
     private fun newSighting(job: Job): Sighting {
         val registeredAt = registrations.load().firstNotNullOfOrNull { (reference, at) -> at.takeIf { reference.get() === job } }
-        return Sighting(id = "c${nextId++}", firstSeen = registeredAt ?: TimeSource.Monotonic.markNow())
+        return Sighting(id = "c${nextId++}", firstSeen = registeredAt ?: timeSource.markNow())
     }
 
     private inner class Walk(private val previous: Map<Job, Sighting>) {

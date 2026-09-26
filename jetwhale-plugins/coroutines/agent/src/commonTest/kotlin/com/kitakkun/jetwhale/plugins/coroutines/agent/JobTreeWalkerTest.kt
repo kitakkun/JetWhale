@@ -6,11 +6,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runCurrent
@@ -20,9 +18,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TestTimeSource
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class JobTreeWalkerTest {
+    private val clock = TestTimeSource()
+
     @Test
     fun `the tree shows each coroutine below a registered job with its name and state`() = runTest {
         val root = Job()
@@ -35,7 +36,7 @@ class JobTreeWalkerTest {
         app.launch(CoroutineName("lazy"), start = CoroutineStart.LAZY) { gate.await() }
         runCurrent()
 
-        val tree = JobTreeWalker(nodeLimit = 100).walk(mapOf("app" to root), capturedAtEpochMillis = 0)
+        val tree = JobTreeWalker(nodeLimit = 100, timeSource = clock).walk(mapOf("app" to root), capturedAtEpochMillis = 0)
 
         val appNode = tree.roots.single()
         assertEquals("app", appNode.name)
@@ -52,7 +53,7 @@ class JobTreeWalkerTest {
         val gate = CompletableDeferred<Unit>()
         CoroutineScope(root + StandardTestDispatcher(testScheduler)).launch(CoroutineName("worker")) { gate.await() }
         runCurrent()
-        val walker = JobTreeWalker(nodeLimit = 100)
+        val walker = JobTreeWalker(nodeLimit = 100, timeSource = clock)
 
         val first = walker.walk(mapOf("app" to root), capturedAtEpochMillis = 0).roots.single().children.single().id
         val second = walker.walk(mapOf("app" to root), capturedAtEpochMillis = 0).roots.single().children.single().id
@@ -70,7 +71,7 @@ class JobTreeWalkerTest {
         repeat(10) { app.launch { gate.await() } }
         runCurrent()
 
-        val tree = JobTreeWalker(nodeLimit = 4).walk(mapOf("app" to root), capturedAtEpochMillis = 0)
+        val tree = JobTreeWalker(nodeLimit = 4, timeSource = clock).walk(mapOf("app" to root), capturedAtEpochMillis = 0)
 
         assertEquals(4, tree.coroutineCount)
         assertTrue(tree.truncated)
@@ -82,7 +83,7 @@ class JobTreeWalkerTest {
     fun `the node limit also bounds how many registered roots are walked`() = runTest {
         val roots = (1..5).associate { "scope-$it" to Job() }
 
-        val tree = JobTreeWalker(nodeLimit = 3).walk(roots, capturedAtEpochMillis = 0)
+        val tree = JobTreeWalker(nodeLimit = 3, timeSource = clock).walk(roots, capturedAtEpochMillis = 0)
 
         assertEquals(3, tree.roots.size)
         assertTrue(tree.truncated)
@@ -109,13 +110,13 @@ class JobTreeWalkerTest {
     @Test
     fun `a registered root is as old as its registration when the tree is first asked for`() = runTest {
         val root = Job()
-        val walker = JobTreeWalker(nodeLimit = 100)
+        val walker = JobTreeWalker(nodeLimit = 100, timeSource = clock)
         walker.registered(root)
 
-        withContext(Dispatchers.Default) { delay(AGE_WAIT) }
+        clock += AGE_WAIT
         val age = walker.walk(mapOf("app" to root), capturedAtEpochMillis = 0).roots.single().observedMillis
 
-        assertTrue(age >= AGE_WAIT.inWholeMilliseconds, "age was $age ms")
+        assertEquals(AGE_WAIT.inWholeMilliseconds, age)
         root.cancel()
     }
 
@@ -125,13 +126,13 @@ class JobTreeWalkerTest {
         val gate = CompletableDeferred<Unit>()
         CoroutineScope(root + StandardTestDispatcher(testScheduler)).launch(CoroutineName("worker")) { gate.await() }
         runCurrent()
-        val walker = JobTreeWalker(nodeLimit = 100)
+        val walker = JobTreeWalker(nodeLimit = 100, timeSource = clock)
 
         walker.sight(listOf(root))
-        withContext(Dispatchers.Default) { delay(AGE_WAIT) }
+        clock += AGE_WAIT
         val age = walker.walk(mapOf("app" to root), capturedAtEpochMillis = 0).roots.single().children.single().observedMillis
 
-        assertTrue(age >= AGE_WAIT.inWholeMilliseconds, "age was $age ms")
+        assertEquals(AGE_WAIT.inWholeMilliseconds, age)
         gate.complete(Unit)
         root.cancel()
     }
