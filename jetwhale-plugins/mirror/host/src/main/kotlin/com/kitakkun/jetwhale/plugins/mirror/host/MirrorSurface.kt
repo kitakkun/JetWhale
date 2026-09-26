@@ -180,8 +180,11 @@ internal class MirrorSurface : AutoCloseable {
             val previous = deviceId
             when {
                 newest == null -> Unit
+
                 previous == null -> retire(newest)
+
                 previous == nextDeviceId -> front = newest
+
                 else -> {
                     lastFrames.remove(previous)?.closeUnlessDrawn()
                     lastFrames[previous] = newest

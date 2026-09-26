@@ -189,7 +189,7 @@ private fun DevicePane(
                 )
                 // While switching, the screen state still describes the previous device.
                 val screenPower = pane.screenPower.takeIf { surface.deviceId == pane.device.id }
-                DeviceButtons(pane.capabilities, screenPower, actions, Modifier.weight(1f, fill = false))
+                DeviceButtons(pane.device.kind, pane.capabilities, screenPower, actions, Modifier.weight(1f, fill = false))
                 CaptureActions(pane.capabilities, pane.recording, actions)
                 JwButton(text = "Captures", onClick = onToggleCaptures, style = if (showCaptures) JwButtonStyle.Primary else JwButtonStyle.Secondary)
             },
@@ -225,17 +225,27 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
             // A screen that is off streams nothing, so the mirror would otherwise just stay black.
             if (pane.screenPower?.awake == false) ScreenOffOverlay(onWake = actions::wake)
         }
+        // Screenshots move a few times a second; say so, or the mirror just looks broken.
+        (pane.state as? MirrorState.Polling)?.let { JwBanner(text = "Showing screenshots, since live video is unavailable: ${it.reason}", tone = JwTone.Warning) }
         if (pane.capabilities.input) TextInput(onSend = actions::inputText)
         MirrorStatsLine(surface = surface, state = pane.state)
     }
 }
 
 @Composable
-private fun DeviceButtons(capabilities: DeviceCapabilities, screenPower: ScreenPower?, actions: MirrorActions, modifier: Modifier) {
+private fun DeviceButtons(kind: DeviceKind, capabilities: DeviceCapabilities, screenPower: ScreenPower?, actions: MirrorActions, modifier: Modifier) {
     Row(modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
         capabilities.buttons.forEach { button ->
             JwIconButton(tooltip = button.label, onClick = { actions.pressButton(button) }) {
                 JwIcon(imageVector = button.icon, contentDescription = button.label)
+            }
+        }
+        // Shown disabled rather than left out, so their absence is explained rather than puzzling.
+        if (kind == DeviceKind.IosSimulator) {
+            listOf(DeviceButton.VolumeUp, DeviceButton.VolumeDown).forEach { button ->
+                JwIconButton(tooltip = "${button.label}: idb cannot press a simulator's volume buttons", onClick = {}, enabled = false) {
+                    JwIcon(imageVector = button.icon, contentDescription = button.label)
+                }
             }
         }
         // Unlike Power, which toggles, these say which way they go, and Wake also lifts a plain lock screen.
