@@ -1,11 +1,18 @@
 package com.kitakkun.jetwhale.host.drawer
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.model.PluginAvailability
+import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import kotlinx.collections.immutable.persistentListOf
 import kotlin.test.Test
@@ -70,4 +77,64 @@ class SidebarWidthTest {
         assertTrue(requested in expected - 1.dp..expected + 1.dp, "requested $requested, expected $expected")
         assertEquals(1, saves)
     }
+
+    @Test
+    fun `the footer stays at the bottom when the plugins above need less than their share`() = runComposeUiTest {
+        val session = DebugSession(
+            id = "app-1",
+            name = "Mac",
+            isActive = true,
+            transportSecurity = SessionTransportSecurity.LOOPBACK,
+            installedPlugins = persistentListOf(),
+            appName = "Demo",
+            deviceId = "device-1",
+            deviceName = "Mac",
+        )
+        setContent {
+            JwTheme(darkTheme = false) {
+                Box(modifier = Modifier.height(800.dp)) {
+                    ExpandedToolingDrawerView(
+                        selectedPluginId = "",
+                        plugins = persistentListOf(plugin("Device Mirror", needsApp = false), plugin("Network", needsApp = true)),
+                        hasFailedJars = false,
+                        selectedSession = session,
+                        sessions = persistentListOf(session),
+                        aiActivity = AiActivityUiState.Idle,
+                        width = 280.dp,
+                        onResize = {},
+                        onResizeFinished = {},
+                        onClickShrinkDrawer = {},
+                        onClickSettings = {},
+                        onClickPluginSettings = {},
+                        onClickInfo = {},
+                        onOpenMcpTools = {},
+                        onOpenAllMcpTools = {},
+                        onClickPlugin = {},
+                        onClickInactivePlugin = {},
+                        onSelectSession = {},
+                        onClickPopout = {},
+                        isPoppedOut = { false },
+                        onClickBringBack = {},
+                        onSetPluginEnabled = { _, _ -> },
+                    )
+                }
+            }
+        }
+
+        val sidebarBottom = onRoot().getBoundsInRoot().bottom
+        val settingsBottom = onNodeWithContentDescription("Settings").getBoundsInRoot().bottom
+        assertTrue(sidebarBottom - settingsBottom < 24.dp, "footer ends at $settingsBottom of $sidebarBottom")
+    }
 }
+
+private fun plugin(name: String, needsApp: Boolean) = DrawerPluginItemUiState(
+    name = name,
+    id = "com.example.${name.lowercase().replace(' ', '.')}",
+    activeIconResource = null,
+    inactiveIconResource = null,
+    pluginAvailability = PluginAvailability.Enabled,
+    underAiControl = false,
+    exposesMcpTools = false,
+    isHeadless = false,
+    needsApp = needsApp,
+)

@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -135,7 +137,8 @@ fun ExpandedToolingDrawerView(
     modifier: Modifier = Modifier,
 ) {
     val (appPlugins, hostPlugins) = remember(plugins) { plugins.partition(DrawerPluginItemUiState::needsApp) }
-    Box(modifier = modifier.fillMaxHeight().width(width)) {
+    BoxWithConstraints(modifier = modifier.fillMaxHeight().width(width)) {
+        val hostListMaxHeight = maxHeight / 2
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -146,8 +149,9 @@ fun ExpandedToolingDrawerView(
             // The plugins that need no app come first, with no heading: the divider and the app picker
             // below are what set the app's plugins apart.
             if (hostPlugins.isNotEmpty()) {
-                // Weighted but not filled: it takes what it needs, yet never more than the app area's
-                // share, so a long list scrolls instead of pushing the picker out of view.
+                // Capped rather than weighted: it takes what it needs, yet never more than half the
+                // sidebar, so a long list scrolls instead of pushing the picker out of view. A weight
+                // that doesn't fill would keep its unused share, leaving a gap above the footer.
                 PluginList(
                     plugins = hostPlugins,
                     selectedPluginId = selectedPluginId,
@@ -158,7 +162,7 @@ fun ExpandedToolingDrawerView(
                     isPoppedOut = isPoppedOut,
                     onClickBringBack = onClickBringBack,
                     onSetPluginEnabled = onSetPluginEnabled,
-                    modifier = Modifier.weight(1f, fill = false),
+                    modifier = Modifier.heightIn(max = hostListMaxHeight),
                 )
                 JwHorizontalDivider()
             }
