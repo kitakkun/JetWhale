@@ -301,7 +301,7 @@ internal fun navigationTargetSession(
     requestedSessionId: String?,
     selectedSession: DebugSession?,
     sessions: List<DebugSession>,
-): DebugSession? = when (requestedSessionId) {
-    null -> selectedSession
-    else -> sessions.firstOrNull { it.id == requestedSessionId }
-}?.takeIf(DebugSession::isActive)
+): DebugSession? {
+    val targetId = requestedSessionId ?: selectedSession?.id ?: return null
+    return sessions.firstOrNull { it.id == targetId }?.takeIf(DebugSession::isActive)
+}

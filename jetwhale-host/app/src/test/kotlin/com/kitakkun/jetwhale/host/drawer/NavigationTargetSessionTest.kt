@@ -32,6 +32,11 @@ class NavigationTargetSessionTest {
     }
 
     @Test
+    fun `a request without a session is dropped when the selected session is gone`() {
+        assertNull(navigationTargetSession(null, selectedSession = session("removed", isActive = true), sessions = listOf(live)))
+    }
+
+    @Test
     fun `a request without a session is dropped while the selected session is disconnected`() {
         assertNull(navigationTargetSession(null, selectedSession = closed, sessions = listOf(live, closed)))
     }
