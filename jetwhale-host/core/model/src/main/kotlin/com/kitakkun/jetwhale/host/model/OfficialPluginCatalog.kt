@@ -104,6 +104,9 @@ object OfficialPluginCatalog {
             displayName = "Debug Actions",
             description = "Run the debug actions connected apps register, from the host or an AI agent.",
             artifactId = "jetwhale-debug-actions",
+            agentArtifactId = "jetwhale-debug-actions-agent",
+            agentRegistration = null,
+            guidePath = "debug-actions",
         ),
     )
 }
