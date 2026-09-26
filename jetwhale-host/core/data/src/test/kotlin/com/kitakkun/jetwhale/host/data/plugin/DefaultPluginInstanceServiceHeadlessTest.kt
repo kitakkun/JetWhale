@@ -7,6 +7,7 @@ import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
+import com.kitakkun.jetwhale.host.model.PluginInstanceState
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginManifest
@@ -21,7 +22,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -31,8 +31,8 @@ import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertSame
 
 /**
@@ -91,21 +91,22 @@ class DefaultPluginInstanceServiceHeadlessTest {
     @Test
     fun `waiting for an instance ends once the plugin is created for the session`() = runBlocking {
         val service = serviceWith { object : JetWhaleHostPlugin() {} }
-        val waiting = async(start = CoroutineStart.UNDISPATCHED) { service.pluginInstanceFlow(pluginId, sessionId).filterNotNull().first() }
+        val waiting = async(start = CoroutineStart.UNDISPATCHED) { service.pluginInstanceStateFlow(pluginId, sessionId).first { it != PluginInstanceState.Absent } }
 
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
 
-        assertSame(service.getPluginInstanceForSession(pluginId, sessionId), withTimeout(5_000) { waiting.await() })
+        val state = withTimeout(5_000) { waiting.await() }
+        assertSame(service.getPluginInstanceForSession(pluginId, sessionId), assertIs<PluginInstanceState.Running>(state).plugin)
     }
 
     @Test
-    fun `the instance flow turns null when the instance is disposed`() = runBlocking {
+    fun `the instance state turns absent when the instance is disposed`() = runBlocking {
         val service = serviceWith { object : JetWhaleHostPlugin() {} }
         service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
 
         service.unloadPluginInstancesForPlugin(pluginId)
 
-        assertNull(service.pluginInstanceFlow(pluginId, sessionId).first())
+        assertEquals(PluginInstanceState.Absent, service.pluginInstanceStateFlow(pluginId, sessionId).first())
     }
 
     @Test
@@ -114,9 +115,10 @@ class DefaultPluginInstanceServiceHeadlessTest {
         val firstPublicationHalfway = CountDownLatch(1)
         val secondChangeDone = CountDownLatch(1)
         // An unconfined collector runs inside the publishing thread's assignment, holding that thread
-        // after it has read the instances and before it has published the headless set.
+        // after it has read the instances and published the headless set, before it publishes the
+        // instance states.
         val holdFirstPublication = launch(Dispatchers.Unconfined) {
-            service.pluginInstanceFlow(pluginId, sessionId).filterNotNull().first()
+            service.headlessPluginsFlow.first { it.pluginIdsBySession.isNotEmpty() }
             firstPublicationHalfway.countDown()
             // Bounded, because a publication that waits for the other one to finish never sees it.
             secondChangeDone.await(500, TimeUnit.MILLISECONDS)
@@ -132,7 +134,46 @@ class DefaultPluginInstanceServiceHeadlessTest {
         second.join()
         holdFirstPublication.join()
 
-        assertEquals(mapOf(sessionId to setOf(pluginId), HostSession.ID to setOf(pluginId)), service.headlessPluginsFlow.value.pluginIdsBySession)
+        val hostState = service.pluginInstanceStateFlow(pluginId, HostSession.ID).first()
+        assertSame(service.getPluginInstanceForSession(pluginId, HostSession.ID), assertIs<PluginInstanceState.Running>(hostState).plugin)
+    }
+
+    @Test
+    fun `a plugin whose creation throws is reported as failed to start`() = runBlocking {
+        val service = serviceWith { error("factory broke") }
+
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+
+        val state = service.pluginInstanceStateFlow(pluginId, sessionId).first()
+        assertEquals("factory broke", assertIs<PluginInstanceState.FailedToStart>(state).cause.message)
+    }
+
+    @Test
+    fun `a failed start is forgotten once the plugin is unloaded`() = runBlocking {
+        val service = serviceWith { error("factory broke") }
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+
+        service.unloadPluginInstancesForPlugin(pluginId)
+
+        assertEquals(PluginInstanceState.Absent, service.pluginInstanceStateFlow(pluginId, sessionId).first())
+    }
+
+    @Test
+    fun `a disposed instance is published as gone before its onDispose runs`() = runBlocking {
+        var stateDuringDispose: PluginInstanceState? = null
+        lateinit var service: DefaultPluginInstanceService
+        service = serviceWith {
+            object : JetWhaleHostPlugin() {
+                override fun onDispose() {
+                    stateDuringDispose = runBlocking { service.pluginInstanceStateFlow(pluginId, sessionId).first() }
+                }
+            }
+        }
+        service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId))
+
+        service.unloadPluginInstanceForSession(sessionId)
+
+        assertEquals(PluginInstanceState.Absent, stateDuringDispose)
     }
 
     private fun serviceWith(createPlugin: () -> JetWhaleHostPlugin) = DefaultPluginInstanceService(

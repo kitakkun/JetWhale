@@ -11,6 +11,7 @@ import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
+import com.kitakkun.jetwhale.host.model.PluginInstanceState
 import com.kitakkun.jetwhale.host.model.SessionTransportSecurity
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPluginFactory
@@ -210,7 +211,7 @@ class DefaultPluginSessionReconciliationServiceTest {
         override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = emptyList()
         override fun unloadPluginInstanceForSession(sessionId: String) = Unit
         override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = null
-        override fun pluginInstanceFlow(pluginId: String, sessionId: String): Flow<JetWhaleHostPlugin?> = flowOf(null)
+        override fun pluginInstanceStateFlow(pluginId: String, sessionId: String): Flow<PluginInstanceState> = flowOf(PluginInstanceState.Absent)
         override fun unloadPluginInstancesForPlugin(pluginId: String) = Unit
         override fun clearAppSessionPluginInstances() = Unit
         override suspend fun routeFrame(sessionId: String, frame: PluginFrame) = Unit

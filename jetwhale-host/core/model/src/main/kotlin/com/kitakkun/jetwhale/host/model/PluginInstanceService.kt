@@ -29,11 +29,8 @@ interface PluginInstanceService {
     fun unloadPluginInstanceForSession(sessionId: String)
     fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin?
 
-    /**
-     * The instance of [pluginId] in [sessionId] as it comes and goes: null while there is none (the
-     * plugin is disabled, not installed for that session, or not created yet), then the instance.
-     */
-    fun pluginInstanceFlow(pluginId: String, sessionId: String): Flow<JetWhaleHostPlugin?>
+    /** The instance of [pluginId] in [sessionId] as it comes, goes, or fails to start. */
+    fun pluginInstanceStateFlow(pluginId: String, sessionId: String): Flow<PluginInstanceState>
 
     fun unloadPluginInstancesForPlugin(pluginId: String)
 
