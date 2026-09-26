@@ -151,6 +151,9 @@ private fun ToolingScaffoldWithActions(
             onClickPlugin(it, sessionId)
         },
         onClickInactivePlugin = {
+            // Its row is never drawn selected, so this only takes the highlight off the plugin shown
+            // before; once the plugin is enabled and opens, its row is the selected one.
+            screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(it.id))
             onClickInactivePlugin(it.id, it.name, uiState.sessionIdFor(it.id), it.pluginAvailability == PluginAvailability.Unavailable)
         },
         // The browser tolerates a missing session, so the badge stays usable while no session
