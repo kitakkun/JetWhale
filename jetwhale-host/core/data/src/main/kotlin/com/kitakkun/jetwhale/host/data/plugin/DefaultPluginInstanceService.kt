@@ -88,6 +88,7 @@ class DefaultPluginInstanceService(
 
     /** A snapshot of [loadedPlugins], republished on every change so a caller can wait for an instance. */
     private val instancesFlow = MutableStateFlow<Map<PluginInstanceKey, JetWhaleHostPlugin>>(emptyMap())
+    private val publicationLock = Any()
 
     override fun getLoadedPluginInstances(): List<LoadedPluginInstance> = loadedPlugins.entries.map { (key, instance) ->
         LoadedPluginInstance(pluginId = key.pluginId, sessionId = key.sessionId, plugin = instance.plugin)
@@ -289,12 +290,17 @@ class DefaultPluginInstanceService(
      * Recomputes the published instances and the headless set from the live instances. Republishing
      * the whole set (rather than patching it) is what keeps it correct across a reload, where the same
      * pluginId is replaced by an instance from a new classloader that may not answer the same way.
+     *
+     * Both are derived from one read and published under [publicationLock]: two threads publishing
+     * at once would otherwise let the one that read the instances first overwrite the other's newer
+     * state, and the two flows could each end up describing a different moment.
      */
-    private fun publishInstances() {
-        instancesFlow.value = loadedPlugins.mapValues { (_, instance) -> instance.plugin }
+    private fun publishInstances() = synchronized(publicationLock) {
+        val instances = loadedPlugins.mapValues { (_, instance) -> instance.plugin }
+        instancesFlow.value = instances
         headlessPluginsFlow.value = HeadlessPlugins(
-            loadedPlugins.entries
-                .filter { (_, instance) -> instance.plugin !is JetWhaleHostPluginUi }
+            instances.entries
+                .filter { (_, plugin) -> plugin !is JetWhaleHostPluginUi }
                 .groupBy({ it.key.sessionId }, { it.key.pluginId })
                 .mapValues { (_, pluginIds) -> pluginIds.toSet() },
         )

@@ -17,13 +17,18 @@ import dev.mokkery.every
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -101,6 +106,33 @@ class DefaultPluginInstanceServiceHeadlessTest {
         service.unloadPluginInstancesForPlugin(pluginId)
 
         assertNull(service.pluginInstanceFlow(pluginId, sessionId).first())
+    }
+
+    @Test
+    fun `a publication read before another thread's change does not overwrite that change`() = runBlocking {
+        val service = serviceWith { object : JetWhaleHostPlugin() {} }
+        val firstPublicationHalfway = CountDownLatch(1)
+        val secondChangeDone = CountDownLatch(1)
+        // An unconfined collector runs inside the publishing thread's assignment, holding that thread
+        // after it has read the instances and before it has published the headless set.
+        val holdFirstPublication = launch(Dispatchers.Unconfined) {
+            service.pluginInstanceFlow(pluginId, sessionId).filterNotNull().first()
+            firstPublicationHalfway.countDown()
+            // Bounded, because a publication that waits for the other one to finish never sees it.
+            secondChangeDone.await(500, TimeUnit.MILLISECONDS)
+        }
+
+        val first = thread { service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(sessionId)) }
+        firstPublicationHalfway.await()
+        val second = thread {
+            service.initializePluginInstancesForSessionsIfNeeded(pluginId, setOf(HostSession.ID))
+            secondChangeDone.countDown()
+        }
+        first.join()
+        second.join()
+        holdFirstPublication.join()
+
+        assertEquals(mapOf(sessionId to setOf(pluginId), HostSession.ID to setOf(pluginId)), service.headlessPluginsFlow.value.pluginIdsBySession)
     }
 
     private fun serviceWith(createPlugin: () -> JetWhaleHostPlugin) = DefaultPluginInstanceService(
