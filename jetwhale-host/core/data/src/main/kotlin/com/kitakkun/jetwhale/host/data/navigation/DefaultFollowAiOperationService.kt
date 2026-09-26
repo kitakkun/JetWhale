@@ -42,30 +42,26 @@ class DefaultFollowAiOperationService(
         // Read per call, not once: turning the mode off has to stop the next call from moving the
         // window, without restarting the collector.
         if (!debuggerSettingsRepository.followAiOperationEnabledFlow.value) return
-        // Host tools (navigation, settings, status) name no plugin, and there is nothing to follow.
+        // A call that names no plugin (settings, status, listing sessions) has nothing to follow.
         val pluginId = invocation.pluginId ?: return
         // Null until the window reports its first destination; navigating then is still right,
         // because the request waits in the channel until the window is there to take it.
         val currentView = hostNavigationService.currentView.value
-        // The request names the session explicitly, so the window opens exactly the one checked
-        // here: left unnamed, it would fall back to whatever the drawer selects by the time it runs.
-        val targetSessionId = invocation.sessionId ?: sessionForUnnamedCall(pluginId, currentView?.selectedSessionId) ?: return
+        // A call that names no session goes where the window would open it: the host session for a
+        // plugin that needs no app, otherwise the app the drawer has selected. The request names that
+        // session explicitly, so the window opens exactly the one checked here rather than whatever
+        // the drawer selects by the time it runs.
+        val targetSessionId = invocation.sessionId
+            ?: HostSession.ID.takeIf { pluginInstanceService.getPluginInstanceForSession(pluginId, it) != null }
+            ?: currentView?.selectedSessionId
+            ?: return
         // A call can name a plugin that has nothing running (switched off, not installed for that
         // session, not started yet): its tool fails, and there is no screen to bring up for it.
         if (pluginInstanceService.getPluginInstanceForSession(pluginId, targetSessionId) == null) return
 
-        if (currentView != null && currentView.destination.alreadyShows(invocation, pluginId)) return
+        if (currentView != null && currentView.destination.alreadyShows(pluginId, targetSessionId)) return
 
         hostNavigationService.navigate(HostNavigationRequest.Plugin(pluginId, targetSessionId, followsAgent = true))
-    }
-
-    /**
-     * The session a call that names none is followed in: the host session for a plugin that needs no
-     * app, otherwise the app the drawer has selected, which is where the window would open it.
-     */
-    private fun sessionForUnnamedCall(pluginId: String, selectedSessionId: String?): String? = when {
-        pluginInstanceService.getPluginInstanceForSession(pluginId, HostSession.ID) != null -> HostSession.ID
-        else -> selectedSessionId
     }
 }
 
@@ -73,13 +69,9 @@ class DefaultFollowAiOperationService(
  * Whether the operated plugin is on screen already, either as the main window's destination or in a
  * window of its own. Following in that case would only take the main window off whatever else the
  * user had put there.
- *
- * A call that names no session is followed against whatever session the drawer has selected, so it
- * counts as shown wherever that plugin is shown.
  */
-private fun HostDestination.alreadyShows(invocation: McpToolInvocation, pluginId: String): Boolean {
-    val matchesSession = { sessionId: String? -> invocation.sessionId == null || invocation.sessionId == sessionId }
-    val poppedOut = poppedOutPlugins.any { it.pluginId == pluginId && matchesSession(it.sessionId) }
-    val onScreen = kind == HostDestinationKind.PLUGIN && this.pluginId == pluginId && matchesSession(this.sessionId)
+private fun HostDestination.alreadyShows(pluginId: String, sessionId: String): Boolean {
+    val poppedOut = poppedOutPlugins.any { it.pluginId == pluginId && it.sessionId == sessionId }
+    val onScreen = kind == HostDestinationKind.PLUGIN && this.pluginId == pluginId && this.sessionId == sessionId
     return poppedOut || onScreen
 }

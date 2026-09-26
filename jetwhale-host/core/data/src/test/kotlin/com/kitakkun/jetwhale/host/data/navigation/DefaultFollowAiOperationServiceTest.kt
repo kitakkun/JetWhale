@@ -6,7 +6,6 @@ import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostSession
-import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PoppedOutPlugin
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
@@ -44,7 +43,6 @@ class DefaultFollowAiOperationServiceTest {
         every { getPluginInstanceForSession(any(), any()) } calls { args ->
             runningPlugin.takeIf { (args.args[0] as String to args.args[1] as String) in runningInstances }
         }
-        every { getLoadedPluginInstances() } returns runningInstances.map { (pluginId, sessionId) -> LoadedPluginInstance(pluginId, sessionId, runningPlugin) }
     }
 
     private val service = DefaultFollowAiOperationService(
@@ -222,6 +220,24 @@ class DefaultFollowAiOperationServiceTest {
         startCall("jetwhale.click", pluginId = "host-plugin", sessionId = null)
 
         assertEquals(HostNavigationRequest.Plugin("host-plugin", HostSession.ID, followsAgent = true), awaitRequest())
+        following.cancel()
+    }
+
+    @Test
+    fun `a call that names no session is followed when the plugin is shown only for another app`() = runBlocking {
+        navigationService.updateDestination(
+            HostDestination(
+                kind = HostDestinationKind.PLUGIN,
+                pluginId = "plugin-1",
+                sessionId = "session-2",
+            ),
+        )
+        navigationService.updateSelection(selectedSessionId = "session-1", selectedPluginId = null)
+        val following = startFollowing()
+
+        startCall("jetwhale.click", pluginId = "plugin-1", sessionId = null)
+
+        assertEquals(HostNavigationRequest.Plugin("plugin-1", "session-1", followsAgent = true), awaitRequest())
         following.cancel()
     }
 }
