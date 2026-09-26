@@ -13,25 +13,11 @@ import platform.CoreGraphics.CGRect
 import platform.Foundation.NSSelectorFromString
 import platform.Foundation.NSStringFromClass
 import platform.Foundation.valueForKey
-import platform.UIKit.UIAccessibilityTraitAdjustable
-import platform.UIKit.UIAccessibilityTraitAllowsDirectInteraction
 import platform.UIKit.UIAccessibilityTraitButton
-import platform.UIKit.UIAccessibilityTraitCausesPageTurn
-import platform.UIKit.UIAccessibilityTraitHeader
-import platform.UIKit.UIAccessibilityTraitImage
-import platform.UIKit.UIAccessibilityTraitKeyboardKey
 import platform.UIKit.UIAccessibilityTraitLink
 import platform.UIKit.UIAccessibilityTraitNotEnabled
-import platform.UIKit.UIAccessibilityTraitPlaysSound
-import platform.UIKit.UIAccessibilityTraitSearchField
 import platform.UIKit.UIAccessibilityTraitSelected
-import platform.UIKit.UIAccessibilityTraitStartsMediaSession
-import platform.UIKit.UIAccessibilityTraitStaticText
-import platform.UIKit.UIAccessibilityTraitSummaryElement
-import platform.UIKit.UIAccessibilityTraitSupportsZoom
-import platform.UIKit.UIAccessibilityTraitTabBar
 import platform.UIKit.UIAccessibilityTraitToggleButton
-import platform.UIKit.UIAccessibilityTraitUpdatesFrequently
 import platform.UIKit.UIAccessibilityTraits
 import platform.UIKit.UIControl
 import platform.UIKit.UIControlEventTouchUpInside
@@ -274,42 +260,6 @@ private fun NSObject.toggleableState(traits: UIAccessibilityTraits): String? {
     }
 }
 
-private infix fun UIAccessibilityTraits.has(trait: UIAccessibilityTraits): Boolean = this and trait != 0uL
-
-/** The public trait names for the bits set, with any bit outside the public set kept as its number. */
-internal fun UIAccessibilityTraits.names(): List<String> {
-    if (this == 0uL) return emptyList()
-    val named = NAMED_TRAITS.filter { (trait, _) -> this has trait }.map { (_, name) -> name }
-    val namedBits = NAMED_TRAITS.fold(0uL) { acc, (trait, _) -> acc or trait }
-    val unnamed = (0 until ULong.SIZE_BITS)
-        .map { 1uL shl it }
-        .filter { bit -> this has bit && bit and namedBits == 0uL }
-        .map { bit -> "bit${bit.countTrailingZeroBits()}" }
-    return named + unnamed
-}
-
-private val NAMED_TRAITS: List<Pair<UIAccessibilityTraits, String>> = listOf(
-    UIAccessibilityTraitButton to "Button",
-    UIAccessibilityTraitLink to "Link",
-    UIAccessibilityTraitHeader to "Header",
-    UIAccessibilityTraitSearchField to "SearchField",
-    UIAccessibilityTraitImage to "Image",
-    UIAccessibilityTraitSelected to "Selected",
-    UIAccessibilityTraitPlaysSound to "PlaysSound",
-    UIAccessibilityTraitKeyboardKey to "KeyboardKey",
-    UIAccessibilityTraitStaticText to "StaticText",
-    UIAccessibilityTraitSummaryElement to "SummaryElement",
-    UIAccessibilityTraitNotEnabled to "NotEnabled",
-    UIAccessibilityTraitUpdatesFrequently to "UpdatesFrequently",
-    UIAccessibilityTraitStartsMediaSession to "StartsMediaSession",
-    UIAccessibilityTraitAdjustable to "Adjustable",
-    UIAccessibilityTraitAllowsDirectInteraction to "AllowsDirectInteraction",
-    UIAccessibilityTraitCausesPageTurn to "CausesPageTurn",
-    UIAccessibilityTraitTabBar to "TabBar",
-    UIAccessibilityTraitToggleButton to "ToggleButton",
-    UIAccessibilityTraitSupportsZoom to "SupportsZoom",
-)
-
 @OptIn(ExperimentalForeignApi::class)
 internal fun CValue<CGRect>.toNodeBounds(): NodeBounds = useContents {
     NodeBounds(
@@ -319,22 +269,3 @@ internal fun CValue<CGRect>.toNodeBounds(): NodeBounds = useContents {
         bottom = (origin.y + size.height).toFloat(),
     )
 }
-
-internal fun NodeBounds.intersect(other: NodeBounds): NodeBounds {
-    val left = maxOf(left, other.left)
-    val top = maxOf(top, other.top)
-    val right = minOf(right, other.right)
-    val bottom = minOf(bottom, other.bottom)
-    return if (right <= left || bottom <= top) {
-        NodeBounds(left = 0f, top = 0f, right = 0f, bottom = 0f)
-    } else {
-        NodeBounds(left = left, top = top, right = right, bottom = bottom)
-    }
-}
-
-private fun NodeBounds.translated(offsetX: Float, offsetY: Float): NodeBounds = NodeBounds(
-    left = left + offsetX,
-    top = top + offsetY,
-    right = right + offsetX,
-    bottom = bottom + offsetY,
-)
