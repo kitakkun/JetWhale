@@ -44,6 +44,11 @@ internal class FindNodesCommand(
     private val merged by booleanOrNull("Search the merged tree (default true). See getNodeTree.")
     private val includeInvisible by booleanOrNull("Include nodes that are not laid out or fully clipped away. Defaults to false.")
     private val limit by intOrNull("Maximum number of nodes to return, in tree order. Returns all matches if omitted.")
+    private val format by serializableOrNull<NodeOutputFormat>(
+        "\"json\" (default) returns the JSON described above. \"text\" returns one line per node for reading rather than parsing — " +
+            "`- <role or class> #<id> root=<rootId> \"<text>\" key=value… [flags] actions=… tap=x,y`, without bounds — " +
+            "followed by a `… N more matches` line when limit cut the list short.",
+    )
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val limit = arguments[limit]
@@ -79,6 +84,15 @@ internal class FindNodesCommand(
             nodes.filter { it.matches(query) }.map { root.rootId to it }.toList()
         }
         val page = if (limit == null) matches else matches.take(limit)
+
+        if (arguments[format] == NodeOutputFormat.Text) {
+            return buildList {
+                snapshot.warnings.forEach { add("! $it") }
+                if (matches.isEmpty()) add("no matches")
+                page.forEach { (rootId, node) -> add(node.toMcpTextLine(rootId = rootId)) }
+                if (page.size < matches.size) add("… ${matches.size - page.size} more matches")
+            }.joinToString("\n")
+        }
 
         return buildJsonObject {
             put("nodes", JsonArray(page.map { (rootId, node) -> node.toMcpJson(rootId = rootId, includeChildren = false) }))

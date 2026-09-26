@@ -467,8 +467,40 @@ see [Android View support](#android-view-support).
 ### `com.kitakkun.jetwhale.semantics.getNodeTree`
 
 The whole tree, structure included. Takes `merged`, `includeInvisible`, `maxDepth`,
-`interactiveOnly` and `rootId`. Use it when the layout itself is the question; use `findNodes` when
+`interactiveOnly`, `rootId` and `format` (see [Compact text output](#compact-text-output)). Use it when the layout itself is the question; use `findNodes` when
 you are looking for one element.
+
+### Compact text output
+
+`getNodeTree` and `findNodes` return JSON unless the call passes `format: "text"`. Then the same
+nodes come back as an outline, one line per node, indented by depth, for an agent that reads the
+tree rather than parses it:
+
+```text
+root compose-root-1f2e "MainActivity" unit=px density=2.0
+- node #1 tap=540,1200
+  - node #2 tap=540,100
+    - Button #3 desc="Navigate up" [clickable] actions=Click tap=80,120
+    - node #4 "Settings" tap=390,120
+  - node #5 tag=settings-list [scrollable] actions=ScrollBy,ScrollToIndex tap=540,1200
+    - node #100 [clickable] actions=Click tap=540,370
+      - node #200 "Setting item number 0" tap=374,345
+      - node #300 "Description for item 0" tap=374,390
+      - Switch #400 [clickable] actions=Click tap=970,370
+    …
+```
+
+Each line starts with the node's role (a Compose node), its class (an Android View or an iOS
+node), or `node` when it has neither, then `#id` — with the root line's `rootId`, the pair
+`performNodeAction` takes. What follows is only what is present: the text in quotes, `desc=`,
+`input=` (a text field's content), `toggle=`, `tag=` / `resId=` / `axId=`, the surprising side of
+each flag in brackets (`[clickable]`, `[disabled]`, `[unhittable]`, …), `actions=` (the names
+`performNodeAction` accepts, as in the JSON), and the `tap`
+point in the root's `unit`. Text is quoted as a JSON string, so a quote or a line break in it
+cannot break the line. Bounds are left out; ask for JSON when a layout question needs them. A
+`findNodes` line adds `root=<rootId>` after the id, since a flat list has no root lines.
+
+On a 67-node settings screen the outline is 3.8 KB where the JSON is 10 KB.
 
 ### `com.kitakkun.jetwhale.semantics.nodeAt`
 
