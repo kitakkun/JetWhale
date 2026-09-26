@@ -1,0 +1,44 @@
+# The app's files are where QA expects them: list the storage roots, then check a known file is
+# present and readable in the working directory.
+version: 1
+name: App storage is browsable
+description: Lists the app's storage roots and checks that a file can be found and read.
+inputs:
+  root:
+    description: File root to look in, as listLocations names it
+    default: Working directory
+  file:
+    description: A file that must exist in that root
+    default: build.gradle.kts
+defaults:
+  expect:
+    - path: $.error
+      exists: false
+steps:
+  - id: session
+    call: jetwhale.listSessions
+    save:
+      sessionId: "$[?(@.isActive == true)].first().sessionId"
+
+  - id: locations
+    call: com.kitakkun.jetwhale.storage.listLocations
+    args: { sessionId: "${sessionId}" }
+    expect:
+      - path: "$.fileRoots[?(@.name == '${root}')]"
+        length: 1
+
+  - id: listed
+    call: com.kitakkun.jetwhale.storage.listDirectory
+    args: { sessionId: "${sessionId}", root: "${root}" }
+    expect:
+      - path: "$.entries[?(@.name == '${file}')].first().isDirectory"
+        equals: false
+
+  - id: read
+    call: com.kitakkun.jetwhale.storage.readFile
+    args: { sessionId: "${sessionId}", root: "${root}", path: "${file}", maxBytes: 4096 }
+    expect:
+      - path: $.encoding
+        equals: utf-8
+      - path: $.content
+        matches: "plugins"

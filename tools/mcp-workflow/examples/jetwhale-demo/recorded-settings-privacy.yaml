@@ -1,0 +1,44 @@
+# Recorded through `mcp-workflow record` while an agent explored the demo, then saved with dropReads.
+# Session and node ids became saved variables, so it replays after the app restarts.
+# Written by mcp-workflow. Edit freely; comments are kept only until the next export.
+version: 1
+name: "Settings privacy round trip"
+steps:
+- id: listSessions
+  call: jetwhale.listSessions
+  save:
+    sessionId: "$[?(@.sessionName == 'Mac OS X' && @.isActive == true)].first().sessionId"
+- id: pushNavKey
+  call: com.kitakkun.jetwhale.nav3.pushNavKey
+  args:
+    sessionId: ${sessionId}
+    key:
+      type: Settings
+      section: Privacy
+  expect:
+  - path: "$.stack.entries[-1].key.section"
+    equals: Privacy
+- id: findNodes
+  call: com.kitakkun.jetwhale.semantics.findNodes
+  args:
+    sessionId: ${sessionId}
+    text: "Network plugin"
+    exact: true
+  save:
+    rootId: "$.nodes[?(@.text == 'Network plugin')].first().rootId"
+    nodeId: "$.nodes[?(@.text == 'Network plugin')].first().id"
+- id: performNodeAction
+  call: com.kitakkun.jetwhale.semantics.performNodeAction
+  args:
+    sessionId: ${sessionId}
+    rootId: ${rootId}
+    nodeId: ${nodeId}
+    action: Click
+  expect:
+  - path: $.performed
+    equals: true
+- id: popBackStack
+  call: com.kitakkun.jetwhale.nav3.popBackStack
+  args:
+    sessionId: ${sessionId}
+    count: 1

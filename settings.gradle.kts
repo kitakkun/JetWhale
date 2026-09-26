@@ -103,6 +103,7 @@ include(":jetwhale-plugins:storage:host")
 include(":test-annotations")
 
 include(":tools:qa-agent")
+include(":tools:mcp-workflow")
 
 include(":demo:shared")
 include(":demo:android")
