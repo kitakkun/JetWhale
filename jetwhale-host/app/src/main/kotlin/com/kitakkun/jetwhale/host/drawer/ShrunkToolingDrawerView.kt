@@ -257,31 +257,33 @@ fun rememberPluginIconSvgPainter(
 @Preview
 @Composable
 private fun ShrunkToolingDrawerViewPreview() {
-    ShrunkToolingDrawerView(
-        plugins = persistentListOf(
-            DrawerPluginItemUiState(
-                name = "Inspector",
-                id = "com.example.inspector",
-                activeIconResource = null,
-                inactiveIconResource = null,
-                pluginAvailability = PluginAvailability.Enabled,
-                underAiControl = false,
-                exposesMcpTools = true,
-                isHeadless = false,
-                needsApp = true,
+    JwTheme(darkTheme = false) {
+        ShrunkToolingDrawerView(
+            plugins = persistentListOf(
+                DrawerPluginItemUiState(
+                    name = "Inspector",
+                    id = "com.example.inspector",
+                    activeIconResource = null,
+                    inactiveIconResource = null,
+                    pluginAvailability = PluginAvailability.Enabled,
+                    underAiControl = false,
+                    exposesMcpTools = true,
+                    isHeadless = false,
+                    needsApp = true,
+                ),
             ),
-        ),
-        sessions = persistentListOf(),
-        selectedSession = null,
-        selectedPluginId = "com.example.inspector",
-        aiActivity = AiActivityUiState.Idle,
-        onFollowAiOperationChange = {},
-        onOpenMcpSettings = {},
-        onClickExpandMenu = {},
-        onClickSettings = {},
-        onClickPlugin = {},
-        onClickInfo = {},
-        onOpenAllMcpTools = {},
-        onSelectSession = {},
-    )
+            sessions = persistentListOf(),
+            selectedSession = null,
+            selectedPluginId = "com.example.inspector",
+            aiActivity = AiActivityUiState.Idle,
+            onFollowAiOperationChange = {},
+            onOpenMcpSettings = {},
+            onClickExpandMenu = {},
+            onClickSettings = {},
+            onClickPlugin = {},
+            onClickInfo = {},
+            onOpenAllMcpTools = {},
+            onSelectSession = {},
+        )
+    }
 }

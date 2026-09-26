@@ -111,8 +111,10 @@ fun NotInAppPluginScreen(
 @Preview
 @Composable
 private fun NotInAppPluginScreenPreview() {
-    NotInAppPluginScreen(
-        pluginName = "Storage Inspector",
-        setup = AgentSetup.forPlugin("com.kitakkun.jetwhale.storage", HostVersionInfo("1.0.0")),
-    )
+    JwTheme(darkTheme = false) {
+        NotInAppPluginScreen(
+            pluginName = "Storage Inspector",
+            setup = AgentSetup.forPlugin("com.kitakkun.jetwhale.storage", HostVersionInfo("1.0.0")),
+        )
+    }
 }

@@ -23,6 +23,7 @@ import com.kitakkun.jetwhale.host.plugin_enable_failed
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.CancellationException
 import org.jetbrains.compose.resources.stringResource
@@ -133,5 +134,7 @@ fun DisabledPluginScreen(
 @Preview
 @Composable
 private fun DisabledPluginScreenPreview() {
-    DisabledPluginScreen(pluginName = "Network Inspector", enableFailed = false, onClickEnable = {})
+    JwTheme(darkTheme = false) {
+        DisabledPluginScreen(pluginName = "Network Inspector", enableFailed = false, onClickEnable = {})
+    }
 }

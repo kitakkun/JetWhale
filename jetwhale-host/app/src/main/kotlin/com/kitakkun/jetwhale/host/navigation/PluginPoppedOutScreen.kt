@@ -12,6 +12,7 @@ import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
 import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -36,7 +37,9 @@ fun PluginPoppedOutScreen(
 @Preview
 @Composable
 private fun PluginPoppedOutScreenPreview() {
-    PluginPoppedOutScreen(
-        onBringbackToMainWindow = {},
-    )
+    JwTheme(darkTheme = false) {
+        PluginPoppedOutScreen(
+            onBringbackToMainWindow = {},
+        )
+    }
 }

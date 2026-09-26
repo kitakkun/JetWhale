@@ -152,15 +152,17 @@ private fun McpBadge(
 @Preview
 @Composable
 private fun PluginDrawerItemViewPreview() {
-    PluginDrawerItemView(
-        active = true,
-        name = "Inspector",
-        selected = true,
-        underAiControl = true,
-        exposesMcpTools = true,
-        activeIconResource = null,
-        inactiveIconResource = null,
-        onClick = {},
-        onClickMcpBadge = {},
-    )
+    JwTheme(darkTheme = false) {
+        PluginDrawerItemView(
+            active = true,
+            name = "Inspector",
+            selected = true,
+            underAiControl = true,
+            exposesMcpTools = true,
+            activeIconResource = null,
+            inactiveIconResource = null,
+            onClick = {},
+            onClickMcpBadge = {},
+        )
+    }
 }

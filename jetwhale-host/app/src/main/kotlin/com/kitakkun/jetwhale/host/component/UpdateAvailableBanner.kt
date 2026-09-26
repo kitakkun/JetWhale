@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.close
 import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
+import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
 import com.kitakkun.jetwhale.host.update_banner_message
 import com.kitakkun.jetwhale.host.update_banner_open_settings
@@ -43,9 +44,11 @@ fun UpdateAvailableBanner(
 @Preview
 @Composable
 private fun UpdateAvailableBannerPreview() {
-    UpdateAvailableBanner(
-        latestVersion = "1.2.3",
-        onClickOpenSettings = {},
-        onDismiss = {},
-    )
+    JwTheme(darkTheme = false) {
+        UpdateAvailableBanner(
+            latestVersion = "1.2.3",
+            onClickOpenSettings = {},
+            onDismiss = {},
+        )
+    }
 }

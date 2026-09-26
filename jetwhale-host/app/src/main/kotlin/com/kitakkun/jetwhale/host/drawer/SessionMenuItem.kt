@@ -71,25 +71,29 @@ fun SessionMenuItem(
 @Preview
 @Composable
 private fun SessionSecurityIconPreview() {
-    SessionSecurityIcon(transportSecurity = SessionTransportSecurity.TLS)
+    JwTheme(darkTheme = false) {
+        SessionSecurityIcon(transportSecurity = SessionTransportSecurity.TLS)
+    }
 }
 
 @Preview
 @Composable
 private fun SessionMenuItemPreview() {
-    SessionMenuItem(
-        session = DebugSession(
-            id = "session-1",
-            name = "Sample app",
-            isActive = true,
-            transportSecurity = SessionTransportSecurity.LOOPBACK,
-            installedPlugins = persistentListOf(),
-            appName = "Sample app",
-            deviceId = "device-1",
-            deviceName = "Pixel 9",
-        ),
-        displayName = "Sample app",
-        selected = true,
-        onClick = {},
-    )
+    JwTheme(darkTheme = false) {
+        SessionMenuItem(
+            session = DebugSession(
+                id = "session-1",
+                name = "Sample app",
+                isActive = true,
+                transportSecurity = SessionTransportSecurity.LOOPBACK,
+                installedPlugins = persistentListOf(),
+                appName = "Sample app",
+                deviceId = "device-1",
+                deviceName = "Pixel 9",
+            ),
+            displayName = "Sample app",
+            selected = true,
+            onClick = {},
+        )
+    }
 }

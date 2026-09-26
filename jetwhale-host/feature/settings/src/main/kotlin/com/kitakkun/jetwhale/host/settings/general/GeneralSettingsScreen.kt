@@ -417,32 +417,34 @@ private fun UpdateCheckStatusView(
 @Preview
 @Composable
 private fun GeneralSettingsScreenPreview() {
-    GeneralSettingsScreen(
-        page = SettingsScreenPage.Appearance,
-        uiState = GeneralSettingsScreenUiState(
-            automaticallyWireADBTransport = true,
-            selectedColorSchemeId = JetWhaleColorSchemeId.BuiltInDynamic,
-            availableColorSchemes = persistentListOf(),
-            language = AppLanguage.English,
-            appDataPath = "~/.jetwhale",
-            adbPath = "/path/to/adb",
-            currentVersion = "1.0.0-alpha08",
-            checkForUpdatesOnStartup = true,
-            followAiOperation = true,
-            isCheckingForUpdates = false,
-            updateCheckResult = null,
-            updateCheckError = null,
-        ),
-        onCheckedChangePersistData = {},
-        onAutomaticallyWireADBTransportChange = {},
-        onSelectLanguage = {},
-        onSelectColorScheme = {},
-        onClickOpenAppDataPath = {},
-        onClickOpenLogViewer = {},
-        onClickCheckForUpdates = {},
-        onCheckForUpdatesOnStartupChange = {},
-        onFollowAiOperationChange = {},
-        onClickInstallUpdate = {},
-        onClickOpenDownloadPage = {},
-    )
+    JwTheme(darkTheme = false) {
+        GeneralSettingsScreen(
+            page = SettingsScreenPage.Appearance,
+            uiState = GeneralSettingsScreenUiState(
+                automaticallyWireADBTransport = true,
+                selectedColorSchemeId = JetWhaleColorSchemeId.BuiltInDynamic,
+                availableColorSchemes = persistentListOf(),
+                language = AppLanguage.English,
+                appDataPath = "~/.jetwhale",
+                adbPath = "/path/to/adb",
+                currentVersion = "1.0.0-alpha08",
+                checkForUpdatesOnStartup = true,
+                followAiOperation = true,
+                isCheckingForUpdates = false,
+                updateCheckResult = null,
+                updateCheckError = null,
+            ),
+            onCheckedChangePersistData = {},
+            onAutomaticallyWireADBTransportChange = {},
+            onSelectLanguage = {},
+            onSelectColorScheme = {},
+            onClickOpenAppDataPath = {},
+            onClickOpenLogViewer = {},
+            onClickCheckForUpdates = {},
+            onCheckForUpdatesOnStartupChange = {},
+            onFollowAiOperationChange = {},
+            onClickInstallUpdate = {},
+            onClickOpenDownloadPage = {},
+        )
+    }
 }

@@ -77,12 +77,14 @@ fun PluginScreenErrorFallback(
 @Preview
 @Composable
 private fun PluginScreenErrorFallbackPreview() {
-    PluginScreenErrorFallback(
-        pluginId = "com.example.sample-plugin",
-        onClickReset = {},
-        errorBoundaryContext = ErrorBoundaryContext(
-            err = IllegalStateException("The plugin UI threw while composing"),
-            reset = null,
-        ),
-    )
+    JwTheme(darkTheme = false) {
+        PluginScreenErrorFallback(
+            pluginId = "com.example.sample-plugin",
+            onClickReset = {},
+            errorBoundaryContext = ErrorBoundaryContext(
+                err = IllegalStateException("The plugin UI threw while composing"),
+                reset = null,
+            ),
+        )
+    }
 }
