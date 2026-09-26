@@ -29,15 +29,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwDialog
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
-import com.kitakkun.jetwhale.host.ui.JwKeyValueRow
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
-import com.kitakkun.jetwhale.host.ui.JwSegmentedButtons
 import com.kitakkun.jetwhale.host.ui.JwShapes
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwTag
@@ -45,6 +44,7 @@ import com.kitakkun.jetwhale.host.ui.JwTagStyle
 import com.kitakkun.jetwhale.host.ui.JwText
 import com.kitakkun.jetwhale.host.ui.JwTheme
 import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.ui.JwTooltip
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -94,17 +94,19 @@ internal fun CapturesPanel(
 
 @Composable
 private fun CaptureFilters(allDevices: Boolean, kind: CaptureKind?, day: String?, days: List<String>, actions: CapturesActions) {
+    // Chips wrap onto another line in a narrow panel, where segmented buttons would cut their labels.
     Column(Modifier.padding(JwSpacing.medium), verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
-        JwSegmentedButtons(options = listOf(false, true), selected = allDevices, onSelect = actions::showAllDevices, label = { if (it) "All devices" else "This device" })
-        JwSegmentedButtons(options = listOf(null) + CaptureKind.entries, selected = kind, onSelect = actions::filterKind, label = { it?.label ?: "All kinds" })
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall), verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
+            listOf(false, true).forEach { option ->
+                FilterChip(text = if (option) "All devices" else "This device", selected = option == allDevices, onClick = { actions.showAllDevices(option) })
+            }
+            (listOf(null) + CaptureKind.entries).forEach { option ->
+                FilterChip(text = option?.pluralLabel ?: "All kinds", selected = option == kind, onClick = { actions.filterKind(option) })
+            }
+        }
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
             (listOf(null) + days).forEach { option ->
-                JwTag(
-                    text = option ?: "All dates",
-                    style = if (option == day) JwTagStyle.Filled else JwTagStyle.Outlined,
-                    tone = if (option == day) JwTone.Accent else JwTone.Neutral,
-                    onClick = { actions.filterDay(option) },
-                )
+                FilterChip(text = option ?: "All dates", selected = option == day, onClick = { actions.filterDay(option) })
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
@@ -113,6 +115,22 @@ private fun CaptureFilters(allDevices: Boolean, kind: CaptureKind?, day: String?
         }
     }
 }
+
+@Composable
+private fun FilterChip(text: String, selected: Boolean, onClick: () -> Unit) {
+    JwTag(
+        text = text,
+        style = if (selected) JwTagStyle.Filled else JwTagStyle.Outlined,
+        tone = if (selected) JwTone.Accent else JwTone.Neutral,
+        onClick = onClick,
+    )
+}
+
+private val CaptureKind.pluralLabel: String
+    get() = when (this) {
+        CaptureKind.Screenshot -> "Screenshots"
+        CaptureKind.Recording -> "Recordings"
+    }
 
 @Composable
 private fun CaptureGrid(captures: List<Capture>, selected: Capture?, thumbnails: ThumbnailSource, onSelect: (Capture) -> Unit) {
@@ -202,12 +220,25 @@ private fun CaptureDetail(capture: Capture, thumbnails: ThumbnailSource, actions
     }
 }
 
+// Each label sits above its value: beside it, the labels take the width of a narrow panel and the
+// values wrap a few characters to a line.
 @Composable
 private fun CaptureFacts(capture: Capture) {
     val info = capture.info
-    JwKeyValueRow(key = "Device", value = listOfNotNull(info.deviceName, info.deviceKind, info.osVersion).joinToString(" · "))
-    JwKeyValueRow(key = "Taken", value = "${DayFormat.format(Instant.ofEpochMilli(info.capturedAtEpochMillis))} ${TimeFormat.format(Instant.ofEpochMilli(info.capturedAtEpochMillis))}")
-    if (info.widthPx != null && info.heightPx != null) JwKeyValueRow(key = "Size", value = "${info.widthPx}×${info.heightPx}")
-    info.durationMillis?.let { JwKeyValueRow(key = "Length", value = "%.1f s".format(it / 1000.0)) }
-    JwKeyValueRow(key = "File", value = capture.file.absolutePath, monospace = true, wrap = false)
+    Fact(label = "Device", value = listOfNotNull(info.deviceName, info.deviceKind, info.osVersion).joinToString(" · "), overflow = TextOverflow.Ellipsis)
+    Fact(label = "Taken", value = "${DayFormat.format(Instant.ofEpochMilli(info.capturedAtEpochMillis))} ${TimeFormat.format(Instant.ofEpochMilli(info.capturedAtEpochMillis))}", overflow = TextOverflow.Ellipsis)
+    if (info.widthPx != null && info.heightPx != null) Fact(label = "Size", value = "${info.widthPx}×${info.heightPx}", overflow = TextOverflow.Ellipsis)
+    info.durationMillis?.let { Fact(label = "Length", value = "%.1f s".format(it / 1000.0), overflow = TextOverflow.Ellipsis) }
+    // A path is cut in the middle, where it matters least; the tooltip shows it whole.
+    JwTooltip(text = capture.file.absolutePath) {
+        Fact(label = "File", value = capture.file.absolutePath, overflow = TextOverflow.MiddleEllipsis)
+    }
+}
+
+@Composable
+private fun Fact(label: String, value: String, overflow: TextOverflow) {
+    Column {
+        JwText(text = label, style = JwTheme.textStyles.labelSmall, color = JwTheme.colors.textSecondary)
+        JwText(text = value, style = JwTheme.textStyles.body, maxLines = 1, overflow = overflow)
+    }
 }

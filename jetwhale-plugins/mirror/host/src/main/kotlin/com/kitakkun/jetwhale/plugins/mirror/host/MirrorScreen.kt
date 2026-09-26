@@ -1,6 +1,7 @@
 package com.kitakkun.jetwhale.plugins.mirror.host
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -18,11 +20,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import com.kitakkun.jetwhale.host.sdk.rememberPersistent
 import com.kitakkun.jetwhale.host.ui.JwBanner
 import com.kitakkun.jetwhale.host.ui.JwButton
 import com.kitakkun.jetwhale.host.ui.JwButtonStyle
 import com.kitakkun.jetwhale.host.ui.JwEmptyState
+import com.kitakkun.jetwhale.host.ui.JwIcon
+import com.kitakkun.jetwhale.host.ui.JwIconButton
 import com.kitakkun.jetwhale.host.ui.JwListItem
 import com.kitakkun.jetwhale.host.ui.JwSectionHeader
 import com.kitakkun.jetwhale.host.ui.JwSpacing
@@ -171,10 +176,19 @@ private fun DevicePane(
     capturesPanel: @Composable () -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
+        // The title and the device's buttons share what the capture actions leave: those stay whole
+        // at the right end, and the buttons scroll sideways when the window is too narrow for them.
         JwToolbar(
-            title = pane.device.name,
             actions = {
-                DeviceActions(pane.capabilities, pane.screenPower, pane.recording, actions)
+                JwText(
+                    text = pane.device.name,
+                    style = JwTheme.textStyles.subtitle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).padding(horizontal = JwSpacing.extraSmall),
+                )
+                DeviceButtons(pane.capabilities, pane.screenPower, actions, Modifier.weight(1f, fill = false))
+                CaptureActions(pane.capabilities, pane.recording, actions)
                 JwButton(text = "Captures", onClick = onToggleCaptures, style = if (showCaptures) JwButtonStyle.Primary else JwButtonStyle.Secondary)
             },
         )
@@ -197,7 +211,7 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             MirrorVideo(surface = surface, interactive = pane.capabilities.input, onTap = actions::tap, onSwipe = actions::swipe, modifier = Modifier.fillMaxSize())
-            StateOverlay(pane.device, pane.state)
+            StateOverlay(pane.device, pane.state, showingKeptFrame = surface.showingKeptFrame)
             // A screen that is off streams nothing, so the mirror would otherwise just stay black.
             if (pane.screenPower?.awake == false) ScreenOffOverlay(onWake = actions::wake)
         }
@@ -207,31 +221,38 @@ private fun LiveView(pane: DevicePaneState, surface: MirrorSurface, actions: Mir
 }
 
 @Composable
-private fun DeviceActions(capabilities: DeviceCapabilities, screenPower: ScreenPower?, recording: Boolean, actions: MirrorActions) {
-    Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall), verticalAlignment = Alignment.CenterVertically) {
+private fun DeviceButtons(capabilities: DeviceCapabilities, screenPower: ScreenPower?, actions: MirrorActions, modifier: Modifier) {
+    Row(modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
         capabilities.buttons.forEach { button ->
-            JwButton(text = button.label, onClick = { actions.pressButton(button) }, style = JwButtonStyle.Text)
+            JwIconButton(tooltip = button.label, onClick = { actions.pressButton(button) }) {
+                JwIcon(imageVector = button.icon, contentDescription = button.label)
+            }
         }
         // Unlike Power, which toggles, these say which way they go, and Wake also lifts a plain lock screen.
         when (screenPower?.awake) {
-            true -> JwButton(text = "Screen off", onClick = actions::sleep, style = JwButtonStyle.Text)
-            false -> JwButton(text = "Wake", onClick = actions::wake, style = JwButtonStyle.Text)
+            true -> JwIconButton(tooltip = "Screen off", onClick = actions::sleep) { JwIcon(imageVector = ScreenOffIcon, contentDescription = "Screen off") }
+            false -> JwIconButton(tooltip = "Wake", onClick = actions::wake) { JwIcon(imageVector = WakeIcon, contentDescription = "Wake") }
             null -> Unit
         }
-        if (capabilities.recording) {
-            JwButton(text = if (recording) "Stop recording" else "Record", onClick = actions::toggleRecording, tone = if (recording) JwTone.Error else JwTone.Accent)
-        }
-        JwButton(text = "Screenshot", onClick = actions::saveScreenshot)
     }
+}
+
+@Composable
+private fun CaptureActions(capabilities: DeviceCapabilities, recording: Boolean, actions: MirrorActions) {
+    if (capabilities.recording) {
+        JwButton(text = if (recording) "Stop recording" else "Record", onClick = actions::toggleRecording, tone = if (recording) JwTone.Error else JwTone.Accent)
+    }
+    JwButton(text = "Screenshot", onClick = actions::saveScreenshot)
 }
 
 /** What the mirror has to say in place of a picture: connecting, or why nothing arrives. */
 @Composable
-private fun StateOverlay(device: DeviceListing, state: MirrorState) {
+private fun StateOverlay(device: DeviceListing, state: MirrorState, showingKeptFrame: Boolean) {
     when (state) {
         is MirrorState.Idle, is MirrorState.Streaming, is MirrorState.Polling -> Unit
 
-        is MirrorState.Connecting -> JwEmptyState(title = "Connecting to ${device.name}…")
+        // The frame kept from the last visit stays up, dimmed, until the new stream sends one.
+        is MirrorState.Connecting -> if (showingKeptFrame) ReconnectingScrim() else JwEmptyState(title = "Connecting to ${device.name}…")
 
         is MirrorState.NoFrames -> JwEmptyState(
             title = "No picture from ${device.name}",
@@ -241,6 +262,16 @@ private fun StateOverlay(device: DeviceListing, state: MirrorState) {
         is MirrorState.Failed -> JwEmptyState(title = "Cannot mirror ${device.name}", description = state.message)
     }
 }
+
+@Composable
+private fun ReconnectingScrim() {
+    Box(Modifier.fillMaxSize().background(JwTheme.colors.panelBackground.copy(alpha = RECONNECTING_SCRIM_ALPHA)), contentAlignment = Alignment.Center) {
+        JwTag(text = "Reconnecting…")
+    }
+}
+
+/** Dim enough to read as not live, light enough to recognize the screen. */
+private const val RECONNECTING_SCRIM_ALPHA = 0.5f
 
 @Composable
 private fun ScreenOffOverlay(onWake: () -> Unit) {
@@ -274,6 +305,7 @@ private fun TextInput(onSend: (String) -> Unit) {
     }
 }
 
+/** The mirror's frame rates and per-stage costs, for when it feels slow; hidden until asked for. */
 @Composable
 private fun MirrorStatsLine(surface: MirrorSurface, state: MirrorState) {
     val source = when (state) {
@@ -281,11 +313,27 @@ private fun MirrorStatsLine(surface: MirrorSurface, state: MirrorState) {
         is MirrorState.Polling -> "Screenshots"
         else -> return
     }
-    val stats = surface.stats
-    JwText(
-        text = "$source · ${stats.receivedFps} fps in, ${stats.displayedFps} shown · read + decode ${"%.1f".format(stats.decodeMillis)} ms · copy ${"%.1f".format(stats.copyMillis)} ms · draw ${"%.1f".format(stats.drawMillis)} ms",
-        style = JwTheme.textStyles.labelSmall,
-        color = JwTheme.colors.textSecondary,
-        modifier = Modifier.padding(horizontal = JwSpacing.large, vertical = JwSpacing.extraSmall),
-    )
+    var shown by rememberPersistent("showStats", default = false)
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = JwSpacing.large),
+        horizontalArrangement = Arrangement.spacedBy(JwSpacing.small),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        JwText(
+            text = if (shown) statsText(source, surface.stats) else "",
+            style = JwTheme.textStyles.labelSmall,
+            color = JwTheme.colors.textSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        JwButton(text = if (shown) "Hide stats" else "Stats", onClick = { shown = !shown }, style = JwButtonStyle.Text)
+    }
+}
+
+private fun statsText(source: String, stats: MirrorStats): String {
+    // A still screen sends nothing; that is not a stall.
+    if (stats.receivedFps == 0) return "$source · the screen is not changing, so the device sends no frames"
+    return "$source · ${stats.receivedFps} fps in, ${stats.displayedFps} shown · longest gap ${"%.0f".format(stats.longestGapMillis)} ms · " +
+        "decode ${"%.1f".format(stats.decodeMillis)} ms · copy ${"%.1f".format(stats.copyMillis)} ms · draw ${"%.1f".format(stats.drawMillis)} ms"
 }
