@@ -15,11 +15,13 @@ internal class ListDevicesCommand(
 ) : JetWhaleMcpCommand() {
     override val name = "$TOOL_PREFIX.listDevices"
     override val description =
-        "Lists the Android emulators and devices, booted iOS simulators and USB-connected iOS devices this machine can mirror. Each has a deviceId for the other $TOOL_PREFIX tools, its kind, and what it supports: a physical iOS device is view-only (screenshots, no input or recording)."
+        "Lists the Android emulators and devices, booted iOS simulators and USB-connected iOS devices this machine can mirror. Each has a deviceId for the other $TOOL_PREFIX tools, its kind, and what it supports: a physical iOS device is view-only (screenshots, no input or recording). " +
+            "An Android device also reports \"screenOn\" and \"locked\"; a screen that is off shows as black, and $TOOL_PREFIX.setScreen turns it on."
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
         val devices = mirror.refresh()
         val selected = mirror.selectedId
+        val screenPowers = devices.associate { it.id to readableScreenPower(it.controller) }
         return buildJsonObject {
             putJsonArray("devices") {
                 devices.forEach { device ->
@@ -33,9 +35,23 @@ internal class ListDevicesCommand(
                         put("input", device.controller.capabilities.input)
                         put("recording", device.controller.capabilities.recording)
                         putJsonArray("buttons") { device.controller.capabilities.buttons.forEach { add(it.name) } }
+                        screenPowers.getValue(device.id)?.let { power ->
+                            put("screenOn", power.awake)
+                            put("locked", power.locked)
+                        }
                     }
                 }
             }
         }.toString()
+    }
+}
+
+/** The screen state of a device that has one to read; an unreadable state is left out rather than guessed. */
+private suspend fun readableScreenPower(controller: DeviceController): ScreenPower? {
+    if (!controller.capabilities.screenPower) return null
+    return try {
+        controller.screenPower()
+    } catch (_: DeviceControlException) {
+        null
     }
 }

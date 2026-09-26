@@ -22,6 +22,7 @@ internal class IosSimulatorController(
         input = idb != null,
         buttons = if (idb != null) listOf(DeviceButton.Home, DeviceButton.Power) else emptyList(),
         recording = true,
+        screenPower = false,
     )
 
     private var screen: IdbScreen? = null
@@ -61,6 +62,12 @@ internal class IosSimulatorController(
     override suspend fun inputText(text: String) {
         runCommandChecked(requireIdb(), "ui", "text", "--udid", udid, text)
     }
+
+    override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
+
+    override suspend fun wake() = throw deviceControlError(NO_SCREEN_POWER)
+
+    override suspend fun sleep() = throw deviceControlError(NO_SCREEN_POWER)
 
     override suspend fun openVideoStream(): Process = withContext(Dispatchers.IO) {
         SystemProcessLauncher.start(listOf(requireIdb(), "video-stream", "--udid", udid, "--format", "h264", "--fps", "30"))

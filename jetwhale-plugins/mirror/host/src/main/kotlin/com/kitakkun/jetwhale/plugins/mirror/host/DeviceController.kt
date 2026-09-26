@@ -24,6 +24,14 @@ internal interface DeviceController {
 
     suspend fun inputText(text: String)
 
+    suspend fun screenPower(): ScreenPower
+
+    /** Turns the screen on and dismisses a lock screen that asks for no credential. */
+    suspend fun wake()
+
+    /** Turns the screen off. */
+    suspend fun sleep()
+
     /** Starts recording the screen into [outputFile]; the returned handle stops it. */
     suspend fun startRecording(outputFile: File): DeviceRecording
 

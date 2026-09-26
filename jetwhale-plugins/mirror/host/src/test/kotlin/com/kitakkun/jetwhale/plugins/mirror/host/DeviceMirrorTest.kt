@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class DeviceMirrorTest {
     private val root: File = Files.createTempDirectory("mirror-recordings").toFile()
@@ -82,12 +83,40 @@ class DeviceMirrorTest {
 
     @Test
     fun `a stream that ends without a resize lets the mirror move on`() = runBlocking {
-        val controller = EndingStream()
+        val controller = EndingStream(power = null)
         val streaming = MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)
         val session = scope.launch { mirror.mirror(streaming) }
 
         withTimeout(STREAM_END_TIMEOUT_MILLIS) { controller.reopened.await() }
         session.cancel()
+    }
+
+    @Test
+    fun `a mirrored Android device whose screen is off says so until mirroring stops`() = runBlocking {
+        val asleep = ScreenPower(awake = false, locked = true)
+        val controller = EndingStream(power = asleep)
+        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5556", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
+
+        // By the second read the first one's answer has been shown.
+        withTimeout(STREAM_END_TIMEOUT_MILLIS) { controller.readTwice.await() }
+        val whileMirroring = mirror.screenPower
+        session.cancel()
+        session.join()
+
+        assertEquals(asleep, whileMirroring)
+        assertNull(mirror.screenPower)
+    }
+
+    @Test
+    fun `a device without screen power is never asked for it`() = runBlocking {
+        val controller = EndingStream(power = null)
+        val session = scope.launch { mirror.mirror(MirrorDevice(DeviceListing("emulator-5558", "Pixel 9", DeviceKind.AndroidEmulator, osVersion = null), controller)) }
+
+        withTimeout(STREAM_END_TIMEOUT_MILLIS) { controller.reopened.await() }
+        session.cancel()
+
+        assertEquals(0, controller.screenPowerReads.get())
+        assertNull(mirror.screenPower)
     }
 }
 
@@ -105,7 +134,7 @@ private class SlowRecorder : DeviceController {
     /** Completes when a recording has begun stopping. */
     val stopping = CompletableDeferred<Unit>()
 
-    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = true)
+    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = true, screenPower = false)
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {
         delay(RECORDER_LATENCY_MILLIS)
@@ -132,19 +161,42 @@ private class SlowRecorder : DeviceController {
 
     override suspend fun inputText(text: String) = Unit
 
+    override suspend fun screenPower(): ScreenPower = throw deviceControlError(NO_SCREEN_POWER)
+
+    override suspend fun wake() = Unit
+
+    override suspend fun sleep() = Unit
+
     override suspend fun openVideoStream(): Process = throw deviceControlError("no stream in tests")
 
     override suspend fun release() = Unit
 }
 
-/** A device whose video stream ends at once, as screenrecord's does at its time limit. */
-private class EndingStream : DeviceController {
+/**
+ * A device whose video stream ends at once, as screenrecord's does at its time limit. With a
+ * [power], its screen state can be read, and stays that.
+ */
+private class EndingStream(private val power: ScreenPower?) : DeviceController {
     private val opened = AtomicInteger()
+
+    val screenPowerReads = AtomicInteger()
 
     /** Completes once the mirror, done with the first stream, opens the next. */
     val reopened = CompletableDeferred<Unit>()
 
-    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false)
+    override val capabilities = DeviceCapabilities(input = true, buttons = emptyList(), recording = false, screenPower = power != null)
+
+    /** Completes when the screen state is read a second time. */
+    val readTwice = CompletableDeferred<Unit>()
+
+    override suspend fun screenPower(): ScreenPower {
+        if (screenPowerReads.incrementAndGet() == 2) readTwice.complete(Unit)
+        return power ?: throw deviceControlError(NO_SCREEN_POWER)
+    }
+
+    override suspend fun wake() = Unit
+
+    override suspend fun sleep() = Unit
 
     override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("no recording in tests")
 

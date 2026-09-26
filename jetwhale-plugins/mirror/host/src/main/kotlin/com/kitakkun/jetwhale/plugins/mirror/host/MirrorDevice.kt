@@ -23,12 +23,22 @@ internal enum class DeviceButton(val label: String) {
 /**
  * What can be done to a device besides watching it. A physical iOS device is watch-only: idb
  * streams its screen but drives input only on simulators.
+ *
+ * @property screenPower whether the screen's power can be read and switched. Android only: a
+ *   simulator's screen never turns off, and idb cannot wake a physical iOS device.
  */
 internal data class DeviceCapabilities(
     val input: Boolean,
     val buttons: List<DeviceButton>,
     val recording: Boolean,
+    val screenPower: Boolean,
 )
+
+/** The refusal for a device whose [DeviceCapabilities.screenPower] is false. */
+internal const val NO_SCREEN_POWER = "an iOS device's screen cannot be switched on or off from here; only Android devices support it"
+
+/** Whether the device's screen is on, and whether a lock screen covers it. */
+internal data class ScreenPower(val awake: Boolean, val locked: Boolean)
 
 /** A device found on this machine, as the picker lists it. */
 internal data class DeviceListing(
