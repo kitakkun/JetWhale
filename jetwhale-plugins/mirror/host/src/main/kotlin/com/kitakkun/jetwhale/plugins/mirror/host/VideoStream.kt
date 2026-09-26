@@ -11,47 +11,108 @@ internal sealed interface VideoStream {
     /** Raw H.264, decoded on the host. */
     class H264(override val process: Process) : VideoStream
 
-    /** Uncompressed BGRA frames of [frameSize], back to back, with no header or row padding. */
-    class RawBgra(override val process: Process, val frameSize: IntSize) : VideoStream
+    /**
+     * Uncompressed BGRA frames of [frameSize], back to back with no header, each row [rowBytes]
+     * long, asked for at [fps]. The source cannot drop frames it has not sent yet, so a reader that
+     * sees them arrive slower than [fps] ends the stream and reports the rate it got to
+     * [onFellBehind]: the next stream starts from the device's current screen, at a rate it can keep.
+     */
+    class RawBgra(
+        override val process: Process,
+        val frameSize: IntSize,
+        val rowBytes: Int,
+        val fps: Int,
+        val onFellBehind: (arrivedFps: Int) -> Unit,
+    ) : VideoStream
 }
 
 /**
- * The scale factor to ask `idb video-stream --format rbga` for, and the size of the frames it then
- * writes, for a screen of [screen] pixels shown at about [wanted].
+ * How to ask `idb video-stream --format rbga` for frames of a screen of [screen] pixels shown at
+ * [wanted] pixels, and what it then writes.
  *
- * idb writes frames `floor(screen * scale)` pixels in size, with each row padded to a multiple of 64
- * bytes. The stream carries no header saying either, so the width is kept a multiple of 16 pixels,
- * which leaves no padding, and the scale is aimed at the middle of that pixel so rounding cannot
- * land on its neighbor.
+ * idb writes frames `floor(screen * scale)` pixels in size with each row padded to a multiple of
+ * 64 bytes, and says neither in the stream, so the scale is aimed a quarter pixel past the wanted
+ * width, where rounding cannot land on a neighbor. The frames are the size they are shown, since
+ * drawing a frame even slightly larger than it is blurs its text.
+ *
+ * idb's client passes on about 100 MB a second, shared by every stream of the simulator; a stream
+ * asking for more falls further behind with every frame. The frame rate is what fits
+ * [RAW_BYTES_PER_SECOND] at that size, and no more than [maxFps], which a stream that fell behind
+ * lowers.
  */
-internal fun rawBgraLayout(screen: IntSize, wanted: IntSize?): RawBgraLayout {
-    val width = maxOf(RAW_WIDTH_STEP, minOf(wanted?.width ?: screen.width, screen.width) / RAW_WIDTH_STEP * RAW_WIDTH_STEP)
-    val scale = (width + 0.5) / screen.width
-    return RawBgraLayout(scale = scale, frameSize = IntSize(width, floor(screen.height * scale).toInt()))
+internal fun rawBgraLayout(screen: IntSize, wanted: IntSize?, maxFps: Int): RawBgraLayout {
+    val width = minOf(wanted?.width ?: screen.width, screen.width).coerceAtLeast(1)
+    val scale = minOf(1.0, (width + 0.25) / screen.width)
+    val height = floor(screen.height * scale).toInt()
+    val rowBytes = (width * 4 + RAW_ROW_ALIGNMENT - 1) / RAW_ROW_ALIGNMENT * RAW_ROW_ALIGNMENT
+    val fps = (RAW_BYTES_PER_SECOND / (rowBytes.toLong() * height)).toInt().coerceIn(MIN_RAW_FPS, minOf(MAX_RAW_FPS, maxFps))
+    return RawBgraLayout(scale = scale, frameSize = IntSize(width, height), rowBytes = rowBytes, fps = fps)
 }
 
-internal class RawBgraLayout(val scale: Double, val frameSize: IntSize)
+internal class RawBgraLayout(val scale: Double, val frameSize: IntSize, val rowBytes: Int, val fps: Int)
 
-private const val RAW_WIDTH_STEP = 16
+private const val RAW_ROW_ALIGNMENT = 64
+
+/** What idb's client keeps up with alone, measured at 85–110 MB/s, with room to spare. */
+private const val RAW_BYTES_PER_SECOND = 64_000_000L
+
+internal const val MIN_RAW_FPS = 5
+
+internal const val MAX_RAW_FPS = 60
 
 /**
  * Copies BGRA frames of [frameSize] from [stream] into [surface] until the stream ends. Blocks the
  * calling thread, so run it off the UI. One buffer holds a frame between the pipe and the bitmap
  * for the whole stream.
  */
-internal fun readRawBgraInto(surface: MirrorSurface, stream: InputStream, frameSize: IntSize, onFrame: () -> Unit) {
-    val frame = ByteArray(frameSize.width * 4 * frameSize.height)
-    val timedStream = WaitTimingInputStream(stream)
-    while (timedStream.timingWork(surface::recordDecode) { timedStream.readNBytes(frame, 0, frame.size) } == frame.size) {
-        surface.writeBgraFrame(frame, frameSize)
+internal fun readRawBgraInto(surface: MirrorSurface, stream: VideoStream.RawBgra, onFrame: () -> Unit) {
+    val frame = ByteArray(stream.rowBytes * stream.frameSize.height)
+    val input = WaitTimingInputStream(stream.process.inputStream)
+    val pace = ArrivalPace(requestedFps = stream.fps, windowNanos = PACE_WINDOW_NANOS)
+    while (input.timingWork(surface::recordDecode) { input.readNBytes(frame, 0, frame.size) } == frame.size) {
+        surface.writeBgraFrame(frame, stream.frameSize, stream.rowBytes)
         onFrame()
+        pace.fellBehind(System.nanoTime())?.let { arrivedFps ->
+            stream.onFellBehind(arrivedFps)
+            return
+        }
     }
 }
 
-private fun MirrorSurface.writeBgraFrame(frame: ByteArray, frameSize: IntSize) {
+/** How long a stream is watched before it counts as falling behind. */
+private const val PACE_WINDOW_NANOS = 2_000_000_000L
+
+/**
+ * Tells a stream that keeps its pace from one that falls behind: frames arriving at under
+ * [KEPT_PACE_SHARE] of [requestedFps] over [windowNanos] mean the source is producing more than can
+ * be passed on, and the backlog only grows.
+ */
+internal class ArrivalPace(private val requestedFps: Int, private val windowNanos: Long) {
+    private var windowStart = -1L
+    private var arrived = 0
+
+    /** Counts a frame arriving at [nowNanos]; returns the rate frames arrived at when it is too low. */
+    fun fellBehind(nowNanos: Long): Int? {
+        if (windowStart < 0) {
+            windowStart = nowNanos
+            return null
+        }
+        arrived++
+        val elapsed = nowNanos - windowStart
+        if (elapsed < windowNanos) return null
+        val arrivedFps = (arrived * 1_000_000_000L / elapsed).toInt()
+        windowStart = nowNanos
+        arrived = 0
+        return arrivedFps.takeIf { it < requestedFps * KEPT_PACE_SHARE }
+    }
+}
+
+private const val KEPT_PACE_SHARE = 0.85
+
+private fun MirrorSurface.writeBgraFrame(frame: ByteArray, frameSize: IntSize, rowBytes: Int) {
     writeFrame(frameSize.width, frameSize.height) { target ->
         val pixmap = target.peekPixels() ?: return@writeFrame false
-        copyRows(frame, sourceRowBytes = frameSize.width * 4, target = pixmap.addr, targetRowBytes = pixmap.rowBytes, height = frameSize.height)
+        copyRows(frame, sourceRowBytes = rowBytes, target = pixmap.addr, targetRowBytes = pixmap.rowBytes, height = frameSize.height)
         true
     }
 }

@@ -284,7 +284,7 @@ internal class DeviceMirror(
 
     private fun decode(stream: VideoStream, outputSize: IntSize?, onFrame: () -> Unit) = when (stream) {
         is VideoStream.H264 -> decodeH264Into(surface, stream.process.inputStream, outputSize, onFrame)
-        is VideoStream.RawBgra -> readRawBgraInto(surface, stream.process.inputStream, stream.frameSize, onFrame)
+        is VideoStream.RawBgra -> readRawBgraInto(surface, stream, onFrame)
     }
 
     /**
