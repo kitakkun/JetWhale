@@ -92,23 +92,25 @@ class MirrorViewingTest {
 
     @Test
     fun `the newest frame is drawn and frames the screen had no time for are skipped`() {
-        val surface = MirrorSurface()
-        surface.writeFrame(width = 4, height = 4, write = fill(Color.RED))
-        surface.writeFrame(width = 4, height = 4, write = fill(Color.BLUE))
+        MirrorSurface().use { surface ->
+            surface.writeFrame(width = 4, height = 4, write = fill(Color.RED))
+            surface.writeFrame(width = 4, height = 4, write = fill(Color.BLUE))
 
-        val drawn = surface.drawnFrame()
+            val drawn = surface.drawnFrame()
 
-        assertEquals(Color.BLUE, drawn?.getColor(0, 0))
+            assertEquals(Color.BLUE, drawn?.getColor(0, 0))
+        }
     }
 
     @Test
     fun `drawing again without a new frame keeps the frame on screen`() {
-        val surface = MirrorSurface()
-        surface.writeFrame(width = 4, height = 4, write = fill(Color.RED))
+        MirrorSurface().use { surface ->
+            surface.writeFrame(width = 4, height = 4, write = fill(Color.RED))
 
-        val first = surface.drawnFrame()
+            val first = surface.drawnFrame()
 
-        assertSame(first, surface.drawnFrame())
+            assertSame(first, surface.drawnFrame())
+        }
     }
 
     @Test
@@ -130,26 +132,27 @@ class MirrorViewingTest {
 
     @Test
     fun `switching devices waits for a frame being written instead of closing its bitmap mid-write`() {
-        val surface = MirrorSurface()
-        val clearStarted = CountDownLatch(1)
-        val cleared = CountDownLatch(1)
-        var closedDuringWrite = true
-        var clearedDuringWrite = true
-        surface.writeFrame(width = 4, height = 4) { target ->
-            thread {
-                clearStarted.countDown()
-                surface.switchTo("device-2")
-                cleared.countDown()
+        MirrorSurface().use { surface ->
+            val clearStarted = CountDownLatch(1)
+            val cleared = CountDownLatch(1)
+            var closedDuringWrite = true
+            var clearedDuringWrite = true
+            surface.writeFrame(width = 4, height = 4) { target ->
+                thread {
+                    clearStarted.countDown()
+                    surface.switchTo("device-2")
+                    cleared.countDown()
+                }
+                clearStarted.await()
+                clearedDuringWrite = cleared.await(CLEAR_GRACE_MILLIS, TimeUnit.MILLISECONDS)
+                closedDuringWrite = target.isClosed
+                true
             }
-            clearStarted.await()
-            clearedDuringWrite = cleared.await(CLEAR_GRACE_MILLIS, TimeUnit.MILLISECONDS)
-            closedDuringWrite = target.isClosed
-            true
-        }
-        cleared.await()
+            cleared.await()
 
-        assertFalse(clearedDuringWrite)
-        assertFalse(closedDuringWrite)
+            assertFalse(clearedDuringWrite)
+            assertFalse(closedDuringWrite)
+        }
     }
 
     @Test
@@ -226,20 +229,21 @@ class MirrorViewingTest {
 
     @Test
     fun `the decoder never writes into the bitmap being drawn`() {
-        val surface = MirrorSurface()
-        surface.writeFrame(width = 4, height = 4, write = fill(Color.RED))
-        val onScreen = surface.drawnFrame()
-        val written = mutableListOf<Any>()
+        MirrorSurface().use { surface ->
+            surface.writeFrame(width = 4, height = 4, write = fill(Color.RED))
+            val onScreen = surface.drawnFrame()
+            val written = mutableListOf<Any>()
 
-        repeat(3) {
-            surface.writeFrame(width = 4, height = 4) { bitmap ->
-                written += bitmap
-                fill(Color.GREEN)(bitmap)
+            repeat(3) {
+                surface.writeFrame(width = 4, height = 4) { bitmap ->
+                    written += bitmap
+                    fill(Color.GREEN)(bitmap)
+                }
             }
-        }
 
-        assertTrue(written.none { it === onScreen })
-        assertEquals(Color.RED, onScreen?.getColor(0, 0))
+            assertTrue(written.none { it === onScreen })
+            assertEquals(Color.RED, onScreen?.getColor(0, 0))
+        }
     }
 
     @Test
