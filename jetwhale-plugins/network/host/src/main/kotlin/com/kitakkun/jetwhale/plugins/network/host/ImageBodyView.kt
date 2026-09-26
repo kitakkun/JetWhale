@@ -94,7 +94,7 @@ internal class DecodedImage(val bytes: ByteArray, val bitmap: ImageBitmap)
 /** Decodes a Base64 image body, or null when it is not Base64 or not a format Skia can read. */
 internal fun decodeImageBody(body: String): DecodedImage? = runCatching {
     val bytes = base64Decode(body)
-    DecodedImage(bytes, SkiaImage.makeFromEncoded(bytes).toComposeImageBitmap())
+    DecodedImage(bytes, SkiaImage.makeFromEncoded(bytes).use { it.toComposeImageBitmap() })
 }.getOrNull()
 
 /** Names a downloaded image after the URL's last path segment, falling back to the media type. */

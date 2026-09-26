@@ -244,7 +244,7 @@ private fun ImagePreview(bytes: ByteArray) {
     val bitmap: ImageBitmap? = remember(bytes) {
         // Skia throws for a format it cannot read, including an image cut short by the preview size.
         try {
-            SkiaImage.makeFromEncoded(bytes).toComposeImageBitmap()
+            SkiaImage.makeFromEncoded(bytes).use { it.toComposeImageBitmap() }
         } catch (_: IllegalArgumentException) {
             null
         }
