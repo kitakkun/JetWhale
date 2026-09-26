@@ -2,12 +2,15 @@ package com.kitakkun.jetwhale.host.mcp.tools
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.unit.DpSize
@@ -53,6 +56,13 @@ private class TestPlatformContext(
 
     val semanticsOwners = mutableSetOf<SemanticsOwner>()
 
+    // Like the host's own platform context, the window a scene reports is the size it was last given:
+    // a Dialog or Popup positions itself against it.
+    override val windowInfo: WindowInfo = object : WindowInfo by base.windowInfo {
+        override val containerSize: IntSize get() = currentIntSize
+        override val containerDpSize: DpSize get() = currentDpSize
+    }
+
     val pointerIcon = mutableStateOf(PointerIcon.Default)
     override fun setPointerIcon(pointerIcon: PointerIcon) {
         this.pointerIcon.value = pointerIcon
@@ -70,9 +80,9 @@ private class TestPlatformContext(
     }
 
     // Recorded rather than fixed, so a test can tell whether a tool put the window info back.
-    override var currentIntSize: IntSize = IntSize(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT)
+    override var currentIntSize: IntSize by mutableStateOf(IntSize(TEST_SCENE_WIDTH, TEST_SCENE_HEIGHT))
         private set
-    override var currentDpSize: DpSize = DpSize(TEST_SCENE_WIDTH.dp, TEST_SCENE_HEIGHT.dp)
+    override var currentDpSize: DpSize by mutableStateOf(DpSize(TEST_SCENE_WIDTH.dp, TEST_SCENE_HEIGHT.dp))
         private set
 
     override fun updateWindowSize(intSize: IntSize, dpSize: DpSize) {
