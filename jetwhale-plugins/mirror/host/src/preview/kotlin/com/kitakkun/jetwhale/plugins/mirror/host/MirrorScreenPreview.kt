@@ -264,13 +264,17 @@ private fun DeviceToolbarPreview() {
                 pane = previewPane(previewDevices[0], androidCapabilities, recordingSinceMillis = null),
                 actions = NoActions,
                 showCaptures = false,
+                livenessOf = { DeviceLiveness.Live },
                 onToggleCaptures = {},
+                onShowGrid = {},
             )
             DeviceToolbar(
                 pane = previewPane(previewDevices[0], androidCapabilities, recordingSinceMillis = 0L),
                 actions = NoActions,
                 showCaptures = true,
+                livenessOf = { DeviceLiveness.Live },
                 onToggleCaptures = {},
+                onShowGrid = {},
             )
             DeviceToolbar(
                 pane = previewPane(
@@ -280,17 +284,19 @@ private fun DeviceToolbarPreview() {
                 ),
                 actions = NoActions,
                 showCaptures = false,
+                livenessOf = { DeviceLiveness.Live },
                 onToggleCaptures = {},
+                onShowGrid = {},
             )
         }
     }
 }
 
 private fun previewPane(device: DeviceListing, capabilities: DeviceCapabilities, recordingSinceMillis: Long?) = DevicePaneState(
+    devices = previewDevices,
     device = device,
     capabilities = capabilities,
     state = MirrorState.Streaming,
-    status = null,
     screenPower = ScreenPower(awake = true, locked = false).takeIf { capabilities.screenPower },
     recordingSinceMillis = recordingSinceMillis,
     recordingElsewhere = null,
