@@ -25,5 +25,6 @@ interface PluginComposeSceneService {
 
     fun disposePluginScenesForPlugin(pluginId: String)
 
-    fun disposeAllPluginScenes()
+    /** Disposes every connected app's scenes, keeping [HostSession]'s: the server stopping ends apps, not those. */
+    fun disposeAppSessionPluginScenes()
 }

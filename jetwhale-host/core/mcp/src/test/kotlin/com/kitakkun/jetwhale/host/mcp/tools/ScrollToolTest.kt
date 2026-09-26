@@ -190,7 +190,7 @@ class ScrollToolTest {
         override suspend fun getOrCreatePluginScene(pluginId: String, sessionId: String): PluginComposeScene = scene
         override fun disposePluginSceneForSession(sessionId: String) = Unit
         override fun disposePluginScenesForPlugin(pluginId: String) = Unit
-        override fun disposeAllPluginScenes() = Unit
+        override fun disposeAppSessionPluginScenes() = Unit
     }
 
     // The scroll handler never touches the connection, so a proxy that rejects every call is enough.

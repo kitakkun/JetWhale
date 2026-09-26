@@ -8,6 +8,7 @@ import com.kitakkun.jetwhale.host.model.HostDestination
 import com.kitakkun.jetwhale.host.model.HostDestinationKind
 import com.kitakkun.jetwhale.host.model.HostNavigationRequest
 import com.kitakkun.jetwhale.host.model.HostNavigationService
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.HostSettingsSection
 import com.kitakkun.jetwhale.host.model.McpHostToolGroup
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -46,7 +47,9 @@ class HostNavigationCommand(
 
     private val destination by enum("Which screen to show.", NavigationDestination.entries)
     private val pluginId by stringOrNull("Required when destination is PLUGIN; from jetwhale.listInstalledPlugins.")
-    private val sessionId by stringOrNull("Only for PLUGIN. Defaults to the session already selected in the drawer.")
+    private val sessionId by stringOrNull(
+        "Only for PLUGIN. Defaults to the session already selected in the drawer. A plugin that needs no app always opens in \"${HostSession.ID}\".",
+    )
     private val settingsSection by enumOrNull("Only for SETTINGS. Defaults to GENERAL.", HostSettingsSection.entries)
 
     override suspend fun execute(arguments: JetWhaleMcpArguments): String {
@@ -91,7 +94,8 @@ class HostNavigationCommand(
             val targetPluginId = this[pluginId]
                 ?: throw JetWhaleMcpArgumentException("missing required argument: pluginId is required when destination is PLUGIN")
             validatePlugin(targetPluginId, this[sessionId])
-            HostNavigationRequest.Plugin(targetPluginId, this[sessionId])
+            val targetSessionId = if (reconciliationService.requiresAgent(targetPluginId)) this[sessionId] else HostSession.ID
+            HostNavigationRequest.Plugin(targetPluginId, targetSessionId)
         }
     }
 
@@ -105,9 +109,14 @@ class HostNavigationCommand(
         }
         if (targetSessionId == null) return
 
+        // A plugin that needs no app opens in the host session whatever session was named.
+        if (!reconciliationService.requiresAgent(targetPluginId)) return
+        if (HostSession.isHost(targetSessionId)) {
+            throw JetWhaleMcpArgumentException("invalid sessionId: '$targetPluginId' needs an app; pass the id of an app session from jetwhale.listSessions.")
+        }
         val session = debugSessionRepository.debugSessionsFlow.firstOrNull()?.find { it.id == targetSessionId }
             ?: throw JetWhaleMcpArgumentException("invalid sessionId: no session '$targetSessionId'. See jetwhale.listSessions.")
-        if (reconciliationService.requiresAgent(targetPluginId) && session.installedPlugins.none { it.pluginId == targetPluginId }) {
+        if (session.installedPlugins.none { it.pluginId == targetPluginId }) {
             throw JetWhaleMcpArgumentException("invalid sessionId: session '$targetSessionId' does not have '$targetPluginId' installed on its agent.")
         }
     }
