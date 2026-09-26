@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.model.DebugWebSocketServer
 import com.kitakkun.jetwhale.host.model.DebuggerSettingsRepository
 import com.kitakkun.jetwhale.host.model.PluginDirectoryWatchService
 import com.kitakkun.jetwhale.host.model.PluginHotReloadService
+import com.kitakkun.jetwhale.host.model.PluginInstallJobService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -25,6 +26,7 @@ class ApplicationLifecycleOwner(
     private val pluginHotReloadService: PluginHotReloadService,
     private val pluginDirectoryWatchService: PluginDirectoryWatchService,
     private val settingsRepository: DebuggerSettingsRepository,
+    private val pluginInstallJobService: PluginInstallJobService,
 ) {
     enum class ApplicationState {
         NONE,
@@ -79,6 +81,8 @@ class ApplicationLifecycleOwner(
     fun shutdown() {
         mutableApplicationStateFlow.update { ApplicationState.STOPPING }
         coroutineScope.launch {
+            // First, so a half-downloaded plugin is removed from the staging directory before exit.
+            pluginInstallJobService.cancelAll()
             pluginHotReloadService.stop()
             pluginDirectoryWatchService.stop()
             mcpServerService.stop()

@@ -7,8 +7,6 @@ import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.OfficialPluginCatalog
 import com.kitakkun.jetwhale.host.model.OfficialPluginInstallService
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
-import com.kitakkun.jetwhale.host.model.PluginInstallProgress
-import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
 import com.kitakkun.jetwhale.host.sdk.JetWhaleHostPlugin
@@ -46,7 +44,6 @@ class HostPluginCommandsTest {
     private val failedJars = MutableStateFlow(listOf(FailedPluginJar("/plugins/broken.jar", "bad manifest")))
     private val untrustedJars = MutableStateFlow(listOf("/plugins/unknown.jar"))
     private val enabledPluginIds = MutableStateFlow(setOf("com.example.local"))
-    private val installProgress = MutableStateFlow<PluginInstallProgress?>(null)
 
     private val pluginFactoryRepository = mock<PluginFactoryRepository> {
         every { this@mock.loadedPlugins } returns this@HostPluginCommandsTest.loadedPlugins
@@ -61,9 +58,6 @@ class HostPluginCommandsTest {
     private val pluginInstanceService = mock<PluginInstanceService> {
         every { pluginInstanceEventFlow } returns MutableSharedFlow()
     }
-    private val pluginInstallProgressRepository = mock<PluginInstallProgressRepository> {
-        every { progressFlow } returns installProgress
-    }
     private val officialPluginInstallService = mock<OfficialPluginInstallService>(MockMode.autoUnit)
 
     private val listInstalledPlugins = ListInstalledPluginsCommand(pluginFactoryRepository, enabledPluginsRepository, pluginTrustService)
@@ -76,7 +70,6 @@ class HostPluginCommandsTest {
     private val installOfficialPlugin = InstallOfficialPluginCommand(
         officialPluginInstallService,
         pluginFactoryRepository,
-        pluginInstallProgressRepository,
     )
 
     @Test
@@ -140,16 +133,6 @@ class HostPluginCommandsTest {
             installOfficialPlugin.execute(arguments("pluginId" to JsonPrimitive("com.evil.backdoor")))
         }
         assertContains(error.message.orEmpty(), "is not an official plugin")
-    }
-
-    @Test
-    fun `installOfficialPlugin is refused while another installation is in flight`(): Unit = runBlocking {
-        installProgress.value = PluginInstallProgress.DownloadingPlugin
-
-        val error = assertFailsWith<JetWhaleMcpArgumentException> {
-            installOfficialPlugin.execute(arguments("pluginId" to JsonPrimitive(officialPluginId)))
-        }
-        assertContains(error.message.orEmpty(), "already in progress")
     }
 
     @Test

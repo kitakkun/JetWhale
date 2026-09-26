@@ -5,7 +5,8 @@ import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.OfficialPluginCatalog
-import com.kitakkun.jetwhale.host.model.PluginInstallProgress
+import com.kitakkun.jetwhale.host.model.PluginInstallJob
+import com.kitakkun.jetwhale.host.model.PluginInstallRequest
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.TrustPluginRequest
 import com.kitakkun.jetwhale.host.settings.SettingsPresenterContext
@@ -21,14 +22,17 @@ fun pluginSettingsScreenPresenter(
     loadedPlugins: ImmutableList<PluginMetaData>,
     failedJars: ImmutableList<FailedPluginJar>,
     untrustedJarPaths: ImmutableList<String>,
-    installProgress: PluginInstallProgress?,
+    installJobs: ImmutableList<PluginInstallJob>,
     signPluginTrustRegistry: Boolean,
 ): PluginSettingsScreenUiState {
     val pluginInstallMutation = rememberMutation(presenterContext.pluginInstallMutationKey)
-    val pluginInstallFromMavenMutation = rememberMutation(presenterContext.pluginInstallFromMavenMutationKey)
+    // These three only queue work in the install service and return: the install itself outlives
+    // this screen, which a mutation torn down with it could not.
+    val startPluginInstallMutation = rememberMutation(presenterContext.startPluginInstallMutationKey)
+    val cancelPluginInstallMutation = rememberMutation(presenterContext.cancelPluginInstallMutationKey)
+    val dismissPluginInstallMutation = rememberMutation(presenterContext.dismissPluginInstallMutationKey)
     val trustPluginMutation = rememberMutation(presenterContext.trustPluginMutationKey)
     val signPluginTrustRegistryMutation = rememberMutation(presenterContext.signPluginTrustRegistryMutationKey)
-    val officialPluginInstallMutation = rememberMutation(presenterContext.officialPluginInstallMutationKey)
 
     ActionEffect(screenChannel) { action ->
         when (action) {
@@ -37,11 +41,23 @@ fun pluginSettingsScreenPresenter(
             }
 
             is PluginSettingsScreenAction.InstallFromMaven -> {
-                pluginInstallFromMavenMutation.mutateAsync(action.coordinates)
+                startPluginInstallMutation.mutateAsync(PluginInstallRequest.Maven(action.coordinates))
             }
 
             is PluginSettingsScreenAction.InstallOfficialPlugin -> {
-                officialPluginInstallMutation.mutateAsync(action.plugin)
+                startPluginInstallMutation.mutateAsync(PluginInstallRequest.Official(action.plugin))
+            }
+
+            is PluginSettingsScreenAction.CancelInstall -> {
+                cancelPluginInstallMutation.mutateAsync(action.jobId)
+            }
+
+            is PluginSettingsScreenAction.RetryInstall -> {
+                startPluginInstallMutation.mutateAsync(action.request)
+            }
+
+            is PluginSettingsScreenAction.DismissInstall -> {
+                dismissPluginInstallMutation.mutateAsync(action.jobId)
             }
 
             is PluginSettingsScreenAction.UntrustedJarApproved -> {
@@ -53,13 +69,6 @@ fun pluginSettingsScreenPresenter(
             }
         }
     }
-
-    val isInstalling = pluginInstallMutation.isPending ||
-        pluginInstallFromMavenMutation.isPending ||
-        officialPluginInstallMutation.isPending
-    val installError = officialPluginInstallMutation.error?.message
-        ?: pluginInstallFromMavenMutation.error?.message
-        ?: pluginInstallMutation.error?.message
 
     return PluginSettingsScreenUiState(
         plugins = loadedPlugins.map {
@@ -73,13 +82,14 @@ fun pluginSettingsScreenPresenter(
             OfficialPluginUiState(
                 plugin = plugin,
                 isInstalled = loadedPlugins.any { it.id == plugin.pluginId },
+                installJob = installJobs.lastOrNull { it.request.pluginId == plugin.pluginId },
             )
         }.toPersistentList(),
         failedJars = failedJars,
         untrustedJarPaths = untrustedJarPaths,
         signPluginTrustRegistry = signPluginTrustRegistry,
-        isInstalling = isInstalling,
-        installProgress = installProgress,
-        installError = installError,
+        installJobs = installJobs,
+        isAddingFromFile = pluginInstallMutation.isPending,
+        addFromFileError = pluginInstallMutation.error?.message,
     )
 }

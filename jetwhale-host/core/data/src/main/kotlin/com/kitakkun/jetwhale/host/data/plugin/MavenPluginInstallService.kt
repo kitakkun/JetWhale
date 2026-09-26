@@ -10,7 +10,10 @@ import com.kitakkun.jetwhale.host.model.PluginTrustService
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
@@ -59,18 +62,29 @@ class MavenPluginInstallService(
         // to the user as a jar that appeared by other means.
         val stagedJar = try {
             File(mavenArtifactResolver.downloadJar(coordinates, appDataDirectoryProvider.getPluginStagingDirectory()))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw PluginInstallationException("Failed to download plugin $coordinates: ${e.message}", e)
         }
         try {
             downloadDeclaredDependencies(stagedJar, coordinates)
+        } catch (e: CancellationException) {
+            stagedJar.delete()
+            throw e
         } catch (e: Exception) {
             // A jar of the same name already installed stays as it was.
             stagedJar.delete()
             throw PluginInstallationException("Failed to load plugin from $coordinates: ${e.message}", e)
         }
-        val installedJar = File(appDataDirectoryProvider.getPluginDirectory(), stagedJar.name)
         pluginInstallProgressRepository.update(PluginInstallProgress.LoadingPlugin)
+        // From here the plugins directory changes: a cancel arriving now would leave a moved jar
+        // without its approval, or a replaced jar not yet put back, so this part always runs to the end.
+        withContext(NonCancellable) { putInPlaceAndLoad(stagedJar, coordinates) }
+    }
+
+    private suspend fun putInPlaceAndLoad(stagedJar: File, coordinates: MavenCoordinates) {
+        val installedJar = File(appDataDirectoryProvider.getPluginDirectory(), stagedJar.name)
         // A copy, not a move: the installed jar stays in place until the new one replaces it in one
         // step, so the watcher never sees the plugin removed.
         val previousJar = installedJar.takeIf(File::isFile)?.let { installed ->

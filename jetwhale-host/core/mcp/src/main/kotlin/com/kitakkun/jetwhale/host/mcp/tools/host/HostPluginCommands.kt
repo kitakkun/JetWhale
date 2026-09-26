@@ -10,7 +10,6 @@ import com.kitakkun.jetwhale.host.model.OfficialPlugin
 import com.kitakkun.jetwhale.host.model.OfficialPluginCatalog
 import com.kitakkun.jetwhale.host.model.OfficialPluginInstallService
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
-import com.kitakkun.jetwhale.host.model.PluginInstallProgressRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceEvent
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginTrustService
@@ -137,7 +136,6 @@ class SetPluginEnabledCommand(
 class InstallOfficialPluginCommand(
     private val officialPluginInstallService: OfficialPluginInstallService,
     private val pluginFactoryRepository: PluginFactoryRepository,
-    private val pluginInstallProgressRepository: PluginInstallProgressRepository,
 ) : HostMcpCommand() {
     override val name: String = "jetwhale.installOfficialPlugin"
     override val group: McpHostToolGroup = McpHostToolGroup.MANAGE_PLUGINS
@@ -164,11 +162,8 @@ class InstallOfficialPluginCommand(
                 ),
             )
         }
-        // A single in-flight slot is shared with the settings screen's install flow.
-        if (pluginInstallProgressRepository.progressFlow.first() != null) {
-            throw JetWhaleMcpArgumentException("another plugin installation is already in progress; try again once it finishes")
-        }
-
+        // Installs are queued with the settings screen's; this waits its turn, or joins an install of
+        // the same plugin the user already started.
         withContext(Dispatchers.IO) { officialPluginInstallService.install(plugin) }
 
         return Json.encodeToString(
