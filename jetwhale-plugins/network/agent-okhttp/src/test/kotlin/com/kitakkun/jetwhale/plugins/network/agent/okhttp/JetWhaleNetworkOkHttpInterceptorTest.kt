@@ -378,7 +378,7 @@ class JetWhaleNetworkOkHttpInterceptorTest {
             assertTrue(received.await(5, TimeUnit.SECONDS), "the client never received the WebSocket message")
             assertEquals("hello under a cap", receivedText)
         } finally {
-            webSocket.close(1000, null)
+            webSocket.cancel()
         }
     }
 
