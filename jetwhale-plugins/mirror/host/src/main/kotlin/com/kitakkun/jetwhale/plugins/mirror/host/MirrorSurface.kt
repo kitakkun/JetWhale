@@ -176,32 +176,24 @@ internal class MirrorSurface : AutoCloseable {
      */
     fun switchTo(nextDeviceId: String) {
         val kept = synchronized(lock) {
-            back?.close()
-            ready?.close()
-            back = null
-            ready = null
-            readyIsNewer = false
+            val newest = takeNewestFrame()
             val previous = deviceId
-            if (previous != nextDeviceId) {
-                val shown = front
-                when {
-                    shown == null -> Unit
-
-                    previous == null -> retire(shown)
-
-                    else -> {
-                        lastFrames.remove(previous)?.closeUnlessDrawn()
-                        lastFrames[previous] = shown
-                    }
+            when {
+                newest == null -> Unit
+                previous == null -> retire(newest)
+                previous == nextDeviceId -> front = newest
+                else -> {
+                    lastFrames.remove(previous)?.closeUnlessDrawn()
+                    lastFrames[previous] = newest
                 }
-                front = lastFrames.remove(nextDeviceId)
-                deviceId = nextDeviceId
             }
+            if (previous != nextDeviceId) front = lastFrames.remove(nextDeviceId)
+            deviceId = nextDeviceId
             while (lastFrames.size > MAX_KEPT_FRAMES) {
                 val oldest = lastFrames.keys.first()
                 lastFrames.remove(oldest)?.closeUnlessDrawn()
             }
-            front != null
+            front != null && previous != nextDeviceId
         }
         showingKeptFrame = kept
         stats = MirrorStats.Empty
@@ -238,6 +230,20 @@ internal class MirrorSurface : AutoCloseable {
         showingKeptFrame = false
         stats = MirrorStats.Empty
         frameCounter++
+    }
+
+    // Call with [lock] held. Empties the rotation and returns its newest frame, which may not have
+    // been drawn yet; the others are freed.
+    private fun takeNewestFrame(): Bitmap? {
+        val newest = if (readyIsNewer) ready else front
+        back?.close()
+        if (ready !== newest) ready?.close()
+        if (front !== newest) front?.let(::retire)
+        back = null
+        ready = null
+        front = null
+        readyIsNewer = false
+        return newest
     }
 
     // Call with [lock] held. The draw may still be using [bitmap], so the next draw closes it.
