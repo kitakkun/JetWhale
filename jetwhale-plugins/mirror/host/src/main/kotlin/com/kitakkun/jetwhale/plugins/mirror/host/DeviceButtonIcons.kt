@@ -48,6 +48,14 @@ internal val WakeIcon: ImageVector = outlineIcon("Wake") {
     lineTo(14f, 16f)
 }
 
+/** A cross: dismiss. */
+internal val CloseIcon: ImageVector = outlineIcon("Close") {
+    moveTo(6f, 6f)
+    lineTo(18f, 18f)
+    moveTo(18f, 6f)
+    lineTo(6f, 18f)
+}
+
 /** A ring: start recording. */
 internal val RecordIcon: ImageVector = outlineIcon("Record") {
     moveTo(12f, 5f)
