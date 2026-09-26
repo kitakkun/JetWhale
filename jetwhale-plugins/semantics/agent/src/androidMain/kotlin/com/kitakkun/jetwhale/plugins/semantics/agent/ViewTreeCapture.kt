@@ -198,13 +198,6 @@ private fun View.boundsInWindow(): NodeBounds {
     )
 }
 
-private fun NodeBounds.translated(offsetX: Float, offsetY: Float): NodeBounds = NodeBounds(
-    left = left + offsetX,
-    top = top + offsetY,
-    right = right + offsetX,
-    bottom = bottom + offsetY,
-)
-
 /**
  * Whether the field holds a password, in any of the input-type variations that mask it. Such a
  * field stays editable in the tree but its text is never captured.
