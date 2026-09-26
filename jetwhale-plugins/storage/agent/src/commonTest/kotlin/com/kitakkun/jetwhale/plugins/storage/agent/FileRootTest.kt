@@ -40,6 +40,8 @@ class FileRootTest {
         assertEquals("/data/user/0/app/files/datastore/.settings.preferences_pb.jetwhale-upload-a1-b2", paths.staging)
     }
 
+    // The call breaks uploadPaths' precondition on purpose: the test checks that it is enforced.
+    @Suppress("KOTRAIL_PRECONDITION_VIOLATED")
     @Test
     fun `an upload cannot replace the root itself`() {
         assertFailsWith<IllegalArgumentException> { root.uploadPaths(emptyList(), uploadId = "a1") }
