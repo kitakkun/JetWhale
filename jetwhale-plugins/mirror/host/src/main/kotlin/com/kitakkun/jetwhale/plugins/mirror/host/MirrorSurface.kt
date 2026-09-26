@@ -90,7 +90,10 @@ internal class MirrorSurface : AutoCloseable {
         frameCounter++
     }
 
-    /** Records the time the decoder took for one frame, for [stats]. */
+    /**
+     * Records the time the decoder took for one frame, for [stats]. Leave out the time spent waiting
+     * for the device to send it: a still screen sends nothing for seconds.
+     */
     fun recordDecode(nanos: Long) {
         window.recordDecode(nanos)
         publishStatsIfDue()
@@ -111,7 +114,7 @@ internal class MirrorSurface : AutoCloseable {
                 front = ready
                 ready = shown
                 readyIsNewer = false
-                window.recordDisplayed()
+                window.recordDisplayed(System.nanoTime())
             }
             front?.also { drawn = it }
         } ?: return
@@ -181,7 +184,8 @@ internal class MirrorSurface : AutoCloseable {
 
 /**
  * The cost of the mirror over the last second: frames received from the device and frames the
- * screen showed, and the average time of each stage for one frame.
+ * screen showed, the average time of each stage for one frame, and the longest gap between two
+ * shown frames, which is what a viewer sees as a stutter.
  */
 internal data class MirrorStats(
     val receivedFps: Int,
@@ -189,9 +193,10 @@ internal data class MirrorStats(
     val decodeMillis: Double,
     val copyMillis: Double,
     val drawMillis: Double,
+    val longestGapMillis: Double,
 ) {
     companion object {
-        val Empty = MirrorStats(receivedFps = 0, displayedFps = 0, decodeMillis = 0.0, copyMillis = 0.0, drawMillis = 0.0)
+        val Empty = MirrorStats(receivedFps = 0, displayedFps = 0, decodeMillis = 0.0, copyMillis = 0.0, drawMillis = 0.0, longestGapMillis = 0.0)
     }
 }
 
@@ -204,6 +209,8 @@ internal class StatsWindow {
     private var copyNanos = 0L
     private var draws = 0
     private var drawNanos = 0L
+    private var lastDisplayedAt = 0L
+    private var longestGapNanos = 0L
 
     @Synchronized
     fun recordDecode(nanos: Long) {
@@ -217,8 +224,10 @@ internal class StatsWindow {
     }
 
     @Synchronized
-    fun recordDisplayed() {
+    fun recordDisplayed(atNanos: Long) {
         displayed++
+        if (lastDisplayedAt != 0L) longestGapNanos = maxOf(longestGapNanos, atNanos - lastDisplayedAt)
+        lastDisplayedAt = atNanos
     }
 
     @Synchronized
@@ -240,6 +249,7 @@ internal class StatsWindow {
             decodeMillis = if (received == 0) 0.0 else decodeNanos / received / 1e6,
             copyMillis = if (received == 0) 0.0 else copyNanos / received / 1e6,
             drawMillis = if (draws == 0) 0.0 else drawNanos / draws / 1e6,
+            longestGapMillis = longestGapNanos / 1e6,
         )
         windowStart = now
         received = 0
@@ -248,6 +258,7 @@ internal class StatsWindow {
         copyNanos = 0
         draws = 0
         drawNanos = 0
+        longestGapNanos = 0
         return stats
     }
 }

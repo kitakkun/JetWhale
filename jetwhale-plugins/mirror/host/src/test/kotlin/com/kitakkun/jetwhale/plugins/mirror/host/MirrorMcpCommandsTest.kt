@@ -311,7 +311,7 @@ private class FakeController(
 
     override suspend fun startRecording(outputFile: File): DeviceRecording = throw deviceControlError("not recording in tests")
 
-    override suspend fun openVideoStream(): Process = throw deviceControlError("no stream in tests")
+    override suspend fun openVideoStream(wanted: IntSize?): VideoStream = throw deviceControlError("no stream in tests")
 
     override suspend fun release() = Unit
 

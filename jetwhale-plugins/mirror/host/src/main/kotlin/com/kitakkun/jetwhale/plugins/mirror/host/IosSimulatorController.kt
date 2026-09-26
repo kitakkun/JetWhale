@@ -69,8 +69,17 @@ internal class IosSimulatorController(
 
     override suspend fun sleep() = throw deviceControlError(NO_SCREEN_POWER)
 
-    override suspend fun openVideoStream(): Process = withContext(Dispatchers.IO) {
-        SystemProcessLauncher.start(listOf(requireIdb(), "video-stream", "--udid", udid, "--format", "h264", "--fps", "30"))
+    // A simulator's H.264 stream sends a frame only when the framebuffer reports damage, which a
+    // current CoreSimulator does so rarely that the picture freezes for seconds. Its raw stream is
+    // paced by --fps instead, and scaled to the view by the simulator, so there is nothing to decode.
+    override suspend fun openVideoStream(wanted: IntSize?): VideoStream {
+        val layout = rawBgraLayout(screenSize(), wanted)
+        val process = withContext(Dispatchers.IO) {
+            SystemProcessLauncher.start(
+                listOf(requireIdb(), "video-stream", "--udid", udid, "--format", "rbga", "--fps", "$RAW_STREAM_FPS", "--scale-factor", "${layout.scale}"),
+            )
+        }
+        return VideoStream.RawBgra(process, layout.frameSize)
     }
 
     override suspend fun startRecording(outputFile: File): DeviceRecording {
@@ -104,5 +113,7 @@ internal class IosSimulatorController(
         return (parseIdbScreen(description) ?: throw deviceControlError("'idb describe' reported no screen size")).also { screen = it }
     }
 }
+
+private const val RAW_STREAM_FPS = 60
 
 internal const val IDB_MISSING = "iOS input and live streaming need idb (https://fbidb.io): brew install idb-companion && pipx install fb-idb"
