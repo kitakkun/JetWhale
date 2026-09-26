@@ -97,16 +97,17 @@ private fun CaptureFilters(allDevices: Boolean, kind: CaptureKind?, day: String?
     // Chips wrap onto another line in a narrow panel, where segmented buttons would cut their labels.
     Column(Modifier.padding(JwSpacing.medium), verticalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall), verticalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
-            listOf(false, true).forEach { option ->
-                FilterChip(text = if (option) "All devices" else "This device", selected = option == allDevices, onClick = { actions.showAllDevices(option) })
-            }
-            (listOf(null) + CaptureKind.entries).forEach { option ->
-                FilterChip(text = option?.pluralLabel ?: "All kinds", selected = option == kind, onClick = { actions.filterKind(option) })
+            FilterChip(text = "This device", selected = !allDevices, onClick = { actions.showAllDevices(false) })
+            FilterChip(text = "All devices", selected = allDevices, onClick = { actions.showAllDevices(true) })
+            FilterChip(text = "All kinds", selected = kind == null, onClick = { actions.filterKind(null) })
+            CaptureKind.entries.forEach { option ->
+                FilterChip(text = option.pluralLabel, selected = option == kind, onClick = { actions.filterKind(option) })
             }
         }
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(JwSpacing.extraSmall)) {
-            (listOf(null) + days).forEach { option ->
-                FilterChip(text = option ?: "All dates", selected = option == day, onClick = { actions.filterDay(option) })
+            FilterChip(text = "All dates", selected = day == null, onClick = { actions.filterDay(null) })
+            days.forEach { option ->
+                FilterChip(text = option, selected = option == day, onClick = { actions.filterDay(option) })
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(JwSpacing.small)) {
