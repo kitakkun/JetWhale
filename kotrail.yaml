@@ -17,3 +17,7 @@ rules:
     # reports every component with more than a handful of inputs. Lazy list sections take the
     # same inputs without the annotation.
     exclude: composable || extension(androidx.compose.foundation.lazy.LazyListScope)
+  # Off until a follow-up change narrows the catches that are broad by accident and excludes the
+  # deliberate boundaries (plugin isolation, handlers that return errors as results). A warning
+  # would not do: every module compiles with allWarningsAsErrors.
+  catchTooBroad: off

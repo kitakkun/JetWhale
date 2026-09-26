@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -329,8 +330,9 @@ private fun NodeRow(
     LaunchedEffect(hovered) { onHoverChange(hovered) }
     // A row filtered or collapsed away under a resting pointer never reports leaving on its own, and
     // the box would stay on a node the pointer is no longer over.
+    val currentOnHoverChange by rememberUpdatedState(onHoverChange)
     DisposableEffect(Unit) {
-        onDispose { onHoverChange(false) }
+        onDispose { currentOnHoverChange(false) }
     }
     JwTreeRow(
         modifier = modifier.hoverable(hoverInteractionSource),

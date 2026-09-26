@@ -3,10 +3,12 @@ package com.kitakkun.jetwhale.host.data.cert
 import java.security.cert.CertPathValidator
 import java.security.cert.CertPathValidatorException
 import java.security.cert.CertificateFactory
+import java.security.cert.PKIXCertPathValidatorResult
 import java.security.cert.PKIXParameters
 import java.security.cert.TrustAnchor
 import java.security.cert.X509Certificate
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class CANameConstraintsTest {
@@ -25,10 +27,12 @@ class CANameConstraintsTest {
             ipSans = listOf("127.0.0.1", "192.168.1.50"),
         )
 
-        validateChain(server, ca)
+        val result = validateChain(server, ca)
+
+        assertEquals(server.publicKey, result.publicKey)
     }
 
-    private fun validateChain(server: X509Certificate, ca: CaMaterial) {
+    private fun validateChain(server: X509Certificate, ca: CaMaterial): PKIXCertPathValidatorResult {
         val certFactory = CertificateFactory.getInstance("X.509")
         // Include the CA certificate in the path (rather than as the trust anchor) and anchor on the
         // CA's name/key. Java's PKIX applies name constraints carried by CA certificates in the path
@@ -39,7 +43,7 @@ class CANameConstraintsTest {
             // Local PKI has no CRL/OCSP infrastructure; disable revocation checks.
             isRevocationEnabled = false
         }
-        CertPathValidator.getInstance("PKIX").validate(certPath, params)
+        return CertPathValidator.getInstance("PKIX").validate(certPath, params) as PKIXCertPathValidatorResult
     }
 
     @Test

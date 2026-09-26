@@ -2,7 +2,9 @@ package com.kitakkun.jetwhale.host.architecture
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 
@@ -48,8 +50,9 @@ fun <A> ActionEffect(
     screenChannel: ScreenChannel<A, *>,
     block: suspend (A) -> Unit,
 ) {
+    val currentBlock by rememberUpdatedState(block)
     LaunchedEffect(screenChannel) {
-        screenChannel.actions.receiveAsFlow().collect { block(it) }
+        screenChannel.actions.receiveAsFlow().collect { currentBlock(it) }
     }
 }
 
@@ -64,7 +67,8 @@ fun <R> ActionResultEffect(
     screenChannel: ScreenChannel<*, R>,
     block: suspend (R) -> Unit,
 ) {
+    val currentBlock by rememberUpdatedState(block)
     LaunchedEffect(screenChannel) {
-        screenChannel.results.receiveAsFlow().collect { block(it) }
+        screenChannel.results.receiveAsFlow().collect { currentBlock(it) }
     }
 }

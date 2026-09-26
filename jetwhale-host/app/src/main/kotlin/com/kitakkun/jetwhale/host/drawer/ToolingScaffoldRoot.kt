@@ -217,22 +217,27 @@ private fun HostNavigationRequestEffect(
     onNavigateSettings: (SettingsScreenPage) -> Unit,
     onNavigateLogViewer: () -> Unit,
 ) {
-    // The collector outlives every recomposition, so it must not close over the sessions and the
-    // selection of the composition that started it.
+    // The collector outlives every recomposition, so it must not close over the sessions, the
+    // selection or the callbacks of the composition that started it.
     val currentSessions by rememberUpdatedState(sessions)
     val currentSelectedSession by rememberUpdatedState(selectedSession)
     val currentSelectedSessionId by rememberUpdatedState(selectedSessionId)
+    val currentOnClickPlugin by rememberUpdatedState(onClickPlugin)
+    val currentOnClickInfo by rememberUpdatedState(onClickInfo)
+    val currentOnNavigateHome by rememberUpdatedState(onNavigateHome)
+    val currentOnNavigateSettings by rememberUpdatedState(onNavigateSettings)
+    val currentOnNavigateLogViewer by rememberUpdatedState(onNavigateLogViewer)
 
     LaunchedEffect(screenChannel) {
         screenContext.hostNavigationService.requests.collect { request ->
             when (request) {
-                is HostNavigationRequest.Home -> onNavigateHome()
+                is HostNavigationRequest.Home -> currentOnNavigateHome()
 
-                is HostNavigationRequest.Info -> onClickInfo()
+                is HostNavigationRequest.Info -> currentOnClickInfo()
 
-                is HostNavigationRequest.LogViewer -> onNavigateLogViewer()
+                is HostNavigationRequest.LogViewer -> currentOnNavigateLogViewer()
 
-                is HostNavigationRequest.Settings -> onNavigateSettings(request.section.toPage())
+                is HostNavigationRequest.Settings -> currentOnNavigateSettings(request.section.toPage())
 
                 is HostNavigationRequest.Plugin -> {
                     // Only a request that named no session falls back to the drawer's selection.
@@ -248,7 +253,7 @@ private fun HostNavigationRequestEffect(
                         screenChannel.send(ToolingScaffoldScreenAction.SelectSession(targetSession))
                     }
                     screenChannel.send(ToolingScaffoldScreenAction.UpdateSelectedPlugin(request.pluginId))
-                    onClickPlugin(request.pluginId, targetSession.id)
+                    currentOnClickPlugin(request.pluginId, targetSession.id)
                 }
             }
         }

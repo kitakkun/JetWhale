@@ -13,12 +13,17 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.ktor.server.websocket.WebSocketServerSession
 import io.ktor.server.websocket.WebSockets
+import io.ktor.server.websocket.receiveDeserialized
 import io.ktor.server.websocket.sendSerialized
 import io.ktor.server.websocket.webSocket
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Native and Web targets are ignored because the Ktor WebSocket test engine is not supported there.
@@ -37,30 +42,35 @@ class KtorWebSocketClientTest {
 
     @Test
     fun `test connection established successfully`() = testApplication {
-        configureTestServer()
+        val serverSawSession = CompletableDeferred<Boolean>()
+        configureTestServer { serverSawSession.complete(true) }
 
         val webSocketClient = webSocketClient()
 
         webSocketClient.openConnection(ResolvedEndpoint(TEST_SERVER_HOST, TEST_SERVER_PORT, useWss = false))
+
+        assertTrue(withTimeout(5.seconds) { serverSawSession.await() })
     }
 
     @Test
     fun `test send message`() = testApplication {
-        configureTestServer()
+        val received = CompletableDeferred<JetWhaleDebuggeeEvent>()
+        configureTestServer { received.complete(receiveDeserialized<JetWhaleDebuggeeEvent>()) }
+        val event = JetWhaleDebuggeeEvent.PluginFrameMessage(
+            frame = PluginFrame.Notification(
+                pluginId = "pluginId",
+                messageType = "test/message",
+                payload = "message",
+            ),
+        )
 
         val webSocketClient = webSocketClient()
 
         webSocketClient.openConnection(ResolvedEndpoint(TEST_SERVER_HOST, TEST_SERVER_PORT, useWss = false))
 
-        webSocketClient.sendDebuggeeEvent(
-            event = JetWhaleDebuggeeEvent.PluginFrameMessage(
-                frame = PluginFrame.Notification(
-                    pluginId = "pluginId",
-                    messageType = "test/message",
-                    payload = "message",
-                ),
-            ),
-        )
+        webSocketClient.sendDebuggeeEvent(event)
+
+        assertEquals(event, withTimeout(5.seconds) { received.await() })
     }
 
     @Test

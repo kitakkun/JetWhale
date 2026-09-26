@@ -96,10 +96,10 @@ inline fun <T1, T2, T3, T4, T5, T6> Await(
             content = errorFallback,
         )
     }
-    LaunchedEffect(id, state1, state2, state3, state4, state5, state6) {
+    LaunchedEffect(id, host, state1, state2, state3, state4, state5, state6) {
         host[id] = listOf(state1, state2, state3, state4, state5, state6).any { it.isAwaited() }
     }
-    DisposableEffect(id) {
+    DisposableEffect(id, host) {
         onDispose {
             host.remove(id)
         }

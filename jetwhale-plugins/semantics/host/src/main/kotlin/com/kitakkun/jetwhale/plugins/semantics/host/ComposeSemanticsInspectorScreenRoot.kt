@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -119,6 +120,7 @@ internal fun ComposeSemanticsInspectorScreenRoot(
     LaunchedEffect(options) {
         onCapture(options)
     }
+    val currentOnCapture by rememberUpdatedState(onCapture)
     LaunchedEffect(autoRefresh, options) {
         if (!autoRefresh) return@LaunchedEffect
         while (true) {
@@ -126,7 +128,7 @@ internal fun ComposeSemanticsInspectorScreenRoot(
             // Awaited, not fired and forgotten: captures are serialised on the app's main thread,
             // so a fixed-interval loop against a slow app would queue requests faster than they
             // drain and leave the view showing an ever-older tree.
-            onCapture(options)
+            currentOnCapture(options)
         }
     }
     LaunchedEffect(selectedKey) {
@@ -139,8 +141,9 @@ internal fun ComposeSemanticsInspectorScreenRoot(
     // Sending the target, holding it against the app's timeout and taking it down again all outlive
     // this composition, so they are the plugin's; which node to point at is the view's answer.
     LaunchedEffect(highlighted) { onHighlightTargetChange(highlighted) }
+    val currentOnHighlightTargetChange by rememberUpdatedState(onHighlightTargetChange)
     DisposableEffect(Unit) {
-        onDispose { onHighlightTargetChange(null) }
+        onDispose { currentOnHighlightTargetChange(null) }
     }
 
     ComposeSemanticsInspectorScreen(

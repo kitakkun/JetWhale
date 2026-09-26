@@ -40,15 +40,17 @@ fun <T, U : Any> MutationErrorEffect(
     block: suspend (error: Throwable) -> Unit,
 ) {
     val mutationState by rememberUpdatedState(mutation)
+    val currentKeySelector by rememberUpdatedState(keySelector)
+    val currentBlock by rememberUpdatedState(block)
     var lastConsumedKey by rememberSaveable(stateSaver = keySaver) { mutableStateOf(null) }
     LaunchedEffect(Unit) {
         snapshotFlow { mutationState as? MutationErrorObject }
             .filterNotNull()
             .collect {
-                val errorKey = keySelector(it)
+                val errorKey = currentKeySelector(it)
                 if (lastConsumedKey != errorKey) {
                     lastConsumedKey = errorKey
-                    block(it.error)
+                    currentBlock(it.error)
                 }
             }
     }

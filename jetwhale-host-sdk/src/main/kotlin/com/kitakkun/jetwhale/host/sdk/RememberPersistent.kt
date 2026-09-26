@@ -4,8 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import kotlinx.coroutines.delay
@@ -51,17 +53,20 @@ public fun <T> rememberPersistent(
                 "Is the plugin running inside a JetWhale host scene?",
         )
     val state = remember(key) { mutableStateOf(default) }
+    // Not an effect key: `serializer<T>()` builds a new instance on every call for generic types
+    // such as List<T>, so keying on it would reload the stored value on every recomposition.
+    val currentSerializer by rememberUpdatedState(serializer)
 
     LaunchedEffect(key, storage) {
         // Load the persisted value (if any) before observing writes, so the initial emission of
         // snapshotFlow below carries the loaded value, which drop(1) then skips.
-        storage.get(key, serializer)?.let { state.value = it }
+        storage.get(key, currentSerializer)?.let { state.value = it }
         snapshotFlow { state.value }
             .drop(1)
             .collectLatest { value ->
                 // Debounce bursts of writes (e.g. typing) into a single persist.
                 delay(PERSIST_DEBOUNCE_MILLIS)
-                storage.put(key, value, serializer)
+                storage.put(key, value, currentSerializer)
             }
     }
 
