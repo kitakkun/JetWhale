@@ -8,6 +8,9 @@ import okio.Path
 import okio.Path.Companion.toPath
 import java.io.File
 import java.io.IOException
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 @SingleIn(AppScope::class)
 @Inject
@@ -26,6 +29,7 @@ class AppDataDirectoryProvider(
     private val isAppDataDirOverridden = System.getProperty(APP_DATA_DIR_PROPERTY)?.isNotBlank() == true
     private val pluginDir = "$appDataDir/plugins"
     private val pluginLibsDir = "$pluginDir/libs"
+    private val pluginStagingDir = "$pluginDir/staging"
     private val dataStoreFilesDir = "$appDataDir/dataStorePreferences"
     private val pluginDataDir = "$appDataDir/plugin-data"
     private val sslDir = "$appDataDir/ssl"
@@ -110,15 +114,38 @@ class AppDataDirectoryProvider(
         if (!pluginLibsDirectory.exists()) {
             pluginLibsDirectory.mkdirs()
         }
+        val pluginStagingDirectory = File(pluginStagingDir)
+        if (!pluginStagingDirectory.exists()) {
+            pluginStagingDirectory.mkdirs()
+        }
     }
 
     fun copyJarFileToAppDataDirectory(jarFilePath: String): String {
-        val jarFileName = jarFilePath.substringAfterLast('/')
-        val destinationPath = "$pluginDir/$jarFileName"
+        val jarFileName = File(jarFilePath).name
+        val destination = File(pluginDir, jarFileName)
+        // Copied into the staging directory and moved in whole: the plugins directory is watched, and
+        // a copy that pauses long enough would be offered half-written.
+        val staged = File.createTempFile("$jarFileName.", ".part", File(pluginStagingDir))
+        try {
+            File(jarFilePath).copyTo(staged, overwrite = true)
+            moveStagedJarIntoPluginDirectory(staged, destination)
+        } finally {
+            staged.delete()
+        }
+        return destination.path
+    }
 
-        File(jarFilePath).copyTo(File(destinationPath), overwrite = true)
-
-        return destinationPath
+    /**
+     * Moves a complete jar from the staging directory to [destination] in the plugins directory,
+     * replacing a jar of the same name. Atomic where the file system supports it, so the watcher sees
+     * either the old jar or the new one; a replacing move otherwise.
+     */
+    fun moveStagedJarIntoPluginDirectory(staged: File, destination: File) {
+        try {
+            Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(staged.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 
     fun getAllPluginJarFilePaths(): List<String> {
@@ -134,6 +161,12 @@ class AppDataDirectoryProvider(
      * directory so the jars are not themselves picked up as plugins by [getAllPluginJarFilePaths].
      */
     fun getPluginLibsDirectory(): File = File(pluginLibsDir)
+
+    /**
+     * Directory an install downloads a plugin jar into before moving it into the plugins directory,
+     * so the jar enters that watched directory complete and only right before it is approved.
+     */
+    fun getPluginStagingDirectory(): File = File(pluginStagingDir)
 
     /**
      * The development-only "dev plugins directory" supplied by a plugin developer via the

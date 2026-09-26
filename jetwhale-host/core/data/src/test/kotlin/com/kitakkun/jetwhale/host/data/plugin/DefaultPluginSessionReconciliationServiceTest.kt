@@ -175,10 +175,10 @@ class DefaultPluginSessionReconciliationServiceTest {
             plugins.value = plugins.value + (plugin.manifest.pluginId to plugin)
         }
 
-        override suspend fun loadPlugin(pluginJarPath: String) = Unit
-        override suspend fun unloadPlugin(pluginId: String) = Unit
+        override suspend fun loadPlugin(pluginJarPath: String, expectedSha256: String?) = Unit
+        override suspend fun unloadPluginJar(pluginJarPath: String) = Unit
         override fun findPluginIdsByJarPath(pluginJarPath: String): List<String> = emptyList()
-        override suspend fun reloadPlugin(pluginJarPath: String): List<String> = emptyList()
+        override suspend fun reloadPlugin(pluginJarPath: String, expectedSha256: String?): List<String> = emptyList()
         override fun tryRedefinePlugin(pluginJarPath: String): List<String> = emptyList()
     }
 

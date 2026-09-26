@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -24,11 +25,14 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.kitakkun.jetwhale.host.architecture.SoilDataBoundary
 import com.kitakkun.jetwhale.host.architecture.SoilFallbackDefaults
+import com.kitakkun.jetwhale.host.component.PluginJarArrivalBanner
 import com.kitakkun.jetwhale.host.component.UpdateAvailableBanner
 import com.kitakkun.jetwhale.host.di.JetWhaleAppGraph
 import com.kitakkun.jetwhale.host.drawer.ToolingScaffoldRoot
 import com.kitakkun.jetwhale.host.model.AppLanguage
 import com.kitakkun.jetwhale.host.model.JetWhaleColorScheme
+import com.kitakkun.jetwhale.host.model.PostponeArrivedPluginJarRequest
+import com.kitakkun.jetwhale.host.model.TrustPluginRequest
 import com.kitakkun.jetwhale.host.model.UpdateCheckResult
 import com.kitakkun.jetwhale.host.navigation.DisabledPluginNavKey
 import com.kitakkun.jetwhale.host.navigation.EmptyPluginNavKey
@@ -51,6 +55,8 @@ import com.kitakkun.jetwhale.host.theme.AppEnvironment
 import com.kitakkun.jetwhale.host.theme.HostTheme
 import com.kitakkun.jetwhale.host.theme.clearFocusOnBlankPress
 import com.kitakkun.jetwhale.host.ui.JwSurface
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.launch
 import kotlinx.serialization.modules.SerializersModule
 import soil.query.compose.SwrClientProvider
 import soil.query.compose.rememberMutation
@@ -245,6 +251,9 @@ private fun ThemedHostWindow(
                                 onDismissUpdateBanner()
                                 backStack.addSingleTop(SettingsNavKey())
                             },
+                            onClickReviewArrivedPlugins = {
+                                backStack.addSingleTop(SettingsNavKey(initialPage = SettingsScreenPage.PluginSecurity))
+                            },
                         )
                     }
                 }
@@ -261,8 +270,13 @@ private fun HostWindowContent(
     isUpdateBannerDismissed: Boolean,
     onDismissUpdateBanner: () -> Unit,
     onClickOpenUpdateSettings: () -> Unit,
+    onClickReviewArrivedPlugins: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val arrivedJars = rememberSubscription(appGraph.arrivedPluginJarsSubscriptionKey).data?.jars ?: persistentListOf()
+    val trustPluginMutation = rememberMutation(appGraph.trustPluginMutationKey)
+    val postponeMutation = rememberMutation(appGraph.postponeArrivedPluginJarMutationKey)
+    val coroutineScope = rememberCoroutineScope()
     Column(modifier = modifier) {
         AnimatedVisibility(
             visible = availableUpdate != null && !isUpdateBannerDismissed,
@@ -278,6 +292,20 @@ private fun HostWindowContent(
                     onDismiss = onDismissUpdateBanner,
                 )
             }
+        }
+        AnimatedVisibility(
+            visible = arrivedJars.isNotEmpty(),
+            enter = slideInVertically(initialOffsetY = Int::unaryMinus) + expandVertically(expandFrom = Alignment.Top),
+            exit = slideOutVertically(targetOffsetY = Int::unaryMinus) + shrinkVertically(shrinkTowards = Alignment.Top),
+        ) {
+            PluginJarArrivalBanner(
+                arrivedJars = arrivedJars,
+                // A jar that cannot be loaded ends up among the failed jars in the plugin settings.
+                // Approves the content the banner showed, not whatever is at the path by now.
+                onLoad = { jar -> coroutineScope.launch { runCatching { trustPluginMutation.mutateAsync(TrustPluginRequest(jar.jarPath, jar.sha256)) } } },
+                onPostpone = { jarPath -> coroutineScope.launch { postponeMutation.mutateAsync(PostponeArrivedPluginJarRequest(jarPath)) } },
+                onReviewInSettings = onClickReviewArrivedPlugins,
+            )
         }
         JetWhaleNavDisplay(backStack)
     }
