@@ -117,7 +117,7 @@ in the IDE.
 | `pluginName` | ✅ | — | Display name in the sidebar. |
 | `version` | ✅ | — | Your plugin's version. |
 | `factoryClass` | ✅ | — | Fully-qualified `JetWhaleHostPluginFactory` the host instantiates. Needs a public no-arg constructor. |
-| `requiresAgent` | | `true` | `false` makes the plugin [host-only](#host-only-plugins-no-agent-no-messaging): no agent counterpart, no messaging, instantiated for every active session. |
+| `requiresAgent` | | `true` | `false` makes the plugin [host-only](#host-only-plugins-no-agent-no-messaging): no agent counterpart, no messaging, one instance in the `host` session, usable with no app connected. |
 | `agentVersionRange` | | none | `{ "min": …, "max": … }`, both **inclusive** and both nullable. An agent plugin whose `pluginVersion` falls outside the range is reported back to the agent as *incompatible* and never paired. Omit the object to accept any agent version. |
 | `icon` | | none | `{ "activePath": …, "inactivePath": … }` — see below. |
 
@@ -290,8 +290,10 @@ slot, so offload slow work rather than stalling inside the handler.
 If a plugin doesn't talk to the app at all — a host-side tool that just renders UI or uses the host's
 own capabilities — extend the plain `JetWhaleHostPlugin` (not `JetWhaleMessagingHostPlugin`) and set
 `"requiresAgent": false` in its manifest entry. Such a plugin has no agent counterpart and no
-`messenger`; it is made available for every active session. See
-`ExampleHostOnlyPlugin` in `jetwhale-plugins/example/host`.
+`messenger`. The host creates **one** instance of it, in the always-present session `host`, and lists
+it at the top of the sidebar, above the app picker, so it works before any app connects and is not
+recreated per app. Its MCP tools take `sessionId: "host"`. See `ExampleHostOnlyPlugin` in
+`jetwhale-plugins/example/host`.
 
 ## Exposing MCP tools <Badge type="warning" text="experimental" />
 

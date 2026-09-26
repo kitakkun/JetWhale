@@ -103,9 +103,11 @@ class SetPluginEnabledCommand(
         val shouldEnable = arguments[enabled]
 
         // Reconciliation runs asynchronously, so collect the Ready events before flipping the flag —
-        // otherwise "ok" would be reported before any instance actually exists. With nothing
-        // connected there is nothing to instantiate, so skip the wait entirely.
-        val hasActiveSession = debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().any(DebugSession::isActive)
+        // otherwise "ok" would be reported before any instance actually exists. An app plugin with
+        // nothing connected has nothing to instantiate, so skip the wait; a plugin that needs no app
+        // is instantiated in the host session, which is always there.
+        val hasTargetSession = !pluginFactoryRepository.loadedPlugins.getValue(targetPluginId).manifest.requiresAgent ||
+            debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().any(DebugSession::isActive)
         val instantiatedSessions = mutableSetOf<String>()
         coroutineScope {
             val collector = launch {
@@ -115,7 +117,7 @@ class SetPluginEnabledCommand(
                     .collect { instantiatedSessions += it.sessionId }
             }
             enabledPluginsRepository.setPluginEnabled(targetPluginId, shouldEnable)
-            if (shouldEnable && hasActiveSession) delay(INSTANTIATION_TIMEOUT_MILLIS)
+            if (shouldEnable && hasTargetSession) delay(INSTANTIATION_TIMEOUT_MILLIS)
             collector.cancel()
         }
 

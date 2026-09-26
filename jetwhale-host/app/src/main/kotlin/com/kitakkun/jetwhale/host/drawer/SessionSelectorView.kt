@@ -28,6 +28,7 @@ import com.kitakkun.jetwhale.host.ui.JwMetrics
 import com.kitakkun.jetwhale.host.ui.JwSpacing
 import com.kitakkun.jetwhale.host.ui.JwStatusDot
 import com.kitakkun.jetwhale.host.ui.JwTone
+import com.kitakkun.jetwhale.host.unnamed_app
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
@@ -130,7 +131,7 @@ private fun AppSelector(
 
     JwDropdownButton(
         modifier = modifier,
-        text = selectedSession?.appDisplayName ?: stringResource(Res.string.select_app),
+        text = selectedSession?.appTitle() ?: stringResource(Res.string.select_app),
         expanded = expanded,
         onExpandedChange = { expanded = it && apps.isNotEmpty() },
         enabled = apps.isNotEmpty(),
@@ -145,7 +146,7 @@ private fun AppSelector(
             SessionMenuItem(
                 selected = app.id == selectedSession?.id,
                 session = app,
-                displayName = app.appDisplayName,
+                displayName = app.appTitle(),
                 onClick = {
                     onSelectSession(app)
                     expanded = false
@@ -154,6 +155,10 @@ private fun AppSelector(
         }
     }
 }
+
+/** The app's name, or "Unnamed app" with the session's short id when the agent reported none. */
+@Composable
+private fun DebugSession.appTitle(): String = appLabel ?: stringResource(Res.string.unnamed_app, shortId)
 
 @Composable
 internal fun AppIcon(session: DebugSession?) {

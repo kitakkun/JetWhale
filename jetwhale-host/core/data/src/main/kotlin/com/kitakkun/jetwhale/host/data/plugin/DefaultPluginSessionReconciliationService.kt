@@ -3,6 +3,7 @@ package com.kitakkun.jetwhale.host.data.plugin
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
 import com.kitakkun.jetwhale.host.model.PluginReconciliationEvent
@@ -35,7 +36,7 @@ class DefaultPluginSessionReconciliationService(
             .map(DebugSession::id)
             .toSet()
     } else {
-        sessions.map(DebugSession::id).toSet()
+        setOf(HostSession.ID)
     }
 
     override fun reconciliationEvents(): Flow<PluginReconciliationEvent> = channelFlow {

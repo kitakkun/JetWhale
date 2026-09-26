@@ -5,6 +5,7 @@ import com.kitakkun.jetwhale.host.model.DebugSessionRepository
 import com.kitakkun.jetwhale.host.model.EnabledPluginsRepository
 import com.kitakkun.jetwhale.host.model.FailedPluginJar
 import com.kitakkun.jetwhale.host.model.HeadlessPlugins
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
@@ -55,6 +56,21 @@ class DefaultPluginSessionReconciliationServiceTest {
         },
     )
 
+    private val hostOnlyPluginId = "com.example.device"
+
+    private val hostOnlyPlugin = LoadedHostPlugin(
+        manifest = JetWhaleHostPluginManifest(
+            pluginId = hostOnlyPluginId,
+            pluginName = "Device",
+            version = "1.0.0",
+            factoryClass = "com.example.DeviceFactory",
+            requiresAgent = false,
+        ),
+        factory = object : JetWhaleHostPluginFactory {
+            override fun createPlugin(): JetWhaleHostPlugin = object : JetWhaleHostPlugin() {}
+        },
+    )
+
     /**
      * A plugin installed while its id is already in the enabled set changes neither the enabled set
      * nor the session list, so loading it must be a reconciliation trigger of its own. Without it the
@@ -81,6 +97,42 @@ class DefaultPluginSessionReconciliationServiceTest {
         assertEquals(setOf(sessionId), withTimeout(TIMEOUT_MILLIS) { instanceService.calls.receive() })
 
         collectJob.cancel()
+    }
+
+    @Test
+    fun `a plugin that needs no app is instantiated in the host session with no app connected`() = runBlocking {
+        val factoryRepository = FakePluginFactoryRepository().apply { load(hostOnlyPlugin) }
+        val instanceService = FakePluginInstanceService(factoryRepository)
+        val service = DefaultPluginSessionReconciliationService(
+            sessionRepository = FakeDebugSessionRepository(MutableStateFlow(persistentListOf())),
+            enabledPluginsRepository = FakeEnabledPluginsRepository(setOf(hostOnlyPluginId)),
+            pluginFactoryRepository = factoryRepository,
+            pluginInstanceService = instanceService,
+        )
+
+        val collectJob = launch { service.reconciliationEvents().collect { } }
+
+        assertEquals(setOf(HostSession.ID), withTimeout(TIMEOUT_MILLIS) { instanceService.calls.receive() })
+
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `a plugin that needs no app targets the host session only and an app plugin never does`() {
+        val factoryRepository = FakePluginFactoryRepository().apply {
+            load(loadedPlugin)
+            load(hostOnlyPlugin)
+        }
+        val service = DefaultPluginSessionReconciliationService(
+            sessionRepository = FakeDebugSessionRepository(MutableStateFlow(persistentListOf(activeSession))),
+            enabledPluginsRepository = FakeEnabledPluginsRepository(emptySet()),
+            pluginFactoryRepository = factoryRepository,
+            pluginInstanceService = FakePluginInstanceService(factoryRepository),
+        )
+
+        assertEquals(setOf(HostSession.ID), service.targetSessionIds(hostOnlyPluginId, listOf(activeSession)))
+        assertEquals(setOf(sessionId), service.targetSessionIds(pluginId, listOf(activeSession)))
+        assertEquals(emptySet(), service.targetSessionIds(pluginId, emptyList()))
     }
 
     private class FakeDebugSessionRepository(
@@ -158,7 +210,7 @@ class DefaultPluginSessionReconciliationServiceTest {
         override fun unloadPluginInstanceForSession(sessionId: String) = Unit
         override fun getPluginInstanceForSession(pluginId: String, sessionId: String): JetWhaleHostPlugin? = null
         override fun unloadPluginInstancesForPlugin(pluginId: String) = Unit
-        override fun clearAllPluginInstances() = Unit
+        override fun clearAppSessionPluginInstances() = Unit
         override suspend fun routeFrame(sessionId: String, frame: PluginFrame) = Unit
     }
 

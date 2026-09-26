@@ -7,7 +7,7 @@
     <string name="github_url">GitHub: https://github.com/kitakkun/JetWhale</string>
     <string name="oss_licenses">OSSライセンス</string>
     <string name="no_plugin_selected">プラグインが選択されていません</string>
-    <string name="no_session_available">利用可能なセッションがありません</string>
+    <string name="no_session_available">接続中のアプリはありません</string>
     <string name="select_device">デバイスを選択</string>
     <string name="select_app">アプリを選択</string>
     <string name="session_secure_connection">暗号化された接続 (wss)</string>
@@ -25,9 +25,6 @@
     <string name="plugins">プラグイン</string>
     <string name="no_plugins_installed">プラグインがインストールされていません。</string>
     <string name="plugin_load_error_hint">一部のプラグインの読み込みに失敗しました。設定を確認してください。</string>
-    <string name="enabled_plugins">有効なプラグイン</string>
-    <string name="disabled_plugins">無効なプラグイン</string>
-    <string name="unavailable_plugins">利用不可能なプラグイン</string>
     <string name="popout">ポップアウト表示</string>
     <string name="bring_back_from_popout">ポップアウトを戻す</string>
     <string name="enable">有効化</string>
@@ -65,11 +62,25 @@
     <string name="mcp_tools_filter_add">フィルターを追加</string>
     <string name="mcp_tools_filter_remove">フィルターを解除</string>
     <string name="app_short_name">JetWhale</string>
-    <string name="no_plugin_selected_hint">サイドバーでセッションとプラグインを選択してください。アプリは「設定 → 接続」で設定した debug server 経由で接続されます。</string>
+    <string name="no_plugin_selected_hint">サイドバーでプラグインを選んでください。アプリは「設定 → 接続」で設定した debug server 経由で接続されます。</string>
     <string name="collapse_sidebar">サイドバーを折りたたむ</string>
     <string name="expand_sidebar">サイドバーを展開</string>
     <string name="settings">設定</string>
     <string name="info">JetWhale について</string>
     <string name="plugin_actions">プラグインの操作</string>
     <string name="mcp_tools_search_clear">検索をクリア</string>
+    <string name="no_app_connected">アプリを接続すると、そのプラグインが表示されます。</string>
+    <string name="app_has_no_plugins">このアプリにはまだプラグインがありません。</string>
+    <string name="unnamed_app">名前のないアプリ (%1$s)</string>
+    <string name="plugin_not_in_app">このアプリにはこのプラグインが含まれていません</string>
+    <string name="plugin_disabled_tooltip">無効 — クリックして有効化</string>
+    <string name="plugin_disabled_title">%1$s は無効です</string>
+    <string name="plugin_enable_failed">プラグインを有効にできませんでした。もう一度お試しください。</string>
+    <string name="plugins_folded_disabled">無効 %1$d 件</string>
+    <string name="plugins_folded_not_in_app">このアプリにない %1$d 件</string>
+    <string name="plugin_not_in_app_title">このアプリには %1$s が含まれていません</string>
+    <string name="plugin_not_in_app_add_agent">アプリにプラグインの agent ライブラリを追加します:</string>
+    <string name="plugin_not_in_app_register">JetWhale を起動している箇所で登録し、アプリを再接続します:</string>
+    <string name="plugin_not_in_app_open_guide">プラグインのガイドを開く</string>
+    <string name="copy">コピー</string>
 </resources>

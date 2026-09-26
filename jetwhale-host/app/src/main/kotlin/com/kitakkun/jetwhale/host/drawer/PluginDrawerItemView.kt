@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.Res
@@ -35,12 +36,22 @@ import org.jetbrains.compose.resources.stringResource
 /** Matches the small shape the row is clipped to. */
 private val AiRingCornerRadius = 4.dp
 
+/**
+ * How far an inactive row is faded. The list's own muted color sits too close to a normal row's in the
+ * dark theme to tell them apart, and the row must stay clickable, which rules out disabling it.
+ */
+private const val INACTIVE_ROW_ALPHA = 0.45f
+
 /** Shrinks the "opens elsewhere" glyph to the tag's height. */
 private val BadgeIconInset = 3.dp
 
+/**
+ * One plugin in the drawer. An inactive plugin — switched off, or not usable right now — is drawn
+ * greyed out but stays clickable, so clicking it can explain why.
+ */
 @Composable
 fun PluginDrawerItemView(
-    enabled: Boolean,
+    active: Boolean,
     name: String,
     selected: Boolean,
     underAiControl: Boolean,
@@ -56,12 +67,13 @@ fun PluginDrawerItemView(
         JwListItem(
             text = name,
             selected = selected,
-            enabled = enabled,
+            muted = !active,
+            modifier = if (active) Modifier else Modifier.alpha(INACTIVE_ROW_ALPHA),
             onClick = onClick,
             leadingContent = {
                 JwIcon(
                     painter = when {
-                        selected && enabled -> rememberPluginIconSvgPainter(activeIconResource)
+                        selected && active -> rememberPluginIconSvgPainter(activeIconResource)
                             ?: painterResource(Res.drawable.puzzle_filled)
 
                         else -> rememberPluginIconSvgPainter(inactiveIconResource)
@@ -141,7 +153,7 @@ private fun McpBadge(
 @Composable
 private fun PluginDrawerItemViewPreview() {
     PluginDrawerItemView(
-        enabled = true,
+        active = true,
         name = "Inspector",
         selected = true,
         underAiControl = true,

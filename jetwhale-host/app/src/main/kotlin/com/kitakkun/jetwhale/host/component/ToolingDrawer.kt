@@ -7,11 +7,13 @@ import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import com.kitakkun.jetwhale.host.drawer.AiActivityUiState
 import com.kitakkun.jetwhale.host.drawer.DrawerPluginItemUiState
 import com.kitakkun.jetwhale.host.drawer.ExpandedToolingDrawerView
 import com.kitakkun.jetwhale.host.drawer.ShrunkToolingDrawerView
 import com.kitakkun.jetwhale.host.model.DebugSession
+import com.kitakkun.jetwhale.host.ui.JwMetrics
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
@@ -23,10 +25,14 @@ fun ToolingDrawer(
     selectedSession: DebugSession?,
     selectedPluginId: String,
     aiActivity: AiActivityUiState,
+    sidebarWidth: Dp,
+    onResizeSidebar: (Dp) -> Unit,
+    onSidebarResizeFinished: () -> Unit,
     onClickSettings: () -> Unit,
     onClickPluginSettings: () -> Unit,
     onClickInfo: () -> Unit,
     onClickPlugin: (String) -> Unit,
+    onClickInactivePlugin: (DrawerPluginItemUiState) -> Unit,
     onOpenMcpTools: (pluginId: String) -> Unit,
     onOpenAllMcpTools: () -> Unit,
     onSelectSession: (DebugSession) -> Unit,
@@ -51,6 +57,9 @@ fun ToolingDrawer(
                 sessions = sessions,
                 selectedSession = selectedSession,
                 aiActivity = aiActivity,
+                width = sidebarWidth,
+                onResize = onResizeSidebar,
+                onResizeFinished = onSidebarResizeFinished,
                 onClickShrinkDrawer = { expandMenu = false },
                 onClickSettings = onClickSettings,
                 onClickPluginSettings = onClickPluginSettings,
@@ -58,6 +67,7 @@ fun ToolingDrawer(
                 onOpenMcpTools = onOpenMcpTools,
                 onOpenAllMcpTools = onOpenAllMcpTools,
                 onClickPlugin = { onClickPlugin(it.id) },
+                onClickInactivePlugin = onClickInactivePlugin,
                 onSelectSession = onSelectSession,
                 onClickPopout = onClickPopout,
                 isPoppedOut = isPoppedOut,
@@ -93,10 +103,14 @@ private fun ToolingDrawerPreview() {
         selectedSession = null,
         selectedPluginId = "",
         aiActivity = AiActivityUiState.Idle,
+        sidebarWidth = JwMetrics.sidebarWidth,
+        onResizeSidebar = {},
+        onSidebarResizeFinished = {},
         onClickSettings = {},
         onClickPluginSettings = {},
         onClickInfo = {},
         onClickPlugin = {},
+        onClickInactivePlugin = {},
         onOpenMcpTools = {},
         onOpenAllMcpTools = {},
         onSelectSession = {},

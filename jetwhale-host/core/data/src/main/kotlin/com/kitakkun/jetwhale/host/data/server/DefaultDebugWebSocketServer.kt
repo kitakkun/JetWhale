@@ -61,7 +61,7 @@ class DefaultDebugWebSocketServer(
         hostDiscoveryAdvertiser.stop()
         ktorWebSocketServer.stop()
         sessionRepository.markAllSessionsInactive()
-        pluginInstanceService.clearAllPluginInstances()
+        pluginInstanceService.clearAppSessionPluginInstances()
         mutableServerStoppedFlow.emit(Unit)
     }
 

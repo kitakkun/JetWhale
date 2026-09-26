@@ -1,5 +1,7 @@
 package com.kitakkun.jetwhale.host.model
 
+import kotlinx.coroutines.flow.Flow
+
 /**
  * Persisted main window geometry, expressed in dp values.
  *
@@ -16,4 +18,9 @@ data class PersistedWindowState(
 interface WindowStateRepository {
     suspend fun loadWindowState(): PersistedWindowState?
     suspend fun saveWindowState(state: PersistedWindowState)
+
+    /** The sidebar width the user last dragged to, in dp, or null when they never resized it. */
+    val sidebarWidthFlow: Flow<Float?>
+
+    suspend fun saveSidebarWidth(widthDp: Float)
 }

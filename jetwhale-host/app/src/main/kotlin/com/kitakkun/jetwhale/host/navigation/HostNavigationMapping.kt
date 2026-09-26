@@ -45,7 +45,12 @@ fun List<NavKey>.toHostDestination(): HostDestination {
 
         LogViewerNavKey -> HostDestination(HostDestinationKind.LOG_VIEWER, poppedOutPlugins = poppedOut)
 
-        DisabledPluginNavKey -> HostDestination(HostDestinationKind.DISABLED_PLUGIN, poppedOutPlugins = poppedOut)
+        is DisabledPluginNavKey -> HostDestination(
+            kind = HostDestinationKind.DISABLED_PLUGIN,
+            pluginId = top.pluginId,
+            sessionId = top.sessionId,
+            poppedOutPlugins = poppedOut,
+        )
 
         else -> HostDestination(HostDestinationKind.HOME, poppedOutPlugins = poppedOut)
     }

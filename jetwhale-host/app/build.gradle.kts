@@ -169,6 +169,7 @@ dependencies {
 
     implementation(libs.jetbrainsComposeMaterialIconsExtended)
     testImplementation(libs.kotlinTest)
+    testImplementation(libs.jetbrainsComposeUiTestJUnit4)
 
     // Machine-specific Compose runtime dependencies resolved by Conveyor when cross-building packages
     // for each target platform. Written out rather than taken from `compose.desktop.<platform>`,

@@ -21,7 +21,7 @@ interface PluginSessionReconciliationService {
     /**
      * The ids of the sessions that should hold an instance of [pluginId] given [sessions]. An
      * agent-backed plugin targets only sessions whose agent advertised it; a host-only plugin
-     * targets every session.
+     * targets [HostSession] alone, whatever [sessions] holds.
      */
     fun targetSessionIds(pluginId: String, sessions: List<DebugSession>): Set<String>
 

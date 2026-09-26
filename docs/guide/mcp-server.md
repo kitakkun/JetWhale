@@ -44,7 +44,7 @@ from. Start here.
 
 | Tool | What it does |
 |------|--------------|
-| `jetwhale.listSessions` | Lists connected debug sessions. Takes no arguments |
+| `jetwhale.listSessions` | Lists the debug sessions: first `host`, which is always there and holds the plugins that need no app, then every connected app. Takes no arguments |
 | `jetwhale.listPlugins` | Lists the plugins available in a session. Takes a `sessionId` |
 
 ## Plugin UI tools

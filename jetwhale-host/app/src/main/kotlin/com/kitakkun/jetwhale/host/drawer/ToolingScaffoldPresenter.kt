@@ -8,18 +8,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.kitakkun.jetwhale.host.architecture.ActionEffect
 import com.kitakkun.jetwhale.host.architecture.MutationErrorEffect
 import com.kitakkun.jetwhale.host.architecture.ScreenChannel
 import com.kitakkun.jetwhale.host.component.rememberAiOperating
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.HeadlessPlugins
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.McpActivity
 import com.kitakkun.jetwhale.host.model.McpCapablePlugins
 import com.kitakkun.jetwhale.host.model.McpToolInvocation
 import com.kitakkun.jetwhale.host.model.PluginAvailability
 import com.kitakkun.jetwhale.host.model.PluginMetaData
 import com.kitakkun.jetwhale.host.model.SetPluginEnabledParams
+import com.kitakkun.jetwhale.host.model.SidebarWidth
+import com.kitakkun.jetwhale.host.ui.JwMetrics
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import soil.query.compose.rememberMutation
@@ -33,6 +38,12 @@ sealed interface ToolingScaffoldScreenAction {
 
     /** Turns the follow mode off from the banner it puts on screen, without a trip to the settings. */
     data object StopFollowingAiOperation : ToolingScaffoldScreenAction
+
+    /** The sidebar's edge was dragged to [width]; kept in memory until [SaveSidebarWidth]. */
+    data class ResizeSidebar(val width: Dp) : ToolingScaffoldScreenAction
+
+    /** The drag ended: the width the sidebar has now is stored for the next launch. */
+    data object SaveSidebarWidth : ToolingScaffoldScreenAction
 }
 
 sealed interface ToolingScaffoldScreenActionResult {
@@ -106,6 +117,7 @@ fun toolingScaffoldPresenter(
     mcpCapablePlugins: McpCapablePlugins,
     headlessPlugins: HeadlessPlugins,
     followAiOperationEnabled: Boolean,
+    persistedSidebarWidth: SidebarWidth,
     isPluginPoppedOut: (pluginId: String, sessionId: String) -> Boolean,
 ): ToolingScaffoldUiState {
     var selectedSessionId by retain { mutableStateOf("") }
@@ -119,16 +131,17 @@ fun toolingScaffoldPresenter(
 
     val setPluginEnabledMutation = rememberMutation(presenterContext.setPluginEnabledMutationKey)
     val followAiOperationMutation = rememberMutation(presenterContext.followAiOperationMutationKey)
+    val saveSidebarWidthMutation = rememberMutation(presenterContext.saveSidebarWidthMutationKey)
+    // Retained so a settings dialog over the window does not reset a width being dragged; seeded
+    // from storage only until the user drags.
+    var draggedSidebarWidth by retain { mutableStateOf<Dp?>(null) }
+    val sidebarWidth = clampSidebarWidth(draggedSidebarWidth ?: persistedSidebarWidth.widthDp?.dp ?: JwMetrics.sidebarWidth)
 
     val plugins by remember(loadedPlugins, selectedSession, enabledPluginIds, mcpCapablePlugins, headlessPlugins, activeInvocation) {
         derivedStateOf {
-            // Attribute the operation only when it targets the session the drawer is showing;
-            // highlighting a plugin for some other device would be misleading.
-            val aiControlledPluginId = activeInvocation
-                ?.takeIf { it.sessionId != null && it.sessionId == selectedSession?.id }
-                ?.pluginId
-
             loadedPlugins.map { metaData ->
+                // A plugin that needs no app lives in the host session, whatever app is selected.
+                val sessionId = if (metaData.requiresAgent) selectedSession?.id else HostSession.ID
                 val isInstalledOnAgent = selectedSession?.installedPlugins?.any { installed -> installed.pluginId == metaData.id } == true
                 val isEnabledInSettings = enabledPluginIds.contains(metaData.id)
 
@@ -138,19 +151,19 @@ fun toolingScaffoldPresenter(
                     activeIconResource = metaData.activeIconResource,
                     inactiveIconResource = metaData.inactiveIconResource,
                     pluginAvailability = when {
-                        selectedSession == null -> PluginAvailability.Unavailable
-
-                        // Host-only plugins (no agent) are available for any active session; agent-backed
-                        // plugins are only available where the session's agent advertised them.
+                        // An app plugin runs only where the selected app's agent advertised it.
                         metaData.requiresAgent && !isInstalledOnAgent -> PluginAvailability.Unavailable
 
                         isEnabledInSettings -> PluginAvailability.Enabled
 
                         else -> PluginAvailability.Disabled
                     },
-                    underAiControl = aiControlledPluginId == metaData.id,
-                    exposesMcpTools = mcpCapablePlugins.toolsFor(selectedSession?.id, metaData.id).isNotEmpty(),
-                    isHeadless = headlessPlugins.isHeadless(selectedSession?.id, metaData.id),
+                    // Attributed only when the operation targets the session this row opens in;
+                    // highlighting a plugin for some other device would be misleading.
+                    underAiControl = activeInvocation?.pluginId == metaData.id && sessionId != null && activeInvocation.sessionId == sessionId,
+                    exposesMcpTools = mcpCapablePlugins.toolsFor(sessionId, metaData.id).isNotEmpty(),
+                    isHeadless = headlessPlugins.isHeadless(sessionId, metaData.id),
+                    needsApp = metaData.requiresAgent,
                 )
             }.toImmutableList()
         }
@@ -195,6 +208,15 @@ fun toolingScaffoldPresenter(
             is ToolingScaffoldScreenAction.StopFollowingAiOperation -> {
                 followAiOperationMutation.mutateAsync(false)
             }
+
+            is ToolingScaffoldScreenAction.ResizeSidebar -> {
+                draggedSidebarWidth = clampSidebarWidth(action.width)
+            }
+
+            is ToolingScaffoldScreenAction.SaveSidebarWidth -> {
+                val width = draggedSidebarWidth ?: return@ActionEffect
+                saveSidebarWidthMutation.mutateAsync(width.value)
+            }
         }
     }
 
@@ -216,5 +238,15 @@ fun toolingScaffoldPresenter(
             // it, and a plugin popped out into its own window is watched there, not here.
             isFollowingOperation = followAiOperationEnabled && activeInvocation.movesTheWindow(selectedSessionId, isPluginPoppedOut),
         ),
+        sidebarWidth = sidebarWidth,
     )
 }
+
+/** Narrow enough to leave the plugin room in a small window, wide enough to read a plugin's name. */
+private val MIN_SIDEBAR_WIDTH = 200.dp
+
+/** Past this the sidebar only adds empty space beside short plugin names. */
+private val MAX_SIDEBAR_WIDTH = 480.dp
+
+/** [width] kept within what the sidebar can usefully be; a stored width is clamped the same way. */
+internal fun clampSidebarWidth(width: Dp): Dp = width.coerceIn(MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH)

@@ -2,6 +2,7 @@ package com.kitakkun.jetwhale.host.data.plugin
 
 import com.kitakkun.jetwhale.host.model.HeadlessPlugins
 import com.kitakkun.jetwhale.host.model.HostPluginFrameSender
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.LoadedHostPlugin
 import com.kitakkun.jetwhale.host.model.LoadedPluginInstance
 import com.kitakkun.jetwhale.host.model.PluginDataStoreRepository
@@ -243,8 +244,8 @@ class DefaultPluginInstanceService(
         loadedPlugins.keys.filter { it.pluginId == pluginId }.forEach { disposeInstance(it) }
     }
 
-    override fun clearAllPluginInstances() {
-        loadedPlugins.keys.toList().forEach { disposeInstance(it, emitEvent = false) }
+    override fun clearAppSessionPluginInstances() {
+        loadedPlugins.keys.filterNot { HostSession.isHost(it.sessionId) }.forEach { disposeInstance(it, emitEvent = false) }
     }
 
     private fun disposeInstance(key: PluginInstanceKey, emitEvent: Boolean = true) {

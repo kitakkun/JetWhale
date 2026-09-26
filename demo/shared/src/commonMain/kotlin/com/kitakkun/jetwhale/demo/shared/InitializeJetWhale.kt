@@ -8,6 +8,11 @@ import com.kitakkun.jetwhale.annotations.ExperimentalJetWhaleApi
 @OptIn(ExperimentalJetWhaleApi::class)
 fun initializeJetWhale() {
     startJetWhale {
+        app {
+            // Every platform's demo reports the same name; the desktop one would otherwise report
+            // none, which the host can only show as the machine's name.
+            appName = "JetWhale Demo"
+        }
         connection {
             // Tried in order. Loopback first, because everything that can reach it — emulators,
             // simulators, ADB-forwarded devices, the desktop app, the browser — is already there.

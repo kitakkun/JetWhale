@@ -200,7 +200,7 @@ desktop and web mostly do not:
 
 A dash means nothing is resolved and the field stays empty unless you set it in `app { }`. On
 desktop and web in particular, setting `appName` is what makes a session readable in the host's
-[device / app selector](/guide/host-window#choosing-a-session).
+[device / app selector](/guide/host-window#choosing-an-app).
 
 An `appIconPng` whose base64 form exceeds the 32KB cap is dropped with a warning — which is visible,
 since `WARN` is the default log level.

@@ -9,6 +9,9 @@ class OfficialPluginTest {
         displayName = "Example",
         description = "Example plugin",
         artifactId = "example-plugin",
+        agentArtifactId = "example-plugin-agent",
+        agentRegistration = null,
+        guidePath = "example",
     )
 
     @Test
@@ -51,5 +54,10 @@ class OfficialPluginTest {
     fun `host version snapshot detection`() {
         assertEquals(false, HostVersionInfo("1.0.0-alpha08").isSnapshot)
         assertEquals(true, HostVersionInfo("1.0.0-alpha08-SNAPSHOT").isSnapshot)
+    }
+
+    @Test
+    fun `the agent coordinates follow the host's version`() {
+        assertEquals("com.kitakkun.jetwhale:example-plugin-agent:1.2.0-SNAPSHOT", plugin.agentCoordinates(HostVersionInfo("1.2.0-SNAPSHOT")))
     }
 }

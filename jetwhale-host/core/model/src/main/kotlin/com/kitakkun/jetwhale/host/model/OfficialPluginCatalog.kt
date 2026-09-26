@@ -8,13 +8,26 @@ package com.kitakkun.jetwhale.host.model
  *
  * @property pluginId The `pluginId` the plugin declares in its manifest; used to mark it as already
  * installed.
+ * @property agentArtifactId The app-side library an app adds for this plugin, released under the
+ * same version as the host plugin.
+ * @property agentRegistration What the app passes to `register(...)` in `startJetWhale`, when one
+ * expression does it; null when the plugin's guide has to explain the choice.
+ * @property guidePath The plugin's page under the documentation site's `guide/`.
  */
 data class OfficialPlugin(
     val pluginId: String,
     val displayName: String,
     val description: String,
     val artifactId: String,
+    val agentArtifactId: String,
+    val agentRegistration: String?,
+    val guidePath: String,
 ) {
+    val guideUrl: String get() = "$DOCUMENTATION_URL/guide/$guidePath"
+
+    /** The Gradle coordinates of [agentArtifactId] for a host of [hostVersion]. */
+    fun agentCoordinates(hostVersion: HostVersionInfo): String = "$OFFICIAL_PLUGIN_GROUP_ID:$agentArtifactId:${hostVersion.version}"
+
     /**
      * Install candidates in the order to attempt them. A snapshot host installs the matching
      * `-SNAPSHOT` from the snapshots repository. A release host prefers the release artifact from
@@ -44,6 +57,7 @@ data class OfficialPlugin(
 
     companion object {
         const val OFFICIAL_PLUGIN_GROUP_ID = "com.kitakkun.jetwhale"
+        const val DOCUMENTATION_URL = "https://kitakkun.github.io/JetWhale"
     }
 }
 
@@ -54,24 +68,36 @@ object OfficialPluginCatalog {
             displayName = "Network Inspector",
             description = "Inspect and mock the HTTP traffic of connected debug sessions.",
             artifactId = "jetwhale-network-inspector",
+            agentArtifactId = "jetwhale-network-inspector-agent",
+            agentRegistration = null,
+            guidePath = "network-inspector",
         ),
         OfficialPlugin(
             pluginId = "com.kitakkun.jetwhale.nav3",
             displayName = "Nav3 Navigator",
             description = "Inspect and drive the Navigation 3 back stack of connected debug sessions.",
             artifactId = "jetwhale-nav3-navigator",
+            agentArtifactId = "jetwhale-nav3-agent",
+            agentRegistration = null,
+            guidePath = "nav3-navigator",
         ),
         OfficialPlugin(
             pluginId = "com.kitakkun.jetwhale.semantics",
             displayName = "Compose Semantics Inspector",
             description = "Browse and drive the Compose node tree of connected debug sessions.",
             artifactId = "jetwhale-compose-semantics-inspector",
+            agentArtifactId = "jetwhale-compose-semantics-inspector-agent",
+            agentRegistration = "JetWhaleSemanticsAgentPlugin()",
+            guidePath = "compose-semantics-inspector",
         ),
         OfficialPlugin(
             pluginId = "com.kitakkun.jetwhale.storage",
             displayName = "Storage Inspector",
             description = "Browse the files and key-value stores of connected debug sessions.",
             artifactId = "jetwhale-storage-inspector",
+            agentArtifactId = "jetwhale-storage-inspector-agent",
+            agentRegistration = "JetWhaleStorageAgentPlugin.platformDefaults()",
+            guidePath = "storage-inspector",
         ),
     )
 }

@@ -6,6 +6,7 @@ import com.kitakkun.jetwhale.host.mcp.errorResult
 import com.kitakkun.jetwhale.host.mcp.stringProperty
 import com.kitakkun.jetwhale.host.model.DebugSession
 import com.kitakkun.jetwhale.host.model.DebugSessionRepository
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.host.model.McpToolPermission
 import com.kitakkun.jetwhale.host.model.PluginFactoryRepository
 import com.kitakkun.jetwhale.host.model.PluginInstanceService
@@ -23,16 +24,30 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
+/** What MCP callers see the host session called; the sidebar lists its plugins without a heading. */
+private const val HOST_SESSION_NAME = "Host"
+
 /**
- * Returns a JSON string listing all currently known debug sessions.
+ * Returns a JSON string listing [HostSession], which holds the plugins that need no app and is
+ * always there, followed by every known app session.
  */
-suspend fun listSessions(debugSessionRepository: DebugSessionRepository): String {
-    val sessions = debugSessionRepository.debugSessionsFlow.firstOrNull() ?: return "[]"
-    return Json.encodeToString(sessions.map(DebugSession::toSessionInfo))
+suspend fun listSessions(
+    debugSessionRepository: DebugSessionRepository,
+    pluginFactoryRepository: PluginFactoryRepository,
+): String {
+    val hostSession = SessionInfo(
+        sessionId = HostSession.ID,
+        sessionName = HOST_SESSION_NAME,
+        isActive = true,
+        installedPlugins = pluginFactoryRepository.hostOnlyPluginIds(),
+    )
+    val appSessions = debugSessionRepository.debugSessionsFlow.firstOrNull().orEmpty().map(DebugSession::toSessionInfo)
+    return Json.encodeToString(listOf(hostSession) + appSessions)
 }
 
 /**
- * Returns a JSON string listing plugins installed in the given session.
+ * Returns a JSON string listing plugins installed in the given session: for [HostSession], the
+ * loaded plugins that need no app; for an app, the plugins its agent advertised.
  * Each entry includes whether the plugin implements [JetWhaleMcpCapablePlugin].
  */
 suspend fun listPlugins(
@@ -41,15 +56,20 @@ suspend fun listPlugins(
     pluginFactoryRepository: PluginFactoryRepository,
     pluginInstanceService: PluginInstanceService,
 ): String {
-    val session = debugSessionRepository.debugSessionsFlow
-        .firstOrNull()
-        ?.find { it.id == sessionId }
-        ?: return "[]"
+    val pluginIds = if (HostSession.isHost(sessionId)) {
+        pluginFactoryRepository.hostOnlyPluginIds()
+    } else {
+        debugSessionRepository.debugSessionsFlow
+            .firstOrNull()
+            ?.find { it.id == sessionId }
+            ?.installedPlugins
+            ?.map(JetWhalePluginInfo::pluginId)
+            ?: return "[]"
+    }
 
     val loadedPlugins = pluginFactoryRepository.loadedPlugins
-    val result = session.installedPlugins.mapNotNull { pluginInfo ->
-        val loadedPlugin = loadedPlugins[pluginInfo.pluginId] ?: return@mapNotNull null
-        val manifest = loadedPlugin.manifest
+    val result = pluginIds.mapNotNull { pluginId ->
+        val manifest = loadedPlugins[pluginId]?.manifest ?: return@mapNotNull null
         val instance = pluginInstanceService.getPluginInstanceForSession(manifest.pluginId, sessionId)
         PluginInfo(
             pluginId = manifest.pluginId,
@@ -60,6 +80,10 @@ suspend fun listPlugins(
     }
     return Json.encodeToString(result)
 }
+
+private fun PluginFactoryRepository.hostOnlyPluginIds(): List<String> = loadedPlugins.values
+    .filterNot { it.manifest.requiresAgent }
+    .map { it.manifest.pluginId }
 
 private fun DebugSession.toSessionInfo() = SessionInfo(
     sessionId = id,
@@ -75,15 +99,17 @@ private fun DebugSession.toSessionInfo() = SessionInfo(
 @ContributesIntoSet(AppScope::class)
 class ListSessionsMcpTool(
     private val debugSessionRepository: DebugSessionRepository,
+    private val pluginFactoryRepository: PluginFactoryRepository,
 ) : JetWhaleMcpTool {
     override fun register(registrar: McpToolRegistrar) {
         registrar.addTool(
             name = "jetwhale.listSessions",
-            description = "Lists all active debug sessions currently connected to JetWhale.",
+            description = "Lists the debug sessions: first \"${HostSession.ID}\", which is always present and holds the tools that need no app " +
+                "(pass it as sessionId to reach them), then every app connected to JetWhale.",
             inputSchema = ToolSchema(),
             permission = McpToolPermission.Unrestricted,
         ) { _ ->
-            val json = listSessions(debugSessionRepository)
+            val json = listSessions(debugSessionRepository, pluginFactoryRepository)
             CallToolResult(content = listOf(TextContent(json)))
         }
     }

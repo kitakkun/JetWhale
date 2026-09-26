@@ -1,5 +1,6 @@
 package com.kitakkun.jetwhale.host.data.server.negotiation
 
+import com.kitakkun.jetwhale.host.model.HostSession
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleAgentNegotiationRequest
 import com.kitakkun.jetwhale.protocol.negotiation.JetWhaleHostNegotiationResponse
 import dev.zacsweers.metro.Inject
@@ -14,8 +15,10 @@ class SessionNegotiationStrategy : NegotiationStrategy<SessionNegotiationResult>
     context(logger: Logger)
     override suspend fun DefaultWebSocketServerSession.negotiate(): SessionNegotiationResult {
         val sessionNegotiationRequest = receiveDeserialized<JetWhaleAgentNegotiationRequest.Session>()
-        val requestedSessionId = sessionNegotiationRequest.sessionId
-        val sessionId = requestedSessionId ?: UUID.randomUUID().toString()
+        // The host session's id names no app; an agent asking for it gets a fresh id like any other.
+        val sessionId = sessionNegotiationRequest.sessionId
+            ?.takeUnless(HostSession::isHost)
+            ?: UUID.randomUUID().toString()
         sendSerialized(JetWhaleHostNegotiationResponse.AcceptSession(sessionId))
         return SessionNegotiationResult(
             sessionId = sessionId,
